@@ -33,6 +33,7 @@ interface SidebarProps {
   onCreateTag: () => void
   onDeleteTag: (name: string) => void
   onSelectCommit: (hash: string) => void
+  onCompareBranch: (branchName: string) => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   showPrompt: (msg: string, defaultValue?: string) => Promise<string | null>
   showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
@@ -80,9 +81,10 @@ interface BranchItemProps {
   onDelete?: () => void
   onMerge?: () => void
   onRename?: () => void
+  onCompare?: () => void
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -91,6 +93,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   const menuItems: MenuItemDef[] = [
     ...(!current ? [{ label: '✓ Checkout', action: onCheckout }] : []),
     ...(!current && onMerge ? [{ label: `⇒ Merger dans "${currentBranch}"`, action: onMerge }] : []),
+    ...(!current && onCompare ? [{ label: `⇄ Comparer avec "${currentBranch}"`, action: onCompare }] : []),
     ...(!remote && onRename ? [{ label: '✏️ Renommer', action: onRename }] : []),
     ...((!current && !remote && onDelete) ? [
       { separator: true as const },
@@ -272,7 +275,7 @@ export default function Sidebar({
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onRefreshStashes,
   onCreateTag, onDeleteTag,
-  onSelectCommit, showToast, showPrompt, showConfirm,
+  onSelectCommit, onCompareBranch, showToast, showPrompt, showConfirm,
 }: SidebarProps) {
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
@@ -428,6 +431,7 @@ export default function Sidebar({
                 onDelete={() => onDeleteBranch(b.name)}
                 onMerge={() => onMergeBranch(b.name)}
                 onRename={() => onRenameBranch(b.name)}
+                onCompare={!b.current ? () => onCompareBranch(b.name) : undefined}
               />
             ))}
           </Section>

@@ -71,3 +71,39 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #30363d; }
+
+/* Branch Compare Modal */
+.bc-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+}
+.bc-modal {
+  background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+  width: 80vw; max-width: 900px; max-height: 70vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+}
+.bc-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid #30363d;
+}
+.bc-title { font-size: 13px; font-weight: 600; color: #e6edf3; flex: 1; }
+.bc-title code { color: #58a6ff; font-family: 'JetBrains Mono', monospace; }
+.bc-close { background: transparent; border: none; color: #8b949e; font-size: 18px; cursor: pointer; padding: 0 4px; }
+.bc-close:hover { color: #e6edf3; }
+.bc-loading { padding: 20px; text-align: center; color: #484f58; font-size: 13px; }
+.bc-grid { display: grid; grid-template-columns: 1fr 1fr; flex: 1; overflow: hidden; }
+.bc-col { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #30363d; }
+.bc-col:last-child { border-right: none; }
+.bc-col-header { padding: 8px 14px; font-size: 11px; border-bottom: 1px solid #21262d; background: #0d1117; }
+.bc-col-header code { font-family: 'JetBrains Mono', monospace; }
+.bc-list { overflow-y: auto; flex: 1; }
+.bc-empty { padding: 12px 14px; color: #484f58; font-size: 12px; }
+.bc-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 14px; border-bottom: 1px solid #21262d;
+  cursor: pointer; transition: background 0.1s;
+}
+.bc-row:hover { background: #1c2128; }
+.bc-hash { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #58a6ff; flex-shrink: 0; }
+.bc-msg { font-size: 12px; color: #c9d1d9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

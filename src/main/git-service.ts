@@ -621,6 +621,42 @@ export class GitService {
     }
   }
 
+  // ── Extended search ─────────────────────────────────────────
+
+  async searchInDiffs(query: string): Promise<{ hashes: string[] }> {
+    try {
+      const result = await this.git.raw([
+        'log', '--all', '--pretty=format:%H', '-S', query, '--max-count=100'
+      ])
+      const hashes = result.trim().split('\n').filter(Boolean)
+      return { hashes }
+    } catch (e) {
+      return { hashes: [] }
+    }
+  }
+
+  // ── Branch comparison ───────────────────────────────────────
+
+  async compareBranches(current: string, other: string): Promise<{
+    ahead: { hash: string; shortHash: string; message: string }[]
+    behind: { hash: string; shortHash: string; message: string }[]
+  }> {
+    const parse = (output: string) =>
+      output.trim().split('\n').filter(Boolean).map(line => {
+        const [hash, ...rest] = line.split('|')
+        return { hash: hash.trim(), shortHash: hash.trim().slice(0, 7), message: rest.join('|').trim() }
+      })
+    try {
+      const [aheadRaw, behindRaw] = await Promise.all([
+        this.git.raw(['log', '--pretty=format:%H|%s', `${current}..${other}`]),
+        this.git.raw(['log', '--pretty=format:%H|%s', `${other}..${current}`])
+      ])
+      return { ahead: parse(aheadRaw), behind: parse(behindRaw) }
+    } catch (e) {
+      return { ahead: [], behind: [] }
+    }
+  }
+
   // ── Reflog ─────────────────────────────────────────────────
 
   async getReflog(): Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }> {

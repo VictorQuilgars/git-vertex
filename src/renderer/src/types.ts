@@ -73,6 +73,9 @@ declare global {
       applyStash: (index: number) => Promise<R>
       popStash: (index: number) => Promise<R>
       dropStash: (index: number) => Promise<R>
+      // Extended search & branch comparison
+      searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
+      compareBranches: (current: string, other: string) => Promise<{ ahead: { hash: string; shortHash: string; message: string }[]; behind: { hash: string; shortHash: string; message: string }[] }>
       // Interactive Rebase
       getRebaseSequence: (baseHash: string) => Promise<{ commits: { hash: string; shortHash: string; message: string }[] }>
       interactiveRebase: (sequence: { action: string; hash: string }[]) => Promise<R>

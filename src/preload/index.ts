@@ -44,6 +44,9 @@ const gitAPI = {
   applyStash: (index: number) => ipcRenderer.invoke('git:apply-stash', index),
   popStash: (index: number) => ipcRenderer.invoke('git:pop-stash', index),
   dropStash: (index: number) => ipcRenderer.invoke('git:drop-stash', index),
+  // Extended search & branch comparison
+  searchInDiffs: (query: string) => ipcRenderer.invoke('git:search-in-diffs', query),
+  compareBranches: (current: string, other: string) => ipcRenderer.invoke('git:compare-branches', current, other),
   // Interactive Rebase
   getRebaseSequence: (baseHash: string) => ipcRenderer.invoke('git:get-rebase-sequence', baseHash),
   interactiveRebase: (sequence: { action: string; hash: string }[]) => ipcRenderer.invoke('git:interactive-rebase', sequence),

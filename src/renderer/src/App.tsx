@@ -14,6 +14,72 @@ import './App.css'
 interface StashEntry { index: number; message: string }
 interface TagEntry   { name: string; hash: string }
 
+// ── Branch Compare Modal ───────────────────────────────────────
+function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommit }: {
+  otherBranch: string
+  currentBranch: string
+  onClose: () => void
+  onSelectCommit: (hash: string) => void
+}) {
+  const [data, setData] = useState<{
+    ahead: { hash: string; shortHash: string; message: string }[]
+    behind: { hash: string; shortHash: string; message: string }[]
+  }>({ ahead: [], behind: [] })
+  const [loading, setLoading] = useState(true)
+
+  React.useEffect(() => {
+    window.gitAPI.compareBranches(currentBranch, otherBranch).then(r => {
+      setData(r)
+      setLoading(false)
+    })
+  }, [currentBranch, otherBranch])
+
+  return (
+    <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bc-modal">
+        <div className="bc-header">
+          <span className="bc-title">Comparaison : <code>{currentBranch}</code> ↔ <code>{otherBranch}</code></span>
+          <button className="bc-close" onClick={onClose}>×</button>
+        </div>
+        {loading ? (
+          <div className="bc-loading">Chargement…</div>
+        ) : (
+          <div className="bc-grid">
+            <div className="bc-col">
+              <div className="bc-col-header" style={{ color: '#58a6ff' }}>
+                Dans <code>{otherBranch}</code> mais pas dans <code>{currentBranch}</code> ({data.ahead.length})
+              </div>
+              <div className="bc-list">
+                {data.ahead.length === 0 && <div className="bc-empty">Aucun commit</div>}
+                {data.ahead.map(c => (
+                  <div key={c.hash} className="bc-row" onClick={() => { onSelectCommit(c.hash); onClose() }}>
+                    <code className="bc-hash">{c.shortHash}</code>
+                    <span className="bc-msg">{c.message}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bc-col">
+              <div className="bc-col-header" style={{ color: '#3fb950' }}>
+                Dans <code>{currentBranch}</code> mais pas dans <code>{otherBranch}</code> ({data.behind.length})
+              </div>
+              <div className="bc-list">
+                {data.behind.length === 0 && <div className="bc-empty">Aucun commit</div>}
+                {data.behind.map(c => (
+                  <div key={c.hash} className="bc-row" onClick={() => { onSelectCommit(c.hash); onClose() }}>
+                    <code className="bc-hash">{c.shortHash}</code>
+                    <span className="bc-msg">{c.message}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Imperative dialog helpers ──────────────────────────────────
 type DialogState =
   | { kind: 'prompt';  message: string; defaultValue?: string; resolve: (v: string | null) => void }
@@ -42,6 +108,10 @@ export default function App() {
   const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [showAllBranches, setShowAllBranches] = useState<boolean>(true)
+  const [extendedSearch, setExtendedSearch] = useState(false)
+  const [extendedSearchHashes, setExtendedSearchHashes] = useState<Set<string>>(new Set())
+  const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
+  const [compareBranchModal, setCompareBranchModal] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
   const [stashes, setStashes] = useState<StashEntry[]>([])
@@ -79,6 +149,21 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
+
+  // ── Extended search ────────────────────────────────────────
+  useEffect(() => {
+    if (!extendedSearch || !searchQuery.trim() || !repoPath) {
+      setExtendedSearchHashes(new Set())
+      return
+    }
+    setExtendedSearchLoading(true)
+    const timeout = setTimeout(async () => {
+      const r = await window.gitAPI.searchInDiffs(searchQuery.trim())
+      setExtendedSearchHashes(new Set(r.hashes ?? []))
+      setExtendedSearchLoading(false)
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [extendedSearch, searchQuery, repoPath])
 
   // ── Auto-fetch ─────────────────────────────────────────────
   useEffect(() => {
@@ -448,6 +533,9 @@ export default function App() {
         onRefresh={loadRepoData}
         loading={loading}
         lastFetchTime={lastFetchTime}
+        extendedSearch={extendedSearch}
+        extendedSearchLoading={extendedSearchLoading}
+        onToggleExtendedSearch={() => setExtendedSearch(v => !v)}
       />
 
       <div className="app-body">
@@ -479,6 +567,7 @@ export default function App() {
               const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
               if (found) setSelectedCommit(found)
             }}
+            onCompareBranch={(name) => setCompareBranchModal(name)}
             showToast={showToast}
             showPrompt={showPrompt}
             showConfirm={showConfirm}
@@ -560,6 +649,19 @@ export default function App() {
           onFinish={handleConflictFinish}
           onAbort={handleConflictAbort}
           showToast={showToast}
+        />
+      )}
+
+      {/* Branch Comparison */}
+      {compareBranchModal && (
+        <BranchCompareModal
+          otherBranch={compareBranchModal}
+          currentBranch={currentBranch}
+          onClose={() => setCompareBranchModal(null)}
+          onSelectCommit={(hash) => {
+            const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
+            if (found) setSelectedCommit(found)
+          }}
         />
       )}
 

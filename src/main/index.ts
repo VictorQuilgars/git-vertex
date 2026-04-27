@@ -245,6 +245,17 @@ ipcMain.handle('git:drop-stash', async (_event, index: number) => {
   return gitService.dropStash(index)
 })
 
+// ── IPC: Extended search & branch comparison ───────────────
+ipcMain.handle('git:search-in-diffs', async (_event, query: string) => {
+  if (!gitService) return { hashes: [] }
+  return gitService.searchInDiffs(query)
+})
+
+ipcMain.handle('git:compare-branches', async (_event, current: string, other: string) => {
+  if (!gitService) return { ahead: [], behind: [] }
+  return gitService.compareBranches(current, other)
+})
+
 // ── IPC: Interactive Rebase ────────────────────────────────
 ipcMain.handle('git:get-rebase-sequence', async (_event, baseHash: string) => {
   if (!gitService) return { commits: [] }

@@ -15,6 +15,9 @@ interface ToolbarProps {
   onRefresh: () => void
   loading: boolean
   lastFetchTime?: Date | null
+  extendedSearch?: boolean
+  extendedSearchLoading?: boolean
+  onToggleExtendedSearch?: () => void
 }
 
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
@@ -44,7 +47,8 @@ function formatFetchTime(date: Date): string {
 export default function Toolbar({
   repoPath, currentBranch, searchQuery, showAllBranches,
   onSearch, onFetch, onPush, onPull, onCreateBranch,
-  onToggleAllBranches, onRefresh, loading, lastFetchTime
+  onToggleAllBranches, onRefresh, loading, lastFetchTime,
+  extendedSearch, extendedSearchLoading, onToggleExtendedSearch
 }: ToolbarProps) {
   const isMac = (window as any).appInfo?.platform === 'darwin'
   const disabled = !repoPath || loading
@@ -176,6 +180,15 @@ export default function Toolbar({
           onChange={e => onSearch(e.target.value)}
         />
         {searchQuery && <button className="tb-clear" onClick={() => onSearch('')}>×</button>}
+        {onToggleExtendedSearch && (
+          <button
+            className={`tb-ext-search ${extendedSearch ? 'active' : ''}`}
+            onClick={onToggleExtendedSearch}
+            title="Recherche étendue dans les diffs"
+          >
+            {extendedSearchLoading ? '…' : 'Ext'}
+          </button>
+        )}
       </div>
     </div>
   )

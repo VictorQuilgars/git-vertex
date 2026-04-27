@@ -74,6 +74,19 @@
 
 @keyframes tb-spin { to { transform: rotate(360deg); } }
 
+.tb-ext-search {
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #484f58;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tb-ext-search.active { border-color: #58a6ff; color: #58a6ff; background: #1f6feb22; }
+.tb-ext-search:hover { border-color: #6e7681; color: #8b949e; }
+
 .tb-fetch-time {
   font-size: 10px;
   color: #484f58;
