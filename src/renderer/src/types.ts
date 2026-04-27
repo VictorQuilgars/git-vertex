@@ -73,6 +73,16 @@ declare global {
       applyStash: (index: number) => Promise<R>
       popStash: (index: number) => Promise<R>
       dropStash: (index: number) => Promise<R>
+      // Interactive Rebase
+      getRebaseSequence: (baseHash: string) => Promise<{ commits: { hash: string; shortHash: string; message: string }[] }>
+      interactiveRebase: (sequence: { action: string; hash: string }[]) => Promise<R>
+      // Conflict resolution
+      getConflictedFiles: () => Promise<{ files: string[] }>
+      getConflictVersions: (filepath: string) => Promise<{ base: string; ours: string; theirs: string }>
+      markResolved: (filepath: string) => Promise<R>
+      continueRebase: () => Promise<R>
+      continueMerge: () => Promise<R>
+      abortRebase: () => Promise<R>
       // Reflog
       getReflog: () => Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }>
       // File History

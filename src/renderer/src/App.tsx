@@ -7,6 +7,8 @@ import RightPanel from './components/RightPanel/RightPanel'
 import { PromptDialog, ConfirmDialog } from './components/Dialog/Dialog'
 import CommandPalette, { PaletteCommand } from './components/CommandPalette/CommandPalette'
 import { ToastProvider, useToast } from './components/Toast/Toast'
+import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
+import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -48,6 +50,8 @@ export default function App() {
   const [rightW, setRightW] = useState<number>(320)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
+  const [rebaseHash, setRebaseHash] = useState<string | null>(null)
+  const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
   )
@@ -120,6 +124,9 @@ export default function App() {
         if (cur) setCurrentBranch(cur.name)
       }
       await Promise.all([loadStashes(), loadTags()])
+      // Check for conflicts
+      const conflictRes = await window.gitAPI.getConflictedFiles()
+      setConflictFiles(conflictRes.files ?? [])
     } finally {
       setLoading(false)
     }
@@ -335,6 +342,29 @@ export default function App() {
     else showToast(`Drop échoué : ${r.error}`, 'err')
   }
 
+  // ── Conflict resolution handlers ───────────────────────────
+  const handleConflictFinish = async (action: 'rebase' | 'merge') => {
+    setLoading(true)
+    const r = action === 'rebase'
+      ? await window.gitAPI.continueRebase()
+      : await window.gitAPI.continueMerge()
+    if (r.success) {
+      showToast(`✓ ${action === 'rebase' ? 'Rebase' : 'Merge'} continué avec succès`)
+      setConflictFiles([])
+      await loadRepoData()
+    } else {
+      showToast(`Erreur : ${r.error}`, 'err')
+    }
+    setLoading(false)
+  }
+
+  const handleConflictAbort = async () => {
+    await window.gitAPI.abortRebase()
+    setConflictFiles([])
+    await loadRepoData()
+    showToast('Rebase abandonné')
+  }
+
   // ── Command palette commands ───────────────────────────────
   const buildPaletteCommands = (): PaletteCommand[] => {
     const cmds: PaletteCommand[] = [
@@ -482,6 +512,7 @@ export default function App() {
               onCreateTag={handleCreateTagAtCommit}
               onCreateBranchAt={handleCreateBranchAt}
               onCheckoutBranch={handleCheckout}
+              onInteractiveRebase={(hash) => setRebaseHash(hash)}
             />
           )}
         </div>
@@ -509,6 +540,26 @@ export default function App() {
         <CommandPalette
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
+        />
+      )}
+
+      {/* Interactive Rebase */}
+      {rebaseHash && (
+        <InteractiveRebase
+          baseHash={rebaseHash}
+          onClose={() => setRebaseHash(null)}
+          onSuccess={loadRepoData}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Conflict Resolver */}
+      {conflictFiles.length > 0 && (
+        <ConflictResolver
+          files={conflictFiles}
+          onFinish={handleConflictFinish}
+          onAbort={handleConflictAbort}
+          showToast={showToast}
         />
       )}
 

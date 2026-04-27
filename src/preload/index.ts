@@ -44,6 +44,16 @@ const gitAPI = {
   applyStash: (index: number) => ipcRenderer.invoke('git:apply-stash', index),
   popStash: (index: number) => ipcRenderer.invoke('git:pop-stash', index),
   dropStash: (index: number) => ipcRenderer.invoke('git:drop-stash', index),
+  // Interactive Rebase
+  getRebaseSequence: (baseHash: string) => ipcRenderer.invoke('git:get-rebase-sequence', baseHash),
+  interactiveRebase: (sequence: { action: string; hash: string }[]) => ipcRenderer.invoke('git:interactive-rebase', sequence),
+  // Conflict resolution
+  getConflictedFiles: () => ipcRenderer.invoke('git:get-conflicted-files'),
+  getConflictVersions: (filepath: string) => ipcRenderer.invoke('git:get-conflict-versions', filepath),
+  markResolved: (filepath: string) => ipcRenderer.invoke('git:mark-resolved', filepath),
+  continueRebase: () => ipcRenderer.invoke('git:continue-rebase'),
+  continueMerge: () => ipcRenderer.invoke('git:continue-merge'),
+  abortRebase: () => ipcRenderer.invoke('git:abort-rebase'),
   // Reflog
   getReflog: () => ipcRenderer.invoke('git:get-reflog'),
   // File History

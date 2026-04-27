@@ -245,6 +245,48 @@ ipcMain.handle('git:drop-stash', async (_event, index: number) => {
   return gitService.dropStash(index)
 })
 
+// ── IPC: Interactive Rebase ────────────────────────────────
+ipcMain.handle('git:get-rebase-sequence', async (_event, baseHash: string) => {
+  if (!gitService) return { commits: [] }
+  return gitService.getRebaseSequence(baseHash)
+})
+
+ipcMain.handle('git:interactive-rebase', async (_event, sequence: { action: string; hash: string }[]) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.interactiveRebase(sequence)
+})
+
+// ── IPC: Conflict resolution ───────────────────────────────
+ipcMain.handle('git:get-conflicted-files', async () => {
+  if (!gitService) return { files: [] }
+  return gitService.getConflictedFiles()
+})
+
+ipcMain.handle('git:get-conflict-versions', async (_event, filepath: string) => {
+  if (!gitService) return { base: '', ours: '', theirs: '' }
+  return gitService.getConflictVersions(filepath)
+})
+
+ipcMain.handle('git:mark-resolved', async (_event, filepath: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.markResolved(filepath)
+})
+
+ipcMain.handle('git:continue-rebase', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.continueRebase()
+})
+
+ipcMain.handle('git:continue-merge', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.continueMerge()
+})
+
+ipcMain.handle('git:abort-rebase', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.abortRebase()
+})
+
 // ── IPC: Reflog ────────────────────────────────────────────
 ipcMain.handle('git:get-reflog', async () => {
   if (!gitService) return { entries: [] }

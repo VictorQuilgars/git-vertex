@@ -505,6 +505,124 @@ export class GitService {
 
   // ── Reflog ─────────────────────────────────────────────────
 
+  // ── Interactive Rebase ──────────────────────────────────────
+
+  async getRebaseSequence(baseHash: string): Promise<{ commits: { hash: string; shortHash: string; message: string }[] }> {
+    try {
+      const result = await this.git.raw([
+        'log',
+        '--pretty=format:%H|%s',
+        `${baseHash}..HEAD`
+      ])
+      const commits = result.trim().split('\n').filter(Boolean).map(line => {
+        const [hash, ...rest] = line.split('|')
+        return {
+          hash: hash.trim(),
+          shortHash: hash.trim().slice(0, 7),
+          message: rest.join('|').trim()
+        }
+      }).reverse()
+      return { commits }
+    } catch (e) {
+      return { commits: [] }
+    }
+  }
+
+  async interactiveRebase(sequence: { action: string; hash: string }[]): Promise<{ success: boolean; error?: string }> {
+    const fs = await import('fs')
+    const path = await import('path')
+    const os = await import('os')
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+
+    const tmpDir = os.tmpdir()
+    const seqFile = path.join(tmpDir, `gitgui-rebase-seq-${Date.now()}.txt`)
+    const scriptFile = path.join(tmpDir, `gitgui-rebase-editor-${Date.now()}.sh`)
+
+    try {
+      const seqContent = sequence.map(s => `${s.action} ${s.hash} commit`).join('\n') + '\n'
+      fs.writeFileSync(seqFile, seqContent, 'utf8')
+      // Editor script: just copies our pre-written sequence file
+      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      fs.writeFileSync(scriptFile, scriptContent, 'utf8')
+      fs.chmodSync(scriptFile, 0o755)
+
+      await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', sequence[0].hash + '^'], {
+        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile },
+        timeout: 30000
+      })
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.stderr ?? e.message }
+    } finally {
+      try { require('fs').unlinkSync(seqFile) } catch {}
+      try { require('fs').unlinkSync(scriptFile) } catch {}
+    }
+  }
+
+  // ── Conflict detection ──────────────────────────────────────
+
+  async getConflictedFiles(): Promise<{ files: string[] }> {
+    try {
+      const status = await this.git.status()
+      const files = status.files
+        .filter(f => f.index === 'U' || f.working_dir === 'U' || (f.index === 'A' && f.working_dir === 'A') || (f.index === 'D' && f.working_dir === 'D'))
+        .map(f => f.path)
+      return { files }
+    } catch (e) {
+      return { files: [] }
+    }
+  }
+
+  async getConflictVersions(filepath: string): Promise<{ base: string; ours: string; theirs: string }> {
+    const read = async (stage: string) => {
+      try {
+        return await this.git.raw(['show', `${stage}:${filepath}`])
+      } catch { return '' }
+    }
+    const [base, ours, theirs] = await Promise.all([read(':1'), read(':2'), read(':3')])
+    return { base, ours, theirs }
+  }
+
+  async markResolved(filepath: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['add', '--', filepath])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async continueRebase(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['rebase', '--continue'])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async continueMerge(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['merge', '--continue', '--no-edit'])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async abortRebase(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['rebase', '--abort'])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // ── Reflog ─────────────────────────────────────────────────
+
   async getReflog(): Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }> {
     try {
       const result = await this.git.raw([

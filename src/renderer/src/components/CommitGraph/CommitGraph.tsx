@@ -64,6 +64,7 @@ interface CommitGraphProps {
   onCreateTag: (hash: string) => void
   onCreateBranchAt: (hash: string) => void
   onCheckoutBranch?: (name: string) => void
+  onInteractiveRebase?: (hash: string) => void
 }
 
 interface CtxState {
@@ -74,7 +75,7 @@ interface CtxState {
 
 export default function CommitGraph({
   commits, selectedHash, onSelectCommit, searchQuery, currentBranch,
-  onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onCheckoutBranch
+  onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onCheckoutBranch, onInteractiveRebase
 }: CommitGraphProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const layout = useMemo(() => computeGraphLayout(commits), [commits])
@@ -132,6 +133,11 @@ export default function CommitGraph({
         action: () => onCreateBranchAt(commit.hash),
       },
       {
+        label: '⚡ Interactive Rebase depuis ici',
+        action: () => onInteractiveRebase?.(commit.hash),
+      },
+      { separator: true },
+      {
         label: '🍒 Cherry-pick',
         action: () => onCherryPick(commit.hash),
         disabled: isHead,
@@ -169,7 +175,7 @@ export default function CommitGraph({
         action: () => navigator.clipboard.writeText(commit.hash),
       },
     ]
-  }, [currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt])
+  }, [currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onInteractiveRebase])
 
   const handleRowContextMenu = useCallback((e: React.MouseEvent, commit: LayoutCommit) => {
     e.preventDefault()
