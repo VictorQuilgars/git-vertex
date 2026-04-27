@@ -5,6 +5,8 @@ import Sidebar from './components/Sidebar/Sidebar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
 import { PromptDialog, ConfirmDialog } from './components/Dialog/Dialog'
+import CommandPalette, { PaletteCommand } from './components/CommandPalette/CommandPalette'
+import { ToastProvider, useToast } from './components/Toast/Toast'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -39,23 +41,54 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [showAllBranches, setShowAllBranches] = useState<boolean>(true)
   const [loading, setLoading] = useState<boolean>(false)
-  const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
   const [stashes, setStashes] = useState<StashEntry[]>([])
   const [tags, setTags] = useState<TagEntry[]>([])
   const [sidebarW, setSidebarW] = useState<number>(230)
   const [rightW, setRightW] = useState<number>(320)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
+  const autoFetchEnabled = useRef(
+    localStorage.getItem('autoFetch') !== 'false'
+  )
 
-  // ── Toast ──────────────────────────────────────────────────
+  // ── Toast (via ToastProvider) ──────────────────────────────
+  const toastApi = useToast()
   const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }, [])
+    if (type === 'ok') toastApi.success(msg)
+    else toastApi.error(msg)
+  }, [toastApi])
 
   // ── Load recent repos on mount ─────────────────────────────
   useEffect(() => {
     window.gitAPI.getRecentRepos().then(r => setRecentRepos(r ?? []))
   }, [])
+
+  // ── Command Palette keybinding ─────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault()
+        setPaletteOpen(o => !o)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  // ── Auto-fetch ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!repoPath || !autoFetchEnabled.current) return
+    const INTERVAL = 5 * 60 * 1000 // 5 minutes
+    const id = setInterval(async () => {
+      const r = await window.gitAPI.fetch()
+      if (r.success) {
+        setLastFetchTime(new Date())
+        await loadRepoData()
+      }
+    }, INTERVAL)
+    return () => clearInterval(id)
+  }, [repoPath, loadRepoData])
 
   // ── Load stashes ───────────────────────────────────────────
   const loadStashes = useCallback(async () => {
@@ -302,6 +335,56 @@ export default function App() {
     else showToast(`Drop échoué : ${r.error}`, 'err')
   }
 
+  // ── Command palette commands ───────────────────────────────
+  const buildPaletteCommands = (): PaletteCommand[] => {
+    const cmds: PaletteCommand[] = [
+      { id: 'fetch', label: 'Fetch', icon: '⬇', action: handleFetch },
+      { id: 'pull', label: 'Pull', icon: '⇩', action: handlePull },
+      { id: 'push', label: 'Push', icon: '⬆', action: handlePush },
+      { id: 'new-branch', label: 'Nouvelle branche', icon: '⎇', action: handleCreateBranch },
+      { id: 'open-repo', label: 'Ouvrir un dépôt', icon: '📂', action: handleOpenRepo },
+      { id: 'refresh', label: 'Rafraîchir', icon: '↺', action: loadRepoData },
+    ]
+    if (repoPath) {
+      branches.filter(b => !b.remote && !b.current).forEach(b => {
+        cmds.push({
+          id: `checkout-${b.name}`,
+          label: `Checkout ${b.name}`,
+          icon: '✓',
+          action: () => handleCheckout(b.name),
+        })
+      })
+      branches.filter(b => !b.remote && !b.current).forEach(b => {
+        cmds.push({
+          id: `merge-${b.name}`,
+          label: `Merger ${b.name}`,
+          icon: '⇒',
+          action: () => handleMergeBranch(b.name),
+        })
+      })
+      tags.forEach(t => {
+        cmds.push({
+          id: `tag-${t.name}`,
+          label: `Tag: ${t.name}`,
+          icon: '🏷',
+          action: () => {
+            const found = commits.find(c => c.hash.startsWith(t.hash))
+            if (found) setSelectedCommit(found)
+          },
+        })
+      })
+      stashes.forEach(s => {
+        cmds.push({
+          id: `stash-${s.index}`,
+          label: `Appliquer stash: ${s.message.replace(/^stash@\{\d+\}: /, '')}`,
+          icon: '📦',
+          action: () => handleApplyStash(s.index),
+        })
+      })
+    }
+    return cmds
+  }
+
   // ── Resize handlers ────────────────────────────────────────
   const startResizeSidebar = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -334,6 +417,7 @@ export default function App() {
         onToggleAllBranches={() => setShowAllBranches(v => !v)}
         onRefresh={loadRepoData}
         loading={loading}
+        lastFetchTime={lastFetchTime}
       />
 
       <div className="app-body">
@@ -420,11 +504,12 @@ export default function App() {
         )}
       </div>
 
-      {/* Toast */}
-      {toast && (
-        <div className={`toast toast-${toast.type}`}>
-          {toast.type === 'ok' ? '✓' : '✕'} {toast.msg}
-        </div>
+      {/* Command Palette */}
+      {paletteOpen && (
+        <CommandPalette
+          commands={buildPaletteCommands()}
+          onClose={() => setPaletteOpen(false)}
+        />
       )}
 
       {/* Custom dialogs (remplace window.prompt / window.confirm) */}

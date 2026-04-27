@@ -73,3 +73,10 @@
 .tb-clear:hover { color: #e6edf3; }
 
 @keyframes tb-spin { to { transform: rotate(360deg); } }
+
+.tb-fetch-time {
+  font-size: 10px;
+  color: #484f58;
+  white-space: nowrap;
+  margin-right: 4px;
+}

@@ -14,6 +14,7 @@ interface ToolbarProps {
   onToggleAllBranches: () => void
   onRefresh: () => void
   loading: boolean
+  lastFetchTime?: Date | null
 }
 
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
@@ -33,10 +34,17 @@ function TBtn({ icon, label, onClick, disabled, title, accent }: {
   )
 }
 
+function formatFetchTime(date: Date): string {
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (diff < 60) return 'fetched à l\'instant'
+  const mins = Math.floor(diff / 60)
+  return `fetched il y a ${mins} min`
+}
+
 export default function Toolbar({
   repoPath, currentBranch, searchQuery, showAllBranches,
   onSearch, onFetch, onPush, onPull, onCreateBranch,
-  onToggleAllBranches, onRefresh, loading
+  onToggleAllBranches, onRefresh, loading, lastFetchTime
 }: ToolbarProps) {
   const isMac = (window as any).appInfo?.platform === 'darwin'
   const disabled = !repoPath || loading
@@ -148,6 +156,13 @@ export default function Toolbar({
       </button>
 
       <div style={{ flex: 1 }} />
+
+      {/* Auto-fetch indicator */}
+      {lastFetchTime && (
+        <span className="tb-fetch-time" title="Auto-fetch actif (toutes les 5 min)">
+          ↺ {formatFetchTime(lastFetchTime)}
+        </span>
+      )}
 
       {/* Search */}
       <div className="tb-search">
