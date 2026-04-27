@@ -1,0 +1,543 @@
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { BranchInfo } from '../../types'
+import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import './Sidebar.css'
+
+interface StashEntry { index: number; message: string }
+interface TagEntry   { name: string; hash: string }
+
+interface ReflogEntry { hash: string; ref: string; message: string; date: string }
+interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
+
+interface SidebarProps {
+  repoPath: string | null
+  repoName: string
+  currentBranch: string
+  branches: BranchInfo[]
+  recentRepos: string[]
+  stashes: StashEntry[]
+  tags: TagEntry[]
+  onOpenRepo: () => void
+  onSetRepo: (path: string) => void
+  onRemoveRecent: (path: string) => void
+  onCheckout: (name: string) => void
+  onCreateBranch: () => void
+  onDeleteBranch: (name: string) => void
+  onMergeBranch: (name: string) => void
+  onRenameBranch: (name: string) => void
+  onCreateStash: () => void
+  onApplyStash: (index: number) => void
+  onPopStash: (index: number) => void
+  onDropStash: (index: number) => void
+  onRefreshStashes: () => void
+  onCreateTag: () => void
+  onDeleteTag: (name: string) => void
+  onSelectCommit: (hash: string) => void
+  showToast: (msg: string, type?: 'ok' | 'err') => void
+  showPrompt: (msg: string, defaultValue?: string) => Promise<string | null>
+  showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
+}
+
+// ── Collapse section ─────────────────────────────────────────────
+function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }: {
+  title: string
+  count?: number
+  children: React.ReactNode
+  defaultOpen?: boolean
+  onAdd?: () => void
+  addLabel?: string
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="sb-section">
+      <div className="sb-section-header" onClick={() => setOpen(o => !o)}>
+        <svg className={`chevron ${open ? 'open' : ''}`} width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+          <path d="m4 1 8 7-8 7V1z"/>
+        </svg>
+        <span className="sb-section-title">{title}</span>
+        {count !== undefined && <span className="sb-section-count">{count}</span>}
+        {onAdd && (
+          <button className="sb-add-btn" title={addLabel ?? 'Ajouter'}
+            onClick={e => { e.stopPropagation(); onAdd() }}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
+            </svg>
+          </button>
+        )}
+      </div>
+      {open && <div className="sb-section-body">{children}</div>}
+    </div>
+  )
+}
+
+// ── Branch item with context menu ────────────────────────────────
+interface BranchItemProps {
+  name: string
+  current: boolean
+  remote?: boolean
+  currentBranch: string
+  onCheckout: () => void
+  onDelete?: () => void
+  onMerge?: () => void
+  onRename?: () => void
+}
+
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename }: BranchItemProps) {
+  const [hover, setHover] = useState(false)
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const lastClickTime = useRef(0)
+  const display = remote ? name.replace(/^remotes\/[^/]+\//, '') : name
+
+  const menuItems: MenuItemDef[] = [
+    ...(!current ? [{ label: '✓ Checkout', action: onCheckout }] : []),
+    ...(!current && onMerge ? [{ label: `⇒ Merger dans "${currentBranch}"`, action: onMerge }] : []),
+    ...(!remote && onRename ? [{ label: '✏️ Renommer', action: onRename }] : []),
+    ...((!current && !remote && onDelete) ? [
+      { separator: true as const },
+      { label: '🗑 Supprimer', action: onDelete, danger: true },
+    ] : []),
+  ]
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (current) return
+    const now = Date.now()
+    if (now - lastClickTime.current < 400) {
+      // Double-click détecté : bloquer la sélection AVANT que le navigateur agisse
+      e.preventDefault()
+      onCheckout()
+      lastClickTime.current = 0
+    } else {
+      lastClickTime.current = now
+    }
+  }
+
+  return (
+    <>
+      <div
+        className={`sb-branch-item ${current ? 'current' : ''} ${remote ? 'remote' : ''}`}
+        onMouseDown={handleMouseDown}
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        title={current ? `${name} (branche courante)` : `Double-clic: checkout • Clic droit: options`}
+      >
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="branch-icon">
+          <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
+        </svg>
+        <span className="sb-branch-name">{display}</span>
+        {current && (
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="#3fb950" className="current-check">
+            <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
+          </svg>
+        )}
+        {hover && !current && onDelete && (
+          <button className="sb-delete-btn" title="Supprimer"
+            onClick={e => { e.stopPropagation(); onDelete() }}>
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/>
+            </svg>
+          </button>
+        )}
+      </div>
+      {ctx && menuItems.length > 0 && (
+        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
+      )}
+    </>
+  )
+}
+
+// ── Stash item ────────────────────────────────────────────────────
+function StashItem({ stash, onApply, onPop, onDrop }: {
+  stash: StashEntry
+  onApply: () => void
+  onPop: () => void
+  onDrop: () => void
+}) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const label = stash.message.replace(/^stash@\{\d+\}: /, '')
+
+  const menuItems: MenuItemDef[] = [
+    { label: '▶ Appliquer (garder)', action: onApply },
+    { label: '▶ Appliquer (pop)', action: onPop },
+    { separator: true },
+    { label: '🗑 Supprimer', action: onDrop, danger: true },
+  ]
+
+  return (
+    <>
+      <div
+        className="sb-stash-item"
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={stash.message}
+      >
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="stash-icon">
+          <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h8.75a.75.75 0 0 1 0 1.5H2.5a.5.5 0 0 0 0 1H8a1 1 0 0 1 1 1v3.75a.75.75 0 0 1-1.5 0V6H2.5A1.5 1.5 0 0 1 1 4.5v-1Zm3 9A1.5 1.5 0 0 1 2.5 11h1.25a.75.75 0 0 0 0-1.5H2.5A1.5 1.5 0 0 1 1 8v-.5a.75.75 0 0 1 1.5 0V8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-.5a.75.75 0 0 1 1.5 0V8a1.5 1.5 0 0 1-1.5 1.5H4.5v1H14a.75.75 0 0 1 0 1.5H4.5v.5a.75.75 0 0 1-1.5 0v-.5Z"/>
+        </svg>
+        <span className="sb-stash-label">{label}</span>
+        <span className="sb-stash-index">#{stash.index}</span>
+      </div>
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
+      )}
+    </>
+  )
+}
+
+// ── Tag item ──────────────────────────────────────────────────────
+function TagItem({ tag, onDelete }: { tag: TagEntry; onDelete: () => void }) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const menuItems: MenuItemDef[] = [
+    { label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(tag.name) },
+    { separator: true },
+    { label: '🗑 Supprimer', action: onDelete, danger: true },
+  ]
+
+  return (
+    <>
+      <div
+        className="sb-tag-item"
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={`${tag.name} → ${tag.hash}`}
+      >
+        <span className="sb-tag-icon">🏷</span>
+        <span className="sb-tag-name">{tag.name}</span>
+        <code className="sb-tag-hash">{tag.hash}</code>
+      </div>
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
+      )}
+    </>
+  )
+}
+
+// ── Reflog item ───────────────────────────────────────────────────
+function ReflogItem({ entry, onSelect }: { entry: ReflogEntry; onSelect: () => void }) {
+  return (
+    <div className="sb-reflog-item" onClick={onSelect} title={`${entry.ref}: ${entry.message}`}>
+      <span className="sb-reflog-icon">📋</span>
+      <div className="sb-reflog-info">
+        <span className="sb-reflog-ref">{entry.ref}</span>
+        <span className="sb-reflog-msg">{entry.message}</span>
+        <span className="sb-reflog-date">{entry.date}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Remote item ───────────────────────────────────────────────────
+function RemoteItem({
+  remote, onFetch, onRename, onRemove, onCopyUrl
+}: {
+  remote: RemoteEntry
+  onFetch: () => void
+  onRename: () => void
+  onRemove: () => void
+  onCopyUrl: () => void
+}) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const menuItems: MenuItemDef[] = [
+    { label: '⬇ Fetch ce remote', action: onFetch },
+    { label: '📋 Copier l\'URL', action: onCopyUrl },
+    { label: '✏️ Renommer', action: onRename },
+    { separator: true },
+    { label: '🗑 Supprimer', action: onRemove, danger: true },
+  ]
+
+  return (
+    <>
+      <div
+        className="sb-remote-item"
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={remote.fetchUrl}
+      >
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="remote-icon">
+          <path d="M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2ZM1.5 12.251c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V5.809L8.38 9.397a.75.75 0 0 1-.76 0L1.5 5.809v6.442Zm13-8.181v-.32a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25v.32L8 7.88Z"/>
+        </svg>
+        <div className="sb-remote-info">
+          <span className="sb-remote-name">{remote.name}</span>
+          <span className="sb-remote-url">{remote.fetchUrl}</span>
+        </div>
+      </div>
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
+      )}
+    </>
+  )
+}
+
+// ── Main Sidebar ──────────────────────────────────────────────────
+export default function Sidebar({
+  repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags,
+  onOpenRepo, onSetRepo, onRemoveRecent,
+  onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
+  onCreateStash, onApplyStash, onPopStash, onDropStash, onRefreshStashes,
+  onCreateTag, onDeleteTag,
+  onSelectCommit, showToast, showPrompt, showConfirm,
+}: SidebarProps) {
+  const [reflog, setReflog] = useState<ReflogEntry[]>([])
+  const [remotes, setRemotes] = useState<RemoteEntry[]>([])
+
+  useEffect(() => {
+    if (!repoPath) return
+    window.gitAPI.getReflog().then(r => setReflog(r.entries ?? []))
+    window.gitAPI.getRemotes().then(r => setRemotes(r.remotes ?? []))
+  }, [repoPath])
+
+  const handleAddRemote = async () => {
+    const name = await showPrompt('Nom du remote :')
+    if (!name) return
+    const url = await showPrompt('URL du remote :')
+    if (!url) return
+    const r = await window.gitAPI.addRemote(name, url)
+    if (r.success) {
+      showToast(`✓ Remote "${name}" ajouté`)
+      const updated = await window.gitAPI.getRemotes()
+      setRemotes(updated.remotes ?? [])
+    } else {
+      showToast(`Erreur : ${r.error}`, 'err')
+    }
+  }
+
+  const handleRemoveRemote = async (name: string) => {
+    const ok = await showConfirm(`Supprimer le remote "${name}" ?`, true)
+    if (!ok) return
+    const r = await window.gitAPI.removeRemote(name)
+    if (r.success) {
+      showToast(`Remote "${name}" supprimé`)
+      const updated = await window.gitAPI.getRemotes()
+      setRemotes(updated.remotes ?? [])
+    } else {
+      showToast(`Erreur : ${r.error}`, 'err')
+    }
+  }
+
+  const handleRenameRemote = async (name: string) => {
+    const newName = await showPrompt(`Renommer "${name}" en :`, name)
+    if (!newName || newName === name) return
+    const r = await window.gitAPI.renameRemote(name, newName)
+    if (r.success) {
+      showToast(`✓ Remote renommé en "${newName}"`)
+      const updated = await window.gitAPI.getRemotes()
+      setRemotes(updated.remotes ?? [])
+    } else {
+      showToast(`Erreur : ${r.error}`, 'err')
+    }
+  }
+
+  const handleFetchRemote = async (name: string) => {
+    const r = await window.gitAPI.fetchRemote(name)
+    if (r.success) showToast(`✓ Fetch "${name}" réussi`)
+    else showToast(`Fetch échoué : ${r.error}`, 'err')
+  }
+  const [repoMenuOpen, setRepoMenuOpen] = useState(false)
+  const [branchFilter, setBranchFilter] = useState('')
+  const repoMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (repoMenuRef.current && !repoMenuRef.current.contains(e.target as Node)) {
+        setRepoMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const localBranches = branches
+    .filter(b => !b.remote)
+    .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+  const remoteBranches = branches
+    .filter(b => b.remote)
+    .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+
+  const otherRecents = recentRepos.filter(r => r !== repoPath)
+
+  return (
+    <div className="sidebar">
+      {/* ── Repo selector ── */}
+      <div className="sb-repo-area" ref={repoMenuRef}>
+        <button className="sb-repo-btn" onClick={() => setRepoMenuOpen(o => !o)}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="#3fb950">
+            <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+          </svg>
+          <span className="sb-repo-name">{repoName || 'Ouvrir un dépôt'}</span>
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z"/>
+          </svg>
+        </button>
+
+        {repoMenuOpen && (
+          <div className="sb-repo-dropdown">
+            <button className="sb-dropdown-item sb-open-item"
+              onClick={() => { onOpenRepo(); setRepoMenuOpen(false) }}>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M.75 9.75a.75.75 0 0 0 0 1.5h14.5a.75.75 0 0 0 0-1.5H.75ZM0 2.75C0 2.336.336 2 .75 2h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 2.75ZM0 6.25C0 5.836.336 5.5.75 5.5h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 6.25Z"/>
+              </svg>
+              Ouvrir un dépôt…
+            </button>
+            {otherRecents.length > 0 && (
+              <>
+                <div className="sb-dropdown-sep" />
+                <div className="sb-dropdown-label">RÉCENTS</div>
+                {otherRecents.map(path => (
+                  <div key={path} className="sb-dropdown-item sb-recent-item">
+                    <button className="sb-recent-path"
+                      onClick={() => { onSetRepo(path); setRepoMenuOpen(false) }} title={path}>
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+                      </svg>
+                      <span>{path.split('/').pop()}</span>
+                      <span className="sb-recent-full">{path}</span>
+                    </button>
+                    <button className="sb-recent-remove" title="Retirer"
+                      onClick={() => onRemoveRecent(path)}>×</button>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Branch filter ── */}
+      {repoPath && (
+        <div className="sb-search">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
+          </svg>
+          <input type="text" placeholder="Filtrer les branches…"
+            value={branchFilter} onChange={e => setBranchFilter(e.target.value)} />
+          {branchFilter && <button className="sb-filter-clear" onClick={() => setBranchFilter('')}>×</button>}
+        </div>
+      )}
+
+      {/* ── Sections ── */}
+      {repoPath && (
+        <div className="sb-sections">
+
+          {/* LOCAL */}
+          <Section title="LOCAL" count={localBranches.length} onAdd={onCreateBranch} addLabel="Nouvelle branche">
+            {localBranches.length === 0 && <div className="sb-empty">Aucune branche locale</div>}
+            {localBranches.map(b => (
+              <BranchItem
+                key={b.name}
+                name={b.name}
+                current={b.current}
+                currentBranch={currentBranch}
+                onCheckout={() => !b.current && onCheckout(b.name)}
+                onDelete={() => onDeleteBranch(b.name)}
+                onMerge={() => onMergeBranch(b.name)}
+                onRename={() => onRenameBranch(b.name)}
+              />
+            ))}
+          </Section>
+
+          {/* REMOTE */}
+          {remoteBranches.length > 0 && (
+            <Section title="REMOTE" count={remoteBranches.length} defaultOpen={false}>
+              {remoteBranches.map(b => (
+                <BranchItem
+                  key={b.name}
+                  name={b.name}
+                  current={false}
+                  remote={true}
+                  currentBranch={currentBranch}
+                  onCheckout={() => {
+                    const localName = b.name.replace(/^remotes\/[^/]+\//, '')
+                    onCheckout(localName)
+                  }}
+                />
+              ))}
+            </Section>
+          )}
+
+          {/* TAGS */}
+          <Section title="TAGS" count={tags.length} defaultOpen={false}
+            onAdd={onCreateTag} addLabel="Nouveau tag">
+            {tags.length === 0
+              ? <div className="sb-empty">Aucun tag</div>
+              : tags.map(t => (
+                  <TagItem key={t.name} tag={t} onDelete={() => onDeleteTag(t.name)} />
+                ))
+            }
+          </Section>
+
+          {/* REMOTES */}
+          <Section title="REMOTES" count={remotes.length} defaultOpen={false}
+            onAdd={handleAddRemote} addLabel="Ajouter un remote">
+            {remotes.length === 0
+              ? <div className="sb-empty">Aucun remote</div>
+              : remotes.map(r => (
+                  <RemoteItem
+                    key={r.name}
+                    remote={r}
+                    onFetch={() => handleFetchRemote(r.name)}
+                    onRename={() => handleRenameRemote(r.name)}
+                    onRemove={() => handleRemoveRemote(r.name)}
+                    onCopyUrl={() => navigator.clipboard.writeText(r.fetchUrl)}
+                  />
+                ))
+            }
+          </Section>
+
+          {/* REFLOG */}
+          <Section title="REFLOG" count={reflog.length} defaultOpen={false}>
+            {reflog.length === 0
+              ? <div className="sb-empty">Reflog vide</div>
+              : reflog.map((entry, i) => (
+                  <ReflogItem
+                    key={i}
+                    entry={entry}
+                    onSelect={() => onSelectCommit(entry.hash)}
+                  />
+                ))
+            }
+          </Section>
+
+          {/* STASH */}
+          <Section
+            title="STASH"
+            count={stashes.length}
+            defaultOpen={false}
+            onAdd={onCreateStash}
+            addLabel="Créer un stash"
+          >
+            {stashes.length === 0
+              ? <div className="sb-empty">Aucun stash</div>
+              : stashes.map(s => (
+                  <StashItem
+                    key={s.index}
+                    stash={s}
+                    onApply={() => onApplyStash(s.index)}
+                    onPop={() => onPopStash(s.index)}
+                    onDrop={() => onDropStash(s.index)}
+                  />
+                ))
+            }
+          </Section>
+
+        </div>
+      )}
+
+      {/* ── Empty state ── */}
+      {!repoPath && (
+        <div className="sb-no-repo">
+          <button className="sb-open-btn" onClick={onOpenRepo}>Ouvrir un dépôt</button>
+          {recentRepos.length > 0 && (
+            <>
+              <div className="sb-recents-title">RÉCENTS</div>
+              {recentRepos.map(path => (
+                <button key={path} className="sb-recent-btn" onClick={() => onSetRepo(path)} title={path}>
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+                  </svg>
+                  {path.split('/').pop()}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

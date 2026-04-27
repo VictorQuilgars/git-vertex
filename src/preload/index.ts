@@ -1,0 +1,62 @@
+import { contextBridge, ipcRenderer } from 'electron'
+
+const gitAPI = {
+  // Repo management
+  openRepo: () => ipcRenderer.invoke('git:open-repo'),
+  setRepo: (path: string) => ipcRenderer.invoke('git:set-repo', path),
+  getRecentRepos: () => ipcRenderer.invoke('app:get-recent-repos'),
+  removeRecentRepo: (path: string) => ipcRenderer.invoke('app:remove-recent-repo', path),
+  // Read
+  getLog: (options?: { maxCount?: number; all?: boolean }) => ipcRenderer.invoke('git:get-log', options),
+  getBranches: () => ipcRenderer.invoke('git:get-branches'),
+  getDiff: (commitHash: string) => ipcRenderer.invoke('git:get-diff', commitHash),
+  getCommitFiles: (commitHash: string) => ipcRenderer.invoke('git:get-commit-files', commitHash),
+  getStatus: () => ipcRenderer.invoke('git:get-status'),
+  getStashes: () => ipcRenderer.invoke('git:get-stashes'),
+  // Write
+  checkout: (ref: string) => ipcRenderer.invoke('git:checkout', ref),
+  createBranch: (name: string) => ipcRenderer.invoke('git:create-branch', name),
+  deleteBranch: (name: string) => ipcRenderer.invoke('git:delete-branch', name),
+  fetch: () => ipcRenderer.invoke('git:fetch'),
+  push: () => ipcRenderer.invoke('git:push'),
+  pull: () => ipcRenderer.invoke('git:pull'),
+  // Staging & commit
+  getWorkingChanges: () => ipcRenderer.invoke('git:get-working-changes'),
+  stage: (files: string[]) => ipcRenderer.invoke('git:stage', files),
+  stageAll: () => ipcRenderer.invoke('git:stage-all'),
+  unstage: (files: string[]) => ipcRenderer.invoke('git:unstage', files),
+  commit: (message: string, amend?: boolean) => ipcRenderer.invoke('git:commit', message, amend),
+  discardFile: (file: string) => ipcRenderer.invoke('git:discard-file', file),
+  // Commit operations
+  cherryPick: (hash: string) => ipcRenderer.invoke('git:cherry-pick', hash),
+  revert: (hash: string) => ipcRenderer.invoke('git:revert', hash),
+  reset: (hash: string, mode: 'soft' | 'mixed' | 'hard') => ipcRenderer.invoke('git:reset', hash, mode),
+  // Branch operations
+  createBranchAt: (name: string, hash: string, checkout: boolean) => ipcRenderer.invoke('git:create-branch-at', name, hash, checkout),
+  renameBranch: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-branch', oldName, newName),
+  merge: (branch: string) => ipcRenderer.invoke('git:merge', branch),
+  // Tag operations
+  getTags: () => ipcRenderer.invoke('git:get-tags'),
+  createTag: (name: string, hash?: string, message?: string) => ipcRenderer.invoke('git:create-tag', name, hash, message),
+  deleteTag: (name: string) => ipcRenderer.invoke('git:delete-tag', name),
+  // Stash operations
+  createStash: (message?: string) => ipcRenderer.invoke('git:create-stash', message),
+  applyStash: (index: number) => ipcRenderer.invoke('git:apply-stash', index),
+  popStash: (index: number) => ipcRenderer.invoke('git:pop-stash', index),
+  dropStash: (index: number) => ipcRenderer.invoke('git:drop-stash', index),
+  // Reflog
+  getReflog: () => ipcRenderer.invoke('git:get-reflog'),
+  // File History
+  getFileHistory: (filepath: string) => ipcRenderer.invoke('git:get-file-history', filepath),
+  // Remotes
+  getRemotes: () => ipcRenderer.invoke('git:get-remotes'),
+  addRemote: (name: string, url: string) => ipcRenderer.invoke('git:add-remote', name, url),
+  removeRemote: (name: string) => ipcRenderer.invoke('git:remove-remote', name),
+  renameRemote: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-remote', oldName, newName),
+  fetchRemote: (name: string) => ipcRenderer.invoke('git:fetch-remote', name),
+}
+
+contextBridge.exposeInMainWorld('gitAPI', gitAPI)
+contextBridge.exposeInMainWorld('appInfo', { platform: process.platform })
+
+export type GitAPI = typeof gitAPI

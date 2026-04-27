@@ -1,0 +1,92 @@
+.dlg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: dlg-fade 0.1s ease;
+}
+
+@keyframes dlg-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.dlg-box {
+  background: #1c2128;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 20px 22px 16px;
+  min-width: 320px;
+  max-width: 480px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: dlg-pop 0.1s ease;
+}
+
+@keyframes dlg-pop {
+  from { transform: scale(0.95) translateY(-4px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.dlg-message {
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.5;
+}
+
+.dlg-input {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.dlg-input:focus { border-color: #58a6ff; }
+
+.dlg-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dlg-btn {
+  height: 28px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.dlg-cancel {
+  background: transparent;
+  border-color: #30363d;
+  color: #8b949e;
+}
+.dlg-cancel:hover { background: #21262d; color: #c9d1d9; }
+
+.dlg-ok {
+  background: #238636;
+  border-color: #2ea043;
+  color: #fff;
+}
+.dlg-ok:hover { background: #2ea043; }
+
+.dlg-danger {
+  background: #b91c1c;
+  border-color: #f85149;
+  color: #fff;
+}
+.dlg-danger:hover { background: #dc2626; }

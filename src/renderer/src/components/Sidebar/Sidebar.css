@@ -1,0 +1,441 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #161b22;
+  border-right: 1px solid #21262d;
+  overflow: hidden;
+  font-size: 12px;
+  color: #8b949e;
+  user-select: none;
+}
+
+/* ── Repo selector ────────────────────────────────────────── */
+.sb-repo-area {
+  position: relative;
+  flex-shrink: 0;
+  border-bottom: 1px solid #21262d;
+}
+
+.sb-repo-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  background: none;
+  border: none;
+  color: #e6edf3;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  font-size: 13px;
+  font-weight: 700;
+}
+.sb-repo-btn:hover { background: #1c2128; }
+
+.sb-repo-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-repo-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #1c2128;
+  border: 1px solid #30363d;
+  border-radius: 0 0 8px 8px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.sb-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: #c9d1d9;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.sb-dropdown-item:hover { background: #21262d; color: #e6edf3; }
+
+.sb-open-item { font-weight: 600; color: #58a6ff; }
+.sb-open-item:hover { color: #79c0ff; background: #1f6feb11; }
+
+.sb-dropdown-sep {
+  height: 1px;
+  background: #21262d;
+  margin: 4px 0;
+}
+
+.sb-dropdown-label {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #484f58;
+  letter-spacing: 0.06em;
+}
+
+.sb-recent-item {
+  padding: 4px 8px !important;
+  gap: 0 !important;
+}
+
+.sb-recent-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  background: none;
+  border: none;
+  color: #c9d1d9;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  padding: 4px 4px;
+  border-radius: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.sb-recent-path:hover { color: #e6edf3; }
+.sb-recent-path > span:first-of-type { font-weight: 600; white-space: nowrap; }
+.sb-recent-full {
+  color: #484f58;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 4px;
+}
+
+.sb-recent-remove {
+  background: none;
+  border: none;
+  color: #484f58;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.sb-recent-remove:hover { color: #f85149; background: #f8514911; }
+
+/* ── Branch filter ────────────────────────────────────────── */
+.sb-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #21262d;
+  color: #484f58;
+  flex-shrink: 0;
+}
+.sb-search input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #c9d1d9;
+  font-size: 11px;
+}
+.sb-search input::placeholder { color: #484f58; }
+.sb-filter-clear {
+  background: none; border: none; color: #484f58; cursor: pointer; font-size: 13px; padding: 0;
+}
+.sb-filter-clear:hover { color: #c9d1d9; }
+
+/* ── Sections ─────────────────────────────────────────────── */
+.sb-sections {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+}
+
+.sb-section { margin-bottom: 2px; }
+
+.sb-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #6e7681;
+  transition: color 0.1s;
+}
+.sb-section-header:hover { color: #c9d1d9; }
+
+.chevron {
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.chevron.open { transform: rotate(90deg); }
+
+.sb-section-title { flex: 1; }
+
+.sb-section-count {
+  background: #21262d;
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 10px;
+}
+
+.sb-add-btn {
+  background: none;
+  border: none;
+  color: #6e7681;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+}
+.sb-add-btn:hover { color: #58a6ff; background: #1f6feb22; }
+
+.sb-section-body { padding: 2px 0 6px; }
+
+.sb-empty {
+  padding: 4px 22px;
+  color: #484f58;
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* ── Branch items ─────────────────────────────────────────── */
+.sb-branch-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 0 4px;
+  transition: background 0.1s;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sb-branch-item:hover { background: #1c2128; color: #e6edf3; }
+.sb-branch-item.current { color: #58a6ff; background: #1f6feb11; }
+.sb-branch-item.remote { color: #6e7681; }
+.sb-branch-item.remote:hover { color: #3fb950; background: #2ea04311; }
+
+.branch-icon { flex-shrink: 0; pointer-events: none; }
+.sb-branch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; pointer-events: none; user-select: none; -webkit-user-select: none; }
+.current-check { flex-shrink: 0; }
+
+.sb-delete-btn {
+  background: none;
+  border: none;
+  color: #f85149;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.sb-delete-btn:hover { opacity: 1; background: #f8514922; }
+
+/* ── No repo / recent ─────────────────────────────────────── */
+.sb-no-repo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 12px 8px;
+  overflow-y: auto;
+}
+
+.sb-open-btn {
+  padding: 8px 14px;
+  background: #238636;
+  border: 1px solid #2ea043;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: background 0.15s;
+}
+.sb-open-btn:hover { background: #2ea043; }
+
+.sb-recents-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #484f58;
+  padding: 4px 6px 6px;
+}
+
+.sb-recent-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: #8b949e;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-recent-btn:hover { background: #1c2128; color: #e6edf3; }
+
+/* ── Stash items ──────────────────────────────────────────────── */
+.sb-stash-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 0 4px;
+  transition: background 0.1s;
+  overflow: hidden;
+}
+.sb-stash-item:hover { background: #1c2128; color: #e6edf3; }
+.stash-icon { flex-shrink: 0; color: #d29922; }
+.sb-stash-label {
+  flex: 1;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #c9d1d9;
+}
+.sb-stash-index {
+  font-size: 10px;
+  color: #484f58;
+  flex-shrink: 0;
+  font-family: monospace;
+}
+
+/* ── Tag items ────────────────────────────────────────────────── */
+.sb-tag-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 0 4px;
+  transition: background 0.1s;
+  overflow: hidden;
+}
+.sb-tag-item:hover { background: #1c2128; }
+.sb-tag-icon { font-size: 11px; flex-shrink: 0; }
+.sb-tag-name {
+  flex: 1;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #d2a8ff;
+}
+.sb-tag-hash {
+  font-size: 10px;
+  color: #484f58;
+  font-family: 'JetBrains Mono', monospace;
+  flex-shrink: 0;
+}
+
+/* ── Reflog ─────────────────────────────────────────────────── */
+.sb-reflog-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  margin: 0 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.sb-reflog-item:hover { background: #1c2128; }
+.sb-reflog-icon { font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+.sb-reflog-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.sb-reflog-ref {
+  font-size: 10px;
+  color: #58a6ff;
+  font-family: 'JetBrains Mono', monospace;
+}
+.sb-reflog-msg {
+  font-size: 11px;
+  color: #c9d1d9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-reflog-date {
+  font-size: 10px;
+  color: #484f58;
+}
+
+/* ── Remotes ─────────────────────────────────────────────────── */
+.sb-remote-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  margin: 0 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.sb-remote-item:hover { background: #1c2128; }
+.remote-icon { flex-shrink: 0; margin-top: 2px; }
+.sb-remote-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.sb-remote-name {
+  font-size: 11px;
+  color: #e6edf3;
+  font-weight: 500;
+}
+.sb-remote-url {
+  font-size: 10px;
+  color: #484f58;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,73 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; width: 100%; overflow: hidden; }
+
+body {
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 13px;
+}
+
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+.app-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+/* Sidebar */
+.app-sidebar { flex-shrink: 0; overflow: hidden; display: flex; }
+
+/* Resize handle */
+.resize-handle {
+  width: 3px; flex-shrink: 0; cursor: col-resize;
+  background: transparent; transition: background 0.15s;
+  z-index: 10;
+}
+.resize-handle:hover, .resize-handle:active { background: #58a6ff; }
+
+/* Center */
+.app-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* Right */
+.app-right { flex-shrink: 0; overflow: hidden; display: flex; }
+
+/* Welcome */
+.app-welcome {
+  display: flex; align-items: center; justify-content: center;
+  flex: 1; background: #0d1117;
+}
+.welcome-card {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 16px; padding: 48px 56px;
+  background: #161b22; border: 1px solid #21262d;
+  border-radius: 16px; text-align: center; max-width: 380px;
+}
+.welcome-card h2 { font-size: 22px; font-weight: 700; color: #e6edf3; }
+.welcome-card p { color: #8b949e; line-height: 1.5; }
+
+.btn-primary {
+  padding: 9px 22px; background: #238636; border: 1px solid #2ea043;
+  border-radius: 7px; color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, transform 0.1s;
+  margin-top: 4px;
+}
+.btn-primary:hover { background: #2ea043; transform: translateY(-1px); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  padding: 9px 18px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  z-index: 9999; animation: fadeUp 0.2s ease; pointer-events: none;
+}
+.toast-ok { background: #2ea04322; border: 1px solid #2ea04366; color: #3fb950; }
+.toast-err { background: #f8514922; border: 1px solid #f8514966; color: #f85149; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Global scrollbars */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #30363d; }
