@@ -621,6 +621,108 @@ export class GitService {
     }
   }
 
+  // ── Blame ───────────────────────────────────────────────────
+
+  async getBlame(hash: string, filepath: string): Promise<{
+    lines: { shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string }[]
+  }> {
+    try {
+      const result = await this.git.raw(['blame', '--porcelain', hash, '--', filepath])
+      const lines: { shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string }[] = []
+      const rawLines = result.split('\n')
+      const meta: Record<string, { author: string; date: string }> = {}
+      let i = 0
+      while (i < rawLines.length) {
+        const header = rawLines[i]
+        if (!header) { i++; continue }
+        const headerMatch = header.match(/^([0-9a-f]{40}) \d+ (\d+)/)
+        if (!headerMatch) { i++; continue }
+        const commitHash = headerMatch[1]
+        const lineNum = parseInt(headerMatch[2])
+        i++
+        // Read metadata lines until we hit the content line (starts with \t)
+        let author = meta[commitHash]?.author ?? ''
+        let date = meta[commitHash]?.date ?? ''
+        while (i < rawLines.length && !rawLines[i].startsWith('\t')) {
+          const metaLine = rawLines[i]
+          if (metaLine.startsWith('author ') && !meta[commitHash]) {
+            author = metaLine.slice(7)
+          }
+          if (metaLine.startsWith('author-time ') && !meta[commitHash]) {
+            date = new Date(parseInt(metaLine.slice(12)) * 1000).toLocaleDateString('fr-FR')
+          }
+          i++
+        }
+        if (!meta[commitHash]) {
+          meta[commitHash] = { author, date }
+        } else {
+          author = meta[commitHash].author
+          date = meta[commitHash].date
+        }
+        const content = rawLines[i] ? rawLines[i].slice(1) : ''
+        i++
+        lines.push({ hash: commitHash, shortHash: commitHash.slice(0, 7), author, date, lineNum, content })
+      }
+      return { lines }
+    } catch (e) {
+      return { lines: [] }
+    }
+  }
+
+  // ── Submodules ──────────────────────────────────────────────
+
+  async getSubmodules(): Promise<{ submodules: { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[] }> {
+    try {
+      const gitmodulesPath = require('path').join(this.repoPath, '.gitmodules')
+      const fs = require('fs')
+      if (!fs.existsSync(gitmodulesPath)) return { submodules: [] }
+
+      const statusResult = await this.git.raw(['submodule', 'status'])
+      const submodules = statusResult.trim().split('\n').filter(Boolean).map(line => {
+        const match = line.match(/^([ +\-U])([0-9a-f]+) (.+?)( \(.*\))?$/)
+        if (!match) return null
+        const [, statusChar, , path] = match
+        const status: 'ok' | 'dirty' | 'uninitialized' =
+          statusChar === '-' ? 'uninitialized' :
+          statusChar === '+' ? 'dirty' : 'ok'
+        return { path: path.trim(), url: '', status }
+      }).filter(Boolean) as { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[]
+
+      // Get URLs from .gitmodules
+      const content = fs.readFileSync(gitmodulesPath, 'utf8')
+      const urlMatches = content.matchAll(/\[submodule "(.+?)"\][\s\S]*?url\s*=\s*(.+)/g)
+      const urlMap: Record<string, string> = {}
+      for (const m of urlMatches) {
+        urlMap[m[1]] = m[2].trim()
+      }
+      for (const sub of submodules) {
+        sub.url = urlMap[sub.path] ?? ''
+      }
+
+      return { submodules }
+    } catch (e) {
+      return { submodules: [] }
+    }
+  }
+
+  async initSubmodule(path: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['submodule', 'init', path])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async updateSubmodule(path: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['submodule', 'update', path])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // ── Extended search ─────────────────────────────────────────
 
   async searchInDiffs(query: string): Promise<{ hashes: string[] }> {

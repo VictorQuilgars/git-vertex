@@ -245,6 +245,28 @@ ipcMain.handle('git:drop-stash', async (_event, index: number) => {
   return gitService.dropStash(index)
 })
 
+// ── IPC: Blame ─────────────────────────────────────────────
+ipcMain.handle('git:get-blame', async (_event, hash: string, filepath: string) => {
+  if (!gitService) return { lines: [] }
+  return gitService.getBlame(hash, filepath)
+})
+
+// ── IPC: Submodules ────────────────────────────────────────
+ipcMain.handle('git:get-submodules', async () => {
+  if (!gitService) return { submodules: [] }
+  return gitService.getSubmodules()
+})
+
+ipcMain.handle('git:init-submodule', async (_event, path: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.initSubmodule(path)
+})
+
+ipcMain.handle('git:update-submodule', async (_event, path: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.updateSubmodule(path)
+})
+
 // ── IPC: Extended search & branch comparison ───────────────
 ipcMain.handle('git:search-in-diffs', async (_event, query: string) => {
   if (!gitService) return { hashes: [] }

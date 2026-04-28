@@ -44,6 +44,12 @@ const gitAPI = {
   applyStash: (index: number) => ipcRenderer.invoke('git:apply-stash', index),
   popStash: (index: number) => ipcRenderer.invoke('git:pop-stash', index),
   dropStash: (index: number) => ipcRenderer.invoke('git:drop-stash', index),
+  // Blame
+  getBlame: (hash: string, filepath: string) => ipcRenderer.invoke('git:get-blame', hash, filepath),
+  // Submodules
+  getSubmodules: () => ipcRenderer.invoke('git:get-submodules'),
+  initSubmodule: (path: string) => ipcRenderer.invoke('git:init-submodule', path),
+  updateSubmodule: (path: string) => ipcRenderer.invoke('git:update-submodule', path),
   // Extended search & branch comparison
   searchInDiffs: (query: string) => ipcRenderer.invoke('git:search-in-diffs', query),
   compareBranches: (current: string, other: string) => ipcRenderer.invoke('git:compare-branches', current, other),

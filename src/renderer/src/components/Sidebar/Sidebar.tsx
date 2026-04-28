@@ -8,6 +8,7 @@ interface TagEntry   { name: string; hash: string }
 
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
 interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
+interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }
 
 interface SidebarProps {
   repoPath: string | null
@@ -268,6 +269,43 @@ function RemoteItem({
   )
 }
 
+// ── Submodule item ────────────────────────────────────────────────
+function SubmoduleItem({
+  sub, onInit, onUpdate
+}: {
+  sub: SubmoduleEntry
+  onInit: () => void
+  onUpdate: () => void
+}) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const statusColor = sub.status === 'ok' ? '#3fb950' : sub.status === 'dirty' ? '#ffa657' : '#484f58'
+  const statusLabel = sub.status === 'ok' ? '✓' : sub.status === 'dirty' ? '~' : '○'
+
+  const menuItems: MenuItemDef[] = [
+    ...(sub.status === 'uninitialized' ? [{ label: '⬇ Initialiser', action: onInit }] : []),
+    { label: '↺ Mettre à jour', action: onUpdate },
+  ]
+
+  return (
+    <>
+      <div
+        className="sb-submodule-item"
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={sub.url}
+      >
+        <span className="sb-sub-status" style={{ color: statusColor }}>{statusLabel}</span>
+        <div className="sb-sub-info">
+          <span className="sb-sub-path">{sub.path}</span>
+          <span className="sb-sub-url">{sub.url}</span>
+        </div>
+      </div>
+      {ctx && menuItems.length > 0 && (
+        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
+      )}
+    </>
+  )
+}
+
 // ── Main Sidebar ──────────────────────────────────────────────────
 export default function Sidebar({
   repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags,
@@ -279,12 +317,36 @@ export default function Sidebar({
 }: SidebarProps) {
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
+  const [submodules, setSubmodules] = useState<SubmoduleEntry[]>([])
 
   useEffect(() => {
     if (!repoPath) return
     window.gitAPI.getReflog().then(r => setReflog(r.entries ?? []))
     window.gitAPI.getRemotes().then(r => setRemotes(r.remotes ?? []))
+    window.gitAPI.getSubmodules().then(r => setSubmodules(r.submodules ?? []))
   }, [repoPath])
+
+  const handleInitSubmodule = async (path: string) => {
+    const r = await window.gitAPI.initSubmodule(path)
+    if (r.success) {
+      showToast(`✓ Submodule "${path}" initialisé`)
+      const updated = await window.gitAPI.getSubmodules()
+      setSubmodules(updated.submodules ?? [])
+    } else {
+      showToast(`Erreur : ${r.error}`, 'err')
+    }
+  }
+
+  const handleUpdateSubmodule = async (path: string) => {
+    const r = await window.gitAPI.updateSubmodule(path)
+    if (r.success) {
+      showToast(`✓ Submodule "${path}" mis à jour`)
+      const updated = await window.gitAPI.getSubmodules()
+      setSubmodules(updated.submodules ?? [])
+    } else {
+      showToast(`Erreur : ${r.error}`, 'err')
+    }
+  }
 
   const handleAddRemote = async () => {
     const name = await showPrompt('Nom du remote :')
@@ -483,6 +545,20 @@ export default function Sidebar({
                 ))
             }
           </Section>
+
+          {/* SUBMODULES */}
+          {submodules.length > 0 && (
+            <Section title="SUBMODULES" count={submodules.length} defaultOpen={false}>
+              {submodules.map(sub => (
+                <SubmoduleItem
+                  key={sub.path}
+                  sub={sub}
+                  onInit={() => handleInitSubmodule(sub.path)}
+                  onUpdate={() => handleUpdateSubmodule(sub.path)}
+                />
+              ))}
+            </Section>
+          )}
 
           {/* REFLOG */}
           <Section title="REFLOG" count={reflog.length} defaultOpen={false}>

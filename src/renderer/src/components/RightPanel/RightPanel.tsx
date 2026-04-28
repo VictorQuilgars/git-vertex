@@ -94,6 +94,74 @@ function FileHistoryModal({ filepath, onClose, onSelectCommit }: {
   )
 }
 
+// ── Blame view ────────────────────────────────────────────────
+interface BlameLine {
+  shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string
+}
+
+function hashToColor(hash: string): string {
+  let n = 0
+  for (let i = 0; i < 6; i++) n = (n * 16 + parseInt(hash[i], 16))
+  const hue = n % 360
+  return `hsl(${hue}, 55%, 28%)`
+}
+
+function BlameView({ commitHash, filepath, onSelectCommit }: {
+  commitHash: string; filepath: string; onSelectCommit: (hash: string) => void
+}) {
+  const [lines, setLines] = useState<BlameLine[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    window.gitAPI.getBlame(commitHash, filepath).then(r => {
+      setLines(r.lines ?? [])
+      setLoading(false)
+    })
+  }, [commitHash, filepath])
+
+  if (loading) return <div className="rp-blame-loading">Chargement du blame…</div>
+  if (!lines.length) return <div className="rp-blame-loading">Aucune donnée de blame</div>
+
+  return (
+    <div className="rp-blame-container">
+      <table className="rp-blame-table">
+        <tbody>
+          {lines.map((line, i) => {
+            const prevHash = lines[i - 1]?.hash
+            const isNewBlock = line.hash !== prevHash
+            const bg = hashToColor(line.hash)
+            return (
+              <tr key={i} className="rp-blame-row">
+                <td
+                  className="rp-blame-meta"
+                  style={{ background: bg, opacity: isNewBlock ? 1 : 0.6 }}
+                >
+                  {isNewBlock ? (
+                    <>
+                      <span
+                        className="rp-blame-hash"
+                        onClick={() => onSelectCommit(line.hash)}
+                        title={`${line.hash}\n${line.author}\n${line.date}`}
+                      >
+                        {line.shortHash}
+                      </span>
+                      <span className="rp-blame-author">{line.author.split(' ')[0]}</span>
+                      <span className="rp-blame-date">{line.date}</span>
+                    </>
+                  ) : null}
+                </td>
+                <td className="rp-blame-linenum">{line.lineNum}</td>
+                <td className="rp-blame-content"><code>{line.content}</code></td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 // ── CommitDetail view ─────────────────────────────────────────
 function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelectCommit: (hash: string) => void }) {
   const [files, setFiles] = useState<FileChange[]>([])
@@ -101,7 +169,7 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [diffLoading, setDiffLoading] = useState(false)
   const [parsedDiff, setParsedDiff] = useState<FileDiff[]>([])
-  const [view, setView] = useState<'files' | 'diff'>('files')
+  const [view, setView] = useState<'files' | 'diff' | 'blame'>('files')
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
 
   useEffect(() => {
@@ -119,7 +187,7 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
 
   const selectFile = (path: string) => {
     setSelectedFile(path)
-    setView('diff')
+    if (view === 'files') setView('diff')
   }
 
   const fileForDiff = parsedDiff.find(f => f.to === selectedFile)
@@ -158,7 +226,7 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
         )}
       </div>
 
-      {/* Files / diff toggle */}
+      {/* Files / diff / blame toggle */}
       <div className="rp-tabs">
         <button className={`rp-tab ${view === 'files' ? 'active' : ''}`} onClick={() => setView('files')}>
           {files.length} fichier{files.length !== 1 ? 's' : ''}
@@ -166,6 +234,11 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
         {selectedFile && (
           <button className={`rp-tab ${view === 'diff' ? 'active' : ''}`} onClick={() => setView('diff')}>
             Diff
+          </button>
+        )}
+        {selectedFile && (
+          <button className={`rp-tab ${view === 'blame' ? 'active' : ''}`} onClick={() => setView('blame')}>
+            Blame
           </button>
         )}
       </div>
@@ -229,6 +302,14 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
             </div>
           ))}
         </div>
+      )}
+
+      {view === 'blame' && selectedFile && (
+        <BlameView
+          commitHash={commit.hash}
+          filepath={selectedFile}
+          onSelectCommit={onSelectCommit}
+        />
       )}
     </div>
   )

@@ -439,3 +439,50 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Submodules ───────────────────────────────────────────── */
+.sb-submodule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  margin: 0 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.sb-submodule-item:hover { background: #1c2128; }
+
+.sb-sub-status {
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+  width: 12px;
+  text-align: center;
+}
+
+.sb-sub-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sb-sub-path {
+  font-size: 11px;
+  color: #e6edf3;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-sub-url {
+  font-size: 10px;
+  color: #484f58;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

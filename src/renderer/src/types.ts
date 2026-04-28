@@ -73,6 +73,12 @@ declare global {
       applyStash: (index: number) => Promise<R>
       popStash: (index: number) => Promise<R>
       dropStash: (index: number) => Promise<R>
+      // Blame
+      getBlame: (hash: string, filepath: string) => Promise<{ lines: { shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string }[] }>
+      // Submodules
+      getSubmodules: () => Promise<{ submodules: { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[] }>
+      initSubmodule: (path: string) => Promise<R>
+      updateSubmodule: (path: string) => Promise<R>
       // Extended search & branch comparison
       searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
       compareBranches: (current: string, other: string) => Promise<{ ahead: { hash: string; shortHash: string; message: string }[]; behind: { hash: string; shortHash: string; message: string }[] }>
