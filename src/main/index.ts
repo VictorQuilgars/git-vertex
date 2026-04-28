@@ -24,10 +24,7 @@ function createWindow(): void {
     show: false
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-    if (is.dev) mainWindow.webContents.openDevTools()
-  })
+  mainWindow.on('ready-to-show', () => mainWindow.show())
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
