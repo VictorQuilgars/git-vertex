@@ -133,6 +133,46 @@ export default function App() {
     else toastApi.error(msg)
   }, [toastApi])
 
+  // ── Load stashes ───────────────────────────────────────────
+  const loadStashes = useCallback(async () => {
+    if (!repoPath) return
+    const r = await window.gitAPI.getStashes()
+    setStashes(r.stashes ?? [])
+  }, [repoPath])
+
+  // ── Load tags ──────────────────────────────────────────────
+  const loadTags = useCallback(async () => {
+    if (!repoPath) return
+    const r = await window.gitAPI.getTags()
+    setTags((r as any).tags ?? [])
+  }, [repoPath])
+
+  // ── Load repo data ─────────────────────────────────────────
+  const loadRepoData = useCallback(async () => {
+    if (!repoPath) return
+    setLoading(true)
+    try {
+      const [logRes, branchRes] = await Promise.all([
+        window.gitAPI.getLog({ all: showAllBranches, maxCount: 500 }),
+        window.gitAPI.getBranches()
+      ])
+      if (logRes.commits) setCommits(logRes.commits)
+      if (branchRes.branches) {
+        setBranches(branchRes.branches)
+        const cur = branchRes.branches.find((b: BranchInfo) => b.current)
+        if (cur) setCurrentBranch(cur.name)
+      }
+      await Promise.all([loadStashes(), loadTags()])
+      // Check for conflicts
+      const conflictRes = await window.gitAPI.getConflictedFiles()
+      setConflictFiles(conflictRes.files ?? [])
+    } finally {
+      setLoading(false)
+    }
+  }, [repoPath, showAllBranches, loadStashes, loadTags])
+
+  useEffect(() => { loadRepoData() }, [loadRepoData])
+
   // ── Load recent repos on mount ─────────────────────────────
   useEffect(() => {
     window.gitAPI.getRecentRepos().then(r => setRecentRepos(r ?? []))
@@ -178,46 +218,6 @@ export default function App() {
     }, INTERVAL)
     return () => clearInterval(id)
   }, [repoPath, loadRepoData])
-
-  // ── Load stashes ───────────────────────────────────────────
-  const loadStashes = useCallback(async () => {
-    if (!repoPath) return
-    const r = await window.gitAPI.getStashes()
-    setStashes(r.stashes ?? [])
-  }, [repoPath])
-
-  // ── Load tags ──────────────────────────────────────────────
-  const loadTags = useCallback(async () => {
-    if (!repoPath) return
-    const r = await window.gitAPI.getTags()
-    setTags((r as any).tags ?? [])
-  }, [repoPath])
-
-  // ── Load repo data ─────────────────────────────────────────
-  const loadRepoData = useCallback(async () => {
-    if (!repoPath) return
-    setLoading(true)
-    try {
-      const [logRes, branchRes] = await Promise.all([
-        window.gitAPI.getLog({ all: showAllBranches, maxCount: 500 }),
-        window.gitAPI.getBranches()
-      ])
-      if (logRes.commits) setCommits(logRes.commits)
-      if (branchRes.branches) {
-        setBranches(branchRes.branches)
-        const cur = branchRes.branches.find((b: BranchInfo) => b.current)
-        if (cur) setCurrentBranch(cur.name)
-      }
-      await Promise.all([loadStashes(), loadTags()])
-      // Check for conflicts
-      const conflictRes = await window.gitAPI.getConflictedFiles()
-      setConflictFiles(conflictRes.files ?? [])
-    } finally {
-      setLoading(false)
-    }
-  }, [repoPath, showAllBranches, loadStashes, loadTags])
-
-  useEffect(() => { loadRepoData() }, [loadRepoData])
 
   // ── Open repo helpers ──────────────────────────────────────
   const applyRepo = useCallback(async (res: { path?: string; name?: string; error?: string }) => {
