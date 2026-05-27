@@ -316,6 +316,8 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
 }
 
 // ── Staging view ──────────────────────────────────────────────
+interface SelectedDiffFile { path: string; area: 'staged' | 'unstaged' }
+
 function StagingView({ onCommitSuccess, showToast }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
@@ -324,6 +326,9 @@ function StagingView({ onCommitSuccess, showToast }: {
   const [commitMsg, setCommitMsg] = useState('')
   const [amend, setAmend] = useState(false)
   const [committing, setCommitting] = useState(false)
+  const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
+  const [diffRaw, setDiffRaw] = useState('')
+  const [diffLoading, setDiffLoading] = useState(false)
 
   const load = useCallback(async () => {
     const r = await window.gitAPI.getWorkingChanges()
@@ -333,11 +338,29 @@ function StagingView({ onCommitSuccess, showToast }: {
   useEffect(() => { load() }, [load])
 
   const handle = async (fn: () => Promise<any>, reload = true) => {
-    await fn(); if (reload) await load()
+    await fn()
+    if (reload) {
+      await load()
+      // Refresh diff if selected file is still around
+      if (selectedDiff) fetchDiff(selectedDiff)
+    }
+  }
+
+  const fetchDiff = useCallback(async (file: SelectedDiffFile) => {
+    setDiffLoading(true)
+    const r = await window.gitAPI.getWorkingFileDiff(file.path, file.area === 'staged')
+    setDiffRaw(r.diff ?? '')
+    setDiffLoading(false)
+  }, [])
+
+  const selectFile = (file: SelectedDiffFile) => {
+    setSelectedDiff(file)
+    fetchDiff(file)
   }
 
   const totalUnstaged = changes.unstaged.length + changes.untracked.length
   const canCommit = changes.staged.length > 0 || amend
+  const parsedDiff = parseDiff(diffRaw)
 
   return (
     <div className="rp-content rp-staging">
@@ -359,11 +382,16 @@ function StagingView({ onCommitSuccess, showToast }: {
             ? <div className="st-empty">Aucun fichier indexé</div>
             : changes.staged.map(f => {
               const meta = STATUS_META[f.status] ?? STATUS_META['?']
+              const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'staged'
               return (
-                <div key={f.path} className="st-file-row">
+                <div
+                  key={f.path}
+                  className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+                  onClick={() => selectFile({ path: f.path, area: 'staged' })}
+                >
                   <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
                   <span className="st-path">{f.path}</span>
-                  <button className="st-action st-unstage" title="Désindexer" onClick={() => handle(() => window.gitAPI.unstage([f.path]))}>−</button>
+                  <button className="st-action st-unstage" title="Désindexer" onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
                 </div>
               )
             })
@@ -389,12 +417,18 @@ function StagingView({ onCommitSuccess, showToast }: {
             : <>
               {changes.unstaged.map(f => {
                 const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'unstaged'
                 return (
-                  <div key={f.path} className="st-file-row">
+                  <div
+                    key={f.path}
+                    className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+                    onClick={() => selectFile({ path: f.path, area: 'unstaged' })}
+                  >
                     <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
                     <span className="st-path" title={f.path}>{f.path}</span>
-                    <button className="st-action st-stage" title="Indexer ce fichier" onClick={() => handle(() => window.gitAPI.stage([f.path]))}>+</button>
-                    <button className="st-action st-discard" title="Annuler les modifications" onClick={async () => {
+                    <button className="st-action st-stage" title="Indexer ce fichier" onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
+                    <button className="st-action st-discard" title="Annuler les modifications" onClick={async e => {
+                      e.stopPropagation()
                       if (!window.confirm(`Annuler les modifications de "${f.path}" ?\nCette action est irréversible.`)) return
                       handle(() => window.gitAPI.discardFile(f.path))
                     }}>↺</button>
@@ -405,7 +439,6 @@ function StagingView({ onCommitSuccess, showToast }: {
                 const isDir = f.endsWith('/')
                 return (
                   <div key={f} className="st-file-row">
-                    {/* Icon: folder or new file */}
                     <span className="st-badge" style={{ color: '#3fb950' }}>{isDir ? '📁' : '?'}</span>
                     <span className="st-path" title={f}>
                       {f}
@@ -423,6 +456,40 @@ function StagingView({ onCommitSuccess, showToast }: {
           }
         </div>
       </div>
+
+      {/* Diff panel */}
+      {selectedDiff && (
+        <div className="st-diff-panel">
+          <div className="st-diff-header">
+            <span className={`st-diff-area-badge ${selectedDiff.area === 'staged' ? 'st-diff-staged' : 'st-diff-unstaged'}`}>
+              {selectedDiff.area === 'staged' ? 'Indexé' : 'Non indexé'}
+            </span>
+            <span className="st-diff-filename">{selectedDiff.path}</span>
+            <button className="st-diff-close" title="Fermer" onClick={() => setSelectedDiff(null)}>✕</button>
+          </div>
+          <div className="st-diff-body">
+            {diffLoading && <div className="st-diff-loading">Chargement…</div>}
+            {!diffLoading && parsedDiff.length === 0 && <div className="st-diff-loading">Aucun diff</div>}
+            {!diffLoading && parsedDiff.map((file, fi) =>
+              file.hunks.map((hunk, hi) => (
+                <div key={`${fi}-${hi}`}>
+                  <div className="rp-hunk-header">{hunk.header}</div>
+                  <table className="rp-diff-table"><tbody>
+                    {hunk.lines.map((line, li) => (
+                      <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
+                        <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
+                        <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
+                        <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
+                        <td className="rp-lc"><code>{line.content}</code></td>
+                      </tr>
+                    ))}
+                  </tbody></table>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Commit form */}
       <div className="st-form">
@@ -456,7 +523,7 @@ function StagingView({ onCommitSuccess, showToast }: {
     if (!commitMsg.trim()) return
     setCommitting(true)
     const r = await window.gitAPI.commit(commitMsg.trim(), amend)
-    if (r.success) { showToast('Commit créé ✓'); setCommitMsg(''); setAmend(false); await load(); onCommitSuccess() }
+    if (r.success) { showToast('Commit créé ✓'); setCommitMsg(''); setAmend(false); setSelectedDiff(null); await load(); onCommitSuccess() }
     else showToast(`Erreur : ${r.error}`, 'err')
     setCommitting(false)
   }
@@ -471,7 +538,7 @@ interface RightPanelProps {
 }
 
 export default function RightPanel({ selectedCommit, onCommitSuccess, showToast, onSelectCommit }: RightPanelProps) {
-  const [mode, setMode] = useState<'detail' | 'stage'>('detail')
+  const [mode, setMode] = useState<'detail' | 'stage'>('stage')
 
   return (
     <div className="right-panel">

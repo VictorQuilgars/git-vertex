@@ -298,6 +298,18 @@ export class GitService {
     }
   }
 
+  async getWorkingFileDiff(filepath: string, staged: boolean): Promise<{ diff: string }> {
+    try {
+      const args = staged
+        ? ['diff', '--cached', '--', filepath]
+        : ['diff', '--', filepath]
+      const diff = await this.git.raw(args)
+      return { diff }
+    } catch (e) {
+      return { diff: '' }
+    }
+  }
+
   async stage(paths: string[]): Promise<{ success: boolean; error?: string }> {
     try {
       // git add handles both files and directories natively

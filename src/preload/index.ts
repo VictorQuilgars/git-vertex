@@ -22,6 +22,7 @@ const gitAPI = {
   pull: () => ipcRenderer.invoke('git:pull'),
   // Staging & commit
   getWorkingChanges: () => ipcRenderer.invoke('git:get-working-changes'),
+  getWorkingFileDiff: (filepath: string, staged: boolean) => ipcRenderer.invoke('git:get-working-file-diff', filepath, staged),
   stage: (files: string[]) => ipcRenderer.invoke('git:stage', files),
   stageAll: () => ipcRenderer.invoke('git:stage-all'),
   unstage: (files: string[]) => ipcRenderer.invoke('git:unstage', files),

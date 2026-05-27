@@ -249,6 +249,76 @@
 
 .st-dir-hint { color: #484f58; font-size: 10px; margin-left: 2px; }
 
+.st-clickable { cursor: pointer; }
+.st-selected { background: #1f2d3d !important; }
+
+/* Diff panel inside staging */
+.st-diff-panel {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  border-top: 1px solid #30363d;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+.st-diff-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+.st-diff-area-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.st-diff-staged   { background: #2ea04322; color: #3fb950; border: 1px solid #2ea04344; }
+.st-diff-unstaged { background: #ffa65722; color: #ffa657; border: 1px solid #ffa65744; }
+
+.st-diff-filename {
+  flex: 1;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #8b949e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-diff-close {
+  background: none;
+  border: none;
+  color: #484f58;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.st-diff-close:hover { color: #c9d1d9; background: #21262d; }
+
+.st-diff-body {
+  overflow-y: auto;
+  flex: 1;
+  font-size: 11px;
+}
+
+.st-diff-loading {
+  padding: 12px;
+  color: #484f58;
+  font-size: 11px;
+  text-align: center;
+}
+
 /* Blame view */
 .rp-blame-loading {
   padding: 20px;
