@@ -1,6 +1,7 @@
 .right-panel {
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100%;
   background: #0d1117;
   border-left: 1px solid #21262d;
