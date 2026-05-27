@@ -141,24 +141,58 @@
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
+  max-width: 260px;
+  overflow: hidden;
 }
 
 .ref-chip {
   display: inline-flex;
   align-items: center;
-  padding: 1px 7px;
-  border-radius: 8px;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 6px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   border: 1px solid;
-  line-height: 1.4;
+  line-height: 1.5;
   user-select: none;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.rc-local  { background: #1f6feb18; color: #58a6ff;  border-color: #1f6feb55; }
-.rc-remote { background: #2ea04318; color: #3fb950;  border-color: #2ea04355; }
-.rc-head   { background: #f1e05a18; color: #f1e05a;  border-color: #f1e05a55; }
-.rc-tag    { background: #8957e518; color: #d2a8ff;  border-color: #8957e555; }
+
+.rc-star {
+  font-size: 9px;
+  opacity: 0.9;
+}
+
+.rc-icon {
+  font-size: 9px;
+  opacity: 0.75;
+}
+
+.rc-cloud {
+  font-size: 8px;
+  font-style: normal;
+}
+
+/* Sync dot: small green dot indicating local === remote */
+.rc-sync-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #3fb950;
+  flex-shrink: 0;
+  opacity: 0.85;
+  margin-left: 1px;
+}
+
+.rc-local    { background: #1f6feb18; color: #58a6ff;  border-color: #1f6feb55; }
+.rc-remote   { background: #2ea04318; color: #3fb950;  border-color: #2ea04355; }
+.rc-head     { background: #f1e05a22; color: #f1e05a;  border-color: #f1e05a66; }
+.rc-tag      { background: #8957e518; color: #d2a8ff;  border-color: #8957e555; }
+.rc-overflow { background: #30363d;   color: #8b949e;  border-color: #484f58;  cursor: default; padding: 1px 5px; }
 
 /* ── Empty state ─────────────────────────────────────────── */
 .cg-empty {

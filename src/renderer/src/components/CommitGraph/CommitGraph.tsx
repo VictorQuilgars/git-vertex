@@ -24,30 +24,85 @@ function fmtDate(s: string) {
   } catch { return s }
 }
 
-function RefChip({ label, onDoubleClick }: { label: string; onDoubleClick?: (branchName: string) => void }) {
-  const isHead = label.includes('HEAD')
-  const isTag = label.startsWith('tag:')
-  const isRemote = label.includes('origin/') || label.includes('remotes/')
-  const text = label.replace('tag: ', '🏷 ').replace('HEAD -> ', '★ ')
-  const cls = isHead ? 'rc-head' : isTag ? 'rc-tag' : isRemote ? 'rc-remote' : 'rc-local'
+interface ProcessedRef {
+  display: string
+  cls: string
+  branchName?: string
+  synced?: boolean
+  tooltip?: string
+}
 
+function processRefs(refs: string[]): ProcessedRef[] {
+  // Filter remote HEAD pointers (always redundant)
+  const filtered = refs.filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
+
+  const consumed = new Set<string>()
+  const result: ProcessedRef[] = []
+
+  // HEAD -> branch (current branch), merge with origin/branch if co-located
+  for (const ref of filtered) {
+    if (ref.includes('HEAD -> ')) {
+      const branch = ref.replace('HEAD -> ', '')
+      const remoteRef = `origin/${branch}`
+      const hasRemote = filtered.includes(remoteRef)
+      if (hasRemote) consumed.add(remoteRef)
+      result.push({
+        display: branch,
+        cls: 'rc-head',
+        branchName: branch,
+        synced: hasRemote,
+        tooltip: hasRemote ? `${branch} · origin/${branch}` : branch,
+      })
+    }
+  }
+
+  // Tags
+  for (const ref of filtered) {
+    if (ref.startsWith('tag:')) {
+      const name = ref.replace('tag: ', '')
+      result.push({ display: name, cls: 'rc-tag', tooltip: name })
+    }
+  }
+
+  // Remaining local branches
+  for (const ref of filtered) {
+    if (!ref.includes('HEAD -> ') && !ref.startsWith('tag:') &&
+        !consumed.has(ref) && !ref.includes('origin/') && !ref.includes('remotes/')) {
+      result.push({ display: ref, cls: 'rc-local', branchName: ref, tooltip: ref })
+    }
+  }
+
+  // Remaining remote refs not merged
+  for (const ref of filtered) {
+    if (!ref.includes('HEAD -> ') && !ref.startsWith('tag:') &&
+        !consumed.has(ref) && (ref.includes('origin/') || ref.includes('remotes/'))) {
+      result.push({ display: ref, cls: 'rc-remote', branchName: ref, tooltip: ref })
+    }
+  }
+
+  return result
+}
+
+function RefChip({ pref, onDoubleClick }: { pref: ProcessedRef; onDoubleClick?: (branchName: string) => void }) {
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    if (isTag || !onDoubleClick) return
-    const branchName = label.includes('HEAD -> ')
-      ? label.replace('HEAD -> ', '')
-      : label
-    onDoubleClick(branchName)
+    if (pref.cls === 'rc-tag' || !onDoubleClick || !pref.branchName) return
+    onDoubleClick(pref.branchName)
   }
 
   return (
     <span
-      className={`ref-chip ${cls}`}
+      className={`ref-chip ${pref.cls}${pref.synced ? ' rc-synced' : ''}`}
       onDoubleClick={handleDoubleClick}
-      style={!isTag ? { cursor: 'pointer' } : undefined}
+      title={pref.tooltip}
+      style={pref.cls !== 'rc-tag' ? { cursor: 'pointer' } : undefined}
     >
-      {text}
+      {pref.cls === 'rc-head' && <span className="rc-star">★</span>}
+      {pref.cls === 'rc-tag' && <span className="rc-icon">🏷</span>}
+      {pref.cls === 'rc-remote' && <span className="rc-icon rc-cloud">↑</span>}
+      {pref.display}
+      {pref.synced && <span className="rc-sync-dot" title={`synced with origin/${pref.branchName}`} />}
     </span>
   )
 }
@@ -241,11 +296,25 @@ export default function CommitGraph({
                 <div style={{ width: svgW, flexShrink: 0, height: ROW_HEIGHT }} />
 
                 <div className="cg-col-msg">
-                  {commit.refs.length > 0 && (
-                    <div className="cg-refs">
-                      {commit.refs.map((r, i) => <RefChip key={i} label={r} onDoubleClick={onCheckoutBranch} />)}
-                    </div>
-                  )}
+                  {commit.refs.length > 0 && (() => {
+                    const prefs = processRefs(commit.refs)
+                    const MAX_CHIPS = 3
+                    const visible = prefs.slice(0, MAX_CHIPS)
+                    const overflow = prefs.length - MAX_CHIPS
+                    return (
+                      <div className="cg-refs">
+                        {visible.map((p, i) => <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch} />)}
+                        {overflow > 0 && (
+                          <span
+                            className="ref-chip rc-overflow"
+                            title={prefs.slice(MAX_CHIPS).map(p => p.tooltip || p.display).join(', ')}
+                          >
+                            +{overflow}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
                   <span className="cg-msg">{commit.message}</span>
                 </div>
 

@@ -72,27 +72,46 @@ export function computeGraphLayout(commits: CommitNode[]): LayoutCommit[] {
 
     // Process parents
     const parents = commit.parents
+    // Lanes for which we already drew a diverge edge this row — skip passthrough for these
+    const skipPassthrough = new Set<number>([lane])
 
     if (parents.length === 0) {
       // Root commit — free the lane
       lanes[lane] = null
     } else {
-      // First parent continues in the same lane
+      // First parent continues in the same lane (or converges into another lane)
       const firstParentIdx = hashToIndex.get(parents[0])
       if (firstParentIdx !== undefined) {
-        lanes[lane] = parents[0]
-        edges.push({
-          fromLane: lane,
-          toLane: lane,
-          toRow: firstParentIdx,
-          color: commitColor,
-          type: 'straight'
-        })
+        // Check if the parent is already claimed by another active lane (convergence)
+        const existingLane = lanes.indexOf(parents[0])
+        if (existingLane !== -1 && existingLane !== lane) {
+          // Two lanes share the same parent — draw a converging curve and free this lane
+          const direction = existingLane < lane ? 'merge-left' : 'merge-right'
+          edges.push({
+            fromLane: lane,
+            toLane: existingLane,
+            toRow: row + 1,
+            color: commitColor,
+            type: direction
+          })
+          lanes[lane] = null
+          skipPassthrough.add(lane)
+        } else {
+          lanes[lane] = parents[0]
+          edges.push({
+            fromLane: lane,
+            toLane: lane,
+            toRow: row + 1,
+            color: commitColor,
+            type: 'straight'
+          })
+        }
       } else {
         lanes[lane] = null
       }
 
       // Additional parents (merge commits)
+      // Draw only a one-row diverge edge; passthrough handles the rest from row+1 on.
       for (let p = 1; p < parents.length; p++) {
         const parentHash = parents[p]
         const parentIdx = hashToIndex.get(parentHash)
@@ -100,7 +119,8 @@ export function computeGraphLayout(commits: CommitNode[]): LayoutCommit[] {
 
         // Find or create lane for this parent
         let parentLane = lanes.indexOf(parentHash)
-        if (parentLane === -1) {
+        const isNewLane = parentLane === -1
+        if (isNewLane) {
           const free = lanes.indexOf(null)
           if (free !== -1) {
             parentLane = free
@@ -113,19 +133,24 @@ export function computeGraphLayout(commits: CommitNode[]): LayoutCommit[] {
         }
 
         const direction = parentLane < lane ? 'merge-left' : 'merge-right'
+        // Only draw to row+1 — avoids overlap with passthrough segments
         edges.push({
           fromLane: lane,
           toLane: parentLane,
-          toRow: parentIdx,
+          toRow: row + 1,
           color: laneColors[parentLane] || commitColor,
           type: direction
         })
+
+        // If the lane was just created, skip passthrough this row so we don't
+        // double-draw a straight segment on top of the diverge curve.
+        if (isNewLane) skipPassthrough.add(parentLane)
       }
     }
 
-    // Add passthrough edges for lanes not involved in this commit
+    // Add passthrough edges for all other active lanes
     for (let l = 0; l < lanes.length; l++) {
-      if (l === lane) continue
+      if (skipPassthrough.has(l)) continue
       const laneHash = lanes[l]
       if (!laneHash) continue
       const targetIdx = hashToIndex.get(laneHash)
