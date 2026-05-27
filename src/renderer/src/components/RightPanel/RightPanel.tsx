@@ -336,6 +336,10 @@ function StagingView({ onCommitSuccess, showToast }: {
     }
   }, [])
   const [committing, setCommitting] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false)
+  const [hasApiKey, setHasApiKey] = useState(false)
   const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
   const [diffRaw, setDiffRaw] = useState('')
   const [diffLoading, setDiffLoading] = useState(false)
@@ -346,6 +350,27 @@ function StagingView({ onCommitSuccess, showToast }: {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    window.gitAPI.aiGetApiKey().then(r => setHasApiKey(!!r.key))
+  }, [])
+
+  const saveApiKey = async () => {
+    await window.gitAPI.aiSetApiKey(apiKeyInput.trim())
+    setHasApiKey(true)
+    setShowApiKeyInput(false)
+    setApiKeyInput('')
+  }
+
+  const generateMessage = async () => {
+    if (!hasApiKey) { setShowApiKeyInput(true); return }
+    setGenerating(true)
+    const r = await window.gitAPI.aiGenerateCommitMessage()
+    if (r.error === 'NO_API_KEY') { setShowApiKeyInput(true) }
+    else if (r.error) { showToast(`Erreur : ${r.error}`, 'err') }
+    else if (r.message) { setCommitMsg(r.message) }
+    setGenerating(false)
+  }
 
   const handle = async (fn: () => Promise<any>, reload = true) => {
     await fn()
@@ -503,14 +528,48 @@ function StagingView({ onCommitSuccess, showToast }: {
 
       {/* Commit form */}
       <div className="st-form">
-        <textarea
-          className="st-textarea"
-          placeholder="Message de commit…&#10;&#10;Description optionnelle"
-          value={commitMsg}
-          onChange={e => setCommitMsg(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doCommit() }}
-          rows={3}
-        />
+        {showApiKeyInput && (
+          <div className="st-apikey-row">
+            <input
+              className="st-apikey-input"
+              type="password"
+              placeholder="Clé API Groq (gsk_…)"
+              value={apiKeyInput}
+              onChange={e => setApiKeyInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveApiKey()}
+              autoFocus
+            />
+            <button className="st-apikey-save" onClick={saveApiKey} disabled={!apiKeyInput.trim()}>OK</button>
+            <button className="st-apikey-cancel" onClick={() => setShowApiKeyInput(false)}>✕</button>
+          </div>
+        )}
+        <div className="st-textarea-wrap">
+          <textarea
+            className="st-textarea"
+            placeholder="Message de commit…&#10;&#10;Description optionnelle"
+            value={commitMsg}
+            onChange={e => setCommitMsg(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doCommit() }}
+            rows={3}
+          />
+          <button
+            className={`st-ai-btn ${generating ? 'st-ai-loading' : ''}`}
+            title={hasApiKey ? 'Générer un message avec l\'IA' : 'Configurer la clé API Google'}
+            onClick={generateMessage}
+            disabled={generating}
+          >
+            {generating ? '…' : '✨'}
+          </button>
+          {hasApiKey && (
+            <button
+              className="st-ai-key-btn"
+              title="Modifier la clé API"
+              onClick={() => setShowApiKeyInput(v => !v)}
+            >
+              🔑
+            </button>
+          )}
+        </div>
         <div className="st-form-footer">
           <label className="st-amend">
             <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />

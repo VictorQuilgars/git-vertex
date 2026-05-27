@@ -32,7 +32,10 @@
     }
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.99.0",
+    "@google/generative-ai": "^0.24.1",
     "diff2html": "^3.4.47",
+    "groq-sdk": "^1.2.0",
     "highlight.js": "^11.11.1",
     "simple-git": "^3.27.0"
   },

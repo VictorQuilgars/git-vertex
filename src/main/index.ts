@@ -367,3 +367,84 @@ ipcMain.handle('git:fetch-remote', async (_event, name: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.fetchRemote(name)
 })
+
+// ── AI: commit message generation ─────────────────────────────
+import { readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { join as pathJoin } from 'path'
+
+function getSettingsPath(): string {
+  const dir = app.getPath('userData')
+  mkdirSync(dir, { recursive: true })
+  return pathJoin(dir, 'settings.json')
+}
+
+function readSettings(): Record<string, string> {
+  try { return JSON.parse(readFileSync(getSettingsPath(), 'utf-8')) } catch { return {} }
+}
+
+function writeSettings(data: Record<string, string>): void {
+  writeFileSync(getSettingsPath(), JSON.stringify(data, null, 2), 'utf-8')
+}
+
+ipcMain.handle('ai:get-api-key', () => {
+  return { key: readSettings().groqApiKey ?? '' }
+})
+
+ipcMain.handle('ai:set-api-key', (_event, key: string) => {
+  const s = readSettings(); s.groqApiKey = key; writeSettings(s)
+  return { success: true }
+})
+
+ipcMain.handle('ai:list-models', async () => {
+  const apiKey = readSettings().geminiApiKey
+  if (!apiKey) return { error: 'NO_API_KEY' }
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+    const data = await res.json() as any
+    return { models: (data.models ?? []).map((m: any) => m.name) }
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('ai:generate-commit-message', async () => {
+  if (!gitService) return { error: 'Aucun dépôt ouvert' }
+  const apiKey = readSettings().groqApiKey
+  if (!apiKey) return { error: 'NO_API_KEY' }
+
+  let stagedDiff = ''
+  try {
+    const git = (gitService as any).git
+    stagedDiff = await git.raw(['diff', '--cached'])
+  } catch { return { error: 'Impossible de récupérer le diff' } }
+
+  if (!stagedDiff.trim()) return { error: 'Aucun changement indexé à analyser' }
+
+  const truncated = stagedDiff.length > 6000
+    ? stagedDiff.slice(0, 6000) + '\n... [diff tronqué]'
+    : stagedDiff
+
+  const prompt = `Tu es un expert Git. Analyse ce diff Git et génère un message de commit concis et descriptif en suivant le format Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf).
+
+Règles :
+- Première ligne : type(scope optionnel): description courte (max 72 chars)
+- Si nécessaire, ajoute 1-2 lignes de détails après une ligne vide
+- Réponds UNIQUEMENT avec le message de commit, sans explication
+
+Diff :
+\`\`\`diff
+${truncated}
+\`\`\``
+
+  try {
+    const Groq = (await import('groq-sdk')).default
+    const client = new Groq({ apiKey })
+    const response = await client.chat.completions.create({
+      model: 'openai/gpt-oss-120b',
+      max_tokens: 256,
+      messages: [{ role: 'user', content: prompt }]
+    })
+    const message = response.choices[0]?.message?.content?.trim() ?? ''
+    return { message }
+  } catch (e: any) {
+    return { error: e.message ?? 'Erreur API' }
+  }
+})

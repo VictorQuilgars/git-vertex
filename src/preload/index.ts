@@ -65,6 +65,11 @@ const gitAPI = {
   continueRebase: () => ipcRenderer.invoke('git:continue-rebase'),
   continueMerge: () => ipcRenderer.invoke('git:continue-merge'),
   abortRebase: () => ipcRenderer.invoke('git:abort-rebase'),
+  // AI
+  aiGetApiKey: () => ipcRenderer.invoke('ai:get-api-key'),
+  aiSetApiKey: (key: string) => ipcRenderer.invoke('ai:set-api-key', key),
+  aiGenerateCommitMessage: () => ipcRenderer.invoke('ai:generate-commit-message'),
+  aiListModels: () => ipcRenderer.invoke('ai:list-models'),
   // Reflog
   getReflog: () => ipcRenderer.invoke('git:get-reflog'),
   // File History
