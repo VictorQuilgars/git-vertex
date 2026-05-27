@@ -325,6 +325,16 @@ function StagingView({ onCommitSuccess, showToast }: {
   const [changes, setChanges] = useState<WorkingChanges>({ staged: [], unstaged: [], untracked: [] })
   const [commitMsg, setCommitMsg] = useState('')
   const [amend, setAmend] = useState(false)
+
+  const toggleAmend = useCallback(async (checked: boolean) => {
+    setAmend(checked)
+    if (checked) {
+      const r = await window.gitAPI.getLastCommitMessage()
+      setCommitMsg(r.message ?? '')
+    } else {
+      setCommitMsg('')
+    }
+  }, [])
   const [committing, setCommitting] = useState(false)
   const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
   const [diffRaw, setDiffRaw] = useState('')
@@ -503,7 +513,7 @@ function StagingView({ onCommitSuccess, showToast }: {
         />
         <div className="st-form-footer">
           <label className="st-amend">
-            <input type="checkbox" checked={amend} onChange={e => setAmend(e.target.checked)} />
+            <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />
             Amend
           </label>
           <button

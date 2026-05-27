@@ -171,6 +171,11 @@ ipcMain.handle('git:commit', async (_event, message: string, amend = false) => {
   return gitService.commit(message, amend)
 })
 
+ipcMain.handle('git:get-last-commit-message', async () => {
+  if (!gitService) return { message: '' }
+  return gitService.getLastCommitMessage()
+})
+
 ipcMain.handle('git:get-working-file-diff', async (_event, filepath: string, staged: boolean) => {
   if (!gitService) return { diff: '' }
   return gitService.getWorkingFileDiff(filepath, staged)

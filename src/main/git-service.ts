@@ -346,6 +346,15 @@ export class GitService {
     }
   }
 
+  async getLastCommitMessage(): Promise<{ message: string }> {
+    try {
+      const msg = await this.git.raw(['log', '-1', '--pretty=format:%B', 'HEAD'])
+      return { message: msg.trim() }
+    } catch {
+      return { message: '' }
+    }
+  }
+
   async commit(message: string, amend = false): Promise<{ success: boolean; error?: string }> {
     try {
       if (amend) {
