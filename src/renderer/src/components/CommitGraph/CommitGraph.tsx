@@ -39,19 +39,15 @@ function processRefs(refs: string[]): ProcessedRef[] {
   const consumed = new Set<string>()
   const result: ProcessedRef[] = []
 
-  // HEAD -> branch (current branch), merge with origin/branch if co-located
+  // HEAD -> branch (current branch)
   for (const ref of filtered) {
     if (ref.includes('HEAD -> ')) {
       const branch = ref.replace('HEAD -> ', '')
-      const remoteRef = `origin/${branch}`
-      const hasRemote = filtered.includes(remoteRef)
-      if (hasRemote) consumed.add(remoteRef)
       result.push({
         display: branch,
         cls: 'rc-head',
         branchName: branch,
-        synced: hasRemote,
-        tooltip: hasRemote ? `${branch} · origin/${branch}` : branch,
+        tooltip: branch,
       })
     }
   }
