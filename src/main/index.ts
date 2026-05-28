@@ -131,6 +131,11 @@ ipcMain.handle('git:delete-branch', async (_event, name: string) => {
   return gitService.deleteBranch(name)
 })
 
+ipcMain.handle('git:get-upstream', async () => {
+  if (!gitService) return { upstream: null }
+  return gitService.getUpstream()
+})
+
 ipcMain.handle('git:fetch', async () => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.fetch()

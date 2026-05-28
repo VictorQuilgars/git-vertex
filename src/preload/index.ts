@@ -17,6 +17,7 @@ const gitAPI = {
   checkout: (ref: string) => ipcRenderer.invoke('git:checkout', ref),
   createBranch: (name: string) => ipcRenderer.invoke('git:create-branch', name),
   deleteBranch: (name: string) => ipcRenderer.invoke('git:delete-branch', name),
+  getUpstream: () => ipcRenderer.invoke('git:get-upstream'),
   fetch: () => ipcRenderer.invoke('git:fetch'),
   push: () => ipcRenderer.invoke('git:push'),
   pushTo: (remote: string, branch: string, setUpstream: boolean) => ipcRenderer.invoke('git:push-to', remote, branch, setUpstream),

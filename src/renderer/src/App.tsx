@@ -253,7 +253,23 @@ export default function App() {
     setLoading(false)
   }
 
-  const handlePush = () => {
+  const handlePush = async () => {
+    if (!repoPath) return
+    setLoading(true)
+    const { upstream } = await window.gitAPI.getUpstream()
+    setLoading(false)
+    if (upstream) {
+      // upstream configured → push direct
+      const r = await window.gitAPI.push()
+      if (r.success) { showToast(`Push réussi → ${upstream} ✓`); await loadRepoData() }
+      else showToast(`Push échoué : ${r.error}`, 'err')
+    } else {
+      // no upstream → open modal to configure
+      setPushModalOpen(true)
+    }
+  }
+
+  const handlePushModal = () => {
     if (repoPath) setPushModalOpen(true)
   }
 
@@ -523,6 +539,7 @@ export default function App() {
         onSearch={setSearchQuery}
         onFetch={handleFetch}
         onPush={handlePush}
+        onPushModal={handlePushModal}
         onPull={handlePull}
         onCreateBranch={handleCreateBranch}
         onToggleAllBranches={() => setShowAllBranches(v => !v)}

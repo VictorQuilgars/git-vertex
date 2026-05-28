@@ -9,6 +9,7 @@ interface ToolbarProps {
   onSearch: (q: string) => void
   onFetch: () => void
   onPush: () => void
+  onPushModal: () => void
   onPull: () => void
   onCreateBranch: () => void
   onToggleAllBranches: () => void
@@ -48,7 +49,7 @@ function formatFetchTime(date: Date): string {
 
 export default function Toolbar({
   repoPath, currentBranch, searchQuery, showAllBranches,
-  onSearch, onFetch, onPush, onPull, onCreateBranch,
+  onSearch, onFetch, onPush, onPushModal, onPull, onCreateBranch,
   onToggleAllBranches, onRefresh, loading, lastFetchTime,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
   onSettings, settingsOpen
@@ -102,21 +103,32 @@ export default function Toolbar({
         label="Pull"
       />
 
-      {/* Push */}
-      <TBtn
-        title="Push — envoie les commits locaux"
-        disabled={disabled}
-        onClick={onPush}
-        accent="green"
-        icon={
+      {/* Push — split button */}
+      <div className={`tb-split${disabled ? ' tb-split-disabled' : ''}`}>
+        <button
+          className="tb-split-main tb-accent-green"
+          disabled={disabled}
+          onClick={onPush}
+          title="Push — envoie les commits locaux (push direct si upstream configuré)"
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="16 7 21 12 16 17"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
             <path d="M3 12a9 9 0 0 1 9-9"/>
           </svg>
-        }
-        label="Push"
-      />
+          <span>Push</span>
+        </button>
+        <button
+          className="tb-split-arrow tb-accent-green"
+          disabled={disabled}
+          onClick={onPushModal}
+          title="Choisir remote / branche upstream"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+            <path d="M1 3l4 4 4-4"/>
+          </svg>
+        </button>
+      </div>
 
       <div className="tb-divider" />
 

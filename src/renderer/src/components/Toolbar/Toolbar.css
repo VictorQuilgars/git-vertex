@@ -52,6 +52,48 @@
 .tb-btn.tb-icon-only { padding: 0 8px; }
 .tb-accent-green:hover:not(:disabled) { color: #3fb950; border-color: #2ea04355; background: #2ea04311; }
 
+/* Split button (Push) */
+.tb-split {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.tb-split-main,
+.tb-split-arrow {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #8b949e;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.tb-split-main {
+  gap: 5px;
+  padding: 0 10px;
+  border-radius: 6px 0 0 6px;
+  border-right: none;
+}
+.tb-split-arrow {
+  padding: 0 6px;
+  border-radius: 0 6px 6px 0;
+  border-left: 1px solid transparent;
+}
+.tb-split-main:hover:not(:disabled),
+.tb-split-arrow:hover:not(:disabled) {
+  color: #3fb950;
+  background: #2ea04311;
+}
+.tb-split-main:hover:not(:disabled) { border-color: #2ea04355; border-right-color: transparent; }
+.tb-split-arrow:hover:not(:disabled) { border-color: #2ea04355; border-left-color: #2ea04333; }
+.tb-split-main:disabled,
+.tb-split-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+.tb-split-disabled .tb-split-main,
+.tb-split-disabled .tb-split-arrow { opacity: 0.35; cursor: not-allowed; }
+
 /* Search */
 .tb-search {
   display: flex;

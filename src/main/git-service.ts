@@ -158,6 +158,15 @@ export class GitService {
     }
   }
 
+  async getUpstream(): Promise<{ upstream: string | null }> {
+    try {
+      const result = await this.git.raw(['rev-parse', '--abbrev-ref', '@{u}'])
+      return { upstream: result.trim() || null }
+    } catch {
+      return { upstream: null }
+    }
+  }
+
   async fetch(): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.fetch(['--all', '--prune'])
