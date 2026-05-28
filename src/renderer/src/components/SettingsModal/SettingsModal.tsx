@@ -87,6 +87,8 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'up-to-date' | 'error'>('idle')
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
   const [updateReady, setUpdateReady] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
+  const [updateError, setUpdateError] = useState<string | null>(null)
 
   // AI
   const [aiProvider, setAiProvider] = useState<AIProvider>('groq')
@@ -176,6 +178,15 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       setUpdateReady(true)
       setUpdateVersion(version)
       setUpdateStatus('available')
+      setDownloadProgress(null)
+    })
+    api.onDownloadProgress?.((pct: number) => {
+      setDownloadProgress(pct)
+    })
+    api.onUpdateError?.((err: string) => {
+      setUpdateStatus('error')
+      setUpdateError(err)
+      setDownloadProgress(null)
     })
   }, [])
 
@@ -502,8 +513,18 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                     </button>
                   )}
                   {!updateReady && updateStatus === 'up-to-date' && <span className="stg-about-update-ok">✓ Application à jour</span>}
-                  {!updateReady && updateStatus === 'available' && <span className="stg-about-update-new">⬇ Téléchargement en cours…</span>}
-                  {updateStatus === 'error' && <span className="stg-about-update-err">Impossible de vérifier</span>}
+                  {!updateReady && updateStatus === 'available' && (
+                    <span className="stg-about-update-new">
+                      {downloadProgress !== null
+                        ? `⬇ Téléchargement… ${downloadProgress}%`
+                        : `⬇ Démarrage du téléchargement de v${updateVersion}…`}
+                    </span>
+                  )}
+                  {updateStatus === 'error' && (
+                    <span className="stg-about-update-err" title={updateError ?? ''}>
+                      ✗ {updateError ?? 'Erreur inconnue'}
+                    </span>
+                  )}
                 </div>
 
                 <div className="stg-about-license">

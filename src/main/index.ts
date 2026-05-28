@@ -80,6 +80,9 @@ app.whenReady().then(() => {
       console.log('[updater] up to date:', info.version)
       mainWindow?.webContents.send('updater:not-available')
     })
+    autoUpdater.on('download-progress', (progress) => {
+      mainWindow?.webContents.send('updater:download-progress', Math.round(progress.percent))
+    })
     autoUpdater.on('update-downloaded', (info) => {
       console.log('[updater] downloaded:', info.version)
       downloadedUpdateVersion = info.version
