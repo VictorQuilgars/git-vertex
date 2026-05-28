@@ -607,6 +607,19 @@ ipcMain.handle('git:set-global-config', async (_e, userName: string, userEmail: 
   } catch (e: any) { return { success: false, error: e.message } }
 })
 
+ipcMain.handle('app:open-external', (_e, url: string) => {
+  shell.openExternal(url)
+})
+
+ipcMain.handle('app:get-info', () => {
+  return {
+    version:  app.getVersion(),
+    electron: process.versions.electron,
+    node:     process.versions.node,
+    chrome:   process.versions.chrome,
+  }
+})
+
 ipcMain.handle('github:start-auth', () => {
   startOAuthFlow()
 })

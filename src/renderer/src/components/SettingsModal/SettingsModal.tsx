@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import './SettingsModal.css'
 
-type Section = 'git' | 'github' | 'ai'
+type Section = 'git' | 'github' | 'ai' | 'about'
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
@@ -79,6 +79,9 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   const [githubUser, setGithubUser] = useState<{ login: string; avatar: string } | null>(null)
   const [githubLoading, setGithubLoading] = useState(false)
 
+  // About
+  const [appInfo, setAppInfo] = useState<{ version: string; electron: string; node: string; chrome: string } | null>(null)
+
   // AI
   const [aiProvider, setAiProvider] = useState<AIProvider>('groq')
   const [aiKeys, setAiKeys] = useState<Record<AIProvider, string>>({ anthropic: '', google: '', groq: '', openai: '' })
@@ -115,6 +118,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   }
 
   useEffect(() => {
+    ;(window.gitAPI as any).appGetInfo().then((info: any) => setAppInfo(info))
     window.gitAPI.gitGetGlobalConfig().then((r: any) => {
       setGitUserName(r.userName ?? '')
       setGitUserEmail(r.userEmail ?? '')
@@ -204,7 +208,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       <div className="stg-body">
         {/* Left nav */}
         <nav className="stg-nav">
-            {(['git', 'github', 'ai'] as Section[]).map(s => (
+            {(['git', 'github', 'ai', 'about'] as Section[]).map(s => (
               <button
                 key={s}
                 className={`stg-nav-item ${section === s ? 'active' : ''}`}
@@ -213,6 +217,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                 {s === 'git' && '⎇ Git'}
                 {s === 'github' && '🐙 GitHub'}
                 {s === 'ai' && '✨ Intelligence Artificielle'}
+                {s === 'about' && 'ℹ À propos'}
               </button>
             ))}
           </nav>
@@ -394,6 +399,59 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                 )}
 
                 <button className="stg-save" onClick={saveAI}>Enregistrer</button>
+              </div>
+            )}
+
+            {/* ── About ── */}
+            {section === 'about' && (
+              <div className="stg-section">
+                <div className="stg-about-hero">
+                  <img src="../../resources/icon.png" className="stg-about-icon" alt="Git Vertex" onError={e => (e.currentTarget.style.display = 'none')} />
+                  <div>
+                    <h1 className="stg-about-name">Git Vertex</h1>
+                    <span className="stg-about-version">v{appInfo?.version ?? '—'}</span>
+                  </div>
+                </div>
+
+                <p className="stg-desc">Interface graphique Git rapide et moderne. Visualisez vos branches, indexez vos changements et gérez vos commits simplement.</p>
+
+                <div className="stg-about-links">
+                  <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex')}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                    Code source
+                  </a>
+                  <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex/releases')}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Releases
+                  </a>
+                  <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex/issues')}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Signaler un bug
+                  </a>
+                </div>
+
+                <div className="stg-about-author">
+                  <span className="stg-about-label">Créé par</span>
+                  <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars')}>Victor Quilgars</a>
+                </div>
+
+                <div className="stg-about-env">
+                  <h3 className="stg-about-env-title">Environnement</h3>
+                  <div className="stg-about-env-grid">
+                    <span className="stg-about-env-key">Git Vertex</span>
+                    <span className="stg-about-env-val">{appInfo?.version ?? '—'}</span>
+                    <span className="stg-about-env-key">Electron</span>
+                    <span className="stg-about-env-val">{appInfo?.electron ?? '—'}</span>
+                    <span className="stg-about-env-key">Node.js</span>
+                    <span className="stg-about-env-val">{appInfo?.node ?? '—'}</span>
+                    <span className="stg-about-env-key">Chrome</span>
+                    <span className="stg-about-env-val">{appInfo?.chrome ?? '—'}</span>
+                  </div>
+                </div>
+
+                <div className="stg-about-license">
+                  Distribué sous licence <strong>MIT</strong>
+                </div>
               </div>
             )}
 

@@ -348,3 +348,82 @@
   transition: all 0.12s;
 }
 .stg-gh-disconnect:hover { background: #f8514911; border-color: #f85149; }
+
+/* ── About ───────────────────────────────────────────────────── */
+.stg-about-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.stg-about-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+}
+.stg-about-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e6edf3;
+  line-height: 1.2;
+}
+.stg-about-version {
+  font-size: 12px;
+  color: #3fb950;
+  font-weight: 500;
+}
+.stg-about-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.stg-about-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #58a6ff;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.12s;
+}
+.stg-about-link:hover { background: #30363d; border-color: #58a6ff55; }
+.stg-about-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.stg-about-label { color: #8b949e; }
+.stg-about-env {
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.stg-about-env-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+.stg-about-env-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+}
+.stg-about-env-key { font-size: 12px; color: #8b949e; }
+.stg-about-env-val { font-size: 12px; color: #e6edf3; font-family: monospace; }
+.stg-about-license {
+  font-size: 12px;
+  color: #6e7681;
+}
