@@ -84,6 +84,8 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
 
   // About
   const [appInfo, setAppInfo] = useState<{ version: string; electron: string; node: string; chrome: string } | null>(null)
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'up-to-date' | 'error'>('idle')
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null)
 
   // AI
   const [aiProvider, setAiProvider] = useState<AIProvider>('groq')
@@ -457,6 +459,26 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                     <span className="stg-about-env-key">Chrome</span>
                     <span className="stg-about-env-val">{appInfo?.chrome ?? '—'}</span>
                   </div>
+                </div>
+
+                <div className="stg-about-update">
+                  <button
+                    className="stg-about-check-btn"
+                    disabled={updateStatus === 'checking'}
+                    onClick={async () => {
+                      setUpdateStatus('checking')
+                      const r = await (window as any).gitAPI.checkForUpdates?.()
+                      if (r?.dev) { setUpdateStatus('up-to-date'); return }
+                      if (r?.error) { setUpdateStatus('error'); return }
+                      if (r?.version) { setUpdateStatus('available'); setUpdateVersion(r.version) }
+                      else setUpdateStatus('up-to-date')
+                    }}
+                  >
+                    {updateStatus === 'checking' ? '⟳ Vérification…' : '↺ Vérifier les mises à jour'}
+                  </button>
+                  {updateStatus === 'up-to-date' && <span className="stg-about-update-ok">✓ L'application est à jour</span>}
+                  {updateStatus === 'available' && <span className="stg-about-update-new">↑ Version {updateVersion} disponible — redémarre l'app</span>}
+                  {updateStatus === 'error' && <span className="stg-about-update-err">Impossible de vérifier les mises à jour</span>}
                 </div>
 
                 <div className="stg-about-license">

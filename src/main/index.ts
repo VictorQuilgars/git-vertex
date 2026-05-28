@@ -68,12 +68,25 @@ app.whenReady().then(() => {
 
   // Auto-updater (only in production)
   if (!is.dev) {
-    autoUpdater.checkForUpdatesAndNotify()
-    autoUpdater.on('update-available', () => {
-      mainWindow?.webContents.send('updater:update-available')
+    autoUpdater.autoDownload = true
+    autoUpdater.on('update-available', (info) => {
+      console.log('[updater] update available:', info.version)
+      mainWindow?.webContents.send('updater:update-available', info.version)
     })
-    autoUpdater.on('update-downloaded', () => {
-      mainWindow?.webContents.send('updater:update-downloaded')
+    autoUpdater.on('update-not-available', (info) => {
+      console.log('[updater] up to date:', info.version)
+      mainWindow?.webContents.send('updater:not-available')
+    })
+    autoUpdater.on('update-downloaded', (info) => {
+      console.log('[updater] downloaded:', info.version)
+      mainWindow?.webContents.send('updater:update-downloaded', info.version)
+    })
+    autoUpdater.on('error', (err) => {
+      console.error('[updater] error:', err.message)
+      mainWindow?.webContents.send('updater:error', err.message)
+    })
+    autoUpdater.checkForUpdatesAndNotify().catch(err => {
+      console.error('[updater] checkForUpdates failed:', err.message)
     })
   }
 })
@@ -638,6 +651,16 @@ ipcMain.handle('github:get-token', () => {
 
 ipcMain.handle('updater:install', () => {
   autoUpdater.quitAndInstall()
+})
+
+ipcMain.handle('updater:check', async () => {
+  if (is.dev) return { dev: true }
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    return { version: result?.updateInfo?.version ?? null }
+  } catch (e: any) {
+    return { error: e.message }
+  }
 })
 
 ipcMain.handle('github:detect-repo', async () => {

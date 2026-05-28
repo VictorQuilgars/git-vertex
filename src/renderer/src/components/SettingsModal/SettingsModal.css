@@ -429,6 +429,28 @@
 }
 .stg-about-env-key { font-size: 12px; color: #8b949e; }
 .stg-about-env-val { font-size: 12px; color: #e6edf3; font-family: monospace; }
+.stg-about-update {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.stg-about-check-btn {
+  padding: 6px 14px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #8b949e;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.stg-about-check-btn:hover:not(:disabled) { border-color: #8b949e; color: #e6edf3; }
+.stg-about-check-btn:disabled { opacity: 0.6; cursor: default; }
+.stg-about-update-ok  { font-size: 12px; color: #3fb950; }
+.stg-about-update-new { font-size: 12px; color: #58a6ff; font-weight: 600; }
+.stg-about-update-err { font-size: 12px; color: #f85149; }
+
 .stg-about-license {
   font-size: 12px;
   color: #6e7681;

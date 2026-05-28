@@ -105,9 +105,11 @@ const gitAPI = {
     ipcRenderer.on('github:auth-complete', (_e, result) => cb(result))
   },
   // Auto-updater
-  onUpdateAvailable: (cb: () => void) => ipcRenderer.on('updater:update-available', cb),
-  onUpdateDownloaded: (cb: () => void) => ipcRenderer.on('updater:update-downloaded', cb),
+  onUpdateAvailable: (cb: (version: string) => void) => ipcRenderer.on('updater:update-available', (_e, v) => cb(v)),
+  onUpdateDownloaded: (cb: (version: string) => void) => ipcRenderer.on('updater:update-downloaded', (_e, v) => cb(v)),
+  onUpdateError: (cb: (err: string) => void) => ipcRenderer.on('updater:error', (_e, err) => cb(err)),
   installUpdate: () => ipcRenderer.invoke('updater:install'),
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
 }
 
 contextBridge.exposeInMainWorld('gitAPI', gitAPI)
