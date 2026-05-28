@@ -20,7 +20,7 @@ jobs:
       - run: npm ci
       - name: Build & publish macOS
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
           VITE_GITHUB_PROXY_URL: ${{ secrets.VITE_GITHUB_PROXY_URL }}
         run: npm run package -- --mac --publish always
@@ -36,7 +36,7 @@ jobs:
       - run: npm ci
       - name: Build & publish Windows
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
           VITE_GITHUB_PROXY_URL: ${{ secrets.VITE_GITHUB_PROXY_URL }}
         run: npm run package -- --win --publish always
@@ -52,7 +52,7 @@ jobs:
       - run: npm ci
       - name: Build & publish Linux
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
           VITE_GITHUB_PROXY_URL: ${{ secrets.VITE_GITHUB_PROXY_URL }}
         run: npm run package -- --linux --publish always

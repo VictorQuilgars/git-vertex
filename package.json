@@ -26,7 +26,8 @@
     "publish": {
       "provider": "github",
       "owner": "VictorQuilgars",
-      "repo": "git-vertex"
+      "repo": "git-vertex",
+      "releaseType": "release"
     },
     "mac": {
       "icon": "resources/icon.icns",
