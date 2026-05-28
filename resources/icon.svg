@@ -2,21 +2,41 @@
   <!-- Background -->
   <rect width="512" height="512" rx="110" fill="#0d1117"/>
 
-  <!-- Branch line - main (vertical) -->
-  <line x1="180" y1="100" x2="180" y2="412" stroke="#3fb950" stroke-width="18" stroke-linecap="round"/>
+  <!-- Subtle inner glow on background -->
+  <rect width="512" height="512" rx="110" fill="url(#bg-glow)" opacity="0.4"/>
 
-  <!-- Branch line - feature (diagonal then vertical) -->
-  <path d="M180 180 Q180 270 310 270 L310 340" fill="none" stroke="#58a6ff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <radialGradient id="bg-glow" cx="50%" cy="60%" r="55%">
+      <stop offset="0%" stop-color="#1c2128"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </radialGradient>
+    <radialGradient id="merge-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#5eff8a"/>
+      <stop offset="100%" stop-color="#3fb950"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
 
-  <!-- Merge line back -->
-  <path d="M310 340 Q310 412 180 412" fill="none" stroke="#58a6ff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Left arm of V (green) -->
+  <line x1="148" y1="82" x2="256" y2="422" stroke="#3fb950" stroke-width="22" stroke-linecap="round"/>
 
-  <!-- Commit nodes - main branch -->
-  <circle cx="180" cy="130" r="22" fill="#0d1117" stroke="#3fb950" stroke-width="14"/>
-  <circle cx="180" cy="260" r="22" fill="#0d1117" stroke="#3fb950" stroke-width="14"/>
-  <circle cx="180" cy="412" r="22" fill="#3fb950" stroke="#3fb950" stroke-width="4"/>
+  <!-- Right arm of V (blue) -->
+  <line x1="364" y1="82" x2="256" y2="422" stroke="#58a6ff" stroke-width="22" stroke-linecap="round"/>
 
-  <!-- Commit nodes - feature branch -->
-  <circle cx="310" cy="270" r="22" fill="#0d1117" stroke="#58a6ff" stroke-width="14"/>
-  <circle cx="310" cy="340" r="22" fill="#0d1117" stroke="#58a6ff" stroke-width="14"/>
+  <!-- Left branch commit nodes -->
+  <circle cx="148" cy="82"  r="24" fill="#0d1117" stroke="#3fb950" stroke-width="13"/>
+  <circle cx="184" cy="192" r="18" fill="#0d1117" stroke="#3fb950" stroke-width="11"/>
+  <circle cx="220" cy="302" r="18" fill="#0d1117" stroke="#3fb950" stroke-width="11"/>
+
+  <!-- Right branch commit nodes -->
+  <circle cx="364" cy="82"  r="24" fill="#0d1117" stroke="#58a6ff" stroke-width="13"/>
+  <circle cx="328" cy="192" r="18" fill="#0d1117" stroke="#58a6ff" stroke-width="11"/>
+  <circle cx="292" cy="302" r="18" fill="#0d1117" stroke="#58a6ff" stroke-width="11"/>
+
+  <!-- Tip / merge node -->
+  <circle cx="256" cy="422" r="28" fill="url(#merge-glow)" filter="url(#glow)"/>
+  <circle cx="256" cy="422" r="14" fill="#0d1117"/>
 </svg>
