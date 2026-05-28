@@ -701,13 +701,17 @@ ipcMain.handle('updater:install-manual', async () => {
     if (!match) return { error: 'Impossible de localiser le bundle courant' }
     const currentAppPath = match[1]
 
-    // Write a shell script that runs after we quit:
-    // waits, copies new .app over old one, relaunches
+    // Determine parent directory to copy into
+    const appParentDir = pathJoin(currentAppPath, '..')
+
+    // Shell script: wait for quit, delete old app, copy new one, relaunch
     const scriptPath = pathJoin(tempDir, 'install.sh')
     fs.writeFileSync(scriptPath, [
       '#!/bin/bash',
-      'sleep 1',
-      `ditto "${newAppPath}" "${currentAppPath}"`,
+      'sleep 1.5',
+      `rm -rf "${currentAppPath}"`,
+      `cp -R "${newAppPath}" "${appParentDir}/"`,
+      `xattr -dr com.apple.quarantine "${currentAppPath}" 2>/dev/null || true`,
       `open "${currentAppPath}"`,
       `rm -rf "${tempDir}"`,
     ].join('\n'))
