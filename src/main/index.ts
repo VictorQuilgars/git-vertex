@@ -1,8 +1,10 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { autoUpdater } from 'electron-updater'
 import { GitService } from './git-service'
 import { getRecentRepos, addRecentRepo, removeRecentRepo } from './recent-repos'
+import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 
 let mainWindow: BrowserWindow
 let gitService: GitService | null = null
@@ -39,13 +41,40 @@ function createWindow(): void {
   }
 }
 
+// Register custom protocol for GitHub OAuth callback
+app.setAsDefaultProtocolClient('gitgui')
+
+// macOS: app already running, callback arrives via open-url
+app.on('open-url', async (event, url) => {
+  event.preventDefault()
+  if (!url.startsWith('gitgui://callback')) return
+  const result = await handleOAuthCallback(url)
+  if ('token' in result) {
+    const s = readSettings(); s.githubToken = result.token; writeSettings(s)
+    mainWindow?.webContents.send('github:auth-complete', { token: result.token })
+  } else {
+    mainWindow?.webContents.send('github:auth-complete', { error: result.error })
+  }
+})
+
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.gitgui')
+  electronApp.setAppUserModelId('com.victor.gitvertex')
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  // Auto-updater (only in production)
+  if (!is.dev) {
+    autoUpdater.checkForUpdatesAndNotify()
+    autoUpdater.on('update-available', () => {
+      mainWindow?.webContents.send('updater:update-available')
+    })
+    autoUpdater.on('update-downloaded', () => {
+      mainWindow?.webContents.send('updater:update-downloaded')
+    })
+  }
 })
 
 app.on('window-all-closed', () => {
@@ -576,4 +605,46 @@ ipcMain.handle('git:set-global-config', async (_e, userName: string, userEmail: 
     if (userEmail) await exec('git', ['config', '--global', 'user.email', userEmail])
     return { success: true }
   } catch (e: any) { return { success: false, error: e.message } }
+})
+
+ipcMain.handle('github:start-auth', () => {
+  startOAuthFlow()
+})
+
+ipcMain.handle('github:disconnect', () => {
+  const s = readSettings()
+  delete s.githubToken
+  writeSettings(s)
+  return { success: true }
+})
+
+ipcMain.handle('github:get-token', () => {
+  return { token: readSettings().githubToken ?? null }
+})
+
+ipcMain.handle('updater:install', () => {
+  autoUpdater.quitAndInstall()
+})
+
+ipcMain.handle('github:get-user', async () => {
+  const token = readSettings().githubToken
+  if (!token) return { user: null }
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+    })
+    if (!res.ok) return { user: null }
+    const user = await res.json() as { login: string; avatar_url: string }
+
+    // Fetch avatar as base64 to avoid CSP issues in renderer
+    let avatar = ''
+    try {
+      const imgRes = await fetch(user.avatar_url)
+      const contentType = imgRes.headers.get('content-type') ?? 'image/png'
+      const buffer = Buffer.from(await imgRes.arrayBuffer())
+      avatar = `data:${contentType};base64,${buffer.toString('base64')}`
+    } catch { /* avatar stays empty */ }
+
+    return { user: { login: user.login, avatar } }
+  } catch { return { user: null } }
 })

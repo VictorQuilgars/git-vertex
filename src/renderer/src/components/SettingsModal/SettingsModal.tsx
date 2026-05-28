@@ -76,6 +76,8 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   // GitHub
   const [githubToken, setGithubToken] = useState('')
   const [showToken, setShowToken] = useState(false)
+  const [githubUser, setGithubUser] = useState<{ login: string; avatar: string } | null>(null)
+  const [githubLoading, setGithubLoading] = useState(false)
 
   // AI
   const [aiProvider, setAiProvider] = useState<AIProvider>('groq')
@@ -107,6 +109,11 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
     })
   }
 
+  const fetchGithubUser = async () => {
+    const r = await (window.gitAPI as any).githubGetUser()
+    setGithubUser(r.user ?? null)
+  }
+
   useEffect(() => {
     window.gitAPI.gitGetGlobalConfig().then((r: any) => {
       setGitUserName(r.userName ?? '')
@@ -120,7 +127,9 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
         groq:      s.aiGroqKey ?? s.groqApiKey ?? '',
         openai:    s.aiOpenaiKey ?? '',
       }
-      setGithubToken(s.githubToken ?? '')
+      const token = s.githubToken ?? ''
+      setGithubToken(token)
+      if (token) fetchGithubUser()
       setAiProvider(provider)
       setAiKeys(keys)
       setAiModels(m => ({
@@ -131,7 +140,31 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       }))
       if (keys[provider]) fetchModels(provider, keys[provider])
     })
+
+    // Listen for OAuth callback result from main process
+    ;(window.gitAPI as any).onGithubAuthComplete(async (result: { token?: string; error?: string }) => {
+      setGithubLoading(false)
+      if (result.token) {
+        setGithubToken(result.token)
+        await fetchGithubUser()
+        showToast('Connecté à GitHub ✓')
+      } else {
+        showToast(`Connexion GitHub échouée : ${result.error}`, 'err')
+      }
+    })
   }, [])
+
+  const handleGithubLogin = async () => {
+    setGithubLoading(true)
+    await (window.gitAPI as any).githubStartAuth()
+  }
+
+  const handleGithubDisconnect = async () => {
+    await (window.gitAPI as any).githubDisconnect()
+    setGithubToken('')
+    setGithubUser(null)
+    showToast('Déconnecté de GitHub')
+  }
 
   const saveGit = async () => {
     const r = await window.gitAPI.gitSetGlobalConfig(gitUserName.trim(), gitUserEmail.trim())
@@ -221,37 +254,32 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
             {/* ── GitHub ── */}
             {section === 'github' && (
               <div className="stg-section">
-                <h2 className="stg-section-title">Token GitHub</h2>
-                <p className="stg-desc">Un Personal Access Token (PAT) permet d'accéder à l'API GitHub pour les opérations authentifiées.</p>
+                <h2 className="stg-section-title">Connexion GitHub</h2>
+                <p className="stg-desc">Connectez votre compte GitHub pour accéder aux Pull Requests, Issues et autres fonctionnalités collaboratives.</p>
 
-                <label className="stg-field">
-                  <span>Personal Access Token</span>
-                  <div className="stg-input-row">
-                    <input
-                      className="stg-input"
-                      type={showToken ? 'text' : 'password'}
-                      value={githubToken}
-                      onChange={e => setGithubToken(e.target.value)}
-                      placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                    />
-                    <button className="stg-eye" onClick={() => setShowToken(v => !v)} title={showToken ? 'Masquer' : 'Afficher'}>
-                      {showToken ? '🙈' : '👁'}
+                {githubUser ? (
+                  <div className="stg-gh-connected">
+                    <img className="stg-gh-avatar" src={githubUser.avatar} alt={githubUser.login} />
+                    <div className="stg-gh-info">
+                      <span className="stg-gh-login">{githubUser.login}</span>
+                      <span className="stg-gh-status">Connecté</span>
+                    </div>
+                    <button className="stg-gh-disconnect" onClick={handleGithubDisconnect}>
+                      Déconnecter
                     </button>
                   </div>
-                </label>
-
-                <div className="stg-tuto">
-                  <p className="stg-tuto-title">Comment générer un token GitHub :</p>
-                  <ol className="stg-tuto-steps">
-                    <li>Aller dans <strong>github.com → Settings → Developer settings</strong></li>
-                    <li>Cliquer sur <strong>Personal access tokens → Tokens (classic)</strong></li>
-                    <li>Cliquer sur <strong>"Generate new token"</strong></li>
-                    <li>Sélectionner les scopes : <code>repo</code>, <code>workflow</code></li>
-                    <li>Copier le token généré (visible une seule fois)</li>
-                  </ol>
-                </div>
-
-                <button className="stg-save" onClick={saveGithub}>Enregistrer</button>
+                ) : (
+                  <button
+                    className="stg-gh-login-btn"
+                    onClick={handleGithubLogin}
+                    disabled={githubLoading}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    {githubLoading ? 'Connexion en cours…' : 'Se connecter avec GitHub'}
+                  </button>
+                )}
               </div>
             )}
 

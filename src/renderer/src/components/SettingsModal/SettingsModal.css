@@ -284,3 +284,67 @@
   font-size: 12px;
   opacity: 0.8;
 }
+
+/* ── GitHub OAuth ─────────────────────────────────────────────── */
+.stg-gh-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #e6edf3;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 8px;
+}
+.stg-gh-login-btn:hover:not(:disabled) { background: #30363d; border-color: #8b949e; }
+.stg-gh-login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.stg-gh-connected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #161b22;
+  border: 1px solid #3fb95033;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+.stg-gh-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #3fb95055;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.stg-gh-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.stg-gh-login {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+.stg-gh-status {
+  font-size: 11px;
+  color: #3fb950;
+}
+.stg-gh-disconnect {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid #f8514933;
+  border-radius: 6px;
+  color: #f85149;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.stg-gh-disconnect:hover { background: #f8514911; border-color: #f85149; }

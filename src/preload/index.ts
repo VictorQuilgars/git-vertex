@@ -88,6 +88,18 @@ const gitAPI = {
   settingsSet: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value),
   gitGetGlobalConfig: () => ipcRenderer.invoke('git:get-global-config'),
   gitSetGlobalConfig: (userName: string, userEmail: string) => ipcRenderer.invoke('git:set-global-config', userName, userEmail),
+  // GitHub OAuth
+  githubStartAuth: () => ipcRenderer.invoke('github:start-auth'),
+  githubDisconnect: () => ipcRenderer.invoke('github:disconnect'),
+  githubGetToken: () => ipcRenderer.invoke('github:get-token'),
+  githubGetUser: () => ipcRenderer.invoke('github:get-user'),
+  onGithubAuthComplete: (cb: (result: { token?: string; error?: string }) => void) => {
+    ipcRenderer.on('github:auth-complete', (_e, result) => cb(result))
+  },
+  // Auto-updater
+  onUpdateAvailable: (cb: () => void) => ipcRenderer.on('updater:update-available', cb),
+  onUpdateDownloaded: (cb: () => void) => ipcRenderer.on('updater:update-downloaded', cb),
+  installUpdate: () => ipcRenderer.invoke('updater:install'),
 }
 
 contextBridge.exposeInMainWorld('gitAPI', gitAPI)
