@@ -604,6 +604,10 @@ export default function App() {
             <button className="update-btn-install" onClick={() => (window.gitAPI as any).installUpdate()}>
               {t('update.install')}
             </button>
+            <button className="update-btn-install" style={{ background: '#1f6feb', fontSize: 11 }}
+              onClick={() => window.gitAPI.openExternal('https://github.com/VictorQuilgars/git-vertex/releases/latest')}>
+              ↓ DMG
+            </button>
             <button className="update-btn-later" onClick={() => setUpdateBannerOpen(false)}>
               {t('update.later')}
             </button>
