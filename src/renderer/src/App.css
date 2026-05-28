@@ -13,6 +13,47 @@ body {
 
 .app-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 
+/* Activity bar */
+.app-activity-bar {
+  width: 44px;
+  flex-shrink: 0;
+  background: #0d1117;
+  border-right: 1px solid #21262d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  gap: 4px;
+}
+.act-btn {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #6e7681;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.1s, background 0.1s;
+  position: relative;
+}
+.act-btn:hover { color: #c9d1d9; background: #161b22; }
+.act-btn.active {
+  color: #e6edf3;
+}
+.act-btn.active::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #58a6ff;
+  border-radius: 0 2px 2px 0;
+}
+
 /* Sidebar */
 .app-sidebar { flex-shrink: 0; overflow: hidden; display: flex; }
 

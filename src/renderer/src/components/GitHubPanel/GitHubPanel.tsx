@@ -29,7 +29,6 @@ interface Issue {
 
 interface Props {
   repoPath: string | null
-  onClose: () => void
 }
 
 function timeAgo(dateStr: string, lang: string): string {
@@ -139,7 +138,7 @@ function IssueItem({ issue, lang }: { issue: Issue; lang: string }) {
   )
 }
 
-export default function GitHubPanel({ repoPath, onClose }: Props) {
+export default function GitHubPanel({ repoPath }: Props) {
   const { t, lang } = useLang()
   const [tab, setTab] = useState<'prs' | 'issues'>('prs')
   const [owner, setOwner] = useState<string | null>(null)
@@ -204,7 +203,6 @@ export default function GitHubPanel({ repoPath, onClose }: Props) {
             </svg>
           </button>
         )}
-        <button className="ghp-close" onClick={onClose}>×</button>
       </div>
 
       {!noRepo && !noAuth && (

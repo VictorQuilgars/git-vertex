@@ -1,15 +1,9 @@
 .ghp-panel {
-  position: fixed;
-  top: 38px; /* toolbar height */
-  right: 0;
-  bottom: 0;
-  width: 360px;
-  background: #161b22;
-  border-left: 1px solid #30363d;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  z-index: 200;
-  box-shadow: -6px 0 24px rgba(0,0,0,0.3);
+  overflow: hidden;
+  background: #0d1117;
 }
 
 /* ── Header ─────────────────────────────────── */
