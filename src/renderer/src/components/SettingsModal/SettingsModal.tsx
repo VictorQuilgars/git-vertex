@@ -503,16 +503,15 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <button
                         className="stg-about-install-btn"
-                        onClick={() => (window.gitAPI as any).installUpdate?.()}
+                        onClick={async () => {
+                          const r = await (window.gitAPI as any).installManual?.()
+                          if (r?.error) {
+                            // fallback to electron's quitAndInstall
+                            ;(window.gitAPI as any).installUpdate?.()
+                          }
+                        }}
                       >
-                        🚀 Redémarrer et installer v{updateVersion}
-                      </button>
-                      <button
-                        className="stg-about-check-btn"
-                        style={{ fontSize: 11, color: '#58a6ff', borderColor: '#58a6ff44' }}
-                        onClick={() => (window.gitAPI as any).openDownloadedUpdate?.()}
-                      >
-                        📂 Ouvrir le fichier téléchargé dans le Finder
+                        🚀 Installer et relancer v{updateVersion}
                       </button>
                     </div>
                   ) : (

@@ -672,6 +672,57 @@ ipcMain.handle('updater:open-downloaded', () => {
   }
 })
 
+ipcMain.handle('updater:install-manual', async () => {
+  if (!downloadedUpdateFile) return { error: 'Aucun fichier téléchargé' }
+  try {
+    const { execFile, spawn } = await import('child_process')
+    const { promisify } = await import('util')
+    const exec = promisify(execFile)
+    const os = await import('os')
+    const fs = await import('fs')
+
+    // Extract ZIP to temp dir
+    const tempDir = pathJoin(os.tmpdir(), `git-vertex-update-${Date.now()}`)
+    fs.mkdirSync(tempDir, { recursive: true })
+    await exec('unzip', ['-o', downloadedUpdateFile, '-d', tempDir])
+
+    // Find extracted .app
+    const entries = fs.readdirSync(tempDir)
+    const appBundle = entries.find(f => f.endsWith('.app'))
+    if (!appBundle) return { error: '.app introuvable dans le ZIP' }
+    const newAppPath = pathJoin(tempDir, appBundle)
+
+    // Remove quarantine flag if present
+    try { await exec('xattr', ['-dr', 'com.apple.quarantine', newAppPath]) } catch { /* ignore */ }
+
+    // Determine current .app bundle path from executable path
+    const exePath = app.getPath('exe')
+    const match = exePath.match(/^(.*\.app)/)
+    if (!match) return { error: 'Impossible de localiser le bundle courant' }
+    const currentAppPath = match[1]
+
+    // Write a shell script that runs after we quit:
+    // waits, copies new .app over old one, relaunches
+    const scriptPath = pathJoin(tempDir, 'install.sh')
+    fs.writeFileSync(scriptPath, [
+      '#!/bin/bash',
+      'sleep 1',
+      `ditto "${newAppPath}" "${currentAppPath}"`,
+      `open "${currentAppPath}"`,
+      `rm -rf "${tempDir}"`,
+    ].join('\n'))
+    fs.chmodSync(scriptPath, '755')
+
+    // Launch script detached then quit
+    spawn('bash', [scriptPath], { detached: true, stdio: 'ignore' }).unref()
+    app.quit()
+
+    return { success: true }
+  } catch (e: any) {
+    return { error: e.message }
+  }
+})
+
 function semverGt(a: string, b: string): boolean {
   const pa = a.split('.').map(Number)
   const pb = b.split('.').map(Number)

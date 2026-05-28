@@ -601,12 +601,11 @@ export default function App() {
         <div className="update-banner">
           <span>{t('update.banner')}</span>
           <div className="update-banner-actions">
-            <button className="update-btn-install" onClick={() => (window.gitAPI as any).installUpdate()}>
+            <button className="update-btn-install" onClick={async () => {
+              const r = await (window.gitAPI as any).installManual?.()
+              if (r?.error) (window.gitAPI as any).installUpdate?.()
+            }}>
               {t('update.install')}
-            </button>
-            <button className="update-btn-install" style={{ background: '#1f6feb', fontSize: 11 }}
-              onClick={() => (window.gitAPI as any).openDownloadedUpdate?.()}>
-              📂 Finder
             </button>
             <button className="update-btn-later" onClick={() => setUpdateBannerOpen(false)}>
               {t('update.later')}
