@@ -640,6 +640,76 @@ ipcMain.handle('updater:install', () => {
   autoUpdater.quitAndInstall()
 })
 
+ipcMain.handle('github:detect-repo', async () => {
+  if (!gitService) return { owner: null, repo: null }
+  try {
+    const remotes = await (gitService as any).git.getRemotes(true)
+    const origin = remotes.find((r: any) => r.name === 'origin') ?? remotes[0]
+    if (!origin) return { owner: null, repo: null }
+    const url: string = origin.refs?.fetch ?? origin.refs?.push ?? ''
+    // https://github.com/owner/repo.git  or  git@github.com:owner/repo.git
+    const match = url.match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
+    if (!match) return { owner: null, repo: null }
+    return { owner: match[1], repo: match[2] }
+  } catch { return { owner: null, repo: null } }
+})
+
+ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
+      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+    )
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any[]
+    return {
+      prs: data.map(pr => ({
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,
+        draft: pr.draft,
+        author: pr.user?.login ?? '',
+        createdAt: pr.created_at,
+        updatedAt: pr.updated_at,
+        comments: pr.comments + pr.review_comments,
+        labels: (pr.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        url: pr.html_url,
+        headRef: pr.head?.ref ?? '',
+        baseRef: pr.base?.ref ?? '',
+      }))
+    }
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/issues?per_page=50&state=open&pulls=false`,
+      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+    )
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any[]
+    // GitHub issues endpoint also returns PRs — filter them out
+    const issues = data.filter((i: any) => !i.pull_request)
+    return {
+      issues: issues.map((issue: any) => ({
+        number: issue.number,
+        title: issue.title,
+        state: issue.state,
+        author: issue.user?.login ?? '',
+        createdAt: issue.created_at,
+        comments: issue.comments,
+        labels: (issue.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        url: issue.html_url,
+      }))
+    }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:list-repos', async () => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }

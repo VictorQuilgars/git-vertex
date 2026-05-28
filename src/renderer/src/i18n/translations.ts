@@ -241,6 +241,22 @@ const fr = {
   'welcome.hint': 'Ouvrez un dépôt Git depuis le panneau de gauche',
   'welcome.open': 'Ouvrir un dépôt…',
 
+  // GitHub Panel
+  'gh.panel.noRepo': 'Aucun remote GitHub détecté pour ce dépôt.',
+  'gh.panel.noAuth': 'Connectez-vous à GitHub dans les Paramètres pour voir les PRs et Issues.',
+  'gh.panel.loading': 'Chargement…',
+  'gh.panel.refresh': 'Rafraîchir',
+  'gh.panel.tabPRs': 'Pull Requests',
+  'gh.panel.tabIssues': 'Issues',
+  'gh.panel.noPRs': 'Aucune Pull Request ouverte',
+  'gh.panel.noIssues': 'Aucune Issue ouverte',
+  'gh.panel.draft': 'Draft',
+  'gh.panel.openIn': 'Ouvrir sur GitHub',
+  'gh.panel.comments': (n: number) => `${n} commentaire${n !== 1 ? 's' : ''}`,
+  'gh.panel.ago': (s: string) => `il y a ${s}`,
+  'gh.panel.error': (e: string) => `Erreur : ${e}`,
+  'toolbar.github.tooltip': 'PRs & Issues GitHub',
+
   // Clone from GitHub
   'clone.title': 'Cloner depuis GitHub',
   'clone.urlTitle': 'Cloner depuis une URL',
@@ -504,6 +520,22 @@ const en: typeof fr = {
   // Welcome
   'welcome.hint': 'Open a Git repository from the left panel',
   'welcome.open': 'Open a repository…',
+
+  // GitHub Panel
+  'gh.panel.noRepo': 'No GitHub remote detected for this repository.',
+  'gh.panel.noAuth': 'Connect to GitHub in Settings to view PRs and Issues.',
+  'gh.panel.loading': 'Loading…',
+  'gh.panel.refresh': 'Refresh',
+  'gh.panel.tabPRs': 'Pull Requests',
+  'gh.panel.tabIssues': 'Issues',
+  'gh.panel.noPRs': 'No open Pull Requests',
+  'gh.panel.noIssues': 'No open Issues',
+  'gh.panel.draft': 'Draft',
+  'gh.panel.openIn': 'Open on GitHub',
+  'gh.panel.comments': (n: number) => `${n} comment${n !== 1 ? 's' : ''}`,
+  'gh.panel.ago': (s: string) => `${s} ago`,
+  'gh.panel.error': (e: string) => `Error: ${e}`,
+  'toolbar.github.tooltip': 'PRs & Issues GitHub',
 
   // Clone from GitHub
   'clone.title': 'Clone from GitHub',

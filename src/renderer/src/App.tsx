@@ -13,6 +13,7 @@ import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import PushModal from './components/PushModal/PushModal'
 import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
+import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -129,6 +130,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [cloneOpen, setCloneOpen] = useState(false)
   const [githubConnected, setGithubConnected] = useState(false)
+  const [githubPanelOpen, setGithubPanelOpen] = useState(false)
   const [updateReady, setUpdateReady] = useState(false)
   const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
@@ -577,6 +579,8 @@ export default function App() {
         settingsOpen={settingsOpen}
         updateReady={updateReady}
         onInstallUpdate={() => setUpdateBannerOpen(true)}
+        onGithubPanel={() => setGithubPanelOpen(v => !v)}
+        githubPanelOpen={githubPanelOpen}
       />
 
       {/* ── Update banner ── */}
@@ -693,6 +697,14 @@ export default function App() {
         <CommandPalette
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
+        />
+      )}
+
+      {/* GitHub Panel */}
+      {githubPanelOpen && repoPath && (
+        <GitHubPanel
+          repoPath={repoPath}
+          onClose={() => setGithubPanelOpen(false)}
         />
       )}
 

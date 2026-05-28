@@ -91,6 +91,9 @@ const gitAPI = {
   appGetInfo: () => ipcRenderer.invoke('app:get-info'),
   openExternal: (url: string) => ipcRenderer.invoke('app:open-external', url),
   // GitHub
+  githubDetectRepo: () => ipcRenderer.invoke('github:detect-repo'),
+  githubListPRs: (owner: string, repo: string) => ipcRenderer.invoke('github:list-prs', owner, repo),
+  githubListIssues: (owner: string, repo: string) => ipcRenderer.invoke('github:list-issues', owner, repo),
   githubListRepos: () => ipcRenderer.invoke('github:list-repos'),
   githubClone: (cloneUrl: string, repoName: string) => ipcRenderer.invoke('github:clone', cloneUrl, repoName),
   // GitHub OAuth
