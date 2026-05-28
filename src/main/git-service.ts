@@ -569,7 +569,7 @@ export class GitService {
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
-      await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', sequence[0].hash + '^'], {
+      await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
         env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile },
         timeout: 30000
       })
