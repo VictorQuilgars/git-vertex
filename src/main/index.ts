@@ -440,7 +440,16 @@ ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKe
       if (!res.ok || data.error) return { error: data.error?.message ?? `HTTP ${res.status}` }
       const list: any[] = Array.isArray(data) ? data : (data.data ?? data.models ?? [])
       console.log('[groq models] count:', list.length, 'sample:', list.slice(0, 3).map((m: any) => m.id))
-      return { models: list.map((m: any) => (m.id ?? m.name) as string).filter(Boolean).sort() }
+      const ids = list
+        .map((m: any) => (m.id ?? m.name) as string)
+        .filter((id: string) => {
+          if (!id) return false
+          // exclure uniquement les modèles audio/transcription
+          if (id.startsWith('whisper') || id.startsWith('distil-whisper')) return false
+          return true
+        })
+        .sort()
+      return { models: ids }
     }
     if (provider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/models', {
@@ -459,7 +468,7 @@ ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKe
 })
 
 ipcMain.handle('ai:generate-commit-message', async () => {
-  if (!gitService) return { error: 'Aucun dépôt ouvert' }
+  if (!gitService) { console.log('[ai] no gitService'); return { error: 'Aucun dépôt ouvert' } }
   const s = readSettings()
   const provider = s.aiProvider ?? 'groq'
   const keyMap: Record<string, string> = { anthropic: 'aiAnthropicKey', google: 'aiGoogleKey', groq: 'aiGroqKey', openai: 'aiOpenaiKey' }
@@ -472,6 +481,7 @@ ipcMain.handle('ai:generate-commit-message', async () => {
   // backward compat: groqApiKey was the old key
   const apiKey = s[keyMap[provider] ?? 'aiGroqKey'] ?? (provider === 'groq' ? s.groqApiKey : '') ?? ''
   const model = modelMap[provider]
+  console.log(`[ai] provider=${provider} model=${model} hasKey=${!!apiKey}`)
   if (!apiKey) return { error: 'NO_API_KEY' }
 
   let stagedDiff = ''
@@ -479,55 +489,52 @@ ipcMain.handle('ai:generate-commit-message', async () => {
     const git = (gitService as any).git
     stagedDiff = await git.raw(['diff', '--cached'])
   } catch { return { error: 'Impossible de récupérer le diff' } }
-  if (!stagedDiff.trim()) return { error: 'Aucun changement indexé à analyser' }
+  if (!stagedDiff.trim()) { console.log('[ai] no staged diff'); return { error: 'Aucun changement indexé à analyser' } }
 
   const truncated = stagedDiff.length > 6000 ? stagedDiff.slice(0, 6000) + '\n... [diff tronqué]' : stagedDiff
   const prompt = `Tu es un expert Git. Analyse ce diff et génère un message de commit concis en suivant Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). Première ligne : type(scope): description (max 72 chars). Réponds UNIQUEMENT avec le message de commit.\n\nDiff :\n\`\`\`diff\n${truncated}\n\`\`\``
 
-  try {
+  const callAPI = async (): Promise<string> => {
     if (provider === 'anthropic') {
       const Anthropic = (await import('@anthropic-ai/sdk')).default
       const client = new Anthropic({ apiKey })
-      const res = await client.messages.create({
-        model,
-        max_tokens: 256,
-        messages: [{ role: 'user', content: prompt }]
-      })
-      const message = (res.content[0] as any).text?.trim() ?? ''
-      return { message }
+      const res = await client.messages.create({ model, max_tokens: 512, messages: [{ role: 'user', content: prompt }] })
+      return (res.content[0] as any).text?.trim() ?? ''
     }
     if (provider === 'google') {
       const { GoogleGenerativeAI } = await import('@google/generative-ai')
       const genAI = new GoogleGenerativeAI(apiKey)
       const genModel = genAI.getGenerativeModel({ model })
       const result = await genModel.generateContent(prompt)
-      const message = result.response.text().trim()
-      return { message }
+      return result.response.text().trim()
     }
     if (provider === 'openai') {
       const OpenAI = (await import('openai')).default
       const client = new OpenAI({ apiKey })
-      const response = await client.chat.completions.create({
-        model,
-        max_tokens: 256,
-        messages: [{ role: 'user', content: prompt }]
-      })
-      const message = response.choices[0]?.message?.content?.trim() ?? ''
-      return { message }
+      const response = await client.chat.completions.create({ model, max_tokens: 512, messages: [{ role: 'user', content: prompt }] })
+      return response.choices[0]?.message?.content?.trim() ?? ''
     }
     // groq (default)
     const Groq = (await import('groq-sdk')).default
     const client = new Groq({ apiKey })
-    const response = await client.chat.completions.create({
-      model,
-      max_tokens: 256,
-      messages: [{ role: 'user', content: prompt }]
-    })
-    const message = response.choices[0]?.message?.content?.trim() ?? ''
-    return { message }
-  } catch (e: any) {
-    return { error: e.message ?? 'Erreur API' }
+    const response = await client.chat.completions.create({ model, max_tokens: 512, messages: [{ role: 'user', content: prompt }] })
+    return response.choices[0]?.message?.content?.trim() ?? ''
   }
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const message = await callAPI()
+      console.log(`[ai] attempt=${attempt} length=${message.length} preview="${message.slice(0, 60)}"`)
+      if (message) return { message }
+      console.log(`[ai] empty response on attempt ${attempt}, retrying…`)
+      if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt))
+    } catch (e: any) {
+      console.error(`[ai] attempt=${attempt} error:`, e.message)
+      if (attempt === 3) return { error: e.message ?? 'Erreur API' }
+      await new Promise(r => setTimeout(r, 500 * attempt))
+    }
+  }
+  return { error: 'Le modèle a retourné une réponse vide après 3 tentatives' }
 })
 
 // ── Settings: get/set all ──────────────────────────────────────

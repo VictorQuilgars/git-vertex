@@ -254,42 +254,21 @@
 .st-ai-btn:disabled { cursor: wait; opacity: 0.35; }
 .st-ai-loading { animation: ai-pulse 1s ease-in-out infinite; }
 
-.st-ai-key-btn {
-  position: absolute;
-  top: 6px; right: 30px;
-  width: 22px; height: 22px;
-  background: transparent; border: none;
-  font-size: 12px; cursor: pointer;
-  border-radius: 4px; display: flex; align-items: center; justify-content: center;
-  opacity: 0.35; transition: opacity 0.15s, background 0.15s;
-  padding: 0; line-height: 1;
-}
-.st-ai-key-btn:hover { opacity: 1; background: #21262d; }
 @keyframes ai-pulse { 0%,100% { opacity: 0.35 } 50% { opacity: 0.8 } }
 
-/* API key inline input */
-.st-apikey-row {
-  display: flex; align-items: center; gap: 5px;
+.st-gen-status {
+  font-size: 11px;
+  color: #8b949e;
+  padding: 3px 2px;
+  animation: ai-pulse 1.2s ease-in-out infinite;
 }
-.st-apikey-input {
-  flex: 1; background: #0d1117; border: 1px solid #58a6ff44;
-  border-radius: 5px; color: #e6edf3; font-size: 11px; font-family: inherit;
-  padding: 5px 8px; outline: none;
+
+.st-gen-error {
+  font-size: 11px;
+  color: #f85149;
+  padding: 3px 2px;
+  line-height: 1.4;
 }
-.st-apikey-input:focus { border-color: #58a6ff; }
-.st-apikey-save {
-  height: 26px; padding: 0 10px; border-radius: 5px;
-  border: 1px solid #2ea04355; background: #2ea04322; color: #3fb950;
-  font-size: 11px; font-weight: 600; cursor: pointer;
-}
-.st-apikey-save:hover:not(:disabled) { background: #2ea04344; }
-.st-apikey-save:disabled { opacity: 0.4; cursor: not-allowed; }
-.st-apikey-cancel {
-  height: 26px; padding: 0 8px; border-radius: 5px;
-  border: none; background: transparent; color: #484f58;
-  font-size: 12px; cursor: pointer;
-}
-.st-apikey-cancel:hover { color: #c9d1d9; }
 .st-form-footer { display: flex; align-items: center; justify-content: space-between; }
 .st-amend { display: flex; align-items: center; gap: 5px; color: #6e7681; font-size: 11px; cursor: pointer; }
 .st-amend input { accent-color: #58a6ff; }
