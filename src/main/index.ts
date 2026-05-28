@@ -680,9 +680,10 @@ ipcMain.handle('updater:check', async () => {
     const result = await autoUpdater.checkForUpdates()
     const remote = result?.updateInfo?.version ?? null
     const current = app.getVersion()
-    // Only report as available if remote is strictly newer
+    console.log(`[updater:check] current=${current} remote=${remote} newer=${remote ? semverGt(remote, current) : false}`)
     return { version: remote && semverGt(remote, current) ? remote : null }
   } catch (e: any) {
+    console.error('[updater:check] error:', e.message)
     return { error: e.message }
   }
 })

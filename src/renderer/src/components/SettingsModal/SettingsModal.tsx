@@ -169,6 +169,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
     // Check if an update was already downloaded
     const api = window.gitAPI as any
     api.getUpdaterState?.().then((state: any) => {
+      console.log('[updater] getUpdaterState:', state)
       if (state?.downloadedVersion) {
         setUpdateReady(true)
         setUpdateVersion(state.downloadedVersion)
@@ -176,17 +177,19 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       }
     })
     api.onUpdateDownloaded?.((version: string) => {
+      console.log('[updater] update-downloaded:', version)
       setUpdateReady(true)
       setUpdateVersion(version)
       setUpdateStatus('available')
       setDownloadProgress(null)
     })
     api.onDownloadProgress?.((pct: number) => {
+      console.log('[updater] download-progress:', pct + '%')
       setDownloadProgress(pct)
     })
     api.onUpdateError?.((err: string) => {
+      console.log('[updater] error:', err)
       checkHadError.current = true
-      // "Cannot find latest-mac.yml" means no update file → treat as up to date
       if (err.includes('Cannot find latest') || err.includes('latest-mac.yml') || err.includes('latest.yml')) {
         setUpdateStatus('up-to-date')
       } else {
@@ -511,11 +514,13 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                         checkHadError.current = false
                         setUpdateStatus('checking')
                         setUpdateError(null)
+                        console.log('[updater] checkForUpdates called, app version:', (window as any).appInfo)
                         const r = await (window.gitAPI as any).checkForUpdates?.()
-                        // Error event may have already fired and set state — don't overwrite
-                        if (checkHadError.current) return
-                        if (r?.dev) { setUpdateStatus('up-to-date'); return }
+                        console.log('[updater] checkForUpdates result:', r)
+                        if (checkHadError.current) { console.log('[updater] error already received, ignoring result'); return }
+                        if (r?.dev) { console.log('[updater] dev mode'); setUpdateStatus('up-to-date'); return }
                         if (r?.error) {
+                          console.log('[updater] error in result:', r.error)
                           if (r.error.includes('Cannot find latest') || r.error.includes('latest-mac.yml') || r.error.includes('latest.yml')) {
                             setUpdateStatus('up-to-date')
                           } else {
@@ -524,6 +529,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                           }
                           return
                         }
+                        console.log('[updater] remote version:', r?.version, '— will update:', !!r?.version)
                         if (r?.version) { setUpdateVersion(r.version); setUpdateStatus('available') }
                         else setUpdateStatus('up-to-date')
                       }}
