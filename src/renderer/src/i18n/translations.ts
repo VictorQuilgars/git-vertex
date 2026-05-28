@@ -15,6 +15,7 @@ const fr = {
   'toolbar.update.tooltip': 'Une mise à jour est prête à être installée',
   'toolbar.update.label': 'Mise à jour',
   'toolbar.settings.tooltip': 'Paramètres',
+  'toolbar.openPR.tooltip': 'Ouvrir une Pull Request sur GitHub',
   'toolbar.search.placeholder': 'Rechercher commits…',
   'toolbar.extSearch.tooltip': 'Recherche étendue dans les diffs',
 
@@ -296,6 +297,7 @@ const en: typeof fr = {
   'toolbar.update.tooltip': 'An update is ready to be installed',
   'toolbar.update.label': 'Update',
   'toolbar.settings.tooltip': 'Settings',
+  'toolbar.openPR.tooltip': 'Open a Pull Request on GitHub',
   'toolbar.search.placeholder': 'Search commits…',
   'toolbar.extSearch.tooltip': 'Extended search in diffs',
 

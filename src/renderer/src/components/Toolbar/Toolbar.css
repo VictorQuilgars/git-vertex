@@ -60,11 +60,18 @@
 .tb-btn.active { background: #1f6feb1a; color: #58a6ff; border-color: #1f6feb44; }
 .tb-btn.tb-icon-only { padding: 0 8px; }
 
-/* Green accent (fetch, pull, branch) */
+/* Green accent */
 .tb-accent-green:hover:not(:disabled) {
   color: #3fb950;
   border-color: #2ea04344;
   background: #2ea04310;
+}
+
+/* Blue accent (PR) */
+.tb-accent-blue:hover:not(:disabled) {
+  color: #58a6ff;
+  border-color: #58a6ff44;
+  background: #58a6ff10;
 }
 
 /* Split button (Push) */

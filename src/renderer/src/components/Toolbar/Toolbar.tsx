@@ -24,6 +24,7 @@ interface ToolbarProps {
   settingsOpen?: boolean
   updateReady?: boolean
   onInstallUpdate?: () => void
+  githubRepoUrl?: string | null
 }
 
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
@@ -48,7 +49,7 @@ export default function Toolbar({
   onSearch, onFetch, onPush, onPushModal, onPull, onCreateBranch,
   onToggleAllBranches, onRefresh, loading, lastFetchTime,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
-  onSettings, settingsOpen, updateReady, onInstallUpdate
+  onSettings, settingsOpen, updateReady, onInstallUpdate, githubRepoUrl
 }: ToolbarProps) {
   const { t } = useLang()
   const isMac = (window as any).appInfo?.platform === 'darwin'
@@ -99,6 +100,17 @@ export default function Toolbar({
           <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M1 3l4 4 4-4"/></svg>
         </button>
       </div>
+
+      {githubRepoUrl && currentBranch && !['main', 'master'].includes(currentBranch) && (
+        <TBtn
+          title={t('toolbar.openPR.tooltip')}
+          disabled={disabled}
+          onClick={() => window.gitAPI.openExternal(`${githubRepoUrl}/compare/${currentBranch}?expand=1`)}
+          icon={<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z"/></svg>}
+          label="Pull Request"
+          accent="blue"
+        />
+      )}
 
       <div className="tb-divider" />
 

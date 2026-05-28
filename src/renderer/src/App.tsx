@@ -131,6 +131,7 @@ export default function App() {
   const [cloneOpen, setCloneOpen] = useState(false)
   const [githubConnected, setGithubConnected] = useState(false)
   const [activeView, setActiveView] = useState<'git' | 'github'>('git')
+  const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
   const [updateReady, setUpdateReady] = useState(false)
   const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
@@ -261,6 +262,13 @@ export default function App() {
       setCommits([])
       const updated = await window.gitAPI.getRecentRepos()
       setRecentRepos(updated ?? [])
+      // Detect GitHub remote URL for PR button
+      const detected = await (window.gitAPI as any).githubDetectRepo()
+      if (detected?.owner && detected?.repo) {
+        setGithubRepoUrl(`https://github.com/${detected.owner}/${detected.repo}`)
+      } else {
+        setGithubRepoUrl(null)
+      }
     } else if (res.error && res.error !== 'cancelled') {
       showToast(t('toast.err', res.error), 'err')
     }
@@ -579,6 +587,7 @@ export default function App() {
         settingsOpen={settingsOpen}
         updateReady={updateReady}
         onInstallUpdate={() => setUpdateBannerOpen(true)}
+        githubRepoUrl={githubRepoUrl}
       />
 
       {/* ── Update banner ── */}
