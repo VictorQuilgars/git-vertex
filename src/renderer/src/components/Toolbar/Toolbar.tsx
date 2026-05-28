@@ -19,6 +19,7 @@ interface ToolbarProps {
   extendedSearchLoading?: boolean
   onToggleExtendedSearch?: () => void
   onSettings?: () => void
+  settingsOpen?: boolean
 }
 
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
@@ -50,7 +51,7 @@ export default function Toolbar({
   onSearch, onFetch, onPush, onPull, onCreateBranch,
   onToggleAllBranches, onRefresh, loading, lastFetchTime,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
-  onSettings
+  onSettings, settingsOpen
 }: ToolbarProps) {
   const isMac = (window as any).appInfo?.platform === 'darwin'
   const disabled = !repoPath || loading
@@ -173,7 +174,7 @@ export default function Toolbar({
       {/* Settings */}
       {onSettings && (
         <button
-          className="tb-btn tb-icon-only"
+          className={`tb-btn tb-icon-only ${settingsOpen ? 'active' : ''}`}
           onClick={onSettings}
           title="Paramètres"
         >

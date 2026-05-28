@@ -532,10 +532,18 @@ export default function App() {
         extendedSearch={extendedSearch}
         extendedSearchLoading={extendedSearchLoading}
         onToggleExtendedSearch={() => setExtendedSearch(v => !v)}
-        onSettings={() => setSettingsOpen(true)}
+        onSettings={() => setSettingsOpen(v => !v)}
+        settingsOpen={settingsOpen}
       />
 
-      <div className="app-body">
+      {settingsOpen && (
+        <SettingsModal
+          onClose={() => setSettingsOpen(false)}
+          showToast={showToast}
+        />
+      )}
+
+      <div className="app-body" style={{ display: settingsOpen ? 'none' : undefined }}>
         <div className="app-sidebar" style={{ width: sidebarW }}>
           <Sidebar
             repoPath={repoPath}
@@ -626,14 +634,6 @@ export default function App() {
         <CommandPalette
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
-        />
-      )}
-
-      {/* Settings Modal */}
-      {settingsOpen && (
-        <SettingsModal
-          onClose={() => setSettingsOpen(false)}
-          showToast={showToast}
         />
       )}
 

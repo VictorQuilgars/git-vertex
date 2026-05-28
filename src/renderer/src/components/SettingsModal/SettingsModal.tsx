@@ -86,8 +86,26 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
     groq:      'llama-3.3-70b-versatile',
     openai:    'gpt-4o-mini',
   })
+  const [liveModels, setLiveModels] = useState<Record<AIProvider, string[] | null>>({ anthropic: null, google: null, groq: null, openai: null })
+  const [loadingModels, setLoadingModels] = useState(false)
+  const [modelsError, setModelsError] = useState<string | null>(null)
   const [showKey, setShowKey] = useState(false)
   const [showTuto, setShowTuto] = useState(false)
+
+  const fetchModels = async (provider: AIProvider, key: string) => {
+    if (!key) return
+    setLoadingModels(true)
+    setModelsError(null)
+    const r = await (window.gitAPI as any).aiListProviderModels(provider, key)
+    setLoadingModels(false)
+    if (r.error) { setModelsError(r.error); return }
+    const models = r.models as string[]
+    setLiveModels(prev => ({ ...prev, [provider]: models }))
+    setAiModels(m => {
+      if (models.length > 0 && !models.includes(m[provider])) return { ...m, [provider]: models[0] }
+      return m
+    })
+  }
 
   useEffect(() => {
     window.gitAPI.gitGetGlobalConfig().then((r: any) => {
@@ -95,20 +113,23 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       setGitUserEmail(r.userEmail ?? '')
     })
     window.gitAPI.settingsGetAll().then((s: any) => {
-      setGithubToken(s.githubToken ?? '')
-      setAiProvider((s.aiProvider as AIProvider) ?? 'groq')
-      setAiKeys({
+      const provider: AIProvider = (s.aiProvider as AIProvider) ?? 'groq'
+      const keys = {
         anthropic: s.aiAnthropicKey ?? '',
         google:    s.aiGoogleKey ?? '',
         groq:      s.aiGroqKey ?? s.groqApiKey ?? '',
         openai:    s.aiOpenaiKey ?? '',
-      })
+      }
+      setGithubToken(s.githubToken ?? '')
+      setAiProvider(provider)
+      setAiKeys(keys)
       setAiModels(m => ({
         anthropic: s.aiAnthropicModel || m.anthropic,
         google:    s.aiGoogleModel    || m.google,
         groq:      s.aiGroqModel      || m.groq,
         openai:    s.aiOpenaiModel    || m.openai,
       }))
+      if (keys[provider]) fetchModels(provider, keys[provider])
     })
   }, [])
 
@@ -135,17 +156,21 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   const tuto = API_KEY_TUTORIALS[aiProvider]
 
   return (
-    <div className="stg-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
-      <div className="stg-panel">
-        {/* Header */}
-        <div className="stg-header">
-          <span className="stg-title">⚙ Paramètres</span>
-          <button className="stg-close" onClick={onClose}>×</button>
-        </div>
+    <div className="stg-page">
+      {/* Header */}
+      <div className="stg-header">
+        <button className="stg-back" onClick={onClose} title="Retour">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Retour
+        </button>
+        <span className="stg-title">Paramètres</span>
+      </div>
 
-        <div className="stg-body">
-          {/* Left nav */}
-          <nav className="stg-nav">
+      <div className="stg-body">
+        {/* Left nav */}
+        <nav className="stg-nav">
             {(['git', 'github', 'ai'] as Section[]).map(s => (
               <button
                 key={s}
@@ -242,7 +267,13 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                       key={p.id}
                       className={`stg-provider-btn ${aiProvider === p.id ? 'active' : ''}`}
                       style={aiProvider === p.id ? { borderColor: p.color, color: p.color } : {}}
-                      onClick={() => { setAiProvider(p.id); setShowTuto(false); setShowKey(false) }}
+                      onClick={() => {
+                        setAiProvider(p.id)
+                        setShowTuto(false)
+                        setShowKey(false)
+                        setModelsError(null)
+                        if (aiKeys[p.id] && !liveModels[p.id]) fetchModels(p.id, aiKeys[p.id])
+                      }}
                     >
                       <span className="stg-provider-name">{p.label}</span>
                       <span className="stg-provider-model">{aiModels[p.id]}</span>
@@ -250,19 +281,52 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                   ))}
                 </div>
 
-                <label className="stg-field" style={{ marginTop: 16 }}>
-                  <span>Modèle — {AI_PROVIDERS.find(p => p.id === aiProvider)?.label}</span>
-                  <input
-                    className="stg-input stg-mono"
-                    list={`stg-models-${aiProvider}`}
-                    value={aiModels[aiProvider]}
-                    onChange={e => setAiModels(m => ({ ...m, [aiProvider]: e.target.value }))}
-                    placeholder={AI_PROVIDERS.find(p => p.id === aiProvider)?.defaultModel}
-                  />
-                  <datalist id={`stg-models-${aiProvider}`}>
-                    {MODEL_SUGGESTIONS[aiProvider].map(m => <option key={m} value={m} />)}
-                  </datalist>
-                </label>
+                <div className="stg-field" style={{ marginTop: 16 }}>
+                  <div className="stg-model-header">
+                    <span>Modèle — {AI_PROVIDERS.find(p => p.id === aiProvider)?.label}</span>
+                    {liveModels[aiProvider] && (
+                      <span className="stg-model-count">{liveModels[aiProvider]!.length} modèles disponibles</span>
+                    )}
+                  </div>
+                  <div className="stg-input-row">
+                    {liveModels[aiProvider] ? (
+                      <select
+                        className="stg-input stg-mono"
+                        value={aiModels[aiProvider]}
+                        onChange={e => setAiModels(m => ({ ...m, [aiProvider]: e.target.value }))}
+                      >
+                        {liveModels[aiProvider]!.map(m => <option key={m} value={m}>{m}</option>)}
+                        {!liveModels[aiProvider]!.includes(aiModels[aiProvider]) && (
+                          <option value={aiModels[aiProvider]}>{aiModels[aiProvider]} (custom)</option>
+                        )}
+                      </select>
+                    ) : (
+                      <input
+                        className="stg-input stg-mono"
+                        value={aiModels[aiProvider]}
+                        onChange={e => setAiModels(m => ({ ...m, [aiProvider]: e.target.value }))}
+                        placeholder={AI_PROVIDERS.find(p => p.id === aiProvider)?.defaultModel}
+                      />
+                    )}
+                    <button
+                      className="stg-load-models"
+                      onClick={() => fetchModels(aiProvider, aiKeys[aiProvider])}
+                      disabled={loadingModels || !aiKeys[aiProvider]}
+                      title="Recharger les modèles disponibles"
+                    >
+                      {loadingModels ? '…' : '⟳'}
+                    </button>
+                  </div>
+                  {liveModels[aiProvider] && (
+                    <input
+                      className="stg-input stg-mono stg-model-custom"
+                      value={aiModels[aiProvider]}
+                      onChange={e => setAiModels(m => ({ ...m, [aiProvider]: e.target.value }))}
+                      placeholder="ou saisir un modèle custom…"
+                    />
+                  )}
+                  {modelsError && <span className="stg-models-error">{modelsError}</span>}
+                </div>
 
                 <label className="stg-field">
                   <span>Clé API — {AI_PROVIDERS.find(p => p.id === aiProvider)?.label}</span>
@@ -272,6 +336,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                       type={showKey ? 'text' : 'password'}
                       value={aiKeys[aiProvider]}
                       onChange={e => setAiKeys(k => ({ ...k, [aiProvider]: e.target.value }))}
+                      onBlur={e => { if (e.target.value) fetchModels(aiProvider, e.target.value) }}
                       placeholder={
                         aiProvider === 'anthropic' ? 'sk-ant-...' :
                         aiProvider === 'google'    ? 'AIza...' :
@@ -307,6 +372,6 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
           </div>
         </div>
       </div>
-    </div>
   )
 }
+

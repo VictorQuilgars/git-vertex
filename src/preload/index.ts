@@ -71,6 +71,7 @@ const gitAPI = {
   aiSetApiKey: (key: string) => ipcRenderer.invoke('ai:set-api-key', key),
   aiGenerateCommitMessage: () => ipcRenderer.invoke('ai:generate-commit-message'),
   aiListModels: () => ipcRenderer.invoke('ai:list-models'),
+  aiListProviderModels: (provider: string, apiKey: string) => ipcRenderer.invoke('ai:list-provider-models', provider, apiKey),
   // Reflog
   getReflog: () => ipcRenderer.invoke('git:get-reflog'),
   // File History
