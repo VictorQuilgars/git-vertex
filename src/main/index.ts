@@ -140,6 +140,11 @@ ipcMain.handle('git:push', async () => {
   return gitService.push()
 })
 
+ipcMain.handle('git:push-to', async (_e, remote: string, branch: string, setUpstream: boolean) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.pushTo(remote, branch, setUpstream)
+})
+
 ipcMain.handle('git:pull', async () => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.pull()

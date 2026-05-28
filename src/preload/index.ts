@@ -19,6 +19,7 @@ const gitAPI = {
   deleteBranch: (name: string) => ipcRenderer.invoke('git:delete-branch', name),
   fetch: () => ipcRenderer.invoke('git:fetch'),
   push: () => ipcRenderer.invoke('git:push'),
+  pushTo: (remote: string, branch: string, setUpstream: boolean) => ipcRenderer.invoke('git:push-to', remote, branch, setUpstream),
   pull: () => ipcRenderer.invoke('git:pull'),
   // Staging & commit
   getWorkingChanges: () => ipcRenderer.invoke('git:get-working-changes'),

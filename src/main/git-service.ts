@@ -176,6 +176,18 @@ export class GitService {
     }
   }
 
+  async pushTo(remote: string, branch: string, setUpstream: boolean): Promise<{ success: boolean; error?: string }> {
+    try {
+      const args: string[] = ['push']
+      if (setUpstream) args.push('--set-upstream')
+      args.push(remote, `HEAD:${branch}`)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message ?? String(e) }
+    }
+  }
+
   async push(): Promise<{ success: boolean; error?: string; setUpstream?: boolean }> {
     try {
       await this.git.push()

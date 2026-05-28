@@ -9,6 +9,7 @@ import CommandPalette, { PaletteCommand } from './components/CommandPalette/Comm
 import { ToastProvider, useToast } from './components/Toast/Toast'
 import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
+import PushModal from './components/PushModal/PushModal'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -121,6 +122,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
+  const [pushModalOpen, setPushModalOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
@@ -249,16 +251,8 @@ export default function App() {
     setLoading(false)
   }
 
-  const handlePush = async () => {
-    setLoading(true)
-    const r = await window.gitAPI.push() as any
-    if (r.success) {
-      showToast(r.setUpstream ? 'Push réussi + upstream configuré ✓' : 'Push réussi ✓')
-      await loadRepoData()
-    } else {
-      showToast(`Push échoué : ${r.error}`, 'err')
-    }
-    setLoading(false)
+  const handlePush = () => {
+    if (repoPath) setPushModalOpen(true)
   }
 
   const handlePull = async () => {
@@ -629,6 +623,17 @@ export default function App() {
         <CommandPalette
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
+        />
+      )}
+
+      {/* Push Modal */}
+      {pushModalOpen && (
+        <PushModal
+          currentBranch={currentBranch}
+          branches={branches}
+          onClose={() => setPushModalOpen(false)}
+          onSuccess={loadRepoData}
+          showToast={showToast}
         />
       )}
 
