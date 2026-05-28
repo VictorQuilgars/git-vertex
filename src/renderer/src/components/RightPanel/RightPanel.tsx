@@ -325,14 +325,20 @@ function StagingView({ onCommitSuccess, showToast }: {
   const [changes, setChanges] = useState<WorkingChanges>({ staged: [], unstaged: [], untracked: [] })
   const [commitMsg, setCommitMsg] = useState('')
   const [amend, setAmend] = useState(false)
+  const [amendFiles, setAmendFiles] = useState<FileChange[]>([])
 
   const toggleAmend = useCallback(async (checked: boolean) => {
     setAmend(checked)
     if (checked) {
-      const r = await window.gitAPI.getLastCommitMessage()
-      setCommitMsg(r.message ?? '')
+      const [msgRes, filesRes] = await Promise.all([
+        window.gitAPI.getLastCommitMessage(),
+        window.gitAPI.getCommitFiles('HEAD'),
+      ])
+      setCommitMsg(msgRes.message ?? '')
+      setAmendFiles(filesRes.files ?? [])
     } else {
       setCommitMsg('')
+      setAmendFiles([])
     }
   }, [])
   const [committing, setCommitting] = useState(false)
@@ -394,6 +400,8 @@ function StagingView({ onCommitSuccess, showToast }: {
   }
 
   const totalUnstaged = changes.unstaged.length + changes.untracked.length
+  const stagedPaths = new Set(changes.staged.map(f => f.path))
+  const amendOnly = amendFiles.filter(f => !stagedPaths.has(f.path))
   const canCommit = changes.staged.length > 0 || amend
   const parsedDiff = parseDiff(diffRaw)
 
@@ -403,7 +411,7 @@ function StagingView({ onCommitSuccess, showToast }: {
       <div className="st-section">
         <div className="st-header">
           <span className="st-dot" style={{ background: '#3fb950' }} />
-          <span>Indexé <strong>{changes.staged.length}</strong></span>
+          <span>Indexé <strong>{changes.staged.length + amendOnly.length}</strong></span>
           <div style={{ flex: 1 }} />
           {changes.staged.length > 0 && (
             <button className="st-link" onClick={() => handle(() => window.gitAPI.unstage(changes.staged.map(f => f.path)))}>
@@ -413,23 +421,35 @@ function StagingView({ onCommitSuccess, showToast }: {
           <button className="st-refresh" onClick={load} title="Rafraîchir">↺</button>
         </div>
         <div className="st-file-list">
-          {changes.staged.length === 0
+          {changes.staged.length === 0 && amendOnly.length === 0
             ? <div className="st-empty">Aucun fichier indexé</div>
-            : changes.staged.map(f => {
-              const meta = STATUS_META[f.status] ?? STATUS_META['?']
-              const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'staged'
-              return (
-                <div
-                  key={f.path}
-                  className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
-                  onClick={() => selectFile({ path: f.path, area: 'staged' })}
-                >
-                  <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
-                  <span className="st-path">{f.path}</span>
-                  <button className="st-action st-unstage" title="Désindexer" onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
-                </div>
-              )
-            })
+            : <>
+              {changes.staged.map(f => {
+                const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'staged'
+                return (
+                  <div
+                    key={f.path}
+                    className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+                    onClick={() => selectFile({ path: f.path, area: 'staged' })}
+                  >
+                    <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+                    <span className="st-path">{f.path}</span>
+                    <button className="st-action st-unstage" title="Désindexer" onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
+                  </div>
+                )
+              })}
+              {amendOnly.map(f => {
+                const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                return (
+                  <div key={f.path} className="st-file-row st-amend-file" title="Fichier du dernier commit (inclus dans l'amend)">
+                    <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+                    <span className="st-path">{f.path}</span>
+                    <span className="st-amend-tag">amend</span>
+                  </div>
+                )
+              })}
+            </>
           }
         </div>
       </div>

@@ -105,34 +105,25 @@ export class GitService {
 
   async getCommitFiles(commitHash: string): Promise<{ files: FileChange[] }> {
     try {
-      const result = await this.git.raw([
-        'diff-tree',
-        '--no-commit-id',
-        '-r',
-        '--numstat',
-        '--name-status',
-        commitHash
+      const [nameStatus, numStat] = await Promise.all([
+        this.git.raw(['diff-tree', '--no-commit-id', '-r', '--name-status', commitHash]),
+        this.git.raw(['diff-tree', '--no-commit-id', '-r', '--numstat',     commitHash]),
       ])
-      // Parse differently: use show --stat
-      const stat = await this.git.raw([
-        'diff-tree',
-        '--no-commit-id',
-        '-r',
-        '--numstat',
-        commitHash
-      ])
+      // Build stats map from numstat
+      const stats: Record<string, { additions: number; deletions: number }> = {}
+      for (const line of numStat.trim().split('\n')) {
+        const parts = line.split('\t')
+        if (parts.length >= 3) stats[parts[2]] = { additions: parseInt(parts[0]) || 0, deletions: parseInt(parts[1]) || 0 }
+      }
       const files: FileChange[] = []
-      for (const line of stat.trim().split('\n')) {
+      for (const line of nameStatus.trim().split('\n')) {
         if (!line.trim()) continue
         const parts = line.split('\t')
-        if (parts.length >= 3) {
-          files.push({
-            additions: parseInt(parts[0]) || 0,
-            deletions: parseInt(parts[1]) || 0,
-            path: parts[2],
-            status: 'M'
-          })
-        }
+        const rawStatus = parts[0]?.[0] ?? 'M'
+        const status = rawStatus === 'A' ? 'A' : rawStatus === 'D' ? 'D' : rawStatus === 'R' ? 'R' : 'M'
+        const path = parts[status === 'R' ? 2 : 1] ?? ''
+        if (!path) continue
+        files.push({ path, status, ...(stats[path] ?? { additions: 0, deletions: 0 }) })
       }
       return { files }
     } catch (e) {
