@@ -71,27 +71,194 @@ body {
 /* Right */
 .app-right { flex-shrink: 0; overflow: hidden; display: flex; }
 
-/* Welcome */
+/* ── Welcome screen ──────────────────────────────────────────── */
 .app-welcome {
-  display: flex; align-items: center; justify-content: center;
-  flex: 1; background: #0d1117;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 48px 32px;
+  background: #0d1117;
+  animation: welcome-in 0.3s ease both;
 }
-.welcome-card {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 16px; padding: 48px 56px;
-  background: #161b22; border: 1px solid #21262d;
-  border-radius: 16px; text-align: center; max-width: 380px;
-}
-.welcome-card h2 { font-size: 22px; font-weight: 700; color: #e6edf3; }
-.welcome-card p { color: #8b949e; line-height: 1.5; }
 
+@keyframes welcome-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.welcome-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  text-align: center;
+}
+
+.welcome-brand {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.welcome-logo {
+  width: 64px;
+  height: 64px;
+  filter: drop-shadow(0 0 16px #3fb95040);
+}
+
+.welcome-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #e6edf3;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.welcome-sub {
+  font-size: 13px;
+  color: #6e7681;
+  margin-top: 4px;
+  max-width: 280px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.welcome-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.welcome-btn-primary {
+  background: #238636;
+  border: 1px solid #2ea043;
+  color: #fff;
+}
+.welcome-btn-primary:hover {
+  background: #2ea043;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px #2ea04330;
+}
+
+.welcome-btn-secondary {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #8b949e;
+}
+.welcome-btn-secondary:hover {
+  background: #21262d;
+  border-color: #8b949e;
+  color: #e6edf3;
+  transform: translateY(-1px);
+}
+
+/* Recent repos */
+.welcome-recents {
+  width: 100%;
+  max-width: 480px;
+  animation: welcome-in 0.4s 0.08s ease both;
+}
+
+.welcome-recents-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #484f58;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.welcome-recents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.welcome-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s;
+  width: 100%;
+}
+.welcome-recent-item:hover {
+  background: #1c2128;
+  border-color: #30363d;
+  transform: translateX(2px);
+}
+.welcome-recent-item:hover .welcome-recent-arrow { opacity: 1; }
+
+.welcome-recent-icon { color: #3fb950; flex-shrink: 0; }
+
+.welcome-recent-info { flex: 1; min-width: 0; }
+
+.welcome-recent-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.welcome-recent-path {
+  display: block;
+  font-size: 11px;
+  color: #484f58;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.welcome-recent-arrow {
+  color: #484f58;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+/* Legacy (kept for safety) */
 .btn-primary {
   padding: 9px 22px; background: #238636; border: 1px solid #2ea043;
   border-radius: 7px; color: #fff; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: background 0.15s, transform 0.1s;
-  margin-top: 4px;
 }
 .btn-primary:hover { background: #2ea043; transform: translateY(-1px); }
+
+/* ── View transition (activity bar switch) ───────────────────── */
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.app-sidebar > * { animation: view-in 0.18s ease both; }
 
 /* Toast */
 .toast {

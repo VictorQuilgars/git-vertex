@@ -673,14 +673,65 @@ export default function App() {
         <div className="app-center">
           {!repoPath ? (
             <div className="app-welcome">
-              <div className="welcome-card">
-                <svg width="52" height="52" viewBox="0 0 16 16" fill="#3fb950">
-                  <path d="M15.698 7.287 8.712.302a1.03 1.03 0 0 0-1.457 0l-1.45 1.45 1.84 1.84a1.223 1.223 0 0 1 1.55 1.56l1.773 1.774a1.224 1.224 0 0 1 1.267 2.025 1.226 1.226 0 0 1-2.002-1.334L8.58 5.963v4.353a1.226 1.226 0 1 1-1.008-.036V5.887a1.226 1.226 0 0 1-.666-1.608L5.093 2.465l-4.79 4.79a1.03 1.03 0 0 0 0 1.457l6.986 6.986a1.03 1.03 0 0 0 1.457 0l6.953-6.953a1.031 1.031 0 0 0-.001-1.458z"/>
-                </svg>
-                <h2>Git GUI</h2>
-                <p>{t('welcome.hint')}</p>
-                <button className="btn-primary" onClick={handleOpenRepo}>{t('welcome.open')}</button>
+              <div className="welcome-hero">
+                <div className="welcome-brand">
+                  <svg className="welcome-logo" viewBox="0 0 16 16" fill="none">
+                    <path d="M15.698 7.287 8.712.302a1.03 1.03 0 0 0-1.457 0l-1.45 1.45 1.84 1.84a1.223 1.223 0 0 1 1.55 1.56l1.773 1.774a1.224 1.224 0 0 1 1.267 2.025 1.226 1.226 0 0 1-2.002-1.334L8.58 5.963v4.353a1.226 1.226 0 1 1-1.008-.036V5.887a1.226 1.226 0 0 1-.666-1.608L5.093 2.465l-4.79 4.79a1.03 1.03 0 0 0 0 1.457l6.986 6.986a1.03 1.03 0 0 0 1.457 0l6.953-6.953a1.031 1.031 0 0 0-.001-1.458z" fill="url(#wg)"/>
+                    <defs>
+                      <linearGradient id="wg" x1="0" y1="0" x2="16" y2="16" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#3fb950"/>
+                        <stop offset="100%" stopColor="#58a6ff"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div>
+                    <h1 className="welcome-title">Git Vertex</h1>
+                    <p className="welcome-sub">{t('welcome.hint')}</p>
+                  </div>
+                </div>
+
+                <div className="welcome-actions">
+                  <button className="welcome-btn welcome-btn-primary" onClick={handleOpenRepo}>
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"/>
+                    </svg>
+                    {t('welcome.open')}
+                  </button>
+                  <button className="welcome-btn welcome-btn-secondary" onClick={() => setCloneOpen(true)}>
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    {t('clone.title')}
+                  </button>
+                </div>
               </div>
+
+              {recentRepos.length > 0 && (
+                <div className="welcome-recents">
+                  <div className="welcome-recents-title">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/>
+                    </svg>
+                    {t('welcome.recents')}
+                  </div>
+                  <div className="welcome-recents-list">
+                    {recentRepos.slice(0, 8).map(path => (
+                      <button key={path} className="welcome-recent-item" onClick={() => handleSetRepo(path)} title={path}>
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-icon">
+                          <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+                        </svg>
+                        <div className="welcome-recent-info">
+                          <span className="welcome-recent-name">{path.split('/').pop()}</span>
+                          <span className="welcome-recent-path">{path.split('/').slice(0, -1).join('/')}</span>
+                        </div>
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-arrow">
+                          <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <CommitGraph

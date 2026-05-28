@@ -238,8 +238,9 @@ const fr = {
   'palette.applyStash': (msg: string) => `Appliquer stash: ${msg}`,
 
   // Welcome
-  'welcome.hint': 'Ouvrez un dépôt Git depuis le panneau de gauche',
-  'welcome.open': 'Ouvrir un dépôt…',
+  'welcome.hint': 'Visualisez vos branches, indexez vos changements et gérez vos commits.',
+  'welcome.open': 'Ouvrir un dépôt',
+  'welcome.recents': 'Récents',
 
   // GitHub Panel
   'gh.panel.noRepo': 'Aucun remote GitHub détecté pour ce dépôt.',
@@ -518,8 +519,9 @@ const en: typeof fr = {
   'palette.applyStash': (msg: string) => `Apply stash: ${msg}`,
 
   // Welcome
-  'welcome.hint': 'Open a Git repository from the left panel',
-  'welcome.open': 'Open a repository…',
+  'welcome.hint': 'Visualize your branches, stage your changes and manage your commits.',
+  'welcome.open': 'Open a repository',
+  'welcome.recents': 'Recent',
 
   // GitHub Panel
   'gh.panel.noRepo': 'No GitHub remote detected for this repository.',
