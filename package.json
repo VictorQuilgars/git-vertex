@@ -19,7 +19,9 @@
     "files": [
       "out/**/*"
     ],
+    "icon": "resources/icon.icns",
     "mac": {
+      "icon": "resources/icon.icns",
       "target": [
         {
           "target": "dmg",
