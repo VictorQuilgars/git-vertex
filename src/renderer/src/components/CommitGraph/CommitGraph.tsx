@@ -137,7 +137,7 @@ export default function CommitGraph({
   const [ctx, setCtx] = useState<CtxState | null>(null)
 
   const maxLane = useMemo(() => layout.reduce((m, c) => Math.max(m, c.lane), 0), [layout])
-  const svgW = SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R
+  const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 62)
   const svgH = layout.length * ROW_HEIGHT
 
   const filtered = useMemo(() => {
