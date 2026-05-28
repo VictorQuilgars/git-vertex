@@ -510,11 +510,9 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                       <button
                         className="stg-about-check-btn"
                         style={{ fontSize: 11, color: '#58a6ff', borderColor: '#58a6ff44' }}
-                        onClick={() => (window.gitAPI as any).openExternal?.(
-                          `https://github.com/VictorQuilgars/git-vertex/releases/tag/v${updateVersion}`
-                        )}
+                        onClick={() => (window.gitAPI as any).openDownloadedUpdate?.()}
                       >
-                        ↓ Télécharger le DMG manuellement (si le redémarrage ne fonctionne pas)
+                        📂 Ouvrir le fichier téléchargé dans le Finder
                       </button>
                     </div>
                   ) : (

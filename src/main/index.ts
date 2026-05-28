@@ -60,6 +60,7 @@ app.on('open-url', async (event, url) => {
 
 // Track downloaded update so late-opening windows can query state
 let downloadedUpdateVersion: string | null = null
+let downloadedUpdateFile: string | null = null
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.victor.gitvertex')
@@ -84,8 +85,9 @@ app.whenReady().then(() => {
       mainWindow?.webContents.send('updater:download-progress', Math.round(progress.percent))
     })
     autoUpdater.on('update-downloaded', (info) => {
-      console.log('[updater] downloaded:', info.version)
+      console.log('[updater] downloaded:', info.version, info.downloadedFile)
       downloadedUpdateVersion = info.version
+      downloadedUpdateFile = info.downloadedFile ?? null
       mainWindow?.webContents.send('updater:update-downloaded', info.version)
     })
     autoUpdater.on('error', (err) => {
@@ -661,7 +663,13 @@ ipcMain.handle('updater:install', () => {
 })
 
 ipcMain.handle('updater:get-state', () => {
-  return { downloadedVersion: downloadedUpdateVersion }
+  return { downloadedVersion: downloadedUpdateVersion, downloadedFile: downloadedUpdateFile }
+})
+
+ipcMain.handle('updater:open-downloaded', () => {
+  if (downloadedUpdateFile) {
+    shell.showItemInFolder(downloadedUpdateFile)
+  }
 })
 
 function semverGt(a: string, b: string): boolean {

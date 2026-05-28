@@ -115,6 +115,7 @@ const gitAPI = {
   installUpdate: () => ipcRenderer.invoke('updater:install'),
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
+  openDownloadedUpdate: () => ipcRenderer.invoke('updater:open-downloaded'),
 }
 
 contextBridge.exposeInMainWorld('gitAPI', gitAPI)
