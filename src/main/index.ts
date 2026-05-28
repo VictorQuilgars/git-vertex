@@ -664,14 +664,24 @@ ipcMain.handle('updater:get-state', () => {
   return { downloadedVersion: downloadedUpdateVersion }
 })
 
+function semverGt(a: string, b: string): boolean {
+  const pa = a.split('.').map(Number)
+  const pb = b.split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] ?? 0) > (pb[i] ?? 0)) return true
+    if ((pa[i] ?? 0) < (pb[i] ?? 0)) return false
+  }
+  return false
+}
+
 ipcMain.handle('updater:check', async () => {
   if (is.dev) return { dev: true }
   try {
     const result = await autoUpdater.checkForUpdates()
     const remote = result?.updateInfo?.version ?? null
     const current = app.getVersion()
-    // Only report as available if the remote version is actually newer
-    return { version: remote && remote !== current ? remote : null }
+    // Only report as available if remote is strictly newer
+    return { version: remote && semverGt(remote, current) ? remote : null }
   } catch (e: any) {
     return { error: e.message }
   }

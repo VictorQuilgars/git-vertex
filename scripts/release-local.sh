@@ -6,12 +6,19 @@ if [ -z "$GH_TOKEN" ]; then
   exit 1
 fi
 
-# Bump patch version in package.json without git tag
-npm version patch --no-git-tag-version
+# Derive next patch version from the latest git tag (e.g. v1.1.8 -> 1.1.9)
+LATEST_TAG=$(git tag --sort=-version:refname | grep '^v' | head -1 | sed 's/v//')
+if [ -z "$LATEST_TAG" ]; then
+  echo "❌ Aucun tag trouvé"
+  exit 1
+fi
 
-VERSION=$(node -p "require('./package.json').version")
-echo "🚀 Publication de v$VERSION…"
+IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_TAG"
+NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+
+npm version "$NEW_VERSION" --no-git-tag-version
+echo "🚀 Publication de v$NEW_VERSION (base: v$LATEST_TAG)…"
 
 npm run package -- --mac --publish always
 
-echo "✅ v$VERSION publié sur GitHub"
+echo "✅ v$NEW_VERSION publié sur GitHub"
