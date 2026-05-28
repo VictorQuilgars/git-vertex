@@ -89,6 +89,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   const [updateReady, setUpdateReady] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<string | null>(null)
+  const checkHadError = React.useRef(false)
 
   // AI
   const [aiProvider, setAiProvider] = useState<AIProvider>('groq')
@@ -184,8 +185,14 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       setDownloadProgress(pct)
     })
     api.onUpdateError?.((err: string) => {
-      setUpdateStatus('error')
-      setUpdateError(err)
+      checkHadError.current = true
+      // "Cannot find latest-mac.yml" means no update file → treat as up to date
+      if (err.includes('Cannot find latest') || err.includes('latest-mac.yml') || err.includes('latest.yml')) {
+        setUpdateStatus('up-to-date')
+      } else {
+        setUpdateStatus('error')
+        setUpdateError(err)
+      }
       setDownloadProgress(null)
     })
   }, [])
@@ -501,10 +508,22 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                       className="stg-about-check-btn"
                       disabled={updateStatus === 'checking'}
                       onClick={async () => {
+                        checkHadError.current = false
                         setUpdateStatus('checking')
+                        setUpdateError(null)
                         const r = await (window.gitAPI as any).checkForUpdates?.()
+                        // Error event may have already fired and set state — don't overwrite
+                        if (checkHadError.current) return
                         if (r?.dev) { setUpdateStatus('up-to-date'); return }
-                        if (r?.error) { setUpdateStatus('error'); return }
+                        if (r?.error) {
+                          if (r.error.includes('Cannot find latest') || r.error.includes('latest-mac.yml') || r.error.includes('latest.yml')) {
+                            setUpdateStatus('up-to-date')
+                          } else {
+                            setUpdateStatus('error')
+                            setUpdateError(r.error)
+                          }
+                          return
+                        }
                         if (r?.version) { setUpdateVersion(r.version); setUpdateStatus('available') }
                         else setUpdateStatus('up-to-date')
                       }}
