@@ -81,6 +81,11 @@ const gitAPI = {
   removeRemote: (name: string) => ipcRenderer.invoke('git:remove-remote', name),
   renameRemote: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-remote', oldName, newName),
   fetchRemote: (name: string) => ipcRenderer.invoke('git:fetch-remote', name),
+  // Settings
+  settingsGetAll: () => ipcRenderer.invoke('settings:get-all'),
+  settingsSet: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value),
+  gitGetGlobalConfig: () => ipcRenderer.invoke('git:get-global-config'),
+  gitSetGlobalConfig: (userName: string, userEmail: string) => ipcRenderer.invoke('git:set-global-config', userName, userEmail),
 }
 
 contextBridge.exposeInMainWorld('gitAPI', gitAPI)

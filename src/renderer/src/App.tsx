@@ -10,6 +10,7 @@ import { ToastProvider, useToast } from './components/Toast/Toast'
 import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import PushModal from './components/PushModal/PushModal'
+import SettingsModal from './components/SettingsModal/SettingsModal'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -123,6 +124,7 @@ export default function App() {
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
   const [pushModalOpen, setPushModalOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
@@ -530,6 +532,7 @@ export default function App() {
         extendedSearch={extendedSearch}
         extendedSearchLoading={extendedSearchLoading}
         onToggleExtendedSearch={() => setExtendedSearch(v => !v)}
+        onSettings={() => setSettingsOpen(true)}
       />
 
       <div className="app-body">
@@ -623,6 +626,14 @@ export default function App() {
         <CommandPalette
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {settingsOpen && (
+        <SettingsModal
+          onClose={() => setSettingsOpen(false)}
+          showToast={showToast}
         />
       )}
 

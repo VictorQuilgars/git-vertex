@@ -18,6 +18,7 @@ interface ToolbarProps {
   extendedSearch?: boolean
   extendedSearchLoading?: boolean
   onToggleExtendedSearch?: () => void
+  onSettings?: () => void
 }
 
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
@@ -48,7 +49,8 @@ export default function Toolbar({
   repoPath, currentBranch, searchQuery, showAllBranches,
   onSearch, onFetch, onPush, onPull, onCreateBranch,
   onToggleAllBranches, onRefresh, loading, lastFetchTime,
-  extendedSearch, extendedSearchLoading, onToggleExtendedSearch
+  extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
+  onSettings
 }: ToolbarProps) {
   const isMac = (window as any).appInfo?.platform === 'darwin'
   const disabled = !repoPath || loading
@@ -166,6 +168,20 @@ export default function Toolbar({
         <span className="tb-fetch-time" title="Auto-fetch actif (toutes les 5 min)">
           ↺ {formatFetchTime(lastFetchTime)}
         </span>
+      )}
+
+      {/* Settings */}
+      {onSettings && (
+        <button
+          className="tb-btn tb-icon-only"
+          onClick={onSettings}
+          title="Paramètres"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       )}
 
       {/* Search */}

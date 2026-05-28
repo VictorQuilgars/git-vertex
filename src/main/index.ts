@@ -412,7 +412,18 @@ ipcMain.handle('ai:list-models', async () => {
 
 ipcMain.handle('ai:generate-commit-message', async () => {
   if (!gitService) return { error: 'Aucun dépôt ouvert' }
-  const apiKey = readSettings().groqApiKey
+  const s = readSettings()
+  const provider = s.aiProvider ?? 'groq'
+  const keyMap: Record<string, string> = { anthropic: 'aiAnthropicKey', google: 'aiGoogleKey', groq: 'aiGroqKey', openai: 'aiOpenaiKey' }
+  const modelMap: Record<string, string> = {
+    anthropic: s.aiAnthropicModel || 'claude-haiku-4-5-20251001',
+    google:    s.aiGoogleModel    || 'gemini-2.0-flash',
+    groq:      s.aiGroqModel      || 'llama-3.3-70b-versatile',
+    openai:    s.aiOpenaiModel    || 'gpt-4o-mini',
+  }
+  // backward compat: groqApiKey was the old key
+  const apiKey = s[keyMap[provider] ?? 'aiGroqKey'] ?? (provider === 'groq' ? s.groqApiKey : '') ?? ''
+  const model = modelMap[provider]
   if (!apiKey) return { error: 'NO_API_KEY' }
 
   let stagedDiff = ''
@@ -420,30 +431,47 @@ ipcMain.handle('ai:generate-commit-message', async () => {
     const git = (gitService as any).git
     stagedDiff = await git.raw(['diff', '--cached'])
   } catch { return { error: 'Impossible de récupérer le diff' } }
-
   if (!stagedDiff.trim()) return { error: 'Aucun changement indexé à analyser' }
 
-  const truncated = stagedDiff.length > 6000
-    ? stagedDiff.slice(0, 6000) + '\n... [diff tronqué]'
-    : stagedDiff
-
-  const prompt = `Tu es un expert Git. Analyse ce diff Git et génère un message de commit concis et descriptif en suivant le format Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf).
-
-Règles :
-- Première ligne : type(scope optionnel): description courte (max 72 chars)
-- Si nécessaire, ajoute 1-2 lignes de détails après une ligne vide
-- Réponds UNIQUEMENT avec le message de commit, sans explication
-
-Diff :
-\`\`\`diff
-${truncated}
-\`\`\``
+  const truncated = stagedDiff.length > 6000 ? stagedDiff.slice(0, 6000) + '\n... [diff tronqué]' : stagedDiff
+  const prompt = `Tu es un expert Git. Analyse ce diff et génère un message de commit concis en suivant Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). Première ligne : type(scope): description (max 72 chars). Réponds UNIQUEMENT avec le message de commit.\n\nDiff :\n\`\`\`diff\n${truncated}\n\`\`\``
 
   try {
+    if (provider === 'anthropic') {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default
+      const client = new Anthropic({ apiKey })
+      const res = await client.messages.create({
+        model,
+        max_tokens: 256,
+        messages: [{ role: 'user', content: prompt }]
+      })
+      const message = (res.content[0] as any).text?.trim() ?? ''
+      return { message }
+    }
+    if (provider === 'google') {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai')
+      const genAI = new GoogleGenerativeAI(apiKey)
+      const genModel = genAI.getGenerativeModel({ model })
+      const result = await genModel.generateContent(prompt)
+      const message = result.response.text().trim()
+      return { message }
+    }
+    if (provider === 'openai') {
+      const OpenAI = (await import('openai')).default
+      const client = new OpenAI({ apiKey })
+      const response = await client.chat.completions.create({
+        model,
+        max_tokens: 256,
+        messages: [{ role: 'user', content: prompt }]
+      })
+      const message = response.choices[0]?.message?.content?.trim() ?? ''
+      return { message }
+    }
+    // groq (default)
     const Groq = (await import('groq-sdk')).default
     const client = new Groq({ apiKey })
     const response = await client.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
+      model,
       max_tokens: 256,
       messages: [{ role: 'user', content: prompt }]
     })
@@ -452,4 +480,39 @@ ${truncated}
   } catch (e: any) {
     return { error: e.message ?? 'Erreur API' }
   }
+})
+
+// ── Settings: get/set all ──────────────────────────────────────
+ipcMain.handle('settings:get-all', () => {
+  return readSettings()
+})
+
+ipcMain.handle('settings:set', (_e, key: string, value: string) => {
+  const s = readSettings(); s[key] = value; writeSettings(s)
+  return { success: true }
+})
+
+// ── Git global config ──────────────────────────────────────────
+ipcMain.handle('git:get-global-config', async () => {
+  const { execFile } = await import('child_process')
+  const { promisify } = await import('util')
+  const exec = promisify(execFile)
+  const run = async (args: string[]) => {
+    try { const r = await exec('git', args); return r.stdout.trim() } catch { return '' }
+  }
+  return {
+    userName: await run(['config', '--global', 'user.name']),
+    userEmail: await run(['config', '--global', 'user.email']),
+  }
+})
+
+ipcMain.handle('git:set-global-config', async (_e, userName: string, userEmail: string) => {
+  const { execFile } = await import('child_process')
+  const { promisify } = await import('util')
+  const exec = promisify(execFile)
+  try {
+    if (userName) await exec('git', ['config', '--global', 'user.name', userName])
+    if (userEmail) await exec('git', ['config', '--global', 'user.email', userEmail])
+    return { success: true }
+  } catch (e: any) { return { success: false, error: e.message } }
 })
