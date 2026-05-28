@@ -12,6 +12,7 @@ import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import PushModal from './components/PushModal/PushModal'
 import SettingsModal from './components/SettingsModal/SettingsModal'
+import CloneModal from './components/CloneModal/CloneModal'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -126,6 +127,8 @@ export default function App() {
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
   const [pushModalOpen, setPushModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [cloneOpen, setCloneOpen] = useState(false)
+  const [githubConnected, setGithubConnected] = useState(false)
   const [updateReady, setUpdateReady] = useState(false)
   const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
@@ -219,6 +222,17 @@ export default function App() {
     api.onUpdateDownloaded?.(() => {
       setUpdateReady(true)
       setUpdateBannerOpen(true)
+    })
+  }, [])
+
+  // ── GitHub connection state ────────────────────────────────
+  useEffect(() => {
+    window.gitAPI.githubGetToken().then((r: any) => {
+      setGithubConnected(!!r?.token)
+    })
+    const api = window.gitAPI as any
+    api.onGithubAuthComplete?.((result: any) => {
+      setGithubConnected(!!result?.token)
     })
   }, [])
 
@@ -563,6 +577,8 @@ export default function App() {
         settingsOpen={settingsOpen}
         updateReady={updateReady}
         onInstallUpdate={() => setUpdateBannerOpen(true)}
+        onClone={() => setCloneOpen(true)}
+        githubConnected={githubConnected}
       />
 
       {/* ── Update banner ── */}
@@ -678,6 +694,18 @@ export default function App() {
         <CommandPalette
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
+        />
+      )}
+
+      {/* Clone Modal */}
+      {cloneOpen && (
+        <CloneModal
+          onClose={() => setCloneOpen(false)}
+          onCloned={(path, name) => {
+            setCloneOpen(false)
+            applyRepo({ path, name })
+            showToast(t('toast.cloneOk', name), 'ok')
+          }}
         />
       )}
 

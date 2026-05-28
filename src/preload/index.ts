@@ -90,6 +90,9 @@ const gitAPI = {
   gitSetGlobalConfig: (userName: string, userEmail: string) => ipcRenderer.invoke('git:set-global-config', userName, userEmail),
   appGetInfo: () => ipcRenderer.invoke('app:get-info'),
   openExternal: (url: string) => ipcRenderer.invoke('app:open-external', url),
+  // GitHub
+  githubListRepos: () => ipcRenderer.invoke('github:list-repos'),
+  githubClone: (cloneUrl: string, repoName: string) => ipcRenderer.invoke('github:clone', cloneUrl, repoName),
   // GitHub OAuth
   githubStartAuth: () => ipcRenderer.invoke('github:start-auth'),
   githubDisconnect: () => ipcRenderer.invoke('github:disconnect'),

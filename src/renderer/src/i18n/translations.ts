@@ -240,6 +240,28 @@ const fr = {
   // Welcome
   'welcome.hint': 'Ouvrez un dépôt Git depuis le panneau de gauche',
   'welcome.open': 'Ouvrir un dépôt…',
+
+  // Clone from GitHub
+  'clone.title': 'Cloner depuis GitHub',
+  'clone.urlTitle': 'Cloner depuis une URL',
+  'clone.tabRepos': 'Mes repos',
+  'clone.tabUrl': 'URL',
+  'clone.search': 'Rechercher un repo…',
+  'clone.noRepos': 'Aucun repo trouvé',
+  'clone.noAuth': 'Connectez-vous à GitHub dans les Paramètres pour accéder à vos repos.',
+  'clone.loading': 'Chargement des repos…',
+  'clone.private': 'Privé',
+  'clone.public': 'Public',
+  'clone.stars': (n: number) => `${n} ★`,
+  'clone.cloneBtn': 'Cloner',
+  'clone.cloning': 'Clonage…',
+  'clone.urlPlaceholder': 'https://github.com/utilisateur/repo.git',
+  'clone.urlCloneBtn': 'Cloner depuis cette URL',
+  'clone.ok': (name: string) => `✓ "${name}" cloné avec succès`,
+  'clone.err': (e: string) => `Erreur : ${e}`,
+  'toolbar.clone.tooltip': 'Cloner un repo GitHub',
+  'toast.cloneOk': (name: string) => `✓ "${name}" cloné`,
+  'toast.cloneErr': (e: string) => `Clone échoué : ${e}`,
 }
 
 const en: typeof fr = {
@@ -482,6 +504,28 @@ const en: typeof fr = {
   // Welcome
   'welcome.hint': 'Open a Git repository from the left panel',
   'welcome.open': 'Open a repository…',
+
+  // Clone from GitHub
+  'clone.title': 'Clone from GitHub',
+  'clone.urlTitle': 'Clone from URL',
+  'clone.tabRepos': 'My repos',
+  'clone.tabUrl': 'URL',
+  'clone.search': 'Search a repo…',
+  'clone.noRepos': 'No repos found',
+  'clone.noAuth': 'Connect to GitHub in Settings to access your repos.',
+  'clone.loading': 'Loading repos…',
+  'clone.private': 'Private',
+  'clone.public': 'Public',
+  'clone.stars': (n: number) => `${n} ★`,
+  'clone.cloneBtn': 'Clone',
+  'clone.cloning': 'Cloning…',
+  'clone.urlPlaceholder': 'https://github.com/user/repo.git',
+  'clone.urlCloneBtn': 'Clone from this URL',
+  'clone.ok': (name: string) => `✓ "${name}" cloned successfully`,
+  'clone.err': (e: string) => `Error: ${e}`,
+  'toolbar.clone.tooltip': 'Clone a GitHub repo',
+  'toast.cloneOk': (name: string) => `✓ "${name}" cloned`,
+  'toast.cloneErr': (e: string) => `Clone failed: ${e}`,
 }
 
 export const translations = { fr, en }

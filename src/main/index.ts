@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
+import simpleGit from 'simple-git'
 import { GitService } from './git-service'
 import { getRecentRepos, addRecentRepo, removeRecentRepo } from './recent-repos'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
@@ -637,6 +638,57 @@ ipcMain.handle('github:get-token', () => {
 
 ipcMain.handle('updater:install', () => {
   autoUpdater.quitAndInstall()
+})
+
+ipcMain.handle('github:list-repos', async () => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    let repos: any[] = []
+    let page = 1
+    while (true) {
+      const res = await fetch(
+        `https://api.github.com/user/repos?per_page=100&sort=updated&page=${page}`,
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+      )
+      if (!res.ok) return { error: `HTTP ${res.status}` }
+      const batch = await res.json() as any[]
+      repos = repos.concat(batch)
+      if (batch.length < 100) break
+      page++
+    }
+    return {
+      repos: repos.map(r => ({
+        id: r.id,
+        name: r.name,
+        fullName: r.full_name,
+        description: r.description ?? '',
+        private: r.private,
+        language: r.language ?? null,
+        stars: r.stargazers_count,
+        updatedAt: r.updated_at,
+        cloneUrl: r.clone_url,
+        sshUrl: r.ssh_url,
+      }))
+    }
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:clone', async (_e, cloneUrl: string, repoName: string) => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory', 'createDirectory'],
+    title: `Choisir où cloner "${repoName}"`
+  })
+  if (result.canceled || result.filePaths.length === 0) return { cancelled: true }
+  const parentDir = result.filePaths[0]
+  const targetPath = pathJoin(parentDir, repoName)
+  try {
+    const sg = simpleGit()
+    await sg.clone(cloneUrl, targetPath)
+    return openRepoAt(targetPath)
+  } catch (e: any) {
+    return { error: e.message }
+  }
 })
 
 ipcMain.handle('github:get-user', async () => {
