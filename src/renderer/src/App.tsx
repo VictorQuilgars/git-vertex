@@ -125,6 +125,8 @@ export default function App() {
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
   const [pushModalOpen, setPushModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [updateReady, setUpdateReady] = useState(false)
+  const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
@@ -208,6 +210,15 @@ export default function App() {
     }, 500)
     return () => clearTimeout(timeout)
   }, [extendedSearch, searchQuery, repoPath])
+
+  // ── Auto-updater ───────────────────────────────────────────
+  useEffect(() => {
+    const api = window.gitAPI as any
+    api.onUpdateDownloaded?.(() => {
+      setUpdateReady(true)
+      setUpdateBannerOpen(true)
+    })
+  }, [])
 
   // ── Auto-fetch ─────────────────────────────────────────────
   useEffect(() => {
@@ -551,7 +562,24 @@ export default function App() {
         onToggleExtendedSearch={() => setExtendedSearch(v => !v)}
         onSettings={() => setSettingsOpen(v => !v)}
         settingsOpen={settingsOpen}
+        updateReady={updateReady}
+        onInstallUpdate={() => setUpdateBannerOpen(true)}
       />
+
+      {/* ── Update banner ── */}
+      {updateBannerOpen && updateReady && (
+        <div className="update-banner">
+          <span>🚀 Une nouvelle version est disponible et prête à être installée.</span>
+          <div className="update-banner-actions">
+            <button className="update-btn-install" onClick={() => (window.gitAPI as any).installUpdate()}>
+              Redémarrer et installer
+            </button>
+            <button className="update-btn-later" onClick={() => setUpdateBannerOpen(false)}>
+              Plus tard
+            </button>
+          </div>
+        </div>
+      )}
 
       {settingsOpen && (
         <SettingsModal

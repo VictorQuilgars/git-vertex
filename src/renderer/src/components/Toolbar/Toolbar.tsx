@@ -21,6 +21,8 @@ interface ToolbarProps {
   onToggleExtendedSearch?: () => void
   onSettings?: () => void
   settingsOpen?: boolean
+  updateReady?: boolean
+  onInstallUpdate?: () => void
 }
 
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
@@ -52,7 +54,7 @@ export default function Toolbar({
   onSearch, onFetch, onPush, onPushModal, onPull, onCreateBranch,
   onToggleAllBranches, onRefresh, loading, lastFetchTime,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
-  onSettings, settingsOpen
+  onSettings, settingsOpen, updateReady, onInstallUpdate
 }: ToolbarProps) {
   const isMac = (window as any).appInfo?.platform === 'darwin'
   const disabled = !repoPath || loading
@@ -181,6 +183,22 @@ export default function Toolbar({
         <span className="tb-fetch-time" title="Auto-fetch actif (toutes les 5 min)">
           ↺ {formatFetchTime(lastFetchTime)}
         </span>
+      )}
+
+      {/* Update available */}
+      {updateReady && (
+        <button
+          className="tb-btn tb-update-btn"
+          onClick={onInstallUpdate}
+          title="Une mise à jour est prête à être installée"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span>Mise à jour</span>
+        </button>
       )}
 
       {/* Settings */}

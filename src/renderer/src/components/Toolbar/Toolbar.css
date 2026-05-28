@@ -116,6 +116,10 @@
 
 @keyframes tb-spin { to { transform: rotate(360deg); } }
 
+.tb-update-btn { color: #f0883e; animation: tb-update-pulse 2s ease-in-out infinite; }
+.tb-update-btn:hover:not(:disabled) { color: #f0883e; border-color: #f0883e55; background: #f0883e11; }
+@keyframes tb-update-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+
 .tb-ext-search {
   background: transparent;
   border: 1px solid #30363d;
