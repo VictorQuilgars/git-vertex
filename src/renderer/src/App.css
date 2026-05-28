@@ -104,9 +104,9 @@ body {
 }
 
 .welcome-logo {
-  width: 64px;
-  height: 64px;
-  filter: drop-shadow(0 0 16px #3fb95040);
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 0 20px #3fb95050) drop-shadow(0 0 40px #58a6ff25);
 }
 
 .welcome-title {

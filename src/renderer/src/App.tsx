@@ -675,14 +675,32 @@ export default function App() {
             <div className="app-welcome">
               <div className="welcome-hero">
                 <div className="welcome-brand">
-                  <svg className="welcome-logo" viewBox="0 0 16 16" fill="none">
-                    <path d="M15.698 7.287 8.712.302a1.03 1.03 0 0 0-1.457 0l-1.45 1.45 1.84 1.84a1.223 1.223 0 0 1 1.55 1.56l1.773 1.774a1.224 1.224 0 0 1 1.267 2.025 1.226 1.226 0 0 1-2.002-1.334L8.58 5.963v4.353a1.226 1.226 0 1 1-1.008-.036V5.887a1.226 1.226 0 0 1-.666-1.608L5.093 2.465l-4.79 4.79a1.03 1.03 0 0 0 0 1.457l6.986 6.986a1.03 1.03 0 0 0 1.457 0l6.953-6.953a1.031 1.031 0 0 0-.001-1.458z" fill="url(#wg)"/>
+                  <svg className="welcome-logo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
-                      <linearGradient id="wg" x1="0" y1="0" x2="16" y2="16" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor="#3fb950"/>
-                        <stop offset="100%" stopColor="#58a6ff"/>
-                      </linearGradient>
+                      <radialGradient id="wmerge" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#5eff8a"/>
+                        <stop offset="100%" stopColor="#3fb950"/>
+                      </radialGradient>
+                      <filter id="wglow">
+                        <feGaussianBlur stdDeviation="6" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                      </filter>
                     </defs>
+                    {/* Left arm — green */}
+                    <line x1="148" y1="82" x2="256" y2="422" stroke="#3fb950" strokeWidth="22" strokeLinecap="round"/>
+                    {/* Right arm — blue */}
+                    <line x1="364" y1="82" x2="256" y2="422" stroke="#58a6ff" strokeWidth="22" strokeLinecap="round"/>
+                    {/* Left commits */}
+                    <circle cx="148" cy="82"  r="24" fill="#0d1117" stroke="#3fb950" strokeWidth="13"/>
+                    <circle cx="184" cy="192" r="18" fill="#0d1117" stroke="#3fb950" strokeWidth="11"/>
+                    <circle cx="220" cy="302" r="18" fill="#0d1117" stroke="#3fb950" strokeWidth="11"/>
+                    {/* Right commits */}
+                    <circle cx="364" cy="82"  r="24" fill="#0d1117" stroke="#58a6ff" strokeWidth="13"/>
+                    <circle cx="328" cy="192" r="18" fill="#0d1117" stroke="#58a6ff" strokeWidth="11"/>
+                    <circle cx="292" cy="302" r="18" fill="#0d1117" stroke="#58a6ff" strokeWidth="11"/>
+                    {/* Merge node */}
+                    <circle cx="256" cy="422" r="28" fill="url(#wmerge)" filter="url(#wglow)"/>
+                    <circle cx="256" cy="422" r="14" fill="#0d1117"/>
                   </svg>
                   <div>
                     <h1 className="welcome-title">Git Vertex</h1>
