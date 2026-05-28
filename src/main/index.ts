@@ -492,7 +492,7 @@ ipcMain.handle('ai:generate-commit-message', async () => {
   if (!stagedDiff.trim()) { console.log('[ai] no staged diff'); return { error: 'Aucun changement indexé à analyser' } }
 
   const truncated = stagedDiff.length > 6000 ? stagedDiff.slice(0, 6000) + '\n... [diff tronqué]' : stagedDiff
-  const prompt = `Tu es un expert Git. Analyse ce diff et génère un message de commit concis en suivant Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). Première ligne : type(scope): description (max 72 chars). Réponds UNIQUEMENT avec le message de commit.\n\nDiff :\n\`\`\`diff\n${truncated}\n\`\`\``
+  const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${truncated}\n\`\`\``
 
   const callAPI = async (): Promise<string> => {
     if (provider === 'anthropic') {
