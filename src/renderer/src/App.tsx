@@ -577,8 +577,6 @@ export default function App() {
         settingsOpen={settingsOpen}
         updateReady={updateReady}
         onInstallUpdate={() => setUpdateBannerOpen(true)}
-        onClone={() => setCloneOpen(true)}
-        githubConnected={githubConnected}
       />
 
       {/* ── Update banner ── */}
@@ -614,6 +612,7 @@ export default function App() {
             stashes={stashes}
             tags={tags}
             onOpenRepo={handleOpenRepo}
+            onClone={() => setCloneOpen(true)}
             onSetRepo={handleSetRepo}
             onRemoveRecent={handleRemoveRecent}
             onCheckout={handleCheckout}

@@ -282,6 +282,18 @@
 }
 .sb-open-btn:hover { background: #2ea043; }
 
+.sb-clone-btn {
+  background: #1c2128;
+  border-color: #30363d;
+  color: #8b949e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 0;
+}
+.sb-clone-btn:hover { background: #21262d; color: #e6edf3; }
+
 .sb-recents-title {
   font-size: 10px;
   font-weight: 700;
