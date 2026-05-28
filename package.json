@@ -2,6 +2,10 @@
   "name": "git-gui",
   "version": "1.0.0",
   "description": "A GitKraken-inspired Git GUI built with Electron + React",
+  "author": {
+    "name": "Victor Quilgars",
+    "email": "victorqlgs@gmail.com"
+  },
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
