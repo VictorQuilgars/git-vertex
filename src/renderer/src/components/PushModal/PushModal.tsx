@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './PushModal.css'
 import { BranchInfo } from '../../types'
+import { useLang } from '../../i18n/LanguageContext'
 
 interface PushModalProps {
   currentBranch: string
@@ -11,7 +12,8 @@ interface PushModalProps {
 }
 
 export default function PushModal({ currentBranch, branches, onClose, onSuccess, showToast }: PushModalProps) {
-  const [remotes, setRemotes] = useState<string[] | null>(null) // null = loading
+  const { t } = useLang()
+  const [remotes, setRemotes] = useState<string[] | null>(null)
   const [remote, setRemote] = useState('')
   const [targetBranch, setTargetBranch] = useState(currentBranch)
   const [setUpstream, setSetUpstream] = useState(false)
@@ -19,7 +21,6 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
   const [pushError, setPushError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Extract unique remote names from branch list
   const remoteBranches = branches
     .filter(b => b.remote)
     .map(b => {
@@ -44,9 +45,7 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
     inputRef.current?.select()
   }, [])
 
-  const branchesForRemote = remoteBranches
-    .filter(b => b.remote === remote)
-    .map(b => b.branch)
+  const branchesForRemote = remoteBranches.filter(b => b.remote === remote).map(b => b.branch)
 
   const handlePush = async () => {
     if (!targetBranch.trim() || !remote) return
@@ -55,11 +54,11 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
     const r = await window.gitAPI.pushTo(remote, targetBranch.trim(), setUpstream)
     setPushing(false)
     if (r.success) {
-      showToast(`Push réussi → ${remote}/${targetBranch.trim()} ✓`)
+      showToast(t('toast.pushOk', `${remote}/${targetBranch.trim()}`))
       onSuccess()
       onClose()
     } else {
-      const firstLine = (r.error ?? '').split('\n').find(l => l.trim()) ?? r.error ?? 'Erreur inconnue'
+      const firstLine = (r.error ?? '').split('\n').find(l => l.trim()) ?? r.error ?? 'Error'
       setPushError(firstLine)
     }
   }
@@ -68,48 +67,34 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
     <div className="pm-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <div className="pm-panel">
         <div className="pm-header">
-          <span className="pm-title">⬆ Push</span>
+          <span className="pm-title">{t('push.title')}</span>
           <button className="pm-close" onClick={onClose}>×</button>
         </div>
 
         <div className="pm-body">
           <div className="pm-row">
-            <label className="pm-label">Branche locale</label>
+            <label className="pm-label">{t('push.localBranch')}</label>
             <span className="pm-branch-badge">{currentBranch}</span>
           </div>
 
           {remotes !== null && remotes.length === 0 ? (
-            <div className="pm-no-remote">
-              Aucun remote configuré dans ce dépôt.
-            </div>
+            <div className="pm-no-remote">{t('push.noRemote')}</div>
           ) : (
             <>
               <div className="pm-row">
-                <label className="pm-label">Remote</label>
-                <select
-                  className="pm-select"
-                  value={remote}
-                  onChange={e => setRemote(e.target.value)}
-                >
+                <label className="pm-label">{t('push.remote')}</label>
+                <select className="pm-select" value={remote} onChange={e => setRemote(e.target.value)}>
                   {(remotes ?? []).map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
 
               <div className="pm-row">
-                <label className="pm-label">Branche cible</label>
+                <label className="pm-label">{t('push.targetBranch')}</label>
                 <div className="pm-input-wrap">
-                  <input
-                    ref={inputRef}
-                    className="pm-input"
-                    list="pm-branch-list"
-                    value={targetBranch}
-                    onChange={e => setTargetBranch(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handlePush()
-                      if (e.key === 'Escape') onClose()
-                    }}
-                    placeholder="nom de la branche distante"
-                  />
+                  <input ref={inputRef} className="pm-input" list="pm-branch-list"
+                    value={targetBranch} onChange={e => setTargetBranch(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handlePush(); if (e.key === 'Escape') onClose() }}
+                    placeholder={t('push.targetBranch.placeholder')} />
                   <datalist id="pm-branch-list">
                     {branchesForRemote.map(b => <option key={b} value={b} />)}
                   </datalist>
@@ -117,30 +102,21 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
               </div>
 
               <label className="pm-checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={setUpstream}
-                  onChange={e => setSetUpstream(e.target.checked)}
-                />
-                <span>Définir comme upstream (<code>--set-upstream</code>)</span>
+                <input type="checkbox" checked={setUpstream} onChange={e => setSetUpstream(e.target.checked)} />
+                <span>{t('push.setUpstream')}</span>
               </label>
 
-              {pushError && (
-                <div className="pm-error">{pushError}</div>
-              )}
+              {pushError && <div className="pm-error">{pushError}</div>}
             </>
           )}
         </div>
 
         <div className="pm-footer">
-          <button className="pm-cancel" onClick={onClose}>Annuler</button>
+          <button className="pm-cancel" onClick={onClose}>{t('push.cancel')}</button>
           {(remotes === null || remotes.length > 0) && (
-            <button
-              className="pm-push"
-              onClick={handlePush}
-              disabled={pushing || !targetBranch.trim() || !remote}
-            >
-              {pushing ? 'Push en cours…' : `⬆ Push vers ${remote || '…'}/${targetBranch || '…'}`}
+            <button className="pm-push" onClick={handlePush}
+              disabled={pushing || !targetBranch.trim() || !remote}>
+              {pushing ? t('push.pushing') : t('push.button', remote || '…', targetBranch || '…')}
             </button>
           )}
         </div>

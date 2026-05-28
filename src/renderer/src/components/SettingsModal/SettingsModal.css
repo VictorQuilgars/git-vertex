@@ -427,3 +427,23 @@
   font-size: 12px;
   color: #6e7681;
 }
+
+.stg-about-lang {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stg-lang-btns { display: flex; gap: 6px; }
+.stg-lang-btn {
+  padding: 5px 14px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #8b949e;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.stg-lang-btn:hover { border-color: #8b949e; color: #e6edf3; }
+.stg-lang-btn.active { background: #1f6feb22; border-color: #58a6ff; color: #58a6ff; }

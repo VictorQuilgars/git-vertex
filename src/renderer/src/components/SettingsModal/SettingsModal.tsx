@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import './SettingsModal.css'
+import { useLang } from '../../i18n/LanguageContext'
+import type { Lang } from '../../i18n/translations'
 
 type Section = 'git' | 'github' | 'ai' | 'about'
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
@@ -67,6 +69,7 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ onClose, showToast }: SettingsModalProps) {
+  const { t, lang, setLang } = useLang()
   const [section, setSection] = useState<Section>('git')
 
   // Git config
@@ -151,9 +154,9 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       if (result.token) {
         setGithubToken(result.token)
         await fetchGithubUser()
-        showToast('Connecté à GitHub ✓')
+        showToast(t('toast.githubConnected'))
       } else {
-        showToast(`Connexion GitHub échouée : ${result.error}`, 'err')
+        showToast(t('toast.githubErr', result.error ?? ''), 'err')
       }
     })
   }, [])
@@ -167,13 +170,13 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
     await (window.gitAPI as any).githubDisconnect()
     setGithubToken('')
     setGithubUser(null)
-    showToast('Déconnecté de GitHub')
+    showToast(t('toast.githubDisconnected'))
   }
 
   const saveGit = async () => {
     const r = await window.gitAPI.gitSetGlobalConfig(gitUserName.trim(), gitUserEmail.trim())
-    if (r.success) showToast('Config Git sauvegardée ✓')
-    else showToast(`Erreur : ${r.error}`, 'err')
+    if (r.success) showToast(t('toast.gitConfigSaved'))
+    else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
   const saveGithub = async () => {
@@ -187,7 +190,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
     await window.gitAPI.settingsSet(`ai${cap}Key`, aiKeys[aiProvider])
     await window.gitAPI.settingsSet(`ai${cap}Model`, aiModels[aiProvider])
     if (aiProvider === 'groq') await window.gitAPI.settingsSet('groqApiKey', aiKeys.groq)
-    showToast('Paramètres IA sauvegardés ✓')
+    showToast(t('toast.aiSaved'))
   }
 
   const tuto = API_KEY_TUTORIALS[aiProvider]
@@ -196,13 +199,13 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
     <div className="stg-page">
       {/* Header */}
       <div className="stg-header">
-        <button className="stg-back" onClick={onClose} title="Retour">
+        <button className="stg-back" onClick={onClose} title={t('settings.back')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
-          Retour
+          {t('settings.back')}
         </button>
-        <span className="stg-title">Paramètres</span>
+        <span className="stg-title">{t('settings.title')}</span>
       </div>
 
       <div className="stg-body">
@@ -214,10 +217,10 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                 className={`stg-nav-item ${section === s ? 'active' : ''}`}
                 onClick={() => setSection(s)}
               >
-                {s === 'git' && '⎇ Git'}
-                {s === 'github' && '🐙 GitHub'}
-                {s === 'ai' && '✨ Intelligence Artificielle'}
-                {s === 'about' && 'ℹ À propos'}
+                {s === 'git' && t('settings.nav.git')}
+                {s === 'github' && t('settings.nav.github')}
+                {s === 'ai' && t('settings.nav.ai')}
+                {s === 'about' && t('settings.nav.about')}
               </button>
             ))}
           </nav>
@@ -228,61 +231,57 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
             {/* ── Git ── */}
             {section === 'git' && (
               <div className="stg-section">
-                <h2 className="stg-section-title">Configuration Git globale</h2>
-                <p className="stg-desc">Ces valeurs sont utilisées pour signer vos commits (<code>git config --global</code>).</p>
+                <h2 className="stg-section-title">{t('settings.git.title')}</h2>
+                <p className="stg-desc">{t('settings.git.desc')}</p>
 
                 <label className="stg-field">
-                  <span>Nom</span>
+                  <span>{t('settings.git.name')}</span>
                   <input
                     className="stg-input"
                     value={gitUserName}
                     onChange={e => setGitUserName(e.target.value)}
-                    placeholder="Prénom Nom"
+                    placeholder={t('settings.git.name.placeholder')}
                   />
                 </label>
 
                 <label className="stg-field">
-                  <span>Email</span>
+                  <span>{t('settings.git.email')}</span>
                   <input
                     className="stg-input"
                     type="email"
                     value={gitUserEmail}
                     onChange={e => setGitUserEmail(e.target.value)}
-                    placeholder="vous@exemple.com"
+                    placeholder={t('settings.git.email.placeholder')}
                   />
                 </label>
 
-                <button className="stg-save" onClick={saveGit}>Enregistrer</button>
+                <button className="stg-save" onClick={saveGit}>{t('settings.save')}</button>
               </div>
             )}
 
             {/* ── GitHub ── */}
             {section === 'github' && (
               <div className="stg-section">
-                <h2 className="stg-section-title">Connexion GitHub</h2>
-                <p className="stg-desc">Connectez votre compte GitHub pour accéder aux Pull Requests, Issues et autres fonctionnalités collaboratives.</p>
+                <h2 className="stg-section-title">{t('settings.github.title')}</h2>
+                <p className="stg-desc">{t('settings.github.desc')}</p>
 
                 {githubUser ? (
                   <div className="stg-gh-connected">
                     <img className="stg-gh-avatar" src={githubUser.avatar} alt={githubUser.login} />
                     <div className="stg-gh-info">
                       <span className="stg-gh-login">{githubUser.login}</span>
-                      <span className="stg-gh-status">Connecté</span>
+                      <span className="stg-gh-status">{t('settings.github.connected')}</span>
                     </div>
                     <button className="stg-gh-disconnect" onClick={handleGithubDisconnect}>
-                      Déconnecter
+                      {t('settings.github.disconnect')}
                     </button>
                   </div>
                 ) : (
-                  <button
-                    className="stg-gh-login-btn"
-                    onClick={handleGithubLogin}
-                    disabled={githubLoading}
-                  >
+                  <button className="stg-gh-login-btn" onClick={handleGithubLogin} disabled={githubLoading}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
                     </svg>
-                    {githubLoading ? 'Connexion en cours…' : 'Se connecter avec GitHub'}
+                    {githubLoading ? t('settings.github.connecting') : t('settings.github.login')}
                   </button>
                 )}
               </div>
@@ -291,8 +290,8 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
             {/* ── AI ── */}
             {section === 'ai' && (
               <div className="stg-section">
-                <h2 className="stg-section-title">Fournisseur d'IA</h2>
-                <p className="stg-desc">Choisissez le fournisseur utilisé pour la génération automatique de messages de commit.</p>
+                <h2 className="stg-section-title">{t('settings.ai.title')}</h2>
+                <p className="stg-desc">{t('settings.ai.desc')}</p>
 
                 <div className="stg-providers">
                   {AI_PROVIDERS.map(p => (
@@ -316,9 +315,9 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
 
                 <div className="stg-field" style={{ marginTop: 16 }}>
                   <div className="stg-model-header">
-                    <span>Modèle — {AI_PROVIDERS.find(p => p.id === aiProvider)?.label}</span>
+                    <span>{t('settings.ai.model', AI_PROVIDERS.find(p => p.id === aiProvider)?.label ?? '')}</span>
                     {liveModels[aiProvider] && (
-                      <span className="stg-model-count">{liveModels[aiProvider]!.length} modèles disponibles</span>
+                      <span className="stg-model-count">{t('settings.ai.modelsCount', liveModels[aiProvider]!.length)}</span>
                     )}
                   </div>
                   <div className="stg-input-row">
@@ -330,7 +329,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                       >
                         {liveModels[aiProvider]!.map(m => <option key={m} value={m}>{m}</option>)}
                         {!liveModels[aiProvider]!.includes(aiModels[aiProvider]) && (
-                          <option value={aiModels[aiProvider]}>{aiModels[aiProvider]} (custom)</option>
+                          <option value={aiModels[aiProvider]}>{aiModels[aiProvider]} {t('settings.ai.custom')}</option>
                         )}
                       </select>
                     ) : (
@@ -345,7 +344,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                       className="stg-load-models"
                       onClick={() => fetchModels(aiProvider, aiKeys[aiProvider])}
                       disabled={loadingModels || !aiKeys[aiProvider]}
-                      title="Recharger les modèles disponibles"
+                      title={t('settings.ai.reloadModels')}
                     >
                       {loadingModels ? '…' : '⟳'}
                     </button>
@@ -355,14 +354,14 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                       className="stg-input stg-mono stg-model-custom"
                       value={aiModels[aiProvider]}
                       onChange={e => setAiModels(m => ({ ...m, [aiProvider]: e.target.value }))}
-                      placeholder="ou saisir un modèle custom…"
+                      placeholder={t('settings.ai.customPlaceholder')}
                     />
                   )}
                   {modelsError && <span className="stg-models-error">{modelsError}</span>}
                 </div>
 
                 <label className="stg-field">
-                  <span>Clé API — {AI_PROVIDERS.find(p => p.id === aiProvider)?.label}</span>
+                  <span>{t('settings.ai.apiKey', AI_PROVIDERS.find(p => p.id === aiProvider)?.label ?? '')}</span>
                   <div className="stg-input-row">
                     <input
                       className="stg-input stg-mono"
@@ -377,7 +376,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                         'gsk_...'
                       }
                     />
-                    <button className="stg-eye" onClick={() => setShowKey(v => !v)} title={showKey ? 'Masquer' : 'Afficher'}>
+                    <button className="stg-eye" onClick={() => setShowKey(v => !v)} title={showKey ? t('settings.ai.hide') : t('settings.ai.show')}>
                       {showKey ? '🙈' : '👁'}
                     </button>
                   </div>
@@ -387,18 +386,18 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                   className="stg-tuto-toggle"
                   onClick={() => setShowTuto(v => !v)}
                 >
-                  {showTuto ? '▾' : '▸'} Comment obtenir une clé API {AI_PROVIDERS.find(p => p.id === aiProvider)?.label}
+                  {showTuto ? '▾' : '▸'} {t('settings.ai.howToKey')}{AI_PROVIDERS.find(p => p.id === aiProvider)?.label}
                 </button>
 
                 {showTuto && (
                   <div className="stg-tuto">
                     <ol className="stg-tuto-steps">
-                      {tuto.steps.map((s, i) => <li key={i}>{s}</li>)}
+                      {(t(`settings.ai.tuto.${aiProvider}` as any) as unknown as string[]).map((s: string, i: number) => <li key={i}>{s}</li>)}
                     </ol>
                   </div>
                 )}
 
-                <button className="stg-save" onClick={saveAI}>Enregistrer</button>
+                <button className="stg-save" onClick={saveAI}>{t('settings.save')}</button>
               </div>
             )}
 
@@ -413,30 +412,41 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                   </div>
                 </div>
 
-                <p className="stg-desc">Interface graphique Git rapide et moderne. Visualisez vos branches, indexez vos changements et gérez vos commits simplement.</p>
+                <p className="stg-desc">{t('settings.about.desc')}</p>
 
                 <div className="stg-about-links">
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex')}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-                    Code source
+                    {t('settings.about.sourceCode')}
                   </a>
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex/releases')}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Releases
+                    {t('settings.about.releases')}
                   </a>
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex/issues')}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    Signaler un bug
+                    {t('settings.about.reportBug')}
                   </a>
                 </div>
 
                 <div className="stg-about-author">
-                  <span className="stg-about-label">Créé par</span>
+                  <span className="stg-about-label">{t('settings.about.createdBy')}</span>
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars')}>Victor Quilgars</a>
                 </div>
 
+                <div className="stg-about-lang">
+                  <span className="stg-about-label">{t('settings.about.language')}</span>
+                  <div className="stg-lang-btns">
+                    {(['fr', 'en'] as Lang[]).map(l => (
+                      <button key={l} className={`stg-lang-btn ${lang === l ? 'active' : ''}`} onClick={() => setLang(l)}>
+                        {l === 'fr' ? '🇫🇷' : '🇬🇧'} {t(`settings.lang.${l}` as any)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="stg-about-env">
-                  <h3 className="stg-about-env-title">Environnement</h3>
+                  <h3 className="stg-about-env-title">{t('settings.about.env')}</h3>
                   <div className="stg-about-env-grid">
                     <span className="stg-about-env-key">Git Vertex</span>
                     <span className="stg-about-env-val">{appInfo?.version ?? '—'}</span>
@@ -450,7 +460,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                 </div>
 
                 <div className="stg-about-license">
-                  Distribué sous licence <strong>MIT</strong>
+                  {t('settings.about.license')}
                 </div>
               </div>
             )}

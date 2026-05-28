@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { LayoutCommit, computeGraphLayout, LANE_COLORS } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import { useLang } from '../../i18n/LanguageContext'
 import './CommitGraph.css'
 
 const ROW_HEIGHT = 34
@@ -128,6 +129,7 @@ export default function CommitGraph({
   commits, selectedHash, onSelectCommit, searchQuery, currentBranch,
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onCheckoutBranch, onInteractiveRebase
 }: CommitGraphProps) {
+  const { t } = useLang()
   const bodyRef = useRef<HTMLDivElement>(null)
   const layout = useMemo(() => computeGraphLayout(commits), [commits])
   const [ctx, setCtx] = useState<CtxState | null>(null)
@@ -179,52 +181,20 @@ export default function CommitGraph({
   const buildMenuItems = useCallback((commit: LayoutCommit): MenuItemDef[] => {
     const isHead = commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
     return [
-      {
-        label: '🌿 Créer une branche ici',
-        action: () => onCreateBranchAt(commit.hash),
-      },
-      {
-        label: '⚡ Interactive Rebase depuis ici',
-        action: () => onInteractiveRebase?.(commit.hash),
-      },
+      { label: t('graph.menu.createBranch'), action: () => onCreateBranchAt(commit.hash) },
+      { label: t('graph.menu.interactiveRebase'), action: () => onInteractiveRebase?.(commit.hash) },
       { separator: true },
-      {
-        label: '🍒 Cherry-pick',
-        action: () => onCherryPick(commit.hash),
-        disabled: isHead,
-      },
-      {
-        label: '↩ Revert',
-        action: () => onRevert(commit.hash),
-      },
+      { label: t('graph.menu.cherryPick'), action: () => onCherryPick(commit.hash), disabled: isHead },
+      { label: t('graph.menu.revert'), action: () => onRevert(commit.hash) },
       { separator: true },
-      {
-        label: '⏪ Reset (soft) — garde les changements indexés',
-        action: () => onReset(commit.hash, 'soft'),
-      },
-      {
-        label: '⏪ Reset (mixed) — garde les changements non-indexés',
-        action: () => onReset(commit.hash, 'mixed'),
-      },
-      {
-        label: '⏪ Reset (hard) — supprime tous les changements',
-        action: () => onReset(commit.hash, 'hard'),
-        danger: true,
-      },
+      { label: t('graph.menu.resetSoft'), action: () => onReset(commit.hash, 'soft') },
+      { label: t('graph.menu.resetMixed'), action: () => onReset(commit.hash, 'mixed') },
+      { label: t('graph.menu.resetHard'), action: () => onReset(commit.hash, 'hard'), danger: true },
       { separator: true },
-      {
-        label: '🏷 Créer un tag ici',
-        action: () => onCreateTag(commit.hash),
-      },
+      { label: t('graph.menu.createTag'), action: () => onCreateTag(commit.hash) },
       { separator: true },
-      {
-        label: '📋 Copier le hash court',
-        action: () => navigator.clipboard.writeText(commit.shortHash),
-      },
-      {
-        label: '📋 Copier le hash complet',
-        action: () => navigator.clipboard.writeText(commit.hash),
-      },
+      { label: t('graph.menu.copyShortHash'), action: () => navigator.clipboard.writeText(commit.shortHash) },
+      { label: t('graph.menu.copyFullHash'), action: () => navigator.clipboard.writeText(commit.hash) },
     ]
   }, [currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onInteractiveRebase])
 
@@ -329,7 +299,7 @@ export default function CommitGraph({
         </div>
 
         {layout.length === 0 && (
-          <div className="cg-empty">Aucun commit à afficher</div>
+          <div className="cg-empty">{t('graph.empty')}</div>
         )}
       </div>
 

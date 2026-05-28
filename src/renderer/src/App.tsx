@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { CommitNode, BranchInfo } from './types'
+import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
@@ -134,6 +135,7 @@ export default function App() {
 
   // ── Toast (via ToastProvider) ──────────────────────────────
   const toastApi = useToast()
+  const { t } = useLang()
   const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok') => {
     if (type === 'ok') toastApi.success(msg)
     else toastApi.error(msg)
@@ -244,7 +246,7 @@ export default function App() {
       const updated = await window.gitAPI.getRecentRepos()
       setRecentRepos(updated ?? [])
     } else if (res.error && res.error !== 'cancelled') {
-      showToast(`Erreur : ${res.error}`, 'err')
+      showToast(t('toast.err', res.error), 'err')
     }
   }, [showToast])
 
@@ -259,8 +261,8 @@ export default function App() {
   const handleFetch = async () => {
     setLoading(true)
     const r = await window.gitAPI.fetch()
-    if (r.success) { showToast('Fetch réussi ✓'); await loadRepoData() }
-    else showToast(`Fetch échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.fetchOk')); await loadRepoData() }
+    else showToast(t('toast.fetchErr', r.error ?? ''), 'err')
     setLoading(false)
   }
 
@@ -272,8 +274,8 @@ export default function App() {
     if (upstream) {
       // upstream configured → push direct
       const r = await window.gitAPI.push()
-      if (r.success) { showToast(`Push réussi → ${upstream} ✓`); await loadRepoData() }
-      else showToast(`Push échoué : ${r.error}`, 'err')
+      if (r.success) { showToast(t('toast.pushOk', upstream)); await loadRepoData() }
+      else showToast(t('toast.pushErr', r.error ?? ''), 'err')
     } else {
       // no upstream → open modal to configure
       setPushModalOpen(true)
@@ -287,167 +289,164 @@ export default function App() {
   const handlePull = async () => {
     setLoading(true)
     const r = await window.gitAPI.pull()
-    if (r.success) { showToast('Pull réussi ✓'); await loadRepoData() }
-    else showToast(`Pull échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.pullOk')); await loadRepoData() }
+    else showToast(t('toast.pullErr', r.error ?? ''), 'err')
     setLoading(false)
   }
 
   const handleCheckout = async (name: string) => {
     const r = await window.gitAPI.checkout(name)
-    if (r.success) { showToast(`✓ Checkout "${name}"`); await loadRepoData() }
-    else showToast(`Checkout échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.checkoutOk', name)); await loadRepoData() }
+    else showToast(t('toast.checkoutErr', r.error ?? ''), 'err')
   }
 
   const handleCreateBranch = useCallback(async () => {
-    const name = await showPrompt('Nom de la nouvelle branche :')
+    const name = await showPrompt(t('prompt.newBranch'))
     if (!name) return
     try {
       const r = await window.gitAPI.createBranch(name)
-      if (r.success) { showToast(`✓ Branche "${name}" créée`); await loadRepoData() }
-      else showToast(`Erreur : ${r.error}`, 'err')
+      if (r.success) { showToast(t('toast.branchCreated', name)); await loadRepoData() }
+      else showToast(t('toast.err', r.error ?? ''), 'err')
     } catch (e: any) {
-      showToast(`Erreur inattendue : ${e?.message ?? e}`, 'err')
+      showToast(t('toast.unexpected', e?.message ?? e), 'err')
     }
   }, [showPrompt, showToast, loadRepoData])
 
   const handleDeleteBranch = async (name: string) => {
-    const ok = await showConfirm(`Supprimer la branche "${name}" ?`, true)
+    const ok = await showConfirm(t('prompt.deleteBranch', name), true)
     if (!ok) return
     const r = await window.gitAPI.deleteBranch(name)
-    if (r.success) { showToast(`Branche "${name}" supprimée`); await loadRepoData() }
-    else showToast(`Erreur : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.branchDeleted', name)); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
   const handleMergeBranch = async (name: string) => {
-    const ok = await showConfirm(`Merger "${name}" dans "${currentBranch}" ?`)
+    const ok = await showConfirm(t('prompt.mergeBranch', name, currentBranch))
     if (!ok) return
     setLoading(true)
     const r = await window.gitAPI.merge(name)
-    if (r.success) { showToast(`✓ Merge de "${name}" réussi`); await loadRepoData() }
-    else showToast(`Merge échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.mergeOk', name)); await loadRepoData() }
+    else showToast(t('toast.mergeErr', r.error ?? ''), 'err')
     setLoading(false)
   }
 
   const handleRenameBranch = async (name: string) => {
-    const newName = await showPrompt(`Renommer "${name}" en :`, name)
+    const newName = await showPrompt(t('prompt.renameBranch', name), name)
     if (!newName || newName === name) return
     const r = await window.gitAPI.renameBranch(name, newName)
-    if (r.success) { showToast(`✓ Branche renommée en "${newName}"`); await loadRepoData() }
-    else showToast(`Renommage échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.branchRenamed', newName)); await loadRepoData() }
+    else showToast(t('toast.renameErr', r.error ?? ''), 'err')
   }
 
   // ── Commit context menu operations ─────────────────────────
   const handleCreateBranchAt = async (hash: string) => {
-    const name = await showPrompt('Nom de la nouvelle branche :')
+    const name = await showPrompt(t('prompt.newBranch'))
     if (!name) return
-    const checkout = await showConfirm(`Checkout sur "${name}" immédiatement ?`)
+    const checkout = await showConfirm(t('prompt.checkoutNow', name))
     try {
       const r = await window.gitAPI.createBranchAt(name, hash, checkout)
       if (r.success) {
-        showToast(`✓ Branche "${name}" créée${checkout ? ' + checkout' : ''}`)
+        showToast(checkout ? t('toast.branchCreatedCheckout', name) : t('toast.branchCreated', name))
         await loadRepoData()
       } else {
-        showToast(`Erreur : ${r.error}`, 'err')
+        showToast(t('toast.err', r.error ?? ''), 'err')
       }
     } catch (e: any) {
-      showToast(`Erreur inattendue : ${e?.message ?? e}`, 'err')
+      showToast(t('toast.unexpected', e?.message ?? e), 'err')
     }
   }
 
   const handleCherryPick = async (hash: string) => {
     setLoading(true)
     const r = await window.gitAPI.cherryPick(hash)
-    if (r.success) { showToast(`✓ Cherry-pick ${hash.slice(0, 7)} appliqué`); await loadRepoData() }
-    else showToast(`Cherry-pick échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.cherryPickOk', hash.slice(0, 7))); await loadRepoData() }
+    else showToast(t('toast.cherryPickErr', r.error ?? ''), 'err')
     setLoading(false)
   }
 
   const handleRevert = async (hash: string) => {
     setLoading(true)
     const r = await window.gitAPI.revert(hash)
-    if (r.success) { showToast(`✓ Revert ${hash.slice(0, 7)} appliqué`); await loadRepoData() }
-    else showToast(`Revert échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.revertOk', hash.slice(0, 7))); await loadRepoData() }
+    else showToast(t('toast.revertErr', r.error ?? ''), 'err')
     setLoading(false)
   }
 
   const handleReset = async (hash: string, mode: 'soft' | 'mixed' | 'hard') => {
     if (mode === 'hard') {
-      const ok = await showConfirm(
-        `Reset hard vers ${hash.slice(0, 7)} ?\nTous les changements non commités seront perdus.`,
-        true
-      )
+      const ok = await showConfirm(t('prompt.resetHard', hash.slice(0, 7)), true)
       if (!ok) return
     }
     setLoading(true)
     const r = await window.gitAPI.reset(hash, mode)
     if (r.success) {
-      showToast(`✓ Reset ${mode} vers ${hash.slice(0, 7)}`)
+      showToast(t('toast.resetOk', mode, hash.slice(0, 7)))
       setSelectedCommit(null)
       await loadRepoData()
     } else {
-      showToast(`Reset échoué : ${r.error}`, 'err')
+      showToast(t('toast.resetErr', r.error ?? ''), 'err')
     }
     setLoading(false)
   }
 
   // ── Tag operations ─────────────────────────────────────────
   const handleCreateTagAtCommit = async (hash: string) => {
-    const name = await showPrompt('Nom du tag :')
+    const name = await showPrompt(t('prompt.tagName'))
     if (!name) return
-    const message = await showPrompt('Message du tag (laisser vide pour un tag léger) :')
+    const message = await showPrompt(t('prompt.tagMessage'))
     const r = await window.gitAPI.createTag(name, hash, message || undefined)
-    if (r.success) { showToast(`✓ Tag "${name}" créé`); await loadRepoData() }
-    else showToast(`Erreur : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.tagCreated', name)); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
   const handleCreateTag = async () => {
-    const name = await showPrompt('Nom du tag :')
+    const name = await showPrompt(t('prompt.tagName'))
     if (!name) return
-    const message = await showPrompt('Message du tag (laisser vide pour un tag léger) :')
+    const message = await showPrompt(t('prompt.tagMessage'))
     const r = await window.gitAPI.createTag(name, undefined, message || undefined)
-    if (r.success) { showToast(`✓ Tag "${name}" créé`); await loadRepoData() }
-    else showToast(`Erreur : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.tagCreated', name)); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
   const handleDeleteTag = async (name: string) => {
-    const ok = await showConfirm(`Supprimer le tag "${name}" ?`, true)
+    const ok = await showConfirm(t('prompt.deleteTag', name), true)
     if (!ok) return
     const r = await window.gitAPI.deleteTag(name)
-    if (r.success) { showToast(`Tag "${name}" supprimé`); await loadTags() }
-    else showToast(`Erreur : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.tagDeleted', name)); await loadTags() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
   // ── Stash operations ───────────────────────────────────────
   const handleCreateStash = async () => {
-    const message = await showPrompt('Message du stash (optionnel) :')
+    const message = await showPrompt(t('prompt.stashMessage'))
     if (message === null) return
     const r = await window.gitAPI.createStash(message || undefined)
-    if (r.success) { showToast('✓ Stash créé'); await Promise.all([loadStashes(), loadRepoData()]) }
-    else showToast(`Stash échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.stashCreated')); await Promise.all([loadStashes(), loadRepoData()]) }
+    else showToast(t('toast.stashErr', r.error ?? ''), 'err')
   }
 
   const handleApplyStash = async (index: number) => {
     const r = await window.gitAPI.applyStash(index)
-    if (r.success) { showToast(`✓ Stash #${index} appliqué (gardé)`); await loadRepoData() }
-    else showToast(`Apply échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.stashApplied', index)); await loadRepoData() }
+    else showToast(t('toast.applyErr', r.error ?? ''), 'err')
   }
 
   const handlePopStash = async (index: number) => {
     const r = await window.gitAPI.popStash(index)
     if (r.success) {
-      showToast(`✓ Stash #${index} appliqué et supprimé`)
+      showToast(t('toast.stashPopped', index))
       await Promise.all([loadStashes(), loadRepoData()])
     } else {
-      showToast(`Pop échoué : ${r.error}`, 'err')
+      showToast(t('toast.popErr', r.error ?? ''), 'err')
     }
   }
 
   const handleDropStash = async (index: number) => {
-    const ok = await showConfirm(`Supprimer le stash #${index} ?`, true)
+    const ok = await showConfirm(t('prompt.deleteStash', index), true)
     if (!ok) return
     const r = await window.gitAPI.dropStash(index)
-    if (r.success) { showToast(`Stash #${index} supprimé`); await loadStashes() }
-    else showToast(`Drop échoué : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.stashDropped', index)); await loadStashes() }
+    else showToast(t('toast.dropErr', r.error ?? ''), 'err')
   }
 
   // ── Conflict resolution handlers ───────────────────────────
@@ -457,11 +456,11 @@ export default function App() {
       ? await window.gitAPI.continueRebase()
       : await window.gitAPI.continueMerge()
     if (r.success) {
-      showToast(`✓ ${action === 'rebase' ? 'Rebase' : 'Merge'} continué avec succès`)
+      showToast(action === 'rebase' ? t('toast.rebaseContinued') : t('toast.mergeContinued'))
       setConflictFiles([])
       await loadRepoData()
     } else {
-      showToast(`Erreur : ${r.error}`, 'err')
+      showToast(t('toast.err', r.error ?? ''), 'err')
     }
     setLoading(false)
   }
@@ -470,7 +469,7 @@ export default function App() {
     await window.gitAPI.abortRebase()
     setConflictFiles([])
     await loadRepoData()
-    showToast('Rebase abandonné')
+    showToast(t('toast.rebaseAborted'))
   }
 
   // ── Command palette commands ───────────────────────────────
@@ -479,15 +478,15 @@ export default function App() {
       { id: 'fetch', label: 'Fetch', icon: '⬇', action: handleFetch },
       { id: 'pull', label: 'Pull', icon: '⇩', action: handlePull },
       { id: 'push', label: 'Push', icon: '⬆', action: handlePush },
-      { id: 'new-branch', label: 'Nouvelle branche', icon: '⎇', action: handleCreateBranch },
-      { id: 'open-repo', label: 'Ouvrir un dépôt', icon: '📂', action: handleOpenRepo },
-      { id: 'refresh', label: 'Rafraîchir', icon: '↺', action: loadRepoData },
+      { id: 'new-branch', label: t('palette.newBranch'), icon: '⎇', action: handleCreateBranch },
+      { id: 'open-repo', label: t('palette.openRepo'), icon: '📂', action: handleOpenRepo },
+      { id: 'refresh', label: t('palette.refresh'), icon: '↺', action: loadRepoData },
     ]
     if (repoPath) {
       branches.filter(b => !b.remote && !b.current).forEach(b => {
         cmds.push({
           id: `checkout-${b.name}`,
-          label: `Checkout ${b.name}`,
+          label: t('palette.checkout', b.name),
           icon: '✓',
           action: () => handleCheckout(b.name),
         })
@@ -495,7 +494,7 @@ export default function App() {
       branches.filter(b => !b.remote && !b.current).forEach(b => {
         cmds.push({
           id: `merge-${b.name}`,
-          label: `Merger ${b.name}`,
+          label: t('palette.merge', b.name),
           icon: '⇒',
           action: () => handleMergeBranch(b.name),
         })
@@ -514,7 +513,7 @@ export default function App() {
       stashes.forEach(s => {
         cmds.push({
           id: `stash-${s.index}`,
-          label: `Appliquer stash: ${s.message.replace(/^stash@\{\d+\}: /, '')}`,
+          label: t('palette.applyStash', s.message.replace(/^stash@\{\d+\}: /, '')),
           icon: '📦',
           action: () => handleApplyStash(s.index),
         })
@@ -569,13 +568,13 @@ export default function App() {
       {/* ── Update banner ── */}
       {updateBannerOpen && updateReady && (
         <div className="update-banner">
-          <span>🚀 Une nouvelle version est disponible et prête à être installée.</span>
+          <span>{t('update.banner')}</span>
           <div className="update-banner-actions">
             <button className="update-btn-install" onClick={() => (window.gitAPI as any).installUpdate()}>
-              Redémarrer et installer
+              {t('update.install')}
             </button>
             <button className="update-btn-later" onClick={() => setUpdateBannerOpen(false)}>
-              Plus tard
+              {t('update.later')}
             </button>
           </div>
         </div>
@@ -634,8 +633,8 @@ export default function App() {
                   <path d="M15.698 7.287 8.712.302a1.03 1.03 0 0 0-1.457 0l-1.45 1.45 1.84 1.84a1.223 1.223 0 0 1 1.55 1.56l1.773 1.774a1.224 1.224 0 0 1 1.267 2.025 1.226 1.226 0 0 1-2.002-1.334L8.58 5.963v4.353a1.226 1.226 0 1 1-1.008-.036V5.887a1.226 1.226 0 0 1-.666-1.608L5.093 2.465l-4.79 4.79a1.03 1.03 0 0 0 0 1.457l6.986 6.986a1.03 1.03 0 0 0 1.457 0l6.953-6.953a1.031 1.031 0 0 0-.001-1.458z"/>
                 </svg>
                 <h2>Git GUI</h2>
-                <p>Ouvrez un dépôt Git depuis le panneau de gauche</p>
-                <button className="btn-primary" onClick={handleOpenRepo}>Ouvrir un dépôt…</button>
+                <p>{t('welcome.hint')}</p>
+                <button className="btn-primary" onClick={handleOpenRepo}>{t('welcome.open')}</button>
               </div>
             </div>
           ) : (
