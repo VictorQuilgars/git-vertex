@@ -124,6 +124,26 @@
   border-radius: 3px;
 }
 
+.pm-no-remote {
+  font-size: 13px;
+  color: #8b949e;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 12px 14px;
+  text-align: center;
+}
+
+.pm-error {
+  font-size: 12px;
+  color: #f85149;
+  background: #2d1117;
+  border: 1px solid #6e2c2c;
+  border-radius: 6px;
+  padding: 8px 12px;
+  word-break: break-word;
+}
+
 .pm-footer {
   display: flex;
   align-items: center;
