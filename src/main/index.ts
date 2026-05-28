@@ -680,11 +680,10 @@ ipcMain.handle('updater:check', async () => {
     const result = await autoUpdater.checkForUpdates()
     const remote = result?.updateInfo?.version ?? null
     const current = app.getVersion()
-    console.log(`[updater:check] current=${current} remote=${remote} newer=${remote ? semverGt(remote, current) : false}`)
-    return { version: remote && semverGt(remote, current) ? remote : null }
+    const newer = remote ? semverGt(remote, current) : false
+    return { version: newer ? remote : null, _debug: { current, remote, newer } }
   } catch (e: any) {
-    console.error('[updater:check] error:', e.message)
-    return { error: e.message }
+    return { error: e.message, _debug: { current: app.getVersion(), remote: null, error: e.message } }
   }
 })
 
