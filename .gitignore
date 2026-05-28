@@ -4,3 +4,14 @@ dist-electron/
 out/
 .DS_Store
 *.log
+
+# Claude Code local config (permissions, etc.)
+.claude/
+
+# Electron builder cache
+.electron-builder-cache/
+
+# Environment variables (au cas où)
+.env
+.env.local
+.env.*
