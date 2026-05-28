@@ -494,7 +494,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                         const r = await (window.gitAPI as any).checkForUpdates?.()
                         if (r?.dev) { setUpdateStatus('up-to-date'); return }
                         if (r?.error) { setUpdateStatus('error'); return }
-                        if (r?.version) { setUpdateStatus('available'); setUpdateVersion(r.version) }
+                        if (r?.version) { setUpdateVersion(r.version); setUpdateStatus('available') }
                         else setUpdateStatus('up-to-date')
                       }}
                     >
