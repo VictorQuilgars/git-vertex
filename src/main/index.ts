@@ -58,6 +58,9 @@ app.on('open-url', async (event, url) => {
   }
 })
 
+// Track downloaded update so late-opening windows can query state
+let downloadedUpdateVersion: string | null = null
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.victor.gitvertex')
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
@@ -79,6 +82,7 @@ app.whenReady().then(() => {
     })
     autoUpdater.on('update-downloaded', (info) => {
       console.log('[updater] downloaded:', info.version)
+      downloadedUpdateVersion = info.version
       mainWindow?.webContents.send('updater:update-downloaded', info.version)
     })
     autoUpdater.on('error', (err) => {
@@ -651,6 +655,10 @@ ipcMain.handle('github:get-token', () => {
 
 ipcMain.handle('updater:install', () => {
   autoUpdater.quitAndInstall()
+})
+
+ipcMain.handle('updater:get-state', () => {
+  return { downloadedVersion: downloadedUpdateVersion }
 })
 
 ipcMain.handle('updater:check', async () => {

@@ -110,6 +110,7 @@ const gitAPI = {
   onUpdateError: (cb: (err: string) => void) => ipcRenderer.on('updater:error', (_e, err) => cb(err)),
   installUpdate: () => ipcRenderer.invoke('updater:install'),
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
 }
 
 contextBridge.exposeInMainWorld('gitAPI', gitAPI)

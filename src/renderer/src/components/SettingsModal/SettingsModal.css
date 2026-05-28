@@ -447,6 +447,24 @@
 }
 .stg-about-check-btn:hover:not(:disabled) { border-color: #8b949e; color: #e6edf3; }
 .stg-about-check-btn:disabled { opacity: 0.6; cursor: default; }
+
+.stg-about-install-btn {
+  padding: 8px 18px;
+  background: #f0883e;
+  border: none;
+  border-radius: 6px;
+  color: #0d1117;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  animation: pulse-orange 2s ease-in-out infinite;
+}
+.stg-about-install-btn:hover { background: #e07830; transform: translateY(-1px); }
+@keyframes pulse-orange {
+  0%, 100% { box-shadow: 0 0 0 0 #f0883e40; }
+  50%       { box-shadow: 0 0 0 6px #f0883e00; }
+}
 .stg-about-update-ok  { font-size: 12px; color: #3fb950; }
 .stg-about-update-new { font-size: 12px; color: #58a6ff; font-weight: 600; }
 .stg-about-update-err { font-size: 12px; color: #f85149; }

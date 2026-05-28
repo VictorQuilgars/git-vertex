@@ -86,6 +86,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   const [appInfo, setAppInfo] = useState<{ version: string; electron: string; node: string; chrome: string } | null>(null)
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'up-to-date' | 'error'>('idle')
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
+  const [updateReady, setUpdateReady] = useState(false)
 
   // AI
   const [aiProvider, setAiProvider] = useState<AIProvider>('groq')
@@ -160,6 +161,21 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       } else {
         showToast(t('toast.githubErr', result.error ?? ''), 'err')
       }
+    })
+
+    // Check if an update was already downloaded
+    const api = window.gitAPI as any
+    api.getUpdaterState?.().then((state: any) => {
+      if (state?.downloadedVersion) {
+        setUpdateReady(true)
+        setUpdateVersion(state.downloadedVersion)
+        setUpdateStatus('available')
+      }
+    })
+    api.onUpdateDownloaded?.((version: string) => {
+      setUpdateReady(true)
+      setUpdateVersion(version)
+      setUpdateStatus('available')
     })
   }, [])
 
@@ -462,23 +478,32 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                 </div>
 
                 <div className="stg-about-update">
-                  <button
-                    className="stg-about-check-btn"
-                    disabled={updateStatus === 'checking'}
-                    onClick={async () => {
-                      setUpdateStatus('checking')
-                      const r = await (window as any).gitAPI.checkForUpdates?.()
-                      if (r?.dev) { setUpdateStatus('up-to-date'); return }
-                      if (r?.error) { setUpdateStatus('error'); return }
-                      if (r?.version) { setUpdateStatus('available'); setUpdateVersion(r.version) }
-                      else setUpdateStatus('up-to-date')
-                    }}
-                  >
-                    {updateStatus === 'checking' ? '⟳ Vérification…' : '↺ Vérifier les mises à jour'}
-                  </button>
-                  {updateStatus === 'up-to-date' && <span className="stg-about-update-ok">✓ L'application est à jour</span>}
-                  {updateStatus === 'available' && <span className="stg-about-update-new">↑ Version {updateVersion} disponible — redémarre l'app</span>}
-                  {updateStatus === 'error' && <span className="stg-about-update-err">Impossible de vérifier les mises à jour</span>}
+                  {updateReady ? (
+                    <button
+                      className="stg-about-install-btn"
+                      onClick={() => (window.gitAPI as any).installUpdate?.()}
+                    >
+                      🚀 Redémarrer et installer v{updateVersion}
+                    </button>
+                  ) : (
+                    <button
+                      className="stg-about-check-btn"
+                      disabled={updateStatus === 'checking'}
+                      onClick={async () => {
+                        setUpdateStatus('checking')
+                        const r = await (window.gitAPI as any).checkForUpdates?.()
+                        if (r?.dev) { setUpdateStatus('up-to-date'); return }
+                        if (r?.error) { setUpdateStatus('error'); return }
+                        if (r?.version) { setUpdateStatus('available'); setUpdateVersion(r.version) }
+                        else setUpdateStatus('up-to-date')
+                      }}
+                    >
+                      {updateStatus === 'checking' ? '⟳ Vérification…' : '↺ Vérifier les mises à jour'}
+                    </button>
+                  )}
+                  {!updateReady && updateStatus === 'up-to-date' && <span className="stg-about-update-ok">✓ Application à jour</span>}
+                  {!updateReady && updateStatus === 'available' && <span className="stg-about-update-new">⬇ Téléchargement en cours…</span>}
+                  {updateStatus === 'error' && <span className="stg-about-update-err">Impossible de vérifier</span>}
                 </div>
 
                 <div className="stg-about-license">
