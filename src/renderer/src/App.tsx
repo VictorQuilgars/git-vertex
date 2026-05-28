@@ -14,6 +14,7 @@ import PushModal from './components/PushModal/PushModal'
 import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
+import PRModal from './components/PRModal/PRModal'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -132,6 +133,8 @@ export default function App() {
   const [githubConnected, setGithubConnected] = useState(false)
   const [activeView, setActiveView] = useState<'git' | 'github'>('git')
   const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
+  const [githubOwnerRepo, setGithubOwnerRepo] = useState<{ owner: string; repo: string } | null>(null)
+  const [prModalOpen, setPrModalOpen] = useState(false)
   const [updateReady, setUpdateReady] = useState(false)
   const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
@@ -266,8 +269,10 @@ export default function App() {
       const detected = await (window.gitAPI as any).githubDetectRepo()
       if (detected?.owner && detected?.repo) {
         setGithubRepoUrl(`https://github.com/${detected.owner}/${detected.repo}`)
+        setGithubOwnerRepo({ owner: detected.owner, repo: detected.repo })
       } else {
         setGithubRepoUrl(null)
+        setGithubOwnerRepo(null)
       }
     } else if (res.error && res.error !== 'cancelled') {
       showToast(t('toast.err', res.error), 'err')
@@ -588,6 +593,7 @@ export default function App() {
         updateReady={updateReady}
         onInstallUpdate={() => setUpdateBannerOpen(true)}
         githubRepoUrl={githubRepoUrl}
+        onCreatePR={githubOwnerRepo ? () => setPrModalOpen(true) : undefined}
       />
 
       {/* ── Update banner ── */}
@@ -801,6 +807,17 @@ export default function App() {
         <CommandPalette
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
+        />
+      )}
+
+      {/* PR Modal */}
+      {prModalOpen && githubOwnerRepo && (
+        <PRModal
+          owner={githubOwnerRepo.owner}
+          repo={githubOwnerRepo.repo}
+          currentBranch={currentBranch}
+          onClose={() => setPrModalOpen(false)}
+          showToast={showToast}
         />
       )}
 

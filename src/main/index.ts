@@ -747,6 +747,38 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
   } catch (e: any) { return { error: e.message } }
 })
 
+ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title: string, body: string, head: string, base: string) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, body, head, base }),
+    })
+    const data = await res.json() as any
+    if (!res.ok) return { error: data.message ?? `HTTP ${res.status}` }
+    return { url: data.html_url, number: data.number }
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:list-branches', async (_e, owner: string, repo: string) => {
+  const token = readSettings().githubToken
+  if (!token) return { branches: [] }
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+    })
+    if (!res.ok) return { branches: [] }
+    const data = await res.json() as any[]
+    return { branches: data.map((b: any) => b.name) }
+  } catch { return { branches: [] } }
+})
+
 ipcMain.handle('github:list-repos', async () => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }

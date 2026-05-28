@@ -243,6 +243,23 @@ const fr = {
   'welcome.open': 'Ouvrir un dépôt',
   'welcome.recents': 'Récents',
 
+  // Create PR modal
+  'pr.title': 'Créer une Pull Request',
+  'pr.titleLabel': 'Titre',
+  'pr.titlePlaceholder': 'Titre de la Pull Request',
+  'pr.bodyLabel': 'Description',
+  'pr.bodyPlaceholder': 'Décrivez vos changements (optionnel)…',
+  'pr.baseLabel': 'Branche de destination',
+  'pr.headLabel': 'Branche source',
+  'pr.submit': 'Créer la Pull Request',
+  'pr.submitting': 'Création…',
+  'pr.success': (n: number) => `✓ PR #${n} créée`,
+  'pr.openInBrowser': 'Ouvrir sur GitHub',
+  'pr.noAuth': 'Connectez-vous à GitHub dans les Paramètres.',
+  'pr.noRemote': 'Aucun remote GitHub détecté.',
+  'pr.error': (e: string) => `Erreur : ${e}`,
+  'toolbar.createPR.tooltip': 'Créer une Pull Request',
+
   // GitHub Panel
   'gh.panel.noRepo': 'Aucun remote GitHub détecté pour ce dépôt.',
   'gh.panel.noAuth': 'Connectez-vous à GitHub dans les Paramètres pour voir les PRs et Issues.',
@@ -524,6 +541,23 @@ const en: typeof fr = {
   'welcome.hint': 'Visualize your branches, stage your changes and manage your commits.',
   'welcome.open': 'Open a repository',
   'welcome.recents': 'Recent',
+
+  // Create PR modal
+  'pr.title': 'Create a Pull Request',
+  'pr.titleLabel': 'Title',
+  'pr.titlePlaceholder': 'Pull Request title',
+  'pr.bodyLabel': 'Description',
+  'pr.bodyPlaceholder': 'Describe your changes (optional)…',
+  'pr.baseLabel': 'Base branch',
+  'pr.headLabel': 'Source branch',
+  'pr.submit': 'Create Pull Request',
+  'pr.submitting': 'Creating…',
+  'pr.success': (n: number) => `✓ PR #${n} created`,
+  'pr.openInBrowser': 'Open on GitHub',
+  'pr.noAuth': 'Connect to GitHub in Settings.',
+  'pr.noRemote': 'No GitHub remote detected.',
+  'pr.error': (e: string) => `Error: ${e}`,
+  'toolbar.createPR.tooltip': 'Create a Pull Request',
 
   // GitHub Panel
   'gh.panel.noRepo': 'No GitHub remote detected for this repository.',
