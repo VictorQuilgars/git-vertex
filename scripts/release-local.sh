@@ -30,4 +30,8 @@ echo "🚀 Publication de v$NEW_VERSION…"
 npm run package -- --mac --publish always
 
 echo "✅ v$NEW_VERSION publié sur GitHub"
+
+# Clean up local build artifacts
+rm -rf dist/
+echo "🧹 Dossier dist/ nettoyé"
 echo "   Installe un DMG plus ancien et clique 'Vérifier les mises à jour'"
