@@ -1,6 +1,6 @@
 {
   "name": "git-gui",
-  "version": "1.0.0",
+  "version": "1.1.12",
   "description": "A GitKraken-inspired Git GUI built with Electron + React",
   "author": {
     "name": "Victor Quilgars",
@@ -32,14 +32,32 @@
     "mac": {
       "icon": "resources/icon.icns",
       "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
       "category": "public.app-category.developer-tools"
     },
     "win": {
       "icon": "resources/icon.ico",
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -49,8 +67,18 @@
     "linux": {
       "icon": "resources/icon.png",
       "target": [
-        { "target": "AppImage", "arch": ["x64"] },
-        { "target": "deb", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "category": "Development"
     }
