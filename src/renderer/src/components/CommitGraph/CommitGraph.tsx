@@ -39,6 +39,17 @@ function getAvatarColor(email: string) {
   for (const c of email) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
   return LANE_COLORS[Math.abs(h) % LANE_COLORS.length]
 }
+// Blend a hex color toward the graph background (#0d1117) by `factor` (0..1).
+// Produces an opaque color so overlapping segments never add up in brightness.
+function dimColor(hex: string, factor = 0.4): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  if (!m) return hex
+  const [r, g, b] = [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)]
+  const bg = [13, 17, 23] // #0d1117
+  const mix = (c: number, bgc: number) => Math.round(bgc + (c - bgc) * factor)
+  const toHex = (n: number) => n.toString(16).padStart(2, '0')
+  return `#${toHex(mix(r, bg[0]))}${toHex(mix(g, bg[1]))}${toHex(mix(b, bg[2]))}`
+}
 function initials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
@@ -483,7 +494,7 @@ export default function CommitGraph({
               return (
                 <line key={`conn-${commit.hash}`}
                   x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
-                  stroke={commit.color} strokeWidth={1} opacity={0.4}
+                  stroke={dimColor(commit.color)} strokeWidth={1}
                 />
               )
             })}
@@ -543,7 +554,7 @@ export default function CommitGraph({
                         )}
                       </div>
                       {/* Flex stub: fills space from chip right edge to SVG boundary */}
-                      <div className="cg-ref-line-stub" style={{ background: commit.color }} />
+                      <div className="cg-ref-line-stub" style={{ background: dimColor(commit.color) }} />
                     </>
                   ) : null}
                 </div>
