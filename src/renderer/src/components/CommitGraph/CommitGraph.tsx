@@ -180,9 +180,19 @@ export default function CommitGraph({
 
     if (!wipCount) return shifted
 
+    // WIP connects to HEAD commit (local branch), not necessarily the first row
+    const headCommit = shifted.find(c =>
+      c.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
+    ) ?? shifted[0]
     const first = shifted[0]
-    const wipLane = first?.lane ?? 0
-    const wipColor = first?.color ?? '#6e7681'
+    const headLane = headCommit?.lane ?? first?.lane ?? 0
+    const headRow = headCommit?.row ?? 1
+    const wipColor = headCommit?.color ?? first?.color ?? '#6e7681'
+
+    // When HEAD is not the first commit, put WIP on a new lane so the dashed
+    // line goes diagonally past intermediate commits (e.g. origin/master ahead)
+    const maxExistingLane = shifted.reduce((m, c) => Math.max(m, c.lane), -1)
+    const wipLane = headRow > 1 ? maxExistingLane + 1 : headLane
 
     const wipNode: LayoutCommit = {
       hash: WIP_HASH,
@@ -191,13 +201,15 @@ export default function CommitGraph({
       author: '',
       authorEmail: '',
       date: '',
-      parents: first ? [first.hash] : [],
+      parents: headCommit ? [headCommit.hash] : [],
       refs: [],
       lane: wipLane,
       row: 0,
       color: wipColor,
-      edges: first ? [{ fromLane: wipLane, toLane: wipLane, toRow: 1, color: '#484f58', type: 'straight' as const }] : [],
+      // Single edge spanning directly to HEAD row — renders as one dashed diagonal curve
+      edges: headCommit ? [{ fromLane: wipLane, toLane: headLane, toRow: headRow, color: '#484f58', type: 'straight' as const }] : [],
     }
+
     return [wipNode, ...shifted]
   }, [layout, wipCount])
 
