@@ -9,7 +9,7 @@ import './CommitGraph.css'
 const ROW_HEIGHT  = 50
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
-const SVG_PAD_L   = 10
+const SVG_PAD_L   = 36
 const SVG_PAD_R   = 8
 const WIP_HASH    = '__WIP__'
 
@@ -534,7 +534,7 @@ export default function CommitGraph({
                         onDragStartBranch={setDragBranch}
                         onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
                     )}
-                    {stackCount > 0 && (
+                    {stackCount > 0 && refExpand?.row !== commit.row && (
                       <span className="rc-stack-badge">+{stackCount}</span>
                     )}
                   </div>
