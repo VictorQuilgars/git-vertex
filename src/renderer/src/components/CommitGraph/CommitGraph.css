@@ -281,8 +281,6 @@
   flex-direction: column;
   gap: 4px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  min-width: 120px;
-  max-width: 240px;
   animation: ctx-appear 0.08s ease;
 }
 
