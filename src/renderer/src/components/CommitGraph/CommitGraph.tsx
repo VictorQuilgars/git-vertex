@@ -518,26 +518,30 @@ export default function CommitGraph({
 
                 {/* BRANCH / TAG column */}
                 <div className="cg-refs-col" style={{ width: refsColW }}>
-                  <div
-                    className="cg-refs-chips"
-                    onMouseEnter={e => {
-                      if (stackCount < 1) return
-                      if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
-                      setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
-                    }}
-                    onMouseLeave={() => {
-                      refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
-                    }}
-                  >
-                    {primary && (
-                      <RefChip pref={primary} onDoubleClick={onCheckoutBranch}
-                        onDragStartBranch={setDragBranch}
-                        onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
-                    )}
-                    {stackCount > 0 && refExpand?.row !== commit.row && (
-                      <span className="rc-stack-badge">+{stackCount}</span>
-                    )}
-                  </div>
+                  {primary ? (
+                    <>
+                      <div
+                        className="cg-refs-chips"
+                        onMouseEnter={e => {
+                          if (stackCount < 1) return
+                          if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
+                          setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
+                        }}
+                        onMouseLeave={() => {
+                          refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
+                        }}
+                      >
+                        <RefChip pref={primary} onDoubleClick={onCheckoutBranch}
+                          onDragStartBranch={setDragBranch}
+                          onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
+                        {stackCount > 0 && refExpand?.row !== commit.row && (
+                          <span className="rc-stack-badge">+{stackCount}</span>
+                        )}
+                      </div>
+                      {/* Stub line from chip right edge to SVG left edge */}
+                      <div className="cg-ref-line-stub" style={{ background: commit.color }} />
+                    </>
+                  ) : null}
                 </div>
 
                 {/* Spacer for SVG */}

@@ -98,10 +98,11 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 0 8px;
+  justify-content: flex-start;
+  padding: 0 0 0 8px;
   overflow: hidden;
   height: 100%;
+  gap: 0;
 }
 
 /* Inner wrapper that hugs the chips — used as anchor for the expansion popup */
@@ -109,6 +110,16 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  flex-shrink: 0;
+}
+
+/* Horizontal connector stub: from chip right edge to SVG left edge */
+.cg-ref-line-stub {
+  flex: 1;
+  height: 1px;
+  align-self: center;
+  opacity: 0.4;
+  min-width: 4px;
 }
 
 /* ── Columns ─────────────────────────────────────────────── */
