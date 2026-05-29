@@ -138,6 +138,7 @@ export default function App() {
   const [updateReady, setUpdateReady] = useState(false)
   const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
+  const [wipCount, setWipCount] = useState(0)
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
   )
@@ -183,6 +184,13 @@ export default function App() {
       // Check for conflicts
       const conflictRes = await window.gitAPI.getConflictedFiles()
       setConflictFiles(conflictRes.files ?? [])
+      // Working changes count for WIP node
+      const changesRes = await window.gitAPI.getWorkingChanges()
+      setWipCount(
+        (changesRes.staged?.length ?? 0) +
+        (changesRes.unstaged?.length ?? 0) +
+        (changesRes.untracked?.length ?? 0)
+      )
     } finally {
       setLoading(false)
     }
@@ -783,6 +791,7 @@ export default function App() {
               onCreateBranchAt={handleCreateBranchAt}
               onCheckoutBranch={handleCheckout}
               onInteractiveRebase={(hash) => setRebaseHash(hash)}
+              wipCount={wipCount}
             />
           )}
         </div>
