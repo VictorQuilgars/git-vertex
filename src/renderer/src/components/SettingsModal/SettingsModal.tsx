@@ -3,7 +3,7 @@ import './SettingsModal.css'
 import { useLang } from '../../i18n/LanguageContext'
 import type { Lang } from '../../i18n/translations'
 
-type Section = 'git' | 'github' | 'ai' | 'about'
+type Section = 'git' | 'github' | 'ai' | 'notifications' | 'about'
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
@@ -106,6 +106,11 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   const [showKey, setShowKey] = useState(false)
   const [showTuto, setShowTuto] = useState(false)
 
+  // ── Notifications ──
+  const [notifyFetch, setNotifyFetch] = useState(true)
+  const [notifyCommit, setNotifyCommit] = useState(false)
+  const [notifyUpdate, setNotifyUpdate] = useState(true)
+
   const fetchModels = async (provider: AIProvider, key: string) => {
     if (!key) return
     setLoadingModels(true)
@@ -143,6 +148,9 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       const token = s.githubToken ?? ''
       setGithubToken(token)
       if (token) fetchGithubUser()
+      setNotifyFetch(s.notifyFetch !== 'false')
+      setNotifyCommit(s.notifyCommit === 'true')
+      setNotifyUpdate(s.notifyUpdate !== 'false')
       setAiProvider(provider)
       setAiKeys(keys)
       setAiModels(m => ({
@@ -250,7 +258,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       <div className="stg-body">
         {/* Left nav */}
         <nav className="stg-nav">
-            {(['git', 'github', 'ai', 'about'] as Section[]).map(s => (
+            {(['git', 'github', 'ai', 'notifications', 'about'] as Section[]).map(s => (
               <button
                 key={s}
                 className={`stg-nav-item ${section === s ? 'active' : ''}`}
@@ -259,6 +267,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                 {s === 'git' && t('settings.nav.git')}
                 {s === 'github' && t('settings.nav.github')}
                 {s === 'ai' && t('settings.nav.ai')}
+                {s === 'notifications' && t('settings.nav.notifications')}
                 {s === 'about' && t('settings.nav.about')}
               </button>
             ))}
@@ -437,6 +446,41 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                 )}
 
                 <button className="stg-save" onClick={saveAI}>{t('settings.save')}</button>
+              </div>
+            )}
+
+            {/* ── Notifications ── */}
+            {section === 'notifications' && (
+              <div className="stg-section">
+                <h2 className="stg-section-title">{t('settings.notifications.title')}</h2>
+                <p className="stg-desc">{t('settings.notifications.desc')}</p>
+
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" checked={notifyFetch}
+                    onChange={async e => {
+                      setNotifyFetch(e.target.checked)
+                      await window.gitAPI.settingsSet('notifyFetch', String(e.target.checked))
+                    }} />
+                  <span>{t('settings.notifications.fetch')}</span>
+                </label>
+
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" checked={notifyCommit}
+                    onChange={async e => {
+                      setNotifyCommit(e.target.checked)
+                      await window.gitAPI.settingsSet('notifyCommit', String(e.target.checked))
+                    }} />
+                  <span>{t('settings.notifications.commit')}</span>
+                </label>
+
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" checked={notifyUpdate}
+                    onChange={async e => {
+                      setNotifyUpdate(e.target.checked)
+                      await window.gitAPI.settingsSet('notifyUpdate', String(e.target.checked))
+                    }} />
+                  <span>{t('settings.notifications.update')}</span>
+                </label>
               </div>
             )}
 

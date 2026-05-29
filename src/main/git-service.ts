@@ -183,6 +183,24 @@ export class GitService {
     }
   }
 
+  // Snapshot of remote-tracking refs (refname → sha), used to detect
+  // new commits arriving via fetch.
+  async getRemoteRefs(): Promise<Record<string, string>> {
+    try {
+      const result = await this.git.raw([
+        'for-each-ref', '--format=%(refname) %(objectname)', 'refs/remotes'
+      ])
+      const map: Record<string, string> = {}
+      for (const line of result.trim().split('\n').filter(Boolean)) {
+        const sp = line.lastIndexOf(' ')
+        if (sp > 0) map[line.slice(0, sp)] = line.slice(sp + 1)
+      }
+      return map
+    } catch {
+      return {}
+    }
+  }
+
   async pushTo(remote: string, branch: string, setUpstream: boolean): Promise<{ success: boolean; error?: string }> {
     try {
       const args: string[] = ['push']
