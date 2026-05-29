@@ -804,6 +804,11 @@ export default function App() {
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
                 showToast={showToast}
+                wipCount={wipCount}
+                onViewWip={() => setSelectedCommit({
+                  hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
+                  author: '', authorEmail: '', date: '', parents: [], refs: []
+                })}
                 onSelectCommit={(hash) => {
                   const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                   if (found) setSelectedCommit(found)

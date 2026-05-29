@@ -19,22 +19,49 @@
   overflow: hidden;
 }
 
-/* Hash row */
-.cd-header {
-  padding: 10px 14px 8px;
+/* WIP banner */
+.cd-wip-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px;
+  background: #1b4472;
+  border-bottom: 1px solid #2d6aa0;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #a5c8f0;
+}
+.cd-view-change-btn {
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid #a5c8f066;
+  border-radius: 5px;
+  color: #a5c8f0;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+.cd-view-change-btn:hover { background: #2d6aa033; border-color: #a5c8f0; }
+
+/* Hash + AI row */
+.cd-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px;
+  background: #161b22;
   border-bottom: 1px solid #21262d;
   flex-shrink: 0;
 }
-.cd-hash-row {
+.cd-hash-info {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
-.cd-label {
-  font-size: 11px;
-  color: #6e7681;
-}
+.cd-label { font-size: 11px; color: #6e7681; }
 .cd-hash {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
@@ -47,13 +74,39 @@
   transition: background 0.1s;
 }
 .cd-hash:hover { background: #1f6feb28; }
-.cd-hash-parent { color: #8b949e; background: #21262d; border-color: #30363d; }
+
+/* AI recompose button */
+.cd-ai-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: #3d1f8a;
+  border: 1px solid #7c47e8;
+  border-radius: 6px;
+  color: #c8a8ff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.cd-ai-btn:hover { background: #4d2a9e; }
+.cd-ai-arrow { font-size: 9px; opacity: 0.7; margin-left: 2px; }
+
+/* Scrollable body */
+.cd-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
 
 /* Message + body */
 .cd-message-block {
   padding: 14px 14px 10px;
   border-bottom: 1px solid #21262d;
-  flex-shrink: 0;
 }
 .cd-title {
   font-size: 15px;
@@ -80,17 +133,34 @@
   gap: 10px;
   padding: 10px 14px;
   border-bottom: 1px solid #21262d;
-  flex-shrink: 0;
 }
-.cd-avatar-lg {
-  width: 36px; height: 36px; border-radius: 50%;
-  font-size: 13px; font-weight: 700;
+.cd-avatar-sq {
+  width: 36px; height: 36px; border-radius: 6px;
+  font-size: 14px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   color: #fff; flex-shrink: 0;
 }
-.cd-author-info { display: flex; flex-direction: column; gap: 2px; }
+.cd-author-mid { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .cd-author-name { font-size: 13px; font-weight: 600; color: #e6edf3; }
 .cd-author-meta { font-size: 11px; color: #6e7681; }
+.cd-parent-btn {
+  background: transparent; border: none;
+  color: #6e7681; font-size: 11px; cursor: pointer;
+  white-space: nowrap; text-align: right; flex-shrink: 0;
+}
+.cd-parent-btn code { font-family: 'JetBrains Mono', monospace; color: #58a6ff; font-size: 10px; }
+.cd-parent-btn:hover code { text-decoration: underline; }
+
+/* Co-authors */
+.cd-coauthors {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-bottom: 1px solid #21262d;
+  flex-wrap: wrap;
+}
+.cd-coauthor { font-size: 11px; color: #8b949e; }
 
 /* Refs */
 .cd-refs {
@@ -99,32 +169,52 @@
   gap: 4px;
   padding: 8px 14px;
   border-bottom: 1px solid #21262d;
-  flex-shrink: 0;
 }
+
+/* Files count */
+.cd-files-count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 4px;
+}
+.cd-files-count-text { font-size: 12px; font-weight: 600; color: #c9d1d9; }
 
 /* Files bar */
 .cd-files-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
+  gap: 6px;
+  padding: 4px 10px 6px;
   border-bottom: 1px solid #21262d;
-  flex-shrink: 0;
-  background: #161b22;
 }
-.cd-files-count {
-  font-size: 11px;
-  font-weight: 600;
-  color: #8b949e;
+.cd-sort-btn {
+  background: transparent; border: none; color: #6e7681;
+  cursor: pointer; padding: 3px; border-radius: 4px; display: flex;
 }
-.cd-files-tabs { display: flex; gap: 2px; }
-.cd-files-tab {
-  height: 22px; padding: 0 8px; border-radius: 4px;
-  background: transparent; border: 1px solid transparent;
-  color: #6e7681; font-size: 11px; cursor: pointer; transition: all 0.1s;
+.cd-sort-btn:hover { color: #e6edf3; background: #21262d; }
+
+.cd-view-toggle {
+  display: flex;
+  border: 1px solid #30363d;
+  border-radius: 5px;
+  overflow: hidden;
 }
-.cd-files-tab:hover { background: #21262d; color: #e6edf3; }
-.cd-files-tab.active { background: #1f6feb1a; color: #58a6ff; border-color: #1f6feb44; }
+.cd-view-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 8px; background: transparent; border: none;
+  color: #6e7681; font-size: 11px; cursor: pointer;
+  transition: all 0.1s;
+}
+.cd-view-btn + .cd-view-btn { border-left: 1px solid #30363d; }
+.cd-view-btn:hover { background: #21262d; color: #e6edf3; }
+.cd-view-btn.active { background: #1f6feb1a; color: #58a6ff; }
+
+.cd-viewall {
+  display: flex; align-items: center; gap: 5px;
+  margin-left: auto; font-size: 11px; color: #6e7681; cursor: pointer;
+}
+.cd-viewall input { cursor: pointer; }
 
 /* Refs chips (shared with CommitGraph) */
 .rp-ref {
