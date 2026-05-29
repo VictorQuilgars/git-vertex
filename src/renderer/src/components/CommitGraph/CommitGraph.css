@@ -240,21 +240,20 @@
   flex: 1;
 }
 
-/* icon cluster (monitor + cloud) */
+/* icon cluster (monitor + cloud) — fixed width set inline to avoid chip size variation */
 .rc-icons {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 2px;
   opacity: 0.8;
   flex-shrink: 0;
 }
-.rc-icons svg { width: 13px; height: 13px; }
 
 .rc-local  { background: #1f6feb18; color: #58a6ff; border-color: #1f6feb55; }
 .rc-remote { background: #2ea04318; color: #3fb950; border-color: #2ea04355; }
 .rc-head   { background: #f1e05a22; color: #f1e05a; border-color: #f1e05a66; }
 .rc-tag    { background: #8957e518; color: #d2a8ff; border-color: #8957e555; gap: 6px; }
-.rc-tag svg { width: 13px; height: 13px; }
 .rc-overflow { background: #30363d; color: #8b949e; border-color: #484f58; cursor: default; padding: 2px 7px; }
 
 /* Stack badge — shown when a commit has hidden refs */
