@@ -45,6 +45,30 @@ function createWindow(): void {
 // Register custom protocol for GitHub OAuth callback
 app.setAsDefaultProtocolClient('gitgui')
 
+// Windows: only one instance allowed — second instance passes its args to the first
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  app.quit()
+} else {
+  app.on('second-instance', async (_event, argv) => {
+    // Bring existing window to front
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+    // Find gitgui:// URL in argv (Windows passes it as a CLI argument)
+    const url = argv.find(a => a.startsWith('gitgui://callback'))
+    if (!url) return
+    const result = await handleOAuthCallback(url)
+    if ('token' in result) {
+      const s = readSettings(); s.githubToken = result.token; writeSettings(s)
+      mainWindow?.webContents.send('github:auth-complete', { token: result.token })
+    } else {
+      mainWindow?.webContents.send('github:auth-complete', { error: result.error })
+    }
+  })
+}
+
 // macOS: app already running, callback arrives via open-url
 app.on('open-url', async (event, url) => {
   event.preventDefault()
