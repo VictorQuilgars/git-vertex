@@ -113,13 +113,14 @@
   flex-shrink: 0;
 }
 
-/* Flex stub: sits after the chip in the refs-col, fills to the SVG boundary */
+/* Flex stub: sits after the chip in the refs-col, fills to just before the SVG boundary */
 .cg-ref-line-stub {
   flex: 1;
   height: 1px;
   align-self: center;
   opacity: 0.4;
   min-width: 0;
+  margin-right: 2px;
 }
 
 /* ── Columns ─────────────────────────────────────────────── */

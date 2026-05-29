@@ -433,7 +433,7 @@ export default function CommitGraph({
               if (cx - NODE_RADIUS <= 0) return null
               return (
                 <line key={`conn-${commit.hash}`}
-                  x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
+                  x1={2} y1={cy} x2={cx - NODE_RADIUS - 2} y2={cy}
                   stroke={commit.color} strokeWidth={1} opacity={0.4}
                 />
               )
