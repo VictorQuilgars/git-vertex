@@ -1069,6 +1069,100 @@ export class GitService {
     }
   }
 
+  // ── Gitflow (implemented manually, no git-flow dependency) ──
+
+  private async localBranchNames(): Promise<string[]> {
+    const summary = await this.git.branch()
+    return Object.values(summary.branches).filter(b => !b.name.startsWith('remotes/')).map(b => b.name)
+  }
+
+  private async detectMainBranch(names: string[]): Promise<string> {
+    if (names.includes('main')) return 'main'
+    if (names.includes('master')) return 'master'
+    // fall back to current branch
+    const status = await this.git.status()
+    return status.current ?? 'main'
+  }
+
+  async gitflowStatus(): Promise<{
+    initialized: boolean
+    mainBranch: string
+    features: string[]
+    releases: string[]
+    hotfixes: string[]
+  }> {
+    try {
+      const names = await this.localBranchNames()
+      const mainBranch = await this.detectMainBranch(names)
+      const strip = (prefix: string) =>
+        names.filter(n => n.startsWith(prefix)).map(n => n.slice(prefix.length))
+      return {
+        initialized: names.includes('develop'),
+        mainBranch,
+        features: strip('feature/'),
+        releases: strip('release/'),
+        hotfixes: strip('hotfix/'),
+      }
+    } catch {
+      return { initialized: false, mainBranch: 'main', features: [], releases: [], hotfixes: [] }
+    }
+  }
+
+  async gitflowInit(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const names = await this.localBranchNames()
+      if (names.includes('develop')) return { success: true }
+      const mainBranch = await this.detectMainBranch(names)
+      await this.git.raw(['branch', 'develop', mainBranch])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async gitflowStart(type: 'feature' | 'release' | 'hotfix', name: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const names = await this.localBranchNames()
+      const mainBranch = await this.detectMainBranch(names)
+      const base = type === 'hotfix' ? mainBranch : 'develop'
+      if (type !== 'hotfix' && !names.includes('develop')) {
+        return { success: false, error: 'Gitflow non initialisé (branche "develop" manquante)' }
+      }
+      await this.git.raw(['checkout', '-b', `${type}/${name}`, base])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async gitflowFinish(type: 'feature' | 'release' | 'hotfix', name: string, tagName?: string): Promise<{ success: boolean; error?: string }> {
+    const branch = `${type}/${name}`
+    try {
+      const names = await this.localBranchNames()
+      const mainBranch = await this.detectMainBranch(names)
+
+      if (type === 'feature') {
+        await this.git.raw(['checkout', 'develop'])
+        await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
+      } else {
+        // release / hotfix → merge into main (+ tag) and into develop
+        await this.git.raw(['checkout', mainBranch])
+        await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
+        if (tagName) {
+          await this.git.raw(['tag', '-a', tagName, '-m', tagName])
+        }
+        if (names.includes('develop')) {
+          await this.git.raw(['checkout', 'develop'])
+          await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
+        }
+      }
+      await this.git.raw(['branch', '-d', branch])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // ── Worktrees ───────────────────────────────────────────────
 
   async listWorktrees(): Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }> {

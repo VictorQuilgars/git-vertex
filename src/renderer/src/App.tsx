@@ -15,6 +15,7 @@ import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import PRModal from './components/PRModal/PRModal'
+import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
 import './App.css'
 
@@ -151,6 +152,7 @@ export default function App() {
   const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
   const [compareBranchModal, setCompareBranchModal] = useState<string | null>(null)
   const [compareWorkingHash, setCompareWorkingHash] = useState<string | null>(null)
+  const [gitflowOpen, setGitflowOpen] = useState(false)
   const [loading, setLoading] = useState<boolean>(false)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
   const [stashes, setStashes] = useState<StashEntry[]>([])
@@ -699,6 +701,7 @@ export default function App() {
         onInstallUpdate={() => setUpdateBannerOpen(true)}
         githubRepoUrl={githubRepoUrl}
         onCreatePR={githubOwnerRepo ? () => setPrModalOpen(true) : undefined}
+        onGitflow={repoPath ? () => setGitflowOpen(true) : undefined}
       />
 
       {/* ── Update banner ── */}
@@ -997,6 +1000,17 @@ export default function App() {
             const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
             if (found) setSelectedCommit(found)
           }}
+        />
+      )}
+
+      {/* Gitflow */}
+      {gitflowOpen && (
+        <GitflowModal
+          onClose={() => setGitflowOpen(false)}
+          onSuccess={loadRepoData}
+          showToast={showToast}
+          showPrompt={showPrompt}
+          showConfirm={showConfirm}
         />
       )}
 

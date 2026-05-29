@@ -26,6 +26,7 @@ interface ToolbarProps {
   onInstallUpdate?: () => void
   githubRepoUrl?: string | null
   onCreatePR?: () => void
+  onGitflow?: () => void
 }
 
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
@@ -50,7 +51,7 @@ export default function Toolbar({
   onSearch, onFetch, onPush, onPushModal, onPull, onCreateBranch,
   onToggleAllBranches, onRefresh, loading, lastFetchTime,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
-  onSettings, settingsOpen, updateReady, onInstallUpdate, githubRepoUrl, onCreatePR
+  onSettings, settingsOpen, updateReady, onInstallUpdate, githubRepoUrl, onCreatePR, onGitflow
 }: ToolbarProps) {
   const { t } = useLang()
   const isMac = (window as any).appInfo?.platform === 'darwin'
@@ -127,6 +128,13 @@ export default function Toolbar({
         </svg>
         <span>All Branches</span>
       </button>
+
+      {onGitflow && (
+        <TBtn title={t('toolbar.gitflow.tooltip')} disabled={disabled} onClick={onGitflow}
+          icon={<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm0 2.122a2.25 2.25 0 1 0-1.5 0v5.256a2.25 2.25 0 1 0 1.5 0V5.372zM5 13.5a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm6.75-3.5a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5zm0-2.122a2.25 2.25 0 1 1-1.5 0V5a1 1 0 0 0-1-1H6.5a.75.75 0 0 1 0-1.5h2.75a2.5 2.5 0 0 1 2.5 2.5v2.878z"/></svg>}
+          label="Gitflow"
+        />
+      )}
 
       <button className="tb-btn tb-icon-only" onClick={onRefresh} disabled={disabled}
         title={t('toolbar.refresh.tooltip')}>
