@@ -330,6 +330,26 @@ ipcMain.handle('git:merge', async (_event, branch: string) => {
   return gitService.merge(branch)
 })
 
+ipcMain.handle('git:rebase-onto', async (_event, branch: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.rebaseOnto(branch)
+})
+
+ipcMain.handle('git:push-branch', async (_event, branch: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.pushBranch(branch)
+})
+
+ipcMain.handle('git:delete-remote-branch', async (_event, branch: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.deleteRemoteBranch(branch)
+})
+
+ipcMain.handle('git:set-upstream', async (_event, branch: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.setUpstream(branch)
+})
+
 // ── IPC: Tag operations ────────────────────────────────────
 ipcMain.handle('git:get-tags', async () => {
   if (!gitService) return { tags: [] }

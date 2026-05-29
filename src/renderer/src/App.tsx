@@ -400,6 +400,40 @@ export default function App() {
     setLoading(false)
   }
 
+  const handleRebaseOnto = async (name: string) => {
+    const ok = await showConfirm(t('prompt.rebaseOnto', currentBranch, name))
+    if (!ok) return
+    setLoading(true)
+    const r = await window.gitAPI.rebaseOnto(name)
+    if (r.success) { showToast(t('toast.rebaseOntoOk', name)); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+    setLoading(false)
+  }
+
+  const handlePushBranch = async (name: string) => {
+    setLoading(true)
+    const r = await window.gitAPI.pushBranch(name)
+    if (r.success) { showToast(t('toast.pushOk', name)); await loadRepoData() }
+    else showToast(t('toast.pushErr', r.error ?? ''), 'err')
+    setLoading(false)
+  }
+
+  const handleDeleteRemoteBranch = async (name: string) => {
+    const ok = await showConfirm(t('prompt.deleteRemoteBranch', name), true)
+    if (!ok) return
+    setLoading(true)
+    const r = await window.gitAPI.deleteRemoteBranch(name)
+    if (r.success) { showToast(t('toast.branchDeleted', name)); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+    setLoading(false)
+  }
+
+  const handleSetUpstream = async (name: string) => {
+    const r = await window.gitAPI.setUpstream(name)
+    if (r.success) { showToast(t('toast.upstreamSet', name)); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
   const handleRenameBranch = async (name: string) => {
     const newName = await showPrompt(t('prompt.renameBranch', name), name)
     if (!newName || newName === name) return
@@ -735,6 +769,10 @@ export default function App() {
               onDeleteBranch={handleDeleteBranch}
               onMergeBranch={handleMergeBranch}
               onRenameBranch={handleRenameBranch}
+              onRebaseOnto={handleRebaseOnto}
+              onPushBranch={handlePushBranch}
+              onDeleteRemoteBranch={handleDeleteRemoteBranch}
+              onSetUpstream={handleSetUpstream}
               onCreateStash={handleCreateStash}
               onApplyStash={handleApplyStash}
               onPopStash={handlePopStash}
