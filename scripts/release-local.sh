@@ -28,18 +28,12 @@ git push origin "v$NEW_VERSION"
 
 echo "🚀 Publication de v$NEW_VERSION…"
 
-# macOS (toujours)
+# macOS (local)
 npm run package -- --mac --publish always
 
-# Windows — nécessite wine sur macOS
-if command -v wine &>/dev/null; then
-  echo "🪟 Wine détecté, build Windows…"
-  npm run package -- --win --publish always
-else
-  echo "⚠️  Wine non trouvé — build Windows ignoré en local."
-  echo "   Le CI GitHub Actions build Windows automatiquement via le tag v$NEW_VERSION."
-  echo "   Pour builder en local : brew install --cask wine-stable"
-fi
+# Windows et Linux sont buildés automatiquement par GitHub Actions
+# via le tag v$NEW_VERSION (jobs build-win et build-linux dans release.yml)
+echo "🪟 Windows / 🐧 Linux → GitHub Actions (tag v$NEW_VERSION déclenché)"
 
 echo "✅ v$NEW_VERSION publié sur GitHub"
 
