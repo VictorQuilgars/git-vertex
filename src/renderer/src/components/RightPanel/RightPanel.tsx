@@ -169,56 +169,69 @@ function BlameView({ commitHash, filepath, onSelectCommit }: {
 function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelectCommit: (hash: string) => void }) {
   const { t } = useLang()
   const [files, setFiles] = useState<FileChange[]>([])
-  const [diff, setDiff] = useState('')
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [diffLoading, setDiffLoading] = useState(false)
+  const [body, setBody] = useState('')
   const [parsedDiff, setParsedDiff] = useState<FileDiff[]>([])
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [view, setView] = useState<'files' | 'diff' | 'blame'>('files')
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
 
   useEffect(() => {
-    setFiles([]); setDiff(''); setSelectedFile(null); setView('files')
+    setFiles([]); setBody(''); setSelectedFile(null); setView('files')
     Promise.all([
       window.gitAPI.getCommitFiles(commit.hash),
-      window.gitAPI.getDiff(commit.hash)
-    ]).then(([fr, dr]) => {
+      window.gitAPI.getDiff(commit.hash),
+      (window.gitAPI as any).getCommitBody(commit.hash),
+    ]).then(([fr, dr, br]: any[]) => {
       setFiles(fr.files ?? [])
-      const d = dr.diff ?? ''
-      setDiff(d)
-      setParsedDiff(parseDiff(d))
+      setParsedDiff(parseDiff(dr.diff ?? ''))
+      setBody(br.body ?? '')
     })
   }, [commit.hash])
 
-  const selectFile = (path: string) => {
-    setSelectedFile(path)
-    if (view === 'files') setView('diff')
-  }
-
   const fileForDiff = parsedDiff.find(f => f.to === selectedFile)
+
+  const parentShort = commit.parents?.[0]?.slice(0, 7) ?? null
 
   return (
     <div className="rp-content">
-      {/* Commit info */}
-      <div className="rp-commit-info">
-        <div className="rp-commit-hash">
-          <code>{commit.shortHash}</code>
-          <button className="rp-copy" title={t('panel.copyHash')} onClick={() => navigator.clipboard.writeText(commit.hash)}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25v-7.5z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25v-7.5zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25h-7.5z"/></svg>
-          </button>
+      {/* ── Commit header ── */}
+      <div className="cd-header">
+        <div className="cd-hash-row">
+          <span className="cd-label">commit:</span>
+          <code className="cd-hash" onClick={() => navigator.clipboard.writeText(commit.hash)}
+            title={t('panel.copyHash')}>{commit.shortHash}</code>
+          {parentShort && <><span className="cd-label" style={{ marginLeft: 12 }}>parent:</span>
+            <code className="cd-hash cd-hash-parent"
+              onClick={() => onSelectCommit(commit.parents[0])}>{parentShort}</code>
+          </>}
         </div>
-        <div className="rp-commit-msg">{commit.message}</div>
-        <div className="rp-commit-author">
-          <div className="rp-avatar" style={{ background: getAvatarColor(commit.authorEmail) }}>
-            {initials(commit.author)}
-          </div>
-          <div className="rp-author-info">
-            <span className="rp-author-name">{commit.author}</span>
-            <span className="rp-author-date">{fmtDate(commit.date)}</span>
-          </div>
+      </div>
+
+      {/* ── Commit message + body ── */}
+      <div className="cd-message-block">
+        <p className="cd-title">{commit.message}</p>
+        {body && (
+          <pre className="cd-body">{body}</pre>
+        )}
+      </div>
+
+      {/* ── Author ── */}
+      <div className="cd-author-block">
+        <div className="cd-avatar-lg" style={{ background: getAvatarColor(commit.authorEmail) }}>
+          {initials(commit.author)}
         </div>
-        {commit.refs.length > 0 && (
-          <div className="rp-refs">
-            {commit.refs.map((r, i) => {
+        <div className="cd-author-info">
+          <span className="cd-author-name">{commit.author}</span>
+          <span className="cd-author-meta">authored {fmtDate(commit.date)}</span>
+        </div>
+      </div>
+
+      {/* ── Refs ── */}
+      {commit.refs.length > 0 && (
+        <div className="cd-refs">
+          {commit.refs
+            .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
+            .map((r, i) => {
               const isHead = r.includes('HEAD')
               const isTag = r.startsWith('tag:')
               const isRemote = r.includes('origin/') || r.includes('remotes/')
@@ -226,48 +239,44 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
               const cls = isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local'
               return <span key={i} className={`rp-ref ${cls}`}>{text}</span>
             })}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Files / diff / blame toggle */}
-      <div className="rp-tabs">
-        <button className={`rp-tab ${view === 'files' ? 'active' : ''}`} onClick={() => setView('files')}>
-          {t('panel.noFiles', files.length)}
-        </button>
-        {selectedFile && (
-          <button className={`rp-tab ${view === 'diff' ? 'active' : ''}`} onClick={() => setView('diff')}>
-            Diff
-          </button>
-        )}
-        {selectedFile && (
-          <button className={`rp-tab ${view === 'blame' ? 'active' : ''}`} onClick={() => setView('blame')}>
-            Blame
-          </button>
-        )}
+      {/* ── Files section ── */}
+      <div className="cd-files-bar">
+        <span className="cd-files-count">
+          {files.length} {files.length !== 1 ? 'fichiers modifiés' : 'fichier modifié'}
+        </span>
+        <div className="cd-files-tabs">
+          <button className={`cd-files-tab ${view === 'files' ? 'active' : ''}`} onClick={() => setView('files')}>Path</button>
+          {selectedFile && <button className={`cd-files-tab ${view === 'diff' ? 'active' : ''}`} onClick={() => setView('diff')}>Diff</button>}
+          {selectedFile && <button className={`cd-files-tab ${view === 'blame' ? 'active' : ''}`} onClick={() => setView('blame')}>Blame</button>}
+        </div>
       </div>
 
       {view === 'files' && (
         <div className="rp-file-list">
           {files.map((f, i) => {
             const meta = STATUS_META[f.status] ?? STATUS_META['?']
+            const parts = f.path.split('/')
+            const fileName = parts.pop() ?? f.path
+            const dir = parts.join('/')
             return (
-              <div
-                key={i}
+              <div key={i}
                 className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
-                onClick={() => selectFile(f.path)}
+                onClick={() => { setSelectedFile(f.path); setView('diff') }}
               >
                 <span className="rp-file-badge" style={{ color: meta.color }}>{meta.label}</span>
-                <span className="rp-file-path">{f.path}</span>
+                <span className="rp-file-path">
+                  {dir && <span className="rp-file-dir">{dir}/</span>}
+                  <span className="rp-file-name">{fileName}</span>
+                </span>
                 <span className="rp-file-stats">
                   {f.additions > 0 && <span className="rp-add">+{f.additions}</span>}
                   {f.deletions > 0 && <span className="rp-del">-{f.deletions}</span>}
                 </span>
-                <button
-                  className="rp-history-btn"
-                  title={t('panel.history')}
-                  onClick={e => { e.stopPropagation(); setFileHistoryPath(f.path) }}
-                >
+                <button className="rp-history-btn" title={t('panel.history')}
+                  onClick={e => { e.stopPropagation(); setFileHistoryPath(f.path) }}>
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z"/>
                   </svg>
@@ -275,16 +284,13 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
               </div>
             )
           })}
-          {files.length === 0 && <div className="rp-empty">{t('panel.noUnstaged')}</div>}
+          {files.length === 0 && <div className="rp-empty">{t('panel.loading')}</div>}
         </div>
       )}
 
       {fileHistoryPath && (
-        <FileHistoryModal
-          filepath={fileHistoryPath}
-          onClose={() => setFileHistoryPath(null)}
-          onSelectCommit={onSelectCommit}
-        />
+        <FileHistoryModal filepath={fileHistoryPath}
+          onClose={() => setFileHistoryPath(null)} onSelectCommit={onSelectCommit} />
       )}
 
       {view === 'diff' && fileForDiff && (
@@ -309,11 +315,7 @@ function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelect
       )}
 
       {view === 'blame' && selectedFile && (
-        <BlameView
-          commitHash={commit.hash}
-          filepath={selectedFile}
-          onSelectCommit={onSelectCommit}
-        />
+        <BlameView commitHash={commit.hash} filepath={selectedFile} onSelectCommit={onSelectCommit} />
       )}
     </div>
   )
@@ -606,51 +608,18 @@ interface RightPanelProps {
 }
 
 export default function RightPanel({ selectedCommit, onCommitSuccess, showToast, onSelectCommit }: RightPanelProps) {
-  const { t } = useLang()
-  const [mode, setMode] = useState<'detail' | 'stage'>('stage')
+  const isWip = selectedCommit?.hash === '__WIP__'
+  const hasCommit = !!selectedCommit && !isWip
 
   return (
     <div className="right-panel">
-      {/* Header */}
-      <div className="rp-header">
-        <button
-          className={`rp-mode-btn ${mode === 'detail' ? 'active' : ''}`}
-          onClick={() => setMode('detail')}
-          disabled={!selectedCommit}
-          title={t('panel.commitDetails')}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
-          </svg>
-          {t('panel.commitDetails')}
-        </button>
-        <button
-          className={`rp-mode-btn ${mode === 'stage' ? 'active' : ''}`}
-          onClick={() => setMode('stage')}
-          title={t('panel.stageAndCommit')}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
-          </svg>
-          {t('panel.commit')}
-        </button>
-      </div>
-
-      {mode === 'detail' && !selectedCommit && (
-        <div className="rp-placeholder">
-          <svg width="40" height="40" viewBox="0 0 16 16" fill="#30363d">
-            <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
-          </svg>
-          <p>{t('panel.clickCommit')}</p>
-        </div>
-      )}
-
-      {mode === 'detail' && selectedCommit && (
-        <CommitDetail commit={selectedCommit} onSelectCommit={onSelectCommit} />
-      )}
-
-      {mode === 'stage' && (
+      {/* WIP or no commit → staging view */}
+      {(isWip || !selectedCommit) && (
         <StagingView onCommitSuccess={onCommitSuccess} showToast={showToast} />
+      )}
+      {/* Real commit → detail view */}
+      {hasCommit && (
+        <CommitDetail commit={selectedCommit} onSelectCommit={onSelectCommit} />
       )}
     </div>
   )

@@ -11,47 +11,7 @@
 }
 
 /* ── Header ───────────────────────────────────────────────── */
-.rp-header {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 38px;
-  padding: 0 10px;
-  background: #161b22;
-  border-bottom: 1px solid #21262d;
-  flex-shrink: 0;
-}
-
-.rp-mode-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: #8b949e;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-.rp-mode-btn:hover:not(:disabled) { background: #21262d; color: #e6edf3; }
-.rp-mode-btn.active { background: #1f6feb22; color: #58a6ff; border-color: #1f6feb44; }
-.rp-mode-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.rp-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  gap: 12px;
-  color: #484f58;
-  font-size: 12px;
-}
-
-/* ── Commit detail content ────────────────────────────────── */
+/* ── Commit detail (new design) ──────────────────────────── */
 .rp-content {
   display: flex;
   flex-direction: column;
@@ -59,58 +19,114 @@
   overflow: hidden;
 }
 
-.rp-commit-info {
-  padding: 14px 14px 10px;
+/* Hash row */
+.cd-header {
+  padding: 10px 14px 8px;
   border-bottom: 1px solid #21262d;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   flex-shrink: 0;
 }
-
-.rp-commit-hash {
+.cd-hash-row {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
-.rp-commit-hash code {
+.cd-label {
+  font-size: 11px;
+  color: #6e7681;
+}
+.cd-hash {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: #58a6ff;
-  background: #1f6feb18;
-  padding: 2px 8px;
-  border-radius: 5px;
-  border: 1px solid #1f6feb33;
+  background: #1f6feb14;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #1f6feb30;
+  cursor: pointer;
+  transition: background 0.1s;
 }
-.rp-copy {
-  background: none; border: none; color: #484f58; cursor: pointer; padding: 2px;
-  border-radius: 3px; display: flex; align-items: center;
-}
-.rp-copy:hover { color: #c9d1d9; background: #21262d; }
+.cd-hash:hover { background: #1f6feb28; }
+.cd-hash-parent { color: #8b949e; background: #21262d; border-color: #30363d; }
 
-.rp-commit-msg {
-  font-size: 13px;
+/* Message + body */
+.cd-message-block {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+.cd-title {
+  font-size: 15px;
   font-weight: 600;
-  color: #e6edf3;
+  color: #ffffff;
   line-height: 1.4;
   word-break: break-word;
+  margin: 0 0 8px;
+}
+.cd-body {
+  font-family: inherit;
+  font-size: 12px;
+  color: #8b949e;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
 }
 
-.rp-commit-author {
+/* Author */
+.cd-author-block {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
 }
-.rp-avatar {
-  width: 26px; height: 26px; border-radius: 50%; font-size: 10px;
-  font-weight: 700; display: flex; align-items: center; justify-content: center;
+.cd-avatar-lg {
+  width: 36px; height: 36px; border-radius: 50%;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
   color: #fff; flex-shrink: 0;
 }
-.rp-author-info { display: flex; flex-direction: column; gap: 1px; }
-.rp-author-name { font-size: 12px; font-weight: 600; color: #c9d1d9; }
-.rp-author-date { font-size: 10px; color: #6e7681; }
+.cd-author-info { display: flex; flex-direction: column; gap: 2px; }
+.cd-author-name { font-size: 13px; font-weight: 600; color: #e6edf3; }
+.cd-author-meta { font-size: 11px; color: #6e7681; }
 
-.rp-refs { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Refs */
+.cd-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+/* Files bar */
+.cd-files-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+  background: #161b22;
+}
+.cd-files-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+}
+.cd-files-tabs { display: flex; gap: 2px; }
+.cd-files-tab {
+  height: 22px; padding: 0 8px; border-radius: 4px;
+  background: transparent; border: 1px solid transparent;
+  color: #6e7681; font-size: 11px; cursor: pointer; transition: all 0.1s;
+}
+.cd-files-tab:hover { background: #21262d; color: #e6edf3; }
+.cd-files-tab.active { background: #1f6feb1a; color: #58a6ff; border-color: #1f6feb44; }
+
+/* Refs chips (shared with CommitGraph) */
 .rp-ref {
   padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600;
   border: 1px solid; white-space: nowrap;
@@ -119,6 +135,13 @@
 .rp-ref-remote { background: #2ea04318; color: #3fb950; border-color: #2ea04344; }
 .rp-ref-head { background: #f1e05a18; color: #f1e05a; border-color: #f1e05a44; }
 .rp-ref-tag { background: #8957e518; color: #d2a8ff; border-color: #8957e544; }
+
+/* Avatar (kept for StagingView) */
+.rp-avatar {
+  width: 26px; height: 26px; border-radius: 50%; font-size: 10px;
+  font-weight: 700; display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0;
+}
 
 /* ── Tabs ─────────────────────────────────────────────────── */
 .rp-tabs {

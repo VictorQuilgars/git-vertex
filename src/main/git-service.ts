@@ -131,6 +131,13 @@ export class GitService {
     }
   }
 
+  async getCommitBody(hash: string): Promise<{ body: string }> {
+    try {
+      const body = await this.git.raw(['show', '--format=%b', '--no-patch', hash])
+      return { body: body.trim() }
+    } catch { return { body: '' } }
+  }
+
   async checkout(ref: string): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.checkout(ref)

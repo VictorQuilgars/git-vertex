@@ -157,6 +157,11 @@ ipcMain.handle('git:get-commit-files', async (_event, commitHash: string) => {
   return gitService.getCommitFiles(commitHash)
 })
 
+ipcMain.handle('git:get-commit-body', async (_event, hash: string) => {
+  if (!gitService) return { body: '' }
+  return gitService.getCommitBody(hash)
+})
+
 ipcMain.handle('git:get-status', async () => {
   if (!gitService) return { error: 'No repo open' }
   return gitService.getStatus()

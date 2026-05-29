@@ -350,7 +350,7 @@ export default function CommitGraph({
                 key={commit.hash}
                 className={`cg-row ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''}`}
                 style={{ top: commit.row * ROW_HEIGHT }}
-                onClick={() => !isWip && onSelectCommit(commit)}
+                onClick={() => onSelectCommit(commit)}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
               >
                 {/* Colored left stripe based on branch */}
