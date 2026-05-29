@@ -27,6 +27,7 @@ interface ToolbarProps {
   githubRepoUrl?: string | null
   onCreatePR?: () => void
   onGitflow?: () => void
+  topRow?: boolean
 }
 
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
@@ -51,7 +52,8 @@ export default function Toolbar({
   onSearch, onFetch, onPush, onPushModal, onPull, onCreateBranch,
   onToggleAllBranches, onRefresh, loading, lastFetchTime,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
-  onSettings, settingsOpen, updateReady, onInstallUpdate, githubRepoUrl, onCreatePR, onGitflow
+  onSettings, settingsOpen, updateReady, onInstallUpdate, githubRepoUrl, onCreatePR, onGitflow,
+  topRow = true
 }: ToolbarProps) {
   const { t } = useLang()
   const isMac = (window as any).appInfo?.platform === 'darwin'
@@ -65,8 +67,10 @@ export default function Toolbar({
 
   return (
     <div className="toolbar">
-      {isMac && <div className="tb-mac-spacer" />}
+      {isMac && topRow && <div className="tb-mac-spacer" />}
 
+      {repoPath && (
+      <>
       {currentBranch && (
         <div className="tb-branch-pill">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
@@ -145,13 +149,15 @@ export default function Toolbar({
         </svg>
       </button>
 
-      <div style={{ flex: 1 }} />
-
       {lastFetchTime && (
         <span className="tb-fetch-time" title={t('toolbar.autoFetch.tooltip')}>
           ↺ {formatFetchTime(lastFetchTime)}
         </span>
       )}
+      </>
+      )}
+
+      <div style={{ flex: 1 }} />
 
       {updateReady && (
         <button className="tb-btn tb-update-btn" onClick={onInstallUpdate}
@@ -175,20 +181,22 @@ export default function Toolbar({
         </button>
       )}
 
-      <div className="tb-search">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input type="text" placeholder={t('toolbar.search.placeholder')}
-          value={searchQuery} onChange={e => onSearch(e.target.value)} />
-        {searchQuery && <button className="tb-clear" onClick={() => onSearch('')}>×</button>}
-        {onToggleExtendedSearch && (
-          <button className={`tb-ext-search ${extendedSearch ? 'active' : ''}`}
-            onClick={onToggleExtendedSearch} title={t('toolbar.extSearch.tooltip')}>
-            {extendedSearchLoading ? '…' : 'Ext'}
-          </button>
-        )}
-      </div>
+      {repoPath && (
+        <div className="tb-search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" placeholder={t('toolbar.search.placeholder')}
+            value={searchQuery} onChange={e => onSearch(e.target.value)} />
+          {searchQuery && <button className="tb-clear" onClick={() => onSearch('')}>×</button>}
+          {onToggleExtendedSearch && (
+            <button className={`tb-ext-search ${extendedSearch ? 'active' : ''}`}
+              onClick={onToggleExtendedSearch} title={t('toolbar.extSearch.tooltip')}>
+              {extendedSearchLoading ? '…' : 'Ext'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

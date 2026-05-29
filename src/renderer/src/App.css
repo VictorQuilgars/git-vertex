@@ -18,13 +18,16 @@ body {
   display: flex;
   align-items: stretch;
   gap: 2px;
-  background: #0d1117;
+  background: #010409;
   border-bottom: 1px solid #21262d;
   padding: 0 6px;
   overflow-x: auto;
   flex-shrink: 0;
-  height: 34px;
+  height: 36px;
+  -webkit-app-region: drag;
 }
+.app-tabs-mac-spacer { width: 72px; flex-shrink: 0; }
+.app-tab, .app-tab-close, .app-tab-add { -webkit-app-region: no-drag; }
 .app-tab {
   display: flex;
   align-items: center;

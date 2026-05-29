@@ -764,9 +764,36 @@ export default function App() {
     addEventListener('mousemove', move); addEventListener('mouseup', up)
   }
 
+  const isMac = (window as any).appInfo?.platform === 'darwin'
+
   return (
     <div className="app">
+      {/* ── Repo tabs (top, browser-style) ── */}
+      {tabs.length > 0 && !settingsOpen && (
+        <div className="app-tabs">
+          {isMac && <div className="app-tabs-mac-spacer" />}
+          {tabs.map(tab => (
+            <div
+              key={tab.id}
+              className={`app-tab ${tab.id === activeTabId ? 'active' : ''}`}
+              onClick={() => switchTab(tab)}
+              onContextMenu={e => { e.preventDefault(); setTabMenu({ x: e.clientX, y: e.clientY, id: tab.id }) }}
+              title={tab.path}
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="app-tab-icon">
+                <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+              </svg>
+              <span className="app-tab-name">{tab.name}</span>
+              <button className="app-tab-close" title={t('tabs.close')}
+                onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
+            </div>
+          ))}
+          <button className="app-tab-add" title={t('tabs.new')} onClick={handleOpenRepo}>+</button>
+        </div>
+      )}
+
       <Toolbar
+        topRow={tabs.length === 0}
         repoPath={repoPath}
         currentBranch={currentBranch}
         searchQuery={searchQuery}
@@ -816,29 +843,6 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
           showToast={showToast}
         />
-      )}
-
-      {/* ── Repo tabs ── */}
-      {tabs.length > 0 && !settingsOpen && (
-        <div className="app-tabs">
-          {tabs.map(tab => (
-            <div
-              key={tab.id}
-              className={`app-tab ${tab.id === activeTabId ? 'active' : ''}`}
-              onClick={() => switchTab(tab)}
-              onContextMenu={e => { e.preventDefault(); setTabMenu({ x: e.clientX, y: e.clientY, id: tab.id }) }}
-              title={tab.path}
-            >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="app-tab-icon">
-                <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-              </svg>
-              <span className="app-tab-name">{tab.name}</span>
-              <button className="app-tab-close" title={t('tabs.close')}
-                onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
-            </div>
-          ))}
-          <button className="app-tab-add" title={t('tabs.new')} onClick={handleOpenRepo}>+</button>
-        </div>
       )}
 
       <div className="app-body" style={{ display: settingsOpen ? 'none' : undefined }}>
