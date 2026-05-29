@@ -424,6 +424,20 @@ export default function CommitGraph({
             {/* Edges */}
             {displayLayout.flatMap(commit => commit.edges.map(edge => renderEdge(commit, edge)))}
 
+            {/* Connector lines (SVG segment): from SVG left edge to node, same opacity as CSS stub */}
+            {displayLayout.map(commit => {
+              if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
+              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
+              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              if (cx - NODE_RADIUS <= 0) return null
+              return (
+                <line key={`conn-${commit.hash}`}
+                  x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
+                  stroke={commit.color} strokeWidth={1} opacity={0.4}
+                />
+              )
+            })}
+
             {/* Nodes */}
             {displayLayout.map(commit => {
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
@@ -502,14 +516,6 @@ export default function CommitGraph({
                 {/* Colored left stripe based on branch */}
                 <div className="cg-color-bar" style={{ background: isWip ? '#484f58' : commit.color }} />
 
-                {/* Connector line: single CSS element from chip area to node, drawn before chips so it's behind them */}
-                {!isWip && primary && (
-                  <div className="cg-row-connector" style={{
-                    width: refsColW + SVG_PAD_L + commit.lane * LANE_WIDTH - NODE_RADIUS - 8,
-                    background: commit.color,
-                  }} />
-                )}
-
                 {/* BRANCH / TAG column */}
                 <div className="cg-refs-col" style={{ width: refsColW }}>
                   {primary ? (
@@ -532,6 +538,8 @@ export default function CommitGraph({
                           <span className="rc-stack-badge">+{stackCount}</span>
                         )}
                       </div>
+                      {/* Flex stub: fills space from chip right edge to SVG boundary */}
+                      <div className="cg-ref-line-stub" style={{ background: commit.color }} />
                     </>
                   ) : null}
                 </div>
