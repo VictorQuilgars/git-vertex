@@ -40,6 +40,38 @@ export class GitService {
     if (!isRepo) throw new Error('Not a Git repository')
   }
 
+  // ── Safety helpers ─────────────────────────────────────────
+
+  // Validate a ref/hash argument. Returns an error string if invalid, else null.
+  // Rejects empty values and leading-dash values (option injection — git would
+  // interpret "-X" as a flag even though simple-git passes args without a shell).
+  private assertRef(ref: string, label = 'reference'): string | null {
+    if (typeof ref !== 'string' || !ref.trim()) return `Empty git ${label}`
+    if (ref.trim().startsWith('-')) return `Invalid git ${label}: "${ref}"`
+    return null
+  }
+
+  // True if the working tree has any tracked changes (staged or unstaged).
+  private async isDirty(): Promise<boolean> {
+    try {
+      const s = await this.git.status()
+      return s.files.some(f => f.index !== '?' || f.working_dir !== '?')
+    } catch {
+      return false
+    }
+  }
+
+  // Abort an in-progress rebase if there is one. Returns true if it aborted.
+  // `git rebase --abort` succeeds only when a rebase is actually in progress.
+  private async abortRebaseIfInProgress(): Promise<boolean> {
+    try {
+      await this.git.raw(['rebase', '--abort'])
+      return true
+    } catch {
+      return false
+    }
+  }
+
   async getLog(options: { maxCount?: number; all?: boolean } = {}): Promise<{ commits: CommitNode[] }> {
     const maxCount = options.maxCount ?? 200
     const args: string[] = [
@@ -105,9 +137,10 @@ export class GitService {
 
   async getCommitFiles(commitHash: string): Promise<{ files: FileChange[] }> {
     try {
+      // --root makes diff-tree emit files for the initial (parentless) commit too
       const [nameStatus, numStat] = await Promise.all([
-        this.git.raw(['diff-tree', '--no-commit-id', '-r', '--name-status', commitHash]),
-        this.git.raw(['diff-tree', '--no-commit-id', '-r', '--numstat',     commitHash]),
+        this.git.raw(['diff-tree', '--no-commit-id', '-r', '--root', '--name-status', commitHash]),
+        this.git.raw(['diff-tree', '--no-commit-id', '-r', '--root', '--numstat',     commitHash]),
       ])
       // Build stats map from numstat
       const stats: Record<string, { additions: number; deletions: number }> = {}
@@ -139,6 +172,8 @@ export class GitService {
   }
 
   async checkout(ref: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(ref, 'reference')
+    if (bad) return { success: false, error: bad }
     try {
       await this.git.checkout(ref)
       return { success: true }
@@ -242,6 +277,10 @@ export class GitService {
   async pull(): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.pull()
+      // pull runs a merge internally — conflicts may be left without throwing.
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Pull produced merge conflicts — resolve them before continuing' }
+      }
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -397,6 +436,13 @@ export class GitService {
       if (amend) {
         await this.git.raw(['commit', '--amend', '-m', message])
       } else {
+        // simple-git does NOT throw when there is nothing to commit — it resolves
+        // with a "nothing to commit" message. Guard explicitly so we never report
+        // a phantom success when no staged changes exist.
+        const staged = await this.git.raw(['diff', '--cached', '--name-only'])
+        if (!staged.trim()) {
+          return { success: false, error: 'Nothing to commit' }
+        }
         await this.git.raw(['commit', '-m', message])
       }
       return { success: true }
@@ -422,8 +468,15 @@ export class GitService {
   // ── Commit operations ──────────────────────────────────────
 
   async cherryPick(hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       await this.git.raw(['cherry-pick', hash])
+      // Defensive: if a cherry-pick conflict ever resolves without throwing,
+      // never report success while the tree is conflicted.
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Cherry-pick conflict — resolve conflicts before continuing' }
+      }
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -431,8 +484,13 @@ export class GitService {
   }
 
   async revert(hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       await this.git.raw(['revert', '--no-edit', hash])
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Revert conflict — resolve conflicts before continuing' }
+      }
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -440,6 +498,8 @@ export class GitService {
   }
 
   async reset(hash: string, mode: 'soft' | 'mixed' | 'hard'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       await this.git.raw(['reset', `--${mode}`, hash])
       return { success: true }
@@ -505,7 +565,14 @@ export class GitService {
       })
       return { success: true }
     } catch (e: any) {
-      return { success: false, error: e.stderr ?? e.message }
+      // A conflict (or any failure) leaves the repo mid-rebase. Abort to restore
+      // the original state — these targeted operations have no resolution UI.
+      const aborted = await this.abortRebaseIfInProgress()
+      const base = e.stderr ?? e.message
+      return {
+        success: false,
+        error: aborted ? `Rebase conflict — operation aborted, history unchanged` : base
+      }
     } finally {
       try { fs.unlinkSync(seqFile) } catch {}
       try { fs.unlinkSync(scriptFile) } catch {}
@@ -513,6 +580,8 @@ export class GitService {
   }
 
   async dropCommit(hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       const picks = await this.buildPickSequence(`${hash}^`)
       if (picks.length === 0) return { success: false, error: 'Commit introuvable' }
@@ -528,6 +597,8 @@ export class GitService {
 
   // direction 'up' = move toward HEAD (newer), 'down' = toward root (older)
   async moveCommit(hash: string, direction: 'up' | 'down'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       // For 'down' we must include the older neighbour (hash^) in the sequence,
       // so we rebase from the grandparent. For 'up' the older bound is hash^.
@@ -551,6 +622,8 @@ export class GitService {
   // ── Branch operations ──────────────────────────────────────
 
   async createBranchAt(name: string, hash: string, checkout: boolean): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(name, 'branch name') || this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       if (checkout) {
         await this.git.raw(['checkout', '-b', name, hash])
@@ -572,9 +645,27 @@ export class GitService {
     }
   }
 
+  // Returns true if the index currently has unmerged (conflicted) paths.
+  private async hasUnmergedPaths(): Promise<boolean> {
+    try {
+      const out = await this.git.raw(['ls-files', '--unmerged'])
+      return out.trim().length > 0
+    } catch {
+      return false
+    }
+  }
+
   async merge(branch: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch')
+    if (bad) return { success: false, error: bad }
     try {
       await this.git.raw(['merge', branch])
+      // simple-git does NOT throw on merge conflicts — it resolves with the
+      // conflict message. Detect leftover conflicts so we never report a false
+      // success while the working tree is in a conflicted state.
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Merge conflict — resolve conflicts before continuing' }
+      }
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -583,11 +674,21 @@ export class GitService {
 
   // Rebase the current branch onto another branch
   async rebaseOnto(branch: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch')
+    if (bad) return { success: false, error: bad }
     try {
       await this.git.raw(['rebase', '--autostash', branch])
       return { success: true }
     } catch (e: any) {
-      return { success: false, error: e.message }
+      // A conflicting rebase leaves the repo mid-rebase. Abort so the branch is
+      // returned to its original state rather than left in a confusing limbo.
+      const aborted = await this.abortRebaseIfInProgress()
+      return {
+        success: false,
+        error: aborted
+          ? 'Rebase conflict — operation aborted, your branch is unchanged'
+          : e.message
+      }
     }
   }
 
@@ -620,9 +721,19 @@ export class GitService {
   // Move a branch ref to a commit. If it is the current branch we hard-reset,
   // otherwise we force-update the ref.
   async moveBranchTo(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       const status = await this.git.status()
       if (status.current === branch) {
+        // Moving the current branch is a hard reset — it discards uncommitted
+        // work silently. Refuse loudly instead of destroying changes.
+        if (await this.isDirty()) {
+          return {
+            success: false,
+            error: 'Uncommitted changes present — commit or stash before moving the current branch'
+          }
+        }
         await this.git.raw(['reset', '--hard', hash])
       } else {
         await this.git.raw(['branch', '-f', branch, hash])
@@ -635,20 +746,34 @@ export class GitService {
 
   // Rebase a branch onto a commit
   async rebaseBranchOnto(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       await this.git.raw(['checkout', branch])
       await this.git.raw(['rebase', '--autostash', hash])
       return { success: true }
     } catch (e: any) {
-      return { success: false, error: e.message }
+      const aborted = await this.abortRebaseIfInProgress()
+      return {
+        success: false,
+        error: aborted
+          ? 'Rebase conflict — operation aborted, your branch is unchanged'
+          : e.message
+      }
     }
   }
 
   // Merge a commit into a branch
   async mergeCommitInto(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
     try {
       await this.git.raw(['checkout', branch])
       await this.git.raw(['merge', hash])
+      // Same conflict-without-throw caveat as merge().
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Merge conflict — resolve conflicts before continuing' }
+      }
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
