@@ -673,6 +673,13 @@ ipcMain.handle('updater:open-downloaded', () => {
 })
 
 ipcMain.handle('updater:install-manual', async () => {
+  // Windows & Linux: quitAndInstall() works natively (no Gatekeeper)
+  if (process.platform !== 'darwin') {
+    autoUpdater.quitAndInstall()
+    return { success: true }
+  }
+
+  // macOS: manual unzip + replace because unsigned apps are blocked by Gatekeeper
   if (!downloadedUpdateFile) return { error: 'Aucun fichier téléchargé' }
   try {
     const { execFile, spawn } = await import('child_process')
@@ -681,30 +688,23 @@ ipcMain.handle('updater:install-manual', async () => {
     const os = await import('os')
     const fs = await import('fs')
 
-    // Extract ZIP to temp dir
     const tempDir = pathJoin(os.tmpdir(), `git-vertex-update-${Date.now()}`)
     fs.mkdirSync(tempDir, { recursive: true })
     await exec('unzip', ['-o', downloadedUpdateFile, '-d', tempDir])
 
-    // Find extracted .app
     const entries = fs.readdirSync(tempDir)
     const appBundle = entries.find(f => f.endsWith('.app'))
     if (!appBundle) return { error: '.app introuvable dans le ZIP' }
     const newAppPath = pathJoin(tempDir, appBundle)
 
-    // Remove quarantine flag if present
     try { await exec('xattr', ['-dr', 'com.apple.quarantine', newAppPath]) } catch { /* ignore */ }
 
-    // Determine current .app bundle path from executable path
     const exePath = app.getPath('exe')
     const match = exePath.match(/^(.*\.app)/)
     if (!match) return { error: 'Impossible de localiser le bundle courant' }
     const currentAppPath = match[1]
-
-    // Determine parent directory to copy into
     const appParentDir = pathJoin(currentAppPath, '..')
 
-    // Shell script: wait for quit, delete old app, copy new one, relaunch
     const scriptPath = pathJoin(tempDir, 'install.sh')
     fs.writeFileSync(scriptPath, [
       '#!/bin/bash',
@@ -717,7 +717,6 @@ ipcMain.handle('updater:install-manual', async () => {
     ].join('\n'))
     fs.chmodSync(scriptPath, '755')
 
-    // Launch script detached then quit
     spawn('bash', [scriptPath], { detached: true, stdio: 'ignore' }).unref()
     app.quit()
 
