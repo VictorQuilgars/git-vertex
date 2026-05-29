@@ -9,6 +9,7 @@ interface TagEntry   { name: string; hash: string }
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
 interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
 interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }
+interface WorktreeEntry { path: string; branch: string; head: string; isMain: boolean; locked: boolean }
 
 interface SidebarProps {
   repoPath: string | null
@@ -324,6 +325,47 @@ function SubmoduleItem({
   )
 }
 
+// ── Worktree item ─────────────────────────────────────────────────
+function WorktreeItem({ wt, onOpen, onRemove }: {
+  wt: WorktreeEntry
+  onOpen: () => void
+  onRemove: () => void
+}) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const name = wt.path.split('/').pop() || wt.path
+  const menuItems: MenuItemDef[] = [
+    { label: '📂 Ouvrir', action: onOpen },
+    { label: '📋 Copier le chemin', action: () => navigator.clipboard.writeText(wt.path) },
+    ...(!wt.isMain ? [
+      { separator: true as const },
+      { label: '🗑 Supprimer le worktree', action: onRemove, danger: true },
+    ] : []),
+  ]
+
+  return (
+    <>
+      <div
+        className="sb-submodule-item"
+        onClick={onOpen}
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={wt.path}
+        style={{ cursor: 'pointer' }}
+      >
+        <span className="sb-sub-status" style={{ color: wt.isMain ? '#3fb950' : '#58a6ff' }}>
+          {wt.isMain ? '◉' : '○'}
+        </span>
+        <div className="sb-sub-info">
+          <span className="sb-sub-path">{name} <code style={{ opacity: 0.6 }}>{wt.branch}</code></span>
+          <span className="sb-sub-url">{wt.path}</span>
+        </div>
+      </div>
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
+      )}
+    </>
+  )
+}
+
 // ── Main Sidebar ──────────────────────────────────────────────────
 export default function Sidebar({
   repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags,
@@ -337,13 +379,41 @@ export default function Sidebar({
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
   const [submodules, setSubmodules] = useState<SubmoduleEntry[]>([])
+  const [worktrees, setWorktrees] = useState<WorktreeEntry[]>([])
+
+  const loadWorktrees = useCallback(() => {
+    window.gitAPI.listWorktrees().then(r => setWorktrees(r.worktrees ?? []))
+  }, [])
 
   useEffect(() => {
     if (!repoPath) return
     window.gitAPI.getReflog().then(r => setReflog(r.entries ?? []))
     window.gitAPI.getRemotes().then(r => setRemotes(r.remotes ?? []))
     window.gitAPI.getSubmodules().then(r => setSubmodules(r.submodules ?? []))
-  }, [repoPath])
+    loadWorktrees()
+  }, [repoPath, loadWorktrees])
+
+  const handleAddWorktree = async () => {
+    const dir = await window.gitAPI.selectDirectory('Emplacement du nouveau worktree')
+    if (!dir.path) return
+    const ref = await showPrompt('Branche ou commit à extraire (laisser vide = nouvelle branche) :', currentBranch)
+    if (ref === null) return
+    const r = await window.gitAPI.addWorktree(dir.path, ref || '')
+    if (r.success) { showToast(`✓ Worktree créé : ${dir.path.split('/').pop()}`); loadWorktrees() }
+    else showToast(`Erreur : ${r.error}`, 'err')
+  }
+
+  const handleRemoveWorktree = async (path: string) => {
+    const ok = await showConfirm(`Supprimer le worktree "${path}" ?`, true)
+    if (!ok) return
+    let r = await window.gitAPI.removeWorktree(path)
+    if (!r.success && r.error && /contains modified|untracked|use --force|locked/i.test(r.error)) {
+      const force = await showConfirm('Le worktree contient des modifications. Forcer la suppression ?', true)
+      if (force) r = await window.gitAPI.removeWorktree(path, true)
+    }
+    if (r.success) { showToast(`Worktree supprimé`); loadWorktrees() }
+    else showToast(`Erreur : ${r.error}`, 'err')
+  }
 
   const handleInitSubmodule = async (path: string) => {
     const r = await window.gitAPI.initSubmodule(path)
@@ -589,6 +659,22 @@ export default function Sidebar({
               ))}
             </Section>
           )}
+
+          {/* WORKTREES */}
+          <Section title="WORKTREES" count={worktrees.length} defaultOpen={false}
+            onAdd={handleAddWorktree} addLabel="Ajouter un worktree">
+            {worktrees.length === 0
+              ? <div className="sb-empty">Aucun worktree</div>
+              : worktrees.map(wt => (
+                  <WorktreeItem
+                    key={wt.path}
+                    wt={wt}
+                    onOpen={() => onSetRepo(wt.path)}
+                    onRemove={() => handleRemoveWorktree(wt.path)}
+                  />
+                ))
+            }
+          </Section>
 
           {/* REFLOG */}
           <Section title="REFLOG" count={reflog.length} defaultOpen={false}>
