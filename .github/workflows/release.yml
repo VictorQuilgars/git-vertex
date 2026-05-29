@@ -33,7 +33,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Set version from tag
-        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version
+        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version --allow-same-version
       - name: Build & publish macOS
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
       - run: npm ci
       - name: Set version from tag
         shell: bash
-        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version
+        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version --allow-same-version
       - name: Build & publish Windows
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -72,7 +72,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Set version from tag
-        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version
+        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version --allow-same-version
       - name: Build & publish Linux
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
