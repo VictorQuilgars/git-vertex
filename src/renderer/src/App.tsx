@@ -158,6 +158,7 @@ export default function App() {
   const [tabs, setTabs] = useState<{ id: string; path: string; name: string }[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const [tabMenu, setTabMenu] = useState<{ x: number; y: number; id: string } | null>(null)
+  const [tabAddMenu, setTabAddMenu] = useState<{ x: number; y: number } | null>(null)
   const selectedByTab = useRef<Map<string, CommitNode | null>>(new Map())
   const [loading, setLoading] = useState<boolean>(false)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
@@ -788,7 +789,11 @@ export default function App() {
                 onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
             </div>
           ))}
-          <button className="app-tab-add" title={t('tabs.new')} onClick={handleOpenRepo}>+</button>
+          <button className="app-tab-add" title={t('tabs.new')}
+            onClick={e => {
+              const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+              setTabAddMenu({ x: r.left, y: r.bottom + 2 })
+            }}>+</button>
         </div>
       )}
 
@@ -1129,6 +1134,26 @@ export default function App() {
             ...(tabs.length > 1 ? [{ label: t('tabs.closeOthers'), action: () => closeOtherTabs(tabMenu.id) }] : []),
           ] as MenuItemDef[]}
           onClose={() => setTabMenu(null)}
+        />
+      )}
+
+      {/* New-tab menu (open / clone / recents) */}
+      {tabAddMenu && (
+        <ContextMenu
+          x={tabAddMenu.x} y={tabAddMenu.y}
+          items={[
+            { label: t('tabs.openRepo'), action: handleOpenRepo },
+            { label: t('tabs.clone'), action: () => setCloneOpen(true) },
+            ...(() => {
+              const openPaths = new Set(tabs.map(tb => tb.path))
+              const recents = recentRepos.filter(p => !openPaths.has(p)).slice(0, 8)
+              return recents.length > 0
+                ? [{ separator: true as const },
+                   ...recents.map(p => ({ label: `📁 ${p.split('/').pop()}`, action: () => handleSetRepo(p) }))]
+                : []
+            })(),
+          ] as MenuItemDef[]}
+          onClose={() => setTabAddMenu(null)}
         />
       )}
 
