@@ -27,6 +27,10 @@ interface SidebarProps {
   onDeleteBranch: (name: string) => void
   onMergeBranch: (name: string) => void
   onRenameBranch: (name: string) => void
+  onRebaseOnto: (name: string) => void
+  onPushBranch: (name: string) => void
+  onDeleteRemoteBranch: (name: string) => void
+  onSetUpstream: (name: string) => void
   onCreateStash: () => void
   onApplyStash: (index: number) => void
   onPopStash: (index: number) => void
@@ -84,9 +88,13 @@ interface BranchItemProps {
   onMerge?: () => void
   onRename?: () => void
   onCompare?: () => void
+  onRebaseOnto?: () => void
+  onPush?: () => void
+  onDeleteRemote?: () => void
+  onSetUpstream?: () => void
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -95,11 +103,20 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   const menuItems: MenuItemDef[] = [
     ...(!current ? [{ label: '✓ Checkout', action: onCheckout }] : []),
     ...(!current && onMerge ? [{ label: `⇒ Merger dans "${currentBranch}"`, action: onMerge }] : []),
+    ...(!current && onRebaseOnto ? [{ label: `⤵ Rebaser "${currentBranch}" dessus`, action: onRebaseOnto }] : []),
     ...(!current && onCompare ? [{ label: `⇄ Comparer avec "${currentBranch}"`, action: onCompare }] : []),
+    { separator: true as const },
+    ...(!remote && onPush ? [{ label: '⬆ Push', action: onPush }] : []),
+    ...(!remote && onSetUpstream ? [{ label: '🔗 Définir l\'upstream (origin)', action: onSetUpstream }] : []),
+    { label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(display) },
     ...(!remote && onRename ? [{ label: '✏️ Renommer', action: onRename }] : []),
     ...((!current && !remote && onDelete) ? [
       { separator: true as const },
       { label: '🗑 Supprimer', action: onDelete, danger: true },
+    ] : []),
+    ...((remote && onDeleteRemote) ? [
+      { separator: true as const },
+      { label: '🗑 Supprimer la branche distante', action: onDeleteRemote, danger: true },
     ] : []),
   ]
 
@@ -312,6 +329,7 @@ export default function Sidebar({
   repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags,
   onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
+  onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onRefreshStashes,
   onCreateTag, onDeleteTag,
   onSelectCommit, onCompareBranch, showToast, showPrompt, showConfirm,
@@ -502,6 +520,9 @@ export default function Sidebar({
                 onMerge={() => onMergeBranch(b.name)}
                 onRename={() => onRenameBranch(b.name)}
                 onCompare={!b.current ? () => onCompareBranch(b.name) : undefined}
+                onRebaseOnto={!b.current ? () => onRebaseOnto(b.name) : undefined}
+                onPush={() => onPushBranch(b.name)}
+                onSetUpstream={() => onSetUpstream(b.name)}
               />
             ))}
           </Section>
@@ -520,6 +541,7 @@ export default function Sidebar({
                     const localName = b.name.replace(/^remotes\/[^/]+\//, '')
                     onCheckout(localName)
                   }}
+                  onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
                 />
               ))}
             </Section>

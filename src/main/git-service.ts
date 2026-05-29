@@ -563,6 +563,50 @@ export class GitService {
     }
   }
 
+  // Rebase the current branch onto another branch
+  async rebaseOnto(branch: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['rebase', '--autostash', branch])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Push a specific local branch to origin
+  async pushBranch(branch: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['push', '--set-upstream', 'origin', branch])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message ?? String(e) }
+    }
+  }
+
+  // Delete a branch on the remote. `branch` may be a local name or a
+  // remotes/<remote>/<name> ref.
+  async deleteRemoteBranch(branch: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const m = branch.match(/^remotes\/([^/]+)\/(.+)$/)
+      const remote = m ? m[1] : 'origin'
+      const name = m ? m[2] : branch
+      await this.git.raw(['push', remote, '--delete', name])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Set the upstream of a local branch to origin/<branch>
+  async setUpstream(branch: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['branch', `--set-upstream-to=origin/${branch}`, branch])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // ── Tag operations ─────────────────────────────────────────
 
   async getTags(): Promise<{ tags: { name: string; hash: string }[] }> {
