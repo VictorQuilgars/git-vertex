@@ -287,8 +287,9 @@
 }
 
 .ref-expansion-popup .ref-chip {
+  width: 100%;
   max-width: 100%;
-  width: fit-content;
+  box-sizing: border-box;
 }
 
 /* ── Empty state ─────────────────────────────────────────── */
