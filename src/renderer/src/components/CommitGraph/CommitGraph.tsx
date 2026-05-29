@@ -514,7 +514,8 @@ export default function CommitGraph({
         const expandCommit = displayLayout.find(c => c.row === refExpand.row)
         if (!expandCommit) return null
         const allPrefs = processRefs(expandCommit.refs)
-        if (allPrefs.length <= 1) return null
+        const hiddenPrefs = allPrefs.slice(1)
+        if (hiddenPrefs.length === 0) return null
         const { rect } = refExpand
         const top = rect.bottom + 4
         const left = rect.left
@@ -525,7 +526,7 @@ export default function CommitGraph({
             onMouseEnter={() => { if (refExpandTimer.current) clearTimeout(refExpandTimer.current) }}
             onMouseLeave={() => { refExpandTimer.current = setTimeout(() => setRefExpand(null), 120) }}
           >
-            {allPrefs.map((p, i) => (
+            {hiddenPrefs.map((p, i) => (
               <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch}
                 onDragStartBranch={setDragBranch}
                 onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
