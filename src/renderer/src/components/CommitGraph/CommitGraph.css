@@ -224,6 +224,42 @@
 .rc-tag      { background: #8957e518; color: #d2a8ff;  border-color: #8957e555; }
 .rc-overflow { background: #30363d;   color: #8b949e;  border-color: #484f58; cursor: default; padding: 1px 5px; }
 
+/* Stack badge — shown when a commit has hidden refs */
+.rc-stack-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  background: #30363d;
+  color: #8b949e;
+  border: 1px solid #484f58;
+  cursor: default;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* Hover expansion popup */
+.ref-expansion-popup {
+  background: #1c2128;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  min-width: 120px;
+  max-width: 240px;
+  animation: ctx-appear 0.08s ease;
+}
+
+.ref-expansion-popup .ref-chip {
+  max-width: 100%;
+  width: fit-content;
+}
+
 /* ── Empty state ─────────────────────────────────────────── */
 .cg-empty {
   padding: 40px;

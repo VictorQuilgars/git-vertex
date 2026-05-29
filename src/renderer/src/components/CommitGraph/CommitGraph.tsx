@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { LayoutCommit, computeGraphLayout, LANE_COLORS } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
@@ -56,35 +57,27 @@ interface ProcessedRef {
 
 function processRefs(refs: string[]): ProcessedRef[] {
   const filtered = refs.filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
-  const result: ProcessedRef[] = []
-  const consumed = new Set<string>()
+  const remotes: ProcessedRef[] = []
+  const heads: ProcessedRef[] = []
+  const locals: ProcessedRef[] = []
+  const tags: ProcessedRef[] = []
 
   for (const ref of filtered) {
     if (ref.includes('HEAD -> ')) {
       const branch = ref.replace('HEAD -> ', '')
-      result.push({ display: branch, cls: 'rc-head', branchName: branch, tooltip: branch })
-      consumed.add(branch)
-    }
-  }
-  for (const ref of filtered) {
-    if (ref.startsWith('tag:')) {
+      heads.push({ display: branch, cls: 'rc-head', branchName: branch, tooltip: branch })
+    } else if (ref.startsWith('tag:')) {
       const name = ref.replace('tag: ', '')
-      result.push({ display: name, cls: 'rc-tag', tooltip: name })
+      tags.push({ display: name, cls: 'rc-tag', tooltip: name })
+    } else if (ref.includes('origin/') || ref.includes('remotes/')) {
+      remotes.push({ display: ref, cls: 'rc-remote', branchName: ref, tooltip: ref })
+    } else {
+      locals.push({ display: ref, cls: 'rc-local', branchName: ref, tooltip: ref })
     }
   }
-  for (const ref of filtered) {
-    if (!ref.includes('HEAD -> ') && !ref.startsWith('tag:') &&
-        !consumed.has(ref) && !ref.includes('origin/') && !ref.includes('remotes/')) {
-      result.push({ display: ref, cls: 'rc-local', branchName: ref, tooltip: ref })
-    }
-  }
-  for (const ref of filtered) {
-    if (!ref.includes('HEAD -> ') && !ref.startsWith('tag:') &&
-        !consumed.has(ref) && (ref.includes('origin/') || ref.includes('remotes/'))) {
-      result.push({ display: ref, cls: 'rc-remote', branchName: ref, tooltip: ref })
-    }
-  }
-  return result
+
+  // remote first so the most "upstream" ref is the primary chip shown
+  return [...remotes, ...heads, ...locals, ...tags]
 }
 
 function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
@@ -161,6 +154,8 @@ export default function CommitGraph({
   const [dragBranch, setDragBranch] = useState<string | null>(null)
   const [dragOverRow, setDragOverRow] = useState<number | null>(null)
   const [drop, setDrop] = useState<DropState | null>(null)
+  const [refExpand, setRefExpand] = useState<{ row: number; rect: DOMRect } | null>(null)
+  const refExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [refsColW,   startResizeRefs]   = useColResize('cg-refs-w',   164, 80)
   const [authorColW, startResizeAuthor] = useColResize('cg-author-w', 140, 80)
@@ -190,7 +185,7 @@ export default function CommitGraph({
     const wipColor = headCommit?.color ?? first?.color ?? '#6e7681'
 
     // When HEAD is not the first commit, put WIP on a new lane so the dashed
-    // line goes diagonally past intermediate commits (e.g. origin/master ahead)
+    // line stays vertical (in its own lane) and only curves into HEAD at the last row
     const maxExistingLane = shifted.reduce((m, c) => Math.max(m, c.lane), -1)
     const wipLane = headRow > 1 ? maxExistingLane + 1 : headLane
 
@@ -206,11 +201,26 @@ export default function CommitGraph({
       lane: wipLane,
       row: 0,
       color: wipColor,
-      // Single edge spanning directly to HEAD row — renders as one dashed diagonal curve
-      edges: headCommit ? [{ fromLane: wipLane, toLane: headLane, toRow: headRow, color: '#484f58', type: 'straight' as const }] : [],
+      // Straight down to just above HEAD, then curve in at the last row
+      edges: headCommit ? [{ fromLane: wipLane, toLane: wipLane, toRow: 1, color: '#484f58', type: 'straight' as const }] : [],
     }
 
-    return [wipNode, ...shifted]
+    // For intermediate rows, add dashed passthrough edges in wipLane
+    // At headRow-1, curve into headLane to arrive cleanly on HEAD
+    const shiftedWithPassthrough = shifted.map(c => {
+      if (headRow <= 1 || c.row < 1 || c.row >= headRow) return c
+      const toLane = c.row === headRow - 1 ? headLane : wipLane
+      const toRow = c.row + 1
+      return {
+        ...c,
+        edges: [...c.edges, {
+          fromLane: wipLane, toLane, toRow,
+          color: '#484f58', type: 'straight' as const, dashed: true,
+        }],
+      }
+    })
+
+    return [wipNode, ...shiftedWithPassthrough]
   }, [layout, wipCount])
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
@@ -238,7 +248,7 @@ export default function CommitGraph({
     const x2 = SVG_PAD_L + edge.toLane * LANE_WIDTH
     const y2 = edge.toRow * ROW_HEIGHT + ROW_HEIGHT / 2
     const key = `${commit.hash}-${edge.fromLane}-${edge.toLane}-${edge.toRow}`
-    const dashArray = isWip ? '4 3' : undefined
+    const dashArray = isWip || edge.dashed ? '4 3' : undefined
 
     if (x1 === x2) {
       return (
@@ -404,9 +414,8 @@ export default function CommitGraph({
             const isDimmed = !isWip && filtered !== null && !filtered.has(commit.row)
             const isDropTarget = dragOverRow === commit.row && !isWip
             const prefs = processRefs(commit.refs)
-            const MAX_CHIPS = 3
-            const visible = prefs.slice(0, MAX_CHIPS)
-            const overflow = prefs.length - MAX_CHIPS
+            const primary = prefs[0]
+            const stackCount = prefs.length - 1
 
             return (
               <div
@@ -427,17 +436,23 @@ export default function CommitGraph({
                 <div className="cg-color-bar" style={{ background: isWip ? '#484f58' : commit.color }} />
 
                 {/* BRANCH / TAG column */}
-                <div className="cg-refs-col" style={{ width: refsColW }}>
-                  {visible.map((p, i) => (
-                    <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch}
+                <div className="cg-refs-col" style={{ width: refsColW }}
+                  onMouseEnter={e => {
+                    if (stackCount < 1) return
+                    if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
+                    setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
+                  }}
+                  onMouseLeave={() => {
+                    refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
+                  }}
+                >
+                  {primary && (
+                    <RefChip pref={primary} onDoubleClick={onCheckoutBranch}
                       onDragStartBranch={setDragBranch}
                       onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
-                  ))}
-                  {overflow > 0 && (
-                    <span className="ref-chip rc-overflow"
-                      title={prefs.slice(MAX_CHIPS).map(p => p.tooltip || p.display).join(', ')}>
-                      +{overflow}
-                    </span>
+                  )}
+                  {stackCount > 0 && (
+                    <span className="rc-stack-badge">+{stackCount}</span>
                   )}
                 </div>
 
@@ -494,6 +509,31 @@ export default function CommitGraph({
           onClose={() => setDrop(null)}
         />
       )}
+
+      {refExpand && (() => {
+        const expandCommit = displayLayout.find(c => c.row === refExpand.row)
+        if (!expandCommit) return null
+        const allPrefs = processRefs(expandCommit.refs)
+        if (allPrefs.length <= 1) return null
+        const { rect } = refExpand
+        const top = rect.bottom + 4
+        const left = rect.left
+        return createPortal(
+          <div
+            className="ref-expansion-popup"
+            style={{ position: 'fixed', left, top, zIndex: 9998 }}
+            onMouseEnter={() => { if (refExpandTimer.current) clearTimeout(refExpandTimer.current) }}
+            onMouseLeave={() => { refExpandTimer.current = setTimeout(() => setRefExpand(null), 120) }}
+          >
+            {allPrefs.map((p, i) => (
+              <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch}
+                onDragStartBranch={setDragBranch}
+                onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
+            ))}
+          </div>,
+          document.body
+        )
+      })()}
     </div>
   )
 }
