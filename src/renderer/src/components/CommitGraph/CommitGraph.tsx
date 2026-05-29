@@ -610,7 +610,7 @@ export default function CommitGraph({
         return createPortal(
           <div
             className="ref-expansion-popup"
-            style={{ position: 'fixed', left, top, zIndex: 9998, width: rect.width }}
+            style={{ position: 'fixed', left, top, zIndex: 9998, minWidth: rect.width }}
             onMouseEnter={() => { if (refExpandTimer.current) clearTimeout(refExpandTimer.current) }}
             onMouseLeave={() => { refExpandTimer.current = setTimeout(() => setRefExpand(null), 120) }}
           >
