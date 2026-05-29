@@ -36,6 +36,10 @@ const gitAPI = {
   cherryPick: (hash: string) => ipcRenderer.invoke('git:cherry-pick', hash),
   revert: (hash: string) => ipcRenderer.invoke('git:revert', hash),
   reset: (hash: string, mode: 'soft' | 'mixed' | 'hard') => ipcRenderer.invoke('git:reset', hash, mode),
+  amendMessage: (message: string) => ipcRenderer.invoke('git:amend-message', message),
+  dropCommit: (hash: string) => ipcRenderer.invoke('git:drop-commit', hash),
+  moveCommit: (hash: string, direction: 'up' | 'down') => ipcRenderer.invoke('git:move-commit', hash, direction),
+  diffCommitToWorking: (hash: string) => ipcRenderer.invoke('git:diff-commit-to-working', hash),
   // Branch operations
   createBranchAt: (name: string, hash: string, checkout: boolean) => ipcRenderer.invoke('git:create-branch-at', name, hash, checkout),
   renameBranch: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-branch', oldName, newName),

@@ -15,6 +15,7 @@ import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import PRModal from './components/PRModal/PRModal'
+import DiffViewer from './components/DiffViewer/DiffViewer'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -86,6 +87,37 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
   )
 }
 
+// ── Compare commit against working directory ───────────────────
+function CompareWorkingModal({ hash, onClose }: { hash: string; onClose: () => void }) {
+  const [diff, setDiff] = useState<string>('')
+  const [loading, setLoading] = useState(true)
+
+  React.useEffect(() => {
+    window.gitAPI.diffCommitToWorking(hash).then(r => {
+      setDiff(r.diff ?? '')
+      setLoading(false)
+    })
+  }, [hash])
+
+  return (
+    <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bc-modal" style={{ width: '80vw', maxWidth: 1100, height: '80vh' }}>
+        <div className="bc-header">
+          <span className="bc-title">Comparaison : <code>{hash.slice(0, 7)}</code> ↔ répertoire de travail</span>
+          <button className="bc-close" onClick={onClose}>×</button>
+        </div>
+        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {loading
+            ? <div className="bc-loading">Chargement…</div>
+            : diff.trim() === ''
+              ? <div className="bc-empty" style={{ padding: 24 }}>Aucune différence</div>
+              : <DiffViewer commit={null} diff={diff} files={[]} loading={false} />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Imperative dialog helpers ──────────────────────────────────
 type DialogState =
   | { kind: 'prompt';  message: string; defaultValue?: string; resolve: (v: string | null) => void }
@@ -118,6 +150,7 @@ export default function App() {
   const [extendedSearchHashes, setExtendedSearchHashes] = useState<Set<string>>(new Set())
   const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
   const [compareBranchModal, setCompareBranchModal] = useState<string | null>(null)
+  const [compareWorkingHash, setCompareWorkingHash] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
   const [stashes, setStashes] = useState<StashEntry[]>([])
@@ -423,6 +456,36 @@ export default function App() {
     } else {
       showToast(t('toast.resetErr', r.error ?? ''), 'err')
     }
+    setLoading(false)
+  }
+
+  const handleEditMessage = async (hash: string) => {
+    const current = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
+    const fullMsg = current
+      ? (await window.gitAPI.getLastCommitMessage()).message || current.message
+      : ''
+    const newMsg = await showPrompt(t('prompt.editMessage'), fullMsg)
+    if (newMsg === null || newMsg.trim() === '' || newMsg === fullMsg) return
+    const r = await window.gitAPI.amendMessage(newMsg)
+    if (r.success) { showToast(t('toast.messageEdited')); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
+  const handleDropCommit = async (hash: string) => {
+    const ok = await showConfirm(t('prompt.dropCommit', hash.slice(0, 7)), true)
+    if (!ok) return
+    setLoading(true)
+    const r = await window.gitAPI.dropCommit(hash)
+    if (r.success) { showToast(t('toast.commitDropped', hash.slice(0, 7))); setSelectedCommit(null); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+    setLoading(false)
+  }
+
+  const handleMoveCommit = async (hash: string, direction: 'up' | 'down') => {
+    setLoading(true)
+    const r = await window.gitAPI.moveCommit(hash, direction)
+    if (r.success) { showToast(t('toast.commitMoved')); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
     setLoading(false)
   }
 
@@ -791,6 +854,11 @@ export default function App() {
               onCreateBranchAt={handleCreateBranchAt}
               onCheckoutBranch={handleCheckout}
               onInteractiveRebase={(hash) => setRebaseHash(hash)}
+              onCheckoutCommit={handleCheckout}
+              onEditMessage={handleEditMessage}
+              onCompareWorking={(hash) => setCompareWorkingHash(hash)}
+              onDropCommit={handleDropCommit}
+              onMoveCommit={handleMoveCommit}
               wipCount={wipCount}
             />
           )}
@@ -891,6 +959,14 @@ export default function App() {
             const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
             if (found) setSelectedCommit(found)
           }}
+        />
+      )}
+
+      {/* Compare commit vs working directory */}
+      {compareWorkingHash && (
+        <CompareWorkingModal
+          hash={compareWorkingHash}
+          onClose={() => setCompareWorkingHash(null)}
         />
       )}
 

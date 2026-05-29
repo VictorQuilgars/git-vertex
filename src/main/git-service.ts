@@ -430,6 +430,106 @@ export class GitService {
     }
   }
 
+  async amendMessage(message: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['commit', '--amend', '--only', '-m', message])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Diff between a commit and the current working directory
+  async diffCommitToWorking(hash: string): Promise<{ diff: string }> {
+    try {
+      const diff = await this.git.raw(['diff', hash])
+      return { diff }
+    } catch (e) {
+      return { diff: '' }
+    }
+  }
+
+  // ── Targeted rebase operations (drop / move) without the rebase UI ──
+
+  // Build the pick sequence (oldest → newest) for hash^..HEAD
+  private async buildPickSequence(baseHash: string): Promise<{ hash: string }[]> {
+    const result = await this.git.raw(['log', '--pretty=format:%H', `${baseHash}..HEAD`])
+    return result.trim().split('\n').filter(Boolean).map(h => ({ hash: h.trim() })).reverse()
+  }
+
+  // Run a pre-built rebase sequence via GIT_SEQUENCE_EDITOR.
+  // `sequence` is oldest → newest; entries with action 'drop' are removed.
+  private async runRebaseSequence(
+    baseRef: string,
+    sequence: { action: string; hash: string }[]
+  ): Promise<{ success: boolean; error?: string }> {
+    const fs = await import('fs')
+    const path = await import('path')
+    const os = await import('os')
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+
+    const tmpDir = os.tmpdir()
+    const seqFile = path.join(tmpDir, `gitgui-rebase-seq-${Date.now()}.txt`)
+    const scriptFile = path.join(tmpDir, `gitgui-rebase-editor-${Date.now()}.sh`)
+
+    try {
+      const seqContent = sequence.map(s => `${s.action} ${s.hash}`).join('\n') + '\n'
+      fs.writeFileSync(seqFile, seqContent, 'utf8')
+      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      fs.writeFileSync(scriptFile, scriptContent, 'utf8')
+      fs.chmodSync(scriptFile, 0o755)
+
+      await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
+        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile },
+        timeout: 30000
+      })
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.stderr ?? e.message }
+    } finally {
+      try { fs.unlinkSync(seqFile) } catch {}
+      try { fs.unlinkSync(scriptFile) } catch {}
+    }
+  }
+
+  async dropCommit(hash: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const picks = await this.buildPickSequence(`${hash}^`)
+      if (picks.length === 0) return { success: false, error: 'Commit introuvable' }
+      const sequence = picks.map(p => ({
+        action: p.hash.startsWith(hash) || hash.startsWith(p.hash) ? 'drop' : 'pick',
+        hash: p.hash
+      }))
+      return await this.runRebaseSequence(`${hash}^`, sequence)
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // direction 'up' = move toward HEAD (newer), 'down' = toward root (older)
+  async moveCommit(hash: string, direction: 'up' | 'down'): Promise<{ success: boolean; error?: string }> {
+    try {
+      // For 'down' we must include the older neighbour (hash^) in the sequence,
+      // so we rebase from the grandparent. For 'up' the older bound is hash^.
+      const base = direction === 'down' ? `${hash}^^` : `${hash}^`
+      const picks = await this.buildPickSequence(base)
+      const idx = picks.findIndex(p => p.hash.startsWith(hash) || hash.startsWith(p.hash))
+      if (idx === -1) return { success: false, error: 'Commit introuvable' }
+      const swapWith = direction === 'up' ? idx + 1 : idx - 1
+      if (swapWith < 0 || swapWith >= picks.length) {
+        return { success: false, error: 'Déplacement impossible' }
+      }
+      const reordered = [...picks]
+      ;[reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]]
+      const sequence = reordered.map(p => ({ action: 'pick', hash: p.hash }))
+      return await this.runRebaseSequence(base, sequence)
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // ── Branch operations ──────────────────────────────────────
 
   async createBranchAt(name: string, hash: string, checkout: boolean): Promise<{ success: boolean; error?: string }> {
