@@ -282,8 +282,7 @@
 
 .ref-expansion-popup .ref-chip {
   max-width: none;
-  width: 100%;
-  box-sizing: border-box;
+  /* width set by align-items: stretch from parent flex column */
 }
 
 /* ── Empty state ─────────────────────────────────────────── */
