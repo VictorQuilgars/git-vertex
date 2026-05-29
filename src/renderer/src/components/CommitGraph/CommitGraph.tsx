@@ -526,7 +526,10 @@ export default function CommitGraph({
                         onMouseEnter={e => {
                           if (stackCount < 1) return
                           if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
-                          setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
+                          // Only capture rect on first open — badge may have disappeared on re-entry
+                          if (refExpand?.row !== commit.row) {
+                            setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
+                          }
                         }}
                         onMouseLeave={() => {
                           refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
