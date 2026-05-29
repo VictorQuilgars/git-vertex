@@ -27,7 +27,16 @@ git push origin main
 git push origin "v$NEW_VERSION"
 
 echo "🚀 Publication de v$NEW_VERSION…"
+
+# macOS (local)
 npm run package -- --mac --publish always
 
+# Windows et Linux sont buildés automatiquement par GitHub Actions
+# via le tag v$NEW_VERSION (jobs build-win et build-linux dans release.yml)
+echo "🪟 Windows / 🐧 Linux → GitHub Actions (tag v$NEW_VERSION déclenché)"
+
 echo "✅ v$NEW_VERSION publié sur GitHub"
-echo "   Installe un DMG plus ancien et clique 'Vérifier les mises à jour'"
+
+# Clean up local build artifacts
+rm -rf dist/
+echo "🧹 Dossier dist/ nettoyé"
