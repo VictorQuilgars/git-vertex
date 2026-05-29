@@ -124,6 +124,11 @@ interface CommitGraphProps {
   onCreateBranchAt: (hash: string) => void
   onCheckoutBranch?: (name: string) => void
   onInteractiveRebase?: (hash: string) => void
+  onCheckoutCommit?: (hash: string) => void
+  onEditMessage?: (hash: string) => void
+  onCompareWorking?: (hash: string) => void
+  onDropCommit?: (hash: string) => void
+  onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
   wipCount?: number
 }
 
@@ -132,7 +137,8 @@ interface CtxState { x: number; y: number; commit: LayoutCommit }
 export default function CommitGraph({
   commits, selectedHash, onSelectCommit, searchQuery, currentBranch,
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
-  onCheckoutBranch, onInteractiveRebase, wipCount = 0,
+  onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onEditMessage,
+  onCompareWorking, onDropCommit, onMoveCommit, wipCount = 0,
 }: CommitGraphProps) {
   const { t } = useLang()
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -224,22 +230,31 @@ export default function CommitGraph({
   const buildMenuItems = useCallback((commit: LayoutCommit): MenuItemDef[] => {
     const isHead = commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
     return [
-      { label: t('graph.menu.createBranch'), action: () => onCreateBranchAt(commit.hash) },
-      { label: t('graph.menu.interactiveRebase'), action: () => onInteractiveRebase?.(commit.hash) },
+      { label: t('graph.menu.checkout'), action: () => onCheckoutCommit?.(commit.hash) },
       { separator: true },
+      { label: t('graph.menu.createBranch'), action: () => onCreateBranchAt(commit.hash) },
+      { label: t('graph.menu.createTag'), action: () => onCreateTag(commit.hash) },
+      { separator: true },
+      { label: t('graph.menu.interactiveRebase'), action: () => onInteractiveRebase?.(commit.hash) },
+      ...(isHead ? [{ label: t('graph.menu.editMessage'), action: () => onEditMessage?.(commit.hash) }] : []),
       { label: t('graph.menu.cherryPick'), action: () => onCherryPick(commit.hash), disabled: isHead },
       { label: t('graph.menu.revert'), action: () => onRevert(commit.hash) },
+      { label: t('graph.menu.dropCommit'), action: () => onDropCommit?.(commit.hash), danger: true },
+      { label: t('graph.menu.moveUp'), action: () => onMoveCommit?.(commit.hash, 'up') },
+      { label: t('graph.menu.moveDown'), action: () => onMoveCommit?.(commit.hash, 'down') },
       { separator: true },
       { label: t('graph.menu.resetSoft'), action: () => onReset(commit.hash, 'soft') },
       { label: t('graph.menu.resetMixed'), action: () => onReset(commit.hash, 'mixed') },
       { label: t('graph.menu.resetHard'), action: () => onReset(commit.hash, 'hard'), danger: true },
       { separator: true },
-      { label: t('graph.menu.createTag'), action: () => onCreateTag(commit.hash) },
-      { separator: true },
       { label: t('graph.menu.copyShortHash'), action: () => navigator.clipboard.writeText(commit.shortHash) },
       { label: t('graph.menu.copyFullHash'), action: () => navigator.clipboard.writeText(commit.hash) },
+      { label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(commit.message) },
+      { separator: true },
+      { label: t('graph.menu.compareWorking'), action: () => onCompareWorking?.(commit.hash) },
     ]
-  }, [currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onInteractiveRebase, t])
+  }, [currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onInteractiveRebase,
+      onCheckoutCommit, onEditMessage, onCompareWorking, onDropCommit, onMoveCommit, t])
 
   const handleRowContextMenu = useCallback((e: React.MouseEvent, commit: LayoutCommit) => {
     if (commit.hash === WIP_HASH) return

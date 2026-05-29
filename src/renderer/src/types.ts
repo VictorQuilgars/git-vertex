@@ -65,6 +65,12 @@ declare global {
       cherryPick: (hash: string) => Promise<R>
       revert: (hash: string) => Promise<R>
       reset: (hash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<R>
+      amendMessage: (message: string) => Promise<R>
+      dropCommit: (hash: string) => Promise<R>
+      moveCommit: (hash: string, direction: 'up' | 'down') => Promise<R>
+      diffCommitToWorking: (hash: string) => Promise<{ diff: string }>
+      getLastCommitMessage: () => Promise<{ message: string }>
+      getUpstream: () => Promise<{ upstream: string | null }>
       // Tags
       createTag: (name: string, hash?: string, message?: string) => Promise<R>
       deleteTag: (name: string) => Promise<R>

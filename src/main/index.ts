@@ -294,6 +294,26 @@ ipcMain.handle('git:reset', async (_event, hash: string, mode: 'soft' | 'mixed' 
   return gitService.reset(hash, mode)
 })
 
+ipcMain.handle('git:amend-message', async (_event, message: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.amendMessage(message)
+})
+
+ipcMain.handle('git:drop-commit', async (_event, hash: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.dropCommit(hash)
+})
+
+ipcMain.handle('git:move-commit', async (_event, hash: string, direction: 'up' | 'down') => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.moveCommit(hash, direction)
+})
+
+ipcMain.handle('git:diff-commit-to-working', async (_event, hash: string) => {
+  if (!gitService) return { diff: '' }
+  return gitService.diffCommitToWorking(hash)
+})
+
 // ── IPC: Branch operations ─────────────────────────────────
 ipcMain.handle('git:create-branch-at', async (_event, name: string, hash: string, checkout: boolean) => {
   if (!gitService) return { success: false, error: 'No repo open' }
