@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import './ContextMenu.css'
 
 export interface MenuAction {
@@ -49,7 +50,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
     if (rect.bottom > vh) ref.current.style.top = `${y - rect.height}px`
   }, [x, y])
 
-  return (
+  const menu = (
     <div
       ref={ref}
       className="ctx-menu"
@@ -72,4 +73,6 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
       })}
     </div>
   )
+
+  return createPortal(menu, document.body)
 }
