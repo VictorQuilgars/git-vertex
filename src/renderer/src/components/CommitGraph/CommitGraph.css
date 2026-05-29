@@ -113,13 +113,15 @@
   flex-shrink: 0;
 }
 
-/* Horizontal connector stub: from chip right edge to SVG left edge */
-.cg-ref-line-stub {
-  flex: 1;
+/* Single connector line: position:absolute inside the row, rendered before chips so it's behind them */
+.cg-row-connector {
+  position: absolute;
+  left: 8px;
+  top: 50%;
   height: 1px;
-  align-self: center;
+  transform: translateY(-50%);
   opacity: 0.4;
-  min-width: 4px;
+  pointer-events: none;
 }
 
 /* ── Columns ─────────────────────────────────────────────── */
