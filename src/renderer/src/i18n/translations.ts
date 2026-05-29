@@ -60,6 +60,9 @@ const fr = {
   'graph.menu.copyFullHash': '📋 Copier le hash complet',
   'graph.menu.copyMessage': '📋 Copier le message',
   'graph.menu.compareWorking': '⇄ Comparer avec le répertoire de travail',
+  'graph.drop.reset': (b: string, h: string) => `⏪ Déplacer "${b}" ici (reset --hard ${h})`,
+  'graph.drop.rebase': (b: string, h: string) => `⚡ Rebaser "${b}" sur ${h}`,
+  'graph.drop.merge': (b: string, h: string) => `⇒ Merger ${h} dans "${b}"`,
 
   // PushModal
   'push.title': '⬆ Push',
@@ -224,6 +227,7 @@ const fr = {
   'toast.commitMoved': '✓ Commit déplacé',
   'toast.rebaseOntoOk': (name: string) => `✓ Rebase sur "${name}" réussi`,
   'toast.upstreamSet': (name: string) => `✓ Upstream défini sur origin/${name}`,
+  'toast.branchDropOk': (name: string) => `✓ "${name}" mise à jour`,
   'toast.tagCreated': (name: string) => `✓ Tag "${name}" créé`,
   'toast.tagDeleted': (name: string) => `Tag "${name}" supprimé`,
   'toast.stashCreated': '✓ Stash créé',
@@ -260,6 +264,7 @@ const fr = {
   'prompt.dropCommit': (h: string) => `Supprimer le commit ${h} ?\nCela réécrit l'historique via un rebase.`,
   'prompt.rebaseOnto': (cur: string, name: string) => `Rebaser "${cur}" sur "${name}" ?`,
   'prompt.deleteRemoteBranch': (name: string) => `Supprimer la branche distante "${name}" ?`,
+  'prompt.dropReset': (b: string, h: string) => `Déplacer "${b}" vers ${h} (reset --hard) ?\nLes commits au-delà seront perdus pour cette branche.`,
   'prompt.deleteTag': (name: string) => `Supprimer le tag "${name}" ?`,
   'prompt.tagName': 'Nom du tag :',
   'prompt.tagMessage': 'Message du tag (laisser vide pour un tag léger) :',
@@ -398,6 +403,9 @@ const en: typeof fr = {
   'graph.menu.copyFullHash': '📋 Copy full hash',
   'graph.menu.copyMessage': '📋 Copy message',
   'graph.menu.compareWorking': '⇄ Compare against working directory',
+  'graph.drop.reset': (b: string, h: string) => `⏪ Move "${b}" here (reset --hard ${h})`,
+  'graph.drop.rebase': (b: string, h: string) => `⚡ Rebase "${b}" onto ${h}`,
+  'graph.drop.merge': (b: string, h: string) => `⇒ Merge ${h} into "${b}"`,
 
   // PushModal
   'push.title': '⬆ Push',
@@ -562,6 +570,7 @@ const en: typeof fr = {
   'toast.commitMoved': '✓ Commit moved',
   'toast.rebaseOntoOk': (name: string) => `✓ Rebased onto "${name}"`,
   'toast.upstreamSet': (name: string) => `✓ Upstream set to origin/${name}`,
+  'toast.branchDropOk': (name: string) => `✓ "${name}" updated`,
   'toast.tagCreated': (name: string) => `✓ Tag "${name}" created`,
   'toast.tagDeleted': (name: string) => `Tag "${name}" deleted`,
   'toast.stashCreated': '✓ Stash created',
@@ -598,6 +607,7 @@ const en: typeof fr = {
   'prompt.dropCommit': (h: string) => `Drop commit ${h}?\nThis rewrites history via a rebase.`,
   'prompt.rebaseOnto': (cur: string, name: string) => `Rebase "${cur}" onto "${name}"?`,
   'prompt.deleteRemoteBranch': (name: string) => `Delete remote branch "${name}"?`,
+  'prompt.dropReset': (b: string, h: string) => `Move "${b}" to ${h} (reset --hard)?\nCommits beyond this point will be lost for that branch.`,
   'prompt.deleteTag': (name: string) => `Delete tag "${name}"?`,
   'prompt.tagName': 'Tag name:',
   'prompt.tagMessage': 'Tag message (leave empty for lightweight tag):',

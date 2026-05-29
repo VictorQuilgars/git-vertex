@@ -82,6 +82,12 @@
 .cg-row:hover { background: #161b2299; }
 .cg-selected  { background: #1a3a5c !important; }
 .cg-dimmed    { opacity: 0.25; }
+.cg-drop-target {
+  background: #1f6feb33 !important;
+  box-shadow: inset 0 0 0 1px #58a6ff;
+}
+.ref-chip[draggable="true"] { cursor: grab; }
+.ref-chip[draggable="true"]:active { cursor: grabbing; }
 
 /* WIP row */
 .cg-row-wip { cursor: default; }
