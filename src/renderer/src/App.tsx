@@ -17,6 +17,7 @@ import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import PRModal from './components/PRModal/PRModal'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
+import ContextMenu, { MenuItemDef } from './components/ContextMenu/ContextMenu'
 import './App.css'
 
 interface StashEntry { index: number; message: string }
@@ -153,6 +154,11 @@ export default function App() {
   const [compareBranchModal, setCompareBranchModal] = useState<string | null>(null)
   const [compareWorkingHash, setCompareWorkingHash] = useState<string | null>(null)
   const [gitflowOpen, setGitflowOpen] = useState(false)
+  // ── Multi-repo tabs ──
+  const [tabs, setTabs] = useState<{ id: string; path: string; name: string }[]>([])
+  const [activeTabId, setActiveTabId] = useState<string | null>(null)
+  const [tabMenu, setTabMenu] = useState<{ x: number; y: number; id: string } | null>(null)
+  const selectedByTab = useRef<Map<string, CommitNode | null>>(new Map())
   const [loading, setLoading] = useState<boolean>(false)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
   const [stashes, setStashes] = useState<StashEntry[]>([])
@@ -300,27 +306,39 @@ export default function App() {
   }, [repoPath, loadRepoData])
 
   // ── Open repo helpers ──────────────────────────────────────
+  const detectGithub = useCallback(async () => {
+    const detected = await (window.gitAPI as any).githubDetectRepo()
+    if (detected?.owner && detected?.repo) {
+      setGithubRepoUrl(`https://github.com/${detected.owner}/${detected.repo}`)
+      setGithubOwnerRepo({ owner: detected.owner, repo: detected.repo })
+    } else {
+      setGithubRepoUrl(null)
+      setGithubOwnerRepo(null)
+    }
+  }, [])
+
   const applyRepo = useCallback(async (res: { path?: string; name?: string; error?: string }) => {
     if (res.path) {
+      const name = res.name ?? res.path.split('/').pop()!
       setRepoPath(res.path)
-      setRepoName(res.name ?? res.path.split('/').pop()!)
+      setRepoName(name)
       setSelectedCommit(null)
       setCommits([])
       const updated = await window.gitAPI.getRecentRepos()
       setRecentRepos(updated ?? [])
-      // Detect GitHub remote URL for PR button
-      const detected = await (window.gitAPI as any).githubDetectRepo()
-      if (detected?.owner && detected?.repo) {
-        setGithubRepoUrl(`https://github.com/${detected.owner}/${detected.repo}`)
-        setGithubOwnerRepo({ owner: detected.owner, repo: detected.repo })
-      } else {
-        setGithubRepoUrl(null)
-        setGithubOwnerRepo(null)
-      }
+      await detectGithub()
+      // Register or activate a tab for this repo
+      setTabs(prev => {
+        const existing = prev.find(tb => tb.path === res.path)
+        if (existing) { setActiveTabId(existing.id); return prev }
+        const id = `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+        setActiveTabId(id)
+        return [...prev, { id, path: res.path!, name }]
+      })
     } else if (res.error && res.error !== 'cancelled') {
       showToast(t('toast.err', res.error), 'err')
     }
-  }, [showToast])
+  }, [showToast, detectGithub])
 
   const handleOpenRepo = async () => applyRepo(await window.gitAPI.openRepo())
   const handleSetRepo = async (path: string) => applyRepo(await window.gitAPI.setRepo(path))
@@ -328,6 +346,74 @@ export default function App() {
     const updated = await window.gitAPI.removeRecentRepo(path)
     setRecentRepos(updated ?? [])
   }
+
+  // ── Tab switching ──────────────────────────────────────────
+  // "New tab" → return to the welcome screen so the user can pick
+  // open / clone / a recent repo.
+  const goHome = useCallback(() => {
+    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
+    setActiveTabId(null)
+    setRepoPath(null)
+    setRepoName('')
+    setSelectedCommit(null)
+    setCommits([])
+    setGithubRepoUrl(null)
+    setGithubOwnerRepo(null)
+  }, [activeTabId, selectedCommit])
+
+  const switchTab = useCallback(async (tab: { id: string; path: string; name: string }) => {
+    if (tab.id === activeTabId) return
+    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
+    setActiveTabId(tab.id)
+    const r = await window.gitAPI.setRepo(tab.path)
+    if (r.path) {
+      setRepoPath(r.path)
+      setRepoName(r.name ?? tab.name)
+      setCommits([])
+      setSelectedCommit(selectedByTab.current.get(tab.id) ?? null)
+      await detectGithub()
+    } else if (r.error) {
+      showToast(t('toast.err', r.error), 'err')
+    }
+  }, [activeTabId, selectedCommit, detectGithub, showToast])
+
+  const closeTab = useCallback((id: string) => {
+    selectedByTab.current.delete(id)
+    setTabs(prev => {
+      const idx = prev.findIndex(tb => tb.id === id)
+      const next = prev.filter(tb => tb.id !== id)
+      if (id === activeTabId) {
+        if (next.length === 0) {
+          setActiveTabId(null)
+          setRepoPath(null)
+          setRepoName('')
+          setCommits([])
+          setSelectedCommit(null)
+        } else {
+          const fallback = next[Math.max(0, idx - 1)]
+          setActiveTabId(fallback.id)
+          window.gitAPI.setRepo(fallback.path).then(r => {
+            if (r.path) {
+              setRepoPath(r.path)
+              setRepoName(r.name ?? fallback.name)
+              setCommits([])
+              setSelectedCommit(selectedByTab.current.get(fallback.id) ?? null)
+              detectGithub()
+            }
+          })
+        }
+      }
+      return next
+    })
+  }, [activeTabId, detectGithub])
+
+  const closeOtherTabs = useCallback((id: string) => {
+    setTabs(prev => prev.filter(tb => tb.id === id))
+    for (const key of Array.from(selectedByTab.current.keys())) {
+      if (key !== id) selectedByTab.current.delete(key)
+    }
+    setActiveTabId(id)
+  }, [])
 
   // ── Git operations ─────────────────────────────────────────
   const handleFetch = async () => {
@@ -691,9 +777,37 @@ export default function App() {
     addEventListener('mousemove', move); addEventListener('mouseup', up)
   }
 
+  const isMac = (window as any).appInfo?.platform === 'darwin'
+
   return (
     <div className="app">
+      {/* ── Repo tabs (top, browser-style) ── */}
+      {tabs.length > 0 && !settingsOpen && (
+        <div className="app-tabs">
+          {isMac && <div className="app-tabs-mac-spacer" />}
+          {tabs.map(tab => (
+            <div
+              key={tab.id}
+              className={`app-tab ${tab.id === activeTabId ? 'active' : ''}`}
+              onClick={() => switchTab(tab)}
+              onContextMenu={e => { e.preventDefault(); setTabMenu({ x: e.clientX, y: e.clientY, id: tab.id }) }}
+              title={tab.path}
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="app-tab-icon">
+                <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+              </svg>
+              <span className="app-tab-name">{tab.name}</span>
+              <button className="app-tab-close" title={t('tabs.close')}
+                onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
+            </div>
+          ))}
+          <button className={`app-tab-add ${activeTabId === null ? 'active' : ''}`}
+            title={t('tabs.new')} onClick={goHome}>+</button>
+        </div>
+      )}
+
       <Toolbar
+        topRow={tabs.length === 0}
         repoPath={repoPath}
         currentBranch={currentBranch}
         searchQuery={searchQuery}
@@ -1017,6 +1131,18 @@ export default function App() {
             const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
             if (found) setSelectedCommit(found)
           }}
+        />
+      )}
+
+      {/* Tab context menu */}
+      {tabMenu && (
+        <ContextMenu
+          x={tabMenu.x} y={tabMenu.y}
+          items={[
+            { label: t('tabs.close'), action: () => closeTab(tabMenu.id) },
+            ...(tabs.length > 1 ? [{ label: t('tabs.closeOthers'), action: () => closeOtherTabs(tabMenu.id) }] : []),
+          ] as MenuItemDef[]}
+          onClose={() => setTabMenu(null)}
         />
       )}
 

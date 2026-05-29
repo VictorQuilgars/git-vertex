@@ -13,6 +13,74 @@ body {
 
 .app-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 
+/* ── Repo tabs ── */
+.app-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  background: #010409;
+  border-bottom: 1px solid #21262d;
+  padding: 0 6px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  height: 36px;
+  -webkit-app-region: drag;
+}
+.app-tabs-mac-spacer { width: 72px; flex-shrink: 0; }
+.app-tab, .app-tab-close, .app-tab-add { -webkit-app-region: no-drag; }
+.app-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 12px;
+  max-width: 220px;
+  font-size: 12px;
+  color: #8b949e;
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  margin-top: 5px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.app-tab:hover { color: #e6edf3; background: #1c2330; }
+.app-tab.active {
+  color: #e6edf3;
+  background: #0d1117;
+  border-color: #30363d;
+  border-bottom: 1px solid #0d1117;
+  margin-bottom: -1px;
+}
+.app-tab-icon { flex-shrink: 0; color: #3fb950; }
+.app-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-tab-close {
+  background: none;
+  border: none;
+  color: #6e7681;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.app-tab-close:hover { color: #f85149; background: #30363d; }
+.app-tab-add {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 10px;
+  align-self: center;
+  border-radius: 5px;
+}
+.app-tab-add:hover { color: #e6edf3; background: #161b22; }
+.app-tab-add.active { color: #e6edf3; background: #161b22; }
+
 /* Activity bar */
 .app-activity-bar {
   width: 44px;
