@@ -436,24 +436,27 @@ export default function CommitGraph({
                 <div className="cg-color-bar" style={{ background: isWip ? '#484f58' : commit.color }} />
 
                 {/* BRANCH / TAG column */}
-                <div className="cg-refs-col" style={{ width: refsColW }}
-                  onMouseEnter={e => {
-                    if (stackCount < 1) return
-                    if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
-                    setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
-                  }}
-                  onMouseLeave={() => {
-                    refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
-                  }}
-                >
-                  {primary && (
-                    <RefChip pref={primary} onDoubleClick={onCheckoutBranch}
-                      onDragStartBranch={setDragBranch}
-                      onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
-                  )}
-                  {stackCount > 0 && (
-                    <span className="rc-stack-badge">+{stackCount}</span>
-                  )}
+                <div className="cg-refs-col" style={{ width: refsColW }}>
+                  <div
+                    className="cg-refs-chips"
+                    onMouseEnter={e => {
+                      if (stackCount < 1) return
+                      if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
+                      setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
+                    }}
+                    onMouseLeave={() => {
+                      refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
+                    }}
+                  >
+                    {primary && (
+                      <RefChip pref={primary} onDoubleClick={onCheckoutBranch}
+                        onDragStartBranch={setDragBranch}
+                        onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
+                    )}
+                    {stackCount > 0 && (
+                      <span className="rc-stack-badge">+{stackCount}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Spacer for SVG */}

@@ -99,10 +99,16 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
   padding: 0 8px;
   overflow: hidden;
   height: 100%;
+}
+
+/* Inner wrapper that hugs the chips — used as anchor for the expansion popup */
+.cg-refs-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 /* ── Columns ─────────────────────────────────────────────── */
