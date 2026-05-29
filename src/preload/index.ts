@@ -48,6 +48,9 @@ const gitAPI = {
   pushBranch: (branch: string) => ipcRenderer.invoke('git:push-branch', branch),
   deleteRemoteBranch: (branch: string) => ipcRenderer.invoke('git:delete-remote-branch', branch),
   setUpstream: (branch: string) => ipcRenderer.invoke('git:set-upstream', branch),
+  moveBranchTo: (branch: string, hash: string) => ipcRenderer.invoke('git:move-branch-to', branch, hash),
+  rebaseBranchOnto: (branch: string, hash: string) => ipcRenderer.invoke('git:rebase-branch-onto', branch, hash),
+  mergeCommitInto: (branch: string, hash: string) => ipcRenderer.invoke('git:merge-commit-into', branch, hash),
   // Tag operations
   getTags: () => ipcRenderer.invoke('git:get-tags'),
   createTag: (name: string, hash?: string, message?: string) => ipcRenderer.invoke('git:create-tag', name, hash, message),

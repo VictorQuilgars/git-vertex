@@ -517,6 +517,22 @@ export default function App() {
     setLoading(false)
   }
 
+  const handleBranchDrop = async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => {
+    const short = hash.slice(0, 7)
+    let ok = true
+    if (action === 'reset') ok = await showConfirm(t('prompt.dropReset', branch, short), true)
+    if (!ok) return
+    setLoading(true)
+    const r = action === 'reset'
+      ? await window.gitAPI.moveBranchTo(branch, hash)
+      : action === 'rebase'
+        ? await window.gitAPI.rebaseBranchOnto(branch, hash)
+        : await window.gitAPI.mergeCommitInto(branch, hash)
+    if (r.success) { showToast(t('toast.branchDropOk', branch)); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+    setLoading(false)
+  }
+
   const handleMoveCommit = async (hash: string, direction: 'up' | 'down') => {
     setLoading(true)
     const r = await window.gitAPI.moveCommit(hash, direction)
@@ -900,6 +916,7 @@ export default function App() {
               onCompareWorking={(hash) => setCompareWorkingHash(hash)}
               onDropCommit={handleDropCommit}
               onMoveCommit={handleMoveCommit}
+              onBranchDrop={handleBranchDrop}
               wipCount={wipCount}
             />
           )}

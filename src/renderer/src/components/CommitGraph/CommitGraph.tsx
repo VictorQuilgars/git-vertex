@@ -87,14 +87,26 @@ function processRefs(refs: string[]): ProcessedRef[] {
   return result
 }
 
-function RefChip({ pref, onDoubleClick }: {
+function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
   pref: ProcessedRef
   onDoubleClick?: (name: string) => void
+  onDragStartBranch?: (name: string) => void
+  onDragEndBranch?: () => void
 }) {
+  // Only local branches (incl. HEAD) are draggable onto commits
+  const isBranch = (pref.cls === 'rc-local' || pref.cls === 'rc-head') && !!pref.branchName
   return (
     <span
       className={`ref-chip ${pref.cls}`}
       title={pref.tooltip}
+      draggable={isBranch}
+      onDragStart={e => {
+        if (!isBranch) return
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', pref.branchName!)
+        onDragStartBranch?.(pref.branchName!)
+      }}
+      onDragEnd={() => onDragEndBranch?.()}
       onDoubleClick={e => {
         e.stopPropagation()
         if (pref.cls !== 'rc-tag' && onDoubleClick && pref.branchName) {
@@ -129,21 +141,26 @@ interface CommitGraphProps {
   onCompareWorking?: (hash: string) => void
   onDropCommit?: (hash: string) => void
   onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
+  onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => void
   wipCount?: number
 }
 
 interface CtxState { x: number; y: number; commit: LayoutCommit }
+interface DropState { x: number; y: number; hash: string; branch: string }
 
 export default function CommitGraph({
   commits, selectedHash, onSelectCommit, searchQuery, currentBranch,
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onEditMessage,
-  onCompareWorking, onDropCommit, onMoveCommit, wipCount = 0,
+  onCompareWorking, onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
 }: CommitGraphProps) {
   const { t } = useLang()
   const bodyRef = useRef<HTMLDivElement>(null)
   const layout = useMemo(() => computeGraphLayout(commits), [commits])
   const [ctx, setCtx] = useState<CtxState | null>(null)
+  const [dragBranch, setDragBranch] = useState<string | null>(null)
+  const [dragOverRow, setDragOverRow] = useState<number | null>(null)
+  const [drop, setDrop] = useState<DropState | null>(null)
 
   const [refsColW,   startResizeRefs]   = useColResize('cg-refs-w',   164, 80)
   const [authorColW, startResizeAuthor] = useColResize('cg-author-w', 140, 80)
@@ -263,6 +280,24 @@ export default function CommitGraph({
     setCtx({ x: e.clientX, y: e.clientY, commit })
   }, [])
 
+  const handleRowDrop = useCallback((e: React.DragEvent, commit: LayoutCommit) => {
+    e.preventDefault()
+    setDragOverRow(null)
+    const branch = dragBranch ?? e.dataTransfer.getData('text/plain')
+    setDragBranch(null)
+    if (!branch || commit.hash === WIP_HASH) return
+    setDrop({ x: e.clientX, y: e.clientY, hash: commit.hash, branch })
+  }, [dragBranch])
+
+  const buildDropItems = useCallback((d: DropState): MenuItemDef[] => {
+    const short = d.hash.slice(0, 7)
+    return [
+      { label: t('graph.drop.reset', d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, 'reset'), danger: true },
+      { label: t('graph.drop.rebase', d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, 'rebase') },
+      { label: t('graph.drop.merge', d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, 'merge') },
+    ]
+  }, [onBranchDrop, t])
+
   return (
     <div className="cg-container">
       {/* ── Header ── */}
@@ -355,6 +390,7 @@ export default function CommitGraph({
             const isSelected = commit.hash === selectedHash
             const isWip = commit.hash === WIP_HASH
             const isDimmed = !isWip && filtered !== null && !filtered.has(commit.row)
+            const isDropTarget = dragOverRow === commit.row && !isWip
             const prefs = processRefs(commit.refs)
             const MAX_CHIPS = 3
             const visible = prefs.slice(0, MAX_CHIPS)
@@ -363,10 +399,17 @@ export default function CommitGraph({
             return (
               <div
                 key={commit.hash}
-                className={`cg-row ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''}`}
+                className={`cg-row ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
                 style={{ top: commit.row * ROW_HEIGHT }}
                 onClick={() => onSelectCommit(commit)}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
+                onDragOver={e => {
+                  if (!dragBranch || isWip) return
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  if (dragOverRow !== commit.row) setDragOverRow(commit.row)
+                }}
+                onDrop={e => handleRowDrop(e, commit)}
               >
                 {/* Colored left stripe based on branch */}
                 <div className="cg-color-bar" style={{ background: isWip ? '#484f58' : commit.color }} />
@@ -374,7 +417,9 @@ export default function CommitGraph({
                 {/* BRANCH / TAG column */}
                 <div className="cg-refs-col" style={{ width: refsColW }}>
                   {visible.map((p, i) => (
-                    <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch} />
+                    <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch}
+                      onDragStartBranch={setDragBranch}
+                      onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
                   ))}
                   {overflow > 0 && (
                     <span className="ref-chip rc-overflow"
@@ -427,6 +472,14 @@ export default function CommitGraph({
           x={ctx.x} y={ctx.y}
           items={buildMenuItems(ctx.commit)}
           onClose={() => setCtx(null)}
+        />
+      )}
+
+      {drop && (
+        <ContextMenu
+          x={drop.x} y={drop.y}
+          items={buildDropItems(drop)}
+          onClose={() => setDrop(null)}
         />
       )}
     </div>

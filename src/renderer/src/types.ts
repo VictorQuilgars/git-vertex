@@ -54,6 +54,9 @@ declare global {
       pushBranch: (branch: string) => Promise<R>
       deleteRemoteBranch: (branch: string) => Promise<R>
       setUpstream: (branch: string) => Promise<R>
+      moveBranchTo: (branch: string, hash: string) => Promise<R>
+      rebaseBranchOnto: (branch: string, hash: string) => Promise<R>
+      mergeCommitInto: (branch: string, hash: string) => Promise<R>
       // Remote
       fetch: () => Promise<R>
       push: () => Promise<R & { setUpstream?: boolean }>

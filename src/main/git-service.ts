@@ -615,6 +615,46 @@ export class GitService {
     }
   }
 
+  // ── Branch drag & drop targets ─────────────────────────────
+
+  // Move a branch ref to a commit. If it is the current branch we hard-reset,
+  // otherwise we force-update the ref.
+  async moveBranchTo(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const status = await this.git.status()
+      if (status.current === branch) {
+        await this.git.raw(['reset', '--hard', hash])
+      } else {
+        await this.git.raw(['branch', '-f', branch, hash])
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Rebase a branch onto a commit
+  async rebaseBranchOnto(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['checkout', branch])
+      await this.git.raw(['rebase', '--autostash', hash])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Merge a commit into a branch
+  async mergeCommitInto(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['checkout', branch])
+      await this.git.raw(['merge', hash])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // Set the upstream of a local branch to origin/<branch>
   async setUpstream(branch: string): Promise<{ success: boolean; error?: string }> {
     try {
