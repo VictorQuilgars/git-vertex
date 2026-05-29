@@ -11,6 +11,7 @@ const gitAPI = {
   getBranches: () => ipcRenderer.invoke('git:get-branches'),
   getDiff: (commitHash: string) => ipcRenderer.invoke('git:get-diff', commitHash),
   getCommitFiles: (commitHash: string) => ipcRenderer.invoke('git:get-commit-files', commitHash),
+  getCommitBody: (hash: string) => ipcRenderer.invoke('git:get-commit-body', hash),
   getStatus: () => ipcRenderer.invoke('git:get-status'),
   getStashes: () => ipcRenderer.invoke('git:get-stashes'),
   // Write

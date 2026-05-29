@@ -11,47 +11,7 @@
 }
 
 /* ── Header ───────────────────────────────────────────────── */
-.rp-header {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 38px;
-  padding: 0 10px;
-  background: #161b22;
-  border-bottom: 1px solid #21262d;
-  flex-shrink: 0;
-}
-
-.rp-mode-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: #8b949e;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-.rp-mode-btn:hover:not(:disabled) { background: #21262d; color: #e6edf3; }
-.rp-mode-btn.active { background: #1f6feb22; color: #58a6ff; border-color: #1f6feb44; }
-.rp-mode-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.rp-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  gap: 12px;
-  color: #484f58;
-  font-size: 12px;
-}
-
-/* ── Commit detail content ────────────────────────────────── */
+/* ── Commit detail (new design) ──────────────────────────── */
 .rp-content {
   display: flex;
   flex-direction: column;
@@ -59,58 +19,240 @@
   overflow: hidden;
 }
 
-.rp-commit-info {
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid #21262d;
+/* WIP banner */
+.cd-wip-banner {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  padding: 7px 12px;
+  background: #1b4472;
+  border-bottom: 1px solid #2d6aa0;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #a5c8f0;
+}
+.cd-view-change-btn {
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid #a5c8f066;
+  border-radius: 5px;
+  color: #a5c8f0;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+.cd-view-change-btn:hover { background: #2d6aa033; border-color: #a5c8f0; }
+
+/* Hash + AI row */
+.cd-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
   flex-shrink: 0;
 }
-
-.rp-commit-hash {
+.cd-hash-info {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.rp-commit-hash code {
+.cd-label { font-size: 11px; color: #6e7681; }
+.cd-hash {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: #58a6ff;
-  background: #1f6feb18;
-  padding: 2px 8px;
-  border-radius: 5px;
-  border: 1px solid #1f6feb33;
+  background: #1f6feb14;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #1f6feb30;
+  cursor: pointer;
+  transition: background 0.1s;
 }
-.rp-copy {
-  background: none; border: none; color: #484f58; cursor: pointer; padding: 2px;
-  border-radius: 3px; display: flex; align-items: center;
-}
-.rp-copy:hover { color: #c9d1d9; background: #21262d; }
+.cd-hash:hover { background: #1f6feb28; }
 
-.rp-commit-msg {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e6edf3;
-  line-height: 1.4;
-  word-break: break-word;
-}
-
-.rp-commit-author {
+/* AI recompose button */
+.cd-ai-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+  padding: 4px 10px;
+  background: #3d1f8a;
+  border: 1px solid #7c47e8;
+  border-radius: 6px;
+  color: #c8a8ff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+  flex-shrink: 0;
 }
-.rp-avatar {
-  width: 26px; height: 26px; border-radius: 50%; font-size: 10px;
-  font-weight: 700; display: flex; align-items: center; justify-content: center;
+.cd-ai-btn:hover { background: #4d2a9e; }
+.cd-ai-arrow { font-size: 9px; opacity: 0.7; margin-left: 2px; }
+
+/* Scrollable body */
+.cd-scroll {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #0d1117;
+}
+
+/* Zone 1 — commit message (dark background) */
+.cd-message-block {
+  padding: 14px 14px 10px;
+  background: #0d1117;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* Resize handle between the two zones */
+.cd-resize-handle {
+  height: 6px;
+  background: #0d1117;
+  border-top: 1px solid #30363d;
+  border-bottom: 1px solid #30363d;
+  cursor: row-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.1s;
+}
+.cd-resize-handle:hover { background: #1f6feb22; }
+.cd-resize-handle:hover .cd-resize-grip { background: #58a6ff; }
+.cd-resize-grip {
+  width: 32px;
+  height: 2px;
+  border-radius: 2px;
+  background: #30363d;
+  transition: background 0.1s;
+}
+
+/* Zone 2 — author / refs / files (lighter background) */
+.cd-info-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #161b22;
+  overflow-y: auto;
+  min-height: 0;
+}
+.cd-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.4;
+  word-break: break-word;
+  margin: 0 0 8px;
+}
+.cd-body {
+  font-family: inherit;
+  font-size: 12px;
+  color: #8b949e;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+/* Author */
+.cd-author-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #21262d;
+}
+.cd-avatar-sq {
+  width: 36px; height: 36px; border-radius: 6px;
+  font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
   color: #fff; flex-shrink: 0;
 }
-.rp-author-info { display: flex; flex-direction: column; gap: 1px; }
-.rp-author-name { font-size: 12px; font-weight: 600; color: #c9d1d9; }
-.rp-author-date { font-size: 10px; color: #6e7681; }
+.cd-author-mid { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.cd-author-name { font-size: 13px; font-weight: 600; color: #e6edf3; }
+.cd-author-meta { font-size: 11px; color: #6e7681; }
+.cd-parent-btn {
+  background: transparent; border: none;
+  color: #6e7681; font-size: 11px; cursor: pointer;
+  white-space: nowrap; text-align: right; flex-shrink: 0;
+}
+.cd-parent-btn code { font-family: 'JetBrains Mono', monospace; color: #58a6ff; font-size: 10px; }
+.cd-parent-btn:hover code { text-decoration: underline; }
 
-.rp-refs { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Co-authors */
+.cd-coauthors {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-bottom: 1px solid #21262d;
+  flex-wrap: wrap;
+}
+.cd-coauthor { font-size: 11px; color: #8b949e; }
+
+/* Refs */
+.cd-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #21262d;
+}
+
+/* Files count */
+.cd-files-count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 4px;
+}
+.cd-files-count-text { font-size: 12px; font-weight: 600; color: #c9d1d9; }
+
+/* Files bar */
+.cd-files-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 6px;
+  border-bottom: 1px solid #21262d;
+}
+.cd-sort-btn {
+  background: transparent; border: none; color: #6e7681;
+  cursor: pointer; padding: 3px; border-radius: 4px; display: flex;
+}
+.cd-sort-btn:hover { color: #e6edf3; background: #21262d; }
+
+.cd-view-toggle {
+  display: flex;
+  border: 1px solid #30363d;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.cd-view-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 8px; background: transparent; border: none;
+  color: #6e7681; font-size: 11px; cursor: pointer;
+  transition: all 0.1s;
+}
+.cd-view-btn + .cd-view-btn { border-left: 1px solid #30363d; }
+.cd-view-btn:hover { background: #21262d; color: #e6edf3; }
+.cd-view-btn.active { background: #1f6feb1a; color: #58a6ff; }
+
+.cd-viewall {
+  display: flex; align-items: center; gap: 5px;
+  margin-left: auto; font-size: 11px; color: #6e7681; cursor: pointer;
+}
+.cd-viewall input { cursor: pointer; }
+
+/* Refs chips (shared with CommitGraph) */
 .rp-ref {
   padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600;
   border: 1px solid; white-space: nowrap;
@@ -119,6 +261,13 @@
 .rp-ref-remote { background: #2ea04318; color: #3fb950; border-color: #2ea04344; }
 .rp-ref-head { background: #f1e05a18; color: #f1e05a; border-color: #f1e05a44; }
 .rp-ref-tag { background: #8957e518; color: #d2a8ff; border-color: #8957e544; }
+
+/* Avatar (kept for StagingView) */
+.rp-avatar {
+  width: 26px; height: 26px; border-radius: 50%; font-size: 10px;
+  font-weight: 700; display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0;
+}
 
 /* ── Tabs ─────────────────────────────────────────────────── */
 .rp-tabs {
@@ -145,7 +294,7 @@
   display: flex; align-items: center; gap: 6px;
   padding: 5px 12px; cursor: pointer; transition: background 0.1s;
 }
-.rp-file-row:hover { background: #161b22; }
+.rp-file-row:hover { background: #1c2128; }
 .rp-file-row.active { background: #1f2d3d; }
 
 .rp-file-badge { width: 14px; font-size: 10px; font-weight: 700; flex-shrink: 0; }

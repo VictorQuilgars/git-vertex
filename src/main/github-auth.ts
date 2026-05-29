@@ -6,6 +6,7 @@ const PROXY_URL  = import.meta.env.VITE_GITHUB_PROXY_URL as string
 const REDIRECT_URI = 'gitgui://callback'
 const SCOPE        = 'repo user'
 
+
 let pendingState: string | null = null
 
 export function startOAuthFlow(): void {

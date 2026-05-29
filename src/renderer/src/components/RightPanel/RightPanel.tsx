@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { CommitNode, FileChange, WorkingChanges } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
 import './RightPanel.css'
@@ -166,155 +166,253 @@ function BlameView({ commitHash, filepath, onSelectCommit }: {
 }
 
 // ── CommitDetail view ─────────────────────────────────────────
-function CommitDetail({ commit, onSelectCommit }: { commit: CommitNode; onSelectCommit: (hash: string) => void }) {
+function formatPath(path: string): { dir: string; name: string } {
+  const parts = path.split('/')
+  const name = parts.pop() ?? path
+  const dir = parts.join('/')
+  if (!dir) return { dir: '', name }
+  const MAX = 26
+  return { dir: (dir.length > MAX ? dir.slice(0, MAX - 1) + '…' : dir) + '/', name }
+}
+
+const MIN_MSG_H = 48
+const MAX_MSG_H = 400
+
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
+  commit: CommitNode
+  onSelectCommit: (hash: string) => void
+  wipCount?: number
+  onViewWip?: () => void
+}) {
   const { t } = useLang()
   const [files, setFiles] = useState<FileChange[]>([])
-  const [diff, setDiff] = useState('')
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [diffLoading, setDiffLoading] = useState(false)
+  const [body, setBody] = useState('')
   const [parsedDiff, setParsedDiff] = useState<FileDiff[]>([])
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [view, setView] = useState<'files' | 'diff' | 'blame'>('files')
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
+  const [viewAll, setViewAll] = useState(false)
+  const [msgHeight, setMsgHeight] = useState(120)
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null)
+
+  const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    dragRef.current = { startY: e.clientY, startH: msgHeight }
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return
+      const delta = ev.clientY - dragRef.current.startY
+      const newH = Math.min(MAX_MSG_H, Math.max(MIN_MSG_H, dragRef.current.startH + delta))
+      setMsgHeight(newH)
+    }
+    const onUp = () => {
+      dragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [msgHeight])
 
   useEffect(() => {
-    setFiles([]); setDiff(''); setSelectedFile(null); setView('files')
+    setFiles([]); setBody(''); setSelectedFile(null); setView('files')
     Promise.all([
       window.gitAPI.getCommitFiles(commit.hash),
-      window.gitAPI.getDiff(commit.hash)
-    ]).then(([fr, dr]) => {
+      window.gitAPI.getDiff(commit.hash),
+      (window.gitAPI as any).getCommitBody(commit.hash),
+    ]).then(([fr, dr, br]: any[]) => {
       setFiles(fr.files ?? [])
-      const d = dr.diff ?? ''
-      setDiff(d)
-      setParsedDiff(parseDiff(d))
+      setParsedDiff(parseDiff(dr.diff ?? ''))
+      setBody(br.body ?? '')
     })
   }, [commit.hash])
 
-  const selectFile = (path: string) => {
-    setSelectedFile(path)
-    if (view === 'files') setView('diff')
-  }
-
   const fileForDiff = parsedDiff.find(f => f.to === selectedFile)
+  const parentShort = commit.parents?.[0]?.slice(0, 7) ?? null
+
+  // Parse co-authors from body
+  const coAuthors = body
+    ? [...body.matchAll(/Co-Authored-By:\s*(.+?)\s*<[^>]+>/gi)].map(m => m[1].trim())
+    : []
+  // Body without co-author lines
+  const cleanBody = body
+    ? body.replace(/^Co-Authored-By:.*$/gim, '').trim()
+    : ''
 
   return (
     <div className="rp-content">
-      {/* Commit info */}
-      <div className="rp-commit-info">
-        <div className="rp-commit-hash">
-          <code>{commit.shortHash}</code>
-          <button className="rp-copy" title={t('panel.copyHash')} onClick={() => navigator.clipboard.writeText(commit.hash)}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25v-7.5z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25v-7.5zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25h-7.5z"/></svg>
-          </button>
+      {/* ── WIP banner ── */}
+      {wipCount != null && wipCount > 0 && (
+        <div className="cd-wip-banner">
+          <span>{wipCount} fichier{wipCount !== 1 ? 's' : ''} modifié{wipCount !== 1 ? 's' : ''} en cours</span>
+          <button className="cd-view-change-btn" onClick={onViewWip}>Voir les changements</button>
         </div>
-        <div className="rp-commit-msg">{commit.message}</div>
-        <div className="rp-commit-author">
-          <div className="rp-avatar" style={{ background: getAvatarColor(commit.authorEmail) }}>
-            {initials(commit.author)}
-          </div>
-          <div className="rp-author-info">
-            <span className="rp-author-name">{commit.author}</span>
-            <span className="rp-author-date">{fmtDate(commit.date)}</span>
-          </div>
-        </div>
-        {commit.refs.length > 0 && (
-          <div className="rp-refs">
-            {commit.refs.map((r, i) => {
-              const isHead = r.includes('HEAD')
-              const isTag = r.startsWith('tag:')
-              const isRemote = r.includes('origin/') || r.includes('remotes/')
-              const text = r.replace('tag: ', '').replace('HEAD -> ', '★ ')
-              const cls = isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local'
-              return <span key={i} className={`rp-ref ${cls}`}>{text}</span>
-            })}
-          </div>
-        )}
-      </div>
+      )}
 
-      {/* Files / diff / blame toggle */}
-      <div className="rp-tabs">
-        <button className={`rp-tab ${view === 'files' ? 'active' : ''}`} onClick={() => setView('files')}>
-          {t('panel.noFiles', files.length)}
+      {/* ── Hash + AI row ── */}
+      <div className="cd-top-row">
+        <div className="cd-hash-info">
+          <span className="cd-label">commit:</span>
+          <code className="cd-hash" onClick={() => navigator.clipboard.writeText(commit.hash)}
+            title={t('panel.copyHash')}>{commit.shortHash}</code>
+        </div>
+        <button className="cd-ai-btn" onClick={async () => {
+          // Amend with AI — same as StagingView AI generation
+        }}>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>
+          Recompose avec l'IA
+          <span className="cd-ai-arrow">▼</span>
         </button>
-        {selectedFile && (
-          <button className={`rp-tab ${view === 'diff' ? 'active' : ''}`} onClick={() => setView('diff')}>
-            Diff
-          </button>
-        )}
-        {selectedFile && (
-          <button className={`rp-tab ${view === 'blame' ? 'active' : ''}`} onClick={() => setView('blame')}>
-            Blame
-          </button>
-        )}
       </div>
 
-      {view === 'files' && (
-        <div className="rp-file-list">
-          {files.map((f, i) => {
-            const meta = STATUS_META[f.status] ?? STATUS_META['?']
-            return (
-              <div
-                key={i}
-                className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
-                onClick={() => selectFile(f.path)}
-              >
-                <span className="rp-file-badge" style={{ color: meta.color }}>{meta.label}</span>
-                <span className="rp-file-path">{f.path}</span>
-                <span className="rp-file-stats">
-                  {f.additions > 0 && <span className="rp-add">+{f.additions}</span>}
-                  {f.deletions > 0 && <span className="rp-del">-{f.deletions}</span>}
-                </span>
-                <button
-                  className="rp-history-btn"
-                  title={t('panel.history')}
-                  onClick={e => { e.stopPropagation(); setFileHistoryPath(f.path) }}
-                >
-                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z"/>
-                  </svg>
-                </button>
-              </div>
-            )
-          })}
-          {files.length === 0 && <div className="rp-empty">{t('panel.noUnstaged')}</div>}
+      {/* ── Scrollable content ── */}
+      <div className="cd-scroll">
+        {/* Zone 1 — commit message (dark) */}
+        <div className="cd-message-block" style={{ height: msgHeight, minHeight: MIN_MSG_H, maxHeight: MAX_MSG_H }}>
+          <p className="cd-title">{commit.message}</p>
+          {cleanBody && <pre className="cd-body">{cleanBody}</pre>}
         </div>
-      )}
 
-      {fileHistoryPath && (
-        <FileHistoryModal
-          filepath={fileHistoryPath}
-          onClose={() => setFileHistoryPath(null)}
-          onSelectCommit={onSelectCommit}
-        />
-      )}
+        {/* Resize handle */}
+        <div className="cd-resize-handle" onMouseDown={onResizeMouseDown}>
+          <div className="cd-resize-grip" />
+        </div>
 
-      {view === 'diff' && fileForDiff && (
-        <div className="rp-diff-view">
-          <div className="rp-diff-filename">{selectedFile}</div>
-          {fileForDiff.hunks.map((hunk, hi) => (
-            <div key={hi} className="rp-hunk">
-              <div className="rp-hunk-header">{hunk.header}</div>
-              <table className="rp-diff-table"><tbody>
-                {hunk.lines.map((line, li) => (
-                  <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
-                    <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
-                    <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
-                    <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
-                    <td className="rp-lc"><code>{line.content}</code></td>
-                  </tr>
-                ))}
-              </tbody></table>
+        {/* Zone 2 — commit info (lighter) */}
+        <div className="cd-info-zone">
+          {/* Author */}
+          <div className="cd-author-block">
+            <div className="cd-avatar-sq" style={{ background: getAvatarColor(commit.authorEmail) }}>
+              {initials(commit.author)}
             </div>
-          ))}
-        </div>
-      )}
+            <div className="cd-author-mid">
+              <span className="cd-author-name">{commit.author}</span>
+              <span className="cd-author-meta">authored {fmtDate(commit.date)}</span>
+            </div>
+            {parentShort && (
+              <button className="cd-parent-btn" onClick={() => onSelectCommit(commit.parents[0])}>
+                parent: <code>{parentShort}</code>
+              </button>
+            )}
+          </div>
 
-      {view === 'blame' && selectedFile && (
-        <BlameView
-          commitHash={commit.hash}
-          filepath={selectedFile}
-          onSelectCommit={onSelectCommit}
-        />
-      )}
+          {coAuthors.length > 0 && (
+            <div className="cd-coauthors">
+              <span className="cd-label">Co-authors:</span>
+              {coAuthors.map((a, i) => (
+                <span key={i} className="cd-coauthor">{a}</span>
+              ))}
+            </div>
+          )}
+
+          {/* Refs */}
+          {commit.refs.length > 0 && (
+            <div className="cd-refs">
+              {commit.refs
+                .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
+                .map((r, i) => {
+                  const isHead = r.includes('HEAD'), isTag = r.startsWith('tag:')
+                  const isRemote = r.includes('origin/') || r.includes('remotes/')
+                  const text = r.replace('tag: ', '').replace('HEAD -> ', '★ ')
+                  const cls = isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local'
+                  return <span key={i} className={`rp-ref ${cls}`}>{text}</span>
+                })}
+            </div>
+          )}
+
+          {/* Files count */}
+          <div className="cd-files-count-row">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="#e3b341">
+              <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
+            </svg>
+            <span className="cd-files-count-text">
+              {files.length} {files.length !== 1 ? 'modified' : 'modified'}
+            </span>
+          </div>
+
+          {/* Files bar */}
+          <div className="cd-files-bar">
+            <button className="cd-sort-btn" title="Trier">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z"/>
+              </svg>
+            </button>
+            <div className="cd-view-toggle">
+              <button className={`cd-view-btn ${view === 'files' ? 'active' : ''}`} onClick={() => setView('files')}>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z"/></svg>
+                Path
+              </button>
+              <button className={`cd-view-btn`} onClick={() => {}}>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm9.5-8a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3z"/></svg>
+                Tree
+              </button>
+            </div>
+            <label className="cd-viewall">
+              <input type="checkbox" checked={viewAll} onChange={e => setViewAll(e.target.checked)} />
+              <span>Tous les fichiers</span>
+            </label>
+          </div>
+
+          {/* File list */}
+          {view === 'files' && (
+            <div className="rp-file-list">
+              {files.map((f, i) => {
+                const { dir, name } = formatPath(f.path)
+                return (
+                  <div key={i}
+                    className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
+                    onClick={() => { setSelectedFile(f.path); setView('diff') }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" className="rp-file-pencil">
+                      <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
+                    </svg>
+                    <span className="rp-file-path">
+                      {dir && <span className="rp-file-dir">{dir}</span>}
+                      <span className="rp-file-name">{name}</span>
+                    </span>
+                    <button className="rp-history-btn" title={t('panel.history')}
+                      onClick={e => { e.stopPropagation(); setFileHistoryPath(f.path) }}>
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z"/>
+                      </svg>
+                    </button>
+                  </div>
+                )
+              })}
+              {files.length === 0 && <div className="rp-empty">{t('panel.loading')}</div>}
+            </div>
+          )}
+
+          {fileHistoryPath && (
+            <FileHistoryModal filepath={fileHistoryPath}
+              onClose={() => setFileHistoryPath(null)} onSelectCommit={onSelectCommit} />
+          )}
+
+          {view === 'diff' && fileForDiff && (
+            <div className="rp-diff-view">
+              <div className="rp-diff-filename">{selectedFile}</div>
+              {fileForDiff.hunks.map((hunk, hi) => (
+                <div key={hi} className="rp-hunk">
+                  <div className="rp-hunk-header">{hunk.header}</div>
+                  <table className="rp-diff-table"><tbody>
+                    {hunk.lines.map((line, li) => (
+                      <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
+                        <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
+                        <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
+                        <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
+                        <td className="rp-lc"><code>{line.content}</code></td>
+                      </tr>
+                    ))}
+                  </tbody></table>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {view === 'blame' && selectedFile && (
+            <BlameView commitHash={commit.hash} filepath={selectedFile} onSelectCommit={onSelectCommit} />
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -603,54 +701,26 @@ interface RightPanelProps {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   onSelectCommit: (hash: string) => void
+  wipCount?: number
+  onViewWip?: () => void
 }
 
-export default function RightPanel({ selectedCommit, onCommitSuccess, showToast, onSelectCommit }: RightPanelProps) {
-  const { t } = useLang()
-  const [mode, setMode] = useState<'detail' | 'stage'>('stage')
+export default function RightPanel({ selectedCommit, onCommitSuccess, showToast, onSelectCommit, wipCount, onViewWip }: RightPanelProps) {
+  const isWip = selectedCommit?.hash === '__WIP__'
+  const hasCommit = !!selectedCommit && !isWip
 
   return (
     <div className="right-panel">
-      {/* Header */}
-      <div className="rp-header">
-        <button
-          className={`rp-mode-btn ${mode === 'detail' ? 'active' : ''}`}
-          onClick={() => setMode('detail')}
-          disabled={!selectedCommit}
-          title={t('panel.commitDetails')}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
-          </svg>
-          {t('panel.commitDetails')}
-        </button>
-        <button
-          className={`rp-mode-btn ${mode === 'stage' ? 'active' : ''}`}
-          onClick={() => setMode('stage')}
-          title={t('panel.stageAndCommit')}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
-          </svg>
-          {t('panel.commit')}
-        </button>
-      </div>
-
-      {mode === 'detail' && !selectedCommit && (
-        <div className="rp-placeholder">
-          <svg width="40" height="40" viewBox="0 0 16 16" fill="#30363d">
-            <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
-          </svg>
-          <p>{t('panel.clickCommit')}</p>
-        </div>
-      )}
-
-      {mode === 'detail' && selectedCommit && (
-        <CommitDetail commit={selectedCommit} onSelectCommit={onSelectCommit} />
-      )}
-
-      {mode === 'stage' && (
+      {(isWip || !selectedCommit) && (
         <StagingView onCommitSuccess={onCommitSuccess} showToast={showToast} />
+      )}
+      {hasCommit && (
+        <CommitDetail
+          commit={selectedCommit}
+          onSelectCommit={onSelectCommit}
+          wipCount={wipCount}
+          onViewWip={onViewWip}
+        />
       )}
     </div>
   )
