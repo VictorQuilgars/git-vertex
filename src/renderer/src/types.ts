@@ -8,6 +8,7 @@ export interface CommitNode {
 export interface GraphEdge {
   fromLane: number; toLane: number; toRow: number
   color: string; type: 'straight' | 'merge-left' | 'merge-right' | 'fork-left' | 'fork-right'
+  dashed?: boolean
 }
 
 export interface BranchInfo {

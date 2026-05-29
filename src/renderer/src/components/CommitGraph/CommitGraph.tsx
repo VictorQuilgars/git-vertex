@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { LayoutCommit, computeGraphLayout, LANE_COLORS } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
@@ -8,7 +9,7 @@ import './CommitGraph.css'
 const ROW_HEIGHT  = 50
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
-const SVG_PAD_L   = 10
+const SVG_PAD_L   = 36
 const SVG_PAD_R   = 8
 const WIP_HASH    = '__WIP__'
 
@@ -38,6 +39,17 @@ function getAvatarColor(email: string) {
   for (const c of email) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
   return LANE_COLORS[Math.abs(h) % LANE_COLORS.length]
 }
+// Blend a hex color toward the graph background (#0d1117) by `factor` (0..1).
+// Produces an opaque color so overlapping segments never add up in brightness.
+function dimColor(hex: string, factor = 0.4): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  if (!m) return hex
+  const [r, g, b] = [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)]
+  const bg = [13, 17, 23] // #0d1117
+  const mix = (c: number, bgc: number) => Math.round(bgc + (c - bgc) * factor)
+  const toHex = (n: number) => n.toString(16).padStart(2, '0')
+  return `#${toHex(mix(r, bg[0]))}${toHex(mix(g, bg[1]))}${toHex(mix(b, bg[2]))}`
+}
 function initials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
@@ -48,44 +60,100 @@ function fmtDate(s: string) {
 }
 
 interface ProcessedRef {
-  display: string
-  cls: string
-  branchName?: string
+  display: string      // branch/tag name without "origin/" prefix
+  cls: string          // rc-head | rc-local | rc-remote | rc-tag
+  branchName?: string  // full ref name for checkout/drag
   tooltip?: string
+  isHead?: boolean     // current HEAD branch
+  hasLocal?: boolean   // has a local counterpart
+  hasRemote?: boolean  // has a remote counterpart (origin/...)
 }
 
 function processRefs(refs: string[]): ProcessedRef[] {
   const filtered = refs.filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
-  const result: ProcessedRef[] = []
-  const consumed = new Set<string>()
+
+  const headSet    = new Set<string>()   // branch names that are HEAD
+  const localSet   = new Set<string>()   // all local branch names
+  const remoteMap  = new Map<string, string>() // short name -> full ref
+  const tags: string[] = []
 
   for (const ref of filtered) {
     if (ref.includes('HEAD -> ')) {
-      const branch = ref.replace('HEAD -> ', '')
-      result.push({ display: branch, cls: 'rc-head', branchName: branch, tooltip: branch })
-      consumed.add(branch)
+      const b = ref.replace('HEAD -> ', '')
+      headSet.add(b)
+      localSet.add(b)
+    } else if (ref.startsWith('tag:')) {
+      tags.push(ref.replace('tag: ', ''))
+    } else if (ref.includes('origin/') || ref.includes('remotes/')) {
+      const short = ref.replace(/^(origin\/|remotes\/[^/]+\/)/, '')
+      remoteMap.set(short, ref)
+    } else {
+      localSet.add(ref)
     }
   }
-  for (const ref of filtered) {
-    if (ref.startsWith('tag:')) {
-      const name = ref.replace('tag: ', '')
-      result.push({ display: name, cls: 'rc-tag', tooltip: name })
+
+  const result: ProcessedRef[] = []
+  const usedRemotes = new Set<string>()
+
+  // Local branches (HEAD first), merged with remote when names match
+  const sortedLocals = [...localSet].sort((a, b) =>
+    (headSet.has(b) ? 1 : 0) - (headSet.has(a) ? 1 : 0)
+  )
+  for (const name of sortedLocals) {
+    const fullRemote = remoteMap.get(name)
+    if (fullRemote) usedRemotes.add(name)
+    const isHead = headSet.has(name)
+    result.push({
+      display: name,
+      cls: isHead ? 'rc-head' : 'rc-local',
+      branchName: name,
+      tooltip: fullRemote ? `${name}  +  ${fullRemote}` : name,
+      isHead,
+      hasLocal: true,
+      hasRemote: !!fullRemote,
+    })
+  }
+
+  // Remote-only branches (no matching local)
+  for (const [short, full] of remoteMap) {
+    if (!usedRemotes.has(short)) {
+      result.push({
+        display: short,
+        cls: 'rc-remote',
+        branchName: full,
+        tooltip: full,
+        hasLocal: false,
+        hasRemote: true,
+      })
     }
   }
-  for (const ref of filtered) {
-    if (!ref.includes('HEAD -> ') && !ref.startsWith('tag:') &&
-        !consumed.has(ref) && !ref.includes('origin/') && !ref.includes('remotes/')) {
-      result.push({ display: ref, cls: 'rc-local', branchName: ref, tooltip: ref })
-    }
+
+  // Tags
+  for (const tag of tags) {
+    result.push({ display: tag, cls: 'rc-tag', tooltip: tag })
   }
-  for (const ref of filtered) {
-    if (!ref.includes('HEAD -> ') && !ref.startsWith('tag:') &&
-        !consumed.has(ref) && (ref.includes('origin/') || ref.includes('remotes/'))) {
-      result.push({ display: ref, cls: 'rc-remote', branchName: ref, tooltip: ref })
-    }
-  }
+
   return result
 }
+
+// SVG icons
+const ICON_SIZE = 13
+const IconMonitor = () => (
+  <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 16 16" fill="currentColor">
+    <path d="M0 4s0-2 2-2h12s2 0 2 2v6s0 2-2 2h-4c0 .667.083 1.167.25 1.5H11a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1h.75c.167-.333.25-.833.25-1.5H2s-2 0-2-2V4zm1.398-.855a.758.758 0 0 0-.254.302A1.46 1.46 0 0 0 1 4v6c0 .325.078.502.145.602.07.105.17.188.302.254a1.464 1.464 0 0 0 .538.143L2.5 11h11l.515-.001a1.464 1.464 0 0 0 .538-.143.758.758 0 0 0 .302-.254A.858.858 0 0 0 15 10V4a.857.857 0 0 0-.145-.598.758.758 0 0 0-.302-.254A1.464 1.464 0 0 0 14.013 3H1.987a1.464 1.464 0 0 0-.589.145z"/>
+  </svg>
+)
+const IconCloud = () => (
+  <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 16 16" fill="currentColor">
+    <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383z"/>
+  </svg>
+)
+const IconTag = () => (
+  <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 16 16" fill="currentColor">
+    <path d="M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0z"/>
+    <path d="M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1zm0 5.586 7 7 4.586-4.586-7-7H2v4.586z"/>
+  </svg>
+)
 
 function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
   pref: ProcessedRef
@@ -93,15 +161,14 @@ function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
   onDragStartBranch?: (name: string) => void
   onDragEndBranch?: () => void
 }) {
-  // Only local branches (incl. HEAD) are draggable onto commits
-  const isBranch = (pref.cls === 'rc-local' || pref.cls === 'rc-head') && !!pref.branchName
+  const isDraggable = (pref.cls === 'rc-local' || pref.cls === 'rc-head') && !!pref.branchName
   return (
     <span
       className={`ref-chip ${pref.cls}`}
       title={pref.tooltip}
-      draggable={isBranch}
+      draggable={isDraggable}
       onDragStart={e => {
-        if (!isBranch) return
+        if (!isDraggable) return
         e.dataTransfer.effectAllowed = 'move'
         e.dataTransfer.setData('text/plain', pref.branchName!)
         onDragStartBranch?.(pref.branchName!)
@@ -115,10 +182,15 @@ function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
       }}
       style={pref.cls !== 'rc-tag' ? { cursor: 'pointer' } : undefined}
     >
-      {pref.cls === 'rc-head'   && <span className="rc-star">★</span>}
-      {pref.cls === 'rc-tag'    && <span className="rc-icon">🏷</span>}
-      {pref.cls === 'rc-remote' && <span className="rc-icon rc-cloud">↑</span>}
-      {pref.display}
+      {pref.isHead && <span className="rc-check">✓</span>}
+      <span className="rc-name">{pref.display}</span>
+      {pref.cls !== 'rc-tag' && (
+        <span className="rc-icons" style={{ width: pref.hasLocal && pref.hasRemote ? ICON_SIZE * 2 + 2 : ICON_SIZE }}>
+          {pref.hasLocal  && <IconMonitor />}
+          {pref.hasRemote && <IconCloud />}
+        </span>
+      )}
+      {pref.cls === 'rc-tag' && <IconTag />}
     </span>
   )
 }
@@ -161,6 +233,8 @@ export default function CommitGraph({
   const [dragBranch, setDragBranch] = useState<string | null>(null)
   const [dragOverRow, setDragOverRow] = useState<number | null>(null)
   const [drop, setDrop] = useState<DropState | null>(null)
+  const [refExpand, setRefExpand] = useState<{ row: number; rect: DOMRect } | null>(null)
+  const refExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [refsColW,   startResizeRefs]   = useColResize('cg-refs-w',   164, 80)
   const [authorColW, startResizeAuthor] = useColResize('cg-author-w', 140, 80)
@@ -190,7 +264,7 @@ export default function CommitGraph({
     const wipColor = headCommit?.color ?? first?.color ?? '#6e7681'
 
     // When HEAD is not the first commit, put WIP on a new lane so the dashed
-    // line goes diagonally past intermediate commits (e.g. origin/master ahead)
+    // line stays vertical (in its own lane) and only curves into HEAD at the last row
     const maxExistingLane = shifted.reduce((m, c) => Math.max(m, c.lane), -1)
     const wipLane = headRow > 1 ? maxExistingLane + 1 : headLane
 
@@ -206,11 +280,26 @@ export default function CommitGraph({
       lane: wipLane,
       row: 0,
       color: wipColor,
-      // Single edge spanning directly to HEAD row — renders as one dashed diagonal curve
-      edges: headCommit ? [{ fromLane: wipLane, toLane: headLane, toRow: headRow, color: '#484f58', type: 'straight' as const }] : [],
+      // Straight down to just above HEAD, then curve in at the last row
+      edges: headCommit ? [{ fromLane: wipLane, toLane: wipLane, toRow: 1, color: '#484f58', type: 'straight' as const }] : [],
     }
 
-    return [wipNode, ...shifted]
+    // For intermediate rows, add dashed passthrough edges in wipLane
+    // At headRow-1, curve into headLane to arrive cleanly on HEAD
+    const shiftedWithPassthrough = shifted.map(c => {
+      if (headRow <= 1 || c.row < 1 || c.row >= headRow) return c
+      const toLane = c.row === headRow - 1 ? headLane : wipLane
+      const toRow = c.row + 1
+      return {
+        ...c,
+        edges: [...c.edges, {
+          fromLane: wipLane, toLane, toRow,
+          color: '#484f58', type: 'straight' as const, dashed: true,
+        }],
+      }
+    })
+
+    return [wipNode, ...shiftedWithPassthrough]
   }, [layout, wipCount])
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
@@ -238,7 +327,7 @@ export default function CommitGraph({
     const x2 = SVG_PAD_L + edge.toLane * LANE_WIDTH
     const y2 = edge.toRow * ROW_HEIGHT + ROW_HEIGHT / 2
     const key = `${commit.hash}-${edge.fromLane}-${edge.toLane}-${edge.toRow}`
-    const dashArray = isWip ? '4 3' : undefined
+    const dashArray = isWip || edge.dashed ? '4 3' : undefined
 
     if (x1 === x2) {
       return (
@@ -395,6 +484,20 @@ export default function CommitGraph({
                 </g>
               )
             })}
+
+            {/* Connector lines drawn last (on top of nodes) so they don't blend with edge colors */}
+            {displayLayout.map(commit => {
+              if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
+              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
+              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              if (cx - NODE_RADIUS <= 0) return null
+              return (
+                <line key={`conn-${commit.hash}`}
+                  x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
+                  stroke={dimColor(commit.color)} strokeWidth={1}
+                />
+              )
+            })}
           </svg>
 
           {/* Rows */}
@@ -404,9 +507,8 @@ export default function CommitGraph({
             const isDimmed = !isWip && filtered !== null && !filtered.has(commit.row)
             const isDropTarget = dragOverRow === commit.row && !isWip
             const prefs = processRefs(commit.refs)
-            const MAX_CHIPS = 3
-            const visible = prefs.slice(0, MAX_CHIPS)
-            const overflow = prefs.length - MAX_CHIPS
+            const primary = prefs[0]
+            const stackCount = prefs.length - 1
 
             return (
               <div
@@ -428,17 +530,33 @@ export default function CommitGraph({
 
                 {/* BRANCH / TAG column */}
                 <div className="cg-refs-col" style={{ width: refsColW }}>
-                  {visible.map((p, i) => (
-                    <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch}
-                      onDragStartBranch={setDragBranch}
-                      onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
-                  ))}
-                  {overflow > 0 && (
-                    <span className="ref-chip rc-overflow"
-                      title={prefs.slice(MAX_CHIPS).map(p => p.tooltip || p.display).join(', ')}>
-                      +{overflow}
-                    </span>
-                  )}
+                  {primary ? (
+                    <>
+                      <div
+                        className="cg-refs-chips"
+                        onMouseEnter={e => {
+                          if (stackCount < 1) return
+                          if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
+                          // Only capture rect on first open — badge may have disappeared on re-entry
+                          if (refExpand?.row !== commit.row) {
+                            setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
+                        }}
+                      >
+                        <RefChip pref={primary} onDoubleClick={onCheckoutBranch}
+                          onDragStartBranch={setDragBranch}
+                          onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
+                        {stackCount > 0 && refExpand?.row !== commit.row && (
+                          <span className="rc-stack-badge">+{stackCount}</span>
+                        )}
+                      </div>
+                      {/* Flex stub: fills space from chip right edge to SVG boundary */}
+                      <div className="cg-ref-line-stub" style={{ background: dimColor(commit.color) }} />
+                    </>
+                  ) : null}
                 </div>
 
                 {/* Spacer for SVG */}
@@ -494,6 +612,32 @@ export default function CommitGraph({
           onClose={() => setDrop(null)}
         />
       )}
+
+      {refExpand && (() => {
+        const expandCommit = displayLayout.find(c => c.row === refExpand.row)
+        if (!expandCommit) return null
+        const allPrefs = processRefs(expandCommit.refs)
+        const hiddenPrefs = allPrefs.slice(1)
+        if (hiddenPrefs.length === 0) return null
+        const { rect } = refExpand
+        const top = rect.bottom + 4
+        const left = rect.left
+        return createPortal(
+          <div
+            className="ref-expansion-popup"
+            style={{ position: 'fixed', left, top, zIndex: 9998, minWidth: rect.width, width: 'max-content' }}
+            onMouseEnter={() => { if (refExpandTimer.current) clearTimeout(refExpandTimer.current) }}
+            onMouseLeave={() => { refExpandTimer.current = setTimeout(() => setRefExpand(null), 120) }}
+          >
+            {hiddenPrefs.map((p, i) => (
+              <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch}
+                onDragStartBranch={setDragBranch}
+                onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
+            ))}
+          </div>,
+          document.body
+        )
+      })()}
     </div>
   )
 }
