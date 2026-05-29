@@ -15,3 +15,5 @@ out/
 .env
 .env.local
 .env.*
+tsconfig.web.tsbuildinfo
+tsconfig.node.tsbuildinfo
