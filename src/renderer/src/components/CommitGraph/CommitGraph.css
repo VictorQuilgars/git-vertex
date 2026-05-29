@@ -217,16 +217,18 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 9px 4px 8px;
+  padding: 0 9px 0 8px;
+  height: 26px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   border: 1px solid;
-  line-height: 1.4;
+  line-height: 1;
   user-select: none;
   max-width: 200px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 /* checkmark for HEAD */
@@ -253,7 +255,7 @@
 .rc-local  { background: #1f6feb18; color: #58a6ff; border-color: #1f6feb55; }
 .rc-remote { background: #2ea04318; color: #3fb950; border-color: #2ea04355; }
 .rc-head   { background: #f1e05a22; color: #f1e05a; border-color: #f1e05a66; }
-.rc-tag    { background: #8957e518; color: #d2a8ff; border-color: #8957e555; gap: 6px; }
+.rc-tag    { background: #8957e518; color: #d2a8ff; border-color: #8957e555; }
 .rc-overflow { background: #30363d; color: #8b949e; border-color: #484f58; cursor: default; padding: 2px 7px; }
 
 /* Stack badge — shown when a commit has hidden refs */
