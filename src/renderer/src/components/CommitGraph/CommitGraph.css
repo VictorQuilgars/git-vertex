@@ -58,16 +58,27 @@
 .cg-row {
   display: flex;
   align-items: center;
-  height: 40px;
+  height: 50px;
   position: absolute;
   left: 0;
   right: 0;
   cursor: pointer;
-  border-bottom: 1px solid #0d111780;
+  border-bottom: 1px solid #21262d40;
   transition: background 0.07s;
   z-index: 1;
   background: transparent;
 }
+
+/* Colored left stripe */
+.cg-color-bar {
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.1s;
+}
+.cg-row:hover .cg-color-bar { opacity: 0.9; }
+.cg-selected .cg-color-bar { opacity: 1 !important; }
 .cg-row:hover { background: #161b2299; }
 .cg-selected  { background: #1a3a5c !important; }
 .cg-dimmed    { opacity: 0.25; }
@@ -85,7 +96,6 @@
   gap: 3px;
   padding: 0 8px;
   overflow: hidden;
-  border-right: 1px solid #21262d;
   height: 100%;
 }
 
@@ -99,19 +109,36 @@
   overflow: hidden;
 }
 
+.cg-msg-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+}
+
 .cg-msg {
   display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #e6edf3;
+  color: #ffffff;
   font-size: 12px;
+  font-weight: 500;
 }
 
 .cg-msg-wip {
   color: #6e7681;
   font-style: italic;
-  font-size: 12px;
+}
+
+.cg-msg-sub {
+  display: block;
+  font-size: 10px;
+  color: #6e7681;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cg-col-author {

@@ -5,7 +5,7 @@ import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
 import './CommitGraph.css'
 
-const ROW_HEIGHT  = 40
+const ROW_HEIGHT  = 50
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
 const SVG_PAD_L   = 10
@@ -312,29 +312,24 @@ export default function CommitGraph({
                 )
               }
 
-              const ring = commit.color
-              const bg = isSelected ? '#1a3a5c' : '#161b22'
-              const avatarColor = getAvatarColor(commit.authorEmail)
               const init = initials(commit.author)
 
               return (
                 <g key={commit.hash}>
-                  {/* Outer ring */}
-                  <circle cx={cx} cy={cy} r={NODE_RADIUS} fill={ring} />
-                  {/* Inner dark bg */}
-                  <circle cx={cx} cy={cy} r={NODE_RADIUS - 2} fill={bg} />
-                  {/* Initials */}
+                  {isSelected && (
+                    <circle cx={cx} cy={cy} r={NODE_RADIUS + 3}
+                      fill="none" stroke={commit.color} strokeWidth={1.5} opacity={0.5} />
+                  )}
+                  {/* Solid colored avatar circle */}
+                  <circle cx={cx} cy={cy} r={NODE_RADIUS} fill={commit.color} />
+                  {/* White initials */}
                   <text x={cx} y={cy} dy=".35em"
                     textAnchor="middle"
-                    fontSize={7}
+                    fontSize={8}
                     fontWeight="700"
                     fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
-                    fill={avatarColor}
+                    fill="#ffffff"
                   >{init}</text>
-                  {isSelected && (
-                    <circle cx={cx} cy={cy} r={NODE_RADIUS + 2}
-                      fill="none" stroke="#58a6ff" strokeWidth={1.5} opacity={0.7} />
-                  )}
                 </g>
               )
             })}
@@ -358,6 +353,9 @@ export default function CommitGraph({
                 onClick={() => !isWip && onSelectCommit(commit)}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
               >
+                {/* Colored left stripe based on branch */}
+                <div className="cg-color-bar" style={{ background: isWip ? '#484f58' : commit.color }} />
+
                 {/* BRANCH / TAG column */}
                 <div className="cg-refs-col" style={{ width: refsColW }}>
                   {visible.map((p, i) => (
@@ -374,9 +372,14 @@ export default function CommitGraph({
                 {/* Spacer for SVG */}
                 <div style={{ width: svgW, flexShrink: 0 }} />
 
-                {/* Message */}
+                {/* Message — two lines */}
                 <div className="cg-col-msg">
-                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`}>{commit.message}</span>
+                  <div className="cg-msg-stack">
+                    <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`}>{commit.message}</span>
+                    {!isWip && (
+                      <span className="cg-msg-sub">{commit.author} · {fmtDate(commit.date)}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Author */}
