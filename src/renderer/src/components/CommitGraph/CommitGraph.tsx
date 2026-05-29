@@ -8,10 +8,30 @@ import './CommitGraph.css'
 const ROW_HEIGHT  = 40
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
-const REFS_COL_W  = 164
 const SVG_PAD_L   = 10
 const SVG_PAD_R   = 8
 const WIP_HASH    = '__WIP__'
+
+function useColResize(key: string, defaultW: number, min = 60) {
+  const [w, setW] = useState(() => parseInt(localStorage.getItem(key) || String(defaultW)))
+  const startResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = w
+    const onMove = (me: MouseEvent) => {
+      const next = Math.max(min, startW + me.clientX - startX)
+      setW(next)
+      localStorage.setItem(key, String(next))
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [w, key, min])
+  return [w, startResize] as const
+}
 
 function getAvatarColor(email: string) {
   let h = 0
@@ -118,6 +138,11 @@ export default function CommitGraph({
   const bodyRef = useRef<HTMLDivElement>(null)
   const layout = useMemo(() => computeGraphLayout(commits), [commits])
   const [ctx, setCtx] = useState<CtxState | null>(null)
+
+  const [refsColW,   startResizeRefs]   = useColResize('cg-refs-w',   164, 80)
+  const [authorColW, startResizeAuthor] = useColResize('cg-author-w', 140, 80)
+  const [dateColW,   startResizeDate]   = useColResize('cg-date-w',   100, 70)
+  const [shaColW,    startResizeSha]    = useColResize('cg-sha-w',     62, 50)
 
   // Prepend WIP virtual commit when working directory has changes
   const displayLayout = useMemo((): LayoutCommit[] => {
@@ -227,26 +252,30 @@ export default function CommitGraph({
     <div className="cg-container">
       {/* ── Header ── */}
       <div className="cg-header">
-        <div className="cg-h-refs" style={{ width: REFS_COL_W }}>BRANCH / TAG</div>
+        <div className="cg-h-refs" style={{ width: refsColW }}>BRANCH / TAG</div>
+        <div className="cg-col-handle" onMouseDown={startResizeRefs} />
         <div className="cg-h-graph" style={{ width: svgW }}>GRAPH</div>
         <div className="cg-h-msg">COMMIT MESSAGE</div>
-        <div className="cg-h-author">AUTHOR</div>
-        <div className="cg-h-date">DATE</div>
-        <div className="cg-h-sha">SHA</div>
+        <div className="cg-col-handle" onMouseDown={startResizeAuthor} />
+        <div className="cg-h-author" style={{ width: authorColW }}>AUTHOR</div>
+        <div className="cg-col-handle" onMouseDown={startResizeDate} />
+        <div className="cg-h-date" style={{ width: dateColW }}>DATE</div>
+        <div className="cg-col-handle" onMouseDown={startResizeSha} />
+        <div className="cg-h-sha" style={{ width: shaColW }}>SHA</div>
       </div>
 
       {/* ── Body ── */}
       <div className="cg-body" ref={bodyRef}>
         <div className="cg-scroll-content" style={{ height: svgH, position: 'relative' }}>
 
-          {/* Graph SVG — offset by REFS_COL_W */}
+          {/* Graph SVG — offset by refsColW */}
           <svg
             className="cg-graph-svg"
             width={svgW}
             height={svgH}
             style={{
               position: 'absolute',
-              left: REFS_COL_W,
+              left: refsColW,
               top: 0,
               pointerEvents: 'none',
               zIndex: 2,
@@ -330,7 +359,7 @@ export default function CommitGraph({
                 onContextMenu={e => handleRowContextMenu(e, commit)}
               >
                 {/* BRANCH / TAG column */}
-                <div className="cg-refs-col" style={{ width: REFS_COL_W }}>
+                <div className="cg-refs-col" style={{ width: refsColW }}>
                   {visible.map((p, i) => (
                     <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch} />
                   ))}
@@ -352,17 +381,17 @@ export default function CommitGraph({
 
                 {/* Author */}
                 {!isWip && (
-                  <div className="cg-col-author">
+                  <div className="cg-col-author" style={{ width: authorColW }}>
                     <div className="cg-avatar" style={{ background: getAvatarColor(commit.authorEmail) }}>
                       {initials(commit.author)}
                     </div>
                     <span className="cg-author-name">{commit.author}</span>
                   </div>
                 )}
-                {isWip && <div className="cg-col-author" />}
+                {isWip && <div className="cg-col-author" style={{ width: authorColW }} />}
 
-                <div className="cg-col-date">{!isWip ? fmtDate(commit.date) : ''}</div>
-                <div className="cg-col-sha">
+                <div className="cg-col-date" style={{ width: dateColW }}>{!isWip ? fmtDate(commit.date) : ''}</div>
+                <div className="cg-col-sha" style={{ width: shaColW }}>
                   {!isWip && <code>{commit.shortHash}</code>}
                 </div>
               </div>

@@ -22,12 +22,23 @@
   padding: 0;
 }
 
-.cg-h-refs   { flex-shrink: 0; padding: 0 8px; border-right: 1px solid #21262d; height: 100%; display: flex; align-items: center; }
-.cg-h-graph  { flex-shrink: 0; padding: 0 6px; border-right: 1px solid #21262d; height: 100%; display: flex; align-items: center; }
+.cg-h-refs   { flex-shrink: 0; padding: 0 8px; height: 100%; display: flex; align-items: center; }
+.cg-h-graph  { flex-shrink: 0; padding: 0 6px; height: 100%; display: flex; align-items: center; }
 .cg-h-msg    { flex: 1; padding: 0 10px; min-width: 0; }
-.cg-h-author { width: 140px; padding: 0 8px; flex-shrink: 0; }
-.cg-h-date   { width: 100px; padding: 0 8px; flex-shrink: 0; }
-.cg-h-sha    { width: 62px;  padding: 0 8px; flex-shrink: 0; }
+.cg-h-author { flex-shrink: 0; padding: 0 8px; }
+.cg-h-date   { flex-shrink: 0; padding: 0 8px; }
+.cg-h-sha    { flex-shrink: 0; padding: 0 8px; }
+
+.cg-col-handle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  height: 100%;
+  z-index: 10;
+}
+.cg-col-handle:hover { background: #58a6ff; }
 
 /* ── Body ────────────────────────────────────────────────── */
 .cg-body {
@@ -104,7 +115,6 @@
 }
 
 .cg-col-author {
-  width: 140px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -135,7 +145,6 @@
 }
 
 .cg-col-date {
-  width: 100px;
   flex-shrink: 0;
   color: #6e7681;
   padding: 0 8px;
@@ -144,7 +153,6 @@
 }
 
 .cg-col-sha {
-  width: 62px;
   flex-shrink: 0;
   padding: 0 8px;
 }
