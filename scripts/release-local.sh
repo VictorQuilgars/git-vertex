@@ -27,11 +27,22 @@ git push origin main
 git push origin "v$NEW_VERSION"
 
 echo "🚀 Publication de v$NEW_VERSION…"
+
+# macOS (toujours)
 npm run package -- --mac --publish always
+
+# Windows — nécessite wine sur macOS
+if command -v wine &>/dev/null; then
+  echo "🪟 Wine détecté, build Windows…"
+  npm run package -- --win --publish always
+else
+  echo "⚠️  Wine non trouvé — build Windows ignoré en local."
+  echo "   Le CI GitHub Actions build Windows automatiquement via le tag v$NEW_VERSION."
+  echo "   Pour builder en local : brew install --cask wine-stable"
+fi
 
 echo "✅ v$NEW_VERSION publié sur GitHub"
 
 # Clean up local build artifacts
 rm -rf dist/
 echo "🧹 Dossier dist/ nettoyé"
-echo "   Installe un DMG plus ancien et clique 'Vérifier les mises à jour'"
