@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { CommitNode, FileChange, WorkingChanges } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
 import './RightPanel.css'
@@ -175,6 +175,9 @@ function formatPath(path: string): { dir: string; name: string } {
   return { dir: (dir.length > MAX ? dir.slice(0, MAX - 1) + '…' : dir) + '/', name }
 }
 
+const MIN_MSG_H = 48
+const MAX_MSG_H = 400
+
 function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
@@ -189,6 +192,26 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
   const [view, setView] = useState<'files' | 'diff' | 'blame'>('files')
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
   const [viewAll, setViewAll] = useState(false)
+  const [msgHeight, setMsgHeight] = useState(120)
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null)
+
+  const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    dragRef.current = { startY: e.clientY, startH: msgHeight }
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return
+      const delta = ev.clientY - dragRef.current.startY
+      const newH = Math.min(MAX_MSG_H, Math.max(MIN_MSG_H, dragRef.current.startH + delta))
+      setMsgHeight(newH)
+    }
+    const onUp = () => {
+      dragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [msgHeight])
 
   useEffect(() => {
     setFiles([]); setBody(''); setSelectedFile(null); setView('files')
@@ -243,144 +266,152 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
 
       {/* ── Scrollable content ── */}
       <div className="cd-scroll">
-        {/* Title + body */}
-        <div className="cd-message-block">
+        {/* Zone 1 — commit message (dark) */}
+        <div className="cd-message-block" style={{ height: msgHeight, minHeight: MIN_MSG_H, maxHeight: MAX_MSG_H }}>
           <p className="cd-title">{commit.message}</p>
           {cleanBody && <pre className="cd-body">{cleanBody}</pre>}
         </div>
 
-        {/* Author */}
-        <div className="cd-author-block">
-          <div className="cd-avatar-sq" style={{ background: getAvatarColor(commit.authorEmail) }}>
-            {initials(commit.author)}
+        {/* Resize handle */}
+        <div className="cd-resize-handle" onMouseDown={onResizeMouseDown}>
+          <div className="cd-resize-grip" />
+        </div>
+
+        {/* Zone 2 — commit info (lighter) */}
+        <div className="cd-info-zone">
+          {/* Author */}
+          <div className="cd-author-block">
+            <div className="cd-avatar-sq" style={{ background: getAvatarColor(commit.authorEmail) }}>
+              {initials(commit.author)}
+            </div>
+            <div className="cd-author-mid">
+              <span className="cd-author-name">{commit.author}</span>
+              <span className="cd-author-meta">authored {fmtDate(commit.date)}</span>
+            </div>
+            {parentShort && (
+              <button className="cd-parent-btn" onClick={() => onSelectCommit(commit.parents[0])}>
+                parent: <code>{parentShort}</code>
+              </button>
+            )}
           </div>
-          <div className="cd-author-mid">
-            <span className="cd-author-name">{commit.author}</span>
-            <span className="cd-author-meta">authored {fmtDate(commit.date)}</span>
+
+          {coAuthors.length > 0 && (
+            <div className="cd-coauthors">
+              <span className="cd-label">Co-authors:</span>
+              {coAuthors.map((a, i) => (
+                <span key={i} className="cd-coauthor">{a}</span>
+              ))}
+            </div>
+          )}
+
+          {/* Refs */}
+          {commit.refs.length > 0 && (
+            <div className="cd-refs">
+              {commit.refs
+                .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
+                .map((r, i) => {
+                  const isHead = r.includes('HEAD'), isTag = r.startsWith('tag:')
+                  const isRemote = r.includes('origin/') || r.includes('remotes/')
+                  const text = r.replace('tag: ', '').replace('HEAD -> ', '★ ')
+                  const cls = isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local'
+                  return <span key={i} className={`rp-ref ${cls}`}>{text}</span>
+                })}
+            </div>
+          )}
+
+          {/* Files count */}
+          <div className="cd-files-count-row">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="#e3b341">
+              <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
+            </svg>
+            <span className="cd-files-count-text">
+              {files.length} {files.length !== 1 ? 'modified' : 'modified'}
+            </span>
           </div>
-          {parentShort && (
-            <button className="cd-parent-btn" onClick={() => onSelectCommit(commit.parents[0])}>
-              parent: <code>{parentShort}</code>
+
+          {/* Files bar */}
+          <div className="cd-files-bar">
+            <button className="cd-sort-btn" title="Trier">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z"/>
+              </svg>
             </button>
+            <div className="cd-view-toggle">
+              <button className={`cd-view-btn ${view === 'files' ? 'active' : ''}`} onClick={() => setView('files')}>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z"/></svg>
+                Path
+              </button>
+              <button className={`cd-view-btn`} onClick={() => {}}>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm9.5-8a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3z"/></svg>
+                Tree
+              </button>
+            </div>
+            <label className="cd-viewall">
+              <input type="checkbox" checked={viewAll} onChange={e => setViewAll(e.target.checked)} />
+              <span>Tous les fichiers</span>
+            </label>
+          </div>
+
+          {/* File list */}
+          {view === 'files' && (
+            <div className="rp-file-list">
+              {files.map((f, i) => {
+                const { dir, name } = formatPath(f.path)
+                return (
+                  <div key={i}
+                    className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
+                    onClick={() => { setSelectedFile(f.path); setView('diff') }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" className="rp-file-pencil">
+                      <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
+                    </svg>
+                    <span className="rp-file-path">
+                      {dir && <span className="rp-file-dir">{dir}</span>}
+                      <span className="rp-file-name">{name}</span>
+                    </span>
+                    <button className="rp-history-btn" title={t('panel.history')}
+                      onClick={e => { e.stopPropagation(); setFileHistoryPath(f.path) }}>
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z"/>
+                      </svg>
+                    </button>
+                  </div>
+                )
+              })}
+              {files.length === 0 && <div className="rp-empty">{t('panel.loading')}</div>}
+            </div>
+          )}
+
+          {fileHistoryPath && (
+            <FileHistoryModal filepath={fileHistoryPath}
+              onClose={() => setFileHistoryPath(null)} onSelectCommit={onSelectCommit} />
+          )}
+
+          {view === 'diff' && fileForDiff && (
+            <div className="rp-diff-view">
+              <div className="rp-diff-filename">{selectedFile}</div>
+              {fileForDiff.hunks.map((hunk, hi) => (
+                <div key={hi} className="rp-hunk">
+                  <div className="rp-hunk-header">{hunk.header}</div>
+                  <table className="rp-diff-table"><tbody>
+                    {hunk.lines.map((line, li) => (
+                      <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
+                        <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
+                        <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
+                        <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
+                        <td className="rp-lc"><code>{line.content}</code></td>
+                      </tr>
+                    ))}
+                  </tbody></table>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {view === 'blame' && selectedFile && (
+            <BlameView commitHash={commit.hash} filepath={selectedFile} onSelectCommit={onSelectCommit} />
           )}
         </div>
-
-        {coAuthors.length > 0 && (
-          <div className="cd-coauthors">
-            <span className="cd-label">Co-authors:</span>
-            {coAuthors.map((a, i) => (
-              <span key={i} className="cd-coauthor">{a}</span>
-            ))}
-          </div>
-        )}
-
-        {/* Refs */}
-        {commit.refs.length > 0 && (
-          <div className="cd-refs">
-            {commit.refs
-              .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
-              .map((r, i) => {
-                const isHead = r.includes('HEAD'), isTag = r.startsWith('tag:')
-                const isRemote = r.includes('origin/') || r.includes('remotes/')
-                const text = r.replace('tag: ', '').replace('HEAD -> ', '★ ')
-                const cls = isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local'
-                return <span key={i} className={`rp-ref ${cls}`}>{text}</span>
-              })}
-          </div>
-        )}
-
-        {/* Files count */}
-        <div className="cd-files-count-row">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="#e3b341">
-            <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
-          </svg>
-          <span className="cd-files-count-text">
-            {files.length} {files.length !== 1 ? 'modified' : 'modified'}
-          </span>
-        </div>
-
-        {/* Files bar */}
-        <div className="cd-files-bar">
-          <button className="cd-sort-btn" title="Trier">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z"/>
-            </svg>
-          </button>
-          <div className="cd-view-toggle">
-            <button className={`cd-view-btn ${view === 'files' ? 'active' : ''}`} onClick={() => setView('files')}>
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z"/></svg>
-              Path
-            </button>
-            <button className={`cd-view-btn`} onClick={() => {}}>
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm9.5-8a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3z"/></svg>
-              Tree
-            </button>
-          </div>
-          <label className="cd-viewall">
-            <input type="checkbox" checked={viewAll} onChange={e => setViewAll(e.target.checked)} />
-            <span>Tous les fichiers</span>
-          </label>
-        </div>
-
-        {/* File list */}
-        {view === 'files' && (
-          <div className="rp-file-list">
-            {files.map((f, i) => {
-              const { dir, name } = formatPath(f.path)
-              return (
-                <div key={i}
-                  className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
-                  onClick={() => { setSelectedFile(f.path); setView('diff') }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" className="rp-file-pencil">
-                    <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
-                  </svg>
-                  <span className="rp-file-path">
-                    {dir && <span className="rp-file-dir">{dir}</span>}
-                    <span className="rp-file-name">{name}</span>
-                  </span>
-                  <button className="rp-history-btn" title={t('panel.history')}
-                    onClick={e => { e.stopPropagation(); setFileHistoryPath(f.path) }}>
-                    <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z"/>
-                    </svg>
-                  </button>
-                </div>
-              )
-            })}
-            {files.length === 0 && <div className="rp-empty">{t('panel.loading')}</div>}
-          </div>
-        )}
-
-        {fileHistoryPath && (
-          <FileHistoryModal filepath={fileHistoryPath}
-            onClose={() => setFileHistoryPath(null)} onSelectCommit={onSelectCommit} />
-        )}
-
-        {view === 'diff' && fileForDiff && (
-          <div className="rp-diff-view">
-            <div className="rp-diff-filename">{selectedFile}</div>
-            {fileForDiff.hunks.map((hunk, hi) => (
-              <div key={hi} className="rp-hunk">
-                <div className="rp-hunk-header">{hunk.header}</div>
-                <table className="rp-diff-table"><tbody>
-                  {hunk.lines.map((line, li) => (
-                    <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
-                      <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
-                      <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
-                      <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
-                      <td className="rp-lc"><code>{line.content}</code></td>
-                    </tr>
-                  ))}
-                </tbody></table>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {view === 'blame' && selectedFile && (
-          <BlameView commitHash={commit.hash} filepath={selectedFile} onSelectCommit={onSelectCommit} />
-        )}
       </div>
     </div>
   )

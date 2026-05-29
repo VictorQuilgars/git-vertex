@@ -98,15 +98,51 @@
 /* Scrollable body */
 .cd-scroll {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: #0d1117;
 }
 
-/* Message + body */
+/* Zone 1 — commit message (dark background) */
 .cd-message-block {
   padding: 14px 14px 10px;
-  border-bottom: 1px solid #21262d;
+  background: #0d1117;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* Resize handle between the two zones */
+.cd-resize-handle {
+  height: 6px;
+  background: #0d1117;
+  border-top: 1px solid #30363d;
+  border-bottom: 1px solid #30363d;
+  cursor: row-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.1s;
+}
+.cd-resize-handle:hover { background: #1f6feb22; }
+.cd-resize-handle:hover .cd-resize-grip { background: #58a6ff; }
+.cd-resize-grip {
+  width: 32px;
+  height: 2px;
+  border-radius: 2px;
+  background: #30363d;
+  transition: background 0.1s;
+}
+
+/* Zone 2 — author / refs / files (lighter background) */
+.cd-info-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #161b22;
+  overflow-y: auto;
+  min-height: 0;
 }
 .cd-title {
   font-size: 15px;
@@ -258,7 +294,7 @@
   display: flex; align-items: center; gap: 6px;
   padding: 5px 12px; cursor: pointer; transition: background 0.1s;
 }
-.rp-file-row:hover { background: #161b22; }
+.rp-file-row:hover { background: #1c2128; }
 .rp-file-row.active { background: #1f2d3d; }
 
 .rp-file-badge { width: 14px; font-size: 10px; font-weight: 700; flex-shrink: 0; }
