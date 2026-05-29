@@ -205,30 +205,44 @@
 .ref-chip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 1px 6px;
-  border-radius: 6px;
+  gap: 4px;
+  padding: 2px 7px 2px 6px;
+  border-radius: 5px;
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
   border: 1px solid;
-  line-height: 1.5;
+  line-height: 1.4;
   user-select: none;
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 160px;
   flex-shrink: 0;
 }
 
-.rc-star { font-size: 9px; opacity: 0.9; }
-.rc-icon { font-size: 9px; opacity: 0.75; }
-.rc-cloud { font-size: 8px; font-style: normal; }
+/* checkmark for HEAD */
+.rc-check { font-size: 9px; opacity: 0.9; flex-shrink: 0; }
 
-.rc-local    { background: #1f6feb18; color: #58a6ff;  border-color: #1f6feb55; }
-.rc-remote   { background: #2ea04318; color: #3fb950;  border-color: #2ea04355; }
-.rc-head     { background: #f1e05a22; color: #f1e05a;  border-color: #f1e05a66; }
-.rc-tag      { background: #8957e518; color: #d2a8ff;  border-color: #8957e555; }
-.rc-overflow { background: #30363d;   color: #8b949e;  border-color: #484f58; cursor: default; padding: 1px 5px; }
+/* branch name — truncated */
+.rc-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+/* icon cluster (monitor + cloud) */
+.rc-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.rc-local  { background: #1f6feb18; color: #58a6ff; border-color: #1f6feb55; }
+.rc-remote { background: #2ea04318; color: #3fb950; border-color: #2ea04355; }
+.rc-head   { background: #f1e05a22; color: #f1e05a; border-color: #f1e05a66; }
+.rc-tag    { background: #8957e518; color: #d2a8ff; border-color: #8957e555; gap: 5px; }
+.rc-overflow { background: #30363d; color: #8b949e; border-color: #484f58; cursor: default; padding: 1px 5px; }
 
 /* Stack badge — shown when a commit has hidden refs */
 .rc-stack-badge {

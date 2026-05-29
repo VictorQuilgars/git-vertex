@@ -49,36 +49,99 @@ function fmtDate(s: string) {
 }
 
 interface ProcessedRef {
-  display: string
-  cls: string
-  branchName?: string
+  display: string      // branch/tag name without "origin/" prefix
+  cls: string          // rc-head | rc-local | rc-remote | rc-tag
+  branchName?: string  // full ref name for checkout/drag
   tooltip?: string
+  isHead?: boolean     // current HEAD branch
+  hasLocal?: boolean   // has a local counterpart
+  hasRemote?: boolean  // has a remote counterpart (origin/...)
 }
 
 function processRefs(refs: string[]): ProcessedRef[] {
   const filtered = refs.filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
-  const remotes: ProcessedRef[] = []
-  const heads: ProcessedRef[] = []
-  const locals: ProcessedRef[] = []
-  const tags: ProcessedRef[] = []
+
+  const headSet    = new Set<string>()   // branch names that are HEAD
+  const localSet   = new Set<string>()   // all local branch names
+  const remoteMap  = new Map<string, string>() // short name -> full ref
+  const tags: string[] = []
 
   for (const ref of filtered) {
     if (ref.includes('HEAD -> ')) {
-      const branch = ref.replace('HEAD -> ', '')
-      heads.push({ display: branch, cls: 'rc-head', branchName: branch, tooltip: branch })
+      const b = ref.replace('HEAD -> ', '')
+      headSet.add(b)
+      localSet.add(b)
     } else if (ref.startsWith('tag:')) {
-      const name = ref.replace('tag: ', '')
-      tags.push({ display: name, cls: 'rc-tag', tooltip: name })
+      tags.push(ref.replace('tag: ', ''))
     } else if (ref.includes('origin/') || ref.includes('remotes/')) {
-      remotes.push({ display: ref, cls: 'rc-remote', branchName: ref, tooltip: ref })
+      const short = ref.replace(/^(origin\/|remotes\/[^/]+\/)/, '')
+      remoteMap.set(short, ref)
     } else {
-      locals.push({ display: ref, cls: 'rc-local', branchName: ref, tooltip: ref })
+      localSet.add(ref)
     }
   }
 
-  // remote first so the most "upstream" ref is the primary chip shown
-  return [...remotes, ...heads, ...locals, ...tags]
+  const result: ProcessedRef[] = []
+  const usedRemotes = new Set<string>()
+
+  // Local branches (HEAD first), merged with remote when names match
+  const sortedLocals = [...localSet].sort((a, b) =>
+    (headSet.has(b) ? 1 : 0) - (headSet.has(a) ? 1 : 0)
+  )
+  for (const name of sortedLocals) {
+    const fullRemote = remoteMap.get(name)
+    if (fullRemote) usedRemotes.add(name)
+    const isHead = headSet.has(name)
+    result.push({
+      display: name,
+      cls: isHead ? 'rc-head' : 'rc-local',
+      branchName: name,
+      tooltip: fullRemote ? `${name}  +  ${fullRemote}` : name,
+      isHead,
+      hasLocal: true,
+      hasRemote: !!fullRemote,
+    })
+  }
+
+  // Remote-only branches (no matching local)
+  for (const [short, full] of remoteMap) {
+    if (!usedRemotes.has(short)) {
+      result.push({
+        display: short,
+        cls: 'rc-remote',
+        branchName: full,
+        tooltip: full,
+        hasLocal: false,
+        hasRemote: true,
+      })
+    }
+  }
+
+  // Tags
+  for (const tag of tags) {
+    result.push({ display: tag, cls: 'rc-tag', tooltip: tag })
+  }
+
+  return result
 }
+
+// SVG icons
+const IconMonitor = () => (
+  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style={{ flexShrink: 0 }}>
+    <path d="M0 4s0-2 2-2h12s2 0 2 2v6s0 2-2 2h-4c0 .667.083 1.167.25 1.5H11a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1h.75c.167-.333.25-.833.25-1.5H2s-2 0-2-2V4zm1.398-.855a.758.758 0 0 0-.254.302A1.46 1.46 0 0 0 1 4v6c0 .325.078.502.145.602.07.105.17.188.302.254a1.464 1.464 0 0 0 .538.143L2.5 11h11l.515-.001a1.464 1.464 0 0 0 .538-.143.758.758 0 0 0 .302-.254A.858.858 0 0 0 15 10V4a.857.857 0 0 0-.145-.598.758.758 0 0 0-.302-.254A1.464 1.464 0 0 0 14.013 3H1.987a1.464 1.464 0 0 0-.589.145z"/>
+  </svg>
+)
+const IconCloud = () => (
+  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style={{ flexShrink: 0 }}>
+    <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383z"/>
+  </svg>
+)
+const IconTag = () => (
+  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style={{ flexShrink: 0 }}>
+    <path d="M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0z"/>
+    <path d="M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1zm0 5.586 7 7 4.586-4.586-7-7H2v4.586z"/>
+  </svg>
+)
 
 function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
   pref: ProcessedRef
@@ -86,15 +149,14 @@ function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
   onDragStartBranch?: (name: string) => void
   onDragEndBranch?: () => void
 }) {
-  // Only local branches (incl. HEAD) are draggable onto commits
-  const isBranch = (pref.cls === 'rc-local' || pref.cls === 'rc-head') && !!pref.branchName
+  const isDraggable = (pref.cls === 'rc-local' || pref.cls === 'rc-head') && !!pref.branchName
   return (
     <span
       className={`ref-chip ${pref.cls}`}
       title={pref.tooltip}
-      draggable={isBranch}
+      draggable={isDraggable}
       onDragStart={e => {
-        if (!isBranch) return
+        if (!isDraggable) return
         e.dataTransfer.effectAllowed = 'move'
         e.dataTransfer.setData('text/plain', pref.branchName!)
         onDragStartBranch?.(pref.branchName!)
@@ -108,10 +170,15 @@ function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
       }}
       style={pref.cls !== 'rc-tag' ? { cursor: 'pointer' } : undefined}
     >
-      {pref.cls === 'rc-head'   && <span className="rc-star">★</span>}
-      {pref.cls === 'rc-tag'    && <span className="rc-icon">🏷</span>}
-      {pref.cls === 'rc-remote' && <span className="rc-icon rc-cloud">↑</span>}
-      {pref.display}
+      {pref.isHead && <span className="rc-check">✓</span>}
+      <span className="rc-name">{pref.display}</span>
+      {pref.cls !== 'rc-tag' && (
+        <span className="rc-icons">
+          {pref.hasLocal  && <IconMonitor />}
+          {pref.hasRemote && <IconCloud />}
+        </span>
+      )}
+      {pref.cls === 'rc-tag' && <IconTag />}
     </span>
   )
 }
@@ -356,6 +423,20 @@ export default function CommitGraph({
           >
             {/* Edges */}
             {displayLayout.flatMap(commit => commit.edges.map(edge => renderEdge(commit, edge)))}
+
+            {/* Connector lines: horizontal line from left of SVG to node, for commits with refs */}
+            {displayLayout.map(commit => {
+              if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
+              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
+              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              if (cx <= 0) return null
+              return (
+                <line key={`conn-${commit.hash}`}
+                  x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
+                  stroke={commit.color} strokeWidth={1} opacity={0.35}
+                />
+              )
+            })}
 
             {/* Nodes */}
             {displayLayout.map(commit => {
