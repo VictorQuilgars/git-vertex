@@ -105,7 +105,13 @@ const fr = {
   'settings.nav.git': '⎇ Git',
   'settings.nav.github': '🐙 GitHub',
   'settings.nav.ai': '✨ Intelligence Artificielle',
+  'settings.nav.notifications': '🔔 Notifications',
   'settings.nav.about': 'ℹ À propos',
+  'settings.notifications.title': 'Notifications de bureau',
+  'settings.notifications.desc': 'Choisissez les évènements qui déclenchent une notification système.',
+  'settings.notifications.fetch': 'Nouveaux commits détectés lors d\'un fetch',
+  'settings.notifications.commit': 'Commit créé avec succès',
+  'settings.notifications.update': 'Mise à jour de l\'application disponible',
 
   // Settings — Git
   'settings.git.title': 'Configuration Git globale',
@@ -420,7 +426,13 @@ const en: typeof fr = {
   'settings.nav.git': '⎇ Git',
   'settings.nav.github': '🐙 GitHub',
   'settings.nav.ai': '✨ Artificial Intelligence',
+  'settings.nav.notifications': '🔔 Notifications',
   'settings.nav.about': 'ℹ About',
+  'settings.notifications.title': 'Desktop notifications',
+  'settings.notifications.desc': 'Choose which events trigger a system notification.',
+  'settings.notifications.fetch': 'New commits detected on fetch',
+  'settings.notifications.commit': 'Commit created successfully',
+  'settings.notifications.update': 'App update available',
 
   // Settings — Git
   'settings.git.title': 'Global Git Configuration',

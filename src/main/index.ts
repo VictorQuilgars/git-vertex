@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
@@ -9,6 +9,19 @@ import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 
 let mainWindow: BrowserWindow
 let gitService: GitService | null = null
+
+// ── Desktop notifications ──────────────────────────────────────
+// settingKey gates the notification via settings.json; defaultEnabled
+// is used when the setting was never written.
+function notify(title: string, body: string, settingKey?: string, defaultEnabled = true): void {
+  if (settingKey) {
+    const val = readSettings()[settingKey]
+    const enabled = val === undefined ? defaultEnabled : val !== 'false'
+    if (!enabled) return
+  }
+  if (!Notification.isSupported()) return
+  try { new Notification({ title, body }).show() } catch { /* ignore */ }
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -113,6 +126,7 @@ app.whenReady().then(() => {
       downloadedUpdateVersion = info.version
       downloadedUpdateFile = info.downloadedFile ?? null
       mainWindow?.webContents.send('updater:update-downloaded', info.version)
+      notify('Mise à jour disponible', `La version ${info.version} est prête à être installée.`, 'notifyUpdate')
     })
     autoUpdater.on('error', (err) => {
       console.error('[updater] error:', err.message)
@@ -228,7 +242,25 @@ ipcMain.handle('git:get-upstream', async () => {
 
 ipcMain.handle('git:fetch', async () => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.fetch()
+  const before = await gitService.getRemoteRefs()
+  const result = await gitService.fetch()
+  if (result.success) {
+    const after = await gitService.getRemoteRefs()
+    let changed = 0
+    for (const ref of Object.keys(after)) {
+      if (before[ref] !== after[ref]) changed++
+    }
+    if (changed > 0) {
+      notify(
+        'Nouveaux commits disponibles',
+        changed === 1
+          ? '1 branche distante a été mise à jour.'
+          : `${changed} branches distantes ont été mises à jour.`,
+        'notifyFetch'
+      )
+    }
+  }
+  return result
 })
 
 ipcMain.handle('git:push', async () => {
@@ -269,7 +301,12 @@ ipcMain.handle('git:unstage', async (_event, files: string[]) => {
 
 ipcMain.handle('git:commit', async (_event, message: string, amend = false) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.commit(message, amend)
+  const result = await gitService.commit(message, amend)
+  if (result.success) {
+    const firstLine = message.split('\n')[0]
+    notify('Commit créé', firstLine, 'notifyCommit', false)
+  }
+  return result
 })
 
 ipcMain.handle('git:get-last-commit-message', async () => {
