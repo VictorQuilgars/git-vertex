@@ -63,7 +63,7 @@
   left: 0;
   right: 0;
   cursor: pointer;
-  border-bottom: 1px solid #21262d40;
+  box-shadow: 0 1px 0 0 #21262d40;
   transition: background 0.07s;
   z-index: 1;
   background: transparent;
