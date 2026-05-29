@@ -11,7 +11,7 @@
 .cg-header {
   display: flex;
   align-items: center;
-  height: 30px;
+  height: 28px;
   background: #161b22;
   border-bottom: 1px solid #21262d;
   font-size: 10px;
@@ -19,60 +19,102 @@
   color: #6e7681;
   letter-spacing: 0.05em;
   flex-shrink: 0;
-  padding: 0 4px;
+  padding: 0;
 }
 
-.cg-h-graph  { flex-shrink: 0; padding: 0 6px; }
-.cg-h-msg    { flex: 1; padding: 0 8px; min-width: 0; }
-.cg-h-author { width: 150px; padding: 0 8px; flex-shrink: 0; }
-.cg-h-date   { width: 112px; padding: 0 8px; flex-shrink: 0; }
-.cg-h-sha    { width: 66px;  padding: 0 8px; flex-shrink: 0; }
+.cg-h-refs   { flex-shrink: 0; padding: 0 8px; height: 100%; display: flex; align-items: center; }
+.cg-h-graph  { flex-shrink: 0; padding: 0 6px; height: 100%; display: flex; align-items: center; }
+.cg-h-msg    { flex: 1; padding: 0 10px; min-width: 0; }
+.cg-h-author { flex-shrink: 0; padding: 0 8px; }
+.cg-h-date   { flex-shrink: 0; padding: 0 8px; }
+.cg-h-sha    { flex-shrink: 0; padding: 0 8px; }
+
+.cg-col-handle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  height: 100%;
+  z-index: 10;
+}
+.cg-col-handle:hover { background: #58a6ff; }
 
 /* ── Body ────────────────────────────────────────────────── */
 .cg-body {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
-  position: relative; /* needed for the absolute SVG overlay */
+  position: relative;
 }
 
 .cg-scroll-content {
   position: relative;
-  /* height set inline = layout.length * ROW_HEIGHT */
 }
 
-/* ── The graph SVG overlay is absolutely positioned (set inline) ── */
 .cg-graph-svg { display: block; }
 
 /* ── Rows ────────────────────────────────────────────────── */
 .cg-row {
   display: flex;
   align-items: center;
-  height: 34px;
-  position: absolute;    /* absolute inside cg-scroll-content */
+  height: 50px;
+  position: absolute;
   left: 0;
   right: 0;
-  /* top is set inline */
   cursor: pointer;
-  border-bottom: 1px solid #0d1117;
+  border-bottom: 1px solid #21262d40;
   transition: background 0.07s;
-  z-index: 1;            /* below the SVG overlay (z-index:2) */
+  z-index: 1;
   background: transparent;
 }
 
-.cg-row:hover   { background: #161b22; }
-.cg-selected    { background: #1a3a5c !important; }
-.cg-dimmed      { opacity: 0.25; }
+/* Colored left stripe */
+.cg-color-bar {
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.1s;
+}
+.cg-row:hover .cg-color-bar { opacity: 0.9; }
+.cg-selected .cg-color-bar { opacity: 1 !important; }
+.cg-row:hover { background: #161b2299; }
+.cg-selected  { background: #1a3a5c !important; }
+.cg-dimmed    { opacity: 0.25; }
+
+/* WIP row */
+.cg-row-wip { cursor: default; }
+.cg-row-wip:hover { background: #161b2255 !important; }
+
+/* ── BRANCH / TAG column ─────────────────────────────────── */
+.cg-refs-col {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 0 8px;
+  overflow: hidden;
+  height: 100%;
+}
 
 /* ── Columns ─────────────────────────────────────────────── */
 .cg-col-msg {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 5px;
   padding: 0 10px;
   min-width: 0;
   overflow: hidden;
+}
+
+.cg-msg-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
 }
 
 .cg-msg {
@@ -80,12 +122,26 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #e6edf3;
+  color: #ffffff;
   font-size: 12px;
+  font-weight: 500;
+}
+
+.cg-msg-wip {
+  color: #6e7681;
+  font-style: italic;
+}
+
+.cg-msg-sub {
+  display: block;
+  font-size: 10px;
+  color: #6e7681;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cg-col-author {
-  width: 150px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -116,7 +172,6 @@
 }
 
 .cg-col-date {
-  width: 112px;
   flex-shrink: 0;
   color: #6e7681;
   padding: 0 8px;
@@ -125,7 +180,6 @@
 }
 
 .cg-col-sha {
-  width: 66px;
   flex-shrink: 0;
   padding: 0 8px;
 }
@@ -136,15 +190,6 @@
 }
 
 /* ── Ref chips ───────────────────────────────────────────── */
-.cg-refs {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  max-width: 260px;
-  overflow: hidden;
-}
-
 .ref-chip {
   display: inline-flex;
   align-items: center;
@@ -157,42 +202,21 @@
   border: 1px solid;
   line-height: 1.5;
   user-select: none;
-  max-width: 130px;
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.rc-star {
-  font-size: 9px;
-  opacity: 0.9;
-}
-
-.rc-icon {
-  font-size: 9px;
-  opacity: 0.75;
-}
-
-.rc-cloud {
-  font-size: 8px;
-  font-style: normal;
-}
-
-/* Sync dot: small green dot indicating local === remote */
-.rc-sync-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #3fb950;
   flex-shrink: 0;
-  opacity: 0.85;
-  margin-left: 1px;
 }
+
+.rc-star { font-size: 9px; opacity: 0.9; }
+.rc-icon { font-size: 9px; opacity: 0.75; }
+.rc-cloud { font-size: 8px; font-style: normal; }
 
 .rc-local    { background: #1f6feb18; color: #58a6ff;  border-color: #1f6feb55; }
 .rc-remote   { background: #2ea04318; color: #3fb950;  border-color: #2ea04355; }
 .rc-head     { background: #f1e05a22; color: #f1e05a;  border-color: #f1e05a66; }
 .rc-tag      { background: #8957e518; color: #d2a8ff;  border-color: #8957e555; }
-.rc-overflow { background: #30363d;   color: #8b949e;  border-color: #484f58;  cursor: default; padding: 1px 5px; }
+.rc-overflow { background: #30363d;   color: #8b949e;  border-color: #484f58; cursor: default; padding: 1px 5px; }
 
 /* ── Empty state ─────────────────────────────────────────── */
 .cg-empty {
