@@ -92,6 +92,11 @@ const gitAPI = {
   removeRemote: (name: string) => ipcRenderer.invoke('git:remove-remote', name),
   renameRemote: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-remote', oldName, newName),
   fetchRemote: (name: string) => ipcRenderer.invoke('git:fetch-remote', name),
+  // Worktrees
+  listWorktrees: () => ipcRenderer.invoke('git:list-worktrees'),
+  addWorktree: (path: string, ref: string, newBranch?: string) => ipcRenderer.invoke('git:add-worktree', path, ref, newBranch),
+  removeWorktree: (path: string, force?: boolean) => ipcRenderer.invoke('git:remove-worktree', path, force),
+  selectDirectory: (title?: string) => ipcRenderer.invoke('app:select-directory', title),
   // Settings
   settingsGetAll: () => ipcRenderer.invoke('settings:get-all'),
   settingsSet: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value),

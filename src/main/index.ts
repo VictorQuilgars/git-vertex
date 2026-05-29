@@ -160,6 +160,15 @@ ipcMain.handle('git:set-repo', async (_event, repoPath: string) => {
   return openRepoAt(repoPath)
 })
 
+ipcMain.handle('app:select-directory', async (_event, title?: string) => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory', 'createDirectory'],
+    title: title ?? 'Choisir un dossier'
+  })
+  if (result.canceled || result.filePaths.length === 0) return { path: null }
+  return { path: result.filePaths[0] }
+})
+
 // ── IPC: Git read operations ───────────────────────────────────
 ipcMain.handle('git:get-log', async (_event, options: { maxCount?: number; all?: boolean } = {}) => {
   if (!gitService) return { error: 'No repo open' }
@@ -498,6 +507,22 @@ ipcMain.handle('git:rename-remote', async (_event, oldName: string, newName: str
 ipcMain.handle('git:fetch-remote', async (_event, name: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.fetchRemote(name)
+})
+
+// ── IPC: Worktrees ─────────────────────────────────────────
+ipcMain.handle('git:list-worktrees', async () => {
+  if (!gitService) return { worktrees: [] }
+  return gitService.listWorktrees()
+})
+
+ipcMain.handle('git:add-worktree', async (_event, path: string, ref: string, newBranch?: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.addWorktree(path, ref, newBranch)
+})
+
+ipcMain.handle('git:remove-worktree', async (_event, path: string, force?: boolean) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.removeWorktree(path, force)
 })
 
 // ── AI: commit message generation ─────────────────────────────

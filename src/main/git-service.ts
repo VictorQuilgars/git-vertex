@@ -1050,4 +1050,59 @@ export class GitService {
       return { success: false, error: e.message }
     }
   }
+
+  // ── Worktrees ───────────────────────────────────────────────
+
+  async listWorktrees(): Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }> {
+    try {
+      const result = await this.git.raw(['worktree', 'list', '--porcelain'])
+      const worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] = []
+      let cur: { path: string; branch: string; head: string; locked: boolean } | null = null
+      for (const line of result.split('\n')) {
+        if (line.startsWith('worktree ')) {
+          if (cur) worktrees.push({ ...cur, isMain: false })
+          cur = { path: line.slice(9).trim(), branch: '', head: '', locked: false }
+        } else if (cur && line.startsWith('HEAD ')) {
+          cur.head = line.slice(5).trim().slice(0, 7)
+        } else if (cur && line.startsWith('branch ')) {
+          cur.branch = line.slice(7).trim().replace('refs/heads/', '')
+        } else if (cur && line.trim() === 'detached') {
+          cur.branch = '(detached)'
+        } else if (cur && line.startsWith('locked')) {
+          cur.locked = true
+        }
+      }
+      if (cur) worktrees.push({ ...cur, isMain: false })
+      // The first entry is the main working tree
+      if (worktrees.length > 0) worktrees[0].isMain = true
+      return { worktrees }
+    } catch (e) {
+      return { worktrees: [] }
+    }
+  }
+
+  async addWorktree(path: string, ref: string, newBranch?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const args = ['worktree', 'add']
+      if (newBranch) args.push('-b', newBranch)
+      args.push(path)
+      if (ref) args.push(ref)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async removeWorktree(path: string, force = false): Promise<{ success: boolean; error?: string }> {
+    try {
+      const args = ['worktree', 'remove']
+      if (force) args.push('--force')
+      args.push(path)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
 }

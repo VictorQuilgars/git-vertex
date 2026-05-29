@@ -108,6 +108,10 @@ declare global {
       getFileHistory: (filepath: string) => Promise<{ commits: { hash: string; shortHash: string; message: string; author: string; date: string }[] }>
       // Remotes
       getRemotes: () => Promise<{ remotes: { name: string; fetchUrl: string; pushUrl: string }[] }>
+      listWorktrees: () => Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }>
+      addWorktree: (path: string, ref: string, newBranch?: string) => Promise<R>
+      removeWorktree: (path: string, force?: boolean) => Promise<R>
+      selectDirectory: (title?: string) => Promise<{ path: string | null }>
       addRemote: (name: string, url: string) => Promise<R>
       removeRemote: (name: string) => Promise<R>
       renameRemote: (oldName: string, newName: string) => Promise<R>
