@@ -79,6 +79,7 @@ body {
   border-radius: 5px;
 }
 .app-tab-add:hover { color: #e6edf3; background: #161b22; }
+.app-tab-add.active { color: #e6edf3; background: #161b22; }
 
 /* Activity bar */
 .app-activity-bar {
