@@ -108,6 +108,10 @@ declare global {
       getFileHistory: (filepath: string) => Promise<{ commits: { hash: string; shortHash: string; message: string; author: string; date: string }[] }>
       // Remotes
       getRemotes: () => Promise<{ remotes: { name: string; fetchUrl: string; pushUrl: string }[] }>
+      gitflowStatus: () => Promise<{ initialized: boolean; mainBranch: string; features: string[]; releases: string[]; hotfixes: string[] }>
+      gitflowInit: () => Promise<R>
+      gitflowStart: (type: 'feature' | 'release' | 'hotfix', name: string) => Promise<R>
+      gitflowFinish: (type: 'feature' | 'release' | 'hotfix', name: string, tagName?: string) => Promise<R>
       listWorktrees: () => Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }>
       addWorktree: (path: string, ref: string, newBranch?: string) => Promise<R>
       removeWorktree: (path: string, force?: boolean) => Promise<R>

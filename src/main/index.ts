@@ -546,6 +546,27 @@ ipcMain.handle('git:fetch-remote', async (_event, name: string) => {
   return gitService.fetchRemote(name)
 })
 
+// ── IPC: Gitflow ───────────────────────────────────────────
+ipcMain.handle('git:gitflow-status', async () => {
+  if (!gitService) return { initialized: false, mainBranch: 'main', features: [], releases: [], hotfixes: [] }
+  return gitService.gitflowStatus()
+})
+
+ipcMain.handle('git:gitflow-init', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.gitflowInit()
+})
+
+ipcMain.handle('git:gitflow-start', async (_event, type: 'feature' | 'release' | 'hotfix', name: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.gitflowStart(type, name)
+})
+
+ipcMain.handle('git:gitflow-finish', async (_event, type: 'feature' | 'release' | 'hotfix', name: string, tagName?: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.gitflowFinish(type, name, tagName)
+})
+
 // ── IPC: Worktrees ─────────────────────────────────────────
 ipcMain.handle('git:list-worktrees', async () => {
   if (!gitService) return { worktrees: [] }

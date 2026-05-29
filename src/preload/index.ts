@@ -92,6 +92,11 @@ const gitAPI = {
   removeRemote: (name: string) => ipcRenderer.invoke('git:remove-remote', name),
   renameRemote: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-remote', oldName, newName),
   fetchRemote: (name: string) => ipcRenderer.invoke('git:fetch-remote', name),
+  // Gitflow
+  gitflowStatus: () => ipcRenderer.invoke('git:gitflow-status'),
+  gitflowInit: () => ipcRenderer.invoke('git:gitflow-init'),
+  gitflowStart: (type: 'feature' | 'release' | 'hotfix', name: string) => ipcRenderer.invoke('git:gitflow-start', type, name),
+  gitflowFinish: (type: 'feature' | 'release' | 'hotfix', name: string, tagName?: string) => ipcRenderer.invoke('git:gitflow-finish', type, name, tagName),
   // Worktrees
   listWorktrees: () => ipcRenderer.invoke('git:list-worktrees'),
   addWorktree: (path: string, ref: string, newBranch?: string) => ipcRenderer.invoke('git:add-worktree', path, ref, newBranch),
