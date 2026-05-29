@@ -425,20 +425,6 @@ export default function CommitGraph({
             {/* Edges */}
             {displayLayout.flatMap(commit => commit.edges.map(edge => renderEdge(commit, edge)))}
 
-            {/* Connector lines (SVG segment): from SVG left edge to node, same opacity as CSS stub */}
-            {displayLayout.map(commit => {
-              if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
-              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
-              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
-              if (cx - NODE_RADIUS <= 0) return null
-              return (
-                <line key={`conn-${commit.hash}`}
-                  x1={2} y1={cy} x2={cx - NODE_RADIUS - 2} y2={cy}
-                  stroke={commit.color} strokeWidth={1} opacity={0.4}
-                />
-              )
-            })}
-
             {/* Nodes */}
             {displayLayout.map(commit => {
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
@@ -485,6 +471,20 @@ export default function CommitGraph({
                     fill="#ffffff"
                   >{init}</text>
                 </g>
+              )
+            })}
+
+            {/* Connector lines drawn last (on top of nodes) so they don't blend with edge colors */}
+            {displayLayout.map(commit => {
+              if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
+              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
+              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              if (cx - NODE_RADIUS <= 0) return null
+              return (
+                <line key={`conn-${commit.hash}`}
+                  x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
+                  stroke={commit.color} strokeWidth={1} opacity={0.4}
+                />
               )
             })}
           </svg>
