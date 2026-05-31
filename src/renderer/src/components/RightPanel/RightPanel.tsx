@@ -727,7 +727,9 @@ function ConflictPanel({
     // Load resolved files (files that are staged but were part of the conflict or are just staged)
     window.gitAPI.getWorkingChanges().then(r => {
       if (r.staged) {
-        setResolvedFiles(r.staged)
+        // Filter out any files that are currently reported as conflicted by git
+        const actuallyResolved = r.staged.filter(stagedFile => !conflictFiles.includes(stagedFile.path))
+        setResolvedFiles(actuallyResolved)
       }
     })
   }, [conflictFiles])
