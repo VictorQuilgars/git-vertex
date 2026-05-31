@@ -33,13 +33,17 @@ function startWatching(repoPath: string) {
   const gitDir = path.join(repoPath, '.git')
   if (!fs.existsSync(gitDir)) return
 
+  const send = (channel: string) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(channel)
+    }
+  }
+
   // Watch .git → covers commits, staging, branches, conflicts, rebase, fetch
   try {
     gitDirWatcher = fs.watch(gitDir, { recursive: true }, () => {
       if (gitDebounce) clearTimeout(gitDebounce)
-      gitDebounce = setTimeout(() => {
-        mainWindow?.webContents.send('git:repo-changed')
-      }, 200)
+      gitDebounce = setTimeout(() => send('git:repo-changed'), 200)
     })
   } catch { /* git dir may not be watchable in all setups */ }
 
@@ -48,9 +52,7 @@ function startWatching(repoPath: string) {
     workingDirWatcher = fs.watch(repoPath, { recursive: true }, (_type, filename) => {
       if (!filename || filename.startsWith('.git')) return
       if (workingDebounce) clearTimeout(workingDebounce)
-      workingDebounce = setTimeout(() => {
-        mainWindow?.webContents.send('git:working-changed')
-      }, 1500)
+      workingDebounce = setTimeout(() => send('git:working-changed'), 1500)
     })
   } catch { /* ignore */ }
 }
