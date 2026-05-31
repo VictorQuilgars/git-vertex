@@ -1135,7 +1135,7 @@ export default function App() {
             <CommitGraph
               commits={commits}
               selectedHash={selectedCommit?.hash ?? null}
-              onSelectCommit={c => setSelectedCommit(c)}
+              onSelectCommit={c => setSelectedCommit(prev => prev?.hash === c.hash ? null : c)}
               searchQuery={searchQuery}
               currentBranch={currentBranch}
               onCherryPick={handleCherryPick}
@@ -1169,10 +1169,12 @@ export default function App() {
                 onCommitSuccess={loadRepoData}
                 showToast={showToast}
                 wipCount={wipCount}
-                onViewWip={() => setSelectedCommit({
-                  hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
-                  author: '', authorEmail: '', date: '', parents: [], refs: []
-                })}
+                onViewWip={() => setSelectedCommit(prev =>
+                  prev?.hash === '__WIP__' ? null : {
+                    hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
+                    author: '', authorEmail: '', date: '', parents: [], refs: []
+                  }
+                )}
                 onSelectCommit={(hash) => {
                   const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                   if (found) setSelectedCommit(found)
