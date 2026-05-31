@@ -1160,7 +1160,7 @@ export default function App() {
           )}
         </div>
 
-        {repoPath && (
+        {repoPath && (selectedCommit || conflictMode) && (
           <>
             <div className="resize-handle" onMouseDown={startResizeRight} />
             <div className="app-right" style={{ width: rightW }}>
