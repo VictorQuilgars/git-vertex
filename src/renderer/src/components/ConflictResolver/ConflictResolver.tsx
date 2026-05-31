@@ -16,6 +16,8 @@ interface Chunk {
   theirs: string[]
   oursName: string
   theirsName: string
+  oursStartLine: number
+  theirsStartLine: number
 }
 
 export default function ConflictResolver({ file, onFinish, onAbort, showToast }: ConflictResolverProps) {
@@ -23,6 +25,12 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
   const [selections, setSelections] = useState<Record<number, { ours: boolean; theirs: boolean }>>({})
   const [manualOutput, setManualOutput] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Refs for scroll synchronization
+  const oursRef = React.useRef<HTMLDivElement>(null)
+  const theirsRef = React.useRef<HTMLDivElement>(null)
+  const outputRef = React.useRef<HTMLTextAreaElement>(null)
+  const isSyncing = React.useRef(false)
 
   useEffect(() => {
     window.gitAPI.getFileContent(file).then(r => {
@@ -40,12 +48,24 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
       let conflictTheirs: string[] = []
       let oursName = '', theirsName = ''
       let chunkId = 0
+      
+      let currentOursLine = 1
+      let currentTheirsLine = 1
+      let chunkOursStart = 1
+      let chunkTheirsStart = 1
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         if (line.startsWith('<<<<<<<')) {
           if (currCommon.length > 0) {
-            newChunks.push({ id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], oursName: '', theirsName: '' })
+            newChunks.push({
+              id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], oursName: '', theirsName: '',
+              oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
+            })
+            chunkOursStart += currCommon.length
+            chunkTheirsStart += currCommon.length
+            currentOursLine = chunkOursStart
+            currentTheirsLine = chunkTheirsStart
             currCommon = []
           }
           inConflict = true
@@ -62,19 +82,30 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
           newChunks.push({
             id: chunkId++, type: 'conflict', lines: [],
             ours: conflictOurs, theirs: conflictTheirs,
-            oursName, theirsName
+            oursName, theirsName,
+            oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
           })
+          chunkOursStart += conflictOurs.length
+          chunkTheirsStart += conflictTheirs.length
+          currentOursLine = chunkOursStart
+          currentTheirsLine = chunkTheirsStart
           inConflict = false
           phase = ''
         } else {
-          if (!inConflict) currCommon.push(line)
-          else if (phase === 'ours') conflictOurs.push(line)
-          else if (phase === 'theirs') conflictTheirs.push(line)
+          if (!inConflict) {
+            currCommon.push(line)
+          } else if (phase === 'ours') {
+            conflictOurs.push(line)
+          } else if (phase === 'theirs') {
+            conflictTheirs.push(line)
+          }
         }
       }
       if (currCommon.length > 0) {
-        // If the last common chunk is just a trailing newline artifact from split, it's fine.
-        newChunks.push({ id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], oursName: '', theirsName: '' })
+        newChunks.push({
+          id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], oursName: '', theirsName: '',
+          oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
+        })
       }
       
       setChunks(newChunks)
@@ -128,6 +159,34 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
     }
   }
 
+  const handleScroll = (source: 'ours' | 'theirs' | 'output') => {
+    if (isSyncing.current) return
+    isSyncing.current = true
+
+    let scrollLeft = 0
+    if (source === 'ours' && oursRef.current) scrollLeft = oursRef.current.scrollLeft
+    else if (source === 'theirs' && theirsRef.current) scrollLeft = theirsRef.current.scrollLeft
+    else if (source === 'output' && outputRef.current) scrollLeft = outputRef.current.scrollLeft
+
+    if (source !== 'ours' && oursRef.current) oursRef.current.scrollLeft = scrollLeft
+    if (source !== 'theirs' && theirsRef.current) theirsRef.current.scrollLeft = scrollLeft
+    if (source !== 'output' && outputRef.current) outputRef.current.scrollLeft = scrollLeft
+
+    // Use requestAnimationFrame to reset the sync flag after the browser has applied the scroll updates
+    requestAnimationFrame(() => {
+      isSyncing.current = false
+    })
+  }
+
+  const renderLines = (lines: string[], startNum: number) => {
+    return lines.map((l, i) => (
+      <div key={i} className="mt-line">
+        <span className="mt-line-num">{startNum + i}</span>
+        <span className="mt-line-content">{l}</span>
+      </div>
+    ))
+  }
+
   if (loading) {
     return <div className="mt-container"><div className="mt-loading">Chargement…</div></div>
   }
@@ -162,10 +221,10 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
               <div className="mt-badge mt-badge-ours">A</div>
               <span className="mt-pane-title">Nôtre ({oursGlobalName})</span>
             </div>
-            <div className="mt-pane-content">
+            <div className="mt-pane-content" ref={oursRef} onScroll={() => handleScroll('ours')}>
               {chunks.map((c, i) => {
                 if (c.type === 'common') {
-                  return <pre key={i} className="mt-block-common">{c.lines.join('\n')}</pre>
+                  return <div key={i} className="mt-block-common">{renderLines(c.lines, c.oursStartLine)}</div>
                 }
                 const maxLines = Math.max(c.ours.length, c.theirs.length)
                 return (
@@ -176,7 +235,7 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
                         Garder A
                       </label>
                     </div>
-                    <pre className="mt-block-text">{c.ours.join('\n')}</pre>
+                    <div className="mt-block-text">{renderLines(c.ours, c.oursStartLine)}</div>
                   </div>
                 )
               })}
@@ -189,10 +248,10 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
               <div className="mt-badge mt-badge-theirs">B</div>
               <span className="mt-pane-title">Leur ({theirsGlobalName})</span>
             </div>
-            <div className="mt-pane-content">
+            <div className="mt-pane-content" ref={theirsRef} onScroll={() => handleScroll('theirs')}>
               {chunks.map((c, i) => {
                 if (c.type === 'common') {
-                  return <pre key={i} className="mt-block-common">{c.lines.join('\n')}</pre>
+                  return <div key={i} className="mt-block-common">{renderLines(c.lines, c.theirsStartLine)}</div>
                 }
                 const maxLines = Math.max(c.ours.length, c.theirs.length)
                 return (
@@ -203,7 +262,7 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
                         Garder B
                       </label>
                     </div>
-                    <pre className="mt-block-text">{c.theirs.join('\n')}</pre>
+                    <div className="mt-block-text">{renderLines(c.theirs, c.theirsStartLine)}</div>
                   </div>
                 )
               })}
@@ -217,12 +276,22 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
             <span className="mt-pane-title">Output ({resolvedCount} / {totalConflicts} résolus)</span>
             {manualOutput !== null && <span className="mt-manual-badge">Édition manuelle active</span>}
           </div>
-          <textarea
-            className="mt-output-editor"
-            value={currentOutput}
-            onChange={e => setManualOutput(e.target.value)}
-            spellCheck={false}
-          />
+          <div className="mt-output-wrapper">
+            <div className="mt-output-line-numbers">
+              {currentOutput.split('\n').map((_, i) => (
+                <div key={i} className="mt-line-num">{i + 1}</div>
+              ))}
+            </div>
+            <textarea
+              ref={outputRef}
+              onScroll={() => handleScroll('output')}
+              className="mt-output-editor"
+              value={currentOutput}
+              onChange={e => setManualOutput(e.target.value)}
+              spellCheck={false}
+              wrap="off"
+            />
+          </div>
         </div>
       </div>
     </div>

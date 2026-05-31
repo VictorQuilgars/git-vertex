@@ -126,19 +126,38 @@
 .mt-pane-content {
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  padding: 8px 0;
   gap: 4px;
+  overflow-x: auto;
+}
+
+.mt-line {
+  display: flex;
+  min-width: max-content;
+}
+
+.mt-line-num {
+  width: 40px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 8px;
+  color: #6e7681;
+  user-select: none;
+  border-right: 1px solid #30363d;
+  margin-right: 8px;
+}
+
+.mt-line-content {
+  white-space: pre;
 }
 
 .mt-block-common {
   margin: 0;
-  padding: 4px 8px;
+  padding: 4px 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 20px;
   color: #8b949e;
-  white-space: pre-wrap;
-  word-wrap: break-word;
 }
 
 .mt-block-conflict {
@@ -146,8 +165,8 @@
   flex-direction: column;
   border: 1px solid transparent;
   border-radius: 6px;
-  overflow: hidden;
   transition: all 0.15s;
+  margin: 0 8px;
 }
 .mt-block-header {
   display: flex;
@@ -156,6 +175,8 @@
   font-size: 11px;
   font-weight: 600;
   border-bottom: 1px solid transparent;
+  position: sticky;
+  left: 0;
 }
 .mt-block-header label {
   display: flex;
@@ -166,12 +187,10 @@
 }
 .mt-block-text {
   margin: 0;
-  padding: 4px 8px;
+  padding: 4px 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 20px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
   flex: 1;
 }
 
@@ -231,18 +250,47 @@
   text-transform: uppercase;
 }
 
+.mt-output-wrapper {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.mt-output-line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+  width: 40px;
+  flex-shrink: 0;
+  text-align: right;
+  border-right: 1px solid #30363d;
+  background: #0d1117;
+  color: #6e7681;
+  user-select: none;
+}
+.mt-output-line-numbers .mt-line-num {
+  padding-right: 8px;
+  border: none;
+  margin: 0;
+  width: 100%;
+}
+
 .mt-output-editor {
   flex: 1;
-  width: 100%;
   margin: 0;
-  padding: 12px;
+  padding: 12px 8px;
   background: transparent;
   border: none;
   color: #e6edf3;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 13px;
-  line-height: 20px;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
   resize: none;
+  white-space: pre;
+  overflow: auto;
 }
 .mt-output-editor:focus {
   outline: none;
