@@ -417,6 +417,7 @@ export default function App() {
   // "New tab" → return to the welcome screen so the user can pick
   // open / clone / a recent repo.
   const goHome = useCallback(() => {
+    if (conflictResolverFile) return
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setActiveTabId(null)
     setRepoPath(null)
@@ -425,10 +426,11 @@ export default function App() {
     setCommits([])
     setGithubRepoUrl(null)
     setGithubOwnerRepo(null)
-  }, [activeTabId, selectedCommit])
+  }, [activeTabId, selectedCommit, conflictResolverFile])
 
   const switchTab = useCallback(async (tab: { id: string; path: string; name: string }) => {
     if (tab.id === activeTabId) return
+    if (conflictResolverFile) return
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setActiveTabId(tab.id)
     const r = await window.gitAPI.setRepo(tab.path)
@@ -1021,9 +1023,18 @@ export default function App() {
           {conflictResolverFile ? (
             <ConflictResolver
               file={conflictResolverFile}
-              onFinish={() => {
-                setConflictResolverFile(null)
-                loadRepoData()
+              onFinish={async () => {
+                const res = await window.gitAPI.getConflictedFiles()
+                const remaining = res.files
+                if (remaining.length > 0) {
+                  setConflictFiles(remaining)
+                  setConflictResolverFile(remaining[0])
+                  showToast(`Fichier résolu — ${remaining.length} conflit(s) restant(s)`)
+                } else {
+                  setConflictFiles([])
+                  setConflictResolverFile(null)
+                  loadRepoData()
+                }
               }}
               onAbort={() => setConflictResolverFile(null)}
               showToast={showToast}

@@ -14,6 +14,7 @@ interface Chunk {
   lines: string[]
   ours: string[]
   theirs: string[]
+  base: string[]
   oursName: string
   theirsName: string
   oursStartLine: number
@@ -22,23 +23,26 @@ interface Chunk {
 
 export default function ConflictResolver({ file, onFinish, onAbort, showToast }: ConflictResolverProps) {
   const [chunks, setChunks] = useState<Chunk[]>([])
-  const [selections, setSelections] = useState<Record<number, { ours: boolean; theirs: boolean }>>({})
+  const [selections, setSelections] = useState<Record<number, { order: ('ours' | 'theirs')[] }>>({})
   const [manualOutput, setManualOutput] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Refs for scroll synchronization
   const oursRef = React.useRef<HTMLDivElement>(null)
   const theirsRef = React.useRef<HTMLDivElement>(null)
-  const outputRef = React.useRef<HTMLTextAreaElement>(null)
   const isSyncing = React.useRef(false)
 
   useEffect(() => {
-    window.gitAPI.getFileContent(file).then(r => {
-      if (r.error) {
-        showToast(r.error, 'err')
+    setLoading(true)
+    setManualOutput(null)
+    Promise.all([
+      window.gitAPI.getFileContent(file),
+      window.gitAPI.getConflictVersions(file),
+    ]).then(([fileRes, versionsRes]) => {
+      if (fileRes.error) {
+        showToast(fileRes.error, 'err')
         return
       }
-      const raw = r.content || ''
+      const raw = fileRes.content || ''
       const lines = raw.split('\n')
       const newChunks: Chunk[] = []
       let currCommon: string[] = []
@@ -46,11 +50,9 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
       let phase = ''
       let conflictOurs: string[] = []
       let conflictTheirs: string[] = []
+      let conflictBase: string[] = []
       let oursName = '', theirsName = ''
       let chunkId = 0
-      
-      let currentOursLine = 1
-      let currentTheirsLine = 1
       let chunkOursStart = 1
       let chunkTheirsStart = 1
 
@@ -59,13 +61,12 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
         if (line.startsWith('<<<<<<<')) {
           if (currCommon.length > 0) {
             newChunks.push({
-              id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], oursName: '', theirsName: '',
+              id: chunkId++, type: 'common', lines: currCommon,
+              ours: [], theirs: [], base: [], oursName: '', theirsName: '',
               oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
             })
             chunkOursStart += currCommon.length
             chunkTheirsStart += currCommon.length
-            currentOursLine = chunkOursStart
-            currentTheirsLine = chunkTheirsStart
             currCommon = []
           }
           inConflict = true
@@ -73,22 +74,21 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
           oursName = line.replace('<<<<<<< ', '').trim()
           conflictOurs = []
           conflictTheirs = []
+          conflictBase = []
         } else if (line.startsWith('|||||||')) {
-          phase = 'base'
+          phase = 'base' // diff3 format — capture base content
         } else if (line.startsWith('=======')) {
           phase = 'theirs'
         } else if (line.startsWith('>>>>>>>')) {
           theirsName = line.replace('>>>>>>> ', '').trim()
           newChunks.push({
             id: chunkId++, type: 'conflict', lines: [],
-            ours: conflictOurs, theirs: conflictTheirs,
+            ours: conflictOurs, theirs: conflictTheirs, base: conflictBase,
             oursName, theirsName,
             oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
           })
           chunkOursStart += conflictOurs.length
           chunkTheirsStart += conflictTheirs.length
-          currentOursLine = chunkOursStart
-          currentTheirsLine = chunkTheirsStart
           inConflict = false
           phase = ''
         } else {
@@ -98,68 +98,149 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
             conflictOurs.push(line)
           } else if (phase === 'theirs') {
             conflictTheirs.push(line)
+          } else if (phase === 'base') {
+            conflictBase.push(line)
           }
         }
       }
       if (currCommon.length > 0) {
         newChunks.push({
-          id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], oursName: '', theirsName: '',
+          id: chunkId++, type: 'common', lines: currCommon,
+          ours: [], theirs: [], base: [], oursName: '', theirsName: '',
           oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
         })
       }
-      
+
+      // If no diff3 base content was parsed (standard 2-way format), extract
+      // per-chunk base from git stage 1 by anchoring on common lines.
+      // Common lines are identical across all three versions, so we can use them
+      // to locate conflict boundaries in the clean stage-1 file.
+      const hasDiff3Base = newChunks.some(c => c.type === 'conflict' && c.base.length > 0)
+      if (!hasDiff3Base && versionsRes.base) {
+        const baseLines = versionsRes.base.split('\n')
+        let bPos = 0 // current position in stage-1
+
+        for (let ci = 0; ci < newChunks.length; ci++) {
+          const c = newChunks[ci]
+          if (c.type === 'common') {
+            bPos += c.lines.length
+          } else {
+            // Find where the next common chunk starts in stage-1 by matching its lines
+            let nextCommonStart = baseLines.length
+            for (let j = ci + 1; j < newChunks.length; j++) {
+              if (newChunks[j].type !== 'common') continue
+              const needle = newChunks[j].lines
+              if (needle.length === 0) { nextCommonStart = bPos; break }
+              outer: for (let k = bPos; k <= baseLines.length - needle.length; k++) {
+                for (let m = 0; m < needle.length; m++) {
+                  if (baseLines[k + m] !== needle[m]) continue outer
+                }
+                nextCommonStart = k
+                break
+              }
+              break
+            }
+            c.base = baseLines.slice(bPos, nextCommonStart)
+            bPos = nextCommonStart
+          }
+        }
+      }
+
       setChunks(newChunks)
-      
-      // Default selections: none
-      const initialSel: Record<number, { ours: boolean; theirs: boolean }> = {}
+      const initialSel: Record<number, { order: ('ours' | 'theirs')[] }> = {}
       newChunks.forEach(c => {
-        if (c.type === 'conflict') initialSel[c.id] = { ours: false, theirs: false }
+        if (c.type === 'conflict') initialSel[c.id] = { order: [] }
       })
       setSelections(initialSel)
       setLoading(false)
     })
   }, [file])
 
-  const outputString = useMemo(() => {
-    const out: string[] = []
+  const conflictIndexMap = useMemo(() => {
+    const map: Record<number, number> = {}
+    let idx = 0
+    chunks.forEach(c => { if (c.type === 'conflict') map[c.id] = ++idx })
+    return map
+  }, [chunks])
+
+  type LineSource = 'common' | 'ours' | 'theirs' | 'base'
+
+  const outputLines = useMemo(() => {
+    const out: { text: string; source: LineSource }[] = []
     for (const c of chunks) {
       if (c.type === 'common') {
-        out.push(...c.lines)
+        c.lines.forEach(l => out.push({ text: l, source: 'common' }))
       } else {
         const sel = selections[c.id]
-        if (sel?.ours) out.push(...c.ours)
-        if (sel?.theirs) out.push(...c.theirs)
+        if (sel?.order.length > 0) {
+          sel.order.forEach(side => {
+            const lines = side === 'ours' ? c.ours : c.theirs
+            lines.forEach(l => out.push({ text: l, source: side }))
+          })
+        } else {
+          c.base.forEach(l => out.push({ text: l, source: 'base' }))
+        }
       }
     }
-    // Remove the very last empty line if we appended it unnecessarily
-    if (out.length > 0 && out[out.length - 1] === '') {
-      out.pop()
-    }
-    return out.join('\n')
+    if (out.length > 0 && out[out.length - 1].text === '') out.pop()
+    return out
   }, [chunks, selections])
+
+  const outputString = useMemo(
+    () => outputLines.map(l => l.text).join('\n'),
+    [outputLines]
+  )
 
   const currentOutput = manualOutput !== null ? manualOutput : outputString
 
   const toggleSelection = (id: number, side: 'ours' | 'theirs') => {
-    setSelections(prev => ({
-      ...prev,
-      [id]: { ...prev[id], [side]: !prev[id][side] }
-    }))
+    setSelections(prev => {
+      const current = prev[id]?.order ?? []
+      const isSelected = current.includes(side)
+      const newOrder = isSelected
+        ? current.filter(s => s !== side)
+        : [...current, side]
+      return { ...prev, [id]: { order: newOrder } }
+    })
+    setManualOutput(null)
+  }
+
+  const selectAll = (side: 'ours' | 'theirs') => {
+    const conflictChunks = chunks.filter(c => c.type === 'conflict')
+    const allSelected = conflictChunks.every(c => selections[c.id]?.order.includes(side))
+    setSelections(prev => {
+      const next = { ...prev }
+      conflictChunks.forEach(c => {
+        const current = prev[c.id]?.order ?? []
+        next[c.id] = {
+          order: allSelected
+            ? current.filter(s => s !== side)
+            : current.includes(side) ? current : [side]
+        }
+      })
+      return next
+    })
     setManualOutput(null)
   }
 
   const handleSave = async () => {
-    // Validation: if no manual output is set, ensure every conflict chunk has at least one side selected
     if (manualOutput === null) {
       const conflictChunks = chunks.filter(c => c.type === 'conflict')
-      const hasUnresolved = conflictChunks.some(c => !selections[c.id].ours && !selections[c.id].theirs)
+      // A chunk is unresolved only if it has no selection AND no base fallback
+      const hasUnresolved = conflictChunks.some(
+        c => selections[c.id].order.length === 0 && c.base.length === 0
+      )
       if (hasUnresolved) {
-        showToast('Veuillez faire un choix (A ou B) pour tous les conflits avant d\'enregistrer', 'err')
+        showToast('Veuillez faire un choix pour tous les conflits avant d\'enregistrer', 'err')
+        return
+      }
+    } else {
+      if (/^[<=>]{7}/m.test(manualOutput)) {
+        showToast('L\'output contient encore des marqueurs de conflit (<<<<<<<, =======, >>>>>>>)', 'err')
         return
       }
     }
 
-    // resolveConflict takes filepath and the content string, overwrites it, and git adds it.
     const r = await window.gitAPI.resolveConflict(file, currentOutput)
     if (r.success) {
       showToast(`✓ ${file} résolu`)
@@ -169,58 +250,89 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
     }
   }
 
-  const handleScroll = (source: 'ours' | 'theirs' | 'output') => {
+  const handleScroll = (source: 'ours' | 'theirs') => {
     if (isSyncing.current) return
     isSyncing.current = true
-
-    let scrollLeft = 0
-    if (source === 'ours' && oursRef.current) scrollLeft = oursRef.current.scrollLeft
-    else if (source === 'theirs' && theirsRef.current) scrollLeft = theirsRef.current.scrollLeft
-    else if (source === 'output' && outputRef.current) scrollLeft = outputRef.current.scrollLeft
-
-    if (source !== 'ours' && oursRef.current) oursRef.current.scrollLeft = scrollLeft
-    if (source !== 'theirs' && theirsRef.current) theirsRef.current.scrollLeft = scrollLeft
-    if (source !== 'output' && outputRef.current) outputRef.current.scrollLeft = scrollLeft
-
-    // Use requestAnimationFrame to reset the sync flag after the browser has applied the scroll updates
-    requestAnimationFrame(() => {
-      isSyncing.current = false
-    })
+    const src = source === 'ours' ? oursRef.current : theirsRef.current
+    const dst = source === 'ours' ? theirsRef.current : oursRef.current
+    if (src && dst) {
+      dst.scrollTop = src.scrollTop
+      dst.scrollLeft = src.scrollLeft
+    }
+    requestAnimationFrame(() => { isSyncing.current = false })
   }
 
-  const renderLines = (
-    lines: string[], 
-    startNum: number, 
-    checkboxProps?: { checked: boolean; onChange: () => void }
-  ) => {
-    return lines.map((l, i) => (
+  const renderLines = (lines: string[], startNum: number) =>
+    lines.map((l, i) => (
       <div key={i} className="mt-line">
-        <span className="mt-line-num">
-          {i === 0 && checkboxProps && (
-            <input 
-              type="checkbox" 
-              className="mt-line-checkbox"
-              checked={checkboxProps.checked} 
-              onChange={checkboxProps.onChange} 
-            />
-          )}
-          {startNum + i}
-        </span>
+        <span className="mt-line-num">{startNum + i}</span>
         <span className="mt-line-content">{l}</span>
       </div>
     ))
-  }
 
   if (loading) {
     return <div className="mt-container"><div className="mt-loading">Chargement…</div></div>
   }
 
   const conflictChunks = chunks.filter(c => c.type === 'conflict')
-  const resolvedCount = conflictChunks.filter(c => selections[c.id].ours || selections[c.id].theirs).length
+  const resolvedCount = conflictChunks.filter(
+    c => selections[c.id].order.length > 0 || c.base.length > 0
+  ).length
   const totalConflicts = conflictChunks.length
 
   const oursGlobalName = conflictChunks[0]?.oursName || 'HEAD'
   const theirsGlobalName = conflictChunks[0]?.theirsName || 'Incoming'
+
+  const renderPanel = (side: 'ours' | 'theirs') => {
+    const ref = side === 'ours' ? oursRef : theirsRef
+    const isOurs = side === 'ours'
+
+    return (
+      <div className={`mt-pane ${isOurs ? 'mt-ours-pane' : 'mt-theirs-pane'}`}>
+        <div className="mt-pane-header">
+          <div className={`mt-badge ${isOurs ? 'mt-badge-ours' : 'mt-badge-theirs'}`}>{isOurs ? 'A' : 'B'}</div>
+          <span className="mt-pane-title">{isOurs ? `Nôtre (${oursGlobalName})` : `Leur (${theirsGlobalName})`}</span>
+        </div>
+        <div className="mt-pane-content" ref={ref} onScroll={() => handleScroll(side)}>
+          {chunks.map((c, i) => {
+            if (c.type === 'common') {
+              return (
+                <div key={i} className="mt-block-common">
+                  {renderLines(c.lines, isOurs ? c.oursStartLine : c.theirsStartLine)}
+                </div>
+              )
+            }
+            const maxLines = Math.max(c.ours.length, c.theirs.length, c.base.length)
+            const isSelected = selections[c.id].order.includes(isOurs ? 'ours' : 'theirs')
+            const noneSelected = selections[c.id].order.length === 0
+            const conflictLines = isOurs ? c.ours : c.theirs
+            const startLine = isOurs ? c.oursStartLine : c.theirsStartLine
+            return (
+              <div
+                key={i}
+                className={`mt-block-conflict ${isOurs ? 'mt-block-ours' : 'mt-block-theirs'} ${isSelected ? 'selected' : ''}`}
+                style={{ minHeight: `${maxLines * 20 + 26}px` }}
+                onClick={() => toggleSelection(c.id, side)}
+              >
+                <div className="mt-block-header">
+                  <span className="mt-conflict-num">#{conflictIndexMap[c.id]}</span>
+                  {isSelected
+                    ? <span className="mt-selected-badge">✓ Sélectionné</span>
+                    : noneSelected && c.base.length > 0
+                      ? <span className="mt-base-hint">Base active</span>
+                      : <span className="mt-click-hint">Cliquer pour sélectionner</span>
+                  }
+                </div>
+                <div className="mt-block-text">
+                  {renderLines(conflictLines, startLine)}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="mt-container">
@@ -231,88 +343,54 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
           <span className="mt-count">({totalConflicts} conflict{totalConflicts > 1 ? 's' : ''})</span>
         </div>
         <div className="mt-header-right">
-          <button className="mt-btn mt-btn-abort" onClick={onAbort}>✕ Annuler</button>
+          <button className="mt-btn mt-btn-all-a" onClick={() => selectAll('ours')} title="Sélectionner toutes les modifications A">Tout A</button>
+          <button className="mt-btn mt-btn-all-b" onClick={() => selectAll('theirs')} title="Sélectionner toutes les modifications B">Tout B</button>
+          <button className="mt-btn mt-btn-abort" onClick={onAbort}>✕ Fermer</button>
           <button className="mt-btn mt-btn-save" onClick={handleSave}>Enregistrer & Résoudre</button>
         </div>
       </div>
 
       <div className="mt-main">
-        {/* Top Half: Ours / Theirs */}
         <div className="mt-top">
-          {/* Ours Panel */}
-          <div className="mt-pane mt-ours-pane">
-            <div className="mt-pane-header">
-              <div className="mt-badge mt-badge-ours">A</div>
-              <span className="mt-pane-title">Nôtre ({oursGlobalName})</span>
-            </div>
-            <div className="mt-pane-content" ref={oursRef} onScroll={() => handleScroll('ours')}>
-              {chunks.map((c, i) => {
-                if (c.type === 'common') {
-                  return <div key={i} className="mt-block-common">{renderLines(c.lines, c.oursStartLine)}</div>
-                }
-                const maxLines = Math.max(c.ours.length, c.theirs.length)
-                return (
-                  <div key={i} className={`mt-block-conflict mt-block-ours ${selections[c.id].ours ? 'selected' : ''}`} style={{ minHeight: `${maxLines * 20}px` }}>
-                    <div className="mt-block-text">
-                      {renderLines(c.ours, c.oursStartLine, { 
-                        checked: selections[c.id].ours, 
-                        onChange: () => toggleSelection(c.id, 'ours') 
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Theirs Panel */}
-          <div className="mt-pane mt-theirs-pane">
-            <div className="mt-pane-header">
-              <div className="mt-badge mt-badge-theirs">B</div>
-              <span className="mt-pane-title">Leur ({theirsGlobalName})</span>
-            </div>
-            <div className="mt-pane-content" ref={theirsRef} onScroll={() => handleScroll('theirs')}>
-              {chunks.map((c, i) => {
-                if (c.type === 'common') {
-                  return <div key={i} className="mt-block-common">{renderLines(c.lines, c.theirsStartLine)}</div>
-                }
-                const maxLines = Math.max(c.ours.length, c.theirs.length)
-                return (
-                  <div key={i} className={`mt-block-conflict mt-block-theirs ${selections[c.id].theirs ? 'selected' : ''}`} style={{ minHeight: `${maxLines * 20}px` }}>
-                    <div className="mt-block-text">
-                      {renderLines(c.theirs, c.theirsStartLine, { 
-                        checked: selections[c.id].theirs, 
-                        onChange: () => toggleSelection(c.id, 'theirs') 
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+          {renderPanel('ours')}
+          {renderPanel('theirs')}
         </div>
 
-        {/* Bottom Half: Output */}
         <div className="mt-bottom">
           <div className="mt-pane-header">
             <span className="mt-pane-title">Output ({resolvedCount} / {totalConflicts} résolus)</span>
-            {manualOutput !== null && <span className="mt-manual-badge">Édition manuelle active</span>}
+            {manualOutput !== null
+              ? <span className="mt-manual-badge">Édition manuelle active</span>
+              : <button className="mt-btn mt-btn-edit" onClick={() => setManualOutput(outputString)}>Éditer</button>
+            }
+            {manualOutput !== null && (
+              <button className="mt-btn mt-btn-edit" onClick={() => setManualOutput(null)}>Annuler l'édition</button>
+            )}
           </div>
           <div className="mt-output-wrapper">
             <div className="mt-output-line-numbers">
-              {currentOutput.split('\n').map((_, i) => (
+              {(manualOutput !== null ? manualOutput.split('\n') : outputLines).map((_, i) => (
                 <div key={i} className="mt-line-num">{i + 1}</div>
               ))}
             </div>
-            <textarea
-              ref={outputRef}
-              onScroll={() => handleScroll('output')}
-              className="mt-output-editor"
-              value={currentOutput}
-              onChange={e => setManualOutput(e.target.value)}
-              spellCheck={false}
-              wrap="off"
-            />
+            {manualOutput !== null ? (
+              <textarea
+                className="mt-output-editor"
+                value={manualOutput}
+                onChange={e => setManualOutput(e.target.value)}
+                spellCheck={false}
+                wrap="off"
+                autoFocus
+              />
+            ) : (
+              <div className="mt-output-lines">
+                {outputLines.map((l, i) => (
+                  <div key={i} className={`mt-line mt-output-line mt-output-line--${l.source}`}>
+                    <span className="mt-line-content">{l.text || ' '}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

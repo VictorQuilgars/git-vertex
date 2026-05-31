@@ -1134,14 +1134,33 @@ export class GitService {
     try {
       const gitDir = (await this.git.revparse(['--git-dir'])).trim()
       const absGitDir = path.isAbsolute(gitDir) ? gitDir : path.join(this.repoPath, gitDir)
-      
+
       for (const file of ['MERGE_MSG', 'SQUASH_MSG', 'CHERRY_PICK_HEAD', 'REVERT_HEAD']) {
         const p = path.join(absGitDir, file)
         if (fs.existsSync(p)) {
           const content = fs.readFileSync(p, 'utf-8')
-          // Remove commented lines and empty lines
           const clean = content.split('\n').filter(line => !line.trim().startsWith('#')).join('\n').trim()
-          if (clean) return { message: clean }
+          if (!clean) continue
+
+          // Replace "Merge commit 'SHA'" with the branch name when available.
+          // git generates this form when merging a commit not at a named branch tip.
+          const shaMatch = clean.match(/Merge commit '([0-9a-f]{7,40})'/)
+          if (shaMatch) {
+            try {
+              const raw = await this.git.raw(['branch', '--all', '--points-at', shaMatch[1]])
+              const names = raw.split('\n')
+                .map(l => l.trim().replace(/^\* /, ''))
+                .filter(Boolean)
+              const preferred = names.find(b => !b.startsWith('remotes/') && b !== 'HEAD (detached')
+                ?? names.find(b => b.startsWith('remotes/origin/'))
+              if (preferred) {
+                const branchName = preferred.replace(/^remotes\/origin\//, '')
+                return { message: clean.replace(`commit '${shaMatch[1]}'`, `branch '${branchName}'`) }
+              }
+            } catch {}
+          }
+
+          return { message: clean }
         }
       }
     } catch {}

@@ -73,6 +73,20 @@
 .mt-btn-save:hover {
   background: #2ea043;
 }
+.mt-btn-all-a {
+  border-color: #1f6feb;
+  color: #58a6ff;
+}
+.mt-btn-all-a:hover {
+  background: rgba(31, 111, 235, 0.15);
+}
+.mt-btn-all-b {
+  border-color: #d29922;
+  color: #e3b341;
+}
+.mt-btn-all-b:hover {
+  background: rgba(210, 153, 34, 0.15);
+}
 
 /* ── Main Layout ── */
 .mt-main {
@@ -176,6 +190,40 @@
   border: 1px solid transparent;
   transition: all 0.15s;
   min-width: max-content;
+  cursor: pointer;
+}
+
+.mt-block-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  user-select: none;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.mt-conflict-num {
+  color: #8b949e;
+}
+
+.mt-selected-badge {
+  color: #3fb950;
+  font-size: 11px;
+}
+
+.mt-click-hint {
+  color: #484f58;
+  font-size: 10px;
+  font-style: italic;
+}
+
+.mt-base-hint {
+  color: #8957e5;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .mt-block-text {
@@ -279,4 +327,47 @@
 }
 .mt-output-editor:focus {
   outline: none;
+}
+
+.mt-btn-edit {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-color: #30363d;
+  color: #8b949e;
+}
+.mt-btn-edit:hover {
+  color: #c9d1d9;
+}
+
+.mt-output-lines {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.mt-output-line {
+  padding: 0 8px;
+  min-width: max-content;
+}
+
+.mt-output-line--common {
+  color: #e6edf3;
+}
+
+.mt-output-line--ours {
+  background: rgba(31, 111, 235, 0.15);
+  color: #79c0ff;
+}
+
+.mt-output-line--theirs {
+  background: rgba(210, 153, 34, 0.15);
+  color: #e3b341;
+}
+
+.mt-output-line--base {
+  background: rgba(137, 87, 229, 0.1);
+  color: #bc8cff;
 }
