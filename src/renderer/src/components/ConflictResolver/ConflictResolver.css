@@ -137,7 +137,7 @@
 }
 
 .mt-line-num {
-  width: 40px;
+  width: 56px;
   flex-shrink: 0;
   text-align: right;
   padding-right: 8px;
@@ -145,6 +145,15 @@
   user-select: none;
   border-right: 1px solid #30363d;
   margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.mt-line-checkbox {
+  margin: 0;
+  cursor: pointer;
 }
 
 .mt-line-content {
@@ -158,33 +167,17 @@
   font-size: 12px;
   line-height: 20px;
   color: #8b949e;
+  min-width: max-content;
 }
 
 .mt-block-conflict {
   display: flex;
   flex-direction: column;
   border: 1px solid transparent;
-  border-radius: 6px;
   transition: all 0.15s;
-  margin: 0 8px;
+  min-width: max-content;
 }
-.mt-block-header {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  border-bottom: 1px solid transparent;
-  position: sticky;
-  left: 0;
-}
-.mt-block-header label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  user-select: none;
-}
+
 .mt-block-text {
   margin: 0;
   padding: 4px 0;
@@ -198,36 +191,28 @@
 .mt-block-ours {
   background: rgba(31, 111, 235, 0.1);
   border-color: rgba(31, 111, 235, 0.2);
+  border-left: none;
+  border-right: none;
 }
 .mt-block-ours.selected {
   background: rgba(31, 111, 235, 0.2);
   border-color: #1f6feb;
-}
-.mt-block-ours .mt-block-header {
-  background: rgba(31, 111, 235, 0.15);
-  color: #58a6ff;
-  border-bottom-color: rgba(31, 111, 235, 0.2);
-}
-.mt-block-ours.selected .mt-block-header {
-  background: rgba(31, 111, 235, 0.3);
+  border-left: none;
+  border-right: none;
 }
 
 /* Theirs Colors */
 .mt-block-theirs {
   background: rgba(210, 153, 34, 0.1);
   border-color: rgba(210, 153, 34, 0.2);
+  border-left: none;
+  border-right: none;
 }
 .mt-block-theirs.selected {
   background: rgba(210, 153, 34, 0.2);
   border-color: #d29922;
-}
-.mt-block-theirs .mt-block-header {
-  background: rgba(210, 153, 34, 0.15);
-  color: #e3b341;
-  border-bottom-color: rgba(210, 153, 34, 0.2);
-}
-.mt-block-theirs.selected .mt-block-header {
-  background: rgba(210, 153, 34, 0.3);
+  border-left: none;
+  border-right: none;
 }
 
 /* ── Bottom Half (Output) ── */

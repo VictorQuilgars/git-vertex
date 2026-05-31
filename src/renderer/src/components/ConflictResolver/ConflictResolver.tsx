@@ -178,10 +178,24 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
     })
   }
 
-  const renderLines = (lines: string[], startNum: number) => {
+  const renderLines = (
+    lines: string[], 
+    startNum: number, 
+    checkboxProps?: { checked: boolean; onChange: () => void }
+  ) => {
     return lines.map((l, i) => (
       <div key={i} className="mt-line">
-        <span className="mt-line-num">{startNum + i}</span>
+        <span className="mt-line-num">
+          {i === 0 && checkboxProps && (
+            <input 
+              type="checkbox" 
+              className="mt-line-checkbox"
+              checked={checkboxProps.checked} 
+              onChange={checkboxProps.onChange} 
+            />
+          )}
+          {startNum + i}
+        </span>
         <span className="mt-line-content">{l}</span>
       </div>
     ))
@@ -228,14 +242,13 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
                 }
                 const maxLines = Math.max(c.ours.length, c.theirs.length)
                 return (
-                  <div key={i} className={`mt-block-conflict mt-block-ours ${selections[c.id].ours ? 'selected' : ''}`} style={{ minHeight: `${maxLines * 20 + 32}px` }}>
-                    <div className="mt-block-header">
-                      <label>
-                        <input type="checkbox" checked={selections[c.id].ours} onChange={() => toggleSelection(c.id, 'ours')} />
-                        Garder A
-                      </label>
+                  <div key={i} className={`mt-block-conflict mt-block-ours ${selections[c.id].ours ? 'selected' : ''}`} style={{ minHeight: `${maxLines * 20}px` }}>
+                    <div className="mt-block-text">
+                      {renderLines(c.ours, c.oursStartLine, { 
+                        checked: selections[c.id].ours, 
+                        onChange: () => toggleSelection(c.id, 'ours') 
+                      })}
                     </div>
-                    <div className="mt-block-text">{renderLines(c.ours, c.oursStartLine)}</div>
                   </div>
                 )
               })}
@@ -255,14 +268,13 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
                 }
                 const maxLines = Math.max(c.ours.length, c.theirs.length)
                 return (
-                  <div key={i} className={`mt-block-conflict mt-block-theirs ${selections[c.id].theirs ? 'selected' : ''}`} style={{ minHeight: `${maxLines * 20 + 32}px` }}>
-                    <div className="mt-block-header">
-                      <label>
-                        <input type="checkbox" checked={selections[c.id].theirs} onChange={() => toggleSelection(c.id, 'theirs')} />
-                        Garder B
-                      </label>
+                  <div key={i} className={`mt-block-conflict mt-block-theirs ${selections[c.id].theirs ? 'selected' : ''}`} style={{ minHeight: `${maxLines * 20}px` }}>
+                    <div className="mt-block-text">
+                      {renderLines(c.theirs, c.theirsStartLine, { 
+                        checked: selections[c.id].theirs, 
+                        onChange: () => toggleSelection(c.id, 'theirs') 
+                      })}
                     </div>
-                    <div className="mt-block-text">{renderLines(c.theirs, c.theirsStartLine)}</div>
                   </div>
                 )
               })}
