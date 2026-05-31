@@ -899,7 +899,7 @@ export default function RightPanel({
           showToast={showToast}
           onCommitSuccess={onCommitSuccess}
         />
-      ) : (isWip || !selectedCommit || allConflictsResolved) && !hasCommit ? (
+      ) : (isWip || allConflictsResolved) && !hasCommit ? (
         <StagingView
           onCommitSuccess={onCommitSuccess}
           showToast={showToast}
