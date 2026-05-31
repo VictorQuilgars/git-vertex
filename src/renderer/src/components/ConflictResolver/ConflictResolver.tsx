@@ -149,6 +149,16 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
   }
 
   const handleSave = async () => {
+    // Validation: if no manual output is set, ensure every conflict chunk has at least one side selected
+    if (manualOutput === null) {
+      const conflictChunks = chunks.filter(c => c.type === 'conflict')
+      const hasUnresolved = conflictChunks.some(c => !selections[c.id].ours && !selections[c.id].theirs)
+      if (hasUnresolved) {
+        showToast('Veuillez faire un choix (A ou B) pour tous les conflits avant d\'enregistrer', 'err')
+        return
+      }
+    }
+
     // resolveConflict takes filepath and the content string, overwrites it, and git adds it.
     const r = await window.gitAPI.resolveConflict(file, currentOutput)
     if (r.success) {
