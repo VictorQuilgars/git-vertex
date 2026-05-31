@@ -833,7 +833,7 @@ export default function RightPanel({
 
   return (
     <div className="right-panel">
-      {isConflict ? (
+      {isConflict && isWip ? (
         <ConflictPanel
           conflictFiles={conflictFiles ?? []}
           conflictMode={conflictMode}

@@ -219,6 +219,7 @@ interface CommitGraphProps {
   onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
   onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => void
   wipCount?: number
+  conflictMode?: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
 }
 
 interface CtxState { x: number; y: number; commit: LayoutCommit }
@@ -229,6 +230,7 @@ export default function CommitGraph({
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onEditMessage,
   onCompareWorking, onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
+  conflictMode = null,
 }: CommitGraphProps) {
   const { t } = useLang()
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -245,18 +247,19 @@ export default function CommitGraph({
   const [dateColW,   startResizeDate]   = useColResize('cg-date-w',   100, 70)
   const [shaColW,    startResizeSha]    = useColResize('cg-sha-w',     62, 50)
 
-  // Prepend WIP virtual commit when working directory has changes
+  // Prepend WIP virtual commit when working directory has changes or is in a conflict state
   const displayLayout = useMemo((): LayoutCommit[] => {
+    const hasWipNode = wipCount > 0 || conflictMode !== null
     const shifted = layout.map(c => ({
       ...c,
-      row: c.row + (wipCount > 0 ? 1 : 0),
+      row: c.row + (hasWipNode ? 1 : 0),
       edges: c.edges.map(e => ({
         ...e,
-        toRow: e.toRow + (wipCount > 0 ? 1 : 0),
+        toRow: e.toRow + (hasWipNode ? 1 : 0),
       })),
     }))
 
-    if (!wipCount) return shifted
+    if (!hasWipNode) return shifted
 
     // WIP connects to HEAD commit (local branch), not necessarily the first row
     const headCommit = shifted.find(c =>
@@ -265,7 +268,12 @@ export default function CommitGraph({
     const first = shifted[0]
     const headLane = headCommit?.lane ?? first?.lane ?? 0
     const headRow = headCommit?.row ?? 1
-    const wipColor = headCommit?.color ?? first?.color ?? '#6e7681'
+    const wipColor = conflictMode ? '#ffa657' : (headCommit?.color ?? first?.color ?? '#6e7681')
+    
+    let message = `//WIP  ✏ ${wipCount} fichier${wipCount !== 1 ? 's' : ''} modifié${wipCount !== 1 ? 's' : ''}`
+    if (conflictMode) {
+      message = `⚠️ A file conflict was found when attempting to ${conflictMode}`
+    }
 
     // When HEAD is not the first commit, put WIP on a new lane so the dashed
     // line stays vertical (in its own lane) and only curves into HEAD at the last row
@@ -275,7 +283,7 @@ export default function CommitGraph({
     const wipNode: LayoutCommit = {
       hash: WIP_HASH,
       shortHash: 'WIP',
-      message: `//WIP  ✏ ${wipCount} fichier${wipCount !== 1 ? 's' : ''} modifié${wipCount !== 1 ? 's' : ''}`,
+      message,
       author: '',
       authorEmail: '',
       date: '',
@@ -304,7 +312,7 @@ export default function CommitGraph({
     })
 
     return [wipNode, ...shiftedWithPassthrough]
-  }, [layout, wipCount])
+  }, [layout, wipCount, conflictMode, currentBranch])
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)

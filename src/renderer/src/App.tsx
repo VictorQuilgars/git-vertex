@@ -1122,6 +1122,7 @@ export default function App() {
               onMoveCommit={handleMoveCommit}
               onBranchDrop={handleBranchDrop}
               wipCount={wipCount}
+              conflictMode={conflictMode}
             />
           )}
         </div>
