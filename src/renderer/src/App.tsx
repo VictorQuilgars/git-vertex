@@ -237,6 +237,7 @@ export default function App() {
   const [updateReady, setUpdateReady] = useState(false)
   const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
+  const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [wipCount, setWipCount] = useState(0)
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
@@ -283,6 +284,12 @@ export default function App() {
       // Check for conflicts
       const conflictRes = await window.gitAPI.getConflictedFiles()
       setConflictFiles(conflictRes.files ?? [])
+      if (conflictRes.files?.length > 0) {
+        const modeRes = await window.gitAPI.getConflictMode()
+        setConflictMode(modeRes.mode)
+      } else {
+        setConflictMode(null)
+      }
       // Working changes count for WIP node
       const changesRes = await window.gitAPI.getWorkingChanges()
       setWipCount(
@@ -672,8 +679,13 @@ export default function App() {
       : action === 'rebase'
         ? await window.gitAPI.rebaseBranchOnto(branch, hash)
         : await window.gitAPI.mergeCommitInto(branch, hash)
-    if (r.success) { showToast(t('toast.branchDropOk', branch)); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
+    if (r.success) {
+      showToast(t('toast.branchDropOk', branch))
+    } else {
+      showToast(t('toast.err', r.error ?? ''), 'err')
+    }
+    // Always load repo data to catch conflicts that prevent success
+    await loadRepoData()
     setLoading(false)
   }
 
@@ -748,12 +760,18 @@ export default function App() {
   // ── Conflict resolution handlers ───────────────────────────
   const handleConflictFinish = async (action: 'rebase' | 'merge') => {
     setLoading(true)
-    const r = action === 'rebase'
-      ? await window.gitAPI.continueRebase()
-      : await window.gitAPI.continueMerge()
+    // Map 'rebase' | 'merge' to the actual continue command needed
+    let r: { success: boolean; error?: string }
+    if (action === 'rebase' || conflictMode === 'rebase') {
+      r = await window.gitAPI.continueRebase()
+    } else {
+      r = await window.gitAPI.continueMerge()
+    }
+
     if (r.success) {
-      showToast(action === 'rebase' ? t('toast.rebaseContinued') : t('toast.mergeContinued'))
+      showToast(action === 'rebase' || conflictMode === 'rebase' ? t('toast.rebaseContinued') : t('toast.mergeContinued'))
       setConflictFiles([])
+      setConflictMode(null)
       await loadRepoData()
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
@@ -762,10 +780,20 @@ export default function App() {
   }
 
   const handleConflictAbort = async () => {
-    await window.gitAPI.abortRebase()
+    setLoading(true)
+    if (conflictMode === 'merge') {
+      await window.gitAPI.abortMerge()
+      showToast(t('toast.mergeAborted'))
+    } else {
+      // Default to abort rebase if unknown or rebase/cherry-pick/revert
+      // git rebase --abort handles rebase, cherry-pick and revert in many git versions
+      await window.gitAPI.abortRebase()
+      showToast(t('toast.rebaseAborted'))
+    }
     setConflictFiles([])
+    setConflictMode(null)
     await loadRepoData()
-    showToast(t('toast.rebaseAborted'))
+    setLoading(false)
   }
 
   // ── Command palette commands ───────────────────────────────
@@ -1176,6 +1204,7 @@ export default function App() {
       {conflictFiles.length > 0 && (
         <ConflictResolver
           files={conflictFiles}
+          mode={conflictMode}
           onFinish={handleConflictFinish}
           onAbort={handleConflictAbort}
           showToast={showToast}

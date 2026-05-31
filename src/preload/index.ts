@@ -83,6 +83,8 @@ const gitAPI = {
   continueRebase: () => ipcRenderer.invoke('git:continue-rebase'),
   continueMerge: () => ipcRenderer.invoke('git:continue-merge'),
   abortRebase: () => ipcRenderer.invoke('git:abort-rebase'),
+  abortMerge: () => ipcRenderer.invoke('git:abort-merge'),
+  getConflictMode: () => ipcRenderer.invoke('git:get-conflict-mode'),
   // AI
   aiGetApiKey: () => ipcRenderer.invoke('ai:get-api-key'),
   aiSetApiKey: (key: string) => ipcRenderer.invoke('ai:set-api-key', key),

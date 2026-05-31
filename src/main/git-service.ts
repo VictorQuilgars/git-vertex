@@ -1063,7 +1063,9 @@ export class GitService {
 
   async continueMerge(): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.git.raw(['merge', '--continue', '--no-edit'])
+      // --continue usually doesn't take arguments like --no-edit on older git versions
+      // and it often just triggers the commit editor.
+      await this.git.raw(['merge', '--continue'])
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -1077,6 +1079,35 @@ export class GitService {
     } catch (e: any) {
       return { success: false, error: e.message }
     }
+  }
+
+  async abortMerge(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['merge', '--abort'])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async getConflictMode(): Promise<{ mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null }> {
+    const fs = await import('fs')
+    const path = await import('path')
+    const dotGit = path.join(this.repoPath, '.git')
+    
+    // In some setups (like submodules or worktrees), .git is a file.
+    // simple-git's git.revparse(['--git-dir']) is more reliable.
+    try {
+      const gitDir = (await this.git.revparse(['--git-dir'])).trim()
+      const absGitDir = path.isAbsolute(gitDir) ? gitDir : path.join(this.repoPath, gitDir)
+      
+      if (fs.existsSync(path.join(absGitDir, 'MERGE_HEAD'))) return { mode: 'merge' }
+      if (fs.existsSync(path.join(absGitDir, 'rebase-apply')) || fs.existsSync(path.join(absGitDir, 'rebase-merge'))) return { mode: 'rebase' }
+      if (fs.existsSync(path.join(absGitDir, 'CHERRY_PICK_HEAD'))) return { mode: 'cherry-pick' }
+      if (fs.existsSync(path.join(absGitDir, 'REVERT_HEAD'))) return { mode: 'revert' }
+    } catch {}
+    
+    return { mode: null }
   }
 
   // ── Blame ───────────────────────────────────────────────────

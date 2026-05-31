@@ -3,6 +3,7 @@ import './ConflictResolver.css'
 
 interface ConflictResolverProps {
   files: string[]
+  mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
   onFinish: (action: 'rebase' | 'merge') => void
   onAbort: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
@@ -14,7 +15,7 @@ interface FileVersions {
   theirs: string
 }
 
-export default function ConflictResolver({ files, onFinish, onAbort, showToast }: ConflictResolverProps) {
+export default function ConflictResolver({ files, mode, onFinish, onAbort, showToast }: ConflictResolverProps) {
   const [selectedFile, setSelectedFile] = useState<string>(files[0] ?? '')
   const [versions, setVersions] = useState<FileVersions>({ base: '', ours: '', theirs: '' })
   const [resolved, setResolved] = useState<Set<string>>(new Set())
@@ -175,12 +176,16 @@ export default function ConflictResolver({ files, onFinish, onAbort, showToast }
         <div className="cr-footer">
           {allResolved ? (
             <>
-              <button className="cr-continue rebase" onClick={() => onFinish('rebase')}>
-                Continuer le rebase
-              </button>
-              <button className="cr-continue merge" onClick={() => onFinish('merge')}>
-                Continuer le merge
-              </button>
+              {(mode === 'rebase' || mode === 'cherry-pick' || mode === 'revert' || !mode) && (
+                <button className="cr-continue rebase" onClick={() => onFinish('rebase')}>
+                  Continuer le {mode || 'rebase'}
+                </button>
+              )}
+              {(mode === 'merge' || !mode) && (
+                <button className="cr-continue merge" onClick={() => onFinish('merge')}>
+                  Continuer le merge
+                </button>
+              )}
             </>
           ) : (
             <span className="cr-pending">
