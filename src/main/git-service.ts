@@ -1061,12 +1061,18 @@ export class GitService {
     }
   }
 
-  async continueMerge(): Promise<{ success: boolean; error?: string }> {
+  async continueMerge(message?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      // Use env variables to bypass the editor if it still tries to open one,
-      // and explicitly pass --no-edit
-      await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['merge', '--continue', '--no-edit'])
-      return { success: true }
+      if (message) {
+        // If a message is provided, we can just commit directly which resolves the merge state.
+        await this.git.commit(message)
+        return { success: true }
+      } else {
+        // Use env variables to bypass the editor if it still tries to open one,
+        // and explicitly pass --no-edit
+        await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['merge', '--continue', '--no-edit'])
+        return { success: true }
+      }
     } catch (e: any) {
       return { success: false, error: e.message }
     }
@@ -1108,6 +1114,26 @@ export class GitService {
     } catch {}
     
     return { mode: null }
+  }
+
+  async getMergeMessage(): Promise<{ message: string }> {
+    const fs = await import('fs')
+    const path = await import('path')
+    try {
+      const gitDir = (await this.git.revparse(['--git-dir'])).trim()
+      const absGitDir = path.isAbsolute(gitDir) ? gitDir : path.join(this.repoPath, gitDir)
+      
+      for (const file of ['MERGE_MSG', 'SQUASH_MSG', 'CHERRY_PICK_HEAD', 'REVERT_HEAD']) {
+        const p = path.join(absGitDir, file)
+        if (fs.existsSync(p)) {
+          const content = fs.readFileSync(p, 'utf-8')
+          // Remove commented lines and empty lines
+          const clean = content.split('\n').filter(line => !line.trim().startsWith('#')).join('\n').trim()
+          if (clean) return { message: clean }
+        }
+      }
+    } catch {}
+    return { message: '' }
   }
 
   // ── Blame ───────────────────────────────────────────────────

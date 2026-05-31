@@ -724,3 +724,95 @@
   letter-spacing: 0.03em;
   flex-shrink: 0;
 }
+
+/* ── Conflict Panel ───────────────────────────────────────── */
+.rp-conflict-mode {
+  padding: 16px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.rp-conflict-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffa657;
+}
+
+.rp-conflict-info {
+  background: #21262d;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #c9d1d9;
+}
+
+.rp-section-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b949e;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.rp-file-conflicted {
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.rp-file-conflicted:hover {
+  background: #21262d;
+  border-color: #30363d;
+}
+
+.rp-file-resolved {
+  opacity: 0.8;
+}
+
+.rp-commit-area {
+  display: flex;
+  flex-direction: column;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.rp-commit-input {
+  width: 100%;
+  min-height: 80px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 8px;
+  color: #c9d1d9;
+  font-family: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+.rp-commit-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
+
+.rp-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(240, 246, 252, 0.1);
+  transition: all 0.2s;
+}
+.rp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.rp-btn-abort:hover:not(:disabled) {
+  background: #f85149 !important;
+  color: #fff !important;
+}
+.rp-btn-commit:hover:not(:disabled) {
+  background: #238636 !important;
+}

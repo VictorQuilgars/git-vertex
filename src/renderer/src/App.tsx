@@ -238,6 +238,7 @@ export default function App() {
   const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
+  const [conflictResolverFile, setConflictResolverFile] = useState<string | null>(null)
   const [wipCount, setWipCount] = useState(0)
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
@@ -758,14 +759,14 @@ export default function App() {
   }
 
   // ── Conflict resolution handlers ───────────────────────────
-  const handleConflictFinish = async (action: 'rebase' | 'merge') => {
+  const handleConflictFinish = async (action: 'rebase' | 'merge', message?: string) => {
     setLoading(true)
     // Map 'rebase' | 'merge' to the actual continue command needed
     let r: { success: boolean; error?: string }
     if (action === 'rebase' || conflictMode === 'rebase') {
       r = await window.gitAPI.continueRebase()
     } else {
-      r = await window.gitAPI.continueMerge()
+      r = await window.gitAPI.continueMerge(message)
     }
 
     if (r.success) {
@@ -1142,6 +1143,11 @@ export default function App() {
                   const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                   if (found) setSelectedCommit(found)
                 }}
+                conflictFiles={conflictFiles}
+                conflictMode={conflictMode}
+                onConflictFinish={handleConflictFinish}
+                onConflictAbort={handleConflictAbort}
+                onOpenResolver={(file) => setConflictResolverFile(file)}
               />
             </div>
           </>
@@ -1200,13 +1206,16 @@ export default function App() {
         />
       )}
 
-      {/* Conflict Resolver */}
-      {conflictFiles.length > 0 && (
+      {/* Conflict Resolver (Merge Tool for single file) */}
+      {conflictResolverFile && (
         <ConflictResolver
-          files={conflictFiles}
+          files={[conflictResolverFile]}
           mode={conflictMode}
-          onFinish={handleConflictFinish}
-          onAbort={handleConflictAbort}
+          onFinish={() => {
+            setConflictResolverFile(null)
+            loadRepoData()
+          }}
+          onAbort={() => setConflictResolverFile(null)}
           showToast={showToast}
         />
       )}

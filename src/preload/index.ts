@@ -81,10 +81,11 @@ const gitAPI = {
   resolveConflict: (filepath: string, content: string) => ipcRenderer.invoke('git:resolve-conflict', filepath, content),
   resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => ipcRenderer.invoke('git:resolve-conflict-side', filepath, side),
   continueRebase: () => ipcRenderer.invoke('git:continue-rebase'),
-  continueMerge: () => ipcRenderer.invoke('git:continue-merge'),
+  continueMerge: (message?: string) => ipcRenderer.invoke('git:continue-merge', message),
   abortRebase: () => ipcRenderer.invoke('git:abort-rebase'),
   abortMerge: () => ipcRenderer.invoke('git:abort-merge'),
   getConflictMode: () => ipcRenderer.invoke('git:get-conflict-mode'),
+  getMergeMessage: () => ipcRenderer.invoke('git:get-merge-message'),
   // AI
   aiGetApiKey: () => ipcRenderer.invoke('ai:get-api-key'),
   aiSetApiKey: (key: string) => ipcRenderer.invoke('ai:set-api-key', key),

@@ -695,6 +695,119 @@ function StagingView({ onCommitSuccess, showToast }: {
   }
 }
 
+// ── Conflict Panel ──────────────────────────────────────────────
+function ConflictPanel({
+  conflictFiles,
+  conflictMode,
+  onConflictFinish,
+  onConflictAbort,
+  onOpenResolver,
+  showToast,
+  onCommitSuccess
+}: {
+  conflictFiles: string[]
+  conflictMode: string
+  onConflictFinish: (action: 'rebase' | 'merge', message?: string) => void
+  onConflictAbort: () => void
+  onOpenResolver: (file: string) => void
+  showToast: (msg: string, type?: 'ok' | 'err') => void
+  onCommitSuccess: () => void
+}) {
+  const { t } = useLang()
+  const [commitMsg, setCommitMsg] = useState('')
+  const [committing, setCommitting] = useState(false)
+  const [resolvedFiles, setResolvedFiles] = useState<{ path: string }[]>([])
+
+  useEffect(() => {
+    // Load merge message
+    window.gitAPI.getMergeMessage().then(r => {
+      if (r.message && !commitMsg) setCommitMsg(r.message)
+    })
+    
+    // Load resolved files (files that are staged but were part of the conflict or are just staged)
+    window.gitAPI.getWorkingChanges().then(r => {
+      if (r.staged) {
+        setResolvedFiles(r.staged)
+      }
+    })
+  }, [conflictFiles])
+
+  async function doCommit() {
+    setCommitting(true)
+    const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
+    // If it's a merge, we might need to actually run commit or the continue command
+    onConflictFinish(action, commitMsg)
+    setCommitting(false)
+  }
+
+  const allResolved = conflictFiles.length === 0
+
+  return (
+    <div className="rp-content rp-conflict-mode">
+      <div className="rp-conflict-header">
+        <span className="cr-warning">⚠️</span>
+        <span className="cr-title">Merge conflicts detected</span>
+      </div>
+
+      <div className="rp-conflict-info">
+        In progress: <strong>{conflictMode}</strong>
+      </div>
+
+      <div className="rp-section">
+        <div className="rp-section-header">
+          <span className="rp-section-title">Conflicted Files ({conflictFiles.length})</span>
+        </div>
+        <div className="rp-file-list">
+          {conflictFiles.length === 0 && <div className="rp-empty">All conflicts resolved</div>}
+          {conflictFiles.map(f => (
+            <div key={f} className="rp-file-row rp-file-conflicted" onClick={() => onOpenResolver(f)}>
+              <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>
+              <span className="rp-file-path">{f}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rp-section">
+        <div className="rp-section-header">
+          <span className="rp-section-title">Resolved Files ({resolvedFiles.length})</span>
+        </div>
+        <div className="rp-file-list">
+          {resolvedFiles.length === 0 && <div className="rp-empty">No resolved files</div>}
+          {resolvedFiles.map(f => (
+            <div key={f.path} className="rp-file-row rp-file-resolved">
+              <span className="rp-file-status" style={{ color: '#3fb950' }}>✓</span>
+              <span className="rp-file-path">{f.path}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rp-commit-area" style={{ marginTop: 'auto' }}>
+        <textarea
+          className="rp-commit-input"
+          placeholder="Commit message..."
+          value={commitMsg}
+          onChange={e => setCommitMsg(e.target.value)}
+        />
+        <div className="rp-commit-actions" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button className="rp-btn rp-btn-abort" style={{ flex: 1, backgroundColor: '#21262d', color: '#f85149' }} onClick={onConflictAbort}>
+            Abort {conflictMode}
+          </button>
+          <button
+            className="rp-btn rp-btn-commit"
+            style={{ flex: 1, backgroundColor: allResolved ? '#2ea043' : '#21262d', color: allResolved ? '#fff' : '#8b949e' }}
+            disabled={!allResolved || committing}
+            onClick={doCommit}
+          >
+            {committing ? 'Committing...' : `Commit and Resolve`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Right Panel root ──────────────────────────────────────────
 interface RightPanelProps {
   selectedCommit: CommitNode | null
@@ -703,25 +816,43 @@ interface RightPanelProps {
   onSelectCommit: (hash: string) => void
   wipCount?: number
   onViewWip?: () => void
+  conflictFiles?: string[]
+  conflictMode?: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
+  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
+  onConflictAbort?: () => void
+  onOpenResolver?: (file: string) => void
 }
 
-export default function RightPanel({ selectedCommit, onCommitSuccess, showToast, onSelectCommit, wipCount, onViewWip }: RightPanelProps) {
+export default function RightPanel({
+  selectedCommit, onCommitSuccess, showToast, onSelectCommit, wipCount, onViewWip,
+  conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver
+}: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
+  const isConflict = conflictMode !== null && conflictMode !== undefined
 
   return (
     <div className="right-panel">
-      {(isWip || !selectedCommit) && (
+      {isConflict ? (
+        <ConflictPanel
+          conflictFiles={conflictFiles ?? []}
+          conflictMode={conflictMode}
+          onConflictFinish={onConflictFinish!}
+          onConflictAbort={onConflictAbort!}
+          onOpenResolver={onOpenResolver!}
+          showToast={showToast}
+          onCommitSuccess={onCommitSuccess}
+        />
+      ) : (isWip || !selectedCommit) ? (
         <StagingView onCommitSuccess={onCommitSuccess} showToast={showToast} />
-      )}
-      {hasCommit && (
+      ) : hasCommit ? (
         <CommitDetail
           commit={selectedCommit}
           onSelectCommit={onSelectCommit}
           wipCount={wipCount}
           onViewWip={onViewWip}
         />
-      )}
+      ) : null}
     </div>
   )
 }

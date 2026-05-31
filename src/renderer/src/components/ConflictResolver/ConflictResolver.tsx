@@ -4,7 +4,7 @@ import './ConflictResolver.css'
 interface ConflictResolverProps {
   files: string[]
   mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
-  onFinish: (action: 'rebase' | 'merge') => void
+  onFinish: () => void
   onAbort: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
 }
@@ -16,9 +16,8 @@ interface FileVersions {
 }
 
 export default function ConflictResolver({ files, mode, onFinish, onAbort, showToast }: ConflictResolverProps) {
-  const [selectedFile, setSelectedFile] = useState<string>(files[0] ?? '')
+  const selectedFile = files[0] ?? ''
   const [versions, setVersions] = useState<FileVersions>({ base: '', ours: '', theirs: '' })
-  const [resolved, setResolved] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   // Manual editor buffer — lets the user hand-merge the two sides
   const [editor, setEditor] = useState<string>('')
@@ -41,19 +40,16 @@ export default function ConflictResolver({ files, mode, onFinish, onAbort, showT
     })
   }, [selectedFile])
 
-  const markStateResolved = (file: string) => {
-    setResolved(prev => new Set([...prev, file]))
-    // Auto-advance to the next unresolved file
-    const next = files.find(f => f !== file && !resolved.has(f))
-    if (next) setSelectedFile(next)
+  const handleResolved = () => {
+    onFinish()
   }
 
   // Take a whole side via `git checkout --ours/--theirs` (clean, no markers).
   const keepSide = async (side: 'ours' | 'theirs') => {
     const r = await window.gitAPI.resolveConflictSide(selectedFile, side)
     if (r.success) {
-      markStateResolved(selectedFile)
       showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (${side === 'ours' ? 'nôtre' : 'leur'})`)
+      handleResolved()
     } else {
       showToast(`Erreur : ${r.error}`, 'err')
     }
@@ -63,8 +59,8 @@ export default function ConflictResolver({ files, mode, onFinish, onAbort, showT
   const keepBase = async () => {
     const r = await window.gitAPI.resolveConflict(selectedFile, versions.base)
     if (r.success) {
-      markStateResolved(selectedFile)
       showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (base)`)
+      handleResolved()
     } else {
       showToast(`Erreur : ${r.error}`, 'err')
     }
@@ -78,52 +74,36 @@ export default function ConflictResolver({ files, mode, onFinish, onAbort, showT
     }
     const r = await window.gitAPI.resolveConflict(selectedFile, editor)
     if (r.success) {
-      markStateResolved(selectedFile)
       showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (édition manuelle)`)
+      handleResolved()
     } else {
       showToast(`Erreur : ${r.error}`, 'err')
     }
   }
 
-  const allResolved = files.every(f => resolved.has(f))
-  const remaining = files.filter(f => !resolved.has(f)).length
-
   return (
     <div className="cr-overlay">
-      <div className="cr-panel">
+      <div className="cr-panel" style={{ maxWidth: '90vw', height: '90vh' }}>
         <div className="cr-header">
           <span className="cr-warning">⚠️</span>
-          <span className="cr-title">{files.length} fichier{files.length !== 1 ? 's' : ''} en conflit</span>
-          <button className="cr-abort" onClick={onAbort}>Abandonner</button>
+          <span className="cr-title">Résolution : {selectedFile}</span>
+          <button className="cr-abort" onClick={onAbort}>Fermer</button>
         </div>
 
         <div className="cr-body">
-          {/* File list */}
-          <div className="cr-file-list">
-            {files.map(f => (
-              <div
-                key={f}
-                className={`cr-file-item ${selectedFile === f ? 'active' : ''} ${resolved.has(f) ? 'resolved' : ''}`}
-                onClick={() => setSelectedFile(f)}
-              >
-                <span className="cr-file-status">{resolved.has(f) ? '✓' : '⚠'}</span>
-                <span className="cr-file-name">{f.split('/').pop()}</span>
-              </div>
-            ))}
-          </div>
-
           {/* Versions panel */}
           <div className="cr-versions">
             {loading ? (
               <div className="cr-loading">Chargement…</div>
             ) : editing ? (
-              <div className="cr-manual">
-                <div className="cr-manual-header">
+              <div className="cr-manual" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div className="cr-manual-header" style={{ flexShrink: 0 }}>
                   <span>Édition manuelle — supprimez les marqueurs et gardez le contenu voulu</span>
                   <button className="cr-manual-back" onClick={() => setEditing(false)}>← Retour aux versions</button>
                 </div>
                 <textarea
                   className="cr-manual-editor"
+                  style={{ flex: 1, resize: 'none' }}
                   value={editor}
                   onChange={e => setEditor(e.target.value)}
                   spellCheck={false}
@@ -154,43 +134,18 @@ export default function ConflictResolver({ files, mode, onFinish, onAbort, showT
                 />
               </div>
             )}
-
-            <div className="cr-actions">
-              {editing ? (
-                <button className="cr-resolve-btn" onClick={saveManual}>
-                  Enregistrer &amp; résoudre
-                </button>
-              ) : (
-                <button
-                  className="cr-resolve-btn cr-manual-btn"
-                  disabled={resolved.has(selectedFile)}
-                  onClick={() => setEditing(true)}
-                >
-                  ✎ Édition manuelle…
-                </button>
-              )}
-            </div>
           </div>
         </div>
 
         <div className="cr-footer">
-          {allResolved ? (
-            <>
-              {(mode === 'rebase' || mode === 'cherry-pick' || mode === 'revert' || !mode) && (
-                <button className="cr-continue rebase" onClick={() => onFinish('rebase')}>
-                  Continuer le {mode || 'rebase'}
-                </button>
-              )}
-              {(mode === 'merge' || !mode) && (
-                <button className="cr-continue merge" onClick={() => onFinish('merge')}>
-                  Continuer le merge
-                </button>
-              )}
-            </>
+          {editing ? (
+            <button className="cr-continue merge" onClick={saveManual}>
+              Enregistrer & résoudre
+            </button>
           ) : (
-            <span className="cr-pending">
-              {remaining} fichier{remaining !== 1 ? 's' : ''} restant{remaining !== 1 ? 's' : ''}
-            </span>
+            <button className="cr-continue rebase" onClick={() => setEditing(true)}>
+              ✎ Édition manuelle…
+            </button>
           )}
         </div>
       </div>

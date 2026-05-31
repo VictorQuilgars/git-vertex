@@ -533,9 +533,9 @@ ipcMain.handle('git:continue-rebase', async () => {
   return gitService.continueRebase()
 })
 
-ipcMain.handle('git:continue-merge', async () => {
+ipcMain.handle('git:continue-merge', async (_event, message?: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.continueMerge()
+  return gitService.continueMerge(message)
 })
 
 ipcMain.handle('git:abort-rebase', async () => {
@@ -551,6 +551,11 @@ ipcMain.handle('git:abort-merge', async () => {
 ipcMain.handle('git:get-conflict-mode', async () => {
   if (!gitService) return { mode: null }
   return gitService.getConflictMode()
+})
+
+ipcMain.handle('git:get-merge-message', async () => {
+  if (!gitService) return { message: '' }
+  return gitService.getMergeMessage()
 })
 
 // ── IPC: Reflog ────────────────────────────────────────────
