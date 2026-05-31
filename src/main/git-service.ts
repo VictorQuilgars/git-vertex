@@ -1107,6 +1107,39 @@ export class GitService {
     }
   }
 
+  // Undo the last significant git action:
+  // 1. If ORIG_HEAD exists (set by merge/rebase/reset) → reset --soft to ORIG_HEAD
+  // 2. Otherwise → reset --soft HEAD~1 (undo last commit, keep changes staged)
+  async undoLastAction(): Promise<{ success: boolean; action?: string; error?: string }> {
+    const fs = await import('fs')
+    const path = await import('path')
+    try {
+      if (await this.isDirty()) {
+        // Allow undo even with unstaged changes — soft reset keeps them
+      }
+      const gitDir = (await this.git.revparse(['--git-dir'])).trim()
+      const absGitDir = path.isAbsolute(gitDir) ? gitDir : path.join(this.repoPath, gitDir)
+      const origHead = path.join(absGitDir, 'ORIG_HEAD')
+
+      if (fs.existsSync(origHead)) {
+        await this.git.raw(['reset', '--soft', 'ORIG_HEAD'])
+        return { success: true, action: 'merge/rebase/reset annulé' }
+      }
+
+      // Check we have at least one parent to reset to
+      const count = (await this.git.raw(['rev-list', '--count', '--max-count=2', 'HEAD'])).trim()
+      if (parseInt(count) < 2) {
+        return { success: false, error: 'Aucun commit précédent — impossible d\'annuler' }
+      }
+
+      const msg = (await this.git.raw(['log', '-1', '--pretty=format:%s', 'HEAD'])).trim()
+      await this.git.raw(['reset', '--soft', 'HEAD~1'])
+      return { success: true, action: `commit annulé : "${msg}"` }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   async getConflictMode(): Promise<{ mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null }> {
     const fs = await import('fs')
     const path = await import('path')

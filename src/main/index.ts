@@ -602,6 +602,11 @@ ipcMain.handle('git:abort-merge', async () => {
   return gitService.abortMerge()
 })
 
+ipcMain.handle('git:undo-last-action', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.undoLastAction()
+})
+
 ipcMain.handle('git:get-conflict-mode', async () => {
   if (!gitService) return { mode: null }
   return gitService.getConflictMode()

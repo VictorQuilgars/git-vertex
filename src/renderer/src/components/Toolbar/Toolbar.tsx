@@ -8,6 +8,7 @@ interface ToolbarProps {
   searchQuery: string
   showAllBranches: boolean
   onSearch: (q: string) => void
+  onUndo: () => void
   onFetch: () => void
   onPush: () => void
   onPushModal: () => void
@@ -49,7 +50,7 @@ function TBtn({ icon, label, onClick, disabled, title, accent }: {
 
 export default function Toolbar({
   repoPath, currentBranch, searchQuery, showAllBranches,
-  onSearch, onFetch, onPush, onPushModal, onPull, onCreateBranch,
+  onSearch, onUndo, onFetch, onPush, onPushModal, onPull, onCreateBranch,
   onToggleAllBranches, onRefresh, loading, lastFetchTime,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
   onSettings, settingsOpen, updateReady, onInstallUpdate, githubRepoUrl, onCreatePR, onGitflow,
@@ -79,6 +80,13 @@ export default function Toolbar({
           {currentBranch}
         </div>
       )}
+
+      <div className="tb-divider" />
+
+      <TBtn title="Annuler la dernière action (reset --soft)" disabled={disabled} onClick={onUndo}
+        icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>}
+        label="Undo"
+      />
 
       <div className="tb-divider" />
 

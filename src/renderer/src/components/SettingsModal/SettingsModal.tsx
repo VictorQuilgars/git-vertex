@@ -110,6 +110,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   const [notifyFetch, setNotifyFetch] = useState(true)
   const [notifyCommit, setNotifyCommit] = useState(false)
   const [notifyUpdate, setNotifyUpdate] = useState(true)
+  const [autoStash, setAutoStash] = useState(false)
 
   const fetchModels = async (provider: AIProvider, key: string) => {
     if (!key) return
@@ -151,6 +152,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       setNotifyFetch(s.notifyFetch !== 'false')
       setNotifyCommit(s.notifyCommit === 'true')
       setNotifyUpdate(s.notifyUpdate !== 'false')
+      setAutoStash(s.autoStash === 'true')
       setAiProvider(provider)
       setAiKeys(keys)
       setAiModels(m => ({
@@ -452,7 +454,18 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
             {/* ── Notifications ── */}
             {section === 'notifications' && (
               <div className="stg-section">
-                <h2 className="stg-section-title">{t('settings.notifications.title')}</h2>
+                <h2 className="stg-section-title">Comportement</h2>
+
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" checked={autoStash}
+                    onChange={async e => {
+                      setAutoStash(e.target.checked)
+                      await window.gitAPI.settingsSet('autoStash', String(e.target.checked))
+                    }} />
+                  <span>Auto-stash au checkout <span style={{ color: '#8b949e', fontSize: 12 }}>(stashe les modifications locales avant de changer de branche, les restaure après)</span></span>
+                </label>
+
+                <h2 className="stg-section-title" style={{ marginTop: 16 }}>{t('settings.notifications.title')}</h2>
                 <p className="stg-desc">{t('settings.notifications.desc')}</p>
 
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

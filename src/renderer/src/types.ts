@@ -111,6 +111,7 @@ declare global {
       continueRebase: () => Promise<R>
       continueMerge: () => Promise<R>
       abortRebase: () => Promise<R>
+      undoLastAction: () => Promise<R & { action?: string }>
       // Reflog
       getReflog: () => Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }>
       // File History

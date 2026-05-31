@@ -496,6 +496,14 @@ export default function App() {
   }, [])
 
   // ── Git operations ─────────────────────────────────────────
+  const handleUndo = async () => {
+    setLoading(true)
+    const r = await window.gitAPI.undoLastAction()
+    if (r.success) { showToast(`↩ ${r.action ?? 'Action annulée'}`); await loadRepoData() }
+    else showToast(r.error ?? 'Impossible d\'annuler', 'err')
+    setLoading(false)
+  }
+
   const handleFetch = async () => {
     setLoading(true)
     const r = await window.gitAPI.fetch()
@@ -533,9 +541,32 @@ export default function App() {
   }
 
   const handleCheckout = async (name: string) => {
+    // Auto-stash: if enabled and there are local changes, stash before checkout and pop after
+    const settings = await window.gitAPI.settingsGetAll().catch(() => ({} as any))
+    const autoStash = settings?.autoStash === 'true'
+    let stashed = false
+    if (autoStash) {
+      const changes = await window.gitAPI.getWorkingChanges()
+      const hasChanges = (changes.staged?.length ?? 0) + (changes.unstaged?.length ?? 0) + (changes.untracked?.length ?? 0) > 0
+      if (hasChanges) {
+        const sr = await window.gitAPI.createStash('Auto-stash before checkout')
+        if (sr.success) { stashed = true; showToast('Modifications stashées automatiquement') }
+      }
+    }
     const r = await window.gitAPI.checkout(name)
-    if (r.success) { showToast(t('toast.checkoutOk', name)); await loadRepoData() }
-    else showToast(t('toast.checkoutErr', r.error ?? ''), 'err')
+    if (r.success) {
+      if (stashed) {
+        const pr = await window.gitAPI.popStash(0)
+        if (pr.success) showToast(`${t('toast.checkoutOk', name)} — stash restauré`)
+        else showToast(`${t('toast.checkoutOk', name)} — échec restauration stash`, 'err')
+      } else {
+        showToast(t('toast.checkoutOk', name))
+      }
+      await loadRepoData()
+    } else {
+      if (stashed) await window.gitAPI.popStash(0)
+      showToast(t('toast.checkoutErr', r.error ?? ''), 'err')
+    }
   }
 
   const handleCreateBranch = useCallback(async () => {
@@ -914,6 +945,7 @@ export default function App() {
         searchQuery={searchQuery}
         showAllBranches={showAllBranches}
         onSearch={setSearchQuery}
+        onUndo={handleUndo}
         onFetch={handleFetch}
         onPush={handlePush}
         onPushModal={handlePushModal}
