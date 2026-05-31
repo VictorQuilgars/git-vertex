@@ -296,6 +296,22 @@ export default function CommitGraph({
       edges: headCommit ? [{ fromLane: wipLane, toLane: wipLane, toRow: 1, color: '#484f58', type: 'straight' as const }] : [],
     }
 
+    if (conflictMode && shifted.length > 1) {
+      // In conflict mode, we want a dashed edge from the WIP node to the incoming branch.
+      // Usually, HEAD is at shifted[1] and the incoming branch is at shifted[0] (or vice versa).
+      const incomingCommit = shifted.find(c => c.hash !== headCommit?.hash)
+      if (incomingCommit) {
+        wipNode.edges.push({
+          fromLane: wipLane,
+          toLane: incomingCommit.lane,
+          toRow: incomingCommit.row,
+          color: wipColor, // Color it the same as the warning orange or the incoming branch color
+          type: 'merge',
+          dashed: true
+        })
+      }
+    }
+
     // For intermediate rows, add dashed passthrough edges in wipLane
     // At headRow-1, curve into headLane to arrive cleanly on HEAD
     const shiftedWithPassthrough = shifted.map(c => {
@@ -468,6 +484,26 @@ export default function CommitGraph({
               const isWip = commit.hash === WIP_HASH
 
               if (isWip) {
+                if (conflictMode) {
+                  return (
+                    <g key="wip">
+                      <circle cx={cx} cy={cy} r={NODE_RADIUS + 2} fill="#161b22" />
+                      <circle cx={cx} cy={cy} r={NODE_RADIUS}
+                        fill="#ffa657"
+                        stroke="#ffa657"
+                        strokeWidth={1.5}
+                      />
+                      <text x={cx} y={cy} dy=".35em"
+                        textAnchor="middle"
+                        fontSize={10}
+                        fontWeight="900"
+                        fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
+                        fill="#161b22"
+                      >!</text>
+                    </g>
+                  )
+                }
+
                 return (
                   <g key="wip">
                     <circle cx={cx} cy={cy} r={NODE_RADIUS}
