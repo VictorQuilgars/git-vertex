@@ -85,26 +85,31 @@ export function computeGraphLayout(commits: CommitNode[]): LayoutCommit[] {
         // Check if the parent is already claimed by another active lane (convergence)
         const existingLane = lanes.indexOf(parents[0])
         if (existingLane !== -1 && existingLane !== lane) {
-          // Two lanes share the same parent — draw a converging curve and free this lane
-          const direction = existingLane < lane ? 'merge-left' : 'merge-right'
-          edges.push({
-            fromLane: lane,
-            toLane: existingLane,
-            toRow: row + 1,
-            color: commitColor,
-            type: direction
-          })
-          lanes[lane] = null
-          skipPassthrough.add(lane)
+          if (lane < existingLane) {
+            // Current lane is to the LEFT — keep it, reroute parent here, free right lane.
+            // This ensures shared ancestors inherit the leftmost (earliest) branch color.
+            lanes[lane] = parents[0]
+            lanes[existingLane] = null
+            edges.push({ fromLane: lane, toLane: lane, toRow: row + 1, color: commitColor, type: 'straight' })
+            // Draw the right lane converging into the left lane
+            edges.push({
+              fromLane: existingLane,
+              toLane: lane,
+              toRow: row + 1,
+              color: laneColors[existingLane] || LANE_COLORS[existingLane % LANE_COLORS.length],
+              type: 'merge-left'
+            })
+            skipPassthrough.add(existingLane)
+          } else {
+            // Current lane is to the RIGHT — free it, left lane keeps the parent
+            const direction = existingLane < lane ? 'merge-left' : 'merge-right'
+            edges.push({ fromLane: lane, toLane: existingLane, toRow: row + 1, color: commitColor, type: direction })
+            lanes[lane] = null
+            skipPassthrough.add(lane)
+          }
         } else {
           lanes[lane] = parents[0]
-          edges.push({
-            fromLane: lane,
-            toLane: lane,
-            toRow: row + 1,
-            color: commitColor,
-            type: 'straight'
-          })
+          edges.push({ fromLane: lane, toLane: lane, toRow: row + 1, color: commitColor, type: 'straight' })
         }
       } else {
         lanes[lane] = null
