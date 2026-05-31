@@ -267,9 +267,13 @@ export default function App() {
   }, [repoPath])
 
   // ── Load repo data ─────────────────────────────────────────
-  const loadRepoData = useCallback(async () => {
+  const isLoadingRef = React.useRef(false)
+
+  const loadRepoData = useCallback(async (silent = false) => {
     if (!repoPath) return
-    setLoading(true)
+    if (isLoadingRef.current) return   // prevent concurrent executions
+    isLoadingRef.current = true
+    if (!silent) setLoading(true)
     try {
       const [logRes, branchRes] = await Promise.all([
         window.gitAPI.getLog({ all: showAllBranches, maxCount: 500 }),
@@ -282,14 +286,12 @@ export default function App() {
         if (cur) setCurrentBranch(cur.name)
       }
       await Promise.all([loadStashes(), loadTags()])
-      // Check for conflicts
       const [conflictRes, modeRes] = await Promise.all([
         window.gitAPI.getConflictedFiles(),
         window.gitAPI.getConflictMode(),
       ])
       setConflictFiles(conflictRes.files ?? [])
       setConflictMode(modeRes.mode)
-      // Working changes count for WIP node
       const changesRes = await window.gitAPI.getWorkingChanges()
       setWipCount(
         (changesRes.staged?.length ?? 0) +
@@ -297,11 +299,23 @@ export default function App() {
         (changesRes.untracked?.length ?? 0)
       )
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
+      isLoadingRef.current = false
     }
   }, [repoPath, showAllBranches, loadStashes, loadTags])
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
+
+  // ── Auto-refresh via file watcher events from main process ────
+  useEffect(() => {
+    const handler = () => loadRepoData(true)
+    window.gitAPI.onRepoChanged(handler)
+    window.gitAPI.onWorkingChanged(handler)
+    return () => {
+      window.gitAPI.offRepoChanged(handler)
+      window.gitAPI.offWorkingChanged(handler)
+    }
+  }, [loadRepoData])
 
   // ── Load recent repos on mount ─────────────────────────────
   useEffect(() => {

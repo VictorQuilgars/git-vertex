@@ -463,6 +463,16 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
+    const handler = () => load()
+    window.gitAPI.onRepoChanged(handler)
+    window.gitAPI.onWorkingChanged(handler)
+    return () => {
+      window.gitAPI.offRepoChanged(handler)
+      window.gitAPI.offWorkingChanged(handler)
+    }
+  }, [load])
+
+  useEffect(() => {
     if (isConflict) {
       window.gitAPI.getMergeMessage().then(r => { if (r.message) setCommitMsg(r.message) })
     }
@@ -724,6 +734,7 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
     if (isConflict && onConflictFinish) {
       const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
       onConflictFinish(action, commitMsg)
+      setCommitMsg('')
     } else {
       const r = await window.gitAPI.commit(commitMsg.trim(), amend)
       if (r.success) { showToast(t('toast.commitOk')); setCommitMsg(''); setAmend(false); setSelectedDiff(null); await load(); onCommitSuccess() }

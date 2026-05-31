@@ -138,6 +138,10 @@ const gitAPI = {
     ipcRenderer.on('github:auth-complete', (_e, result) => cb(result))
   },
   // Auto-updater
+  onRepoChanged: (cb: () => void) => ipcRenderer.on('git:repo-changed', cb),
+  onWorkingChanged: (cb: () => void) => ipcRenderer.on('git:working-changed', cb),
+  offRepoChanged: (cb: () => void) => ipcRenderer.removeListener('git:repo-changed', cb),
+  offWorkingChanged: (cb: () => void) => ipcRenderer.removeListener('git:working-changed', cb),
   onUpdateAvailable: (cb: (version: string) => void) => ipcRenderer.on('updater:update-available', (_e, v) => cb(v)),
   onUpdateDownloaded: (cb: (version: string) => void) => ipcRenderer.on('updater:update-downloaded', (_e, v) => cb(v)),
   onUpdateError: (cb: (err: string) => void) => ipcRenderer.on('updater:error', (_e, err) => cb(err)),

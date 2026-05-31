@@ -10,6 +10,51 @@ import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 let mainWindow: BrowserWindow
 let gitService: GitService | null = null
 
+// ── Repo file watcher ─────────────────────────────────────────
+// Watches .git (git state) and the working tree root (unstaged changes).
+// Two separate debounces: git state fires fast, working tree fires slower.
+import fs from 'fs'
+import path from 'path'
+
+let gitDirWatcher: fs.FSWatcher | null = null
+let workingDirWatcher: fs.FSWatcher | null = null
+let gitDebounce: ReturnType<typeof setTimeout> | null = null
+let workingDebounce: ReturnType<typeof setTimeout> | null = null
+
+function stopWatchers() {
+  gitDirWatcher?.close(); gitDirWatcher = null
+  workingDirWatcher?.close(); workingDirWatcher = null
+  if (gitDebounce) { clearTimeout(gitDebounce); gitDebounce = null }
+  if (workingDebounce) { clearTimeout(workingDebounce); workingDebounce = null }
+}
+
+function startWatching(repoPath: string) {
+  stopWatchers()
+  const gitDir = path.join(repoPath, '.git')
+  if (!fs.existsSync(gitDir)) return
+
+  // Watch .git → covers commits, staging, branches, conflicts, rebase, fetch
+  try {
+    gitDirWatcher = fs.watch(gitDir, { recursive: true }, () => {
+      if (gitDebounce) clearTimeout(gitDebounce)
+      gitDebounce = setTimeout(() => {
+        mainWindow?.webContents.send('git:repo-changed')
+      }, 200)
+    })
+  } catch { /* git dir may not be watchable in all setups */ }
+
+  // Watch working tree → covers unstaged file edits from external editors
+  try {
+    workingDirWatcher = fs.watch(repoPath, { recursive: true }, (_type, filename) => {
+      if (!filename || filename.startsWith('.git')) return
+      if (workingDebounce) clearTimeout(workingDebounce)
+      workingDebounce = setTimeout(() => {
+        mainWindow?.webContents.send('git:working-changed')
+      }, 1500)
+    })
+  } catch { /* ignore */ }
+}
+
 // ── Desktop notifications ──────────────────────────────────────
 // settingKey gates the notification via settings.json; defaultEnabled
 // is used when the setting was never written.
@@ -139,6 +184,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  stopWatchers()
   if (process.platform !== 'darwin') app.quit()
 })
 
@@ -149,6 +195,7 @@ async function openRepoAt(repoPath: string): Promise<{ path?: string; name?: str
     await svc.checkRepo()
     gitService = svc
     addRecentRepo(repoPath)
+    startWatching(repoPath)
     const name = repoPath.split('/').pop()!
     return { path: repoPath, name }
   } catch (e: any) {
