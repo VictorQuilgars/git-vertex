@@ -364,6 +364,27 @@ export default function CommitGraph({
           strokeDasharray={dashArray} />
       )
     }
+
+    if (isWip) {
+      // The WIP node is at row 0. We want the curve to happen immediately
+      // below it, and then go straight down to the target node.
+      const r = LANE_WIDTH * 0.6
+      const dx = x2 > x1 ? r : -r
+      const d = [
+        `M${x1} ${y1}`,
+        `Q${x1} ${y1 + r} ${x1 + dx} ${y1 + r}`,
+        `L${x2 - dx} ${y1 + r}`,
+        `Q${x2} ${y1 + r} ${x2} ${y1 + 2 * r}`,
+        `L${x2} ${y2}`,
+      ].join(' ')
+      return (
+        <path key={key}
+          d={d}
+          fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
+          strokeDasharray={dashArray} />
+      )
+    }
+
     // GitKraken-style: two vertical segments connected by a rounded horizontal
     // elbow at the midpoint — gives the distinct "angled bracket" look.
     const midY = (y1 + y2) / 2
