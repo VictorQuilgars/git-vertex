@@ -420,11 +420,16 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
 // ── Staging view ──────────────────────────────────────────────
 interface SelectedDiffFile { path: string; area: 'staged' | 'unstaged' }
 
-function StagingView({ onCommitSuccess, showToast }: {
+function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, onConflictFinish, onConflictAbort }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
+  conflictMode?: string | null
+  conflictFiles?: string[]
+  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
+  onConflictAbort?: () => void
 }) {
   const { t } = useLang()
+  const isConflict = !!conflictMode
   const [changes, setChanges] = useState<WorkingChanges>({ staged: [], unstaged: [], untracked: [] })
   const [commitMsg, setCommitMsg] = useState('')
   const [amend, setAmend] = useState(false)
@@ -456,6 +461,12 @@ function StagingView({ onCommitSuccess, showToast }: {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (isConflict) {
+      window.gitAPI.getMergeMessage().then(r => { if (r.message) setCommitMsg(r.message) })
+    }
+  }, [isConflict])
 
   const generateMessage = async () => {
     setGenerating(true)
@@ -668,18 +679,40 @@ function StagingView({ onCommitSuccess, showToast }: {
           </button>
         </div>
         <div className="st-form-footer">
-          <label className="st-amend">
-            <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />
-            Amend
-          </label>
-          <button
-            className={`st-commit-btn ${canCommit && commitMsg.trim() ? 'ready' : ''}`}
-            disabled={!commitMsg.trim() || committing}
-            onClick={doCommit}
-            title="⌘↵"
-          >
-            {committing ? 'En cours…' : `Commit${changes.staged.length > 0 ? ` (${changes.staged.length})` : ''}`}
-          </button>
+          {isConflict ? (
+            <>
+              <button
+                className="st-commit-btn"
+                style={{ background: '#21262d', color: '#f85149', borderColor: '#f85149', flex: '0 0 auto' }}
+                onClick={onConflictAbort}
+              >
+                Annuler
+              </button>
+              <button
+                className={`st-commit-btn ${commitMsg.trim() && !conflictFiles?.length ? 'ready' : ''}`}
+                disabled={!!conflictFiles?.length || !commitMsg.trim() || committing}
+                onClick={doCommit}
+                title="⌘↵"
+              >
+                {committing ? 'En cours…' : 'Commit & Merge'}
+              </button>
+            </>
+          ) : (
+            <>
+              <label className="st-amend">
+                <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />
+                Amend
+              </label>
+              <button
+                className={`st-commit-btn ${canCommit && commitMsg.trim() ? 'ready' : ''}`}
+                disabled={!commitMsg.trim() || committing}
+                onClick={doCommit}
+                title="⌘↵"
+              >
+                {committing ? 'En cours…' : `Commit${changes.staged.length > 0 ? ` (${changes.staged.length})` : ''}`}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -688,9 +721,14 @@ function StagingView({ onCommitSuccess, showToast }: {
   async function doCommit() {
     if (!commitMsg.trim()) return
     setCommitting(true)
-    const r = await window.gitAPI.commit(commitMsg.trim(), amend)
-    if (r.success) { showToast(t('toast.commitOk')); setCommitMsg(''); setAmend(false); setSelectedDiff(null); await load(); onCommitSuccess() }
-    else showToast(t('toast.commitErr', r.error ?? ''), 'err')
+    if (isConflict && onConflictFinish) {
+      const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
+      onConflictFinish(action, commitMsg)
+    } else {
+      const r = await window.gitAPI.commit(commitMsg.trim(), amend)
+      if (r.success) { showToast(t('toast.commitOk')); setCommitMsg(''); setAmend(false); setSelectedDiff(null); await load(); onCommitSuccess() }
+      else showToast(t('toast.commitErr', r.error ?? ''), 'err')
+    }
     setCommitting(false)
   }
 }
@@ -718,17 +756,19 @@ function ConflictPanel({
   const [committing, setCommitting] = useState(false)
   const [resolvedFiles, setResolvedFiles] = useState<{ path: string }[]>([])
 
+  // Load merge message once on mount — separate from the file list so that
+  // resolving the last file (which empties conflictFiles) doesn't overwrite
+  // any edits the user made to the message.
   useEffect(() => {
-    // Load merge message
     window.gitAPI.getMergeMessage().then(r => {
-      if (r.message && !commitMsg) setCommitMsg(r.message)
+      if (r.message) setCommitMsg(r.message)
     })
-    
-    // Load resolved files (files that are staged but were part of the conflict or are just staged)
+  }, [])
+
+  useEffect(() => {
     window.gitAPI.getWorkingChanges().then(r => {
       if (r.staged) {
-        // Filter out any files that are currently reported as conflicted by git
-        const actuallyResolved = r.staged.filter(stagedFile => !conflictFiles.includes(stagedFile.path))
+        const actuallyResolved = r.staged.filter(f => !conflictFiles.includes(f.path))
         setResolvedFiles(actuallyResolved)
       }
     })
@@ -748,19 +788,15 @@ function ConflictPanel({
     <div className="rp-content rp-conflict-mode">
       <div className="rp-conflict-header">
         <span className="cr-warning">⚠️</span>
-        <span className="cr-title">Merge conflicts detected</span>
-      </div>
-
-      <div className="rp-conflict-info">
-        In progress: <strong>{conflictMode}</strong>
+        <span className="cr-title">Conflits en cours : <strong>{conflictMode}</strong></span>
       </div>
 
       <div className="rp-section">
         <div className="rp-section-header">
-          <span className="rp-section-title">Conflicted Files ({conflictFiles.length})</span>
+          <span className="rp-section-title">Fichiers en conflit ({conflictFiles.length})</span>
         </div>
         <div className="rp-file-list">
-          {conflictFiles.length === 0 && <div className="rp-empty">All conflicts resolved</div>}
+          {conflictFiles.length === 0 && <div className="rp-empty">Tous les conflits sont résolus</div>}
           {conflictFiles.map(f => (
             <div key={f} className="rp-file-row rp-file-conflicted" onClick={() => onOpenResolver(f)}>
               <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>
@@ -772,10 +808,10 @@ function ConflictPanel({
 
       <div className="rp-section">
         <div className="rp-section-header">
-          <span className="rp-section-title">Resolved Files ({resolvedFiles.length})</span>
+          <span className="rp-section-title">Fichiers résolus ({resolvedFiles.length})</span>
         </div>
         <div className="rp-file-list">
-          {resolvedFiles.length === 0 && <div className="rp-empty">No resolved files</div>}
+          {resolvedFiles.length === 0 && <div className="rp-empty">Aucun fichier résolu</div>}
           {resolvedFiles.map(f => (
             <div key={f.path} className="rp-file-row rp-file-resolved">
               <span className="rp-file-status" style={{ color: '#3fb950' }}>✓</span>
@@ -788,21 +824,25 @@ function ConflictPanel({
       <div className="rp-commit-area" style={{ marginTop: 'auto' }}>
         <textarea
           className="rp-commit-input"
-          placeholder="Commit message..."
+          placeholder="Message de commit..."
           value={commitMsg}
           onChange={e => setCommitMsg(e.target.value)}
         />
         <div className="rp-commit-actions" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button className="rp-btn rp-btn-abort" style={{ flex: 1, backgroundColor: '#21262d', color: '#f85149' }} onClick={onConflictAbort}>
-            Abort {conflictMode}
+          <button
+            className="rp-btn rp-btn-abort"
+            style={{ flex: 1, backgroundColor: '#21262d', color: '#f85149' }}
+            onClick={onConflictAbort}
+          >
+            Annuler le {conflictMode}
           </button>
           <button
             className="rp-btn rp-btn-commit"
             style={{ flex: 1, backgroundColor: allResolved ? '#2ea043' : '#21262d', color: allResolved ? '#fff' : '#8b949e' }}
-            disabled={!allResolved || committing}
+            disabled={!allResolved || !commitMsg.trim() || committing}
             onClick={doCommit}
           >
-            {committing ? 'Committing...' : `Commit and Resolve`}
+            {committing ? 'En cours…' : 'Commit & Merge'}
           </button>
         </div>
       </div>
@@ -833,20 +873,30 @@ export default function RightPanel({
   const hasCommit = !!selectedCommit && !isWip
   const isConflict = conflictMode !== null && conflictMode !== undefined
 
+  const hasUnresolvedConflicts = isConflict && (conflictFiles?.length ?? 0) > 0
+  const allConflictsResolved = isConflict && (conflictFiles?.length ?? 0) === 0
+
   return (
     <div className="right-panel">
-      {isConflict && isWip ? (
+      {hasUnresolvedConflicts ? (
         <ConflictPanel
           conflictFiles={conflictFiles ?? []}
-          conflictMode={conflictMode}
+          conflictMode={conflictMode!}
           onConflictFinish={onConflictFinish!}
           onConflictAbort={onConflictAbort!}
           onOpenResolver={onOpenResolver!}
           showToast={showToast}
           onCommitSuccess={onCommitSuccess}
         />
-      ) : (isWip || !selectedCommit) ? (
-        <StagingView onCommitSuccess={onCommitSuccess} showToast={showToast} />
+      ) : (isWip || !selectedCommit || allConflictsResolved) && !hasCommit ? (
+        <StagingView
+          onCommitSuccess={onCommitSuccess}
+          showToast={showToast}
+          conflictMode={allConflictsResolved ? conflictMode : null}
+          conflictFiles={conflictFiles}
+          onConflictFinish={onConflictFinish}
+          onConflictAbort={onConflictAbort}
+        />
       ) : hasCommit ? (
         <CommitDetail
           commit={selectedCommit}

@@ -283,14 +283,12 @@ export default function App() {
       }
       await Promise.all([loadStashes(), loadTags()])
       // Check for conflicts
-      const conflictRes = await window.gitAPI.getConflictedFiles()
+      const [conflictRes, modeRes] = await Promise.all([
+        window.gitAPI.getConflictedFiles(),
+        window.gitAPI.getConflictMode(),
+      ])
       setConflictFiles(conflictRes.files ?? [])
-      if (conflictRes.files?.length > 0) {
-        const modeRes = await window.gitAPI.getConflictMode()
-        setConflictMode(modeRes.mode)
-      } else {
-        setConflictMode(null)
-      }
+      setConflictMode(modeRes.mode)
       // Working changes count for WIP node
       const changesRes = await window.gitAPI.getWorkingChanges()
       setWipCount(
