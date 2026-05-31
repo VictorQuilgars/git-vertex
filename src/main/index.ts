@@ -513,6 +513,11 @@ ipcMain.handle('git:get-conflict-versions', async (_event, filepath: string) => 
   return gitService.getConflictVersions(filepath)
 })
 
+ipcMain.handle('git:get-file-content', async (_event, filepath: string) => {
+  if (!gitService) return { content: '', error: 'No repo open' }
+  return gitService.getFileContent(filepath)
+})
+
 ipcMain.handle('git:mark-resolved', async (_event, filepath: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.markResolved(filepath)

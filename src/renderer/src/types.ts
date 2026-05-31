@@ -104,6 +104,7 @@ declare global {
       // Conflict resolution
       getConflictedFiles: () => Promise<{ files: string[] }>
       getConflictVersions: (filepath: string) => Promise<{ base: string; ours: string; theirs: string }>
+      getFileContent: (filepath: string) => Promise<{ content: string; error?: string }>
       markResolved: (filepath: string) => Promise<R>
       resolveConflict: (filepath: string, content: string) => Promise<R>
       resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => Promise<R>

@@ -1007,6 +1007,18 @@ export class GitService {
     return { base, ours, theirs }
   }
 
+  async getFileContent(filepath: string): Promise<{ content: string; error?: string }> {
+    try {
+      const fs = await import('fs')
+      const path = await import('path')
+      const fullPath = path.join(this.repoPath, filepath)
+      const content = fs.readFileSync(fullPath, 'utf-8')
+      return { content }
+    } catch (e: any) {
+      return { content: '', error: e.message }
+    }
+  }
+
   async markResolved(filepath: string): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.raw(['add', '--', filepath])

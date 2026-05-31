@@ -1018,7 +1018,17 @@ export default function App() {
         <div className="resize-handle" onMouseDown={startResizeSidebar} />
 
         <div className="app-center">
-          {!repoPath ? (
+          {conflictResolverFile ? (
+            <ConflictResolver
+              file={conflictResolverFile}
+              onFinish={() => {
+                setConflictResolverFile(null)
+                loadRepoData()
+              }}
+              onAbort={() => setConflictResolverFile(null)}
+              showToast={showToast}
+            />
+          ) : !repoPath ? (
             <div className="app-welcome">
               <div className="welcome-hero">
                 <div className="welcome-brand">
@@ -1203,20 +1213,6 @@ export default function App() {
           baseHash={rebaseHash}
           onClose={() => setRebaseHash(null)}
           onSuccess={loadRepoData}
-          showToast={showToast}
-        />
-      )}
-
-      {/* Conflict Resolver (Merge Tool for single file) */}
-      {conflictResolverFile && (
-        <ConflictResolver
-          files={[conflictResolverFile]}
-          mode={conflictMode}
-          onFinish={() => {
-            setConflictResolverFile(null)
-            loadRepoData()
-          }}
-          onAbort={() => setConflictResolverFile(null)}
           showToast={showToast}
         />
       )}

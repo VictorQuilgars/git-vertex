@@ -1,170 +1,230 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import './ConflictResolver.css'
 
 interface ConflictResolverProps {
-  files: string[]
-  mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
+  file: string
   onFinish: () => void
   onAbort: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
 }
 
-interface FileVersions {
-  base: string
-  ours: string
-  theirs: string
+interface Chunk {
+  id: number
+  type: 'common' | 'conflict'
+  lines: string[]
+  ours: string[]
+  theirs: string[]
+  oursName: string
+  theirsName: string
 }
 
-export default function ConflictResolver({ files, mode, onFinish, onAbort, showToast }: ConflictResolverProps) {
-  const selectedFile = files[0] ?? ''
-  const [versions, setVersions] = useState<FileVersions>({ base: '', ours: '', theirs: '' })
-  const [loading, setLoading] = useState(false)
-  // Manual editor buffer — lets the user hand-merge the two sides
-  const [editor, setEditor] = useState<string>('')
-  const [editing, setEditing] = useState(false)
+export default function ConflictResolver({ file, onFinish, onAbort, showToast }: ConflictResolverProps) {
+  const [chunks, setChunks] = useState<Chunk[]>([])
+  const [selections, setSelections] = useState<Record<number, { ours: boolean; theirs: boolean }>>({})
+  const [manualOutput, setManualOutput] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!selectedFile) return
-    setLoading(true)
-    setEditing(false)
-    window.gitAPI.getConflictVersions(selectedFile).then(v => {
-      setVersions(v)
-      // Seed the manual editor with a unified view of both sides so the user
-      // can delete what they don't want rather than starting from scratch.
-      setEditor(
-        `<<<<<<< OURS (HEAD)\n${v.ours}${v.ours.endsWith('\n') ? '' : '\n'}` +
-        `=======\n${v.theirs}${v.theirs.endsWith('\n') ? '' : '\n'}` +
-        `>>>>>>> THEIRS\n`
-      )
+    window.gitAPI.getFileContent(file).then(r => {
+      if (r.error) {
+        showToast(r.error, 'err')
+        return
+      }
+      const raw = r.content || ''
+      const lines = raw.split('\n')
+      const newChunks: Chunk[] = []
+      let currCommon: string[] = []
+      let inConflict = false
+      let phase = ''
+      let conflictOurs: string[] = []
+      let conflictTheirs: string[] = []
+      let oursName = '', theirsName = ''
+      let chunkId = 0
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        if (line.startsWith('<<<<<<<')) {
+          if (currCommon.length > 0) {
+            newChunks.push({ id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], oursName: '', theirsName: '' })
+            currCommon = []
+          }
+          inConflict = true
+          phase = 'ours'
+          oursName = line.replace('<<<<<<< ', '').trim()
+          conflictOurs = []
+          conflictTheirs = []
+        } else if (line.startsWith('|||||||')) {
+          phase = 'base'
+        } else if (line.startsWith('=======')) {
+          phase = 'theirs'
+        } else if (line.startsWith('>>>>>>>')) {
+          theirsName = line.replace('>>>>>>> ', '').trim()
+          newChunks.push({
+            id: chunkId++, type: 'conflict', lines: [],
+            ours: conflictOurs, theirs: conflictTheirs,
+            oursName, theirsName
+          })
+          inConflict = false
+          phase = ''
+        } else {
+          if (!inConflict) currCommon.push(line)
+          else if (phase === 'ours') conflictOurs.push(line)
+          else if (phase === 'theirs') conflictTheirs.push(line)
+        }
+      }
+      if (currCommon.length > 0) {
+        // If the last common chunk is just a trailing newline artifact from split, it's fine.
+        newChunks.push({ id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], oursName: '', theirsName: '' })
+      }
+      
+      setChunks(newChunks)
+      
+      // Default selections: none
+      const initialSel: Record<number, { ours: boolean; theirs: boolean }> = {}
+      newChunks.forEach(c => {
+        if (c.type === 'conflict') initialSel[c.id] = { ours: false, theirs: false }
+      })
+      setSelections(initialSel)
       setLoading(false)
     })
-  }, [selectedFile])
+  }, [file])
 
-  const handleResolved = () => {
-    onFinish()
+  const outputString = useMemo(() => {
+    const out: string[] = []
+    for (const c of chunks) {
+      if (c.type === 'common') {
+        out.push(...c.lines)
+      } else {
+        const sel = selections[c.id]
+        if (sel?.ours) out.push(...c.ours)
+        if (sel?.theirs) out.push(...c.theirs)
+      }
+    }
+    // Remove the very last empty line if we appended it unnecessarily
+    if (out.length > 0 && out[out.length - 1] === '') {
+      out.pop()
+    }
+    return out.join('\n')
+  }, [chunks, selections])
+
+  const currentOutput = manualOutput !== null ? manualOutput : outputString
+
+  const toggleSelection = (id: number, side: 'ours' | 'theirs') => {
+    setSelections(prev => ({
+      ...prev,
+      [id]: { ...prev[id], [side]: !prev[id][side] }
+    }))
+    setManualOutput(null)
   }
 
-  // Take a whole side via `git checkout --ours/--theirs` (clean, no markers).
-  const keepSide = async (side: 'ours' | 'theirs') => {
-    const r = await window.gitAPI.resolveConflictSide(selectedFile, side)
+  const handleSave = async () => {
+    // resolveConflict takes filepath and the content string, overwrites it, and git adds it.
+    const r = await window.gitAPI.resolveConflict(file, currentOutput)
     if (r.success) {
-      showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (${side === 'ours' ? 'nôtre' : 'leur'})`)
-      handleResolved()
+      showToast(`✓ ${file} résolu`)
+      onFinish()
     } else {
-      showToast(`Erreur : ${r.error}`, 'err')
+      showToast(`Erreur: ${r.error}`, 'err')
     }
   }
 
-  // Take the common ancestor content.
-  const keepBase = async () => {
-    const r = await window.gitAPI.resolveConflict(selectedFile, versions.base)
-    if (r.success) {
-      showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (base)`)
-      handleResolved()
-    } else {
-      showToast(`Erreur : ${r.error}`, 'err')
-    }
+  if (loading) {
+    return <div className="mt-container"><div className="mt-loading">Chargement…</div></div>
   }
 
-  // Save the manually edited content (must no longer contain conflict markers).
-  const saveManual = async () => {
-    if (/^(<{7}|={7}|>{7})/m.test(editor)) {
-      showToast('Des marqueurs de conflit (<<<<<<<, =======, >>>>>>>) sont encore présents', 'err')
-      return
-    }
-    const r = await window.gitAPI.resolveConflict(selectedFile, editor)
-    if (r.success) {
-      showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (édition manuelle)`)
-      handleResolved()
-    } else {
-      showToast(`Erreur : ${r.error}`, 'err')
-    }
-  }
+  const conflictChunks = chunks.filter(c => c.type === 'conflict')
+  const resolvedCount = conflictChunks.filter(c => selections[c.id].ours || selections[c.id].theirs).length
+  const totalConflicts = conflictChunks.length
+
+  const oursGlobalName = conflictChunks[0]?.oursName || 'HEAD'
+  const theirsGlobalName = conflictChunks[0]?.theirsName || 'Incoming'
 
   return (
-    <div className="cr-overlay">
-      <div className="cr-panel" style={{ maxWidth: '90vw', height: '90vh' }}>
-        <div className="cr-header">
+    <div className="mt-container">
+      <div className="mt-header">
+        <div className="mt-header-left">
           <span className="cr-warning">⚠️</span>
-          <span className="cr-title">Résolution : {selectedFile}</span>
-          <button className="cr-abort" onClick={onAbort}>Fermer</button>
+          <span className="mt-filename">{file}</span>
+          <span className="mt-count">({totalConflicts} conflict{totalConflicts > 1 ? 's' : ''})</span>
         </div>
+        <div className="mt-header-right">
+          <button className="mt-btn mt-btn-abort" onClick={onAbort}>✕ Annuler</button>
+          <button className="mt-btn mt-btn-save" onClick={handleSave}>Enregistrer & Résoudre</button>
+        </div>
+      </div>
 
-        <div className="cr-body">
-          {/* Versions panel */}
-          <div className="cr-versions">
-            {loading ? (
-              <div className="cr-loading">Chargement…</div>
-            ) : editing ? (
-              <div className="cr-manual" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div className="cr-manual-header" style={{ flexShrink: 0 }}>
-                  <span>Édition manuelle — supprimez les marqueurs et gardez le contenu voulu</span>
-                  <button className="cr-manual-back" onClick={() => setEditing(false)}>← Retour aux versions</button>
-                </div>
-                <textarea
-                  className="cr-manual-editor"
-                  style={{ flex: 1, resize: 'none' }}
-                  value={editor}
-                  onChange={e => setEditor(e.target.value)}
-                  spellCheck={false}
-                />
-              </div>
-            ) : (
-              <div className="cr-versions-grid">
-                <VersionPane
-                  title="Base (ancêtre commun)"
-                  content={versions.base}
-                  color="#484f58"
-                  acceptLabel="Garder la base"
-                  onAccept={keepBase}
-                />
-                <VersionPane
-                  title="Nôtre (HEAD)"
-                  content={versions.ours}
-                  color="#3fb950"
-                  acceptLabel="Garder le nôtre"
-                  onAccept={() => keepSide('ours')}
-                />
-                <VersionPane
-                  title="Le leur"
-                  content={versions.theirs}
-                  color="#58a6ff"
-                  acceptLabel="Garder le leur"
-                  onAccept={() => keepSide('theirs')}
-                />
-              </div>
-            )}
+      <div className="mt-main">
+        {/* Top Half: Ours / Theirs */}
+        <div className="mt-top">
+          {/* Ours Panel */}
+          <div className="mt-pane mt-ours-pane">
+            <div className="mt-pane-header">
+              <div className="mt-badge mt-badge-ours">A</div>
+              <span className="mt-pane-title">Nôtre ({oursGlobalName})</span>
+            </div>
+            <div className="mt-pane-content">
+              {chunks.map((c, i) => {
+                if (c.type === 'common') {
+                  return <pre key={i} className="mt-block-common">{c.lines.join('\n')}</pre>
+                }
+                const maxLines = Math.max(c.ours.length, c.theirs.length)
+                return (
+                  <div key={i} className={`mt-block-conflict mt-block-ours ${selections[c.id].ours ? 'selected' : ''}`} style={{ minHeight: `${maxLines * 20 + 32}px` }}>
+                    <div className="mt-block-header">
+                      <label>
+                        <input type="checkbox" checked={selections[c.id].ours} onChange={() => toggleSelection(c.id, 'ours')} />
+                        Garder A
+                      </label>
+                    </div>
+                    <pre className="mt-block-text">{c.ours.join('\n')}</pre>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Theirs Panel */}
+          <div className="mt-pane mt-theirs-pane">
+            <div className="mt-pane-header">
+              <div className="mt-badge mt-badge-theirs">B</div>
+              <span className="mt-pane-title">Leur ({theirsGlobalName})</span>
+            </div>
+            <div className="mt-pane-content">
+              {chunks.map((c, i) => {
+                if (c.type === 'common') {
+                  return <pre key={i} className="mt-block-common">{c.lines.join('\n')}</pre>
+                }
+                const maxLines = Math.max(c.ours.length, c.theirs.length)
+                return (
+                  <div key={i} className={`mt-block-conflict mt-block-theirs ${selections[c.id].theirs ? 'selected' : ''}`} style={{ minHeight: `${maxLines * 20 + 32}px` }}>
+                    <div className="mt-block-header">
+                      <label>
+                        <input type="checkbox" checked={selections[c.id].theirs} onChange={() => toggleSelection(c.id, 'theirs')} />
+                        Garder B
+                      </label>
+                    </div>
+                    <pre className="mt-block-text">{c.theirs.join('\n')}</pre>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
-        <div className="cr-footer">
-          {editing ? (
-            <button className="cr-continue merge" onClick={saveManual}>
-              Enregistrer & résoudre
-            </button>
-          ) : (
-            <button className="cr-continue rebase" onClick={() => setEditing(true)}>
-              ✎ Édition manuelle…
-            </button>
-          )}
+        {/* Bottom Half: Output */}
+        <div className="mt-bottom">
+          <div className="mt-pane-header">
+            <span className="mt-pane-title">Output ({resolvedCount} / {totalConflicts} résolus)</span>
+            {manualOutput !== null && <span className="mt-manual-badge">Édition manuelle active</span>}
+          </div>
+          <textarea
+            className="mt-output-editor"
+            value={currentOutput}
+            onChange={e => setManualOutput(e.target.value)}
+            spellCheck={false}
+          />
         </div>
       </div>
-    </div>
-  )
-}
-
-function VersionPane({ title, content, color, acceptLabel, onAccept }: {
-  title: string; content: string; color: string; acceptLabel: string; onAccept: () => void
-}) {
-  return (
-    <div className="cr-version-pane">
-      <div className="cr-version-header" style={{ borderColor: color }}>
-        <span style={{ color }}>{title}</span>
-        <button className="cr-accept-btn" style={{ borderColor: color, color }} onClick={onAccept}>
-          {acceptLabel}
-        </button>
-      </div>
-      <pre className="cr-version-content">{content || '(vide)'}</pre>
     </div>
   )
 }
