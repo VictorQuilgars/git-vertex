@@ -40,6 +40,8 @@ const gitAPI = {
   dropCommit: (hash: string) => ipcRenderer.invoke('git:drop-commit', hash),
   moveCommit: (hash: string, direction: 'up' | 'down') => ipcRenderer.invoke('git:move-commit', hash, direction),
   diffCommitToWorking: (hash: string) => ipcRenderer.invoke('git:diff-commit-to-working', hash),
+  diffBetweenCommits: (fromHash: string, toHash: string) => ipcRenderer.invoke('git:diff-between-commits', fromHash, toHash),
+  filesBetweenCommits: (fromHash: string, toHash: string) => ipcRenderer.invoke('git:files-between-commits', fromHash, toHash),
   // Branch operations
   createBranchAt: (name: string, hash: string, checkout: boolean) => ipcRenderer.invoke('git:create-branch-at', name, hash, checkout),
   renameBranch: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-branch', oldName, newName),
@@ -76,6 +78,8 @@ const gitAPI = {
   getConflictedFiles: () => ipcRenderer.invoke('git:get-conflicted-files'),
   getConflictVersions: (filepath: string) => ipcRenderer.invoke('git:get-conflict-versions', filepath),
   markResolved: (filepath: string) => ipcRenderer.invoke('git:mark-resolved', filepath),
+  resolveConflict: (filepath: string, content: string) => ipcRenderer.invoke('git:resolve-conflict', filepath, content),
+  resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => ipcRenderer.invoke('git:resolve-conflict-side', filepath, side),
   continueRebase: () => ipcRenderer.invoke('git:continue-rebase'),
   continueMerge: () => ipcRenderer.invoke('git:continue-merge'),
   abortRebase: () => ipcRenderer.invoke('git:abort-rebase'),

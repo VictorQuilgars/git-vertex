@@ -546,4 +546,99 @@ describe('GitService', () => {
       }
     })
   })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Diff between two commits (feature)
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('diff between commits', () => {
+    beforeEach(() => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'one\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "A"`)
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'one\ntwo\n')
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'new file\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "B"`)
+    })
+
+    test('diffBetweenCommits returns the diff between two commits', async () => {
+      const log = await git.getLog()
+      const older = log.commits[1].hash
+      const newer = log.commits[0].hash
+      const r = await git.diffBetweenCommits(older, newer)
+      expect(r.error).toBeUndefined()
+      expect(r.diff).toContain('two')
+      expect(r.diff).toContain('b.txt')
+    })
+
+    test('diffBetweenCommits rejects an empty ref', async () => {
+      const r = await git.diffBetweenCommits('', 'HEAD')
+      expect(r.error).toMatch(/empty/i)
+      expect(r.diff).toBe('')
+    })
+
+    test('filesBetweenCommits lists changed files with status', async () => {
+      const log = await git.getLog()
+      const older = log.commits[1].hash
+      const newer = log.commits[0].hash
+      const r = await git.filesBetweenCommits(older, newer)
+      const paths = r.files.map(f => f.path)
+      expect(paths).toContain('a.txt')
+      expect(paths).toContain('b.txt')
+      expect(r.files.find(f => f.path === 'b.txt')?.status).toBe('A')
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Conflict resolution tool (feature fix)
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('conflict resolution', () => {
+    function setupConflict(): void {
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'base\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Base"`)
+      execSync(`cd ${tempDir} && git checkout -b feature`)
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'theirs\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Feature"`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'ours\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Main"`)
+      execSync(`cd ${tempDir} && git merge feature || true`)
+    }
+
+    test('resolveConflict writes chosen content and clears the conflict', async () => {
+      setupConflict()
+      expect((await git.getConflictedFiles()).files).toContain('shared.txt')
+
+      const r = await git.resolveConflict('shared.txt', 'merged result\n')
+      expect(r.success).toBe(true)
+
+      const content = fs.readFileSync(path.join(tempDir, 'shared.txt'), 'utf8')
+      expect(content).toBe('merged result\n')
+      expect(content).not.toMatch(/<<<<<<<|=======|>>>>>>>/)
+      expect((await git.getConflictedFiles()).files).not.toContain('shared.txt')
+    })
+
+    test('resolveConflictWithSide(ours) keeps our version', async () => {
+      setupConflict()
+      const r = await git.resolveConflictWithSide('shared.txt', 'ours')
+      expect(r.success).toBe(true)
+      expect(fs.readFileSync(path.join(tempDir, 'shared.txt'), 'utf8')).toBe('ours\n')
+      expect((await git.getConflictedFiles()).files).not.toContain('shared.txt')
+    })
+
+    test('resolveConflictWithSide(theirs) keeps their version', async () => {
+      setupConflict()
+      const r = await git.resolveConflictWithSide('shared.txt', 'theirs')
+      expect(r.success).toBe(true)
+      expect(fs.readFileSync(path.join(tempDir, 'shared.txt'), 'utf8')).toBe('theirs\n')
+    })
+
+    test('resolveConflict rejects a path escaping the repo', async () => {
+      setupConflict()
+      const r = await git.resolveConflict('../escape.txt', 'x')
+      expect(r.success).toBe(false)
+      expect(r.error).toMatch(/escape|invalid|empty/i)
+    })
+  })
+
 })

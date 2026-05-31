@@ -164,6 +164,58 @@ export class GitService {
     }
   }
 
+  // Parse `git diff --name-status` + `--numstat` output into FileChange[].
+  private parseNameAndNumStat(nameStatus: string, numStat: string): FileChange[] {
+    const stats: Record<string, { additions: number; deletions: number }> = {}
+    for (const line of numStat.trim().split('\n')) {
+      const parts = line.split('\t')
+      if (parts.length >= 3) {
+        stats[parts[2]] = { additions: parseInt(parts[0]) || 0, deletions: parseInt(parts[1]) || 0 }
+      }
+    }
+    const files: FileChange[] = []
+    for (const line of nameStatus.trim().split('\n')) {
+      if (!line.trim()) continue
+      const parts = line.split('\t')
+      const rawStatus = parts[0]?.[0] ?? 'M'
+      const status = rawStatus === 'A' ? 'A' : rawStatus === 'D' ? 'D' : rawStatus === 'R' ? 'R' : 'M'
+      const path = parts[status === 'R' ? 2 : 1] ?? ''
+      if (!path) continue
+      files.push({ path, status, ...(stats[path] ?? { additions: 0, deletions: 0 }) })
+    }
+    return files
+  }
+
+  // Diff between two arbitrary commits (or any two revisions).
+  // Order matters: changes are expressed as going from `fromHash` to `toHash`.
+  async diffBetweenCommits(fromHash: string, toHash: string): Promise<{ diff: string; error?: string }> {
+    const bad = this.assertRef(fromHash, 'commit') || this.assertRef(toHash, 'commit')
+    if (bad) return { diff: '', error: bad }
+    try {
+      // Two-dot: show the difference between the two endpoints' trees.
+      const diff = await this.git.raw(['diff', `${fromHash}..${toHash}`])
+      return { diff }
+    } catch (e: any) {
+      return { diff: '', error: e.message }
+    }
+  }
+
+  // File list (with per-file add/del counts) between two commits.
+  async filesBetweenCommits(fromHash: string, toHash: string): Promise<{ files: FileChange[]; error?: string }> {
+    const bad = this.assertRef(fromHash, 'commit') || this.assertRef(toHash, 'commit')
+    if (bad) return { files: [], error: bad }
+    try {
+      const range = `${fromHash}..${toHash}`
+      const [nameStatus, numStat] = await Promise.all([
+        this.git.raw(['diff', '--name-status', range]),
+        this.git.raw(['diff', '--numstat', range]),
+      ])
+      return { files: this.parseNameAndNumStat(nameStatus, numStat) }
+    } catch (e: any) {
+      return { files: [], error: e.message }
+    }
+  }
+
   async getCommitBody(hash: string): Promise<{ body: string }> {
     try {
       const body = await this.git.raw(['show', '--format=%b', '--no-patch', hash])
@@ -954,6 +1006,42 @@ export class GitService {
 
   async markResolved(filepath: string): Promise<{ success: boolean; error?: string }> {
     try {
+      await this.git.raw(['add', '--', filepath])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Resolve a conflicted file by WRITING the chosen content to disk, then staging
+  // it. This is the correct fix for the previous behavior, which only ran
+  // `git add` and left the conflict markers (<<<<<<<, =======, >>>>>>>) in place.
+  async resolveConflict(filepath: string, content: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(filepath, 'file path')
+    if (bad) return { success: false, error: bad }
+    try {
+      const fs = await import('fs')
+      const path = await import('path')
+      // Guard against path traversal — keep the write inside the repo.
+      const abs = path.resolve(this.repoPath, filepath)
+      const repoAbs = path.resolve(this.repoPath)
+      if (abs !== repoAbs && !abs.startsWith(repoAbs + path.sep)) {
+        return { success: false, error: 'Path escapes repository' }
+      }
+      fs.writeFileSync(abs, content, 'utf8')
+      await this.git.raw(['add', '--', filepath])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Resolve a conflict by taking one whole side: 'ours' (HEAD) or 'theirs'.
+  async resolveConflictWithSide(filepath: string, side: 'ours' | 'theirs'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(filepath, 'file path')
+    if (bad) return { success: false, error: bad }
+    try {
+      await this.git.raw(['checkout', `--${side}`, '--', filepath])
       await this.git.raw(['add', '--', filepath])
       return { success: true }
     } catch (e: any) {

@@ -17,3 +17,7 @@ out/
 .env.*
 tsconfig.web.tsbuildinfo
 tsconfig.node.tsbuildinfo
+
+# Test artifacts
+coverage/
+test-results/

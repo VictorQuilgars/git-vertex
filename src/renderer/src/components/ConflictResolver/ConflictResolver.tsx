@@ -19,27 +19,73 @@ export default function ConflictResolver({ files, onFinish, onAbort, showToast }
   const [versions, setVersions] = useState<FileVersions>({ base: '', ours: '', theirs: '' })
   const [resolved, setResolved] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
+  // Manual editor buffer — lets the user hand-merge the two sides
+  const [editor, setEditor] = useState<string>('')
+  const [editing, setEditing] = useState(false)
 
   useEffect(() => {
     if (!selectedFile) return
     setLoading(true)
+    setEditing(false)
     window.gitAPI.getConflictVersions(selectedFile).then(v => {
       setVersions(v)
+      // Seed the manual editor with a unified view of both sides so the user
+      // can delete what they don't want rather than starting from scratch.
+      setEditor(
+        `<<<<<<< OURS (HEAD)\n${v.ours}${v.ours.endsWith('\n') ? '' : '\n'}` +
+        `=======\n${v.theirs}${v.theirs.endsWith('\n') ? '' : '\n'}` +
+        `>>>>>>> THEIRS\n`
+      )
       setLoading(false)
     })
   }, [selectedFile])
 
-  const markResolved = async (file: string) => {
-    const r = await window.gitAPI.markResolved(file)
+  const markStateResolved = (file: string) => {
+    setResolved(prev => new Set([...prev, file]))
+    // Auto-advance to the next unresolved file
+    const next = files.find(f => f !== file && !resolved.has(f))
+    if (next) setSelectedFile(next)
+  }
+
+  // Take a whole side via `git checkout --ours/--theirs` (clean, no markers).
+  const keepSide = async (side: 'ours' | 'theirs') => {
+    const r = await window.gitAPI.resolveConflictSide(selectedFile, side)
     if (r.success) {
-      setResolved(prev => new Set([...prev, file]))
-      showToast(`✓ "${file}" marqué comme résolu`)
+      markStateResolved(selectedFile)
+      showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (${side === 'ours' ? 'nôtre' : 'leur'})`)
+    } else {
+      showToast(`Erreur : ${r.error}`, 'err')
+    }
+  }
+
+  // Take the common ancestor content.
+  const keepBase = async () => {
+    const r = await window.gitAPI.resolveConflict(selectedFile, versions.base)
+    if (r.success) {
+      markStateResolved(selectedFile)
+      showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (base)`)
+    } else {
+      showToast(`Erreur : ${r.error}`, 'err')
+    }
+  }
+
+  // Save the manually edited content (must no longer contain conflict markers).
+  const saveManual = async () => {
+    if (/^(<{7}|={7}|>{7})/m.test(editor)) {
+      showToast('Des marqueurs de conflit (<<<<<<<, =======, >>>>>>>) sont encore présents', 'err')
+      return
+    }
+    const r = await window.gitAPI.resolveConflict(selectedFile, editor)
+    if (r.success) {
+      markStateResolved(selectedFile)
+      showToast(`✓ « ${selectedFile.split('/').pop()} » résolu (édition manuelle)`)
     } else {
       showToast(`Erreur : ${r.error}`, 'err')
     }
   }
 
   const allResolved = files.every(f => resolved.has(f))
+  const remaining = files.filter(f => !resolved.has(f)).length
 
   return (
     <div className="cr-overlay">
@@ -59,9 +105,7 @@ export default function ConflictResolver({ files, onFinish, onAbort, showToast }
                 className={`cr-file-item ${selectedFile === f ? 'active' : ''} ${resolved.has(f) ? 'resolved' : ''}`}
                 onClick={() => setSelectedFile(f)}
               >
-                <span className="cr-file-status">
-                  {resolved.has(f) ? '✓' : '⚠'}
-                </span>
+                <span className="cr-file-status">{resolved.has(f) ? '✓' : '⚠'}</span>
                 <span className="cr-file-name">{f.split('/').pop()}</span>
               </div>
             ))}
@@ -71,40 +115,59 @@ export default function ConflictResolver({ files, onFinish, onAbort, showToast }
           <div className="cr-versions">
             {loading ? (
               <div className="cr-loading">Chargement…</div>
+            ) : editing ? (
+              <div className="cr-manual">
+                <div className="cr-manual-header">
+                  <span>Édition manuelle — supprimez les marqueurs et gardez le contenu voulu</span>
+                  <button className="cr-manual-back" onClick={() => setEditing(false)}>← Retour aux versions</button>
+                </div>
+                <textarea
+                  className="cr-manual-editor"
+                  value={editor}
+                  onChange={e => setEditor(e.target.value)}
+                  spellCheck={false}
+                />
+              </div>
             ) : (
               <div className="cr-versions-grid">
                 <VersionPane
                   title="Base (ancêtre commun)"
                   content={versions.base}
                   color="#484f58"
+                  acceptLabel="Garder la base"
+                  onAccept={keepBase}
                 />
                 <VersionPane
                   title="Nôtre (HEAD)"
                   content={versions.ours}
                   color="#3fb950"
-                  onAccept={async () => {
-                    await writeAndResolve(selectedFile, versions.ours)
-                  }}
+                  acceptLabel="Garder le nôtre"
+                  onAccept={() => keepSide('ours')}
                 />
                 <VersionPane
                   title="Le leur"
                   content={versions.theirs}
                   color="#58a6ff"
-                  onAccept={async () => {
-                    await writeAndResolve(selectedFile, versions.theirs)
-                  }}
+                  acceptLabel="Garder le leur"
+                  onAccept={() => keepSide('theirs')}
                 />
               </div>
             )}
 
             <div className="cr-actions">
-              <button
-                className="cr-resolve-btn"
-                disabled={resolved.has(selectedFile)}
-                onClick={() => markResolved(selectedFile)}
-              >
-                {resolved.has(selectedFile) ? '✓ Déjà résolu' : 'Marquer comme résolu'}
-              </button>
+              {editing ? (
+                <button className="cr-resolve-btn" onClick={saveManual}>
+                  Enregistrer &amp; résoudre
+                </button>
+              ) : (
+                <button
+                  className="cr-resolve-btn cr-manual-btn"
+                  disabled={resolved.has(selectedFile)}
+                  onClick={() => setEditing(true)}
+                >
+                  ✎ Édition manuelle…
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -121,39 +184,25 @@ export default function ConflictResolver({ files, onFinish, onAbort, showToast }
             </>
           ) : (
             <span className="cr-pending">
-              {files.filter(f => !resolved.has(f)).length} fichier{files.filter(f => !resolved.has(f)).length !== 1 ? 's' : ''} restant{files.filter(f => !resolved.has(f)).length !== 1 ? 's' : ''}
+              {remaining} fichier{remaining !== 1 ? 's' : ''} restant{remaining !== 1 ? 's' : ''}
             </span>
           )}
         </div>
       </div>
     </div>
   )
-
-  async function writeAndResolve(file: string, content: string) {
-    // Write content to file then mark as resolved
-    // Note: we mark as resolved (git add) which git interprets as accepting current content
-    const r = await window.gitAPI.markResolved(file)
-    if (r.success) {
-      setResolved(prev => new Set([...prev, file]))
-      showToast(`✓ "${file}" résolu`)
-    } else {
-      showToast(`Erreur : ${r.error}`, 'err')
-    }
-  }
 }
 
-function VersionPane({ title, content, color, onAccept }: {
-  title: string; content: string; color: string; onAccept?: () => void
+function VersionPane({ title, content, color, acceptLabel, onAccept }: {
+  title: string; content: string; color: string; acceptLabel: string; onAccept: () => void
 }) {
   return (
     <div className="cr-version-pane">
       <div className="cr-version-header" style={{ borderColor: color }}>
         <span style={{ color }}>{title}</span>
-        {onAccept && (
-          <button className="cr-accept-btn" style={{ borderColor: color, color }} onClick={onAccept}>
-            Garder cette version
-          </button>
-        )}
+        <button className="cr-accept-btn" style={{ borderColor: color, color }} onClick={onAccept}>
+          {acceptLabel}
+        </button>
       </div>
       <pre className="cr-version-content">{content || '(vide)'}</pre>
     </div>

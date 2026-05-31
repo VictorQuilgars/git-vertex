@@ -211,6 +211,10 @@ interface CommitGraphProps {
   onCheckoutCommit?: (hash: string) => void
   onEditMessage?: (hash: string) => void
   onCompareWorking?: (hash: string) => void
+  // Two-commit comparison
+  onSelectForCompare?: (hash: string) => void
+  onCompareWithSelected?: (hash: string) => void
+  compareBaseHash?: string | null
   onDropCommit?: (hash: string) => void
   onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
   onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => void

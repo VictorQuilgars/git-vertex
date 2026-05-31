@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { CommitNode, BranchInfo } from './types'
+import { CommitNode, BranchInfo, FileChange } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
@@ -113,7 +113,63 @@ function CompareWorkingModal({ hash, onClose }: { hash: string; onClose: () => v
             ? <div className="bc-loading">Chargement…</div>
             : diff.trim() === ''
               ? <div className="bc-empty" style={{ padding: 24 }}>Aucune différence</div>
-              : <DiffViewer commit={null} diff={diff} files={[]} loading={false} />}
+              : <DiffViewer commit={syntheticCommit(hash.slice(0, 7), 'Répertoire de travail')} diff={diff} files={[]} loading={false} />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Minimal CommitNode so DiffViewer renders its body (it early-returns on null commit).
+function syntheticCommit(shortHash: string, message: string): CommitNode {
+  return {
+    hash: shortHash, shortHash, message,
+    author: '', authorEmail: '', date: '', parents: [], refs: []
+  }
+}
+
+// ── Compare two arbitrary commits ──────────────────────────────
+function CompareCommitsModal({ from, to, onClose }: { from: string; to: string; onClose: () => void }) {
+  const [diff, setDiff] = useState<string>('')
+  const [files, setFiles] = useState<FileChange[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  React.useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([
+      window.gitAPI.diffBetweenCommits(from, to),
+      window.gitAPI.filesBetweenCommits(from, to)
+    ]).then(([d, f]) => {
+      if (cancelled) return
+      if (d.error) setError(d.error)
+      setDiff(d.diff ?? '')
+      setFiles(f.files ?? [])
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [from, to])
+
+  return (
+    <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bc-modal" style={{ width: '85vw', maxWidth: 1200, height: '82vh' }}>
+        <div className="bc-header">
+          <span className="bc-title">
+            Comparaison : <code>{from.slice(0, 7)}</code> → <code>{to.slice(0, 7)}</code>
+          </span>
+          <button className="bc-close" onClick={onClose}>×</button>
+        </div>
+        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {loading
+            ? <div className="bc-loading">Chargement…</div>
+            : error
+              ? <div className="bc-empty" style={{ padding: 24, color: '#f85149' }}>{error}</div>
+              : diff.trim() === ''
+                ? <div className="bc-empty" style={{ padding: 24 }}>Aucune différence entre ces deux commits</div>
+                : <DiffViewer
+                    commit={syntheticCommit(to.slice(0, 7), `${from.slice(0, 7)} → ${to.slice(0, 7)}`)}
+                    diff={diff} files={files} loading={false} />}
         </div>
       </div>
     </div>
@@ -153,6 +209,8 @@ export default function App() {
   const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
   const [compareBranchModal, setCompareBranchModal] = useState<string | null>(null)
   const [compareWorkingHash, setCompareWorkingHash] = useState<string | null>(null)
+  const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
+  const [comparePair, setComparePair] = useState<{ from: string; to: string } | null>(null)
   const [gitflowOpen, setGitflowOpen] = useState(false)
   // ── Multi-repo tabs ──
   const [tabs, setTabs] = useState<{ id: string; path: string; name: string }[]>([])
@@ -1028,6 +1086,9 @@ export default function App() {
               onCheckoutCommit={handleCheckout}
               onEditMessage={handleEditMessage}
               onCompareWorking={(hash) => setCompareWorkingHash(hash)}
+              compareBaseHash={compareBaseHash}
+              onSelectForCompare={(hash) => { setCompareBaseHash(hash); showToast('◎ Commit sélectionné pour comparaison') }}
+              onCompareWithSelected={(hash) => { if (compareBaseHash) setComparePair({ from: compareBaseHash, to: hash }) }}
               onDropCommit={handleDropCommit}
               onMoveCommit={handleMoveCommit}
               onBranchDrop={handleBranchDrop}
@@ -1162,6 +1223,15 @@ export default function App() {
         <CompareWorkingModal
           hash={compareWorkingHash}
           onClose={() => setCompareWorkingHash(null)}
+        />
+      )}
+
+      {/* Compare two commits */}
+      {comparePair && (
+        <CompareCommitsModal
+          from={comparePair.from}
+          to={comparePair.to}
+          onClose={() => setComparePair(null)}
         />
       )}
 

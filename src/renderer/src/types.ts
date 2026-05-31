@@ -77,6 +77,8 @@ declare global {
       dropCommit: (hash: string) => Promise<R>
       moveCommit: (hash: string, direction: 'up' | 'down') => Promise<R>
       diffCommitToWorking: (hash: string) => Promise<{ diff: string }>
+      diffBetweenCommits: (fromHash: string, toHash: string) => Promise<{ diff: string; error?: string }>
+      filesBetweenCommits: (fromHash: string, toHash: string) => Promise<{ files: FileChange[]; error?: string }>
       getLastCommitMessage: () => Promise<{ message: string }>
       getUpstream: () => Promise<{ upstream: string | null }>
       // Tags
@@ -103,6 +105,8 @@ declare global {
       getConflictedFiles: () => Promise<{ files: string[] }>
       getConflictVersions: (filepath: string) => Promise<{ base: string; ours: string; theirs: string }>
       markResolved: (filepath: string) => Promise<R>
+      resolveConflict: (filepath: string, content: string) => Promise<R>
+      resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => Promise<R>
       continueRebase: () => Promise<R>
       continueMerge: () => Promise<R>
       abortRebase: () => Promise<R>

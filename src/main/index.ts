@@ -199,6 +199,16 @@ ipcMain.handle('git:get-diff', async (_event, commitHash: string) => {
   return gitService.getDiff(commitHash)
 })
 
+ipcMain.handle('git:diff-between-commits', async (_event, fromHash: string, toHash: string) => {
+  if (!gitService) return { diff: '', error: 'No repo open' }
+  return gitService.diffBetweenCommits(fromHash, toHash)
+})
+
+ipcMain.handle('git:files-between-commits', async (_event, fromHash: string, toHash: string) => {
+  if (!gitService) return { files: [], error: 'No repo open' }
+  return gitService.filesBetweenCommits(fromHash, toHash)
+})
+
 ipcMain.handle('git:get-commit-files', async (_event, commitHash: string) => {
   if (!gitService) return { error: 'No repo open' }
   return gitService.getCommitFiles(commitHash)
@@ -506,6 +516,16 @@ ipcMain.handle('git:get-conflict-versions', async (_event, filepath: string) => 
 ipcMain.handle('git:mark-resolved', async (_event, filepath: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.markResolved(filepath)
+})
+
+ipcMain.handle('git:resolve-conflict', async (_event, filepath: string, content: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.resolveConflict(filepath, content)
+})
+
+ipcMain.handle('git:resolve-conflict-side', async (_event, filepath: string, side: 'ours' | 'theirs') => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.resolveConflictWithSide(filepath, side)
 })
 
 ipcMain.handle('git:continue-rebase', async () => {
