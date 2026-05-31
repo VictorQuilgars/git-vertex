@@ -335,18 +335,31 @@ export default function CommitGraph({
   const svgH = displayLayout.length * ROW_HEIGHT
 
   const filtered = useMemo(() => {
-    if (!searchQuery) return null
-    const q = searchQuery.toLowerCase()
-    return new Set(
-      displayLayout
-        .filter(c => c.hash !== WIP_HASH && (
-          c.message.toLowerCase().includes(q) ||
-          c.author.toLowerCase().includes(q) ||
-          c.shortHash.includes(q)
-        ))
-        .map(c => c.row)
-    )
-  }, [displayLayout, searchQuery])
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      return new Set(
+        displayLayout
+          .filter(c => c.hash !== WIP_HASH && (
+            c.message.toLowerCase().includes(q) ||
+            c.author.toLowerCase().includes(q) ||
+            c.shortHash.includes(q)
+          ))
+          .map(c => c.row)
+      )
+    }
+    if (selectedHash && selectedHash !== WIP_HASH) {
+      // Dim commits not on the same lane (color) as the selected commit
+      const sel = displayLayout.find(c => c.hash === selectedHash)
+      if (sel) {
+        return new Set(
+          displayLayout
+            .filter(c => c.hash !== WIP_HASH && c.color === sel.color)
+            .map(c => c.row)
+        )
+      }
+    }
+    return null
+  }, [displayLayout, searchQuery, selectedHash])
 
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
@@ -643,14 +656,9 @@ export default function CommitGraph({
                 {/* Spacer for SVG */}
                 <div style={{ width: svgW, flexShrink: 0 }} />
 
-                {/* Message — two lines */}
+                {/* Message */}
                 <div className="cg-col-msg">
-                  <div className="cg-msg-stack">
-                    <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`}>{commit.message}</span>
-                    {!isWip && (
-                      <span className="cg-msg-sub">{commit.author} · {fmtDate(commit.date)}</span>
-                    )}
-                  </div>
+                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`}>{commit.message}</span>
                 </div>
 
                 {/* Author */}
