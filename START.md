@@ -22,7 +22,7 @@ L'application s'ouvre automatiquement.
 
 ## Fonctionnalités
 
-- **Graphe de commits** — Visualisation des branches avec lignes colorées (style GitKraken)
+- **Graphe de commits** — Visualisation des branches avec lignes colorées et courbes
 - **Opérations Git** — Fetch, Push, Pull depuis la toolbar
 - **Gestion des branches** — Checkout, création, suppression (clic droit dans la sidebar)
 - **Diff de fichiers** — Vue inline avec additions/suppressions colorées

@@ -19,7 +19,7 @@
 
 ## Features
 
-- **Commit graph** — visualize branches and merges in a GitKraken-style graph
+- **Commit graph** — visualize branches and merges in a modern, curved graph
 - **Stage & commit** — stage individual files or hunks, amend commits
 - **Interactive rebase** — reorder, squash, drop commits visually
 - **Push & pull** — push to any remote and branch with custom options
