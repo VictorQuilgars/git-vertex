@@ -1063,9 +1063,9 @@ export class GitService {
 
   async continueMerge(): Promise<{ success: boolean; error?: string }> {
     try {
-      // --continue usually doesn't take arguments like --no-edit on older git versions
-      // and it often just triggers the commit editor.
-      await this.git.raw(['merge', '--continue'])
+      // Use env variables to bypass the editor if it still tries to open one,
+      // and explicitly pass --no-edit
+      await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['merge', '--continue', '--no-edit'])
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
