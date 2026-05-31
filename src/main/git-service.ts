@@ -76,7 +76,10 @@ export class GitService {
     const maxCount = options.maxCount ?? 200
     const args: string[] = [
       '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D',
-      `--max-count=${maxCount}`
+      `--max-count=${maxCount}`,
+      '--topo-order', // ensures parents always follow children; without this, --all
+                     // interleaves commits from separate ref-heads (e.g. tags) by
+                     // date, breaking the graph lane-assignment algorithm
     ]
     if (options.all) args.push('--all')
 

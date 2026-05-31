@@ -340,10 +340,22 @@ export default function CommitGraph({
           strokeDasharray={dashArray} />
       )
     }
-    const offset = Math.min(ROW_HEIGHT * 0.7, Math.abs(y2 - y1) * 0.5)
+    // GitKraken-style: two vertical segments connected by a rounded horizontal
+    // elbow at the midpoint — gives the distinct "angled bracket" look.
+    const midY = (y1 + y2) / 2
+    const r = Math.min(LANE_WIDTH * 0.6, Math.abs(y2 - y1) / 4)
+    const dx = x2 > x1 ? r : -r
+    const d = [
+      `M${x1} ${y1}`,
+      `L${x1} ${midY - r}`,
+      `Q${x1} ${midY} ${x1 + dx} ${midY}`,
+      `L${x2 - dx} ${midY}`,
+      `Q${x2} ${midY} ${x2} ${midY + r}`,
+      `L${x2} ${y2}`,
+    ].join(' ')
     return (
       <path key={key}
-        d={`M${x1} ${y1} C${x1} ${y1 + offset},${x2} ${y2 - offset},${x2} ${y2}`}
+        d={d}
         fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
         strokeDasharray={dashArray} />
     )
