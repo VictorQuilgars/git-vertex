@@ -725,6 +725,25 @@
   flex-shrink: 0;
 }
 
+/* ── Tree view ───────────────────────────────────────────── */
+.st-tree-dir {
+  cursor: default;
+  color: #8b949e;
+}
+.st-tree-dir:hover { background: #161b22; }
+.st-tree-chevron {
+  font-size: 9px;
+  width: 12px;
+  flex-shrink: 0;
+  color: #6e7681;
+  cursor: pointer;
+  user-select: none;
+}
+.st-tree-dirname {
+  color: #8b949e;
+  cursor: pointer;
+}
+
 /* ── Conflict Panel ───────────────────────────────────────── */
 .rp-conflict-mode {
   padding: 16px;

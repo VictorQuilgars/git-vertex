@@ -1,7 +1,31 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import hljs from 'highlight.js'
 import { CommitNode, FileChange, WorkingChanges } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
 import './RightPanel.css'
+
+function detectLang(filename: string): string | undefined {
+  const ext = filename.split('.').pop()?.toLowerCase()
+  const map: Record<string, string> = {
+    ts: 'typescript', tsx: 'typescript', js: 'javascript', jsx: 'javascript',
+    py: 'python', rs: 'rust', go: 'go', css: 'css', scss: 'scss',
+    html: 'html', json: 'json', yaml: 'yaml', yml: 'yaml',
+    md: 'markdown', sh: 'bash', c: 'c', cpp: 'cpp', cs: 'csharp',
+    java: 'java', kt: 'kotlin', swift: 'swift', rb: 'ruby', php: 'php',
+    sql: 'sql', xml: 'xml', toml: 'toml', vue: 'xml',
+  }
+  return ext ? map[ext] : undefined
+}
+
+function hl(content: string, lang?: string): string {
+  try {
+    if (lang && hljs.getLanguage(lang))
+      return hljs.highlight(content, { language: lang, ignoreIllegals: true }).value
+    return content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  } catch {
+    return content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+}
 
 // ── Diff parser ───────────────────────────────────────────────
 interface DiffLine { type: 'add' | 'remove' | 'context'; content: string; oldLine?: number; newLine?: number }
@@ -34,6 +58,91 @@ function parseDiff(raw: string): FileDiff[] {
     if (hunks.length) files.push({ from: to, to, hunks })
   }
   return files
+}
+
+// ── File tree builder ─────────────────────────────────────────
+interface TreeNode {
+  name: string
+  fullPath: string
+  isFile: boolean
+  status?: string
+  children: TreeNode[]
+}
+
+function buildTree(files: { path: string; status: string }[]): TreeNode[] {
+  const root: TreeNode = { name: '', fullPath: '', isFile: false, children: [] }
+  for (const f of files) {
+    const parts = f.path.split('/')
+    let node = root
+    for (let i = 0; i < parts.length; i++) {
+      const isLast = i === parts.length - 1
+      let child = node.children.find(c => c.name === parts[i])
+      if (!child) {
+        child = { name: parts[i], fullPath: parts.slice(0, i + 1).join('/'), isFile: isLast, status: isLast ? f.status : undefined, children: [] }
+        node.children.push(child)
+      }
+      node = child
+    }
+  }
+  return root.children
+}
+
+function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect, isSelected }: {
+  node: TreeNode; depth: number
+  onAction: (paths: string[]) => void
+  actionIcon: string; actionTitle: string
+  onSelect?: (path: string) => void
+  isSelected?: boolean
+}) {
+  const [open, setOpen] = React.useState(true)
+  const indent = depth * 14
+
+  if (node.isFile) {
+    const STATUS_META: Record<string, { label: string; color: string }> = {
+      M: { label: 'M', color: '#e3b341' }, A: { label: 'A', color: '#3fb950' },
+      D: { label: 'D', color: '#f85149' }, R: { label: 'R', color: '#58a6ff' },
+      '?': { label: '?', color: '#8b949e' }, U: { label: 'U', color: '#ffa657' },
+    }
+    const meta = STATUS_META[node.status ?? '?'] ?? STATUS_META['?']
+    return (
+      <div
+        className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+        style={{ paddingLeft: indent + 4 }}
+        onClick={() => onSelect?.(node.fullPath)}
+      >
+        <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+        <span className="st-path">{node.name}</span>
+        <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
+          title={actionTitle}
+          onClick={e => { e.stopPropagation(); onAction([node.fullPath]) }}>
+          {actionIcon}
+        </button>
+      </div>
+    )
+  }
+
+  const allPaths = (n: TreeNode): string[] =>
+    n.isFile ? [n.fullPath] : n.children.flatMap(allPaths)
+
+  return (
+    <>
+      <div className="st-file-row st-tree-dir" style={{ paddingLeft: indent }}>
+        <span className="st-tree-chevron" onClick={() => setOpen(o => !o)}>{open ? '▾' : '▸'}</span>
+        <span className="st-badge" style={{ color: '#8b949e', fontSize: 10 }}>📁</span>
+        <span className="st-path st-tree-dirname" onClick={() => setOpen(o => !o)}>{node.name}</span>
+        <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
+          title={`${actionTitle} dossier`}
+          onClick={e => { e.stopPropagation(); onAction(allPaths(node)) }}>
+          {actionIcon}
+        </button>
+      </div>
+      {open && node.children.map(c => (
+        <TreeFileRow key={c.fullPath} node={c} depth={depth + 1}
+          onAction={onAction} actionIcon={actionIcon} actionTitle={actionTitle}
+          onSelect={onSelect} isSelected={isSelected && c.fullPath === node.fullPath} />
+      ))}
+    </>
+  )
 }
 
 // ── Shared helpers ────────────────────────────────────────────
@@ -390,21 +499,24 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
           {view === 'diff' && fileForDiff && (
             <div className="rp-diff-view">
               <div className="rp-diff-filename">{selectedFile}</div>
-              {fileForDiff.hunks.map((hunk, hi) => (
-                <div key={hi} className="rp-hunk">
-                  <div className="rp-hunk-header">{hunk.header}</div>
-                  <table className="rp-diff-table"><tbody>
-                    {hunk.lines.map((line, li) => (
-                      <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
-                        <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
-                        <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
-                        <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
-                        <td className="rp-lc"><code>{line.content}</code></td>
-                      </tr>
-                    ))}
-                  </tbody></table>
-                </div>
-              ))}
+              {fileForDiff.hunks.map((hunk, hi) => {
+                const lang = detectLang(selectedFile ?? '')
+                return (
+                  <div key={hi} className="rp-hunk">
+                    <div className="rp-hunk-header">{hunk.header}</div>
+                    <table className="rp-diff-table"><tbody>
+                      {hunk.lines.map((line, li) => (
+                        <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
+                          <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
+                          <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
+                          <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
+                          <td className="rp-lc"><code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line.content, lang) }} /></td>
+                        </tr>
+                      ))}
+                    </tbody></table>
+                  </div>
+                )
+              })}
             </div>
           )}
 
@@ -434,6 +546,7 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
   const [commitMsg, setCommitMsg] = useState('')
   const [amend, setAmend] = useState(false)
   const [amendFiles, setAmendFiles] = useState<FileChange[]>([])
+  const [treeMode, setTreeMode] = useState(() => localStorage.getItem('st-tree-mode') === 'true')
 
   const toggleAmend = useCallback(async (checked: boolean) => {
     setAmend(checked)
@@ -527,6 +640,17 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
   const canCommit = changes.staged.length > 0 || amend
   const parsedDiff = parseDiff(diffRaw)
 
+  const toggleTree = () => setTreeMode(v => {
+    localStorage.setItem('st-tree-mode', String(!v))
+    return !v
+  })
+
+  const stagedTree = buildTree(changes.staged.map(f => ({ path: f.path, status: f.status })))
+  const unstagedTree = buildTree([
+    ...changes.unstaged.map(f => ({ path: f.path, status: f.status })),
+    ...changes.untracked.map(f => ({ path: f, status: '?' })),
+  ])
+
   return (
     <div className="rp-content rp-staging">
       {/* Staged */}
@@ -540,38 +664,47 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
               {t('panel.unstageAll')}
             </button>
           )}
+          <button className="st-refresh" title={treeMode ? 'Vue liste' : 'Vue arborescence'} onClick={toggleTree}>
+            {treeMode ? '≡' : '⋱'}
+          </button>
           <button className="st-refresh" onClick={load} title={t('panel.refresh')}>↺</button>
         </div>
         <div className="st-file-list">
           {changes.staged.length === 0 && amendOnly.length === 0
             ? <div className="st-empty">{t('panel.noStaged')}</div>
-            : <>
-              {changes.staged.map(f => {
-                const meta = STATUS_META[f.status] ?? STATUS_META['?']
-                const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'staged'
-                return (
-                  <div
-                    key={f.path}
-                    className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
-                    onClick={() => selectFile({ path: f.path, area: 'staged' })}
-                  >
-                    <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
-                    <span className="st-path">{f.path}</span>
-                    <button className="st-action st-unstage" title={t('panel.unstaged')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
-                  </div>
-                )
-              })}
-              {amendOnly.map(f => {
-                const meta = STATUS_META[f.status] ?? STATUS_META['?']
-                return (
-                  <div key={f.path} className="st-file-row st-amend-file" title={t('panel.amendBadge.tooltip')}>
-                    <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
-                    <span className="st-path">{f.path}</span>
-                    <span className="st-amend-tag">amend</span>
-                  </div>
-                )
-              })}
-            </>
+            : treeMode
+              ? stagedTree.map(node => (
+                  <TreeFileRow key={node.fullPath} node={node} depth={0}
+                    onAction={paths => handle(() => window.gitAPI.unstage(paths))}
+                    actionIcon="−" actionTitle={t('panel.unstaged')}
+                    onSelect={p => selectFile({ path: p, area: 'staged' })}
+                    isSelected={selectedDiff?.area === 'staged' && selectedDiff?.path === node.fullPath}
+                  />
+                ))
+              : <>
+                  {changes.staged.map(f => {
+                    const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                    const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'staged'
+                    return (
+                      <div key={f.path} className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+                        onClick={() => selectFile({ path: f.path, area: 'staged' })}>
+                        <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+                        <span className="st-path">{f.path}</span>
+                        <button className="st-action st-unstage" title={t('panel.unstaged')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
+                      </div>
+                    )
+                  })}
+                  {amendOnly.map(f => {
+                    const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                    return (
+                      <div key={f.path} className="st-file-row st-amend-file" title={t('panel.amendBadge.tooltip')}>
+                        <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+                        <span className="st-path">{f.path}</span>
+                        <span className="st-amend-tag">amend</span>
+                      </div>
+                    )
+                  })}
+                </>
           }
         </div>
       </div>
@@ -591,42 +724,47 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
         <div className="st-file-list">
           {totalUnstaged === 0
             ? <div className="st-empty">{t('panel.noChanges')}</div>
-            : <>
-              {changes.unstaged.map(f => {
-                const meta = STATUS_META[f.status] ?? STATUS_META['?']
-                const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'unstaged'
-                return (
-                  <div
-                    key={f.path}
-                    className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
-                    onClick={() => selectFile({ path: f.path, area: 'unstaged' })}
-                  >
-                    <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
-                    <span className="st-path" title={f.path}>{f.path}</span>
-                    <button className="st-action st-stage" title={t('panel.discard')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
-                    <button className="st-action st-discard" title={t('panel.discard')} onClick={async e => {
-                      e.stopPropagation()
-                      if (!window.confirm(t('panel.discard.confirm', f.path))) return
-                      handle(() => window.gitAPI.discardFile(f.path))
-                    }}>↺</button>
-                  </div>
-                )
-              })}
-              {changes.untracked.map(f => {
-                const isDir = f.endsWith('/')
-                return (
-                  <div key={f} className="st-file-row">
-                    <span className="st-badge" style={{ color: '#3fb950' }}>{isDir ? '📁' : '?'}</span>
-                    <span className="st-path" title={f}>
-                      {f}
-                      {isDir && <span className="st-dir-hint"> {t('panel.folder')}</span>}
-                    </span>
-                    <button
-                      className="st-action st-stage"
-                      title={isDir ? t('panel.stage.folder', f) : t('panel.stage.file', f)}
-                      onClick={() => handle(() => window.gitAPI.stage([f]))}
-                    >+</button>
-                  </div>
+            : treeMode
+              ? unstagedTree.map(node => (
+                  <TreeFileRow key={node.fullPath} node={node} depth={0}
+                    onAction={paths => handle(() => window.gitAPI.stage(paths))}
+                    actionIcon="+" actionTitle={t('panel.stage.file', node.fullPath)}
+                    onSelect={p => selectFile({ path: p, area: 'unstaged' })}
+                    isSelected={selectedDiff?.area === 'unstaged' && selectedDiff?.path === node.fullPath}
+                  />
+                ))
+              : <>
+                  {changes.unstaged.map(f => {
+                    const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                    const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'unstaged'
+                    return (
+                      <div key={f.path} className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+                        onClick={() => selectFile({ path: f.path, area: 'unstaged' })}>
+                        <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+                        <span className="st-path" title={f.path}>{f.path}</span>
+                        <button className="st-action st-stage" title={t('panel.discard')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
+                        <button className="st-action st-discard" title={t('panel.discard')} onClick={async e => {
+                          e.stopPropagation()
+                          if (!window.confirm(t('panel.discard.confirm', f.path))) return
+                          handle(() => window.gitAPI.discardFile(f.path))
+                        }}>↺</button>
+                      </div>
+                    )
+                  })}
+                  {changes.untracked.map(f => {
+                    const isDir = f.endsWith('/')
+                    return (
+                      <div key={f} className="st-file-row">
+                        <span className="st-badge" style={{ color: '#3fb950' }}>{isDir ? '📁' : '?'}</span>
+                        <span className="st-path" title={f}>
+                          {f}
+                          {isDir && <span className="st-dir-hint"> {t('panel.folder')}</span>}
+                        </span>
+                        <button className="st-action st-stage"
+                          title={isDir ? t('panel.stage.folder', f) : t('panel.stage.file', f)}
+                          onClick={() => handle(() => window.gitAPI.stage([f]))}
+                        >+</button>
+                      </div>
                 )
               })}
             </>
@@ -647,8 +785,9 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
           <div className="st-diff-body">
             {diffLoading && <div className="st-diff-loading">{t('panel.loading')}</div>}
             {!diffLoading && parsedDiff.length === 0 && <div className="st-diff-loading">{t('panel.noDiff')}</div>}
-            {!diffLoading && parsedDiff.map((file, fi) =>
-              file.hunks.map((hunk, hi) => (
+            {!diffLoading && parsedDiff.map((file, fi) => {
+              const lang = detectLang(selectedDiff?.path ?? file.to)
+              return file.hunks.map((hunk, hi) => (
                 <div key={`${fi}-${hi}`}>
                   <div className="rp-hunk-header">{hunk.header}</div>
                   <table className="rp-diff-table"><tbody>
@@ -657,13 +796,13 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
                         <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
                         <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
                         <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
-                        <td className="rp-lc"><code>{line.content}</code></td>
+                        <td className="rp-lc"><code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line.content, lang) }} /></td>
                       </tr>
                     ))}
                   </tbody></table>
                 </div>
               ))
-            )}
+            })}
           </div>
         </div>
       )}

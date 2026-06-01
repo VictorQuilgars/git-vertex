@@ -322,17 +322,6 @@ export default function App() {
     window.gitAPI.getRecentRepos().then(r => setRecentRepos(r ?? []))
   }, [])
 
-  // ── Command Palette keybinding ─────────────────────────────
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
-        e.preventDefault()
-        setPaletteOpen(o => !o)
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
 
   // ── Extended search ────────────────────────────────────────
   useEffect(() => {
@@ -503,6 +492,33 @@ export default function App() {
     else showToast(r.error ?? 'Impossible d\'annuler', 'err')
     setLoading(false)
   }
+
+  // ── Keyboard shortcuts ─────────────────────────────────────
+  // Declared after handleUndo so the dependency array doesn't hit a temporal
+  // dead zone (referencing a `const` before its initialization throws at render).
+  useEffect(() => {
+    const isInput = (e: KeyboardEvent) =>
+      ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)
+
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault(); setPaletteOpen(o => !o); return
+      }
+      if (e.key === 'F5' || ((e.metaKey || e.ctrlKey) && e.key === 'r')) {
+        if (!isInput(e)) { e.preventDefault(); loadRepoData() }; return
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && !isInput(e)) {
+        e.preventDefault(); handleUndo(); return
+      }
+      if (e.key === 'Escape') {
+        if (conflictResolverFile) return
+        setSelectedCommit(null)
+        setPaletteOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [loadRepoData, handleUndo, conflictResolverFile])
 
   const handleFetch = async () => {
     setLoading(true)
