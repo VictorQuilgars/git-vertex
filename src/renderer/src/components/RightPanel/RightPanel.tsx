@@ -447,7 +447,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
               </svg>
             </button>
             <div className="cd-view-toggle">
-              <button className={`cd-view-btn ${view === 'files' ? 'active' : ''}`} onClick={() => setView('files')}>
+              <button className={`cd-view-btn ${!cdTreeMode ? 'active' : ''}`} onClick={() => { setView('files'); setCdTreeMode(false); localStorage.setItem('cd-tree-mode', 'false') }}>
                 <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z"/></svg>
                 Path
               </button>
