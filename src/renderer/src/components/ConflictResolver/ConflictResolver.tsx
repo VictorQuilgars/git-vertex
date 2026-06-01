@@ -21,9 +21,14 @@ interface Chunk {
   theirsStartLine: number
 }
 
+// Each selected line is a reference to a specific line within a side
+type LineRef = { side: 'ours' | 'theirs'; index: number }
+// selections[chunkId] = ordered list of selected line refs
+type Selections = Record<number, LineRef[]>
+
 export default function ConflictResolver({ file, onFinish, onAbort, showToast }: ConflictResolverProps) {
   const [chunks, setChunks] = useState<Chunk[]>([])
-  const [selections, setSelections] = useState<Record<number, { order: ('ours' | 'theirs')[] }>>({})
+  const [selections, setSelections] = useState<Selections>({})
   const [manualOutput, setManualOutput] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -38,105 +43,62 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
       window.gitAPI.getFileContent(file),
       window.gitAPI.getConflictVersions(file),
     ]).then(([fileRes, versionsRes]) => {
-      if (fileRes.error) {
-        showToast(fileRes.error, 'err')
-        return
-      }
+      if (fileRes.error) { showToast(fileRes.error, 'err'); return }
       const raw = fileRes.content || ''
       const lines = raw.split('\n')
       const newChunks: Chunk[] = []
       let currCommon: string[] = []
-      let inConflict = false
-      let phase = ''
-      let conflictOurs: string[] = []
-      let conflictTheirs: string[] = []
-      let conflictBase: string[] = []
+      let inConflict = false, phase = ''
+      let conflictOurs: string[] = [], conflictTheirs: string[] = [], conflictBase: string[] = []
       let oursName = '', theirsName = ''
-      let chunkId = 0
-      let chunkOursStart = 1
-      let chunkTheirsStart = 1
+      let chunkId = 0, chunkOursStart = 1, chunkTheirsStart = 1
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         if (line.startsWith('<<<<<<<')) {
           if (currCommon.length > 0) {
-            newChunks.push({
-              id: chunkId++, type: 'common', lines: currCommon,
-              ours: [], theirs: [], base: [], oursName: '', theirsName: '',
-              oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
-            })
+            newChunks.push({ id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], base: [], oursName: '', theirsName: '', oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart })
             chunkOursStart += currCommon.length
             chunkTheirsStart += currCommon.length
             currCommon = []
           }
-          inConflict = true
-          phase = 'ours'
+          inConflict = true; phase = 'ours'
           oursName = line.replace('<<<<<<< ', '').trim()
-          conflictOurs = []
-          conflictTheirs = []
-          conflictBase = []
-        } else if (line.startsWith('|||||||')) {
-          phase = 'base' // diff3 format — capture base content
-        } else if (line.startsWith('=======')) {
-          phase = 'theirs'
+          conflictOurs = []; conflictTheirs = []; conflictBase = []
+        } else if (line.startsWith('|||||||')) { phase = 'base'
+        } else if (line.startsWith('=======')) { phase = 'theirs'
         } else if (line.startsWith('>>>>>>>')) {
           theirsName = line.replace('>>>>>>> ', '').trim()
-          newChunks.push({
-            id: chunkId++, type: 'conflict', lines: [],
-            ours: conflictOurs, theirs: conflictTheirs, base: conflictBase,
-            oursName, theirsName,
-            oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
-          })
+          newChunks.push({ id: chunkId++, type: 'conflict', lines: [], ours: conflictOurs, theirs: conflictTheirs, base: conflictBase, oursName, theirsName, oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart })
           chunkOursStart += conflictOurs.length
           chunkTheirsStart += conflictTheirs.length
-          inConflict = false
-          phase = ''
+          inConflict = false; phase = ''
         } else {
-          if (!inConflict) {
-            currCommon.push(line)
-          } else if (phase === 'ours') {
-            conflictOurs.push(line)
-          } else if (phase === 'theirs') {
-            conflictTheirs.push(line)
-          } else if (phase === 'base') {
-            conflictBase.push(line)
-          }
+          if (!inConflict) currCommon.push(line)
+          else if (phase === 'ours') conflictOurs.push(line)
+          else if (phase === 'theirs') conflictTheirs.push(line)
+          else if (phase === 'base') conflictBase.push(line)
         }
       }
       if (currCommon.length > 0) {
-        newChunks.push({
-          id: chunkId++, type: 'common', lines: currCommon,
-          ours: [], theirs: [], base: [], oursName: '', theirsName: '',
-          oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart
-        })
+        newChunks.push({ id: chunkId++, type: 'common', lines: currCommon, ours: [], theirs: [], base: [], oursName: '', theirsName: '', oursStartLine: chunkOursStart, theirsStartLine: chunkTheirsStart })
       }
 
-      // If no diff3 base content was parsed (standard 2-way format), extract
-      // per-chunk base from git stage 1 by anchoring on common lines.
-      // Common lines are identical across all three versions, so we can use them
-      // to locate conflict boundaries in the clean stage-1 file.
       const hasDiff3Base = newChunks.some(c => c.type === 'conflict' && c.base.length > 0)
       if (!hasDiff3Base && versionsRes.base) {
         const baseLines = versionsRes.base.split('\n')
-        let bPos = 0 // current position in stage-1
-
+        let bPos = 0
         for (let ci = 0; ci < newChunks.length; ci++) {
           const c = newChunks[ci]
-          if (c.type === 'common') {
-            bPos += c.lines.length
-          } else {
-            // Find where the next common chunk starts in stage-1 by matching its lines
+          if (c.type === 'common') { bPos += c.lines.length } else {
             let nextCommonStart = baseLines.length
             for (let j = ci + 1; j < newChunks.length; j++) {
               if (newChunks[j].type !== 'common') continue
               const needle = newChunks[j].lines
               if (needle.length === 0) { nextCommonStart = bPos; break }
               outer: for (let k = bPos; k <= baseLines.length - needle.length; k++) {
-                for (let m = 0; m < needle.length; m++) {
-                  if (baseLines[k + m] !== needle[m]) continue outer
-                }
-                nextCommonStart = k
-                break
+                for (let m = 0; m < needle.length; m++) { if (baseLines[k + m] !== needle[m]) continue outer }
+                nextCommonStart = k; break
               }
               break
             }
@@ -147,10 +109,8 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
       }
 
       setChunks(newChunks)
-      const initialSel: Record<number, { order: ('ours' | 'theirs')[] }> = {}
-      newChunks.forEach(c => {
-        if (c.type === 'conflict') initialSel[c.id] = { order: [] }
-      })
+      const initialSel: Selections = {}
+      newChunks.forEach(c => { if (c.type === 'conflict') initialSel[c.id] = [] })
       setSelections(initialSel)
       setLoading(false)
     })
@@ -171,11 +131,11 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
       if (c.type === 'common') {
         c.lines.forEach(l => out.push({ text: l, source: 'common' }))
       } else {
-        const sel = selections[c.id]
-        if (sel?.order.length > 0) {
-          sel.order.forEach(side => {
-            const lines = side === 'ours' ? c.ours : c.theirs
-            lines.forEach(l => out.push({ text: l, source: side }))
+        const sel = selections[c.id] ?? []
+        if (sel.length > 0) {
+          sel.forEach(({ side, index }) => {
+            const text = (side === 'ours' ? c.ours : c.theirs)[index] ?? ''
+            out.push({ text, source: side })
           })
         } else {
           c.base.forEach(l => out.push({ text: l, source: 'base' }))
@@ -186,36 +146,64 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
     return out
   }, [chunks, selections])
 
-  const outputString = useMemo(
-    () => outputLines.map(l => l.text).join('\n'),
-    [outputLines]
-  )
-
+  const outputString = useMemo(() => outputLines.map(l => l.text).join('\n'), [outputLines])
   const currentOutput = manualOutput !== null ? manualOutput : outputString
 
-  const toggleSelection = (id: number, side: 'ours' | 'theirs') => {
+  // Toggle a single line in/out of the output
+  const toggleLine = (chunkId: number, side: 'ours' | 'theirs', index: number) => {
     setSelections(prev => {
-      const current = prev[id]?.order ?? []
-      const isSelected = current.includes(side)
-      const newOrder = isSelected
-        ? current.filter(s => s !== side)
-        : [...current, side]
-      return { ...prev, [id]: { order: newOrder } }
+      const current = prev[chunkId] ?? []
+      const exists = current.some(r => r.side === side && r.index === index)
+      return {
+        ...prev,
+        [chunkId]: exists
+          ? current.filter(r => !(r.side === side && r.index === index))
+          : [...current, { side, index }]
+      }
     })
     setManualOutput(null)
   }
 
+  // Toggle ALL lines of a side for a chunk (block header click)
+  const toggleBlock = (chunkId: number, side: 'ours' | 'theirs') => {
+    const chunk = chunks.find(c => c.id === chunkId)
+    if (!chunk) return
+    const lines = side === 'ours' ? chunk.ours : chunk.theirs
+    setSelections(prev => {
+      const current = prev[chunkId] ?? []
+      const allIn = lines.every((_, i) => current.some(r => r.side === side && r.index === i))
+      if (allIn) {
+        return { ...prev, [chunkId]: current.filter(r => r.side !== side) }
+      } else {
+        const kept = current.filter(r => r.side !== side)
+        const toAdd = lines.map((_, i) => ({ side, index: i }))
+          .filter(nr => !current.some(r => r.side === side && r.index === nr.index))
+        return { ...prev, [chunkId]: [...kept, ...toAdd] }
+      }
+    })
+    setManualOutput(null)
+  }
+
+  // Tout A / Tout B — toggle all lines of a side across all chunks
   const selectAll = (side: 'ours' | 'theirs') => {
     const conflictChunks = chunks.filter(c => c.type === 'conflict')
-    const allSelected = conflictChunks.every(c => selections[c.id]?.order.includes(side))
+    const allIn = conflictChunks.every(c => {
+      const lines = side === 'ours' ? c.ours : c.theirs
+      const sel = selections[c.id] ?? []
+      return lines.every((_, i) => sel.some(r => r.side === side && r.index === i))
+    })
     setSelections(prev => {
       const next = { ...prev }
       conflictChunks.forEach(c => {
-        const current = prev[c.id]?.order ?? []
-        next[c.id] = {
-          order: allSelected
-            ? current.filter(s => s !== side)
-            : current.includes(side) ? current : [side]
+        const current = prev[c.id] ?? []
+        const lines = side === 'ours' ? c.ours : c.theirs
+        if (allIn) {
+          next[c.id] = current.filter(r => r.side !== side)
+        } else {
+          const kept = current.filter(r => r.side !== side)
+          const toAdd = lines.map((_, i) => ({ side, index: i }))
+            .filter(nr => !current.some(r => r.side === side && r.index === nr.index))
+          next[c.id] = [...kept, ...toAdd]
         }
       })
       return next
@@ -226,9 +214,8 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
   const handleSave = async () => {
     if (manualOutput === null) {
       const conflictChunks = chunks.filter(c => c.type === 'conflict')
-      // A chunk is unresolved only if it has no selection AND no base fallback
       const hasUnresolved = conflictChunks.some(
-        c => selections[c.id].order.length === 0 && c.base.length === 0
+        c => (selections[c.id] ?? []).length === 0 && c.base.length === 0
       )
       if (hasUnresolved) {
         showToast('Veuillez faire un choix pour tous les conflits avant d\'enregistrer', 'err')
@@ -240,14 +227,9 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
         return
       }
     }
-
     const r = await window.gitAPI.resolveConflict(file, currentOutput)
-    if (r.success) {
-      showToast(`✓ ${file} résolu`)
-      onFinish()
-    } else {
-      showToast(`Erreur: ${r.error}`, 'err')
-    }
+    if (r.success) { showToast(`✓ ${file} résolu`); onFinish() }
+    else showToast(`Erreur: ${r.error}`, 'err')
   }
 
   const handleScroll = (source: 'ours' | 'theirs') => {
@@ -255,10 +237,7 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
     isSyncing.current = true
     const src = source === 'ours' ? oursRef.current : theirsRef.current
     const dst = source === 'ours' ? theirsRef.current : oursRef.current
-    if (src && dst) {
-      dst.scrollTop = src.scrollTop
-      dst.scrollLeft = src.scrollLeft
-    }
+    if (src && dst) { dst.scrollTop = src.scrollTop; dst.scrollLeft = src.scrollLeft }
     requestAnimationFrame(() => { isSyncing.current = false })
   }
 
@@ -270,23 +249,37 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
       </div>
     ))
 
-  if (loading) {
-    return <div className="mt-container"><div className="mt-loading">Chargement…</div></div>
-  }
+  const renderConflictLines = (lines: string[], startNum: number, chunkId: number, side: 'ours' | 'theirs') =>
+    lines.map((l, i) => {
+      const isIn = (selections[chunkId] ?? []).some(r => r.side === side && r.index === i)
+      return (
+        <div key={i} className={`mt-line mt-line-interactive${isIn ? ' mt-line-in-output' : ''}`}>
+          <span className="mt-line-num">
+            {startNum + i}
+            <button
+              className={`mt-line-action ${isIn ? 'mt-line-action-remove' : 'mt-line-action-add'}`}
+              title={isIn ? 'Retirer de l\'output' : 'Ajouter à l\'output'}
+              onClick={e => { e.stopPropagation(); toggleLine(chunkId, side, i) }}
+            >
+              {isIn ? '−' : '+'}
+            </button>
+          </span>
+          <span className="mt-line-content">{l}</span>
+        </div>
+      )
+    })
+
+  if (loading) return <div className="mt-container"><div className="mt-loading">Chargement…</div></div>
 
   const conflictChunks = chunks.filter(c => c.type === 'conflict')
-  const resolvedCount = conflictChunks.filter(
-    c => selections[c.id].order.length > 0 || c.base.length > 0
-  ).length
+  const resolvedCount = conflictChunks.filter(c => (selections[c.id] ?? []).length > 0 || c.base.length > 0).length
   const totalConflicts = conflictChunks.length
-
   const oursGlobalName = conflictChunks[0]?.oursName || 'HEAD'
   const theirsGlobalName = conflictChunks[0]?.theirsName || 'Incoming'
 
   const renderPanel = (side: 'ours' | 'theirs') => {
     const ref = side === 'ours' ? oursRef : theirsRef
     const isOurs = side === 'ours'
-
     return (
       <div className={`mt-pane ${isOurs ? 'mt-ours-pane' : 'mt-theirs-pane'}`}>
         <div className="mt-pane-header">
@@ -303,28 +296,32 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
               )
             }
             const maxLines = Math.max(c.ours.length, c.theirs.length, c.base.length)
-            const isSelected = selections[c.id].order.includes(isOurs ? 'ours' : 'theirs')
-            const noneSelected = selections[c.id].order.length === 0
+            const sel = selections[c.id] ?? []
+            const anyIn = sel.some(r => r.side === (isOurs ? 'ours' : 'theirs'))
+            const noneSelected = sel.length === 0
             const conflictLines = isOurs ? c.ours : c.theirs
             const startLine = isOurs ? c.oursStartLine : c.theirsStartLine
             return (
               <div
                 key={i}
-                className={`mt-block-conflict ${isOurs ? 'mt-block-ours' : 'mt-block-theirs'} ${isSelected ? 'selected' : ''}`}
+                className={`mt-block-conflict ${isOurs ? 'mt-block-ours' : 'mt-block-theirs'} ${anyIn ? 'selected' : ''}`}
                 style={{ minHeight: `${maxLines * 20 + 26}px` }}
-                onClick={() => toggleSelection(c.id, side)}
               >
-                <div className="mt-block-header">
+                <div
+                  className="mt-block-header"
+                  onClick={() => toggleBlock(c.id, side)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <span className="mt-conflict-num">#{conflictIndexMap[c.id]}</span>
-                  {isSelected
-                    ? <span className="mt-selected-badge">✓ Sélectionné</span>
+                  {anyIn
+                    ? <span className="mt-selected-badge">✓ {sel.filter(r => r.side === (isOurs ? 'ours' : 'theirs')).length} ligne(s)</span>
                     : noneSelected && c.base.length > 0
                       ? <span className="mt-base-hint">Base active</span>
-                      : <span className="mt-click-hint">Cliquer pour sélectionner</span>
+                      : <span className="mt-click-hint">Cliquer le header pour tout sélectionner</span>
                   }
                 </div>
                 <div className="mt-block-text">
-                  {renderLines(conflictLines, startLine)}
+                  {renderConflictLines(conflictLines, startLine, c.id, side)}
                 </div>
               </div>
             )
@@ -343,8 +340,8 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
           <span className="mt-count">({totalConflicts} conflict{totalConflicts > 1 ? 's' : ''})</span>
         </div>
         <div className="mt-header-right">
-          <button className="mt-btn mt-btn-all-a" onClick={() => selectAll('ours')} title="Sélectionner toutes les modifications A">Tout A</button>
-          <button className="mt-btn mt-btn-all-b" onClick={() => selectAll('theirs')} title="Sélectionner toutes les modifications B">Tout B</button>
+          <button className="mt-btn mt-btn-all-a" onClick={() => selectAll('ours')} title="Sélectionner toutes les lignes A">Tout A</button>
+          <button className="mt-btn mt-btn-all-b" onClick={() => selectAll('theirs')} title="Sélectionner toutes les lignes B">Tout B</button>
           <button className="mt-btn mt-btn-abort" onClick={onAbort}>✕ Fermer</button>
           <button className="mt-btn mt-btn-save" onClick={handleSave}>Enregistrer & Résoudre</button>
         </div>

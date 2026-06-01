@@ -220,6 +220,61 @@
   font-style: italic;
 }
 
+/* ── Per-line add/remove buttons ── */
+.mt-line-interactive {
+  position: relative;
+}
+
+.mt-line-interactive .mt-line-num {
+  position: relative;
+}
+
+.mt-line-action {
+  opacity: 0;
+  transition: opacity 0.1s;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mt-line-interactive:hover .mt-line-action {
+  opacity: 1;
+}
+
+.mt-line-action-add {
+  background: #3fb950;
+  color: #fff;
+}
+
+.mt-line-action-add:hover {
+  background: #57d96a;
+}
+
+.mt-line-action-remove {
+  background: #f85149;
+  color: #fff;
+}
+
+.mt-line-action-remove:hover {
+  background: #ff6b63;
+}
+
+.mt-line-in-output .mt-line-content {
+  text-decoration: underline;
+  text-decoration-color: rgba(255,255,255,0.2);
+  text-decoration-style: dotted;
+}
+
 .mt-base-hint {
   color: #8957e5;
   font-size: 10px;
