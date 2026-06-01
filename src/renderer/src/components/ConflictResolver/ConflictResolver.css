@@ -269,10 +269,11 @@
   background: #ff6b63;
 }
 
-.mt-line-in-output .mt-line-content {
-  text-decoration: underline;
-  text-decoration-color: rgba(255,255,255,0.2);
-  text-decoration-style: dotted;
+.mt-block-ours .mt-line-in-output {
+  background: rgba(31, 111, 235, 0.3);
+}
+.mt-block-theirs .mt-line-in-output {
+  background: rgba(210, 153, 34, 0.3);
 }
 
 .mt-base-hint {

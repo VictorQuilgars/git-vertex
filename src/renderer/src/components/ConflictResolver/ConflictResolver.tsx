@@ -297,14 +297,15 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
             }
             const maxLines = Math.max(c.ours.length, c.theirs.length, c.base.length)
             const sel = selections[c.id] ?? []
-            const anyIn = sel.some(r => r.side === (isOurs ? 'ours' : 'theirs'))
-            const noneSelected = sel.length === 0
+            const thisSide = isOurs ? 'ours' : 'theirs'
             const conflictLines = isOurs ? c.ours : c.theirs
+            const allIn = conflictLines.length > 0 && conflictLines.every((_, i) => sel.some(r => r.side === thisSide && r.index === i))
+            const noneSelected = sel.length === 0
             const startLine = isOurs ? c.oursStartLine : c.theirsStartLine
             return (
               <div
                 key={i}
-                className={`mt-block-conflict ${isOurs ? 'mt-block-ours' : 'mt-block-theirs'} ${anyIn ? 'selected' : ''}`}
+                className={`mt-block-conflict ${isOurs ? 'mt-block-ours' : 'mt-block-theirs'} ${allIn ? 'selected' : ''}`}
                 style={{ minHeight: `${maxLines * 20 + 26}px` }}
               >
                 <div
@@ -313,8 +314,8 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
                   style={{ cursor: 'pointer' }}
                 >
                   <span className="mt-conflict-num">#{conflictIndexMap[c.id]}</span>
-                  {anyIn
-                    ? <span className="mt-selected-badge">✓ {sel.filter(r => r.side === (isOurs ? 'ours' : 'theirs')).length} ligne(s)</span>
+                  {sel.some(r => r.side === thisSide)
+                    ? <span className="mt-selected-badge">✓ {sel.filter(r => r.side === thisSide).length} / {conflictLines.length} ligne(s)</span>
                     : noneSelected && c.base.length > 0
                       ? <span className="mt-base-hint">Base active</span>
                       : <span className="mt-click-hint">Cliquer le header pour tout sélectionner</span>
