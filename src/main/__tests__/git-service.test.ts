@@ -639,6 +639,226 @@ describe('GitService', () => {
       expect(r.success).toBe(false)
       expect(r.error).toMatch(/escape|invalid|empty/i)
     })
+
+    test('getConflictVersions returns base, ours, and theirs from git stages', async () => {
+      setupConflict()
+      const v = await git.getConflictVersions('shared.txt')
+      expect(v.base).toContain('base')
+      expect(v.ours).toContain('ours')
+      expect(v.theirs).toContain('theirs')
+    })
+
+    test('getConflictedFiles lists all files with conflict markers', async () => {
+      setupConflict()
+      const r = await git.getConflictedFiles()
+      expect(r.files).toContain('shared.txt')
+      expect(r.files.length).toBeGreaterThanOrEqual(1)
+    })
+
+    test('getConflictMode detects merge-in-progress via MERGE_HEAD', async () => {
+      setupConflict()
+      const r = await git.getConflictMode()
+      expect(r.mode).toBe('merge')
+    })
+
+    test('getConflictMode returns null when no operation in progress', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const r = await git.getConflictMode()
+      expect(r.mode).toBeNull()
+    })
+
+    test('abortMerge cancels the in-progress merge', async () => {
+      setupConflict()
+      expect((await git.getConflictMode()).mode).toBe('merge')
+      const r = await git.abortMerge()
+      expect(r.success).toBe(true)
+      expect((await git.getConflictMode()).mode).toBeNull()
+      // Working tree should be clean after abort
+      const status = await git.getStatus()
+      expect(status.staged.length + status.unstaged.length).toBe(0)
+    })
+
+    test('continueMerge commits after all conflicts are resolved', async () => {
+      setupConflict()
+      await git.resolveConflict('shared.txt', 'merged\n')
+      const r = await git.continueMerge('Merge resolved')
+      expect(r.success).toBe(true)
+      expect((await git.getConflictMode()).mode).toBeNull()
+      const log = await git.getLog()
+      expect(log.commits[0].message).toContain('Merge resolved')
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // undoLastAction
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('undoLastAction', () => {
+    test('undoes last commit via reset --soft, keeps changes staged', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'hello')
+      execSync(`cd ${tempDir} && git add . && git commit -m "First"`)
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'world')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Second"`)
+
+      const r = await git.undoLastAction()
+      expect(r.success).toBe(true)
+      expect(r.action).toMatch(/second/i)
+
+      // commit should be gone
+      const log = await git.getLog()
+      expect(log.commits[0].message).toBe('First')
+
+      // b.txt should still be staged
+      const status = await git.getStatus()
+      expect(status.staged).toContain('b.txt')
+    })
+
+    test('fails gracefully on root commit with no parent', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Root"`)
+
+      const r = await git.undoLastAction()
+      expect(r.success).toBe(false)
+      expect(r.error).toBeTruthy()
+    })
+
+    test('uses ORIG_HEAD to undo a merge when ORIG_HEAD exists', async () => {
+      // Setup: two branches, clean merge
+      fs.writeFileSync(path.join(tempDir, 'main.txt'), 'main')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Init"`)
+      execSync(`cd ${tempDir} && git checkout -b feat`)
+      fs.writeFileSync(path.join(tempDir, 'feat.txt'), 'feat')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Feat"`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      execSync(`cd ${tempDir} && git merge feat --no-ff -m "Merge feat"`)
+
+      // ORIG_HEAD should exist after the merge
+      const beforeLog = await git.getLog()
+      expect(beforeLog.commits[0].message).toBe('Merge feat')
+
+      const r = await git.undoLastAction()
+      expect(r.success).toBe(true)
+
+      const afterLog = await git.getLog()
+      expect(afterLog.commits[0].message).toBe('Init')
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Stash operations
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('stash operations', () => {
+    function makeCommit(msg: string) {
+      fs.writeFileSync(path.join(tempDir, `${msg}.txt`), msg)
+      execSync(`cd ${tempDir} && git add . && git commit -m "${msg}"`)
+    }
+
+    test('createStash saves unstaged changes and cleans the working tree', async () => {
+      makeCommit('init')
+      fs.writeFileSync(path.join(tempDir, 'dirty.txt'), 'unstaged change')
+      execSync(`cd ${tempDir} && git add dirty.txt`)
+
+      const r = await git.createStash('my stash')
+      expect(r.success).toBe(true)
+
+      const status = await git.getStatus()
+      expect(status.staged.length + status.unstaged.length).toBe(0)
+    })
+
+    test('applyStash restores stashed changes without removing the stash', async () => {
+      makeCommit('init')
+      fs.writeFileSync(path.join(tempDir, 'dirty.txt'), 'stashed')
+      execSync(`cd ${tempDir} && git add dirty.txt && git stash`)
+
+      const r = await git.applyStash(0)
+      expect(r.success).toBe(true)
+      expect(fs.existsSync(path.join(tempDir, 'dirty.txt'))).toBe(true)
+
+      // stash still exists after apply
+      const stashes = await git.getStashes()
+      expect(stashes.stashes.length).toBe(1)
+    })
+
+    test('popStash restores and removes the stash', async () => {
+      makeCommit('init')
+      fs.writeFileSync(path.join(tempDir, 'dirty.txt'), 'stashed')
+      execSync(`cd ${tempDir} && git add dirty.txt && git stash`)
+
+      const r = await git.popStash(0)
+      expect(r.success).toBe(true)
+      expect(fs.existsSync(path.join(tempDir, 'dirty.txt'))).toBe(true)
+
+      const stashes = await git.getStashes()
+      expect(stashes.stashes.length).toBe(0)
+    })
+
+    test('dropStash removes the stash without restoring', async () => {
+      makeCommit('init')
+      fs.writeFileSync(path.join(tempDir, 'dirty.txt'), 'stashed')
+      execSync(`cd ${tempDir} && git add dirty.txt && git stash`)
+
+      const r = await git.dropStash(0)
+      expect(r.success).toBe(true)
+
+      const stashes = await git.getStashes()
+      expect(stashes.stashes.length).toBe(0)
+      expect(fs.existsSync(path.join(tempDir, 'dirty.txt'))).toBe(false)
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // getMergeMessage
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('getMergeMessage', () => {
+    function setupConflict() {
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'base\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Base"`)
+      execSync(`cd ${tempDir} && git checkout -b feature`)
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'theirs\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Feature"`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'ours\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Main"`)
+      execSync(`cd ${tempDir} && git merge feature || true`)
+    }
+
+    test('returns the MERGE_MSG content when a merge is in progress', async () => {
+      setupConflict()
+      const r = await git.getMergeMessage()
+      expect(r.message).toBeTruthy()
+      expect(r.message.toLowerCase()).toContain('feature')
+    })
+
+    test('returns empty string when no merge in progress', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const r = await git.getMergeMessage()
+      expect(r.message).toBe('')
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // getFileContent
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('getFileContent', () => {
+    test('returns the raw content of an existing file', async () => {
+      fs.writeFileSync(path.join(tempDir, 'hello.txt'), 'hello world\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const r = await git.getFileContent('hello.txt')
+      expect(r.error).toBeUndefined()
+      expect(r.content).toBe('hello world\n')
+    })
+
+    test('returns error for a non-existent file', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const r = await git.getFileContent('does-not-exist.txt')
+      expect(r.error).toBeTruthy()
+    })
   })
 
 })
