@@ -1,0 +1,114 @@
+.cfd-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+.cfd-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+}
+
+.cfd-back {
+  background: none;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #8b949e;
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: 0.15s;
+}
+.cfd-back:hover {
+  color: #c9d1d9;
+  background: #21262d;
+  border-color: #484f58;
+}
+
+.cfd-area-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  flex-shrink: 0;
+}
+.cfd-staged   { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
+.cfd-unstaged { background: rgba(255, 166, 87, 0.15); color: #ffa657; }
+.cfd-commit   { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
+
+.cfd-filepath {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: #e6edf3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cfd-body {
+  flex: 1;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.cfd-loading {
+  padding: 24px;
+  color: #8b949e;
+  text-align: center;
+}
+
+.cfd-hunk { margin-bottom: 2px; }
+
+.cfd-hunk-header {
+  padding: 4px 12px;
+  background: #161b22;
+  color: #58a6ff;
+  font-size: 11px;
+  font-style: italic;
+  border-top: 1px solid #21262d;
+  border-bottom: 1px solid #21262d;
+}
+
+.cfd-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cfd-dl { white-space: pre; }
+.cfd-dl-add    { background: rgba(63, 185, 80, 0.1); }
+.cfd-dl-remove { background: rgba(248, 81, 73, 0.1); }
+
+.cfd-ln {
+  width: 44px;
+  min-width: 44px;
+  text-align: right;
+  padding: 0 8px 0 4px;
+  color: #6e7681;
+  user-select: none;
+  border-right: 1px solid #21262d;
+}
+
+.cfd-lm {
+  width: 20px;
+  text-align: center;
+  padding: 0 4px;
+  color: #6e7681;
+  user-select: none;
+}
+.cfd-dl-add .cfd-lm    { color: #3fb950; }
+.cfd-dl-remove .cfd-lm { color: #f85149; }
+
+.cfd-lc { padding: 0 8px; }
+.cfd-lc code { font-family: inherit; font-size: inherit; }

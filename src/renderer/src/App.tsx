@@ -17,6 +17,7 @@ import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import PRModal from './components/PRModal/PRModal'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
+import CenterFileDiff, { CenterDiffTarget } from './components/CenterFileDiff/CenterFileDiff'
 import ContextMenu, { MenuItemDef } from './components/ContextMenu/ContextMenu'
 import './App.css'
 
@@ -239,6 +240,7 @@ export default function App() {
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [conflictResolverFile, setConflictResolverFile] = useState<string | null>(null)
+  const [centerDiff, setCenterDiff] = useState<CenterDiffTarget | null>(null)
   const [wipCount, setWipCount] = useState(0)
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
@@ -1080,7 +1082,9 @@ export default function App() {
         <div className="resize-handle" onMouseDown={startResizeSidebar} />
 
         <div className="app-center">
-          {conflictResolverFile ? (
+          {centerDiff && !conflictResolverFile ? (
+            <CenterFileDiff target={centerDiff} onClose={() => setCenterDiff(null)} />
+          ) : conflictResolverFile ? (
             <ConflictResolver
               file={conflictResolverFile}
               onFinish={async () => {
@@ -1183,7 +1187,7 @@ export default function App() {
             <CommitGraph
               commits={commits}
               selectedHash={selectedCommit?.hash ?? null}
-              onSelectCommit={c => setSelectedCommit(prev => prev?.hash === c.hash ? null : c)}
+              onSelectCommit={c => { setCenterDiff(null); setSelectedCommit(prev => prev?.hash === c.hash ? null : c) }}
               searchQuery={searchQuery}
               currentBranch={currentBranch}
               onCherryPick={handleCherryPick}
@@ -1232,6 +1236,7 @@ export default function App() {
                 onConflictFinish={handleConflictFinish}
                 onConflictAbort={handleConflictAbort}
                 onOpenResolver={(file) => setConflictResolverFile(file)}
+                onOpenFileDiff={setCenterDiff}
               />
             </div>
           </>

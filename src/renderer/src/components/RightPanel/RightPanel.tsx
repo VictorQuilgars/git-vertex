@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import hljs from 'highlight.js'
 import { CommitNode, FileChange, WorkingChanges } from '../../types'
+import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
 import './RightPanel.css'
 
@@ -287,18 +288,18 @@ function formatPath(path: string): { dir: string; name: string } {
 const MIN_MSG_H = 48
 const MAX_MSG_H = 400
 
-function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
   wipCount?: number
   onViewWip?: () => void
+  onOpenFileDiff?: (target: CenterDiffTarget) => void
 }) {
   const { t } = useLang()
   const [files, setFiles] = useState<FileChange[]>([])
   const [body, setBody] = useState('')
-  const [parsedDiff, setParsedDiff] = useState<FileDiff[]>([])
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [view, setView] = useState<'files' | 'diff' | 'blame'>('files')
+  const [view, setView] = useState<'files' | 'blame'>('files')
   const [cdTreeMode, setCdTreeMode] = useState(() => localStorage.getItem('cd-tree-mode') === 'true')
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
   const [viewAll, setViewAll] = useState(false)
@@ -327,16 +328,13 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
     setFiles([]); setBody(''); setSelectedFile(null); setView('files')
     Promise.all([
       window.gitAPI.getCommitFiles(commit.hash),
-      window.gitAPI.getDiff(commit.hash),
       (window.gitAPI as any).getCommitBody(commit.hash),
-    ]).then(([fr, dr, br]: any[]) => {
+    ]).then(([fr, br]: any[]) => {
       setFiles(fr.files ?? [])
-      setParsedDiff(parseDiff(dr.diff ?? ''))
       setBody(br.body ?? '')
     })
   }, [commit.hash])
 
-  const fileForDiff = parsedDiff.find(f => f.to === selectedFile)
   const parentShort = commit.parents?.[0]?.slice(0, 7) ?? null
 
   // Parse co-authors from body
@@ -471,7 +469,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
                       onAction={() => {}}
                       actionIcon=""
                       actionTitle=""
-                      onSelect={p => { setSelectedFile(p); setView('diff') }}
+                      onSelect={p => { setSelectedFile(p); onOpenFileDiff?.({ type: 'commit', commitHash: commit.hash, filePath: p }) }}
                       isSelected={selectedFile === node.fullPath}
                     />
                   ))
@@ -480,7 +478,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
                     return (
                       <div key={i}
                         className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
-                        onClick={() => { setSelectedFile(f.path); setView('diff') }}
+                        onClick={() => { setSelectedFile(f.path); onOpenFileDiff?.({ type: 'commit', commitHash: commit.hash, filePath: f.path }) }}
                       >
                         <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" className="rp-file-pencil">
                           <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
@@ -508,30 +506,6 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
               onClose={() => setFileHistoryPath(null)} onSelectCommit={onSelectCommit} />
           )}
 
-          {view === 'diff' && fileForDiff && (
-            <div className="rp-diff-view">
-              <div className="rp-diff-filename">{selectedFile}</div>
-              {fileForDiff.hunks.map((hunk, hi) => {
-                const lang = detectLang(selectedFile ?? '')
-                return (
-                  <div key={hi} className="rp-hunk">
-                    <div className="rp-hunk-header">{hunk.header}</div>
-                    <table className="rp-diff-table"><tbody>
-                      {hunk.lines.map((line, li) => (
-                        <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
-                          <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
-                          <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
-                          <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
-                          <td className="rp-lc"><code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line.content, lang) }} /></td>
-                        </tr>
-                      ))}
-                    </tbody></table>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
           {view === 'blame' && selectedFile && (
             <BlameView commitHash={commit.hash} filepath={selectedFile} onSelectCommit={onSelectCommit} />
           )}
@@ -544,13 +518,14 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip }: {
 // ── Staging view ──────────────────────────────────────────────
 interface SelectedDiffFile { path: string; area: 'staged' | 'unstaged' }
 
-function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, onConflictFinish, onConflictAbort }: {
+function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   conflictMode?: string | null
   conflictFiles?: string[]
   onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
   onConflictAbort?: () => void
+  onOpenFileDiff?: (target: CenterDiffTarget) => void
 }) {
   const { t } = useLang()
   const isConflict = !!conflictMode
@@ -577,8 +552,6 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
   const [committing, setCommitting] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
-  const [diffRaw, setDiffRaw] = useState('')
-  const [diffLoading, setDiffLoading] = useState(false)
 
   const load = useCallback(async () => {
     const r = await window.gitAPI.getWorkingChanges()
@@ -627,30 +600,18 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
 
   const handle = async (fn: () => Promise<any>, reload = true) => {
     await fn()
-    if (reload) {
-      await load()
-      // Refresh diff if selected file is still around
-      if (selectedDiff) fetchDiff(selectedDiff)
-    }
+    if (reload) await load()
   }
-
-  const fetchDiff = useCallback(async (file: SelectedDiffFile) => {
-    setDiffLoading(true)
-    const r = await window.gitAPI.getWorkingFileDiff(file.path, file.area === 'staged')
-    setDiffRaw(r.diff ?? '')
-    setDiffLoading(false)
-  }, [])
 
   const selectFile = (file: SelectedDiffFile) => {
     setSelectedDiff(file)
-    fetchDiff(file)
+    onOpenFileDiff?.({ type: 'working', filePath: file.path, area: file.area })
   }
 
   const totalUnstaged = changes.unstaged.length + changes.untracked.length
   const stagedPaths = new Set(changes.staged.map(f => f.path))
   const amendOnly = amendFiles.filter(f => !stagedPaths.has(f.path))
   const canCommit = changes.staged.length > 0 || amend
-  const parsedDiff = parseDiff(diffRaw)
 
   const toggleTree = () => setTreeMode(v => {
     localStorage.setItem('st-tree-mode', String(!v))
@@ -783,41 +744,6 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
           }
         </div>
       </div>
-
-      {/* Diff panel */}
-      {selectedDiff && (
-        <div className="st-diff-panel">
-          <div className="st-diff-header">
-            <span className={`st-diff-area-badge ${selectedDiff.area === 'staged' ? 'st-diff-staged' : 'st-diff-unstaged'}`}>
-              {selectedDiff.area === 'staged' ? t('panel.staged') : t('panel.unstaged')}
-            </span>
-            <span className="st-diff-filename">{selectedDiff.path}</span>
-            <button className="st-diff-close" title={t('panel.close')} onClick={() => setSelectedDiff(null)}>✕</button>
-          </div>
-          <div className="st-diff-body">
-            {diffLoading && <div className="st-diff-loading">{t('panel.loading')}</div>}
-            {!diffLoading && parsedDiff.length === 0 && <div className="st-diff-loading">{t('panel.noDiff')}</div>}
-            {!diffLoading && parsedDiff.map((file, fi) => {
-              const lang = detectLang(selectedDiff?.path ?? file.to)
-              return file.hunks.map((hunk, hi) => (
-                <div key={`${fi}-${hi}`}>
-                  <div className="rp-hunk-header">{hunk.header}</div>
-                  <table className="rp-diff-table"><tbody>
-                    {hunk.lines.map((line, li) => (
-                      <tr key={li} className={`rp-dl rp-dl-${line.type}`}>
-                        <td className="rp-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
-                        <td className="rp-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
-                        <td className="rp-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
-                        <td className="rp-lc"><code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line.content, lang) }} /></td>
-                      </tr>
-                    ))}
-                  </tbody></table>
-                </div>
-              ))
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Commit form */}
       <div className="st-form">
@@ -1025,11 +951,12 @@ interface RightPanelProps {
   onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
   onConflictAbort?: () => void
   onOpenResolver?: (file: string) => void
+  onOpenFileDiff?: (target: CenterDiffTarget) => void
 }
 
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, wipCount, onViewWip,
-  conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver
+  conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -1058,6 +985,7 @@ export default function RightPanel({
           conflictFiles={conflictFiles}
           onConflictFinish={onConflictFinish}
           onConflictAbort={onConflictAbort}
+          onOpenFileDiff={onOpenFileDiff}
         />
       ) : hasCommit ? (
         <CommitDetail
@@ -1065,6 +993,7 @@ export default function RightPanel({
           onSelectCommit={onSelectCommit}
           wipCount={wipCount}
           onViewWip={onViewWip}
+          onOpenFileDiff={onOpenFileDiff}
         />
       ) : null}
     </div>
