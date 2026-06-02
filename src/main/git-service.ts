@@ -1018,6 +1018,17 @@ export class GitService {
     }
   }
 
+  async getFileAtCommit(commitHash: string, filepath: string): Promise<{ content: string; error?: string }> {
+    const err = this.assertRef(commitHash, 'commit hash')
+    if (err) return { content: '', error: err }
+    try {
+      const content = await this.git.show([`${commitHash}:${filepath}`])
+      return { content }
+    } catch (e: any) {
+      return { content: '', error: e.message }
+    }
+  }
+
   async markResolved(filepath: string): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.raw(['add', '--', filepath])

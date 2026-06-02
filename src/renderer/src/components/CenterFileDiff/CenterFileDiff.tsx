@@ -66,6 +66,9 @@ export default function CenterFileDiff({ target, onClose }: {
 }) {
   const [hunks, setHunks] = useState<DiffHunk[]>([])
   const [loading, setLoading] = useState(true)
+  const [showFullFile, setShowFullFile] = useState(false)
+  const [fullContent, setFullContent] = useState<string>('')
+  const [fullLoading, setFullLoading] = useState(false)
 
   const filePath = target.filePath
   const lang = detectLang(filePath)
@@ -89,6 +92,16 @@ export default function CenterFileDiff({ target, onClose }: {
     fetch.then(h => { setHunks(h); setLoading(false) })
   }, [key])
 
+  useEffect(() => {
+    if (showFullFile && target.type === 'commit' && !fullContent) {
+      setFullLoading(true)
+      window.gitAPI.getFileAtCommit(target.commitHash, target.filePath).then(r => {
+        setFullContent(r.content ?? '')
+        setFullLoading(false)
+      })
+    }
+  }, [showFullFile])
+
   const areaLabel =
     target.type === 'working'
       ? (target.area === 'staged' ? 'Indexé' : 'Non-indexé')
@@ -107,29 +120,59 @@ export default function CenterFileDiff({ target, onClose }: {
         </button>
         <span className={`cfd-area-badge ${badgeCls}`}>{areaLabel}</span>
         <span className="cfd-filepath">{filePath}</span>
+        {target.type === 'commit' && (
+          <button
+            className={`cfd-toggle ${showFullFile ? 'active' : ''}`}
+            onClick={() => setShowFullFile(v => !v)}
+            title={showFullFile ? 'Afficher seulement les modifications' : 'Afficher le fichier complet'}
+          >
+            {showFullFile ? '📄 Complet' : '📝 Modifications'}
+          </button>
+        )}
       </div>
       <div className="cfd-body">
-        {loading && <div className="cfd-loading">Chargement…</div>}
-        {!loading && hunks.length === 0 && (
-          <div className="cfd-loading">Aucune différence</div>
+        {showFullFile ? (
+          <>
+            {fullLoading && <div className="cfd-loading">Chargement…</div>}
+            {!fullLoading && fullContent && (
+              <table className="cfd-full-table"><tbody>
+                {fullContent.split('\n').map((line, i) => (
+                  <tr key={i} className="cfd-full-line">
+                    <td className="cfd-full-ln">{i + 1}</td>
+                    <td className="cfd-full-lc">
+                      <code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line, lang) }} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody></table>
+            )}
+            {!fullLoading && !fullContent && <div className="cfd-loading">Erreur : impossible de charger le fichier</div>}
+          </>
+        ) : (
+          <>
+            {loading && <div className="cfd-loading">Chargement…</div>}
+            {!loading && hunks.length === 0 && (
+              <div className="cfd-loading">Aucune différence</div>
+            )}
+            {!loading && hunks.map((hunk, hi) => (
+              <div key={hi} className="cfd-hunk">
+                <div className="cfd-hunk-header">{hunk.header}</div>
+                <table className="cfd-diff-table"><tbody>
+                  {hunk.lines.map((line, li) => (
+                    <tr key={li} className={`cfd-dl cfd-dl-${line.type}`}>
+                      <td className="cfd-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
+                      <td className="cfd-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
+                      <td className="cfd-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
+                      <td className="cfd-lc">
+                        <code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line.content, lang) }} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody></table>
+              </div>
+            ))}
+          </>
         )}
-        {!loading && hunks.map((hunk, hi) => (
-          <div key={hi} className="cfd-hunk">
-            <div className="cfd-hunk-header">{hunk.header}</div>
-            <table className="cfd-diff-table"><tbody>
-              {hunk.lines.map((line, li) => (
-                <tr key={li} className={`cfd-dl cfd-dl-${line.type}`}>
-                  <td className="cfd-ln">{line.type !== 'add' ? line.oldLine : ''}</td>
-                  <td className="cfd-ln">{line.type !== 'remove' ? line.newLine : ''}</td>
-                  <td className="cfd-lm">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</td>
-                  <td className="cfd-lc">
-                    <code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line.content, lang) }} />
-                  </td>
-                </tr>
-              ))}
-            </tbody></table>
-          </div>
-        ))}
       </div>
     </div>
   )

@@ -53,6 +53,30 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+
+.cfd-toggle {
+  background: none;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #8b949e;
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: 0.15s;
+  margin-left: 8px;
+}
+.cfd-toggle:hover {
+  color: #c9d1d9;
+  background: #21262d;
+  border-color: #484f58;
+}
+.cfd-toggle.active {
+  background: rgba(88, 166, 255, 0.1);
+  color: #58a6ff;
+  border-color: #58a6ff;
 }
 
 .cfd-body {
@@ -112,3 +136,23 @@
 
 .cfd-lc { padding: 0 8px; }
 .cfd-lc code { font-family: inherit; font-size: inherit; }
+
+.cfd-full-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cfd-full-line { white-space: pre; }
+
+.cfd-full-ln {
+  width: 44px;
+  min-width: 44px;
+  text-align: right;
+  padding: 0 8px 0 4px;
+  color: #6e7681;
+  user-select: none;
+  border-right: 1px solid #21262d;
+}
+
+.cfd-full-lc { padding: 0 8px; }
+.cfd-full-lc code { font-family: inherit; font-size: inherit; }
