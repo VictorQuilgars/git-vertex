@@ -78,11 +78,46 @@ function AuthorAvatar({ email, name }: { email: string; name: string }) {
   return (
     <img
       className="cg-avatar cg-avatar-img"
-      src={gravatarUrl(email, 48)}
+      src={gravatarUrl(email, 48, 'retro')}
       alt={name}
       loading="lazy"
       onError={() => setFailed(true)}
     />
+  )
+}
+// Commit graph node showing the author's Gravatar (pixel-art identicon fallback),
+// clipped to a circle, with a colored ring. Falls back to a colored initials
+// circle only if the image fails to load.
+function NodeAvatar({ cx, cy, r, email, name, color, clipId }: {
+  cx: number; cy: number; r: number; email: string; name: string; color: string; clipId: string
+}) {
+  const [failed, setFailed] = useState(false)
+  if (failed || !email) {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={r} fill={color} />
+        <text x={cx} y={cy} dy=".35em" textAnchor="middle" fontSize={8} fontWeight="700"
+          fontFamily="-apple-system, BlinkMacSystemFont, sans-serif" fill="#ffffff">
+          {initials(name)}
+        </text>
+      </g>
+    )
+  }
+  return (
+    <g>
+      <defs>
+        <clipPath id={clipId}><circle cx={cx} cy={cy} r={r} /></clipPath>
+      </defs>
+      <circle cx={cx} cy={cy} r={r} fill="#161b22" />
+      <image
+        href={gravatarUrl(email, 48, 'retro')}
+        x={cx - r} y={cy - r} width={r * 2} height={r * 2}
+        clipPath={`url(#${clipId})`}
+        preserveAspectRatio="xMidYMid slice"
+        onError={() => setFailed(true)}
+      />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={1.5} />
+    </g>
   )
 }
 function fmtDate(s: string, format: string = 'absolute') {
@@ -692,6 +727,7 @@ export default function CommitGraph({
               }
 
               const init = initials(commit.author)
+              const isMerge = commit.parents.length >= 2
 
               return (
                 <g key={commit.hash}>
@@ -699,16 +735,24 @@ export default function CommitGraph({
                     <circle cx={cx} cy={cy} r={NODE_RADIUS + 3}
                       fill="none" stroke={commit.color} strokeWidth={1.5} opacity={0.5} />
                   )}
-                  {/* Solid colored avatar circle */}
-                  <circle cx={cx} cy={cy} r={NODE_RADIUS} fill={commit.color} />
-                  {/* White initials */}
-                  <text x={cx} y={cy} dy=".35em"
-                    textAnchor="middle"
-                    fontSize={8}
-                    fontWeight="700"
-                    fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
-                    fill="#ffffff"
-                  >{init}</text>
+                  {isMerge ? (
+                    /* Merge commit: small plain dot (de-emphasized, GitKraken-style) */
+                    <circle cx={cx} cy={cy} r={5} fill={commit.color}
+                      stroke="#161b22" strokeWidth={2} />
+                  ) : showAvatars ? (
+                    /* Normal commit: author avatar */
+                    <NodeAvatar cx={cx} cy={cy} r={NODE_RADIUS}
+                      email={commit.authorEmail} name={commit.author}
+                      color={commit.color} clipId={`node-clip-${commit.hash}`} />
+                  ) : (
+                    /* Avatars off: colored circle with initials */
+                    <g>
+                      <circle cx={cx} cy={cy} r={NODE_RADIUS} fill={commit.color} />
+                      <text x={cx} y={cy} dy=".35em" textAnchor="middle" fontSize={8}
+                        fontWeight="700" fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
+                        fill="#ffffff">{init}</text>
+                    </g>
+                  )}
                 </g>
               )
             })}

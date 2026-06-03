@@ -133,9 +133,12 @@ function md5(s: string): string {
   return state.map(hex).join('')
 }
 
-// Gravatar URL for an email. `d=404` makes Gravatar return 404 when there is no
-// avatar, so the <img> onError handler can fall back to colored initials.
-export function gravatarUrl(email: string, size = 48): string {
+// Gravatar URL for an email. The `fallback` controls the `d=` parameter:
+//  - '404'  → Gravatar returns 404 when there is no avatar, so the <img> onError
+//             handler can fall back to colored initials.
+//  - 'retro'→ always returns a generated pixel-art identicon (GitKraken-style),
+//             so there's always an image.
+export function gravatarUrl(email: string, size = 48, fallback: '404' | 'retro' | 'identicon' = '404'): string {
   const hash = md5(email.trim().toLowerCase())
-  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=404`
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=${fallback}`
 }
