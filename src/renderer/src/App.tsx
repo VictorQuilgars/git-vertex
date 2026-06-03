@@ -949,14 +949,17 @@ export default function App() {
   return (
     <div className="app">
       {/* ── Repo tabs (top, browser-style) ── */}
-      {tabs.length > 0 && !settingsOpen && (
+      {/* Tabs stay visible in preferences (GitKraken-style); also keep the bar
+          when settings is open with no tabs so the mac traffic lights keep their
+          spacing and the window stays draggable. */}
+      {(tabs.length > 0 || settingsOpen) && (
         <div className="app-tabs">
           {isMac && <div className="app-tabs-mac-spacer" />}
           {tabs.map(tab => (
             <div
               key={tab.id}
-              className={`app-tab ${tab.id === activeTabId ? 'active' : ''}`}
-              onClick={() => switchTab(tab)}
+              className={`app-tab ${tab.id === activeTabId && !settingsOpen ? 'active' : ''}`}
+              onClick={() => { setSettingsOpen(false); switchTab(tab) }}
               onContextMenu={e => { e.preventDefault(); setTabMenu({ x: e.clientX, y: e.clientY, id: tab.id }) }}
               title={tab.path}
             >
@@ -968,11 +971,13 @@ export default function App() {
                 onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
             </div>
           ))}
-          <button className={`app-tab-add ${activeTabId === null ? 'active' : ''}`}
-            title={t('tabs.new')} onClick={goHome}>+</button>
+          <button className={`app-tab-add ${activeTabId === null && !settingsOpen ? 'active' : ''}`}
+            title={t('tabs.new')} onClick={() => { setSettingsOpen(false); goHome() }}>+</button>
         </div>
       )}
 
+      {/* Git action bar — hidden while in preferences */}
+      {!settingsOpen && (
       <Toolbar
         topRow={tabs.length === 0}
         repoPath={repoPath}
@@ -1001,6 +1006,7 @@ export default function App() {
         onCreatePR={githubOwnerRepo ? () => setPrModalOpen(true) : undefined}
         onGitflow={repoPath ? () => setGitflowOpen(true) : undefined}
       />
+      )}
 
       {/* ── Update banner ── */}
       {updateBannerOpen && updateReady && (
