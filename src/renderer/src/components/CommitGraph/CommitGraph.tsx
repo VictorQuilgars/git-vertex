@@ -8,7 +8,7 @@ import { gravatarUrl } from '../../utils/gravatar'
 import { useSettings } from '../../contexts/SettingsContext'
 import './CommitGraph.css'
 
-const ROW_HEIGHT  = 32
+const ROW_HEIGHT  = 28
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
 const SVG_PAD_L   = 36
@@ -509,7 +509,7 @@ export default function CommitGraph({
     if (x1 === x2) {
       return (
         <line key={key} x1={x1} y1={y1} x2={x2} y2={y2}
-          stroke={edge.color} strokeWidth={3} strokeLinecap="round"
+          stroke={edge.color} strokeWidth={2} strokeLinecap="round"
           strokeDasharray={dashArray} />
       )
     }
@@ -529,7 +529,7 @@ export default function CommitGraph({
       return (
         <path key={key}
           d={d}
-          fill="none" stroke={edge.color} strokeWidth={3} strokeLinecap="round"
+          fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
           strokeDasharray={dashArray} />
       )
     }
@@ -550,7 +550,7 @@ export default function CommitGraph({
     return (
       <path key={key}
         d={d}
-        fill="none" stroke={edge.color} strokeWidth={3} strokeLinecap="round"
+        fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
         strokeDasharray={dashArray} />
     )
   }, [])
@@ -656,12 +656,12 @@ export default function CommitGraph({
             {displayLayout.map(commit => {
               if (commit.hash === WIP_HASH) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
-              const bandH = 20
+              const bandH = 24
               const y = commit.row * ROW_HEIGHT + (ROW_HEIGHT - bandH) / 2
               const right = svgW - SVG_PAD_R
               const w = Math.max(right - cx, 0)
               if (w <= 0) return null
-              const edgeW = 3
+              const edgeW = 2
               return (
                 <g key={`band-${commit.hash}`}>
                   {/* soft fill, straight (square) edges */}
