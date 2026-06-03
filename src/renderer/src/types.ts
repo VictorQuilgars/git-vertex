@@ -40,7 +40,7 @@ declare global {
       getRecentRepos: () => Promise<string[]>
       removeRecentRepo: (path: string) => Promise<string[]>
       // Read
-      getLog: (o?: { maxCount?: number; all?: boolean }) => Promise<{ commits?: CommitNode[]; error?: string }>
+      getLog: (o?: { maxCount?: number; all?: boolean; refs?: string[] }) => Promise<{ commits?: CommitNode[]; error?: string }>
       getBranches: () => Promise<{ branches?: BranchInfo[]; error?: string }>
       getDiff: (h: string) => Promise<{ diff?: string; error?: string }>
       getCommitFiles: (h: string) => Promise<{ files?: FileChange[]; error?: string }>
@@ -67,6 +67,9 @@ declare global {
       pull: () => Promise<R>
       // Staging & commit
       getWorkingChanges: () => Promise<WorkingChanges>
+      getWorkingFileDiff: (filepath: string, staged: boolean) => Promise<{ diff: string }>
+      getFileAtCommit: (commitHash: string, filepath: string) => Promise<{ content: string; error?: string }>
+      applyPatch: (patch: string, reverse: boolean) => Promise<R>
       stage: (files: string[]) => Promise<R>
       stageAll: () => Promise<R>
       unstage: (files: string[]) => Promise<R>

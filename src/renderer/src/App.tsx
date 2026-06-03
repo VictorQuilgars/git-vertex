@@ -205,6 +205,10 @@ export default function App() {
   const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [showAllBranches, setShowAllBranches] = useState<boolean>(true)
+  // Solo/mute branch filtering for the graph. Solo shows only one branch;
+  // muted branches are excluded from the --all view.
+  const [soloBranch, setSoloBranch] = useState<string | null>(null)
+  const [mutedBranches, setMutedBranches] = useState<Set<string>>(new Set())
   const [extendedSearch, setExtendedSearch] = useState(false)
   const [extendedSearchHashes, setExtendedSearchHashes] = useState<Set<string>>(new Set())
   const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
@@ -277,10 +281,19 @@ export default function App() {
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
-      const [logRes, branchRes] = await Promise.all([
-        window.gitAPI.getLog({ all: showAllBranches, maxCount: 500 }),
-        window.gitAPI.getBranches()
-      ])
+      // Branches first so we can compute solo/mute refs for the log query.
+      const branchRes = await window.gitAPI.getBranches()
+      const refForGit = (n: string) => n.replace(/^remotes\//, '')
+      let logOpts: { maxCount: number; all?: boolean; refs?: string[] } = { maxCount: 500, all: showAllBranches }
+      if (soloBranch) {
+        logOpts = { maxCount: 500, refs: [refForGit(soloBranch)] }
+      } else if (mutedBranches.size > 0 && branchRes.branches) {
+        const visible = branchRes.branches
+          .filter((b: BranchInfo) => !mutedBranches.has(b.name))
+          .map((b: BranchInfo) => refForGit(b.name))
+        logOpts = { maxCount: 500, refs: visible.length ? visible : ['HEAD'] }
+      }
+      const logRes = await window.gitAPI.getLog(logOpts)
       if (logRes.commits) setCommits(logRes.commits)
       if (branchRes.branches) {
         setBranches(branchRes.branches)
@@ -304,7 +317,7 @@ export default function App() {
       if (!silent) setLoading(false)
       isLoadingRef.current = false
     }
-  }, [repoPath, showAllBranches, loadStashes, loadTags])
+  }, [repoPath, showAllBranches, soloBranch, mutedBranches, loadStashes, loadTags])
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
 
@@ -1069,6 +1082,16 @@ export default function App() {
                 if (found) setSelectedCommit(found)
               }}
               onCompareBranch={(name) => setCompareBranchModal(name)}
+              soloBranch={soloBranch}
+              mutedBranches={mutedBranches}
+              onToggleSolo={(name) => { setSoloBranch(prev => prev === name ? null : name) }}
+              onToggleMute={(name) => {
+                setMutedBranches(prev => {
+                  const next = new Set(prev)
+                  next.has(name) ? next.delete(name) : next.add(name)
+                  return next
+                })
+              }}
               showToast={showToast}
               showPrompt={showPrompt}
               showConfirm={showConfirm}

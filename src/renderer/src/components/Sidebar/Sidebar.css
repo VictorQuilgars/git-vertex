@@ -239,8 +239,13 @@
 .sb-branch-item.remote { color: #6e7681; }
 .sb-branch-item.remote:hover { color: #3fb950; background: #2ea04311; }
 
+.sb-branch-item.muted { opacity: 0.4; }
+.sb-branch-item.muted .sb-branch-name { text-decoration: line-through; }
+.sb-branch-item.soloed { background: #1f6feb22; }
+
 .branch-icon { flex-shrink: 0; pointer-events: none; }
 .sb-branch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; pointer-events: none; user-select: none; -webkit-user-select: none; }
+.sb-branch-flag { flex-shrink: 0; font-size: 10px; pointer-events: none; }
 .current-check { flex-shrink: 0; }
 
 .sb-delete-btn {

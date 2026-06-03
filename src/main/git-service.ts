@@ -72,7 +72,7 @@ export class GitService {
     }
   }
 
-  async getLog(options: { maxCount?: number; all?: boolean } = {}): Promise<{ commits: CommitNode[] }> {
+  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
     const maxCount = options.maxCount ?? 200
     const args: string[] = [
       '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D|%G?',
@@ -80,7 +80,12 @@ export class GitService {
       '--date-order', // children always before parents (like --topo-order), but sibling
                     // commits are sorted by commit date — matches GitKraken's ordering
     ]
-    if (options.all) args.push('--all')
+    // Explicit refs (for solo/mute branch filtering) take precedence over --all.
+    if (options.refs && options.refs.length) {
+      args.push(...options.refs)
+    } else if (options.all) {
+      args.push('--all')
+    }
 
     const result = await this.git.raw(['log', ...args])
     const commits: CommitNode[] = []

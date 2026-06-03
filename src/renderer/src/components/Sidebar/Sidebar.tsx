@@ -41,6 +41,10 @@ interface SidebarProps {
   onDeleteTag: (name: string) => void
   onSelectCommit: (hash: string) => void
   onCompareBranch: (branchName: string) => void
+  soloBranch: string | null
+  mutedBranches: Set<string>
+  onToggleSolo: (name: string) => void
+  onToggleMute: (name: string) => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   showPrompt: (msg: string, defaultValue?: string) => Promise<string | null>
   showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
@@ -93,9 +97,13 @@ interface BranchItemProps {
   onPush?: () => void
   onDeleteRemote?: () => void
   onSetUpstream?: () => void
+  soloed?: boolean
+  muted?: boolean
+  onToggleSolo?: () => void
+  onToggleMute?: () => void
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, onToggleSolo, onToggleMute }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -110,6 +118,8 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
     ...(!remote && onPush ? [{ label: '⬆ Push', action: onPush }] : []),
     ...(!remote && onSetUpstream ? [{ label: '🔗 Définir l\'upstream (origin)', action: onSetUpstream }] : []),
     { label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(display) },
+    ...(onToggleSolo ? [{ label: soloed ? '👁 Annuler le solo' : '👁 Solo (afficher seule)', action: onToggleSolo }] : []),
+    ...(onToggleMute ? [{ label: muted ? '🔊 Réafficher' : '🔇 Masquer du graphe', action: onToggleMute }] : []),
     ...(!remote && onRename ? [{ label: '✏️ Renommer', action: onRename }] : []),
     ...((!current && !remote && onDelete) ? [
       { separator: true as const },
@@ -137,7 +147,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   return (
     <>
       <div
-        className={`sb-branch-item ${current ? 'current' : ''} ${remote ? 'remote' : ''}`}
+        className={`sb-branch-item ${current ? 'current' : ''} ${remote ? 'remote' : ''} ${muted ? 'muted' : ''} ${soloed ? 'soloed' : ''}`}
         onMouseDown={handleMouseDown}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         onMouseEnter={() => setHover(true)}
@@ -148,6 +158,8 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
           <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
         </svg>
         <span className="sb-branch-name">{display}</span>
+        {soloed && <span className="sb-branch-flag" title="Solo">👁</span>}
+        {muted && <span className="sb-branch-flag" title="Masquée">🔇</span>}
         {current && (
           <svg width="11" height="11" viewBox="0 0 16 16" fill="#3fb950" className="current-check">
             <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
@@ -374,7 +386,9 @@ export default function Sidebar({
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onRefreshStashes,
   onCreateTag, onDeleteTag,
-  onSelectCommit, onCompareBranch, showToast, showPrompt, showConfirm,
+  onSelectCommit, onCompareBranch,
+  soloBranch, mutedBranches, onToggleSolo, onToggleMute,
+  showToast, showPrompt, showConfirm,
 }: SidebarProps) {
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
@@ -593,6 +607,10 @@ export default function Sidebar({
                 onRebaseOnto={!b.current ? () => onRebaseOnto(b.name) : undefined}
                 onPush={() => onPushBranch(b.name)}
                 onSetUpstream={() => onSetUpstream(b.name)}
+                soloed={soloBranch === b.name}
+                muted={mutedBranches.has(b.name)}
+                onToggleSolo={() => onToggleSolo(b.name)}
+                onToggleMute={() => onToggleMute(b.name)}
               />
             ))}
           </Section>
@@ -612,6 +630,10 @@ export default function Sidebar({
                     onCheckout(localName)
                   }}
                   onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
+                  soloed={soloBranch === b.name}
+                  muted={mutedBranches.has(b.name)}
+                  onToggleSolo={() => onToggleSolo(b.name)}
+                  onToggleMute={() => onToggleMute(b.name)}
                 />
               ))}
             </Section>

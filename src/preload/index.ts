@@ -7,7 +7,7 @@ const gitAPI = {
   getRecentRepos: () => ipcRenderer.invoke('app:get-recent-repos'),
   removeRecentRepo: (path: string) => ipcRenderer.invoke('app:remove-recent-repo', path),
   // Read
-  getLog: (options?: { maxCount?: number; all?: boolean }) => ipcRenderer.invoke('git:get-log', options),
+  getLog: (options?: { maxCount?: number; all?: boolean; refs?: string[] }) => ipcRenderer.invoke('git:get-log', options),
   getBranches: () => ipcRenderer.invoke('git:get-branches'),
   getDiff: (commitHash: string) => ipcRenderer.invoke('git:get-diff', commitHash),
   getCommitFiles: (commitHash: string) => ipcRenderer.invoke('git:get-commit-files', commitHash),
