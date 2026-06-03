@@ -115,6 +115,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   // ── GPG & profiles/identities ──
   const [gpgSign, setGpgSign] = useState(false)
   const [profiles, setProfiles] = useState<{ name: string; email: string }[]>([])
+  const [externalEditor, setExternalEditor] = useState('')
 
   const fetchModels = async (provider: AIProvider, key: string) => {
     if (!key) return
@@ -158,6 +159,7 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       setNotifyUpdate(s.notifyUpdate !== 'false')
       setAutoStash(s.autoStash === 'true')
       setGpgSign(s.gpgSign === 'true')
+      setExternalEditor(s.externalEditor ?? '')
       try { setProfiles(s.gitProfiles ? JSON.parse(s.gitProfiles) : []) } catch { setProfiles([]) }
       setAiProvider(provider)
       setAiKeys(keys)
@@ -534,6 +536,19 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                       await window.gitAPI.settingsSet('autoStash', String(e.target.checked))
                     }} />
                   <span>Auto-stash au checkout <span style={{ color: '#8b949e', fontSize: 12 }}>(stashe les modifications locales avant de changer de branche, les restaure après)</span></span>
+                </label>
+
+                <label className="stg-field" style={{ marginTop: 12 }}>
+                  <span>Éditeur externe <span style={{ color: '#8b949e', fontSize: 12 }}>(commande pour ouvrir les fichiers/conflits, ex : <code>code</code>, <code>code --wait</code>, <code>subl</code>, <code>meld</code>. Vide = app par défaut)</span></span>
+                  <input
+                    className="stg-input"
+                    value={externalEditor}
+                    onChange={async e => {
+                      setExternalEditor(e.target.value)
+                      await window.gitAPI.settingsSet('externalEditor', e.target.value)
+                    }}
+                    placeholder="code"
+                  />
                 </label>
 
                 <h2 className="stg-section-title" style={{ marginTop: 16 }}>{t('settings.notifications.title')}</h2>

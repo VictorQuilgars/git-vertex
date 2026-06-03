@@ -123,6 +123,7 @@ const gitAPI = {
   gitSetGlobalConfig: (userName: string, userEmail: string) => ipcRenderer.invoke('git:set-global-config', userName, userEmail),
   appGetInfo: () => ipcRenderer.invoke('app:get-info'),
   openExternal: (url: string) => ipcRenderer.invoke('app:open-external', url),
+  openInEditor: (filepath: string) => ipcRenderer.invoke('app:open-in-editor', filepath),
   // GitHub
   githubDetectRepo: () => ipcRenderer.invoke('github:detect-repo'),
   githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) =>

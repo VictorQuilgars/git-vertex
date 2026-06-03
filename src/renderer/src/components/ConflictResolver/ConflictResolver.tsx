@@ -343,6 +343,10 @@ export default function ConflictResolver({ file, onFinish, onAbort, showToast }:
         <div className="mt-header-right">
           <button className="mt-btn mt-btn-all-a" onClick={() => selectAll('ours')} title="Sélectionner toutes les lignes A">Tout A</button>
           <button className="mt-btn mt-btn-all-b" onClick={() => selectAll('theirs')} title="Sélectionner toutes les lignes B">Tout B</button>
+          <button className="mt-btn" onClick={async () => {
+            const r = await (window.gitAPI as any).openInEditor(file)
+            if (!r.success) showToast(`Erreur : ${r.error ?? 'éditeur introuvable'}`, 'err')
+          }} title="Ouvrir dans l'éditeur externe configuré">↗ Éditeur externe</button>
           <button className="mt-btn mt-btn-abort" onClick={onAbort}>✕ Fermer</button>
           <button className="mt-btn mt-btn-save" onClick={handleSave}>Enregistrer & Résoudre</button>
         </div>

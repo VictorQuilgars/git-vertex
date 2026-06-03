@@ -906,6 +906,32 @@ ipcMain.handle('app:open-external', (_e, url: string) => {
   shell.openExternal(url)
 })
 
+// Open a repo file in an external editor. Uses the configured `externalEditor`
+// command (e.g. "code", "code --wait", "subl", "meld") if set, otherwise falls
+// back to the OS default application for the file.
+ipcMain.handle('app:open-in-editor', async (_e, filepath: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  const path = await import('path')
+  const abs = path.isAbsolute(filepath) ? filepath : path.join(gitService.repoPath, filepath)
+  const editor = (readSettings().externalEditor ?? '').trim()
+  if (!editor) {
+    const err = await shell.openPath(abs)
+    return err ? { success: false, error: err } : { success: true }
+  }
+  try {
+    const { spawn } = await import('child_process')
+    const parts = editor.split(' ').filter(Boolean)
+    const cmd = parts[0]
+    const args = [...parts.slice(1), abs]
+    const child = spawn(cmd, args, { cwd: gitService.repoPath, detached: true, stdio: 'ignore' })
+    child.on('error', () => {})
+    child.unref()
+    return { success: true }
+  } catch (e: any) {
+    return { success: false, error: e.message }
+  }
+})
+
 ipcMain.handle('app:get-info', () => {
   return {
     version:  app.getVersion(),
