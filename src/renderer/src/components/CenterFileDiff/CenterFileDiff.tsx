@@ -92,17 +92,6 @@ export default function CenterFileDiff({ target, onClose }: {
     fetch.then(h => { setHunks(h); setLoading(false) })
   }, [key])
 
-  const lineModifications = new Map<number, 'add' | 'remove'>()
-  for (const hunk of hunks) {
-    for (const line of hunk.lines) {
-      if (line.type === 'add' && line.newLine) {
-        lineModifications.set(line.newLine, 'add')
-      } else if (line.type === 'remove' && line.oldLine) {
-        lineModifications.set(line.oldLine, 'remove')
-      }
-    }
-  }
-
   useEffect(() => {
     if (showFullFile && target.type === 'commit' && !fullContent) {
       setFullLoading(true)
@@ -147,18 +136,14 @@ export default function CenterFileDiff({ target, onClose }: {
             {fullLoading && <div className="cfd-loading">Chargement…</div>}
             {!fullLoading && fullContent && (
               <table className="cfd-full-table"><tbody>
-                {fullContent.split('\n').map((line, i) => {
-                  const lineNum = i + 1
-                  const modification = lineModifications.get(lineNum)
-                  return (
-                    <tr key={i} className={`cfd-full-line ${modification ? `cfd-dl-${modification}` : ''}`}>
-                      <td className="cfd-full-ln">{lineNum}</td>
-                      <td className="cfd-full-lc">
-                        <code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line, lang) }} />
-                      </td>
-                    </tr>
-                  )
-                })}
+                {fullContent.split('\n').map((line, i) => (
+                  <tr key={i} className="cfd-full-line">
+                    <td className="cfd-full-ln">{i + 1}</td>
+                    <td className="cfd-full-lc">
+                      <code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line, lang) }} />
+                    </td>
+                  </tr>
+                ))}
               </tbody></table>
             )}
             {!fullLoading && !fullContent && <div className="cfd-loading">Erreur : impossible de charger le fichier</div>}
