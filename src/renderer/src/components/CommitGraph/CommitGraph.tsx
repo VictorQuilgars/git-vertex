@@ -388,6 +388,8 @@ export default function CommitGraph({
   const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
   const svgH = displayLayout.length * ROW_HEIGHT
 
+  // Search filter — dims commits that don't match the query. Selection no longer
+  // dims anything (that behavior was removed); lane dimming happens on ref hover.
   const filtered = useMemo(() => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
@@ -401,19 +403,27 @@ export default function CommitGraph({
           .map(c => c.row)
       )
     }
-    if (selectedHash && selectedHash !== WIP_HASH) {
-      // Dim commits not on the same lane (color) as the selected commit
-      const sel = displayLayout.find(c => c.hash === selectedHash)
-      if (sel) {
-        return new Set(
-          displayLayout
-            .filter(c => c.hash !== WIP_HASH && c.color === sel.color)
-            .map(c => c.row)
-        )
-      }
-    }
     return null
-  }, [displayLayout, searchQuery, selectedHash])
+  }, [displayLayout, searchQuery])
+
+  // Hovering a branch/tag chip highlights that branch's lane (GitKraken-style):
+  // walk the first-parent chain from the ref's commit while staying on the same
+  // lane, and dim everything else. Cleared on mouse leave.
+  const [hoverHash, setHoverHash] = useState<string | null>(null)
+  const hoverHighlight = useMemo(() => {
+    if (!hoverHash) return null
+    const byHash = new Map(displayLayout.map(c => [c.hash, c]))
+    const tip = byHash.get(hoverHash)
+    if (!tip) return null
+    const rows = new Set<number>()
+    let cur: typeof tip | undefined = tip
+    while (cur && cur.lane === tip.lane) {
+      rows.add(cur.row)
+      const firstParent = cur.parents[0]
+      cur = firstParent ? byHash.get(firstParent) : undefined
+    }
+    return rows
+  }, [hoverHash, displayLayout])
 
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
@@ -658,7 +668,9 @@ export default function CommitGraph({
           {displayLayout.map(commit => {
             const isSelected = commit.hash === selectedHash
             const isWip = commit.hash === WIP_HASH
-            const isDimmed = !isWip && filtered !== null && !filtered.has(commit.row)
+            // Active dim set: search takes precedence, otherwise ref-hover lane.
+            const keep = filtered ?? hoverHighlight
+            const isDimmed = !isWip && keep !== null && !keep.has(commit.row)
             const isDropTarget = dragOverRow === commit.row && !isWip
             const prefs = processRefs(commit.refs)
             const primary = prefs[0]
@@ -689,6 +701,8 @@ export default function CommitGraph({
                       <div
                         className="cg-refs-chips"
                         onMouseEnter={e => {
+                          // Highlight this branch/tag's lane while hovered
+                          setHoverHash(commit.hash)
                           if (stackCount < 1) return
                           if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
                           // Only capture rect on first open — badge may have disappeared on re-entry
@@ -697,6 +711,7 @@ export default function CommitGraph({
                           }
                         }}
                         onMouseLeave={() => {
+                          setHoverHash(null)
                           refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
                         }}
                       >
