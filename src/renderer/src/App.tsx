@@ -519,6 +519,10 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
         e.preventDefault(); setPaletteOpen(o => !o); return
       }
+      // Cmd/Ctrl+, opens preferences (GitKraken / macOS convention)
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault(); setSettingsOpen(o => !o); return
+      }
       if (e.key === 'F5' || ((e.metaKey || e.ctrlKey) && e.key === 'r')) {
         if (!isInput(e)) { e.preventDefault(); loadRepoData() }; return
       }
