@@ -195,6 +195,7 @@
   color: #fff;
   flex-shrink: 0;
 }
+.cg-avatar-img { object-fit: cover; background: #21262d; }
 
 .cg-author-name {
   font-size: 11px;

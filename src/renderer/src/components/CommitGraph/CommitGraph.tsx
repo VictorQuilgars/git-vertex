@@ -4,6 +4,7 @@ import { LayoutCommit, computeGraphLayout, LANE_COLORS } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
+import { gravatarUrl } from '../../utils/gravatar'
 import './CommitGraph.css'
 
 const ROW_HEIGHT  = 50
@@ -65,6 +66,23 @@ function sigBadge(sig?: string) {
     B: 'Signature invalide', E: 'Signature non vérifiable',
   }
   return <span className={`cg-sig ${cls}`} title={titles[sig] ?? 'Signé'}>🔏</span>
+}
+// Author avatar: tries Gravatar, falls back to a colored initials circle on
+// error (Gravatar returns 404 for emails without an avatar via d=404).
+function AuthorAvatar({ email, name }: { email: string; name: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed || !email) {
+    return <div className="cg-avatar" style={{ background: getAvatarColor(email) }}>{initials(name)}</div>
+  }
+  return (
+    <img
+      className="cg-avatar cg-avatar-img"
+      src={gravatarUrl(email, 48)}
+      alt={name}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  )
 }
 function fmtDate(s: string) {
   try {
@@ -678,9 +696,7 @@ export default function CommitGraph({
                 {/* Author */}
                 {!isWip && (
                   <div className="cg-col-author" style={{ width: authorColW }}>
-                    <div className="cg-avatar" style={{ background: getAvatarColor(commit.authorEmail) }}>
-                      {initials(commit.author)}
-                    </div>
+                    <AuthorAvatar email={commit.authorEmail} name={commit.author} />
                     <span className="cg-author-name">{commit.author}</span>
                   </div>
                 )}
