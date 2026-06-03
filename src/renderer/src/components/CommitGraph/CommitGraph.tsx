@@ -406,21 +406,43 @@ export default function CommitGraph({
     return null
   }, [displayLayout, searchQuery])
 
-  // Hovering a branch/tag chip highlights that branch's lane (GitKraken-style):
-  // walk the first-parent chain from the ref's commit while staying on the same
-  // lane, and dim everything else. Cleared on mouse leave.
+  // Hovering a branch/tag chip highlights the commits that belong to THAT branch
+  // only (GitKraken-style), i.e. its commits down to the fork point — without the
+  // shared ancestors. We compute this as the branch's first-parent chain minus
+  // the first-parent chains of every other ref. This correctly handles branches
+  // that were merged back elsewhere (e.g. a release re-merged into develop),
+  // because back-merges enter via the second parent, not the first.
   const [hoverHash, setHoverHash] = useState<string | null>(null)
   const hoverHighlight = useMemo(() => {
     if (!hoverHash) return null
     const byHash = new Map(displayLayout.map(c => [c.hash, c]))
-    const tip = byHash.get(hoverHash)
-    if (!tip) return null
+    if (!byHash.has(hoverHash)) return null
+
+    const firstParentChain = (start: string): string[] => {
+      const out: string[] = []
+      const seen = new Set<string>()
+      let cur = byHash.get(start)
+      while (cur && !seen.has(cur.hash)) {
+        seen.add(cur.hash)
+        out.push(cur.hash)
+        const fp = cur.parents[0]
+        cur = fp ? byHash.get(fp) : undefined
+      }
+      return out
+    }
+
+    // First-parent history reachable from every OTHER ref tip = shared history.
+    const otherFP = new Set<string>()
+    for (const c of displayLayout) {
+      if (c.hash === hoverHash || c.hash === WIP_HASH || c.refs.length === 0) continue
+      for (const h of firstParentChain(c.hash)) otherFP.add(h)
+    }
+
+    const own = firstParentChain(hoverHash).filter(h => !otherFP.has(h))
     const rows = new Set<number>()
-    let cur: typeof tip | undefined = tip
-    while (cur && cur.lane === tip.lane) {
-      rows.add(cur.row)
-      const firstParent = cur.parents[0]
-      cur = firstParent ? byHash.get(firstParent) : undefined
+    for (const h of (own.length ? own : [hoverHash])) {
+      const c = byHash.get(h)
+      if (c) rows.add(c.row)
     }
     return rows
   }, [hoverHash, displayLayout])
