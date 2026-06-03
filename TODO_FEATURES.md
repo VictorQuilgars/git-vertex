@@ -6,27 +6,30 @@ Ce fichier suit l'évolution de Git Vertex vers une expérience complète et per
 
 ## 🚀 Prochaines fonctionnalités (À implémenter)
 
-### 1. Productivité & Sécurité
-- [ ] **Bouton "Undo" (Annuler) :** Bouton dans la toolbar permettant d'annuler la dernière action Git (commit, merge, rebase, checkout) via `ORIG_HEAD` / `reset --soft HEAD~1`.
-- [ ] **Auto-Stash au checkout :** Stasher automatiquement les modifications lors d'un changement de branche et les restaurer au retour (option dans les settings).
-- [ ] **Gestion des profils/identités :** Switcher facilement entre profils (Pro/Perso) pour changer l'email et le nom de l'auteur.
-- [ ] **Signatures GPG :** Afficher l'état de validation des signatures sur les commits et permettre de signer les nouveaux commits.
-
-### 2. Visualisation & Gestion des fichiers
-- [ ] **Vue Tree vs List :** Dans le panneau de staging, basculer entre une liste plate de fichiers et une arborescence de dossiers.
-- [ ] **Syntax highlighting dans le diff :** Coloration syntaxique des additions/suppressions selon le langage du fichier.
-- [ ] **Support Git LFS :** Visualisation des fichiers trackés par LFS et gestion des locks.
-- [ ] **Solo / Mute de branches :** Masquer ou mettre en avant certaines branches dans le graphe.
-
-### 3. Intégrations & UX
-- [ ] **Intégration Issue Trackers :** Lier les commits/branches à des tickets GitHub Issues ou Jira.
-- [ ] **Avatars GitHub des auteurs :** Afficher les avatars GitHub (API) à la place des initiales dans le graphe.
-- [ ] **Éditeur de Diff/Merge externe :** Option pour ouvrir les conflits dans VS Code, Meld, etc.
-- [ ] **Raccourcis clavier :** F5 = refresh, Ctrl+Z = undo, Ctrl+Shift+P déjà fait, etc.
+### Intégrations externes (reste à faire)
+- [ ] **Support Git LFS :** Visualisation des fichiers trackés par LFS et gestion des locks. (Nécessite git-lfs installé ; détection via `.gitattributes` + `git lfs ls-files`.)
+- [ ] **Intégration Issue Trackers :** Lier les commits/branches à des tickets GitHub Issues ou Jira. (Détection des `#123` dans les messages + lien cliquable, puis API tickets.)
 
 ---
 
 ## ✅ Fonctionnalités implémentées
+
+### Productivité & Sécurité
+- **Bouton "Undo"** : Annule la dernière action Git (Ctrl+Z / toolbar) via `undoLastAction`.
+- **Auto-Stash au checkout** : Option dans les settings (Comportement) ; stashe/restaure automatiquement.
+- **Profils / identités** : Enregistrer plusieurs identités (nom + email), basculer en un clic (Settings → Git).
+- **Signatures GPG** : Badge de signature dans le graphe (vert/rouge/ambre) + option pour signer les commits (`-S`).
+
+### Visualisation & Gestion des fichiers
+- **Vue Tree vs List** : Bascule liste plate / arborescence dans le staging.
+- **Syntax highlighting dans le diff** : Coloration via highlight.js selon l'extension.
+- **Solo / Mute de branches** : Clic droit sur une branche → Solo (afficher seule) ou Masquer du graphe.
+- **Staging partiel** : Indexer/désindexer par bloc (hunk) ou ligne par ligne dans la diff centrale.
+
+### Intégrations & UX
+- **Avatars Gravatar des auteurs** : Image Gravatar dans le graphe, fallback initiales colorées.
+- **Éditeur de Diff/Merge externe** : Commande configurable (code, subl, meld…) ; bouton dans le résolveur de conflits.
+- **Raccourcis clavier** : F5/Ctrl+R = refresh, Ctrl+Z = undo, Ctrl+P = command palette.
 
 ### Graphe & Navigation
 - **Graphe de commits moderne** : Lignes courbées GitKraken-style, couleurs distinctes par branche, commits ancêtres partagés sur la bonne couleur.
