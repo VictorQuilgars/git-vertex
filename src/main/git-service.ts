@@ -9,6 +9,7 @@ export interface CommitNode {
   date: string
   parents: string[]
   refs: string[]   // branch/tag labels
+  signature?: string  // GPG signature status from `%G?` (G/B/U/X/Y/R/E/N)
 }
 
 export interface BranchInfo {

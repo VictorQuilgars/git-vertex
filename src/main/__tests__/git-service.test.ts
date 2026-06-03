@@ -861,4 +861,171 @@ describe('GitService', () => {
     })
   })
 
+  // ─────────────────────────────────────────────────────────────────────
+  // getFileAtCommit (full file view in CenterFileDiff)
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('getFileAtCommit', () => {
+    test('returns the file content as it was at a given commit', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'v1\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "v1"`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'v2\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "v2"`)
+
+      const log = await git.getLog()
+      const firstCommit = log.commits[1].hash
+
+      const r = await git.getFileAtCommit(firstCommit, 'f.txt')
+      expect(r.error).toBeUndefined()
+      expect(r.content).toBe('v1\n')
+    })
+
+    test('rejects an empty / invalid ref', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const r = await git.getFileAtCommit('', 'f.txt')
+      expect(r.error).toBeTruthy()
+      expect(r.content).toBe('')
+    })
+
+    test('returns an error for a file that did not exist at that commit', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -m "first"`)
+      const log = await git.getLog()
+      const r = await git.getFileAtCommit(log.commits[0].hash, 'never.txt')
+      expect(r.error).toBeTruthy()
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // applyPatch (partial staging by hunk / line)
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('applyPatch', () => {
+    test('stages a working-tree change via its diff patch', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'one\ntwo\nthree\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+
+      // Modify the file but leave it unstaged
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'one\ntwo changed\nthree\n')
+
+      const { diff } = await git.getWorkingFileDiff('f.txt', false)
+      expect(diff).toContain('two changed')
+
+      const r = await git.applyPatch(diff, false)
+      expect(r.success).toBe(true)
+
+      // The change must now be staged
+      const status = await git.getStatus()
+      expect(status.staged).toContain('f.txt')
+    })
+
+    test('unstages a staged change with the reverse flag', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'one\ntwo\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+
+      // Stage a modification
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'one\ntwo\nthree\n')
+      execSync(`cd ${tempDir} && git add f.txt`)
+
+      const { diff } = await git.getWorkingFileDiff('f.txt', true)
+      expect(diff).toContain('three')
+
+      const r = await git.applyPatch(diff, true)
+      expect(r.success).toBe(true)
+
+      // No longer staged
+      const status = await git.getStatus()
+      expect(status.staged).not.toContain('f.txt')
+    })
+
+    test('returns an error for a malformed patch', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const r = await git.applyPatch('this is not a valid patch\n', false)
+      expect(r.success).toBe(false)
+      expect(r.error).toBeTruthy()
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // getLog — signature field & ref filtering (solo/mute branches)
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('getLog signature & refs', () => {
+    test('unsigned commits report signature "N"', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const log = await git.getLog()
+      expect(log.commits[0].signature).toBe('N')
+    })
+
+    test('refs option restricts the log to the given branch (solo)', async () => {
+      // main: one commit
+      fs.writeFileSync(path.join(tempDir, 'main.txt'), 'main')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Main commit"`)
+
+      // feature: branch off with its own commit
+      execSync(`cd ${tempDir} && git checkout -b feature`)
+      fs.writeFileSync(path.join(tempDir, 'feat.txt'), 'feat')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Feature commit"`)
+
+      execSync(`cd ${tempDir} && git checkout main`)
+
+      // Solo main: feature-only commit must be absent
+      const mainOnly = await git.getLog({ refs: ['main'] })
+      const messages = mainOnly.commits.map(c => c.message)
+      expect(messages).toContain('Main commit')
+      expect(messages).not.toContain('Feature commit')
+
+      // Explicit feature ref includes both (feature descends from main)
+      const featLog = await git.getLog({ refs: ['feature'] })
+      expect(featLog.commits.map(c => c.message)).toContain('Feature commit')
+    })
+
+    test('refs option with multiple branches unions their commits (mute = all but one)', async () => {
+      fs.writeFileSync(path.join(tempDir, 'main.txt'), 'main')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Main commit"`)
+      execSync(`cd ${tempDir} && git checkout -b a`)
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -m "A commit"`)
+      execSync(`cd ${tempDir} && git checkout main && git checkout -b b`)
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'b')
+      execSync(`cd ${tempDir} && git add . && git commit -m "B commit"`)
+
+      // Visible = main + a (branch b muted)
+      const log = await git.getLog({ refs: ['main', 'a'] })
+      const messages = log.commits.map(c => c.message)
+      expect(messages).toContain('A commit')
+      expect(messages).not.toContain('B commit')
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // commit — GPG sign parameter
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('commit signing', () => {
+    test('commit succeeds without signing when sign=false', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add f.txt`)
+      const r = await git.commit('Unsigned commit', false, false)
+      expect(r.success).toBe(true)
+      const log = await git.getLog()
+      expect(log.commits[0].signature).toBe('N')
+    })
+
+    test('commit with sign=true surfaces an error when signing is impossible', async () => {
+      // Force a non-existent GPG program so signing deterministically fails
+      // regardless of any GPG key the host machine may have configured. -S must
+      // then report an error rather than silently producing an unsigned commit.
+      execSync(`cd ${tempDir} && git config gpg.program /nonexistent-gpg-binary`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add f.txt`)
+      const r = await git.commit('Signed commit', false, true)
+      expect(r.success).toBe(false)
+      expect(r.error).toBeTruthy()
+    })
+  })
+
 })
