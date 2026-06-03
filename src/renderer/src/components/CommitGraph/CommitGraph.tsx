@@ -516,19 +516,29 @@ export default function CommitGraph({
       )
     }
 
-    // GitKraken-style: two vertical segments connected by a rounded horizontal
-    // elbow at the midpoint — gives the distinct "angled bracket" look.
-    const midY = (y1 + y2) / 2
-    const r = Math.min(LANE_WIDTH * 0.6, Math.abs(y2 - y1) / 4)
+    // The elbow sits at the connection point, not the midpoint:
+    //  - fork (a branch diverging from its base): the vertical stays in the
+    //    branch's own lane (fromLane) and the horizontal jog happens at the
+    //    BOTTOM, on the base commit's row.
+    //  - merge (a merge commit reaching a 2nd parent): the horizontal jog
+    //    happens at the TOP, on the merge commit's row, then the vertical runs
+    //    down the parent's lane (toLane).
+    const r = Math.min(LANE_WIDTH * 0.6, Math.abs(y2 - y1) / 2)
     const dx = x2 > x1 ? r : -r
-    const d = [
-      `M${x1} ${y1}`,
-      `L${x1} ${midY - r}`,
-      `Q${x1} ${midY} ${x1 + dx} ${midY}`,
-      `L${x2 - dx} ${midY}`,
-      `Q${x2} ${midY} ${x2} ${midY + r}`,
-      `L${x2} ${y2}`,
-    ].join(' ')
+    const isFork = edge.type === 'fork-left' || edge.type === 'fork-right'
+    const d = isFork
+      ? [
+          `M${x1} ${y1}`,
+          `L${x1} ${y2 - r}`,
+          `Q${x1} ${y2} ${x1 + dx} ${y2}`,
+          `L${x2} ${y2}`,
+        ].join(' ')
+      : [
+          `M${x1} ${y1}`,
+          `L${x2 - dx} ${y1}`,
+          `Q${x2} ${y1} ${x2} ${y1 + r}`,
+          `L${x2} ${y2}`,
+        ].join(' ')
     return (
       <path key={key}
         d={d}

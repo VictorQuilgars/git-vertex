@@ -91,18 +91,20 @@ export function computeGraphLayout(commits: CommitNode[]): LayoutCommit[] {
             lanes[lane] = parents[0]
             lanes[existingLane] = null
             edges.push({ fromLane: lane, toLane: lane, toRow: row + 1, color: commitColor, type: 'straight' })
-            // Draw the right lane converging into the left lane
+            // Draw the right lane converging into the left lane (a fork point:
+            // the right branch diverged from the left one going forward in time).
             edges.push({
               fromLane: existingLane,
               toLane: lane,
               toRow: row + 1,
               color: laneColors[existingLane] || LANE_COLORS[existingLane % LANE_COLORS.length],
-              type: 'merge-left'
+              type: 'fork-left'
             })
             skipPassthrough.add(existingLane)
           } else {
             // Current lane is to the RIGHT — free it, left lane keeps the parent
-            const direction = existingLane < lane ? 'merge-left' : 'merge-right'
+            // (first-parent convergence = fork point).
+            const direction = existingLane < lane ? 'fork-left' : 'fork-right'
             edges.push({ fromLane: lane, toLane: existingLane, toRow: row + 1, color: commitColor, type: direction })
             lanes[lane] = null
             skipPassthrough.add(lane)
