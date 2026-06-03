@@ -493,3 +493,33 @@
 }
 .stg-lang-btn:hover { border-color: #8b949e; color: #e6edf3; }
 .stg-lang-btn.active { background: #1f6feb22; border-color: #58a6ff; color: #58a6ff; }
+
+/* Profils / identités */
+.stg-profiles { display: flex; flex-direction: column; gap: 8px; }
+.stg-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+}
+.stg-profile.active { border-color: #3fb950; background: rgba(63,185,80,0.08); }
+.stg-profile-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.stg-profile-name { color: #e6edf3; font-size: 13px; font-weight: 600; }
+.stg-profile-email { color: #8b949e; font-size: 12px; }
+.stg-profile-badge {
+  color: #3fb950; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border: 1px solid #3fb950; border-radius: 12px;
+}
+.stg-profile-apply {
+  background: #21262d; border: 1px solid #30363d; border-radius: 6px;
+  color: #58a6ff; font-size: 12px; padding: 4px 12px; cursor: pointer; transition: 0.12s;
+}
+.stg-profile-apply:hover { border-color: #58a6ff; background: rgba(88,166,255,0.1); }
+.stg-profile-del {
+  background: none; border: none; color: #6e7681; font-size: 13px;
+  cursor: pointer; padding: 2px 6px; transition: 0.12s;
+}
+.stg-profile-del:hover { color: #f85149; }

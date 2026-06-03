@@ -149,6 +149,17 @@
   font-weight: 500;
 }
 
+.cg-sig {
+  flex-shrink: 0;
+  margin-right: 5px;
+  font-size: 11px;
+  line-height: 1;
+  filter: grayscale(1) brightness(1.4);
+}
+.cg-sig--good { filter: none; }
+.cg-sig--bad  { filter: hue-rotate(-50deg) saturate(3); }
+.cg-sig--warn { filter: sepia(1) saturate(2) hue-rotate(5deg); }
+
 .cg-msg-wip {
   color: #6e7681;
   font-style: italic;

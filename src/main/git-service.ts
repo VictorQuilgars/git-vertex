@@ -75,7 +75,7 @@ export class GitService {
   async getLog(options: { maxCount?: number; all?: boolean } = {}): Promise<{ commits: CommitNode[] }> {
     const maxCount = options.maxCount ?? 200
     const args: string[] = [
-      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D',
+      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D|%G?',
       `--max-count=${maxCount}`,
       '--date-order', // children always before parents (like --topo-order), but sibling
                     // commits are sorted by commit date — matches GitKraken's ordering
@@ -87,7 +87,7 @@ export class GitService {
 
     for (const line of result.trim().split('\n')) {
       if (!line.trim()) continue
-      const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
+      const [hash, parentStr, message, author, authorEmail, date, refsStr, sigStr] = line.split('|')
       const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
       const refs = refsStr
         ? refsStr.split(',')
@@ -102,7 +102,8 @@ export class GitService {
         authorEmail: authorEmail || '',
         date: date || '',
         parents,
-        refs
+        refs,
+        signature: (sigStr || 'N').trim()
       })
     }
     return { commits }
@@ -485,10 +486,11 @@ export class GitService {
     }
   }
 
-  async commit(message: string, amend = false): Promise<{ success: boolean; error?: string }> {
+  async commit(message: string, amend = false, sign = false): Promise<{ success: boolean; error?: string }> {
     try {
+      const signArg = sign ? ['-S'] : []
       if (amend) {
-        await this.git.raw(['commit', '--amend', '-m', message])
+        await this.git.raw(['commit', '--amend', ...signArg, '-m', message])
       } else {
         // simple-git does NOT throw when there is nothing to commit — it resolves
         // with a "nothing to commit" message. Guard explicitly so we never report
@@ -497,7 +499,7 @@ export class GitService {
         if (!staged.trim()) {
           return { success: false, error: 'Nothing to commit' }
         }
-        await this.git.raw(['commit', '-m', message])
+        await this.git.raw(['commit', ...signArg, '-m', message])
       }
       return { success: true }
     } catch (e: any) {

@@ -112,6 +112,10 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
   const [notifyUpdate, setNotifyUpdate] = useState(true)
   const [autoStash, setAutoStash] = useState(false)
 
+  // ── GPG & profiles/identities ──
+  const [gpgSign, setGpgSign] = useState(false)
+  const [profiles, setProfiles] = useState<{ name: string; email: string }[]>([])
+
   const fetchModels = async (provider: AIProvider, key: string) => {
     if (!key) return
     setLoadingModels(true)
@@ -153,6 +157,8 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       setNotifyCommit(s.notifyCommit === 'true')
       setNotifyUpdate(s.notifyUpdate !== 'false')
       setAutoStash(s.autoStash === 'true')
+      setGpgSign(s.gpgSign === 'true')
+      try { setProfiles(s.gitProfiles ? JSON.parse(s.gitProfiles) : []) } catch { setProfiles([]) }
       setAiProvider(provider)
       setAiKeys(keys)
       setAiModels(m => ({
@@ -226,6 +232,30 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
     const r = await window.gitAPI.gitSetGlobalConfig(gitUserName.trim(), gitUserEmail.trim())
     if (r.success) showToast(t('toast.gitConfigSaved'))
     else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
+  const persistProfiles = async (next: { name: string; email: string }[]) => {
+    setProfiles(next)
+    await window.gitAPI.settingsSet('gitProfiles', JSON.stringify(next))
+  }
+
+  const saveCurrentAsProfile = async () => {
+    const name = gitUserName.trim(), email = gitUserEmail.trim()
+    if (!name || !email) { showToast('Renseignez nom et email d\'abord', 'err'); return }
+    if (profiles.some(p => p.name === name && p.email === email)) { showToast('Profil déjà enregistré'); return }
+    await persistProfiles([...profiles, { name, email }])
+    showToast('Profil enregistré ✓')
+  }
+
+  const applyProfile = async (p: { name: string; email: string }) => {
+    setGitUserName(p.name); setGitUserEmail(p.email)
+    const r = await window.gitAPI.gitSetGlobalConfig(p.name, p.email)
+    if (r.success) showToast(`Identité : ${p.name} ✓`)
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
+  const deleteProfile = async (idx: number) => {
+    await persistProfiles(profiles.filter((_, i) => i !== idx))
   }
 
   const saveGithub = async () => {
@@ -305,7 +335,48 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                   />
                 </label>
 
-                <button className="stg-save" onClick={saveGit}>{t('settings.save')}</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="stg-save" onClick={saveGit}>{t('settings.save')}</button>
+                  <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} onClick={saveCurrentAsProfile}>
+                    + Enregistrer comme profil
+                  </button>
+                </div>
+
+                {/* Profils / identités */}
+                {profiles.length > 0 && (
+                  <>
+                    <h2 className="stg-section-title" style={{ marginTop: 20 }}>Profils enregistrés</h2>
+                    <p className="stg-desc">Basculez rapidement entre vos identités (pro / perso).</p>
+                    <div className="stg-profiles">
+                      {profiles.map((p, i) => {
+                        const active = p.name === gitUserName.trim() && p.email === gitUserEmail.trim()
+                        return (
+                          <div key={i} className={`stg-profile ${active ? 'active' : ''}`}>
+                            <div className="stg-profile-info">
+                              <span className="stg-profile-name">{p.name}</span>
+                              <span className="stg-profile-email">{p.email}</span>
+                            </div>
+                            {active
+                              ? <span className="stg-profile-badge">Actif</span>
+                              : <button className="stg-profile-apply" onClick={() => applyProfile(p)}>Utiliser</button>}
+                            <button className="stg-profile-del" onClick={() => deleteProfile(i)} title="Supprimer">✕</button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {/* Signature GPG */}
+                <h2 className="stg-section-title" style={{ marginTop: 20 }}>Signature GPG</h2>
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" checked={gpgSign}
+                    onChange={async e => {
+                      setGpgSign(e.target.checked)
+                      await window.gitAPI.settingsSet('gpgSign', String(e.target.checked))
+                    }} />
+                  <span>Signer les commits (GPG) <span style={{ color: '#8b949e', fontSize: 12 }}>(ajoute -S à chaque commit ; nécessite une clé GPG configurée)</span></span>
+                </label>
               </div>
             )}
 

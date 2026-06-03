@@ -360,7 +360,8 @@ ipcMain.handle('git:unstage', async (_event, files: string[]) => {
 
 ipcMain.handle('git:commit', async (_event, message: string, amend = false) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  const result = await gitService.commit(message, amend)
+  const sign = readSettings().gpgSign === 'true'
+  const result = await gitService.commit(message, amend, sign)
   if (result.success) {
     const firstLine = message.split('\n')[0]
     notify('Commit créé', firstLine, 'notifyCommit', false)

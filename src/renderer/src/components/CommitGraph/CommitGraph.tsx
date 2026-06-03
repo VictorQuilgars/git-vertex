@@ -53,6 +53,19 @@ function dimColor(hex: string, factor = 0.4): string {
 function initials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
+// GPG signature badge from `%G?` status code. Returns null for unsigned commits.
+function sigBadge(sig?: string) {
+  if (!sig || sig === 'N') return null
+  const good = sig === 'G' || sig === 'U'
+  const bad = sig === 'B' || sig === 'E'
+  const cls = good ? 'cg-sig--good' : bad ? 'cg-sig--bad' : 'cg-sig--warn'
+  const titles: Record<string, string> = {
+    G: 'Signature valide', U: 'Signature valide (validité inconnue)',
+    X: 'Signature expirée', Y: 'Clé expirée', R: 'Clé révoquée',
+    B: 'Signature invalide', E: 'Signature non vérifiable',
+  }
+  return <span className={`cg-sig ${cls}`} title={titles[sig] ?? 'Signé'}>🔏</span>
+}
 function fmtDate(s: string) {
   try {
     return new Date(s).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -658,6 +671,7 @@ export default function CommitGraph({
 
                 {/* Message */}
                 <div className="cg-col-msg">
+                  {!isWip && sigBadge(commit.signature)}
                   <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`}>{commit.message}</span>
                 </div>
 

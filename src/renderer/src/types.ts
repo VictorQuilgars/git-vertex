@@ -2,6 +2,9 @@ export interface CommitNode {
   hash: string; shortHash: string; message: string
   author: string; authorEmail: string; date: string
   parents: string[]; refs: string[]
+  // GPG signature status from `%G?`: G good, B bad, U good-unknown, X expired,
+  // Y expired-key, R revoked-key, E cannot-check, N none
+  signature?: string
   lane?: number; color?: string; edges?: GraphEdge[]
 }
 
