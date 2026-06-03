@@ -63,24 +63,6 @@ function sigBadge(sig?: string) {
   }
   return <span className={`cg-sig ${cls}`} title={titles[sig] ?? 'Signé'}>🔏</span>
 }
-// Author avatar: tries Gravatar, falls back to a colored initials circle on
-// error (Gravatar returns 404 for emails without an avatar via d=404).
-function AuthorAvatar({ email, name }: { email: string; name: string }) {
-  const [failed, setFailed] = useState(false)
-  // No initials fallback in the author column — show a plain neutral disc instead.
-  if (failed || !email) {
-    return <div className="cg-avatar" style={{ background: '#30363d' }} />
-  }
-  return (
-    <img
-      className="cg-avatar cg-avatar-img"
-      src={gravatarUrl(email, 48, 'retro')}
-      alt={name}
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
-  )
-}
 // Commit graph node showing the author's Gravatar (pixel-art identicon fallback),
 // clipped to a circle, with a colored ring. Falls back to a colored initials
 // circle only if the image fails to load.
@@ -844,7 +826,6 @@ export default function CommitGraph({
                 {/* Author */}
                 {showAuthor && !isWip && (
                   <div className="cg-col-author" style={{ width: authorColW }}>
-                    {showAvatars && <AuthorAvatar email={commit.authorEmail} name={commit.author} />}
                     <span className="cg-author-name">{commit.author}</span>
                   </div>
                 )}
