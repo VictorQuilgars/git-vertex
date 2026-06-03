@@ -406,19 +406,16 @@ export default function CommitGraph({
     return null
   }, [displayLayout, searchQuery])
 
-  // Hovering a branch/tag chip highlights the commits that belong to THAT branch
-  // only (GitKraken-style), i.e. its commits down to the fork point — without the
-  // shared ancestors. We compute this as the branch's first-parent chain minus
-  // the first-parent chains of every other ref. This correctly handles branches
-  // that were merged back elsewhere (e.g. a release re-merged into develop),
-  // because back-merges enter via the second parent, not the first.
-  const [hoverHash, setHoverHash] = useState<string | null>(null)
-  const hoverHighlight = useMemo(() => {
-    if (!hoverHash) return null
+  // Assign each commit to exactly one branch (its "owner"), GitKraken-style.
+  // Process branch tips from the most-base to the most-derived and let each
+  // claim its first-parent chain, stopping at the first already-claimed commit.
+  // Using first-parent only makes back-merges (which enter via the 2nd parent)
+  // belong to the branch they were merged INTO, not the merged branch — e.g.
+  // "Merge release back into develop" stays develop's, while "Merge release" on
+  // main stays main's.
+  const ownerByHash = useMemo(() => {
     const byHash = new Map(displayLayout.map(c => [c.hash, c]))
-    if (!byHash.has(hoverHash)) return null
-
-    const firstParentChain = (start: string): string[] => {
+    const fpChain = (start: string): string[] => {
       const out: string[] = []
       const seen = new Set<string>()
       let cur = byHash.get(start)
@@ -431,21 +428,43 @@ export default function CommitGraph({
       return out
     }
 
-    // First-parent history reachable from every OTHER ref tip = shared history.
-    const otherFP = new Set<string>()
-    for (const c of displayLayout) {
-      if (c.hash === hoverHash || c.hash === WIP_HASH || c.refs.length === 0) continue
-      for (const h of firstParentChain(c.hash)) otherFP.add(h)
-    }
+    const heads = displayLayout.filter(c => c.refs.length > 0 && c.hash !== WIP_HASH)
+    const fpSets = new Map<string, Set<string>>()
+    for (const h of heads) fpSets.set(h.hash, new Set(fpChain(h.hash)))
 
-    const own = firstParentChain(hoverHash).filter(h => !otherFP.has(h))
-    const rows = new Set<number>()
-    for (const h of (own.length ? own : [hoverHash])) {
-      const c = byHash.get(h)
-      if (c) rows.add(c.row)
+    // Order: a tip that is a first-parent ancestor of another is more "base" and
+    // claims first; otherwise newer tip first.
+    const ordered = [...heads].sort((a, b) => {
+      if (fpSets.get(b.hash)!.has(a.hash)) return -1
+      if (fpSets.get(a.hash)!.has(b.hash)) return 1
+      return Date.parse(b.date) - Date.parse(a.date)
+    })
+
+    const owner = new Map<string, string>()
+    for (const h of ordered) {
+      let cur = byHash.get(h.hash)
+      const seen = new Set<string>()
+      while (cur && !seen.has(cur.hash)) {
+        seen.add(cur.hash)
+        if (owner.has(cur.hash)) break
+        owner.set(cur.hash, h.hash)
+        const fp = cur.parents[0]
+        cur = fp ? byHash.get(fp) : undefined
+      }
     }
-    return rows
-  }, [hoverHash, displayLayout])
+    return owner
+  }, [displayLayout])
+
+  // Hovering a branch/tag chip highlights the commits owned by that branch.
+  const [hoverHash, setHoverHash] = useState<string | null>(null)
+  const hoverHighlight = useMemo(() => {
+    if (!hoverHash) return null
+    const rows = new Set<number>()
+    for (const c of displayLayout) {
+      if (ownerByHash.get(c.hash) === hoverHash) rows.add(c.row)
+    }
+    return rows.size ? rows : null
+  }, [hoverHash, displayLayout, ownerByHash])
 
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
