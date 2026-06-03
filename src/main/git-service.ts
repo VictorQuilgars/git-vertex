@@ -1029,6 +1029,25 @@ export class GitService {
     }
   }
 
+  async applyPatch(patch: string, reverse: boolean = false): Promise<{ success: boolean; error?: string }> {
+    const fs = await import('fs')
+    const path = await import('path')
+    const os = await import('os')
+    const tmpFile = path.join(os.tmpdir(), `git-gui-patch-${Date.now()}.patch`)
+    try {
+      fs.writeFileSync(tmpFile, patch)
+      const args = ['apply', '--cached']
+      if (reverse) args.push('--reverse')
+      args.push(tmpFile)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    } finally {
+      try { fs.unlinkSync(tmpFile) } catch {}
+    }
+  }
+
   async markResolved(filepath: string): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.raw(['add', '--', filepath])

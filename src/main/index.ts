@@ -572,6 +572,11 @@ ipcMain.handle('git:get-file-at-commit', async (_event, commitHash: string, file
   return gitService.getFileAtCommit(commitHash, filepath)
 })
 
+ipcMain.handle('git:apply-patch', async (_event, patch: string, reverse: boolean) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.applyPatch(patch, reverse)
+})
+
 ipcMain.handle('git:mark-resolved', async (_event, filepath: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.markResolved(filepath)

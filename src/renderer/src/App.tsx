@@ -1083,7 +1083,7 @@ export default function App() {
 
         <div className="app-center">
           {centerDiff && !conflictResolverFile ? (
-            <CenterFileDiff target={centerDiff} onClose={() => setCenterDiff(null)} />
+            <CenterFileDiff target={centerDiff} onClose={() => setCenterDiff(null)} onStaged={() => loadRepoData(true)} />
           ) : conflictResolverFile ? (
             <ConflictResolver
               file={conflictResolverFile}
