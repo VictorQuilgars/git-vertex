@@ -620,21 +620,24 @@ export default function CommitGraph({
           >
             {/* Lane bands — a soft colored strip from each commit's node to the
                 right edge of the graph (just before the commit info), matching the
-                node color. Improves row readability (GitKraken-style). */}
+                node color. The right edge is a straight, more pronounced vertical
+                bar. Improves row readability (GitKraken-style). */}
             {displayLayout.map(commit => {
               if (commit.hash === WIP_HASH) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
               const bandH = 24
               const y = commit.row * ROW_HEIGHT + (ROW_HEIGHT - bandH) / 2
-              const w = Math.max(svgW - SVG_PAD_R - cx, 0)
+              const right = svgW - SVG_PAD_R
+              const w = Math.max(right - cx, 0)
               if (w <= 0) return null
+              const edgeW = 3
               return (
-                <rect
-                  key={`band-${commit.hash}`}
-                  x={cx} y={y} width={w} height={bandH}
-                  rx={bandH / 2} ry={bandH / 2}
-                  fill={commit.color} opacity={0.16}
-                />
+                <g key={`band-${commit.hash}`}>
+                  {/* soft fill, straight (square) edges */}
+                  <rect x={cx} y={y} width={w} height={bandH} fill={commit.color} opacity={0.14} />
+                  {/* pronounced vertical right edge */}
+                  <rect x={right - edgeW} y={y} width={edgeW} height={bandH} fill={commit.color} opacity={0.7} />
+                </g>
               )
             })}
 
