@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { LayoutCommit, computeGraphLayout, LANE_COLORS } from './graph-layout'
+import { LayoutCommit, computeGraphLayout } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
@@ -8,7 +8,7 @@ import { gravatarUrl } from '../../utils/gravatar'
 import { useSettings } from '../../contexts/SettingsContext'
 import './CommitGraph.css'
 
-const ROW_HEIGHT  = 50
+const ROW_HEIGHT  = 36
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
 const SVG_PAD_L   = 36
@@ -36,11 +36,6 @@ function useColResize(key: string, defaultW: number, min = 60) {
   return [w, startResize] as const
 }
 
-function getAvatarColor(email: string) {
-  let h = 0
-  for (const c of email) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
-  return LANE_COLORS[Math.abs(h) % LANE_COLORS.length]
-}
 // Blend a hex color toward the graph background (#0d1117) by `factor` (0..1).
 // Produces an opaque color so overlapping segments never add up in brightness.
 function dimColor(hex: string, factor = 0.4): string {
@@ -72,8 +67,9 @@ function sigBadge(sig?: string) {
 // error (Gravatar returns 404 for emails without an avatar via d=404).
 function AuthorAvatar({ email, name }: { email: string; name: string }) {
   const [failed, setFailed] = useState(false)
+  // No initials fallback in the author column — show a plain neutral disc instead.
   if (failed || !email) {
-    return <div className="cg-avatar" style={{ background: getAvatarColor(email) }}>{initials(name)}</div>
+    return <div className="cg-avatar" style={{ background: '#30363d' }} />
   }
   return (
     <img
@@ -660,7 +656,7 @@ export default function CommitGraph({
             {displayLayout.map(commit => {
               if (commit.hash === WIP_HASH) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
-              const bandH = 24
+              const bandH = 20
               const y = commit.row * ROW_HEIGHT + (ROW_HEIGHT - bandH) / 2
               const right = svgW - SVG_PAD_R
               const w = Math.max(right - cx, 0)
