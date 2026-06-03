@@ -92,6 +92,15 @@ export default function CenterFileDiff({ target, onClose }: {
     fetch.then(h => { setHunks(h); setLoading(false) })
   }, [key])
 
+  const modifiedLineNumbers = new Set<number>()
+  for (const hunk of hunks) {
+    for (const line of hunk.lines) {
+      if (line.type !== 'context' && line.newLine) {
+        modifiedLineNumbers.add(line.newLine)
+      }
+    }
+  }
+
   useEffect(() => {
     if (showFullFile && target.type === 'commit' && !fullContent) {
       setFullLoading(true)
@@ -126,7 +135,7 @@ export default function CenterFileDiff({ target, onClose }: {
             onClick={() => setShowFullFile(v => !v)}
             title={showFullFile ? 'Afficher seulement les modifications' : 'Afficher le fichier complet'}
           >
-            {showFullFile ? '📄 Complet' : '📝 Modifications'}
+            {showFullFile ? '◆ Fichier' : '◇ Diff'}
           </button>
         )}
       </div>
@@ -136,14 +145,18 @@ export default function CenterFileDiff({ target, onClose }: {
             {fullLoading && <div className="cfd-loading">Chargement…</div>}
             {!fullLoading && fullContent && (
               <table className="cfd-full-table"><tbody>
-                {fullContent.split('\n').map((line, i) => (
-                  <tr key={i} className="cfd-full-line">
-                    <td className="cfd-full-ln">{i + 1}</td>
-                    <td className="cfd-full-lc">
-                      <code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line, lang) }} />
-                    </td>
-                  </tr>
-                ))}
+                {fullContent.split('\n').map((line, i) => {
+                  const lineNum = i + 1
+                  const isModified = modifiedLineNumbers.has(lineNum)
+                  return (
+                    <tr key={i} className={`cfd-full-line ${isModified ? 'cfd-full-line--modified' : ''}`}>
+                      <td className="cfd-full-ln">{lineNum}</td>
+                      <td className="cfd-full-lc">
+                        <code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line, lang) }} />
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody></table>
             )}
             {!fullLoading && !fullContent && <div className="cfd-loading">Erreur : impossible de charger le fichier</div>}

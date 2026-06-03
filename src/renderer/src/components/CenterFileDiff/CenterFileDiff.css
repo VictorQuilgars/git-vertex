@@ -143,6 +143,7 @@
 }
 
 .cfd-full-line { white-space: pre; }
+.cfd-full-line--modified { background: rgba(88, 166, 255, 0.08); }
 
 .cfd-full-ln {
   width: 44px;
