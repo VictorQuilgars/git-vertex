@@ -92,11 +92,13 @@ export default function CenterFileDiff({ target, onClose }: {
     fetch.then(h => { setHunks(h); setLoading(false) })
   }, [key])
 
-  const modifiedLineNumbers = new Set<number>()
+  const lineModifications = new Map<number, 'add' | 'remove'>()
   for (const hunk of hunks) {
     for (const line of hunk.lines) {
-      if (line.type !== 'context' && line.newLine) {
-        modifiedLineNumbers.add(line.newLine)
+      if (line.type === 'add' && line.newLine) {
+        lineModifications.set(line.newLine, 'add')
+      } else if (line.type === 'remove' && line.oldLine) {
+        lineModifications.set(line.oldLine, 'remove')
       }
     }
   }
@@ -147,9 +149,9 @@ export default function CenterFileDiff({ target, onClose }: {
               <table className="cfd-full-table"><tbody>
                 {fullContent.split('\n').map((line, i) => {
                   const lineNum = i + 1
-                  const isModified = modifiedLineNumbers.has(lineNum)
+                  const modification = lineModifications.get(lineNum)
                   return (
-                    <tr key={i} className={`cfd-full-line ${isModified ? 'cfd-full-line--modified' : ''}`}>
+                    <tr key={i} className={`cfd-full-line ${modification ? `cfd-dl-${modification}` : ''}`}>
                       <td className="cfd-full-ln">{lineNum}</td>
                       <td className="cfd-full-lc">
                         <code className="hljs" dangerouslySetInnerHTML={{ __html: hl(line, lang) }} />
