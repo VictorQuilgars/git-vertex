@@ -8,7 +8,7 @@ import { gravatarUrl } from '../../utils/gravatar'
 import { useSettings } from '../../contexts/SettingsContext'
 import './CommitGraph.css'
 
-const ROW_HEIGHT  = 36
+const ROW_HEIGHT  = 32
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
 const SVG_PAD_L   = 36
@@ -509,7 +509,7 @@ export default function CommitGraph({
     if (x1 === x2) {
       return (
         <line key={key} x1={x1} y1={y1} x2={x2} y2={y2}
-          stroke={edge.color} strokeWidth={2} strokeLinecap="round"
+          stroke={edge.color} strokeWidth={3} strokeLinecap="round"
           strokeDasharray={dashArray} />
       )
     }
@@ -529,7 +529,7 @@ export default function CommitGraph({
       return (
         <path key={key}
           d={d}
-          fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
+          fill="none" stroke={edge.color} strokeWidth={3} strokeLinecap="round"
           strokeDasharray={dashArray} />
       )
     }
@@ -550,7 +550,7 @@ export default function CommitGraph({
     return (
       <path key={key}
         d={d}
-        fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
+        fill="none" stroke={edge.color} strokeWidth={3} strokeLinecap="round"
         strokeDasharray={dashArray} />
     )
   }, [])
@@ -762,7 +762,7 @@ export default function CommitGraph({
               return (
                 <line key={`conn-${commit.hash}`}
                   x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
-                  stroke={dimColor(commit.color)} strokeWidth={1}
+                  stroke={dimColor(commit.color)} strokeWidth={1.5}
                 />
               )
             })}
