@@ -76,7 +76,7 @@
   margin-bottom: -1px;
 }
 .ghp-tab:hover { color: #e6edf3; }
-.ghp-tab.active { color: #e6edf3; border-bottom-color: #58a6ff; font-weight: 600; }
+.ghp-tab.active { color: #e6edf3; border-bottom-color: var(--accent,#58a6ff); font-weight: 600; }
 
 .ghp-count {
   background: #21262d;
@@ -160,7 +160,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
 }
 .ghp-refs code { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
 

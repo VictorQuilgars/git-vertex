@@ -43,7 +43,7 @@
 }
 
 .ir-base code {
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -94,7 +94,7 @@
 
 .ir-row.drag-over {
   background: #1f6feb22;
-  border-top: 2px solid #58a6ff;
+  border-top: 2px solid var(--accent,#58a6ff);
 }
 
 .ir-drag-handle {
@@ -118,12 +118,12 @@
   min-width: 72px;
   flex-shrink: 0;
 }
-.ir-action-select:focus { border-color: #58a6ff; }
+.ir-action-select:focus { border-color: var(--accent,#58a6ff); }
 
 .ir-hash {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
   flex-shrink: 0;
 }
 

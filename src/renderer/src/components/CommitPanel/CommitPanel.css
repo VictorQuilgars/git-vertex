@@ -56,7 +56,7 @@
 .action-link {
   background: none;
   border: none;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
   font-size: 11px;
   cursor: pointer;
   padding: 0;
@@ -111,7 +111,7 @@
   width: 13px;
   height: 13px;
   flex-shrink: 0;
-  accent-color: #58a6ff;
+  accent-color: var(--accent,#58a6ff);
   cursor: pointer;
 }
 
@@ -167,7 +167,7 @@
 
 .unstage-btn {
   background: #1f6feb22;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
 }
 .unstage-btn:hover { background: #1f6feb44; }
 
@@ -203,7 +203,7 @@
   min-height: 72px;
   line-height: 1.5;
 }
-.commit-message-input:focus { border-color: #58a6ff; }
+.commit-message-input:focus { border-color: var(--accent,#58a6ff); }
 .commit-message-input::placeholder { color: #484f58; }
 
 .commit-form-footer {
@@ -222,7 +222,7 @@
   cursor: pointer;
   user-select: none;
 }
-.amend-label input { accent-color: #58a6ff; }
+.amend-label input { accent-color: var(--accent,#58a6ff); }
 .amend-label:hover { color: #c9d1d9; }
 
 .commit-btn {

@@ -44,7 +44,7 @@
 }
 .cfd-staged   { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
 .cfd-unstaged { background: rgba(255, 166, 87, 0.15); color: #ffa657; }
-.cfd-commit   { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
+.cfd-commit   { background: rgba(88, 166, 255, 0.15); color: var(--accent,#58a6ff); }
 
 .cfd-filepath {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -75,8 +75,8 @@
 }
 .cfd-toggle.active {
   background: rgba(88, 166, 255, 0.1);
-  color: #58a6ff;
-  border-color: #58a6ff;
+  color: var(--accent,#58a6ff);
+  border-color: var(--accent,#58a6ff);
 }
 
 .cfd-body {
@@ -123,7 +123,7 @@
   justify-content: space-between;
   padding: 4px 12px;
   background: #161b22;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
   font-size: 11px;
   font-style: italic;
   border-top: 1px solid #21262d;
@@ -149,7 +149,7 @@
   transition: 0.15s;
 }
 .cfd-hunk-select:hover { color: #c9d1d9; background: #21262d; border-color: #484f58; }
-.cfd-hunk-select.active { color: #58a6ff; border-color: #58a6ff; background: rgba(88,166,255,0.1); }
+.cfd-hunk-select.active { color: var(--accent,#58a6ff); border-color: var(--accent,#58a6ff); background: rgba(88,166,255,0.1); }
 .cfd-hunk-apply:hover { color: #3fb950; border-color: #3fb950; background: rgba(63,185,80,0.1); }
 
 .cfd-diff-table {

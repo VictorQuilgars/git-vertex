@@ -51,7 +51,7 @@
   box-sizing: border-box;
   font-family: inherit;
 }
-.dlg-input:focus { border-color: #58a6ff; }
+.dlg-input:focus { border-color: var(--accent,#58a6ff); }
 
 .dlg-actions {
   display: flex;

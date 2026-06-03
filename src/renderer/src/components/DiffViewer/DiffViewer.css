@@ -45,7 +45,7 @@
 .commit-hash-badge code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
 }
 
 .commit-meta { flex: 1; min-width: 0; }
@@ -128,7 +128,7 @@
   font-size: 10px;
   flex-shrink: 0;
 }
-.status-m { background: #1f6feb33; color: #58a6ff; }
+.status-m { background: #1f6feb33; color: var(--accent,#58a6ff); }
 .status-a { background: #2ea04333; color: #3fb950; }
 .status-d { background: #f8514933; color: #f85149; }
 .status-r { background: #8957e533; color: #d2a8ff; }
@@ -160,7 +160,7 @@
   width: 18px;
   height: 18px;
   border: 2px solid #30363d;
-  border-top-color: #58a6ff;
+  border-top-color: var(--accent,#58a6ff);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -191,7 +191,7 @@
 .hunk-header {
   padding: 4px 12px;
   background: #1f2d3d;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   border-bottom: 1px solid #30363d;

@@ -84,7 +84,7 @@
   margin-bottom: -1px;
 }
 .cm-tab:hover { color: #e6edf3; }
-.cm-tab.active { color: #e6edf3; border-bottom-color: #58a6ff; font-weight: 600; }
+.cm-tab.active { color: #e6edf3; border-bottom-color: var(--accent,#58a6ff); font-weight: 600; }
 
 /* ── Search ───────────────────────────────────── */
 .cm-search-row {
@@ -156,7 +156,7 @@
 .cm-repo-name {
   font-size: 13px;
   font-weight: 600;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -253,7 +253,7 @@
   outline: none;
   font-family: 'JetBrains Mono', monospace;
 }
-.cm-url-input:focus { border-color: #58a6ff; }
+.cm-url-input:focus { border-color: var(--accent,#58a6ff); }
 .cm-url-input::placeholder { color: #484f58; }
 
 .cm-url-btn {

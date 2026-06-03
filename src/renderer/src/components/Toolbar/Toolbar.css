@@ -25,7 +25,7 @@
   background: #1f6feb14;
   border: 1px solid #1f6feb35;
   border-radius: 20px;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
   font-size: 11px;
   font-weight: 700;
   flex-shrink: 0;
@@ -57,7 +57,7 @@
 }
 .tb-btn:active:not(:disabled) { transform: scale(0.97); }
 .tb-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.tb-btn.active { background: #1f6feb1a; color: #58a6ff; border-color: #1f6feb44; }
+.tb-btn.active { background: #1f6feb1a; color: var(--accent,#58a6ff); border-color: #1f6feb44; }
 .tb-btn.tb-icon-only { padding: 0 8px; }
 
 /* Green accent */
@@ -69,9 +69,9 @@
 
 /* Blue accent (PR) */
 .tb-accent-blue:hover:not(:disabled) {
-  color: #58a6ff;
-  border-color: #58a6ff44;
-  background: #58a6ff10;
+  color: var(--accent,#58a6ff);
+  border-color: var(--accent,#58a6ff)44;
+  background: var(--accent,#58a6ff)10;
 }
 
 /* Split button (Push) */
@@ -118,7 +118,7 @@
   flex-shrink: 0;
   transition: border-color 0.12s, width 0.2s;
 }
-.tb-search:focus-within { border-color: #58a6ff; color: #8b949e; width: 240px; }
+.tb-search:focus-within { border-color: var(--accent,#58a6ff); color: #8b949e; width: 240px; }
 .tb-search input { flex: 1; background: none; border: none; outline: none; color: #e6edf3; font-size: 12px; }
 .tb-search input::placeholder { color: #484f58; }
 .tb-clear { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 15px; padding: 0; line-height: 1; transition: color 0.1s; }
@@ -136,7 +136,7 @@
   transition: all 0.12s;
 }
 .tb-ext-search:hover { border-color: #30363d; color: #8b949e; }
-.tb-ext-search.active { border-color: #1f6feb44; color: #58a6ff; background: #1f6feb1a; }
+.tb-ext-search.active { border-color: #1f6feb44; color: var(--accent,#58a6ff); background: #1f6feb1a; }
 
 /* Fetch time */
 .tb-fetch-time {

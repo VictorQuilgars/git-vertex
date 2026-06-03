@@ -1,10 +1,38 @@
 import React, { useState, useEffect } from 'react'
 import './SettingsModal.css'
 import { useLang } from '../../i18n/LanguageContext'
+import { useSettings } from '../../contexts/SettingsContext'
 import type { Lang } from '../../i18n/translations'
 
-type Section = 'git' | 'github' | 'ai' | 'notifications' | 'about'
+type Section = 'git' | 'appearance' | 'graph' | 'github' | 'ai' | 'notifications' | 'about'
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
+
+// GitKraken-style grouped navigation with icons.
+const NAV_GROUPS: { group: string; items: { id: Section; icon: string; label: string }[] }[] = [
+  { group: 'Général', items: [
+    { id: 'git',        icon: '👤', label: 'Identité & profils' },
+    { id: 'appearance', icon: '🎨', label: 'Apparence' },
+    { id: 'graph',      icon: '🌳', label: 'Graphe de commits' },
+  ]},
+  { group: 'Intégrations', items: [
+    { id: 'github', icon: '🐙', label: 'GitHub' },
+    { id: 'ai',     icon: '✨', label: 'Assistant IA' },
+  ]},
+  { group: 'Système', items: [
+    { id: 'notifications', icon: '⚙️', label: 'Comportement' },
+    { id: 'about',         icon: 'ℹ️', label: 'À propos' },
+  ]},
+]
+
+const ACCENT_PRESETS = [
+  { name: 'Bleu',    value: '#58a6ff' },
+  { name: 'Violet',  value: '#bc8cff' },
+  { name: 'Vert',    value: '#3fb950' },
+  { name: 'Orange',  value: '#ffa657' },
+  { name: 'Rouge',   value: '#f85149' },
+  { name: 'Rose',    value: '#f778ba' },
+  { name: 'Cyan',    value: '#56d4dd' },
+]
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
   { id: 'anthropic', label: 'Anthropic (Claude)', defaultModel: 'claude-haiku-4-5-20251001', color: '#d4a27f' },
@@ -70,6 +98,7 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ onClose, showToast }: SettingsModalProps) {
   const { t, lang, setLang } = useLang()
+  const { get, getBool, set } = useSettings()
   const [section, setSection] = useState<Section>('git')
 
   // Git config
@@ -290,22 +319,24 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
       </div>
 
       <div className="stg-body">
-        {/* Left nav */}
+        {/* Left nav — grouped, GitKraken style */}
         <nav className="stg-nav">
-            {(['git', 'github', 'ai', 'notifications', 'about'] as Section[]).map(s => (
-              <button
-                key={s}
-                className={`stg-nav-item ${section === s ? 'active' : ''}`}
-                onClick={() => setSection(s)}
-              >
-                {s === 'git' && t('settings.nav.git')}
-                {s === 'github' && t('settings.nav.github')}
-                {s === 'ai' && t('settings.nav.ai')}
-                {s === 'notifications' && t('settings.nav.notifications')}
-                {s === 'about' && t('settings.nav.about')}
-              </button>
-            ))}
-          </nav>
+          {NAV_GROUPS.map(grp => (
+            <div key={grp.group} className="stg-nav-group">
+              <div className="stg-nav-group-label">{grp.group}</div>
+              {grp.items.map(item => (
+                <button
+                  key={item.id}
+                  className={`stg-nav-item ${section === item.id ? 'active' : ''}`}
+                  onClick={() => setSection(item.id)}
+                >
+                  <span className="stg-nav-icon">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
 
           {/* Content */}
           <div className="stg-content">
@@ -379,6 +410,77 @@ export default function SettingsModal({ onClose, showToast }: SettingsModalProps
                     }} />
                   <span>Signer les commits (GPG) <span style={{ color: '#8b949e', fontSize: 12 }}>(ajoute -S à chaque commit ; nécessite une clé GPG configurée)</span></span>
                 </label>
+              </div>
+            )}
+
+            {/* ── Apparence ── */}
+            {section === 'appearance' && (
+              <div className="stg-section">
+                <h2 className="stg-section-title">Apparence</h2>
+                <p className="stg-desc">Personnalisez les couleurs et l'affichage de l'application.</p>
+
+                <h2 className="stg-section-title" style={{ marginTop: 8 }}>Couleur d'accent</h2>
+                <p className="stg-desc">Couleur principale utilisée pour les sélections, boutons et liens.</p>
+                <div className="stg-swatches">
+                  {ACCENT_PRESETS.map(c => {
+                    const active = get('accentColor', '#58a6ff').toLowerCase() === c.value.toLowerCase()
+                    return (
+                      <button
+                        key={c.value}
+                        className={`stg-swatch ${active ? 'active' : ''}`}
+                        style={{ background: c.value }}
+                        title={c.name}
+                        onClick={() => set('accentColor', c.value)}
+                      >
+                        {active && <span className="stg-swatch-check">✓</span>}
+                      </button>
+                    )
+                  })}
+                  <label className="stg-swatch-custom" title="Couleur personnalisée">
+                    <input
+                      type="color"
+                      value={get('accentColor', '#58a6ff')}
+                      onChange={e => set('accentColor', e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <h2 className="stg-section-title" style={{ marginTop: 20 }}>Format des dates</h2>
+                <p className="stg-desc">Comment afficher les dates dans le graphe de commits.</p>
+                <div className="stg-segment">
+                  <button
+                    className={`stg-segment-btn ${get('dateFormat', 'relative') === 'relative' ? 'active' : ''}`}
+                    onClick={() => set('dateFormat', 'relative')}
+                  >Relatif <span className="stg-segment-hint">(il y a 3 j)</span></button>
+                  <button
+                    className={`stg-segment-btn ${get('dateFormat', 'relative') === 'absolute' ? 'active' : ''}`}
+                    onClick={() => set('dateFormat', 'absolute')}
+                  >Absolu <span className="stg-segment-hint">(12 sept. 2024)</span></button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Graphe de commits ── */}
+            {section === 'graph' && (
+              <div className="stg-section">
+                <h2 className="stg-section-title">Graphe de commits</h2>
+                <p className="stg-desc">Choisissez les colonnes et éléments affichés dans le graphe.</p>
+
+                {([
+                  ['graphShowAvatars', 'Avatars des auteurs', 'Affiche l\'image Gravatar (ou les initiales) dans la colonne auteur'],
+                  ['graphShowAuthor',  'Colonne Auteur',       'Affiche le nom de l\'auteur de chaque commit'],
+                  ['graphShowDate',    'Colonne Date',         'Affiche la date de chaque commit'],
+                  ['graphShowSha',     'Colonne SHA',          'Affiche le hash court de chaque commit'],
+                ] as [string, string, string][]).map(([key, label, desc]) => (
+                  <label key={key} className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={getBool(key, true)}
+                      onChange={e => set(key, String(e.target.checked))}
+                    />
+                    <span>{label} <span style={{ color: '#8b949e', fontSize: 12 }}>— {desc}</span></span>
+                  </label>
+                ))}
               </div>
             )}
 

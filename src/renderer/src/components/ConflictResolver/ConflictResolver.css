@@ -75,7 +75,7 @@
 }
 .mt-btn-all-a {
   border-color: #1f6feb;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
 }
 .mt-btn-all-a:hover {
   background: rgba(31, 111, 235, 0.15);

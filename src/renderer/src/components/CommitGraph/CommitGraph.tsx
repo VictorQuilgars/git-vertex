@@ -5,6 +5,7 @@ import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
 import { gravatarUrl } from '../../utils/gravatar'
+import { useSettings } from '../../contexts/SettingsContext'
 import './CommitGraph.css'
 
 const ROW_HEIGHT  = 50
@@ -84,10 +85,26 @@ function AuthorAvatar({ email, name }: { email: string; name: string }) {
     />
   )
 }
-function fmtDate(s: string) {
+function fmtDate(s: string, format: string = 'absolute') {
   try {
-    return new Date(s).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+    const d = new Date(s)
+    if (format === 'relative') return fmtRelative(d)
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
   } catch { return s }
+}
+// Relative date like GitKraken ("il y a 3 j", "il y a 2 mois").
+function fmtRelative(d: Date): string {
+  const sec = Math.floor((Date.now() - d.getTime()) / 1000)
+  if (sec < 60) return "à l'instant"
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `il y a ${min} min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `il y a ${h} h`
+  const j = Math.floor(h / 24)
+  if (j < 30) return `il y a ${j} j`
+  const mo = Math.floor(j / 30)
+  if (mo < 12) return `il y a ${mo} mois`
+  return `il y a ${Math.floor(mo / 12)} an${mo >= 24 ? 's' : ''}`
 }
 
 interface ProcessedRef {
@@ -264,6 +281,12 @@ export default function CommitGraph({
   conflictMode = null,
 }: CommitGraphProps) {
   const { t } = useLang()
+  const { getBool, get } = useSettings()
+  const showAvatars = getBool('graphShowAvatars', true)
+  const showAuthor = getBool('graphShowAuthor', true)
+  const showDate = getBool('graphShowDate', true)
+  const showSha = getBool('graphShowSha', true)
+  const dateFormat = get('dateFormat', 'relative')
   const bodyRef = useRef<HTMLDivElement>(null)
   const layout = useMemo(() => computeGraphLayout(commits), [commits])
   const [ctx, setCtx] = useState<CtxState | null>(null)
@@ -512,12 +535,18 @@ export default function CommitGraph({
         <div className="cg-col-handle" onMouseDown={startResizeRefs} />
         <div className="cg-h-graph" style={{ width: svgW }}>GRAPH</div>
         <div className="cg-h-msg">COMMIT MESSAGE</div>
-        <div className="cg-col-handle" onMouseDown={startResizeAuthor} />
-        <div className="cg-h-author" style={{ width: authorColW }}>AUTHOR</div>
-        <div className="cg-col-handle" onMouseDown={startResizeDate} />
-        <div className="cg-h-date" style={{ width: dateColW }}>DATE</div>
-        <div className="cg-col-handle" onMouseDown={startResizeSha} />
-        <div className="cg-h-sha" style={{ width: shaColW }}>SHA</div>
+        {showAuthor && <>
+          <div className="cg-col-handle" onMouseDown={startResizeAuthor} />
+          <div className="cg-h-author" style={{ width: authorColW }}>AUTHOR</div>
+        </>}
+        {showDate && <>
+          <div className="cg-col-handle" onMouseDown={startResizeDate} />
+          <div className="cg-h-date" style={{ width: dateColW }}>DATE</div>
+        </>}
+        {showSha && <>
+          <div className="cg-col-handle" onMouseDown={startResizeSha} />
+          <div className="cg-h-sha" style={{ width: shaColW }}>SHA</div>
+        </>}
       </div>
 
       {/* ── Body ── */}
@@ -694,18 +723,22 @@ export default function CommitGraph({
                 </div>
 
                 {/* Author */}
-                {!isWip && (
+                {showAuthor && !isWip && (
                   <div className="cg-col-author" style={{ width: authorColW }}>
-                    <AuthorAvatar email={commit.authorEmail} name={commit.author} />
+                    {showAvatars && <AuthorAvatar email={commit.authorEmail} name={commit.author} />}
                     <span className="cg-author-name">{commit.author}</span>
                   </div>
                 )}
-                {isWip && <div className="cg-col-author" style={{ width: authorColW }} />}
+                {showAuthor && isWip && <div className="cg-col-author" style={{ width: authorColW }} />}
 
-                <div className="cg-col-date" style={{ width: dateColW }}>{!isWip ? fmtDate(commit.date) : ''}</div>
-                <div className="cg-col-sha" style={{ width: shaColW }}>
-                  {!isWip && <code>{commit.shortHash}</code>}
-                </div>
+                {showDate && (
+                  <div className="cg-col-date" style={{ width: dateColW }}>{!isWip ? fmtDate(commit.date, dateFormat) : ''}</div>
+                )}
+                {showSha && (
+                  <div className="cg-col-sha" style={{ width: shaColW }}>
+                    {!isWip && <code>{commit.shortHash}</code>}
+                  </div>
+                )}
               </div>
             )
           })}

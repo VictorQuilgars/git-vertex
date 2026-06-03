@@ -44,7 +44,7 @@
 .toast-info {
   background: #0d1f38;
   border-color: #1f6feb;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
 }
 
 .toast-icon {

@@ -85,7 +85,7 @@
   outline: none;
   flex: 1;
 }
-.pm-select:focus { border-color: #58a6ff; }
+.pm-select:focus { border-color: var(--accent,#58a6ff); }
 
 .pm-input-wrap {
   flex: 1;
@@ -103,7 +103,7 @@
   outline: none;
   box-sizing: border-box;
 }
-.pm-input:focus { border-color: #58a6ff; }
+.pm-input:focus { border-color: var(--accent,#58a6ff); }
 .pm-input::placeholder { color: #484f58; }
 
 .pm-checkbox-row {
@@ -115,10 +115,10 @@
   cursor: pointer;
   padding-left: 2px;
 }
-.pm-checkbox-row input[type="checkbox"] { accent-color: #58a6ff; cursor: pointer; }
+.pm-checkbox-row input[type="checkbox"] { accent-color: var(--accent,#58a6ff); cursor: pointer; }
 .pm-checkbox-row code {
   font-size: 11px;
-  color: #58a6ff;
+  color: var(--accent,#58a6ff);
   background: #1c2128;
   padding: 1px 4px;
   border-radius: 3px;
