@@ -187,14 +187,20 @@ function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }: {
   const [src, setSrc] = useState<string | null>(aiLogo)
   useEffect(() => {
     if (aiLogo) { setSrc(aiLogo); return }
-    if (!email) return
-    ;(window.gitAPI as any).avatarResolve(email, sha).then(setSrc).catch(() => {})
+    if (!email) { console.log('[avatar] no email for', name); return }
+    console.log('[avatar] resolving', email, sha ? `sha=${sha}` : '(no sha)')
+    ;(window.gitAPI as any).avatarResolve(email, sha)
+      .then((url: string | null) => {
+        console.log('[avatar] resolved', email, '→', url)
+        setSrc(url)
+      })
+      .catch((err: unknown) => { console.warn('[avatar] resolve error', email, err) })
   }, [email, sha, aiLogo])
 
   const base: React.CSSProperties = { width: size, height: size, borderRadius: radius, flexShrink: 0 }
   if (src) {
     return <img src={src} alt={name} style={{ ...base, objectFit: 'cover', display: 'block' }}
-      onError={() => setSrc(null)} />
+      onError={() => { console.warn('[avatar] img load error, falling back to initials. src=', src); setSrc(null) }} />
   }
   return (
     <div style={{ ...base, background: getAvatarColor(email), display: 'flex',

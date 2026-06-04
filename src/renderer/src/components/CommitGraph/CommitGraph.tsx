@@ -345,6 +345,7 @@ export default function CommitGraph({
   const [drop, setDrop] = useState<DropState | null>(null)
   const [refExpand, setRefExpand] = useState<{ row: number; rect: DOMRect } | null>(null)
   const refExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hoverDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [refsColW,   startResizeRefs]   = useColResize('cg-refs-w',   164, 80)
   const [authorColW, startResizeAuthor] = useColResize('cg-author-w', 140, 80)
@@ -619,6 +620,20 @@ export default function CommitGraph({
               )
             })}
 
+            {/* Connector lines (chip → node): rendered before edges so branch lines appear on top */}
+            {displayLayout.map(commit => {
+              if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
+              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
+              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              if (cx - NODE_RADIUS <= 0) return null
+              return (
+                <line key={`conn-${commit.hash}`}
+                  x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
+                  stroke={dimColor(commit.color)} strokeWidth={1.5}
+                />
+              )
+            })}
+
             {/* Edges */}
             {displayLayout.flatMap(commit => commit.edges.map(edge => renderEdge(commit, edge)))}
 
@@ -700,19 +715,6 @@ export default function CommitGraph({
               )
             })}
 
-            {/* Connector lines drawn last (on top of nodes) so they don't blend with edge colors */}
-            {displayLayout.map(commit => {
-              if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
-              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
-              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
-              if (cx - NODE_RADIUS <= 0) return null
-              return (
-                <line key={`conn-${commit.hash}`}
-                  x1={0} y1={cy} x2={cx - NODE_RADIUS} y2={cy}
-                  stroke={dimColor(commit.color)} strokeWidth={1.5}
-                />
-              )
-            })}
           </svg>
 
           {/* Rows */}
@@ -752,16 +754,17 @@ export default function CommitGraph({
                       <div
                         className="cg-refs-chips"
                         onMouseEnter={e => {
-                          // Highlight this branch/tag's lane while hovered
-                          setHoverHash(commit.hash)
+                          // Highlight after 2s delay — avoids accidental triggers while scrolling
+                          if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
+                          hoverDelayTimer.current = setTimeout(() => setHoverHash(commit.hash), 1000)
                           if (stackCount < 1) return
                           if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
-                          // Only capture rect on first open — badge may have disappeared on re-entry
                           if (refExpand?.row !== commit.row) {
                             setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
                           }
                         }}
                         onMouseLeave={() => {
+                          if (hoverDelayTimer.current) { clearTimeout(hoverDelayTimer.current); hoverDelayTimer.current = null }
                           setHoverHash(null)
                           refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
                         }}

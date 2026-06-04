@@ -82,11 +82,15 @@
 .cg-row:hover { background: #161b2299; }
 .cg-selected  { background: #1a3a5c !important; }
 /* Dimming applies only to the commit info columns (message, author, date, sha) —
-   the branch/tag chips, color bar and graph nodes stay at full opacity. */
+   the branch/tag chips, color bar and graph nodes stay at full opacity.
+   The transition on the base elements lets the opacity animate in both directions. */
+.cg-col-msg, .cg-col-author, .cg-col-date, .cg-col-sha {
+  transition: opacity 0.35s ease;
+}
 .cg-dimmed .cg-col-msg,
 .cg-dimmed .cg-col-author,
 .cg-dimmed .cg-col-date,
-.cg-dimmed .cg-col-sha { opacity: 0.3; }
+.cg-dimmed .cg-col-sha { opacity: 0.25; }
 .cg-drop-target {
   background: #1f6feb33 !important;
   box-shadow: inset 0 0 0 1px var(--accent,#58a6ff);
