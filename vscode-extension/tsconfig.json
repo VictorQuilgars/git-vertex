@@ -10,5 +10,6 @@
     "sourceMap": true
   },
   "include": ["src"],
-  "exclude": ["node_modules", ".vscode-test"]
+  "//": "src/webview is bundled by esbuild (build-webview.js), not tsc — it imports the desktop React sources which live outside rootDir.",
+  "exclude": ["node_modules", ".vscode-test", "src/webview"]
 }

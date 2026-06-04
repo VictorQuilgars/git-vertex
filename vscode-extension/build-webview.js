@@ -24,19 +24,23 @@ async function build() {
   })
   console.log('Extension host bundled → out/extension.js')
 
-  // ── Webview (browser) ─────────────────────────────────────────
+  // ── Webview (browser) — reuses the real desktop React components ──
+  // Entry is app.tsx; esbuild transpiles JSX (React in scope) and extracts all
+  // imported CSS (App.css, component CSS, hljs theme) into media/main.css.
   await esbuild.build({
-    entryPoints: [path.join(__dirname, 'src', 'webview', 'main.ts')],
+    entryPoints: [path.join(__dirname, 'src', 'webview', 'app.tsx')],
     bundle: true,
     outfile: path.join(__dirname, 'media', 'main.js'),
     platform: 'browser',
     format: 'iife',
     target: 'es2020',
+    jsx: 'transform',
     sourcemap: true,
     minify: false,
+    loader: { '.ttf': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.png': 'dataurl', '.svg': 'dataurl' },
     define: { 'process.env.NODE_ENV': '"production"' },
   })
-  console.log('Webview bundled → media/main.js')
+  console.log('Webview bundled → media/main.js (+ main.css)')
 }
 
 build().catch(err => { console.error(err); process.exit(1) })

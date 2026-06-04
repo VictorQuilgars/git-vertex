@@ -99,7 +99,7 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBar = new GitVertexStatusBar('gitVertex.open')
 
   // Create the WebviewViewProvider for the bottom panel
-  const provider = new GitVertexViewProvider(context.extensionUri)
+  const provider = new GitVertexViewProvider(context.extensionUri, context.globalState)
 
   // Register the provider (panel view)
   context.subscriptions.push(

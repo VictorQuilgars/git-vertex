@@ -337,4 +337,236 @@ export class GitService {
       return { commits: [] }
     }
   }
+
+  // ── Commit details ─────────────────────────────────────────────
+
+  async getCommitBody(hash: string): Promise<{ body: string }> {
+    try {
+      const body = await this.git.raw(['log', '-n', '1', '--pretty=format:%b', hash])
+      return { body: body.replace(/\n+$/, '') }
+    } catch {
+      return { body: '' }
+    }
+  }
+
+  async getLastCommitMessage(): Promise<{ message: string }> {
+    try {
+      const message = await this.git.raw(['log', '-n', '1', '--pretty=format:%B', 'HEAD'])
+      return { message: message.replace(/\n+$/, '') }
+    } catch {
+      return { message: '' }
+    }
+  }
+
+  async getMergeMessage(): Promise<{ message: string }> {
+    try {
+      const fs = require('fs') as typeof import('fs')
+      const path = require('path') as typeof import('path')
+      const p = path.join(this.repoPath, '.git', 'MERGE_MSG')
+      if (fs.existsSync(p)) {
+        const raw = fs.readFileSync(p, 'utf8')
+        // Strip comment lines git adds
+        const message = raw.split('\n').filter(l => !l.startsWith('#')).join('\n').trim()
+        return { message }
+      }
+    } catch { /* ignore */ }
+    return { message: '' }
+  }
+
+  async amendMessage(message: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['commit', '--amend', '-m', message])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async getFileHistory(filepath: string): Promise<{ commits: { hash: string; shortHash: string; message: string; author: string; date: string }[] }> {
+    try {
+      const out = await this.git.raw([
+        'log', '--follow', '--max-count=80',
+        '--pretty=format:%H|%s|%an|%ai', '--', filepath,
+      ])
+      const commits = out.trim().split('\n').filter(Boolean).map(line => {
+        const [hash, message, author, date] = line.split('|')
+        return { hash, shortHash: hash.slice(0, 7), message: message || '', author: author || '', date: date || '' }
+      })
+      return { commits }
+    } catch {
+      return { commits: [] }
+    }
+  }
+
+  async getBlame(commitHash: string, filepath: string): Promise<{ lines: { hash: string; shortHash: string; author: string; date: string; lineNum: number; content: string }[] }> {
+    try {
+      const out = await this.git.raw(['blame', '--line-porcelain', commitHash, '--', filepath])
+      const lines: { hash: string; shortHash: string; author: string; date: string; lineNum: number; content: string }[] = []
+      const raw = out.split('\n')
+      let cur: any = {}
+      let lineNum = 0
+      for (let i = 0; i < raw.length; i++) {
+        const line = raw[i]
+        const headerMatch = line.match(/^([0-9a-f]{40})\s+\d+\s+(\d+)/)
+        if (headerMatch) {
+          cur = { hash: headerMatch[1], lineNum: parseInt(headerMatch[2], 10) }
+        } else if (line.startsWith('author ')) {
+          cur.author = line.slice(7)
+        } else if (line.startsWith('author-time ')) {
+          cur.date = new Date(parseInt(line.slice(12), 10) * 1000).toLocaleDateString()
+        } else if (line.startsWith('\t')) {
+          lineNum++
+          lines.push({
+            hash: cur.hash ?? '',
+            shortHash: (cur.hash ?? '').slice(0, 7),
+            author: cur.author ?? '',
+            date: cur.date ?? '',
+            lineNum: cur.lineNum ?? lineNum,
+            content: line.slice(1),
+          })
+        }
+      }
+      return { lines }
+    } catch {
+      return { lines: [] }
+    }
+  }
+
+  // ── Stashes / tags ─────────────────────────────────────────────
+
+  async createStash(message?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const args = ['stash', 'push']
+      if (message) args.push('-m', message)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async getStashes(): Promise<{ stashes: { index: number; message: string }[] }> {
+    try {
+      const out = await this.git.raw(['stash', 'list', '--pretty=format:%gd|%s'])
+      const stashes = out.trim().split('\n').filter(Boolean).map((line, i) => {
+        const [, message] = line.split('|')
+        return { index: i, message: message || `stash@{${i}}` }
+      })
+      return { stashes }
+    } catch {
+      return { stashes: [] }
+    }
+  }
+
+  async getTags(): Promise<{ tags: { name: string; hash: string }[] }> {
+    try {
+      const out = await this.git.raw(['tag', '--format=%(refname:short)|%(objectname)'])
+      const tags = out.trim().split('\n').filter(Boolean).map(line => {
+        const [name, hash] = line.split('|')
+        return { name, hash: hash || '' }
+      })
+      return { tags }
+    } catch {
+      return { tags: [] }
+    }
+  }
+
+  // ── Conflict / tracking state ──────────────────────────────────
+
+  async getConflictedFiles(): Promise<{ files: string[] }> {
+    try {
+      const out = await this.git.raw(['diff', '--name-only', '--diff-filter=U'])
+      return { files: out.trim().split('\n').filter(Boolean) }
+    } catch {
+      return { files: [] }
+    }
+  }
+
+  async getConflictMode(): Promise<{ mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null }> {
+    try {
+      const fs = require('fs') as typeof import('fs')
+      const path = require('path') as typeof import('path')
+      const g = path.join(this.repoPath, '.git')
+      if (fs.existsSync(path.join(g, 'MERGE_HEAD'))) return { mode: 'merge' }
+      if (fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))) return { mode: 'rebase' }
+      if (fs.existsSync(path.join(g, 'CHERRY_PICK_HEAD'))) return { mode: 'cherry-pick' }
+      if (fs.existsSync(path.join(g, 'REVERT_HEAD'))) return { mode: 'revert' }
+    } catch { /* ignore */ }
+    return { mode: null }
+  }
+
+  async getTracking(): Promise<{ branch: string; upstream: string; ahead: number; behind: number }> {
+    try {
+      const branch = (await this.git.raw(['rev-parse', '--abbrev-ref', 'HEAD'])).trim()
+      let upstream = ''
+      try { upstream = (await this.git.raw(['rev-parse', '--abbrev-ref', '@{u}'])).trim() } catch { /* none */ }
+      let ahead = 0, behind = 0
+      if (upstream) {
+        const raw = (await this.git.raw(['rev-list', '--left-right', '--count', '@{u}...HEAD'])).trim()
+        const [b, a] = raw.split('\t').map(Number)
+        behind = b || 0; ahead = a || 0
+      }
+      return { branch, upstream, ahead, behind }
+    } catch {
+      return { branch: '', upstream: '', ahead: 0, behind: 0 }
+    }
+  }
+
+  // ── Commit operations ──────────────────────────────────────────
+
+  async cherryPick(hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash); if (bad) return { success: false, error: bad }
+    try { await this.git.raw(['cherry-pick', hash]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async revert(hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash); if (bad) return { success: false, error: bad }
+    try { await this.git.raw(['revert', '--no-edit', hash]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async reset(hash: string, mode: 'soft' | 'mixed' | 'hard'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash); if (bad) return { success: false, error: bad }
+    try { await this.git.raw(['reset', `--${mode}`, hash]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async createTag(name: string, hash?: string, message?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const args = ['tag']
+      if (message) args.push('-a', name, '-m', message)
+      else args.push(name)
+      if (hash) args.push(hash)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async deleteTag(name: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['tag', '-d', name]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async createBranchAt(name: string, hash: string, checkout: boolean): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (checkout) await this.git.raw(['checkout', '-b', name, hash])
+      else await this.git.raw(['branch', name, hash])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  // ── Avatar resolution (no network: deterministic GitHub avatars) ──
+
+  avatarResolve(email: string, _sha?: string): string {
+    const key = (email || '').trim().toLowerCase()
+    // GitHub noreply emails encode the user id → real avatar
+    const noreply = key.match(/^(?:(\d+)\+)?([^@]+)@users\.noreply\.github\.com$/)
+    if (noreply && noreply[1]) {
+      return `https://avatars.githubusercontent.com/u/${noreply[1]}?v=4`
+    }
+    // Fallback: GitHub-style colorful identicon (no Gravatar B/W default)
+    const localPart = key.split('@')[0] || key
+    return `https://github.com/identicons/${encodeURIComponent(localPart)}.png`
+  }
 }

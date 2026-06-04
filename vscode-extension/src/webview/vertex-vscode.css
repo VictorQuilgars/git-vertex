@@ -1,0 +1,48 @@
+/* vertex-vscode.css — webview-only tweaks + Git Vertex brand header.
+   Keeps the desktop look but adapts the shell to the VS Code panel. */
+
+.gv-app {
+  height: 100%;
+}
+
+/* Brand header — makes the panel unmistakably "Git Vertex desktop". */
+.gv-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  font-size: 12px;
+  user-select: none;
+}
+.gv-brand-logo { flex-shrink: 0; }
+.gv-brand-name {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  background: linear-gradient(90deg, #3fb950, #58a6ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.gv-brand-sep { color: #30363d; }
+.gv-brand-repo { color: #8b949e; font-weight: 500; }
+.gv-brand-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 1px 9px;
+  border-radius: 20px;
+  background: #1f6feb22;
+  border: 1px solid #1f6feb44;
+  color: #58a6ff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* The desktop App.css sets `.app { height: 100vh }`. In the panel webview the
+   available height is the viewport, so 100vh works, but force overflow hidden. */
+.gv-app.app { overflow: hidden; }
