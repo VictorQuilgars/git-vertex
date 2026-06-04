@@ -97,12 +97,10 @@ export default function CompactToolbar(p: Props) {
 
       <span className="gvt-spring" />
 
-      {/* Sync actions — Fetch is a labelled button so it's unmistakable */}
-      <button className="gvt-fetch" title="Fetch" onClick={p.onFetch} disabled={p.loading}>
-        <svg className={p.loading ? 'gvt-spin' : ''} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-        <span>Fetch</span>
-        {p.lastFetch && <span className="gvt-fetch-time">{relTime(p.lastFetch)}</span>}
-      </button>
+      {/* Sync actions — Fetch / Pull / Push share the same icon-button style */}
+      <IconBtn title={p.lastFetch ? `Fetch · ${relTime(p.lastFetch)}` : 'Fetch'} onClick={p.onFetch} disabled={p.loading}>
+        <svg className={p.loading ? 'gvt-spin' : ''} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+      </IconBtn>
       <IconBtn title="Pull" onClick={p.onPull} disabled={p.loading}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/><polyline points="3 21 21 21"/></svg>
       </IconBtn>
