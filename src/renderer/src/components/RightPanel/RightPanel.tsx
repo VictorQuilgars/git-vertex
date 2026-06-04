@@ -392,6 +392,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   }, [commit.hash])
 
   const parentShort = commit.parents?.[0]?.slice(0, 7) ?? null
+  const isHeadCommit = commit.refs.some(r => r.includes('HEAD'))
 
   // Parse co-authors from body (name + email)
   const coAuthors = body
@@ -431,14 +432,14 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
       <div className="cd-scroll">
         {/* Zone 1 — commit message (dark) */}
         <div
-          className={`cd-message-block${amendEditing ? ' cd-message-block--editing' : ''}`}
+          className={`cd-message-block${amendEditing ? ' cd-message-block--editing' : ''}${!amendEditing && isHeadCommit ? ' cd-message-block--amendable' : ''}`}
           style={amendEditing ? undefined : { height: msgHeight, minHeight: MIN_MSG_H, maxHeight: MAX_MSG_H }}
-          onClick={!amendEditing ? () => {
+          onClick={!amendEditing && isHeadCommit ? () => {
             const full = commit.message + (body ? '\n\n' + body : '')
             setAmendMsg(full)
             setAmendEditing(true)
           } : undefined}
-          title={!amendEditing ? t('panel.clickToAmend') : undefined}
+          title={!amendEditing && isHeadCommit ? t('panel.clickToAmend') : undefined}
         >
           {amendEditing ? (
             <textarea

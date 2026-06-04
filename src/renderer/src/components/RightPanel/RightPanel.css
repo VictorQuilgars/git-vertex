@@ -124,10 +124,12 @@
   background: #0d1117;
   overflow-y: auto;
   flex-shrink: 0;
-  cursor: text;
   transition: background 0.1s;
 }
-.cd-message-block:hover { background: #111820; }
+.cd-message-block--amendable {
+  cursor: text;
+}
+.cd-message-block--amendable:hover { background: #111820; }
 .cd-message-block--editing {
   padding: 10px;
   cursor: default;
