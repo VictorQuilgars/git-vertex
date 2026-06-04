@@ -1,16 +1,16 @@
 import { CommitNode, GraphEdge } from '../../types'
 
 export const LANE_COLORS = [
-  '#00bfff', // cyan-blue
-  '#ff6b6b', // red
-  '#51cf66', // green
-  '#ffd43b', // yellow
-  '#cc5de8', // purple
-  '#ff922b', // orange
-  '#20c997', // teal
-  '#f06595', // pink
-  '#74c0fc', // light blue
-  '#a9e34b', // lime
+  '#2dd4bf', // teal
+  '#4d9de0', // blue
+  '#9b59b6', // purple
+  '#e879f9', // fuchsia
+  '#22d3ee', // cyan
+  '#818cf8', // indigo
+  '#a78bfa', // lavender
+  '#34d399', // emerald
+  '#60a5fa', // cornflower
+  '#f472b6', // pink
 ]
 
 export interface LayoutCommit extends CommitNode {
@@ -18,176 +18,177 @@ export interface LayoutCommit extends CommitNode {
   color: string
   edges: GraphEdge[]
   row: number
+  ownerTip: string  // hash of the tip commit that owns this commit's line
 }
 
 /**
- * Graph layout algorithm:
- * - Assigns each commit to a "lane" (column)
- * - Recycles lanes when branches merge
- * - Draws edges between parent/child commits
+ * Graph layout — matches GitKraken's lane disposition.
+ *
+ * Two ideas drive it:
+ *
+ * 1. OWNERSHIP. Every commit belongs to exactly one "line" (a branch's
+ *    first-parent chain). When several lines reach the same commit, the commit
+ *    stays in the line whose tip is *topmost* (highest in the list) — that line
+ *    keeps its lane and the others converge into it. This is why, e.g.,
+ *    `v1.0.0` stays on main's lane (main's tip is above hotfix's) while the
+ *    common base commits stay on the develop/HEAD trunk (its tip is at the very
+ *    top), rather than on whichever line happened to claim them first.
+ *
+ * 2. POSITIONAL LANES. A line is born either at its ref tip or, for a merged-in
+ *    branch, at the merge commit that introduces it (one row above its tip),
+ *    and is allocated the leftmost free lane at that moment. It frees its lane
+ *    where it merges out. This birth-at-merge timing is what places, e.g.,
+ *    hotfix (introduced by its merge) to the *left* of main (a plain tip below
+ *    it).
+ *
+ * Edges are emitted one per (commit → parent) relationship; the renderer draws
+ * multi-row elbows (fork = elbow at the bottom/base, merge = elbow at the top).
  */
 export function computeGraphLayout(commits: CommitNode[]): LayoutCommit[] {
   if (!commits.length) return []
 
-  // Map hash -> index for fast lookup
-  const hashToIndex = new Map<string, number>()
-  commits.forEach((c, i) => hashToIndex.set(c.hash, i))
-
-  // lanes[i] = hash of the commit currently "occupying" lane i, or null
-  const lanes: (string | null)[] = []
-  const result: LayoutCommit[] = []
-
-  const getFreeColor = (usedLanes: (string | null)[]): string => {
-    const usedCount = usedLanes.filter(Boolean).length
-    return LANE_COLORS[usedCount % LANE_COLORS.length]
+  const idx = new Map<string, number>()
+  commits.forEach((c, i) => idx.set(c.hash, i))
+  const has = (h?: string): h is string => h !== undefined && idx.has(h)
+  const firstParent = (h: string): string | null => {
+    const c = commits[idx.get(h)!]
+    return c && has(c.parents[0]) ? c.parents[0] : null
   }
 
-  const findOrCreateLane = (hash: string): number => {
-    const existing = lanes.indexOf(hash)
-    if (existing !== -1) return existing
-    // Find a free slot
-    const free = lanes.indexOf(null)
-    if (free !== -1) { lanes[free] = hash; return free }
-    // Add new lane
-    lanes.push(hash)
-    return lanes.length - 1
+  // ── 1) Ownership: walk first-parent chains from highest-priority tip down ──
+  // A "tip" is any commit that is no commit's first parent (a chain head).
+  const isFpChild = new Set<string>()
+  for (const c of commits) if (has(c.parents[0])) isFpChild.add(c.parents[0])
+
+  // main/master is the backbone: it claims its whole first-parent chain first
+  // (including the shared base commits down to the root), so it stays a single
+  // straight line and every other branch — even HEAD — forks off it. After
+  // that, tips are taken topmost-first.
+  //
+  // A tip is on the backbone if the first branch ref met while walking down its
+  // first-parent chain is main/master. Walking the chain (rather than checking
+  // only the tip's own refs) lets the virtual WIP node — which sits on top of
+  // HEAD with no ref of its own — inherit main's backbone status.
+  const refBranchNames = (h: string): string[] =>
+    commits[idx.get(h)!].refs
+      .filter(r => !r.startsWith('tag:'))
+      .map(r => r.replace(/^HEAD ->\s*/, '').replace(/^(origin\/|remotes\/[^/]+\/)/, '').trim())
+  const isBackbone = (tip: string): boolean => {
+    let h: string | null = tip
+    const seen = new Set<string>()
+    while (h && !seen.has(h)) {
+      seen.add(h)
+      const names = refBranchNames(h)
+      if (names.some(n => n === 'main' || n === 'master')) return true
+      if (names.length > 0) return false // the chain belongs to another branch
+      h = firstParent(h)
+    }
+    return false
   }
-
-  // Track color per lane
-  const laneColors: string[] = []
-
-  for (let row = 0; row < commits.length; row++) {
-    const commit = commits[row]
-    const edges: GraphEdge[] = []
-
-    // Find the lane for this commit
-    let lane = lanes.indexOf(commit.hash)
-    if (lane === -1) {
-      // This is a branch head — assign new lane
-      lane = findOrCreateLane(commit.hash)
-      laneColors[lane] = LANE_COLORS[lane % LANE_COLORS.length]
-    }
-
-    const commitColor = laneColors[lane] || LANE_COLORS[lane % LANE_COLORS.length]
-
-    // Process parents
-    const parents = commit.parents
-    // Lanes for which we already drew a diverge edge this row — skip passthrough for these
-    const skipPassthrough = new Set<number>([lane])
-
-    if (parents.length === 0) {
-      // Root commit — free the lane
-      lanes[lane] = null
-    } else {
-      // First parent continues in the same lane (or converges into another lane)
-      const firstParentIdx = hashToIndex.get(parents[0])
-      if (firstParentIdx !== undefined) {
-        // Check if the parent is already claimed by another active lane (convergence)
-        const existingLane = lanes.indexOf(parents[0])
-        if (existingLane !== -1 && existingLane !== lane) {
-          if (lane < existingLane) {
-            // Current lane is to the LEFT — keep it, reroute parent here, free right lane.
-            // This ensures shared ancestors inherit the leftmost (earliest) branch color.
-            lanes[lane] = parents[0]
-            lanes[existingLane] = null
-            edges.push({ fromLane: lane, toLane: lane, toRow: row + 1, color: commitColor, type: 'straight' })
-            // Draw the right lane converging into the left lane (a fork point:
-            // the right branch diverged from the left one going forward in time).
-            edges.push({
-              fromLane: existingLane,
-              toLane: lane,
-              toRow: row + 1,
-              color: laneColors[existingLane] || LANE_COLORS[existingLane % LANE_COLORS.length],
-              type: 'fork-left'
-            })
-            skipPassthrough.add(existingLane)
-          } else {
-            // Current lane is to the RIGHT — free it, left lane keeps the parent
-            // (first-parent convergence = fork point).
-            const direction = existingLane < lane ? 'fork-left' : 'fork-right'
-            edges.push({ fromLane: lane, toLane: existingLane, toRow: row + 1, color: commitColor, type: direction })
-            lanes[lane] = null
-            skipPassthrough.add(lane)
-          }
-        } else {
-          lanes[lane] = parents[0]
-          edges.push({ fromLane: lane, toLane: lane, toRow: row + 1, color: commitColor, type: 'straight' })
-        }
-      } else {
-        lanes[lane] = null
-      }
-
-      // Additional parents (merge commits)
-      // Draw only a one-row diverge edge; passthrough handles the rest from row+1 on.
-      for (let p = 1; p < parents.length; p++) {
-        const parentHash = parents[p]
-        const parentIdx = hashToIndex.get(parentHash)
-        if (parentIdx === undefined) continue
-
-        // Find or create lane for this parent
-        let parentLane = lanes.indexOf(parentHash)
-        const isNewLane = parentLane === -1
-        if (isNewLane) {
-          const free = lanes.indexOf(null)
-          if (free !== -1) {
-            parentLane = free
-            lanes[free] = parentHash
-          } else {
-            parentLane = lanes.length
-            lanes.push(parentHash)
-          }
-          laneColors[parentLane] = LANE_COLORS[parentLane % LANE_COLORS.length]
-        }
-
-        const direction = parentLane < lane ? 'merge-left' : 'merge-right'
-        // Only draw to row+1 — avoids overlap with passthrough segments
-        edges.push({
-          fromLane: lane,
-          toLane: parentLane,
-          toRow: row + 1,
-          color: laneColors[parentLane] || commitColor,
-          type: direction
-        })
-
-        // If the lane was just created, skip passthrough this row so we don't
-        // double-draw a straight segment on top of the diverge curve.
-        if (isNewLane) skipPassthrough.add(parentLane)
-      }
-    }
-
-    // Add passthrough edges for all other active lanes
-    for (let l = 0; l < lanes.length; l++) {
-      if (skipPassthrough.has(l)) continue
-      const laneHash = lanes[l]
-      if (!laneHash) continue
-      const targetIdx = hashToIndex.get(laneHash)
-      if (targetIdx !== undefined && targetIdx > row) {
-        edges.push({
-          fromLane: l,
-          toLane: l,
-          toRow: row + 1,
-          color: laneColors[l] || LANE_COLORS[l % LANE_COLORS.length],
-          type: 'straight'
-        })
-      }
-    }
-
-    result.push({
-      ...commit,
-      row,
-      lane,
-      color: commitColor,
-      edges
+  const tips = commits
+    .filter(c => !isFpChild.has(c.hash))
+    .map(c => c.hash)
+    .sort((a, b) => {
+      const pa = isBackbone(a) ? 0 : 1
+      const pb = isBackbone(b) ? 0 : 1
+      return pa - pb || idx.get(a)! - idx.get(b)! // backbone first, then topmost
     })
 
-    // Clean up fully resolved lanes
-    for (let l = 0; l < lanes.length; l++) {
-      if (lanes[l] === null) continue
-      const idx = hashToIndex.get(lanes[l]!)
-      if (idx !== undefined && idx <= row) {
-        lanes[l] = null
-      }
+  const owner = new Map<string, string>() // commit hash -> owning tip
+  for (const tip of tips) {
+    let h: string | null = tip
+    while (h && !owner.has(h)) {
+      owner.set(h, tip)
+      h = firstParent(h)
     }
+  }
+
+  // ── 2) Lane allocation, row by row ────────────────────────────────────────
+  const laneOf = new Map<string, number>() // active tip -> lane
+  const occupant: (string | null)[] = []   // lane -> tip currently holding it
+  const colorOf = new Map<string, string>() // tip -> color (per line, by birth)
+  let colorN = 0
+
+  const allocLane = (tip: string): number => {
+    let ln = occupant.indexOf(null)
+    if (ln === -1) { ln = occupant.length; occupant.push(null) }
+    occupant[ln] = tip
+    laneOf.set(tip, ln)
+    if (!colorOf.has(tip)) colorOf.set(tip, LANE_COLORS[colorN++ % LANE_COLORS.length])
+    return ln
+  }
+
+  // Where each line dies: at the row of its bottommost commit's first parent
+  // (that parent belongs to a higher-priority line the dying line merges into).
+  const bottom = new Map<string, string>() // tip -> bottommost owned commit
+  for (const c of commits) {
+    const t = owner.get(c.hash)!
+    const cur = bottom.get(t)
+    if (cur === undefined || idx.get(c.hash)! > idx.get(cur)!) bottom.set(t, c.hash)
+  }
+  const dieAt = new Map<number, string[]>() // row -> tips whose lane frees here
+  for (const [tip, b] of bottom) {
+    const f = firstParent(b)
+    if (!f) continue
+    const r = idx.get(f)!
+    const arr = dieAt.get(r)
+    if (arr) arr.push(tip)
+    else dieAt.set(r, [tip])
+  }
+
+  const laneByHash = new Map<string, number>()
+  for (let r = 0; r < commits.length; r++) {
+    const c = commits[r]
+    const line = owner.get(c.hash)!
+    if (!laneOf.has(line)) allocLane(line)
+    laneByHash.set(c.hash, laneOf.get(line)!)
+
+    // Lines merging into this commit release their lanes (after it renders).
+    for (const tip of dieAt.get(r) ?? []) {
+      if (tip === line) continue
+      const ln = laneOf.get(tip)
+      if (ln !== undefined) occupant[ln] = null
+      laneOf.delete(tip)
+    }
+    // Merge parents introduce (give birth to) their own lines here.
+    for (let p = 1; p < c.parents.length; p++) {
+      const ph = c.parents[p]
+      if (!has(ph)) continue
+      const pLine = owner.get(ph)!
+      if (!laneOf.has(pLine)) allocLane(pLine)
+    }
+    while (occupant.length && occupant[occupant.length - 1] === null) occupant.pop()
+  }
+
+  // ── 3) Edges: one per parent relationship (renderer draws multi-row elbows) ─
+  const result: LayoutCommit[] = []
+  for (let r = 0; r < commits.length; r++) {
+    const c = commits[r]
+    const lane = laneByHash.get(c.hash)!
+    const color = colorOf.get(owner.get(c.hash)!)!
+    const edges: GraphEdge[] = []
+
+    c.parents.forEach((ph, pi) => {
+      if (!has(ph)) return
+      const toRow = idx.get(ph)!
+      const toLane = laneByHash.get(ph)!
+      if (pi === 0) {
+        // First parent continues the line, or this commit forks into it (elbow
+        // at the bottom, vertical stays in this commit's own lane).
+        if (toLane === lane) {
+          edges.push({ fromLane: lane, toLane: lane, toRow, color, type: 'straight' })
+        } else {
+          edges.push({ fromLane: lane, toLane, toRow, color, type: toLane < lane ? 'fork-left' : 'fork-right' })
+        }
+      } else {
+        // Merge parent: elbow at the top, then the vertical runs down the
+        // parent line's lane — coloured with that line's colour.
+        const pColor = colorOf.get(owner.get(ph)!)!
+        edges.push({ fromLane: lane, toLane, toRow, color: pColor, type: toLane < lane ? 'merge-left' : 'merge-right' })
+      }
+    })
+
+    result.push({ ...c, row: r, lane, color, edges, ownerTip: owner.get(c.hash)! })
   }
 
   return result

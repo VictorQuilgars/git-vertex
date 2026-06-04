@@ -227,7 +227,7 @@ export default function App() {
   const [stashes, setStashes] = useState<StashEntry[]>([])
   const [tags, setTags] = useState<TagEntry[]>([])
   const [sidebarW, setSidebarW] = useState<number>(230)
-  const [rightW, setRightW] = useState<number>(320)
+  const [rightW, setRightW] = useState<number>(360)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
@@ -939,7 +939,7 @@ export default function App() {
   const startResizeRight = (e: React.MouseEvent) => {
     e.preventDefault()
     const sx = e.clientX, rw = rightW
-    const move = (ev: MouseEvent) => setRightW(Math.max(240, Math.min(600, rw - (ev.clientX - sx))))
+    const move = (ev: MouseEvent) => setRightW(Math.max(360, Math.min(600, rw - (ev.clientX - sx))))
     const up = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', up) }
     addEventListener('mousemove', move); addEventListener('mouseup', up)
   }
@@ -1253,6 +1253,7 @@ export default function App() {
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
                 showToast={showToast}
+                currentBranch={currentBranch}
                 wipCount={wipCount}
                 onViewWip={() => setSelectedCommit(prev =>
                   prev?.hash === '__WIP__' ? null : {

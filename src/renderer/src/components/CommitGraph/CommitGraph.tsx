@@ -216,13 +216,20 @@ const IconTag = () => (
   </svg>
 )
 
-function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
+function RefChip({ pref, laneColor, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
   pref: ProcessedRef
+  laneColor?: string
   onDoubleClick?: (name: string) => void
   onDragStartBranch?: (name: string) => void
   onDragEndBranch?: () => void
 }) {
   const isDraggable = (pref.cls === 'rc-local' || pref.cls === 'rc-head') && !!pref.branchName
+  const colorStyle = laneColor ? {
+    color: laneColor,
+    borderColor: laneColor + '99',
+    background: laneColor + '22',
+    cursor: pref.cls !== 'rc-tag' ? 'pointer' as const : undefined,
+  } : (pref.cls !== 'rc-tag' ? { cursor: 'pointer' as const } : undefined)
   return (
     <span
       className={`ref-chip ${pref.cls}`}
@@ -241,7 +248,7 @@ function RefChip({ pref, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
           onDoubleClick(pref.branchName)
         }
       }}
-      style={pref.cls !== 'rc-tag' ? { cursor: 'pointer' } : undefined}
+      style={colorStyle}
     >
       {pref.isHead && <span className="rc-check">✓</span>}
       <span className="rc-name">{pref.display}</span>
@@ -301,7 +308,28 @@ export default function CommitGraph({
   const showSha = getBool('graphShowSha', true)
   const dateFormat = get('dateFormat', 'relative')
   const bodyRef = useRef<HTMLDivElement>(null)
-  const layout = useMemo(() => computeGraphLayout(commits), [commits])
+
+  const hasWipNode = wipCount > 0 || conflictMode !== null
+  const headHash = useMemo(() => {
+    const h = commits.find(c => c.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch)))
+    return h?.hash ?? commits[0]?.hash
+  }, [commits, currentBranch])
+
+  // The working-tree (WIP) node is laid out as a virtual tip sitting on top of
+  // HEAD, so the current branch is promoted to its proper lane as soon as there
+  // are changes — e.g. main slides to the far left with a vertical dashed line
+  // running up to the top, matching GitKraken — instead of waiting for a commit.
+  const layout = useMemo(() => {
+    if (!hasWipNode || !headHash) return computeGraphLayout(commits)
+    const wipMessage = conflictMode
+      ? `⚠️ A file conflict was found when attempting to ${conflictMode}`
+      : `//WIP  ✏ ${wipCount} fichier${wipCount !== 1 ? 's' : ''} modifié${wipCount !== 1 ? 's' : ''}`
+    const wip: CommitNode = {
+      hash: WIP_HASH, shortHash: 'WIP', message: wipMessage,
+      author: '', authorEmail: '', date: '', parents: [headHash], refs: [],
+    }
+    return computeGraphLayout([wip, ...commits])
+  }, [commits, hasWipNode, headHash, conflictMode, wipCount])
   const [ctx, setCtx] = useState<CtxState | null>(null)
   const [dragBranch, setDragBranch] = useState<string | null>(null)
   const [dragOverRow, setDragOverRow] = useState<number | null>(null)
@@ -314,88 +342,29 @@ export default function CommitGraph({
   const [dateColW,   startResizeDate]   = useColResize('cg-date-w',   100, 70)
   const [shaColW,    startResizeSha]    = useColResize('cg-sha-w',     62, 50)
 
-  // Prepend WIP virtual commit when working directory has changes or is in a conflict state
+  // The WIP node is already in `layout` (a virtual tip on HEAD). Here we only
+  // give it its working-tree styling: a grey dashed line up to HEAD, plus — in
+  // conflict mode — a dashed edge across to the incoming branch.
   const displayLayout = useMemo((): LayoutCommit[] => {
-    const hasWipNode = wipCount > 0 || conflictMode !== null
-    const shifted = layout.map(c => ({
-      ...c,
-      row: c.row + (hasWipNode ? 1 : 0),
-      edges: c.edges.map(e => ({
-        ...e,
-        toRow: e.toRow + (hasWipNode ? 1 : 0),
-      })),
-    }))
-
-    if (!hasWipNode) return shifted
-
-    // WIP connects to HEAD commit (local branch), not necessarily the first row
-    const headCommit = shifted.find(c =>
-      c.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
-    ) ?? shifted[0]
-    const first = shifted[0]
-    const headLane = headCommit?.lane ?? first?.lane ?? 0
-    const headRow = headCommit?.row ?? 1
-    const wipColor = conflictMode ? '#ffa657' : (headCommit?.color ?? first?.color ?? '#6e7681')
-    
-    let message = `//WIP  ✏ ${wipCount} fichier${wipCount !== 1 ? 's' : ''} modifié${wipCount !== 1 ? 's' : ''}`
-    if (conflictMode) {
-      message = `⚠️ A file conflict was found when attempting to ${conflictMode}`
-    }
-
-    // When HEAD is not the first commit, put WIP on a new lane so the dashed
-    // line stays vertical (in its own lane) and only curves into HEAD at the last row
-    const maxExistingLane = shifted.reduce((m, c) => Math.max(m, c.lane), -1)
-    const wipLane = headRow > 1 ? maxExistingLane + 1 : headLane
-
-    const wipNode: LayoutCommit = {
-      hash: WIP_HASH,
-      shortHash: 'WIP',
-      message,
-      author: '',
-      authorEmail: '',
-      date: '',
-      parents: headCommit ? [headCommit.hash] : [],
-      refs: [],
-      lane: wipLane,
-      row: 0,
-      color: wipColor,
-      // Straight down to just above HEAD, then curve in at the last row
-      edges: headCommit ? [{ fromLane: wipLane, toLane: wipLane, toRow: 1, color: '#484f58', type: 'straight' as const }] : [],
-    }
-
-    if (conflictMode && shifted.length > 1) {
-      // In conflict mode, we want a dashed edge from the WIP node to the incoming branch.
-      // Usually, HEAD is at shifted[1] and the incoming branch is at shifted[0] (or vice versa).
-      const incomingCommit = shifted.find(c => c.hash !== headCommit?.hash)
-      if (incomingCommit) {
-        wipNode.edges.push({
-          fromLane: wipLane,
-          toLane: incomingCommit.lane,
-          toRow: incomingCommit.row,
-          color: wipColor, // Color it the same as the warning orange or the incoming branch color
-          type: 'merge',
-          dashed: true
-        })
+    if (!hasWipNode) return layout
+    return layout.map(c => {
+      if (c.hash !== WIP_HASH) return c
+      const wipColor = conflictMode ? '#ffa657' : c.color
+      const edges = c.edges.map(e => ({ ...e, color: '#484f58', dashed: true }))
+      if (conflictMode) {
+        const incoming = layout.find(x => x.hash !== WIP_HASH && x.hash !== headHash)
+        if (incoming) {
+          edges.push({
+            fromLane: c.lane, toLane: incoming.lane, toRow: incoming.row,
+            color: wipColor,
+            type: incoming.lane < c.lane ? 'merge-left' : 'merge-right',
+            dashed: true,
+          })
+        }
       }
-    }
-
-    // For intermediate rows, add dashed passthrough edges in wipLane
-    // At headRow-1, curve into headLane to arrive cleanly on HEAD
-    const shiftedWithPassthrough = shifted.map(c => {
-      if (headRow <= 1 || c.row < 1 || c.row >= headRow) return c
-      const toLane = c.row === headRow - 1 ? headLane : wipLane
-      const toRow = c.row + 1
-      return {
-        ...c,
-        edges: [...c.edges, {
-          fromLane: wipLane, toLane, toRow,
-          color: '#484f58', type: 'straight' as const, dashed: true,
-        }],
-      }
+      return { ...c, color: wipColor, edges }
     })
-
-    return [wipNode, ...shiftedWithPassthrough]
-  }, [layout, wipCount, conflictMode, currentBranch])
+  }, [layout, hasWipNode, conflictMode, headHash])
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
@@ -426,58 +395,35 @@ export default function CommitGraph({
   // belong to the branch they were merged INTO, not the merged branch — e.g.
   // "Merge release back into develop" stays develop's, while "Merge release" on
   // main stays main's.
-  const ownerByHash = useMemo(() => {
-    const byHash = new Map(displayLayout.map(c => [c.hash, c]))
-    const fpChain = (start: string): string[] => {
-      const out: string[] = []
-      const seen = new Set<string>()
-      let cur = byHash.get(start)
-      while (cur && !seen.has(cur.hash)) {
-        seen.add(cur.hash)
-        out.push(cur.hash)
-        const fp = cur.parents[0]
-        cur = fp ? byHash.get(fp) : undefined
-      }
-      return out
-    }
-
-    const heads = displayLayout.filter(c => c.refs.length > 0 && c.hash !== WIP_HASH)
-    const fpSets = new Map<string, Set<string>>()
-    for (const h of heads) fpSets.set(h.hash, new Set(fpChain(h.hash)))
-
-    // Order: a tip that is a first-parent ancestor of another is more "base" and
-    // claims first; otherwise newer tip first.
-    const ordered = [...heads].sort((a, b) => {
-      if (fpSets.get(b.hash)!.has(a.hash)) return -1
-      if (fpSets.get(a.hash)!.has(b.hash)) return 1
-      return Date.parse(b.date) - Date.parse(a.date)
-    })
-
-    const owner = new Map<string, string>()
-    for (const h of ordered) {
-      let cur = byHash.get(h.hash)
-      const seen = new Set<string>()
-      while (cur && !seen.has(cur.hash)) {
-        seen.add(cur.hash)
-        if (owner.has(cur.hash)) break
-        owner.set(cur.hash, h.hash)
-        const fp = cur.parents[0]
-        cur = fp ? byHash.get(fp) : undefined
-      }
-    }
-    return owner
-  }, [displayLayout])
-
-  // Hovering a branch/tag chip highlights the commits owned by that branch.
+  // Hovering a branch/tag chip highlights commits by walking first-parent from
+  // the chip's commit downward, stopping just before any commit that is itself
+  // the tip of another local branch. This is the exact divergence boundary:
+  // feature/api-v2 walks until it hits develop_tip (which has "HEAD -> develop")
+  // and stops there; develop walks its merge commits (which have no branch refs)
+  // all the way down. Tags do not stop the walk.
   const [hoverHash, setHoverHash] = useState<string | null>(null)
   const hoverHighlight = useMemo(() => {
     if (!hoverHash) return null
+    const byHash = new Map(displayLayout.map(c => [c.hash, c]))
+    const hovered = byHash.get(hoverHash)
+    if (!hovered || hovered.hash === WIP_HASH) return null
+    const isLocalBranchRef = (r: string) =>
+      !r.startsWith('tag:') && !r.includes('origin/') && !r.includes('remotes/')
     const rows = new Set<number>()
-    for (const c of displayLayout) {
-      if (ownerByHash.get(c.hash) === hoverHash) rows.add(c.row)
+    let cur: typeof hovered | undefined = hovered
+    const seen = new Set<string>()
+    while (cur && !seen.has(cur.hash)) {
+      seen.add(cur.hash)
+      if (cur.hash !== WIP_HASH) rows.add(cur.row)
+      const fp = cur.parents[0]
+      const next = fp ? byHash.get(fp) : undefined
+      if (!next) break
+      // Stop before entering another branch's territory
+      if (next.refs.some(isLocalBranchRef)) break
+      cur = next
     }
     return rows.size ? rows : null
-  }, [hoverHash, displayLayout, ownerByHash])
+  }, [hoverHash, displayLayout])
 
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
@@ -811,7 +757,7 @@ export default function CommitGraph({
                           refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
                         }}
                       >
-                        <RefChip pref={primary} onDoubleClick={onCheckoutBranch}
+                        <RefChip pref={primary} laneColor={commit.color} onDoubleClick={onCheckoutBranch}
                           onDragStartBranch={setDragBranch}
                           onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
                         {stackCount > 0 && refExpand?.row !== commit.row && (
@@ -892,7 +838,7 @@ export default function CommitGraph({
             onMouseLeave={() => { refExpandTimer.current = setTimeout(() => setRefExpand(null), 120) }}
           >
             {hiddenPrefs.map((p, i) => (
-              <RefChip key={i} pref={p} onDoubleClick={onCheckoutBranch}
+              <RefChip key={i} pref={p} laneColor={expandCommit.color} onDoubleClick={onCheckoutBranch}
                 onDragStartBranch={setDragBranch}
                 onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
             ))}

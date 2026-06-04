@@ -96,7 +96,7 @@ function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect,
   isSelected?: boolean
 }) {
   const [open, setOpen] = React.useState(true)
-  const indent = depth * 14
+  const indent = depth * 16
 
   if (node.isFile) {
     const STATUS_META: Record<string, { label: string; color: string }> = {
@@ -127,21 +127,25 @@ function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect,
 
   return (
     <>
-      <div className="st-file-row st-tree-dir" style={{ paddingLeft: indent }}>
-        <span className="st-tree-chevron" onClick={() => setOpen(o => !o)}>{open ? '▾' : '▸'}</span>
+      <div className="st-file-row st-tree-dir st-clickable" style={{ paddingLeft: indent }} onClick={() => setOpen(o => !o)}>
+        <span className="st-tree-chevron">{open ? '▾' : '▸'}</span>
         <span className="st-badge" style={{ color: '#8b949e', fontSize: 10 }}>📁</span>
-        <span className="st-path st-tree-dirname" onClick={() => setOpen(o => !o)}>{node.name}</span>
+        <span className="st-path st-tree-dirname">{node.name}</span>
         <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
           title={`${actionTitle} dossier`}
           onClick={e => { e.stopPropagation(); onAction(allPaths(node)) }}>
           {actionIcon}
         </button>
       </div>
-      {open && node.children.map(c => (
-        <TreeFileRow key={c.fullPath} node={c} depth={depth + 1}
-          onAction={onAction} actionIcon={actionIcon} actionTitle={actionTitle}
-          onSelect={onSelect} isSelected={isSelected && c.fullPath === node.fullPath} />
-      ))}
+      {open && (
+        <div className="st-tree-branch" style={{ marginLeft: indent + 10 }}>
+          {node.children.map(c => (
+            <TreeFileRow key={c.fullPath} node={c} depth={depth + 1}
+              onAction={onAction} actionIcon={actionIcon} actionTitle={actionTitle}
+              onSelect={onSelect} isSelected={isSelected && c.fullPath === node.fullPath} />
+          ))}
+        </div>
+      )}
     </>
   )
 }
@@ -515,12 +519,26 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   )
 }
 
-// ── Staging view ──────────────────────────────────────────────
+// ── Staging view (GitKraken-style commit panel) ───────────────
 interface SelectedDiffFile { path: string; area: 'staged' | 'unstaged' }
 
-function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff }: {
+const SUMMARY_LIMIT = 72
+
+// Inline icons (currentColor)
+const IcoTrash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15Z"/></svg>)
+const IcoSpark = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>)
+const IcoSort = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z"/></svg>)
+const IcoPathView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z"/></svg>)
+const IcoTreeView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z"/></svg>)
+const IcoCommit = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg>)
+const IcoStash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z"/></svg>)
+const IcoCloud = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z"/></svg>)
+const IcoChevron = ({ open }: { open: boolean }) => (<svg className={`st2-chev ${open ? 'open' : ''}`} width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>)
+
+function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
+  currentBranch?: string
   conflictMode?: string | null
   conflictFiles?: string[]
   onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
@@ -530,10 +548,27 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
   const { t } = useLang()
   const isConflict = !!conflictMode
   const [changes, setChanges] = useState<WorkingChanges>({ staged: [], unstaged: [], untracked: [] })
-  const [commitMsg, setCommitMsg] = useState('')
+  const [summary, setSummary] = useState('')
+  const [description, setDescription] = useState('')
   const [amend, setAmend] = useState(false)
   const [amendFiles, setAmendFiles] = useState<FileChange[]>([])
   const [treeMode, setTreeMode] = useState(() => localStorage.getItem('st-tree-mode') === 'true')
+  const [sortAsc, setSortAsc] = useState(true)
+  const [unstagedOpen, setUnstagedOpen] = useState(true)
+  const [stagedOpen, setStagedOpen] = useState(true)
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const [signoff, setSignoff] = useState(false)
+  const [committing, setCommitting] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
+  const [formHeight, setFormHeight] = useState(() => parseInt(localStorage.getItem('st-form-h') || '300'))
+  const dragRef = useRef<{ y: number; h: number } | null>(null)
+
+  const splitMessage = (full: string) => {
+    const lines = full.split('\n')
+    setSummary(lines[0] ?? '')
+    setDescription(lines.slice(1).join('\n').replace(/^\n+/, ''))
+  }
 
   const toggleAmend = useCallback(async (checked: boolean) => {
     setAmend(checked)
@@ -542,16 +577,16 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
         window.gitAPI.getLastCommitMessage(),
         window.gitAPI.getCommitFiles('HEAD'),
       ])
-      setCommitMsg(msgRes.message ?? '')
+      const full = msgRes.message ?? ''
+      const lines = full.split('\n')
+      setSummary(lines[0] ?? '')
+      setDescription(lines.slice(1).join('\n').replace(/^\n+/, ''))
       setAmendFiles(filesRes.files ?? [])
     } else {
-      setCommitMsg('')
+      setSummary(''); setDescription('')
       setAmendFiles([])
     }
   }, [])
-  const [committing, setCommitting] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
 
   const load = useCallback(async () => {
     const r = await window.gitAPI.getWorkingChanges()
@@ -572,25 +607,38 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
 
   useEffect(() => {
     if (isConflict) {
-      window.gitAPI.getMergeMessage().then(r => { if (r.message) setCommitMsg(r.message) })
+      window.gitAPI.getMergeMessage().then(r => { if (r.message) splitMessage(r.message) })
     }
   }, [isConflict])
+
+  const onResizeDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    dragRef.current = { y: e.clientY, h: formHeight }
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return
+      // dragging up grows the form, down shrinks it
+      const next = Math.min(560, Math.max(150, dragRef.current.h - (ev.clientY - dragRef.current.y)))
+      setFormHeight(next)
+    }
+    const onUp = () => {
+      if (dragRef.current) localStorage.setItem('st-form-h', String(formHeight))
+      dragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [formHeight])
 
   const generateMessage = async () => {
     setGenerating(true)
     try {
       const r = await window.gitAPI.aiGenerateCommitMessage()
-      if (!r) {
-        showToast(t('panel.gen.empty'), 'err')
-      } else if (r.error === 'NO_API_KEY') {
-        showToast(t('panel.gen.noKey'), 'err')
-      } else if (r.error) {
-        showToast(t('panel.gen.failed', r.error ?? ''), 'err')
-      } else if (r.message) {
-        setCommitMsg(r.message)
-      } else {
-        showToast(t('panel.gen.empty'), 'err')
-      }
+      if (!r) showToast(t('panel.gen.empty'), 'err')
+      else if (r.error === 'NO_API_KEY') showToast(t('panel.gen.noKey'), 'err')
+      else if (r.error) showToast(t('panel.gen.failed', r.error ?? ''), 'err')
+      else if (r.message) splitMessage(r.message)
+      else showToast(t('panel.gen.empty'), 'err')
     } catch (e: any) {
       showToast(t('panel.gen.unexpected', e?.message ?? e), 'err')
     } finally {
@@ -608,214 +656,320 @@ function StagingView({ onCommitSuccess, showToast, conflictMode, conflictFiles, 
     onOpenFileDiff?.({ type: 'working', filePath: file.path, area: file.area })
   }
 
+  const discardAll = async () => {
+    const staged = changes.staged.map(f => f.path)
+    const unstaged = [...changes.unstaged.map(f => f.path), ...changes.untracked.filter(f => !f.endsWith('/'))]
+    const all = [...staged, ...unstaged]
+    if (!all.length) return
+    if (!window.confirm(t('panel.discardAll.confirm', String(all.length)))) return
+    if (staged.length) await window.gitAPI.unstage(staged)
+    for (const f of all) await window.gitAPI.discardFile(f)
+    await load()
+  }
+
+  const sortFiles = <T extends { path: string }>(arr: T[]) =>
+    [...arr].sort((a, b) => sortAsc ? a.path.localeCompare(b.path) : b.path.localeCompare(a.path))
+
   const totalUnstaged = changes.unstaged.length + changes.untracked.length
   const stagedPaths = new Set(changes.staged.map(f => f.path))
   const amendOnly = amendFiles.filter(f => !stagedPaths.has(f.path))
+  const stagedCount = changes.staged.length + amendOnly.length
+  const totalChanged = changes.staged.length + totalUnstaged
   const canCommit = changes.staged.length > 0 || amend
 
-  const toggleTree = () => setTreeMode(v => {
-    localStorage.setItem('st-tree-mode', String(!v))
-    return !v
-  })
+  const toggleTree = () => setTreeMode(v => { localStorage.setItem('st-tree-mode', String(!v)); return !v })
 
-  const stagedTree = buildTree(changes.staged.map(f => ({ path: f.path, status: f.status })))
+  const sortedStaged = sortFiles(changes.staged)
+  const sortedUnstaged = sortFiles(changes.unstaged)
+  const sortedUntracked = sortFiles(changes.untracked.map(p => ({ path: p }))).map(x => x.path)
+
+  const stagedTree = buildTree(sortedStaged.map(f => ({ path: f.path, status: f.status })))
   const unstagedTree = buildTree([
-    ...changes.unstaged.map(f => ({ path: f.path, status: f.status })),
-    ...changes.untracked.map(f => ({ path: f, status: '?' })),
+    ...sortedUnstaged.map(f => ({ path: f.path, status: f.status })),
+    ...sortedUntracked.map(f => ({ path: f, status: '?' })),
   ])
 
+  const remaining = SUMMARY_LIMIT - summary.length
+  const branchName = currentBranch || 'HEAD'
+
+  // Dynamic commit-button label following the commit flow.
+  const commitLabel = (() => {
+    if (committing) return t('panel.commit.inProgress')
+    if (isConflict) return 'Commit & Merge'
+    if (!canCommit) return t('panel.commit.stageFirst')      // nothing staged
+    if (!summary.trim()) return t('panel.commit.typeMessage') // staged, no message
+    if (amend && changes.staged.length === 0) return t('panel.commit.amend')
+    const n = changes.staged.length
+    return t('panel.commit.changes', String(n), n !== 1 ? 's' : '')
+  })()
+  const commitReady = isConflict
+    ? (!!summary.trim() && !conflictFiles?.length)
+    : (canCommit && !!summary.trim())
+
   return (
-    <div className="rp-content rp-staging">
-      {/* Staged */}
-      <div className="st-section">
-        <div className="st-header">
-          <span className="st-dot" style={{ background: '#3fb950' }} />
-          <span>{t('panel.staged')} <strong>{changes.staged.length + amendOnly.length}</strong></span>
-          <div style={{ flex: 1 }} />
-          {changes.staged.length > 0 && (
-            <button className="st-link" onClick={() => handle(() => window.gitAPI.unstage(changes.staged.map(f => f.path)))}>
-              {t('panel.unstageAll')}
-            </button>
-          )}
-          <button className="st-refresh" title={treeMode ? 'Vue liste' : 'Vue arborescence'} onClick={toggleTree}>
-            {treeMode ? '≡' : '⋱'}
+    <div className="rp-content rp-staging st2">
+      {/* ── Top bar ── */}
+      <div className="st2-topbar">
+        <button className="st2-icon-btn st2-danger" title={t('panel.discardAll')} onClick={discardAll} disabled={totalChanged === 0}>
+          <IcoTrash />
+        </button>
+        <div className="st2-topbar-mid">
+          <span className="st2-changecount">{totalChanged} {totalChanged === 1 ? t('panel.fileChange') : t('panel.fileChanges')}</span>
+          <span className="st2-on">{t('panel.on')}</span>
+          <span className="st2-branch-chip" title={branchName}>{branchName}</span>
+        </div>
+        <button className="st2-icon-btn st2-ai" title={t('panel.generate.tooltip')} onClick={generateMessage} disabled={generating}>
+          <IcoSpark />
+        </button>
+      </div>
+
+      {/* ── Sort + view toggle ── */}
+      <div className="st2-viewbar">
+        <button className="st2-icon-btn st2-sort" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}>
+          <IcoSort />
+        </button>
+        <div className="st2-seg">
+          <button className={`st2-seg-btn ${!treeMode ? 'active' : ''}`} onClick={() => treeMode && toggleTree()}>
+            <IcoPathView /> {t('panel.view.path')}
           </button>
-          <button className="st-refresh" onClick={load} title={t('panel.refresh')}>↺</button>
-        </div>
-        <div className="st-file-list">
-          {changes.staged.length === 0 && amendOnly.length === 0
-            ? <div className="st-empty">{t('panel.noStaged')}</div>
-            : treeMode
-              ? stagedTree.map(node => (
-                  <TreeFileRow key={node.fullPath} node={node} depth={0}
-                    onAction={paths => handle(() => window.gitAPI.unstage(paths))}
-                    actionIcon="−" actionTitle={t('panel.unstaged')}
-                    onSelect={p => selectFile({ path: p, area: 'staged' })}
-                    isSelected={selectedDiff?.area === 'staged' && selectedDiff?.path === node.fullPath}
-                  />
-                ))
-              : <>
-                  {changes.staged.map(f => {
-                    const meta = STATUS_META[f.status] ?? STATUS_META['?']
-                    const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'staged'
-                    return (
-                      <div key={f.path} className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
-                        onClick={() => selectFile({ path: f.path, area: 'staged' })}>
-                        <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
-                        <span className="st-path">{f.path}</span>
-                        <button className="st-action st-unstage" title={t('panel.unstaged')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
-                      </div>
-                    )
-                  })}
-                  {amendOnly.map(f => {
-                    const meta = STATUS_META[f.status] ?? STATUS_META['?']
-                    return (
-                      <div key={f.path} className="st-file-row st-amend-file" title={t('panel.amendBadge.tooltip')}>
-                        <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
-                        <span className="st-path">{f.path}</span>
-                        <span className="st-amend-tag">amend</span>
-                      </div>
-                    )
-                  })}
-                </>
-          }
+          <button className={`st2-seg-btn ${treeMode ? 'active' : ''}`} onClick={() => !treeMode && toggleTree()}>
+            <IcoTreeView /> {t('panel.view.tree')}
+          </button>
         </div>
       </div>
 
-      {/* Unstaged */}
-      <div className="st-section">
-        <div className="st-header">
-          <span className="st-dot" style={{ background: '#ffa657' }} />
-          <span>{t('panel.unstaged')} <strong>{totalUnstaged}</strong></span>
-          <div style={{ flex: 1 }} />
-          {totalUnstaged > 0 && (
-            <button className="st-link st-green" onClick={() => handle(() => window.gitAPI.stageAll())}>
-              {t('panel.stageAll')}
+      {/* ── File lists ── */}
+      <div className="st2-lists">
+        {/* Unstaged */}
+        <div className={`st2-section ${unstagedOpen ? 'open' : ''}`}>
+          <div className="st2-section-head">
+            <button className="st2-section-toggle" onClick={() => setUnstagedOpen(o => !o)}>
+              <IcoChevron open={unstagedOpen} />
+              <span className="st2-section-title">{t('panel.unstaged')} ({totalUnstaged})</span>
             </button>
+            <div style={{ flex: 1 }} />
+            {totalUnstaged > 0 && (
+              <button className="st2-link st2-green" onClick={() => handle(() => window.gitAPI.stageAll())}>
+                {t('panel.stageAll')}
+              </button>
+            )}
+          </div>
+          {unstagedOpen && (
+            <div className="st2-file-list">
+              {totalUnstaged === 0
+                ? <div className="st-empty">{t('panel.noChanges')}</div>
+                : treeMode
+                  ? unstagedTree.map(node => (
+                      <TreeFileRow key={node.fullPath} node={node} depth={0}
+                        onAction={paths => handle(() => window.gitAPI.stage(paths))}
+                        actionIcon="+" actionTitle={t('panel.stage.file', node.fullPath)}
+                        onSelect={p => selectFile({ path: p, area: 'unstaged' })}
+                        isSelected={selectedDiff?.area === 'unstaged' && selectedDiff?.path === node.fullPath}
+                      />
+                    ))
+                  : <>
+                      {sortedUnstaged.map(f => {
+                        const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                        const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'unstaged'
+                        return (
+                          <div key={f.path} className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+                            onClick={() => selectFile({ path: f.path, area: 'unstaged' })}>
+                            <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+                            <span className="st-path" title={f.path}>{f.path}</span>
+                            <button className="st-action st-stage" title={t('panel.stage.file', f.path)} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
+                            <button className="st-action st-discard" title={t('panel.discard')} onClick={async e => {
+                              e.stopPropagation()
+                              if (!window.confirm(t('panel.discard.confirm', f.path))) return
+                              handle(() => window.gitAPI.discardFile(f.path))
+                            }}>↺</button>
+                          </div>
+                        )
+                      })}
+                      {sortedUntracked.map(f => {
+                        const isDir = f.endsWith('/')
+                        return (
+                          <div key={f} className="st-file-row">
+                            <span className="st-badge" style={{ color: '#3fb950' }}>{isDir ? '📁' : '?'}</span>
+                            <span className="st-path" title={f}>
+                              {f}{isDir && <span className="st-dir-hint"> {t('panel.folder')}</span>}
+                            </span>
+                            <button className="st-action st-stage"
+                              title={isDir ? t('panel.stage.folder', f) : t('panel.stage.file', f)}
+                              onClick={() => handle(() => window.gitAPI.stage([f]))}>+</button>
+                          </div>
+                        )
+                      })}
+                    </>
+              }
+            </div>
           )}
         </div>
-        <div className="st-file-list">
-          {totalUnstaged === 0
-            ? <div className="st-empty">{t('panel.noChanges')}</div>
-            : treeMode
-              ? unstagedTree.map(node => (
-                  <TreeFileRow key={node.fullPath} node={node} depth={0}
-                    onAction={paths => handle(() => window.gitAPI.stage(paths))}
-                    actionIcon="+" actionTitle={t('panel.stage.file', node.fullPath)}
-                    onSelect={p => selectFile({ path: p, area: 'unstaged' })}
-                    isSelected={selectedDiff?.area === 'unstaged' && selectedDiff?.path === node.fullPath}
-                  />
-                ))
-              : <>
-                  {changes.unstaged.map(f => {
-                    const meta = STATUS_META[f.status] ?? STATUS_META['?']
-                    const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'unstaged'
-                    return (
-                      <div key={f.path} className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
-                        onClick={() => selectFile({ path: f.path, area: 'unstaged' })}>
-                        <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
-                        <span className="st-path" title={f.path}>{f.path}</span>
-                        <button className="st-action st-stage" title={t('panel.discard')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
-                        <button className="st-action st-discard" title={t('panel.discard')} onClick={async e => {
-                          e.stopPropagation()
-                          if (!window.confirm(t('panel.discard.confirm', f.path))) return
-                          handle(() => window.gitAPI.discardFile(f.path))
-                        }}>↺</button>
-                      </div>
-                    )
-                  })}
-                  {changes.untracked.map(f => {
-                    const isDir = f.endsWith('/')
-                    return (
-                      <div key={f} className="st-file-row">
-                        <span className="st-badge" style={{ color: '#3fb950' }}>{isDir ? '📁' : '?'}</span>
-                        <span className="st-path" title={f}>
-                          {f}
-                          {isDir && <span className="st-dir-hint"> {t('panel.folder')}</span>}
-                        </span>
-                        <button className="st-action st-stage"
-                          title={isDir ? t('panel.stage.folder', f) : t('panel.stage.file', f)}
-                          onClick={() => handle(() => window.gitAPI.stage([f]))}
-                        >+</button>
-                      </div>
-                )
-              })}
-            </>
-          }
+
+        {/* Staged */}
+        <div className={`st2-section ${stagedOpen ? 'open' : ''}`}>
+          <div className="st2-section-head">
+            <button className="st2-section-toggle" onClick={() => setStagedOpen(o => !o)}>
+              <IcoChevron open={stagedOpen} />
+              <span className="st2-section-title">{t('panel.staged')} ({stagedCount})</span>
+            </button>
+            <div style={{ flex: 1 }} />
+            {changes.staged.length > 0 && (
+              <button className="st2-link st2-danger-link" onClick={() => handle(() => window.gitAPI.unstage(changes.staged.map(f => f.path)))}>
+                {t('panel.unstageAll')}
+              </button>
+            )}
+          </div>
+          {stagedOpen && (
+            <div className="st2-file-list">
+              {stagedCount === 0
+                ? <div className="st-empty">{t('panel.noStaged')}</div>
+                : treeMode
+                  ? stagedTree.map(node => (
+                      <TreeFileRow key={node.fullPath} node={node} depth={0}
+                        onAction={paths => handle(() => window.gitAPI.unstage(paths))}
+                        actionIcon="−" actionTitle={t('panel.unstaged')}
+                        onSelect={p => selectFile({ path: p, area: 'staged' })}
+                        isSelected={selectedDiff?.area === 'staged' && selectedDiff?.path === node.fullPath}
+                      />
+                    ))
+                  : <>
+                      {sortedStaged.map(f => {
+                        const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                        const isSelected = selectedDiff?.path === f.path && selectedDiff.area === 'staged'
+                        return (
+                          <div key={f.path} className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+                            onClick={() => selectFile({ path: f.path, area: 'staged' })}>
+                            <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+                            <span className="st-path" title={f.path}>{f.path}</span>
+                            <button className="st-action st-unstage" title={t('panel.unstaged')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
+                          </div>
+                        )
+                      })}
+                      {amendOnly.map(f => {
+                        const meta = STATUS_META[f.status] ?? STATUS_META['?']
+                        return (
+                          <div key={f.path} className="st-file-row st-amend-file" title={t('panel.amendBadge.tooltip')}>
+                            <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
+                            <span className="st-path">{f.path}</span>
+                            <span className="st-amend-tag">amend</span>
+                          </div>
+                        )
+                      })}
+                    </>
+              }
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Commit form */}
-      <div className="st-form">
-        <div className="st-textarea-wrap">
+      {/* ── Resize handle ── */}
+      <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
+
+      {/* ── Commit area ── */}
+      <div className="st2-commit" style={{ height: formHeight }}>
+        <div className="st2-commit-scroll">
+        {/* Tabs */}
+        <div className="st2-tabs">
+          <button className="st2-tab active"><IcoCommit /> {t('panel.tab.commit')}</button>
+          <button className="st2-tab-icon" title={t('panel.tab.stash')} onClick={async () => {
+            const r = await window.gitAPI.createStash()
+            if ((r as any)?.success === false) showToast(t('toast.stashErr', (r as any).error ?? ''), 'err')
+            else { showToast(t('toast.stashCreated')); await load(); onCommitSuccess() }
+          }}><IcoStash /></button>
+          <button className="st2-tab-icon" title={t('panel.tab.push')} onClick={async () => {
+            const r = await window.gitAPI.push()
+            if ((r as any)?.success === false) showToast(t('toast.pushErr', (r as any).error ?? ''), 'err')
+            else showToast(t('toast.pushOk', branchName))
+          }}><IcoCloud /></button>
+        </div>
+
+        {/* Amend */}
+        {!isConflict && (
+          <label className="st2-amend">
+            <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />
+            <span>{t('panel.amendPrevious')}</span>
+          </label>
+        )}
+
+        {/* Message box */}
+        <div className="st2-msgbox">
+          <div className="st2-summary-row">
+            <input
+              className="st2-summary"
+              placeholder={t('panel.commit.summary')}
+              value={summary}
+              onChange={e => setSummary(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doCommit() }}
+            />
+            <span className={`st2-counter ${remaining < 0 ? 'over' : ''}`}>{remaining}</span>
+            <button className={`st2-msg-ai ${generating ? 'loading' : ''}`} title={t('panel.generate.tooltip')}
+              onClick={generateMessage} disabled={generating}>
+              <IcoSpark size={13} />
+            </button>
+          </div>
           <textarea
-            className="st-textarea"
-            placeholder={t('panel.commitMsg.placeholder')}
-            value={commitMsg}
-            onChange={e => setCommitMsg(e.target.value)}
+            className="st2-description"
+            placeholder={t('panel.commit.description')}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doCommit() }}
-            rows={3}
           />
-          <button
-            className={`st-ai-btn ${generating ? 'st-ai-loading' : ''}`}
-            title={t('panel.generate.tooltip')}
-            onClick={generateMessage}
-            disabled={generating}
-          >
-            {generating ? '…' : '✨'}
+        </div>
+
+        {/* Options + Compose with AI */}
+        <div className="st2-options-row">
+          <button className="st2-options-toggle" onClick={() => setOptionsOpen(o => !o)}>
+            <IcoChevron open={optionsOpen} /> {t('panel.commitOptions')}
+          </button>
+          <button className="st2-compose" onClick={generateMessage} disabled={generating}>
+            <IcoSpark size={13} /> {t('panel.composeAI')}
           </button>
         </div>
-        <div className="st-form-footer">
-          {isConflict ? (
-            <>
-              <button
-                className="st-commit-btn"
-                style={{ background: '#21262d', color: '#f85149', borderColor: '#f85149', flex: '0 0 auto' }}
-                onClick={onConflictAbort}
-              >
-                Annuler
-              </button>
-              <button
-                className={`st-commit-btn ${commitMsg.trim() && !conflictFiles?.length ? 'ready' : ''}`}
-                disabled={!!conflictFiles?.length || !commitMsg.trim() || committing}
-                onClick={doCommit}
-                title="⌘↵"
-              >
-                {committing ? 'En cours…' : 'Commit & Merge'}
-              </button>
-            </>
-          ) : (
-            <>
-              <label className="st-amend">
-                <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />
-                Amend
-              </label>
-              <button
-                className={`st-commit-btn ${canCommit && commitMsg.trim() ? 'ready' : ''}`}
-                disabled={!commitMsg.trim() || committing}
-                onClick={doCommit}
-                title="⌘↵"
-              >
-                {committing ? 'En cours…' : `Commit${changes.staged.length > 0 ? ` (${changes.staged.length})` : ''}`}
-              </button>
-            </>
+        {optionsOpen && (
+          <div className="st2-options">
+            <label className="st2-amend">
+              <input type="checkbox" checked={signoff} onChange={e => setSignoff(e.target.checked)} />
+              <span>{t('panel.signoff')}</span>
+            </label>
+          </div>
+        )}
+
+        </div>{/* end st2-commit-scroll */}
+
+        {/* Dynamic commit button (+ abort in conflict mode) */}
+        <div className="st2-commit-actions">
+          {isConflict && (
+            <button className="st2-commit-btn st2-abort" onClick={onConflictAbort}>{t('panel.abort')}</button>
           )}
+          <button
+            className={`st2-commit-btn ${commitReady ? 'ready' : ''}`}
+            disabled={!commitReady || committing}
+            onClick={doCommit}
+            title="⌘↵"
+          >
+            <IcoCommit /> {commitLabel}
+          </button>
         </div>
       </div>
     </div>
   )
 
   async function doCommit() {
-    if (!commitMsg.trim()) return
+    if (!summary.trim()) return
+    const full = summary.trim() + (description.trim() ? `\n\n${description.trim()}` : '')
     setCommitting(true)
     if (isConflict && onConflictFinish) {
       const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
-      onConflictFinish(action, commitMsg)
-      setCommitMsg('')
+      onConflictFinish(action, full)
+      setSummary(''); setDescription('')
     } else {
-      const r = await window.gitAPI.commit(commitMsg.trim(), amend)
-      if (r.success) { showToast(t('toast.commitOk')); setCommitMsg(''); setAmend(false); setSelectedDiff(null); await load(); onCommitSuccess() }
-      else showToast(t('toast.commitErr', r.error ?? ''), 'err')
+      const message = signoff ? `${full}\n\nSigned-off-by: ` : full
+      const r = await window.gitAPI.commit(message, amend)
+      if (r.success) {
+        showToast(t('toast.commitOk'))
+        setSummary(''); setDescription(''); setAmend(false); setSelectedDiff(null)
+        await load(); onCommitSuccess()
+      } else showToast(t('toast.commitErr', r.error ?? ''), 'err')
     }
     setCommitting(false)
   }
@@ -944,6 +1098,7 @@ interface RightPanelProps {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   onSelectCommit: (hash: string) => void
+  currentBranch?: string
   wipCount?: number
   onViewWip?: () => void
   conflictFiles?: string[]
@@ -955,7 +1110,7 @@ interface RightPanelProps {
 }
 
 export default function RightPanel({
-  selectedCommit, onCommitSuccess, showToast, onSelectCommit, wipCount, onViewWip,
+  selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
@@ -981,6 +1136,7 @@ export default function RightPanel({
         <StagingView
           onCommitSuccess={onCommitSuccess}
           showToast={showToast}
+          currentBranch={currentBranch}
           conflictMode={allConflictsResolved ? conflictMode : null}
           conflictFiles={conflictFiles}
           onConflictFinish={onConflictFinish}
