@@ -4,6 +4,7 @@ import { createHash } from 'crypto'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import simpleGit from 'simple-git'
+
 import { GitService } from './git-service'
 import { getRecentRepos, addRecentRepo, removeRecentRepo } from './recent-repos'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
