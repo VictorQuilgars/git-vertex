@@ -1018,7 +1018,31 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
   const key = email.trim().toLowerCase()
   if (avatarCache.has(key)) return avatarCache.get(key)!
 
+  // GitHub noreply emails encode the user directly — resolve deterministically.
+  // `{id}+{login}@users.noreply.github.com` → avatar by user id (covers Copilot
+  // and any human hiding their email). Older `{login}@...` form needs a lookup.
+  const noreply = key.match(/^(?:(\d+)\+)?([^@]+)@users\.noreply\.github\.com$/)
   const token = readSettings().githubToken
+  if (noreply) {
+    const [, id, login] = noreply
+    if (id) {
+      const url = `https://avatars.githubusercontent.com/u/${id}?v=4`
+      avatarCache.set(key, url)
+      return url
+    }
+    if (token) {
+      try {
+        const res = await fetch(`https://api.github.com/users/${login}`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+        })
+        if (res.ok) {
+          const d: any = await res.json()
+          if (d?.avatar_url) { avatarCache.set(key, d.avatar_url); return d.avatar_url }
+        }
+      } catch { /* ignore */ }
+    }
+  }
+
   if (token) {
     // First: resolve via the authenticated user's own email list. Works for the
     // logged-in user's commits even when unpushed or using a private email.

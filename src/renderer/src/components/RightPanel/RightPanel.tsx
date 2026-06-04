@@ -3,6 +3,7 @@ import hljs from 'highlight.js'
 import { CommitNode, FileChange, WorkingChanges } from '../../types'
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
+import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import './RightPanel.css'
 
 function detectLang(filename: string): string | undefined {
@@ -182,11 +183,13 @@ function initials(name: string) { return name.split(' ').map(n => n[0]).join('')
 function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }: {
   email: string; name: string; sha?: string; size?: number; radius?: number
 }) {
-  const [src, setSrc] = useState<string | null>(null)
+  const aiLogo = aiAvatarDataUri(name, email)
+  const [src, setSrc] = useState<string | null>(aiLogo)
   useEffect(() => {
+    if (aiLogo) { setSrc(aiLogo); return }
     if (!email) return
     ;(window.gitAPI as any).avatarResolve(email, sha).then(setSrc).catch(() => {})
-  }, [email, sha])
+  }, [email, sha, aiLogo])
 
   const base: React.CSSProperties = { width: size, height: size, borderRadius: radius, flexShrink: 0 }
   if (src) {

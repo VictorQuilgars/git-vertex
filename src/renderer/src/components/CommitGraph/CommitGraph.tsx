@@ -4,6 +4,7 @@ import { LayoutCommit, computeGraphLayout } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
+import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import { useSettings } from '../../contexts/SettingsContext'
 import './CommitGraph.css'
 
@@ -68,13 +69,15 @@ function sigBadge(sig?: string) {
 function NodeAvatar({ cx, cy, r, email, name, color, clipId, sha }: {
   cx: number; cy: number; r: number; email: string; name: string; color: string; clipId: string; sha?: string
 }) {
+  const aiLogo = aiAvatarDataUri(name, email)
   const [failed, setFailed] = useState(false)
-  const [src, setSrc] = useState<string | null>(null)
+  const [src, setSrc] = useState<string | null>(aiLogo)
   useEffect(() => {
     setFailed(false)
+    if (aiLogo) { setSrc(aiLogo); return }
     if (!email) return
     ;(window.gitAPI as any).avatarResolve(email, sha).then(setSrc).catch(() => {})
-  }, [email, sha])
+  }, [email, sha, aiLogo])
 
   if (failed || !email || !src) {
     return (
