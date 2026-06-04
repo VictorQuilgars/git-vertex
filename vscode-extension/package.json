@@ -1,7 +1,7 @@
 {
   "name": "git-vertex",
   "displayName": "Git Vertex",
-  "description": "Open repositories in Git Vertex — a GitKraken-inspired Git GUI",
+  "description": "GitKraken-inspired Git GUI embedded in VS Code via WebviewPanel",
   "version": "1.5.0",
   "publisher": "VictorQuilgars",
   "icon": "images/icon.png",
@@ -39,6 +39,11 @@
         "icon": "$(git-branch)"
       },
       {
+        "command": "gitVertex.openPanel",
+        "title": "Git Vertex: Open Graph Panel",
+        "icon": "$(git-branch)"
+      },
+      {
         "command": "gitVertex.configure",
         "title": "Git Vertex: Configure App Path"
       }
@@ -63,11 +68,19 @@
           "command": "gitVertex.open",
           "when": "scmProvider == git",
           "group": "navigation"
+        },
+        {
+          "command": "gitVertex.openPanel",
+          "when": "scmProvider == git",
+          "group": "navigation"
         }
       ],
       "commandPalette": [
         {
           "command": "gitVertex.open"
+        },
+        {
+          "command": "gitVertex.openPanel"
         },
         {
           "command": "gitVertex.configure"
@@ -91,12 +104,16 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && npm run bundle-webview",
+    "bundle-webview": "node build-webview.js",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "test": "node ./out/test/runTests.js",
     "package": "vsce package --no-dependencies",
     "lint": "eslint src --ext ts"
+  },
+  "dependencies": {
+    "simple-git": "^3.22.0"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -104,6 +121,7 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.9",
+    "esbuild": "^0.20.0",
     "mocha": "^10.3.0",
     "typescript": "^5.3.0"
   }

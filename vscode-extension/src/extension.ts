@@ -3,6 +3,7 @@ import * as path from 'path'
 import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { getGitInfo, getRepoRootForFile } from './gitInfo'
+import { GitVertexPanel } from './panel/GitVertexPanel'
 
 let statusBar: GitVertexStatusBar | null = null
 let refreshTimer: NodeJS.Timeout | null = null
@@ -55,6 +56,16 @@ async function openInGitVertex(uri?: vscode.Uri): Promise<void> {
   } catch (err) {
     vscode.window.showErrorMessage(`Failed to launch Git Vertex: ${err}`)
   }
+}
+
+// ── Open panel command ─────────────────────────────────────────
+async function openPanel(context: vscode.ExtensionContext): Promise<void> {
+  const repoRoot = resolveRepoRoot()
+  if (!repoRoot) {
+    vscode.window.showWarningMessage('No Git repository found for this workspace.')
+    return
+  }
+  GitVertexPanel.createOrShow(context.extensionUri, repoRoot)
 }
 
 // ── Configure command ──────────────────────────────────────────
@@ -119,6 +130,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.open', () => openInGitVertex()),
     vscode.commands.registerCommand('gitVertex.openFile', (uri?: vscode.Uri) => openInGitVertex(uri)),
     vscode.commands.registerCommand('gitVertex.configure', () => configure()),
+    vscode.commands.registerCommand('gitVertex.openPanel', () => openPanel(context)),
   )
 
   context.subscriptions.push(statusBar)
@@ -127,4 +139,5 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   if (refreshTimer) clearTimeout(refreshTimer)
   statusBar?.dispose()
+  GitVertexPanel.currentPanel?.dispose()
 }
