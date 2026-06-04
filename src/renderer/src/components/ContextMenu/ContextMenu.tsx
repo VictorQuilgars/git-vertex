@@ -40,14 +40,24 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
     }
   }, [onClose])
 
-  // Clamp to viewport
+  // Clamp to viewport — keep the menu fully on-screen even in a short panel.
   useEffect(() => {
     if (!ref.current) return
     const rect = ref.current.getBoundingClientRect()
     const vw = window.innerWidth
     const vh = window.innerHeight
-    if (rect.right > vw) ref.current.style.left = `${x - rect.width}px`
-    if (rect.bottom > vh) ref.current.style.top = `${y - rect.height}px`
+    const M = 4 // margin from edges
+
+    let left = x
+    if (x + rect.width > vw) left = vw - rect.width - M     // prefer opening leftwards
+    left = Math.max(M, left)
+
+    let top = y
+    if (y + rect.height > vh) top = vh - rect.height - M    // flip / shift up to fit
+    top = Math.max(M, top)                                  // never above the top edge
+
+    ref.current.style.left = `${left}px`
+    ref.current.style.top = `${top}px`
   }, [x, y])
 
   const menu = (

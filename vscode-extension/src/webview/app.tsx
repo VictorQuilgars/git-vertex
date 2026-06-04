@@ -10,6 +10,7 @@ import ReactDOM from 'react-dom/client'
 import { SettingsProvider } from '../../../src/renderer/src/contexts/SettingsContext'
 import { LanguageProvider } from '../../../src/renderer/src/i18n/LanguageContext'
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
+import Toolbar from '../../../src/renderer/src/components/Toolbar/Toolbar'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
@@ -61,15 +62,21 @@ function VertexApp() {
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [rightW, setRightW] = useState(380)
+  const [showAllBranches, setShowAllBranches] = useState(true)
+  const [stashCount, setStashCount] = useState(0)
+  const [loading, setLoading] = useState(false)
   const isLoadingRef = useRef(false)
+  const showAllRef = useRef(showAllBranches)
+  showAllRef.current = showAllBranches
 
   // ── Data loading (mirrors desktop App.loadRepoData) ──────────
   const loadRepoData = useCallback(async () => {
     if (isLoadingRef.current) return
     isLoadingRef.current = true
+    setLoading(true)
     try {
       const branchRes = await window.gitAPI.getBranches()
-      const logRes = await window.gitAPI.getLog({ maxCount: 500, all: true })
+      const logRes = await window.gitAPI.getLog({ maxCount: 500, all: showAllRef.current })
       if (logRes?.commits) setCommits(logRes.commits)
       if (branchRes?.branches) {
         setBranches(branchRes.branches)
@@ -85,11 +92,16 @@ function VertexApp() {
       const ch = await window.gitAPI.getWorkingChanges()
       setWipCount((ch?.staged?.length ?? 0) + (ch?.unstaged?.length ?? 0) + (ch?.untracked?.length ?? 0))
       try {
+        const st = await window.gitAPI.getStashes()
+        setStashCount(st?.stashes?.length ?? 0)
+      } catch { /* ignore */ }
+      try {
         const info = await window.gitAPI.appGetInfo()
         if (info?.repoName) setRepoName(info.repoName)
       } catch { /* ignore */ }
     } finally {
       isLoadingRef.current = false
+      setLoading(false)
     }
   }, [])
 
@@ -136,6 +148,23 @@ function VertexApp() {
     if (name) runOp('Branche créée', () => window.gitAPI.createBranchAt(name, hash, true))
   }, [runOp])
 
+  // ── Toolbar handlers (push / fetch / pull / branch / stash …) ─
+  const handleFetch = useCallback(() => runOp('Fetch', () => window.gitAPI.fetch()), [runOp])
+  const handlePull = useCallback(() => runOp('Pull', () => window.gitAPI.pull()), [runOp])
+  const handlePush = useCallback(() => runOp('Push', () => window.gitAPI.push()), [runOp])
+  const handleUndo = useCallback(() => runOp('Annulé', () => window.gitAPI.undoLastAction()), [runOp])
+  const handleStash = useCallback(() => runOp('Stash créé', () => window.gitAPI.createStash()), [runOp])
+  const handlePop = useCallback(() => runOp('Stash appliqué', () => window.gitAPI.popStash(0)), [runOp])
+  const handleTerminal = useCallback(() => window.gitAPI.openTerminal(), [])
+  const handleNewBranch = useCallback(async () => {
+    const name = await window.gitAPI.uiPrompt('Nom de la nouvelle branche')
+    if (name) runOp('Branche créée', () => window.gitAPI.createBranch(name))
+  }, [runOp])
+  const handleToggleAllBranches = useCallback(() => {
+    setShowAllBranches(v => { showAllRef.current = !v; return !v })
+    setTimeout(() => loadRepoData(), 0)
+  }, [loadRepoData])
+
   // ── Right-panel resize ───────────────────────────────────────
   const startResizeRight = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -158,6 +187,27 @@ function VertexApp() {
   return (
     <div className="app gv-app">
       <BrandHeader branch={currentBranch} repoName={repoName} />
+      <Toolbar
+        repoPath="webview"
+        currentBranch={currentBranch}
+        searchQuery={searchQuery}
+        showAllBranches={showAllBranches}
+        onSearch={setSearchQuery}
+        onUndo={handleUndo}
+        onFetch={handleFetch}
+        onPush={handlePush}
+        onPushModal={handlePush}
+        onPull={handlePull}
+        onCreateBranch={handleNewBranch}
+        onStash={handleStash}
+        onPop={handlePop}
+        onTerminal={handleTerminal}
+        stashCount={stashCount}
+        onToggleAllBranches={handleToggleAllBranches}
+        onRefresh={loadRepoData}
+        loading={loading}
+        topRow={false}
+      />
       <div className="app-body">
         <div className="app-center" style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph

@@ -7892,7 +7892,7 @@
   window.appInfo = { platform: "vscode" };
 
   // src/webview/app.tsx
-  var import_react7 = __toESM(require_react());
+  var import_react8 = __toESM(require_react());
   var import_client = __toESM(require_client());
 
   // ../src/renderer/src/contexts/SettingsContext.tsx
@@ -8767,8 +8767,165 @@ Commits beyond this point will be lost for that branch.`,
     )))));
   }
 
+  // ../src/renderer/src/components/Toolbar/Toolbar.tsx
+  var import_react4 = __toESM(require_react());
+  function TBtn({ icon, label, onClick, disabled, title, accent }) {
+    return /* @__PURE__ */ import_react4.default.createElement(
+      "button",
+      {
+        className: `tb-cell ${accent ? `tb-accent-${accent}` : ""}`,
+        onClick,
+        disabled,
+        title
+      },
+      /* @__PURE__ */ import_react4.default.createElement("span", { className: "tb-cell-label" }, label),
+      /* @__PURE__ */ import_react4.default.createElement("span", { className: "tb-cell-icon" }, icon)
+    );
+  }
+  function Toolbar({
+    repoPath,
+    currentBranch,
+    showAllBranches,
+    searchQuery,
+    onSearch,
+    onUndo,
+    onFetch,
+    onPush,
+    onPull,
+    onCreateBranch,
+    onStash,
+    onPop,
+    onTerminal,
+    stashCount = 0,
+    onToggleAllBranches,
+    loading,
+    extendedSearch,
+    extendedSearchLoading,
+    onToggleExtendedSearch,
+    updateReady,
+    onInstallUpdate,
+    githubRepoUrl,
+    onCreatePR,
+    onGitflow,
+    topRow = true
+  }) {
+    const { t } = useLang();
+    const isMac = window.appInfo?.platform === "darwin";
+    const disabled = !repoPath || loading;
+    return /* @__PURE__ */ import_react4.default.createElement("div", { className: "toolbar" }, isMac && topRow && /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-mac-spacer" }), repoPath && /* @__PURE__ */ import_react4.default.createElement(import_react4.default.Fragment, null, /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-spring" }), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-group" }, /* @__PURE__ */ import_react4.default.createElement(
+      TBtn,
+      {
+        label: "Undo",
+        title: t("toolbar.undo.tooltip"),
+        disabled,
+        onClick: onUndo,
+        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "9 14 4 9 9 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M20 20v-7a4 4 0 0 0-4-4H4" }))
+      }
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      TBtn,
+      {
+        label: "Redo",
+        title: t("toolbar.redo.tooltip"),
+        disabled: true,
+        onClick: () => {
+        },
+        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "15 14 20 9 15 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4 20v-7a4 4 0 0 1 4-4h12" }))
+      }
+    ), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-group-sep" }), /* @__PURE__ */ import_react4.default.createElement("div", { className: `tb-cell tb-cell-split ${disabled ? "tb-cell-disabled" : ""}` }, /* @__PURE__ */ import_react4.default.createElement("span", { className: "tb-cell-label" }, "Pull"), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-cell-split-row" }, /* @__PURE__ */ import_react4.default.createElement("button", { className: "tb-split-icon", disabled, onClick: onPull, title: t("toolbar.pull.tooltip") }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "7 10 12 15 17 10" }))), /* @__PURE__ */ import_react4.default.createElement("button", { className: "tb-split-chev", disabled, onClick: onFetch, title: t("toolbar.fetch.tooltip") }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "9", height: "9", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z" }))))), /* @__PURE__ */ import_react4.default.createElement(
+      TBtn,
+      {
+        label: "Push",
+        title: t("toolbar.push.tooltip"),
+        disabled,
+        onClick: onPush,
+        accent: "green",
+        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "21", x2: "12", y2: "9" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "7 14 12 9 17 14" }))
+      }
+    ), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-group-sep" }), /* @__PURE__ */ import_react4.default.createElement(
+      TBtn,
+      {
+        label: "Branch",
+        title: t("toolbar.newBranch.tooltip"),
+        disabled,
+        onClick: onCreateBranch,
+        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" }))
+      }
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      TBtn,
+      {
+        label: "Stash",
+        title: t("toolbar.stash.tooltip"),
+        disabled,
+        onClick: () => onStash?.(),
+        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12h-6l-2 3h-4l-2-3H2" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" }))
+      }
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      TBtn,
+      {
+        label: "Pop",
+        title: t("toolbar.pop.tooltip"),
+        disabled: disabled || stashCount === 0,
+        onClick: () => onPop?.(),
+        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M12 4v8" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "8 8 12 4 16 8" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6" }))
+      }
+    ), onGitflow && /* @__PURE__ */ import_react4.default.createElement(
+      TBtn,
+      {
+        label: "Gitflow",
+        title: t("toolbar.gitflow.tooltip"),
+        disabled,
+        onClick: onGitflow,
+        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm0 2.122a2.25 2.25 0 1 0-1.5 0v5.256a2.25 2.25 0 1 0 1.5 0V5.372zM5 13.5a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm6.75-3.5a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5zm0-2.122a2.25 2.25 0 1 1-1.5 0V5a1 1 0 0 0-1-1H6.5a.75.75 0 0 1 0-1.5h2.75a2.5 2.5 0 0 1 2.5 2.5v2.878z" }))
+      }
+    ), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-group-sep" }), /* @__PURE__ */ import_react4.default.createElement(
+      TBtn,
+      {
+        label: "Terminal",
+        title: t("toolbar.terminal.tooltip"),
+        disabled: !repoPath,
+        onClick: () => onTerminal?.(),
+        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "4 17 10 11 4 5" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "19", x2: "20", y2: "19" }))
+      }
+    )), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-spring" }), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-right" }, githubRepoUrl && currentBranch && !["main", "master"].includes(currentBranch) && onCreatePR && /* @__PURE__ */ import_react4.default.createElement(
+      "button",
+      {
+        className: "tb-btn tb-accent-blue",
+        disabled,
+        onClick: onCreatePR,
+        title: t("toolbar.createPR.tooltip")
+      },
+      /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z" })),
+      /* @__PURE__ */ import_react4.default.createElement("span", null, "PR")
+    ), /* @__PURE__ */ import_react4.default.createElement(
+      "button",
+      {
+        className: `tb-btn tb-toggle ${showAllBranches ? "active" : ""}`,
+        onClick: onToggleAllBranches,
+        disabled,
+        title: t("toolbar.allBranches.tooltip")
+      },
+      /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z" }))
+    ), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-search" }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" })), /* @__PURE__ */ import_react4.default.createElement(
+      "input",
+      {
+        type: "text",
+        placeholder: t("toolbar.search.placeholder"),
+        value: searchQuery,
+        onChange: (e) => onSearch(e.target.value)
+      }
+    ), searchQuery && /* @__PURE__ */ import_react4.default.createElement("button", { className: "tb-clear", onClick: () => onSearch("") }, "\xD7"), onToggleExtendedSearch && /* @__PURE__ */ import_react4.default.createElement(
+      "button",
+      {
+        className: `tb-ext-search ${extendedSearch ? "active" : ""}`,
+        onClick: onToggleExtendedSearch,
+        title: t("toolbar.extSearch.tooltip")
+      },
+      extendedSearchLoading ? "\u2026" : "Ext"
+    )))), !repoPath && /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-spring" }), updateReady && /* @__PURE__ */ import_react4.default.createElement("button", { className: "tb-btn tb-update-btn", onClick: onInstallUpdate, title: t("toolbar.update.tooltip") }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), /* @__PURE__ */ import_react4.default.createElement("span", null, t("toolbar.update.label"))));
+  }
+
   // ../src/renderer/src/components/CommitGraph/CommitGraph.tsx
-  var import_react5 = __toESM(require_react());
+  var import_react6 = __toESM(require_react());
   var import_react_dom2 = __toESM(require_react_dom());
 
   // ../src/renderer/src/components/CommitGraph/graph-layout.ts
@@ -8925,11 +9082,11 @@ Commits beyond this point will be lost for that branch.`,
   }
 
   // ../src/renderer/src/components/ContextMenu/ContextMenu.tsx
-  var import_react4 = __toESM(require_react());
+  var import_react5 = __toESM(require_react());
   var import_react_dom = __toESM(require_react_dom());
   function ContextMenu({ x, y, items, onClose }) {
-    const ref = (0, import_react4.useRef)(null);
-    (0, import_react4.useEffect)(() => {
+    const ref = (0, import_react5.useRef)(null);
+    (0, import_react5.useEffect)(() => {
       const onMouseDown = (e) => {
         if (ref.current && !ref.current.contains(e.target))
           onClose();
@@ -8945,18 +9102,25 @@ Commits beyond this point will be lost for that branch.`,
         document.removeEventListener("keydown", onKeyDown);
       };
     }, [onClose]);
-    (0, import_react4.useEffect)(() => {
+    (0, import_react5.useEffect)(() => {
       if (!ref.current)
         return;
       const rect = ref.current.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      if (rect.right > vw)
-        ref.current.style.left = `${x - rect.width}px`;
-      if (rect.bottom > vh)
-        ref.current.style.top = `${y - rect.height}px`;
+      const M = 4;
+      let left = x;
+      if (x + rect.width > vw)
+        left = vw - rect.width - M;
+      left = Math.max(M, left);
+      let top = y;
+      if (y + rect.height > vh)
+        top = vh - rect.height - M;
+      top = Math.max(M, top);
+      ref.current.style.left = `${left}px`;
+      ref.current.style.top = `${top}px`;
     }, [x, y]);
-    const menu = /* @__PURE__ */ import_react4.default.createElement(
+    const menu = /* @__PURE__ */ import_react5.default.createElement(
       "div",
       {
         ref,
@@ -8965,9 +9129,9 @@ Commits beyond this point will be lost for that branch.`,
       },
       items.map((item, i) => {
         if ("separator" in item) {
-          return /* @__PURE__ */ import_react4.default.createElement("div", { key: i, className: "ctx-sep" });
+          return /* @__PURE__ */ import_react5.default.createElement("div", { key: i, className: "ctx-sep" });
         }
-        return /* @__PURE__ */ import_react4.default.createElement(
+        return /* @__PURE__ */ import_react5.default.createElement(
           "button",
           {
             key: i,
@@ -9033,8 +9197,8 @@ Commits beyond this point will be lost for that branch.`,
   var SVG_PAD_R = 8;
   var WIP_HASH = "__WIP__";
   function useColResize(key, defaultW, min = 60) {
-    const [w, setW] = (0, import_react5.useState)(() => parseInt(localStorage.getItem(key) || String(defaultW)));
-    const startResize = (0, import_react5.useCallback)((e) => {
+    const [w, setW] = (0, import_react6.useState)(() => parseInt(localStorage.getItem(key) || String(defaultW)));
+    const startResize = (0, import_react6.useCallback)((e) => {
       e.preventDefault();
       const startX = e.clientX;
       const startW = w;
@@ -9080,13 +9244,13 @@ Commits beyond this point will be lost for that branch.`,
       B: "Signature invalide",
       E: "Signature non v\xE9rifiable"
     };
-    return /* @__PURE__ */ import_react5.default.createElement("span", { className: `cg-sig ${cls}`, title: titles[sig] ?? "Sign\xE9" }, "\u{1F50F}");
+    return /* @__PURE__ */ import_react6.default.createElement("span", { className: `cg-sig ${cls}`, title: titles[sig] ?? "Sign\xE9" }, "\u{1F50F}");
   }
   function NodeAvatar({ cx, cy, r, email, name, color, clipId, sha }) {
     const aiLogo = aiAvatarDataUri(name, email);
-    const [failed, setFailed] = (0, import_react5.useState)(false);
-    const [src, setSrc] = (0, import_react5.useState)(aiLogo);
-    (0, import_react5.useEffect)(() => {
+    const [failed, setFailed] = (0, import_react6.useState)(false);
+    const [src, setSrc] = (0, import_react6.useState)(aiLogo);
+    (0, import_react6.useEffect)(() => {
       setFailed(false);
       if (aiLogo) {
         setSrc(aiLogo);
@@ -9098,7 +9262,7 @@ Commits beyond this point will be lost for that branch.`,
       });
     }, [email, sha, aiLogo]);
     if (failed || !email || !src) {
-      return /* @__PURE__ */ import_react5.default.createElement("g", null, /* @__PURE__ */ import_react5.default.createElement("circle", { cx, cy, r, fill: color }), /* @__PURE__ */ import_react5.default.createElement(
+      return /* @__PURE__ */ import_react6.default.createElement("g", null, /* @__PURE__ */ import_react6.default.createElement("circle", { cx, cy, r, fill: color }), /* @__PURE__ */ import_react6.default.createElement(
         "text",
         {
           x: cx,
@@ -9113,7 +9277,7 @@ Commits beyond this point will be lost for that branch.`,
         initials(name)
       ));
     }
-    return /* @__PURE__ */ import_react5.default.createElement("g", null, /* @__PURE__ */ import_react5.default.createElement("defs", null, /* @__PURE__ */ import_react5.default.createElement("clipPath", { id: clipId }, /* @__PURE__ */ import_react5.default.createElement("circle", { cx, cy, r }))), /* @__PURE__ */ import_react5.default.createElement("circle", { cx, cy, r, fill: "#161b22" }), /* @__PURE__ */ import_react5.default.createElement(
+    return /* @__PURE__ */ import_react6.default.createElement("g", null, /* @__PURE__ */ import_react6.default.createElement("defs", null, /* @__PURE__ */ import_react6.default.createElement("clipPath", { id: clipId }, /* @__PURE__ */ import_react6.default.createElement("circle", { cx, cy, r }))), /* @__PURE__ */ import_react6.default.createElement("circle", { cx, cy, r, fill: "#161b22" }), /* @__PURE__ */ import_react6.default.createElement(
       "image",
       {
         href: src,
@@ -9125,7 +9289,7 @@ Commits beyond this point will be lost for that branch.`,
         preserveAspectRatio: "xMidYMid slice",
         onError: () => setFailed(true)
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("circle", { cx, cy, r, fill: "none", stroke: color, strokeWidth: 1.5 }));
+    ), /* @__PURE__ */ import_react6.default.createElement("circle", { cx, cy, r, fill: "none", stroke: color, strokeWidth: 1.5 }));
   }
   function fmtDate(s, format = "absolute") {
     try {
@@ -9213,9 +9377,9 @@ Commits beyond this point will be lost for that branch.`,
     return result;
   }
   var ICON_SIZE = 13;
-  var IconMonitor = () => /* @__PURE__ */ import_react5.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M0 4s0-2 2-2h12s2 0 2 2v6s0 2-2 2h-4c0 .667.083 1.167.25 1.5H11a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1h.75c.167-.333.25-.833.25-1.5H2s-2 0-2-2V4zm1.398-.855a.758.758 0 0 0-.254.302A1.46 1.46 0 0 0 1 4v6c0 .325.078.502.145.602.07.105.17.188.302.254a1.464 1.464 0 0 0 .538.143L2.5 11h11l.515-.001a1.464 1.464 0 0 0 .538-.143.758.758 0 0 0 .302-.254A.858.858 0 0 0 15 10V4a.857.857 0 0 0-.145-.598.758.758 0 0 0-.302-.254A1.464 1.464 0 0 0 14.013 3H1.987a1.464 1.464 0 0 0-.589.145z" }));
-  var IconCloud = () => /* @__PURE__ */ import_react5.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383z" }));
-  var IconTag = () => /* @__PURE__ */ import_react5.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0z" }), /* @__PURE__ */ import_react5.default.createElement("path", { d: "M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1zm0 5.586 7 7 4.586-4.586-7-7H2v4.586z" }));
+  var IconMonitor = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M0 4s0-2 2-2h12s2 0 2 2v6s0 2-2 2h-4c0 .667.083 1.167.25 1.5H11a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1h.75c.167-.333.25-.833.25-1.5H2s-2 0-2-2V4zm1.398-.855a.758.758 0 0 0-.254.302A1.46 1.46 0 0 0 1 4v6c0 .325.078.502.145.602.07.105.17.188.302.254a1.464 1.464 0 0 0 .538.143L2.5 11h11l.515-.001a1.464 1.464 0 0 0 .538-.143.758.758 0 0 0 .302-.254A.858.858 0 0 0 15 10V4a.857.857 0 0 0-.145-.598.758.758 0 0 0-.302-.254A1.464 1.464 0 0 0 14.013 3H1.987a1.464 1.464 0 0 0-.589.145z" }));
+  var IconCloud = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383z" }));
+  var IconTag = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0z" }), /* @__PURE__ */ import_react6.default.createElement("path", { d: "M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1zm0 5.586 7 7 4.586-4.586-7-7H2v4.586z" }));
   function RefChip({ pref, laneColor, onDoubleClick, onDragStartBranch, onDragEndBranch }) {
     const isDraggable = (pref.cls === "rc-local" || pref.cls === "rc-head") && !!pref.branchName;
     const colorStyle = laneColor ? {
@@ -9224,7 +9388,7 @@ Commits beyond this point will be lost for that branch.`,
       background: laneColor + "22",
       cursor: pref.cls !== "rc-tag" ? "pointer" : void 0
     } : pref.cls !== "rc-tag" ? { cursor: "pointer" } : void 0;
-    return /* @__PURE__ */ import_react5.default.createElement(
+    return /* @__PURE__ */ import_react6.default.createElement(
       "span",
       {
         className: `ref-chip ${pref.cls}`,
@@ -9246,10 +9410,10 @@ Commits beyond this point will be lost for that branch.`,
         },
         style: colorStyle
       },
-      pref.isHead && /* @__PURE__ */ import_react5.default.createElement("span", { className: "rc-check" }, "\u2713"),
-      /* @__PURE__ */ import_react5.default.createElement("span", { className: "rc-name" }, pref.display),
-      pref.cls !== "rc-tag" && /* @__PURE__ */ import_react5.default.createElement("span", { className: "rc-icons", style: { width: pref.hasLocal && pref.hasRemote ? ICON_SIZE * 2 + 2 : ICON_SIZE } }, pref.hasLocal && /* @__PURE__ */ import_react5.default.createElement(IconMonitor, null), pref.hasRemote && /* @__PURE__ */ import_react5.default.createElement(IconCloud, null)),
-      pref.cls === "rc-tag" && /* @__PURE__ */ import_react5.default.createElement(IconTag, null)
+      pref.isHead && /* @__PURE__ */ import_react6.default.createElement("span", { className: "rc-check" }, "\u2713"),
+      /* @__PURE__ */ import_react6.default.createElement("span", { className: "rc-name" }, pref.display),
+      pref.cls !== "rc-tag" && /* @__PURE__ */ import_react6.default.createElement("span", { className: "rc-icons", style: { width: pref.hasLocal && pref.hasRemote ? ICON_SIZE * 2 + 2 : ICON_SIZE } }, pref.hasLocal && /* @__PURE__ */ import_react6.default.createElement(IconMonitor, null), pref.hasRemote && /* @__PURE__ */ import_react6.default.createElement(IconCloud, null)),
+      pref.cls === "rc-tag" && /* @__PURE__ */ import_react6.default.createElement(IconTag, null)
     );
   }
   function CommitGraph({
@@ -9281,13 +9445,13 @@ Commits beyond this point will be lost for that branch.`,
     const showDate = getBool("graphShowDate", true);
     const showSha = getBool("graphShowSha", true);
     const dateFormat = get("dateFormat", "relative");
-    const bodyRef = (0, import_react5.useRef)(null);
+    const bodyRef = (0, import_react6.useRef)(null);
     const hasWipNode = wipCount > 0 || conflictMode !== null;
-    const headHash = (0, import_react5.useMemo)(() => {
+    const headHash = (0, import_react6.useMemo)(() => {
       const h = commits.find((c) => c.refs.some((r) => r.includes("HEAD ->") && r.includes(currentBranch)));
       return h?.hash ?? commits[0]?.hash;
     }, [commits, currentBranch]);
-    const layout = (0, import_react5.useMemo)(() => {
+    const layout = (0, import_react6.useMemo)(() => {
       if (!hasWipNode || !headHash)
         return computeGraphLayout(commits);
       const wipMessage = conflictMode ? `\u26A0\uFE0F A file conflict was found when attempting to ${conflictMode}` : `//WIP  \u270F ${wipCount} fichier${wipCount !== 1 ? "s" : ""} modifi\xE9${wipCount !== 1 ? "s" : ""}`;
@@ -9303,18 +9467,18 @@ Commits beyond this point will be lost for that branch.`,
       };
       return computeGraphLayout([wip, ...commits]);
     }, [commits, hasWipNode, headHash, conflictMode, wipCount]);
-    const [ctx, setCtx] = (0, import_react5.useState)(null);
-    const [dragBranch, setDragBranch] = (0, import_react5.useState)(null);
-    const [dragOverRow, setDragOverRow] = (0, import_react5.useState)(null);
-    const [drop, setDrop] = (0, import_react5.useState)(null);
-    const [refExpand, setRefExpand] = (0, import_react5.useState)(null);
-    const refExpandTimer = (0, import_react5.useRef)(null);
-    const hoverDelayTimer = (0, import_react5.useRef)(null);
+    const [ctx, setCtx] = (0, import_react6.useState)(null);
+    const [dragBranch, setDragBranch] = (0, import_react6.useState)(null);
+    const [dragOverRow, setDragOverRow] = (0, import_react6.useState)(null);
+    const [drop, setDrop] = (0, import_react6.useState)(null);
+    const [refExpand, setRefExpand] = (0, import_react6.useState)(null);
+    const refExpandTimer = (0, import_react6.useRef)(null);
+    const hoverDelayTimer = (0, import_react6.useRef)(null);
     const [refsColW, startResizeRefs] = useColResize("cg-refs-w", 164, 80);
     const [authorColW, startResizeAuthor] = useColResize("cg-author-w", 140, 80);
     const [dateColW, startResizeDate] = useColResize("cg-date-w", 100, 70);
     const [shaColW, startResizeSha] = useColResize("cg-sha-w", 62, 50);
-    const displayLayout = (0, import_react5.useMemo)(() => {
+    const displayLayout = (0, import_react6.useMemo)(() => {
       if (!hasWipNode)
         return layout;
       return layout.map((c) => {
@@ -9338,10 +9502,10 @@ Commits beyond this point will be lost for that branch.`,
         return { ...c, color: wipColor, edges };
       });
     }, [layout, hasWipNode, conflictMode, headHash]);
-    const maxLane = (0, import_react5.useMemo)(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout]);
+    const maxLane = (0, import_react6.useMemo)(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout]);
     const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48);
     const svgH = displayLayout.length * ROW_HEIGHT;
-    const filtered = (0, import_react5.useMemo)(() => {
+    const filtered = (0, import_react6.useMemo)(() => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return new Set(
@@ -9350,8 +9514,8 @@ Commits beyond this point will be lost for that branch.`,
       }
       return null;
     }, [displayLayout, searchQuery]);
-    const [hoverHash, setHoverHash] = (0, import_react5.useState)(null);
-    const hoverHighlight = (0, import_react5.useMemo)(() => {
+    const [hoverHash, setHoverHash] = (0, import_react6.useState)(null);
+    const hoverHighlight = (0, import_react6.useMemo)(() => {
       if (!hoverHash)
         return null;
       const byHash = new Map(displayLayout.map((c) => [c.hash, c]));
@@ -9376,7 +9540,7 @@ Commits beyond this point will be lost for that branch.`,
       }
       return rows.size ? rows : null;
     }, [hoverHash, displayLayout]);
-    const renderEdge = (0, import_react5.useCallback)((commit, edge) => {
+    const renderEdge = (0, import_react6.useCallback)((commit, edge) => {
       const isWip = commit.hash === WIP_HASH;
       const x1 = SVG_PAD_L + edge.fromLane * LANE_WIDTH;
       const y1 = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2;
@@ -9385,7 +9549,7 @@ Commits beyond this point will be lost for that branch.`,
       const key = `${commit.hash}-${edge.fromLane}-${edge.toLane}-${edge.toRow}`;
       const dashArray = isWip || edge.dashed ? "4 3" : void 0;
       if (x1 === x2) {
-        return /* @__PURE__ */ import_react5.default.createElement(
+        return /* @__PURE__ */ import_react6.default.createElement(
           "line",
           {
             key,
@@ -9410,7 +9574,7 @@ Commits beyond this point will be lost for that branch.`,
           `Q${x2} ${y1 + r2} ${x2} ${y1 + 2 * r2}`,
           `L${x2} ${y2}`
         ].join(" ");
-        return /* @__PURE__ */ import_react5.default.createElement(
+        return /* @__PURE__ */ import_react6.default.createElement(
           "path",
           {
             key,
@@ -9437,7 +9601,7 @@ Commits beyond this point will be lost for that branch.`,
         `Q${x2} ${y1} ${x2} ${y1 + r}`,
         `L${x2} ${y2}`
       ].join(" ");
-      return /* @__PURE__ */ import_react5.default.createElement(
+      return /* @__PURE__ */ import_react6.default.createElement(
         "path",
         {
           key,
@@ -9450,7 +9614,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       );
     }, []);
-    const buildMenuItems = (0, import_react5.useCallback)((commit) => {
+    const buildMenuItems = (0, import_react6.useCallback)((commit) => {
       const isHead = commit.refs.some((r) => r.includes("HEAD ->") && r.includes(currentBranch));
       return [
         { label: t("graph.menu.checkout"), action: () => onCheckoutCommit?.(commit.hash) },
@@ -9491,14 +9655,14 @@ Commits beyond this point will be lost for that branch.`,
       onMoveCommit,
       t
     ]);
-    const handleRowContextMenu = (0, import_react5.useCallback)((e, commit) => {
+    const handleRowContextMenu = (0, import_react6.useCallback)((e, commit) => {
       if (commit.hash === WIP_HASH)
         return;
       e.preventDefault();
       e.stopPropagation();
       setCtx({ x: e.clientX, y: e.clientY, commit });
     }, []);
-    const handleRowDrop = (0, import_react5.useCallback)((e, commit) => {
+    const handleRowDrop = (0, import_react6.useCallback)((e, commit) => {
       e.preventDefault();
       setDragOverRow(null);
       const branch = dragBranch ?? e.dataTransfer.getData("text/plain");
@@ -9507,7 +9671,7 @@ Commits beyond this point will be lost for that branch.`,
         return;
       setDrop({ x: e.clientX, y: e.clientY, hash: commit.hash, branch });
     }, [dragBranch]);
-    const buildDropItems = (0, import_react5.useCallback)((d) => {
+    const buildDropItems = (0, import_react6.useCallback)((d) => {
       const short = d.hash.slice(0, 7);
       return [
         { label: t("graph.drop.reset", d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, "reset"), danger: true },
@@ -9515,7 +9679,7 @@ Commits beyond this point will be lost for that branch.`,
         { label: t("graph.drop.merge", d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, "merge") }
       ];
     }, [onBranchDrop, t]);
-    return /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-container" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-header" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-h-refs", style: { width: refsColW } }, "BRANCH / TAG"), /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeRefs }), /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-h-graph", style: { width: svgW } }, "GRAPH"), /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-h-msg" }, "COMMIT MESSAGE"), showAuthor && /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeAuthor }), /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-h-author", style: { width: authorColW } }, "AUTHOR")), showDate && /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeDate }), /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-h-date", style: { width: dateColW } }, "DATE")), showSha && /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeSha }), /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-h-sha", style: { width: shaColW } }, "SHA"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-body", ref: bodyRef }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-scroll-content", style: { height: svgH, position: "relative" } }, /* @__PURE__ */ import_react5.default.createElement(
+    return /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-container" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-header" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-h-refs", style: { width: refsColW } }, "BRANCH / TAG"), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeRefs }), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-h-graph", style: { width: svgW } }, "GRAPH"), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-h-msg" }, "COMMIT MESSAGE"), showAuthor && /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeAuthor }), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-h-author", style: { width: authorColW } }, "AUTHOR")), showDate && /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeDate }), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-h-date", style: { width: dateColW } }, "DATE")), showSha && /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeSha }), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-h-sha", style: { width: shaColW } }, "SHA"))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-body", ref: bodyRef }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-scroll-content", style: { height: svgH, position: "relative" } }, /* @__PURE__ */ import_react6.default.createElement(
       "svg",
       {
         className: "cg-graph-svg",
@@ -9541,7 +9705,7 @@ Commits beyond this point will be lost for that branch.`,
         if (w <= 0)
           return null;
         const edgeW = 2;
-        return /* @__PURE__ */ import_react5.default.createElement("g", { key: `band-${commit.hash}` }, /* @__PURE__ */ import_react5.default.createElement("rect", { x: cx, y, width: w, height: bandH, fill: commit.color, opacity: 0.14 }), /* @__PURE__ */ import_react5.default.createElement("rect", { x: right - edgeW, y, width: edgeW, height: bandH, fill: commit.color, opacity: 0.7 }));
+        return /* @__PURE__ */ import_react6.default.createElement("g", { key: `band-${commit.hash}` }, /* @__PURE__ */ import_react6.default.createElement("rect", { x: cx, y, width: w, height: bandH, fill: commit.color, opacity: 0.14 }), /* @__PURE__ */ import_react6.default.createElement("rect", { x: right - edgeW, y, width: edgeW, height: bandH, fill: commit.color, opacity: 0.7 }));
       }),
       displayLayout.map((commit) => {
         if (commit.hash === WIP_HASH || commit.refs.length === 0)
@@ -9550,7 +9714,7 @@ Commits beyond this point will be lost for that branch.`,
         const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2;
         if (cx - NODE_RADIUS <= 0)
           return null;
-        return /* @__PURE__ */ import_react5.default.createElement(
+        return /* @__PURE__ */ import_react6.default.createElement(
           "line",
           {
             key: `conn-${commit.hash}`,
@@ -9571,7 +9735,7 @@ Commits beyond this point will be lost for that branch.`,
         const isWip = commit.hash === WIP_HASH;
         if (isWip) {
           if (conflictMode) {
-            return /* @__PURE__ */ import_react5.default.createElement("g", { key: "wip" }, /* @__PURE__ */ import_react5.default.createElement("circle", { cx, cy, r: NODE_RADIUS + 2, fill: "#161b22" }), /* @__PURE__ */ import_react5.default.createElement(
+            return /* @__PURE__ */ import_react6.default.createElement("g", { key: "wip" }, /* @__PURE__ */ import_react6.default.createElement("circle", { cx, cy, r: NODE_RADIUS + 2, fill: "#161b22" }), /* @__PURE__ */ import_react6.default.createElement(
               "circle",
               {
                 cx,
@@ -9581,7 +9745,7 @@ Commits beyond this point will be lost for that branch.`,
                 stroke: "#ffa657",
                 strokeWidth: 1.5
               }
-            ), /* @__PURE__ */ import_react5.default.createElement(
+            ), /* @__PURE__ */ import_react6.default.createElement(
               "text",
               {
                 x: cx,
@@ -9596,7 +9760,7 @@ Commits beyond this point will be lost for that branch.`,
               "!"
             ));
           }
-          return /* @__PURE__ */ import_react5.default.createElement("g", { key: "wip" }, /* @__PURE__ */ import_react5.default.createElement(
+          return /* @__PURE__ */ import_react6.default.createElement("g", { key: "wip" }, /* @__PURE__ */ import_react6.default.createElement(
             "circle",
             {
               cx,
@@ -9607,7 +9771,7 @@ Commits beyond this point will be lost for that branch.`,
               strokeWidth: 1.5,
               strokeDasharray: "3 2"
             }
-          ), /* @__PURE__ */ import_react5.default.createElement(
+          ), /* @__PURE__ */ import_react6.default.createElement(
             "text",
             {
               x: cx,
@@ -9624,7 +9788,7 @@ Commits beyond this point will be lost for that branch.`,
         }
         const init = initials(commit.author);
         const isMerge = commit.parents.length >= 2;
-        return /* @__PURE__ */ import_react5.default.createElement("g", { key: commit.hash }, isSelected && /* @__PURE__ */ import_react5.default.createElement(
+        return /* @__PURE__ */ import_react6.default.createElement("g", { key: commit.hash }, isSelected && /* @__PURE__ */ import_react6.default.createElement(
           "circle",
           {
             cx,
@@ -9637,7 +9801,7 @@ Commits beyond this point will be lost for that branch.`,
           }
         ), isMerge ? (
           /* Merge commit: small plain dot (de-emphasized, GitKraken-style) */
-          /* @__PURE__ */ import_react5.default.createElement(
+          /* @__PURE__ */ import_react6.default.createElement(
             "circle",
             {
               cx,
@@ -9650,7 +9814,7 @@ Commits beyond this point will be lost for that branch.`,
           )
         ) : showAvatars ? (
           /* Normal commit: author avatar */
-          /* @__PURE__ */ import_react5.default.createElement(
+          /* @__PURE__ */ import_react6.default.createElement(
             NodeAvatar,
             {
               cx,
@@ -9665,7 +9829,7 @@ Commits beyond this point will be lost for that branch.`,
           )
         ) : (
           /* Avatars off: colored circle with initials */
-          /* @__PURE__ */ import_react5.default.createElement("g", null, /* @__PURE__ */ import_react5.default.createElement("circle", { cx, cy, r: NODE_RADIUS, fill: commit.color }), /* @__PURE__ */ import_react5.default.createElement(
+          /* @__PURE__ */ import_react6.default.createElement("g", null, /* @__PURE__ */ import_react6.default.createElement("circle", { cx, cy, r: NODE_RADIUS, fill: commit.color }), /* @__PURE__ */ import_react6.default.createElement(
             "text",
             {
               x: cx,
@@ -9690,7 +9854,7 @@ Commits beyond this point will be lost for that branch.`,
       const prefs = processRefs(commit.refs);
       const primary = prefs[0];
       const stackCount = prefs.length - 1;
-      return /* @__PURE__ */ import_react5.default.createElement(
+      return /* @__PURE__ */ import_react6.default.createElement(
         "div",
         {
           key: commit.hash,
@@ -9708,8 +9872,8 @@ Commits beyond this point will be lost for that branch.`,
           },
           onDrop: (e) => handleRowDrop(e, commit)
         },
-        /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-color-bar", style: { background: isWip ? "#484f58" : commit.color } }),
-        /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-refs-col", style: { width: refsColW } }, primary ? /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement(
+        /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-color-bar", style: { background: isWip ? "#484f58" : commit.color } }),
+        /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-refs-col", style: { width: refsColW } }, primary ? /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement(
           "div",
           {
             className: "cg-refs-chips",
@@ -9734,7 +9898,7 @@ Commits beyond this point will be lost for that branch.`,
               refExpandTimer.current = setTimeout(() => setRefExpand(null), 120);
             }
           },
-          /* @__PURE__ */ import_react5.default.createElement(
+          /* @__PURE__ */ import_react6.default.createElement(
             RefChip,
             {
               pref: primary,
@@ -9747,16 +9911,16 @@ Commits beyond this point will be lost for that branch.`,
               }
             }
           ),
-          stackCount > 0 && refExpand?.row !== commit.row && /* @__PURE__ */ import_react5.default.createElement("span", { className: "rc-stack-badge" }, "+", stackCount)
-        ), /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-ref-line-stub", style: { background: dimColor(commit.color) } })) : null),
-        /* @__PURE__ */ import_react5.default.createElement("div", { style: { width: svgW, flexShrink: 0 } }),
-        /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-msg" }, !isWip && sigBadge(commit.signature), /* @__PURE__ */ import_react5.default.createElement("span", { className: `cg-msg ${isWip ? "cg-msg-wip" : ""}` }, commit.message)),
-        showAuthor && !isWip && /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-author", style: { width: authorColW } }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "cg-author-name" }, commit.author)),
-        showAuthor && isWip && /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-author", style: { width: authorColW } }),
-        showDate && /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-date", style: { width: dateColW } }, !isWip ? fmtDate(commit.date, dateFormat) : ""),
-        showSha && /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-col-sha", style: { width: shaColW } }, !isWip && /* @__PURE__ */ import_react5.default.createElement("code", null, commit.shortHash))
+          stackCount > 0 && refExpand?.row !== commit.row && /* @__PURE__ */ import_react6.default.createElement("span", { className: "rc-stack-badge" }, "+", stackCount)
+        ), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-ref-line-stub", style: { background: dimColor(commit.color) } })) : null),
+        /* @__PURE__ */ import_react6.default.createElement("div", { style: { width: svgW, flexShrink: 0 } }),
+        /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-msg" }, !isWip && sigBadge(commit.signature), /* @__PURE__ */ import_react6.default.createElement("span", { className: `cg-msg ${isWip ? "cg-msg-wip" : ""}` }, commit.message)),
+        showAuthor && !isWip && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-author", style: { width: authorColW } }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "cg-author-name" }, commit.author)),
+        showAuthor && isWip && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-author", style: { width: authorColW } }),
+        showDate && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-date", style: { width: dateColW } }, !isWip ? fmtDate(commit.date, dateFormat) : ""),
+        showSha && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-col-sha", style: { width: shaColW } }, !isWip && /* @__PURE__ */ import_react6.default.createElement("code", null, commit.shortHash))
       );
-    })), displayLayout.length === 0 && /* @__PURE__ */ import_react5.default.createElement("div", { className: "cg-empty" }, t("graph.empty"))), ctx && /* @__PURE__ */ import_react5.default.createElement(
+    })), displayLayout.length === 0 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cg-empty" }, t("graph.empty"))), ctx && /* @__PURE__ */ import_react6.default.createElement(
       ContextMenu,
       {
         x: ctx.x,
@@ -9764,7 +9928,7 @@ Commits beyond this point will be lost for that branch.`,
         items: buildMenuItems(ctx.commit),
         onClose: () => setCtx(null)
       }
-    ), drop && /* @__PURE__ */ import_react5.default.createElement(
+    ), drop && /* @__PURE__ */ import_react6.default.createElement(
       ContextMenu,
       {
         x: drop.x,
@@ -9784,7 +9948,7 @@ Commits beyond this point will be lost for that branch.`,
       const top = rect.bottom + 4;
       const left = rect.left;
       return (0, import_react_dom2.createPortal)(
-        /* @__PURE__ */ import_react5.default.createElement(
+        /* @__PURE__ */ import_react6.default.createElement(
           "div",
           {
             className: "ref-expansion-popup",
@@ -9797,7 +9961,7 @@ Commits beyond this point will be lost for that branch.`,
               refExpandTimer.current = setTimeout(() => setRefExpand(null), 120);
             }
           },
-          hiddenPrefs.map((p, i) => /* @__PURE__ */ import_react5.default.createElement(
+          hiddenPrefs.map((p, i) => /* @__PURE__ */ import_react6.default.createElement(
             RefChip,
             {
               key: i,
@@ -9818,7 +9982,7 @@ Commits beyond this point will be lost for that branch.`,
   }
 
   // ../src/renderer/src/components/RightPanel/RightPanel.tsx
-  var import_react6 = __toESM(require_react());
+  var import_react7 = __toESM(require_react());
   function buildTree(files) {
     const root = { name: "", fullPath: "", isFile: false, children: [] };
     for (const f of files) {
@@ -9836,7 +10000,7 @@ Commits beyond this point will be lost for that branch.`,
     }
     return root.children;
   }
-  var TreePencil = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", style: { flexShrink: 0 } }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" }));
+  var TreePencil = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", style: { flexShrink: 0 } }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" }));
   function treeStats(node) {
     if (node.isFile) {
       const s = node.status ?? "M";
@@ -9848,20 +10012,20 @@ Commits beyond this point will be lost for that branch.`,
     }, { mod: 0, add: 0, del: 0 });
   }
   function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect, isSelected }) {
-    const [open, setOpen] = import_react6.default.useState(true);
+    const [open, setOpen] = import_react7.default.useState(true);
     const indent = depth * 10;
     if (node.isFile) {
       const s = node.status ?? "M";
-      return /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react7.default.createElement(
         "div",
         {
           className: `st-tr st-clickable ${isSelected ? "st-selected" : ""}`,
           style: { paddingLeft: indent + 4 },
           onClick: () => onSelect?.(node.fullPath)
         },
-        s === "A" ? /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-fsi st-fsi-add" }, "+") : s === "D" ? /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-fsi st-fsi-del" }, "\u2212") : /* @__PURE__ */ import_react6.default.createElement(TreePencil, null),
-        /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-tr-name" }, node.name),
-        actionIcon && /* @__PURE__ */ import_react6.default.createElement(
+        s === "A" ? /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-fsi st-fsi-add" }, "+") : s === "D" ? /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-fsi st-fsi-del" }, "\u2212") : /* @__PURE__ */ import_react7.default.createElement(TreePencil, null),
+        /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-tr-name" }, node.name),
+        actionIcon && /* @__PURE__ */ import_react7.default.createElement(
           "button",
           {
             className: `st-action ${actionIcon === "+" ? "st-stage" : "st-unstage"}`,
@@ -9877,7 +10041,7 @@ Commits beyond this point will be lost for that branch.`,
     }
     const allPaths = (n) => n.isFile ? [n.fullPath] : n.children.flatMap(allPaths);
     const stats = !open ? treeStats(node) : null;
-    return /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("div", { className: "st-tr st-tr-dir", style: { paddingLeft: indent }, onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-tr-tri" }, open ? "\u25BC" : "\u25B6"), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-tr-dirname" }, node.name), stats && /* @__PURE__ */ import_react6.default.createElement("div", { className: "st-tr-stats" }, stats.mod > 0 && /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement(TreePencil, null), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-stat-mod" }, stats.mod)), stats.add > 0 && /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-stat-add" }, "+", stats.add), stats.del > 0 && /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-stat-del" }, "\u2212", stats.del)), actionIcon && /* @__PURE__ */ import_react6.default.createElement(
+    return /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement("div", { className: "st-tr st-tr-dir", style: { paddingLeft: indent }, onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-tr-tri" }, open ? "\u25BC" : "\u25B6"), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-tr-dirname" }, node.name), stats && /* @__PURE__ */ import_react7.default.createElement("div", { className: "st-tr-stats" }, stats.mod > 0 && /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement(TreePencil, null), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-stat-mod" }, stats.mod)), stats.add > 0 && /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-stat-add" }, "+", stats.add), stats.del > 0 && /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-stat-del" }, "\u2212", stats.del)), actionIcon && /* @__PURE__ */ import_react7.default.createElement(
       "button",
       {
         className: `st-action ${actionIcon === "+" ? "st-stage" : "st-unstage"}`,
@@ -9888,7 +10052,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       },
       actionIcon
-    )), open && node.children.map((c) => /* @__PURE__ */ import_react6.default.createElement(
+    )), open && node.children.map((c) => /* @__PURE__ */ import_react7.default.createElement(
       TreeFileRow,
       {
         key: c.fullPath,
@@ -9914,8 +10078,8 @@ Commits beyond this point will be lost for that branch.`,
   }
   function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }) {
     const aiLogo = aiAvatarDataUri(name, email);
-    const [src, setSrc] = (0, import_react6.useState)(aiLogo);
-    (0, import_react6.useEffect)(() => {
+    const [src, setSrc] = (0, import_react7.useState)(aiLogo);
+    (0, import_react7.useEffect)(() => {
       if (aiLogo) {
         setSrc(aiLogo);
         return;
@@ -9934,7 +10098,7 @@ Commits beyond this point will be lost for that branch.`,
     }, [email, sha, aiLogo]);
     const base = { width: size, height: size, borderRadius: radius, flexShrink: 0 };
     if (src) {
-      return /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react7.default.createElement(
         "img",
         {
           src,
@@ -9947,7 +10111,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       );
     }
-    return /* @__PURE__ */ import_react6.default.createElement("div", { style: {
+    return /* @__PURE__ */ import_react7.default.createElement("div", { style: {
       ...base,
       background: getAvatarColor(email),
       display: "flex",
@@ -9975,19 +10139,19 @@ Commits beyond this point will be lost for that branch.`,
   };
   function FileHistoryModal({ filepath, onClose, onSelectCommit }) {
     const { t } = useLang();
-    const [history, setHistory] = (0, import_react6.useState)([]);
-    const [loading, setLoading] = (0, import_react6.useState)(true);
-    (0, import_react6.useEffect)(() => {
+    const [history, setHistory] = (0, import_react7.useState)([]);
+    const [loading, setLoading] = (0, import_react7.useState)(true);
+    (0, import_react7.useEffect)(() => {
       setLoading(true);
       window.gitAPI.getFileHistory(filepath).then((r) => {
         setHistory(r.commits ?? []);
         setLoading(false);
       });
     }, [filepath]);
-    return /* @__PURE__ */ import_react6.default.createElement("div", { className: "fh-overlay", onClick: (e) => e.target === e.currentTarget && onClose() }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "fh-modal" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "fh-header" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "fh-title" }, t("panel.fileHistory", filepath.split("/").pop() ?? "")), /* @__PURE__ */ import_react6.default.createElement("button", { className: "fh-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "fh-path" }, filepath), /* @__PURE__ */ import_react6.default.createElement("div", { className: "fh-list" }, loading && /* @__PURE__ */ import_react6.default.createElement("div", { className: "fh-empty" }, t("panel.loading")), !loading && history.length === 0 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "fh-empty" }, t("panel.noHistory")), history.map((c) => /* @__PURE__ */ import_react6.default.createElement("div", { key: c.hash, className: "fh-row", onClick: () => {
+    return /* @__PURE__ */ import_react7.default.createElement("div", { className: "fh-overlay", onClick: (e) => e.target === e.currentTarget && onClose() }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "fh-modal" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "fh-header" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "fh-title" }, t("panel.fileHistory", filepath.split("/").pop() ?? "")), /* @__PURE__ */ import_react7.default.createElement("button", { className: "fh-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react7.default.createElement("div", { className: "fh-path" }, filepath), /* @__PURE__ */ import_react7.default.createElement("div", { className: "fh-list" }, loading && /* @__PURE__ */ import_react7.default.createElement("div", { className: "fh-empty" }, t("panel.loading")), !loading && history.length === 0 && /* @__PURE__ */ import_react7.default.createElement("div", { className: "fh-empty" }, t("panel.noHistory")), history.map((c) => /* @__PURE__ */ import_react7.default.createElement("div", { key: c.hash, className: "fh-row", onClick: () => {
       onSelectCommit(c.hash);
       onClose();
-    } }, /* @__PURE__ */ import_react6.default.createElement("code", { className: "fh-hash" }, c.shortHash), /* @__PURE__ */ import_react6.default.createElement("div", { className: "fh-info" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "fh-msg" }, c.message), /* @__PURE__ */ import_react6.default.createElement("span", { className: "fh-meta" }, c.author, " \xB7 ", fmtDate2(c.date))))))));
+    } }, /* @__PURE__ */ import_react7.default.createElement("code", { className: "fh-hash" }, c.shortHash), /* @__PURE__ */ import_react7.default.createElement("div", { className: "fh-info" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "fh-msg" }, c.message), /* @__PURE__ */ import_react7.default.createElement("span", { className: "fh-meta" }, c.author, " \xB7 ", fmtDate2(c.date))))))));
   }
   function hashToColor(hash) {
     let n = 0;
@@ -9998,9 +10162,9 @@ Commits beyond this point will be lost for that branch.`,
   }
   function BlameView({ commitHash, filepath, onSelectCommit }) {
     const { t } = useLang();
-    const [lines, setLines] = (0, import_react6.useState)([]);
-    const [loading, setLoading] = (0, import_react6.useState)(true);
-    (0, import_react6.useEffect)(() => {
+    const [lines, setLines] = (0, import_react7.useState)([]);
+    const [loading, setLoading] = (0, import_react7.useState)(true);
+    (0, import_react7.useEffect)(() => {
       setLoading(true);
       window.gitAPI.getBlame(commitHash, filepath).then((r) => {
         setLines(r.lines ?? []);
@@ -10008,20 +10172,20 @@ Commits beyond this point will be lost for that branch.`,
       });
     }, [commitHash, filepath]);
     if (loading)
-      return /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-blame-loading" }, t("panel.loadingBlame"));
+      return /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-blame-loading" }, t("panel.loadingBlame"));
     if (!lines.length)
-      return /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-blame-loading" }, t("panel.noBlame"));
-    return /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-blame-container" }, /* @__PURE__ */ import_react6.default.createElement("table", { className: "rp-blame-table" }, /* @__PURE__ */ import_react6.default.createElement("tbody", null, lines.map((line, i) => {
+      return /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-blame-loading" }, t("panel.noBlame"));
+    return /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-blame-container" }, /* @__PURE__ */ import_react7.default.createElement("table", { className: "rp-blame-table" }, /* @__PURE__ */ import_react7.default.createElement("tbody", null, lines.map((line, i) => {
       const prevHash = lines[i - 1]?.hash;
       const isNewBlock = line.hash !== prevHash;
       const bg = hashToColor(line.hash);
-      return /* @__PURE__ */ import_react6.default.createElement("tr", { key: i, className: "rp-blame-row" }, /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react7.default.createElement("tr", { key: i, className: "rp-blame-row" }, /* @__PURE__ */ import_react7.default.createElement(
         "td",
         {
           className: "rp-blame-meta",
           style: { background: bg, opacity: isNewBlock ? 1 : 0.6 }
         },
-        isNewBlock ? /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement(
+        isNewBlock ? /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement(
           "span",
           {
             className: "rp-blame-hash",
@@ -10031,8 +10195,8 @@ ${line.author}
 ${line.date}`
           },
           line.shortHash
-        ), /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-blame-author" }, line.author.split(" ")[0]), /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-blame-date" }, line.date)) : null
-      ), /* @__PURE__ */ import_react6.default.createElement("td", { className: "rp-blame-linenum" }, line.lineNum), /* @__PURE__ */ import_react6.default.createElement("td", { className: "rp-blame-content" }, /* @__PURE__ */ import_react6.default.createElement("code", null, line.content)));
+        ), /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-blame-author" }, line.author.split(" ")[0]), /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-blame-date" }, line.date)) : null
+      ), /* @__PURE__ */ import_react7.default.createElement("td", { className: "rp-blame-linenum" }, line.lineNum), /* @__PURE__ */ import_react7.default.createElement("td", { className: "rp-blame-content" }, /* @__PURE__ */ import_react7.default.createElement("code", null, line.content)));
     }))));
   }
   function formatPath(path) {
@@ -10048,19 +10212,19 @@ ${line.date}`
   var MAX_MSG_H = 400;
   function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess }) {
     const { t } = useLang();
-    const [files, setFiles] = (0, import_react6.useState)([]);
-    const [body, setBody] = (0, import_react6.useState)("");
-    const [selectedFile, setSelectedFile] = (0, import_react6.useState)(null);
-    const [view, setView] = (0, import_react6.useState)("files");
-    const [cdTreeMode, setCdTreeMode] = (0, import_react6.useState)(() => localStorage.getItem("cd-tree-mode") === "true");
-    const [fileHistoryPath, setFileHistoryPath] = (0, import_react6.useState)(null);
-    const [viewAll, setViewAll] = (0, import_react6.useState)(false);
-    const [msgHeight, setMsgHeight] = (0, import_react6.useState)(120);
-    const [amendEditing, setAmendEditing] = (0, import_react6.useState)(false);
-    const [amendMsg, setAmendMsg] = (0, import_react6.useState)("");
-    const [amendLoading, setAmendLoading] = (0, import_react6.useState)(false);
-    const dragRef = (0, import_react6.useRef)(null);
-    const onResizeMouseDown = (0, import_react6.useCallback)((e) => {
+    const [files, setFiles] = (0, import_react7.useState)([]);
+    const [body, setBody] = (0, import_react7.useState)("");
+    const [selectedFile, setSelectedFile] = (0, import_react7.useState)(null);
+    const [view, setView] = (0, import_react7.useState)("files");
+    const [cdTreeMode, setCdTreeMode] = (0, import_react7.useState)(() => localStorage.getItem("cd-tree-mode") === "true");
+    const [fileHistoryPath, setFileHistoryPath] = (0, import_react7.useState)(null);
+    const [viewAll, setViewAll] = (0, import_react7.useState)(false);
+    const [msgHeight, setMsgHeight] = (0, import_react7.useState)(120);
+    const [amendEditing, setAmendEditing] = (0, import_react7.useState)(false);
+    const [amendMsg, setAmendMsg] = (0, import_react7.useState)("");
+    const [amendLoading, setAmendLoading] = (0, import_react7.useState)(false);
+    const dragRef = (0, import_react7.useRef)(null);
+    const onResizeMouseDown = (0, import_react7.useCallback)((e) => {
       e.preventDefault();
       dragRef.current = { startY: e.clientY, startH: msgHeight };
       const onMove = (ev) => {
@@ -10078,7 +10242,7 @@ ${line.date}`
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     }, [msgHeight]);
-    (0, import_react6.useEffect)(() => {
+    (0, import_react7.useEffect)(() => {
       setFiles([]);
       setBody("");
       setSelectedFile(null);
@@ -10098,7 +10262,7 @@ ${line.date}`
     const isHeadCommit = commit.refs.some((r) => r.includes("HEAD"));
     const coAuthors = body ? [...body.matchAll(/Co-Authored-By:\s*(.+?)\s*<([^>]+)>/gi)].map((m) => ({ name: m[1].trim(), email: m[2].trim() })) : [];
     const cleanBody = body ? body.replace(/^Co-Authored-By:.*$/gim, "").trim() : "";
-    return /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-content" }, wipCount != null && wipCount > 0 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-wip-banner" }, /* @__PURE__ */ import_react6.default.createElement("span", null, wipCount, " fichier", wipCount !== 1 ? "s" : "", " modifi\xE9", wipCount !== 1 ? "s" : "", " en cours"), /* @__PURE__ */ import_react6.default.createElement("button", { className: "cd-view-change-btn", onClick: onViewWip }, "Voir les changements")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-top-row" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-hash-info" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-label" }, "commit:"), /* @__PURE__ */ import_react6.default.createElement(
+    return /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-content" }, wipCount != null && wipCount > 0 && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-wip-banner" }, /* @__PURE__ */ import_react7.default.createElement("span", null, wipCount, " fichier", wipCount !== 1 ? "s" : "", " modifi\xE9", wipCount !== 1 ? "s" : "", " en cours"), /* @__PURE__ */ import_react7.default.createElement("button", { className: "cd-view-change-btn", onClick: onViewWip }, "Voir les changements")), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-top-row" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-hash-info" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-label" }, "commit:"), /* @__PURE__ */ import_react7.default.createElement(
       "code",
       {
         className: "cd-hash",
@@ -10106,7 +10270,7 @@ ${line.date}`
         title: t("panel.copyHash")
       },
       commit.shortHash
-    )), /* @__PURE__ */ import_react6.default.createElement("button", { className: "cd-ai-btn" }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })), /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-ai-label" }, "Recompose commit with AI"), /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-ai-sep" }), /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-ai-arrow" }, "\u25BC"))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-scroll" }, /* @__PURE__ */ import_react6.default.createElement(
+    )), /* @__PURE__ */ import_react7.default.createElement("button", { className: "cd-ai-btn" }, /* @__PURE__ */ import_react7.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-ai-label" }, "Recompose commit with AI"), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-ai-sep" }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-ai-arrow" }, "\u25BC"))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-scroll" }, /* @__PURE__ */ import_react7.default.createElement(
       "div",
       {
         className: `cd-message-block${amendEditing ? " cd-message-block--editing" : ""}${!amendEditing && isHeadCommit ? " cd-message-block--amendable" : ""}`,
@@ -10118,7 +10282,7 @@ ${line.date}`
         } : void 0,
         title: !amendEditing && isHeadCommit ? t("panel.clickToAmend") : void 0
       },
-      amendEditing ? /* @__PURE__ */ import_react6.default.createElement(
+      amendEditing ? /* @__PURE__ */ import_react7.default.createElement(
         "textarea",
         {
           className: "cd-amend-textarea",
@@ -10127,8 +10291,8 @@ ${line.date}`
           autoFocus: true,
           onClick: (e) => e.stopPropagation()
         }
-      ) : /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("p", { className: "cd-title" }, commit.message), cleanBody && /* @__PURE__ */ import_react6.default.createElement("pre", { className: "cd-body" }, cleanBody))
-    ), amendEditing && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-amend-actions" }, /* @__PURE__ */ import_react6.default.createElement(
+      ) : /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement("p", { className: "cd-title" }, commit.message), cleanBody && /* @__PURE__ */ import_react7.default.createElement("pre", { className: "cd-body" }, cleanBody))
+    ), amendEditing && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-amend-actions" }, /* @__PURE__ */ import_react7.default.createElement(
       "button",
       {
         className: "cd-amend-confirm",
@@ -10147,25 +10311,25 @@ ${line.date}`
         }
       },
       amendLoading ? "\u2026" : t("panel.amendConfirm")
-    ), /* @__PURE__ */ import_react6.default.createElement("button", { className: "cd-amend-cancel", onClick: () => setAmendEditing(false) }, t("panel.amendCancel"))), !amendEditing && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-resize-handle", onMouseDown: onResizeMouseDown }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-resize-grip" })), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-info-zone" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-author-block" }, /* @__PURE__ */ import_react6.default.createElement(GravatarAvatar, { email: commit.authorEmail, name: commit.author, sha: commit.hash, size: 36, radius: 6 }), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-author-mid" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-author-name" }, commit.author), /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-author-meta" }, "authored ", fmtDate2(commit.date))), parentShort && /* @__PURE__ */ import_react6.default.createElement("button", { className: "cd-parent-btn", onClick: () => onSelectCommit(commit.parents[0]) }, "parent: ", /* @__PURE__ */ import_react6.default.createElement("code", null, parentShort))), coAuthors.length > 0 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-coauthors" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-label" }, "Co-authors:"), coAuthors.map((a, i) => /* @__PURE__ */ import_react6.default.createElement(GravatarAvatar, { key: i, email: a.email, name: a.name, size: 28, radius: 6 }))), commit.refs.length > 0 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-refs" }, commit.refs.filter((r) => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r)).map((r, i) => {
+    ), /* @__PURE__ */ import_react7.default.createElement("button", { className: "cd-amend-cancel", onClick: () => setAmendEditing(false) }, t("panel.amendCancel"))), !amendEditing && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-resize-handle", onMouseDown: onResizeMouseDown }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-resize-grip" })), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-info-zone" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-author-block" }, /* @__PURE__ */ import_react7.default.createElement(GravatarAvatar, { email: commit.authorEmail, name: commit.author, sha: commit.hash, size: 36, radius: 6 }), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-author-mid" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-author-name" }, commit.author), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-author-meta" }, "authored ", fmtDate2(commit.date))), parentShort && /* @__PURE__ */ import_react7.default.createElement("button", { className: "cd-parent-btn", onClick: () => onSelectCommit(commit.parents[0]) }, "parent: ", /* @__PURE__ */ import_react7.default.createElement("code", null, parentShort))), coAuthors.length > 0 && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-coauthors" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-label" }, "Co-authors:"), coAuthors.map((a, i) => /* @__PURE__ */ import_react7.default.createElement(GravatarAvatar, { key: i, email: a.email, name: a.name, size: 28, radius: 6 }))), commit.refs.length > 0 && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-refs" }, commit.refs.filter((r) => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r)).map((r, i) => {
       const isHead = r.includes("HEAD"), isTag = r.startsWith("tag:");
       const isRemote = r.includes("origin/") || r.includes("remotes/");
       const text = r.replace("tag: ", "").replace("HEAD -> ", "\u2605 ");
       const cls = isHead ? "rp-ref-head" : isTag ? "rp-ref-tag" : isRemote ? "rp-ref-remote" : "rp-ref-local";
-      return /* @__PURE__ */ import_react6.default.createElement("span", { key: i, className: `rp-ref ${cls}` }, text);
+      return /* @__PURE__ */ import_react7.default.createElement("span", { key: i, className: `rp-ref ${cls}` }, text);
     })), files.length > 0 && (() => {
       const nMod = files.filter((f) => f.status !== "A" && f.status !== "D").length;
       const nAdd = files.filter((f) => f.status === "A").length;
       const nDel = files.filter((f) => f.status === "D").length;
-      return /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-files-count-row" }, nMod > 0 && /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", style: { flexShrink: 0 } }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" })), /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-count-mod" }, nMod, " modified")), nAdd > 0 && /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-count-add" }, "+ ", nAdd, " added"), nDel > 0 && /* @__PURE__ */ import_react6.default.createElement("span", { className: "cd-count-del" }, "\u2212 ", nDel, " deleted"));
-    })(), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-files-bar" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "cd-sort-btn", title: "Trier" }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z" }))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "cd-view-toggle" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: `cd-view-btn ${!cdTreeMode ? "active" : ""}`, onClick: () => {
+      return /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-files-count-row" }, nMod > 0 && /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", style: { flexShrink: 0 } }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" })), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-count-mod" }, nMod, " modified")), nAdd > 0 && /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-count-add" }, "+ ", nAdd, " added"), nDel > 0 && /* @__PURE__ */ import_react7.default.createElement("span", { className: "cd-count-del" }, "\u2212 ", nDel, " deleted"));
+    })(), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-files-bar" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: "cd-sort-btn", title: "Trier" }, /* @__PURE__ */ import_react7.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z" }))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cd-view-toggle" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: `cd-view-btn ${!cdTreeMode ? "active" : ""}`, onClick: () => {
       setView("files");
       setCdTreeMode(false);
       localStorage.setItem("cd-tree-mode", "false");
-    } }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z" })), "Path"), /* @__PURE__ */ import_react6.default.createElement("button", { className: `cd-view-btn ${cdTreeMode ? "active" : ""}`, onClick: () => setCdTreeMode((v) => {
+    } }, /* @__PURE__ */ import_react7.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z" })), "Path"), /* @__PURE__ */ import_react7.default.createElement("button", { className: `cd-view-btn ${cdTreeMode ? "active" : ""}`, onClick: () => setCdTreeMode((v) => {
       localStorage.setItem("cd-tree-mode", String(!v));
       return !v;
-    }) }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm9.5-8a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3z" })), "Tree")), /* @__PURE__ */ import_react6.default.createElement("label", { className: "cd-viewall" }, /* @__PURE__ */ import_react6.default.createElement("input", { type: "checkbox", checked: viewAll, onChange: (e) => setViewAll(e.target.checked) }), /* @__PURE__ */ import_react6.default.createElement("span", null, "Tous les fichiers"))), view === "files" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-file-list" }, cdTreeMode ? buildTree(files.map((f) => ({ path: f.path, status: f.status ?? "M" }))).map((node) => /* @__PURE__ */ import_react6.default.createElement(
+    }) }, /* @__PURE__ */ import_react7.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm9.5-8a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3z" })), "Tree")), /* @__PURE__ */ import_react7.default.createElement("label", { className: "cd-viewall" }, /* @__PURE__ */ import_react7.default.createElement("input", { type: "checkbox", checked: viewAll, onChange: (e) => setViewAll(e.target.checked) }), /* @__PURE__ */ import_react7.default.createElement("span", null, "Tous les fichiers"))), view === "files" && /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-file-list" }, cdTreeMode ? buildTree(files.map((f) => ({ path: f.path, status: f.status ?? "M" }))).map((node) => /* @__PURE__ */ import_react7.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -10184,7 +10348,7 @@ ${line.date}`
     )) : files.map((f, i) => {
       const { dir, name } = formatPath(f.path);
       const s = f.status ?? "M";
-      return /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react7.default.createElement(
         "div",
         {
           key: i,
@@ -10194,9 +10358,9 @@ ${line.date}`
             onOpenFileDiff?.({ type: "commit", commitHash: commit.hash, filePath: f.path });
           }
         },
-        s === "A" ? /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-fsi rp-fsi-add" }, "+") : s === "D" ? /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-fsi rp-fsi-del" }, "\u2212") : s === "R" ? /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-fsi rp-fsi-ren" }, "R") : /* @__PURE__ */ import_react6.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", className: "rp-file-pencil" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" })),
-        /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-file-path" }, dir && /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-file-dir" }, dir), /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-file-name" }, name)),
-        /* @__PURE__ */ import_react6.default.createElement(
+        s === "A" ? /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-fsi rp-fsi-add" }, "+") : s === "D" ? /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-fsi rp-fsi-del" }, "\u2212") : s === "R" ? /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-fsi rp-fsi-ren" }, "R") : /* @__PURE__ */ import_react7.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", className: "rp-file-pencil" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" })),
+        /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-file-path" }, dir && /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-file-dir" }, dir), /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-file-name" }, name)),
+        /* @__PURE__ */ import_react7.default.createElement(
           "button",
           {
             className: "rp-history-btn",
@@ -10206,53 +10370,53 @@ ${line.date}`
               setFileHistoryPath(f.path);
             }
           },
-          /* @__PURE__ */ import_react6.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z" }))
+          /* @__PURE__ */ import_react7.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z" }))
         )
       );
-    }), files.length === 0 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-empty" }, t("panel.loading"))), fileHistoryPath && /* @__PURE__ */ import_react6.default.createElement(
+    }), files.length === 0 && /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-empty" }, t("panel.loading"))), fileHistoryPath && /* @__PURE__ */ import_react7.default.createElement(
       FileHistoryModal,
       {
         filepath: fileHistoryPath,
         onClose: () => setFileHistoryPath(null),
         onSelectCommit
       }
-    ), view === "blame" && selectedFile && /* @__PURE__ */ import_react6.default.createElement(BlameView, { commitHash: commit.hash, filepath: selectedFile, onSelectCommit }))));
+    ), view === "blame" && selectedFile && /* @__PURE__ */ import_react7.default.createElement(BlameView, { commitHash: commit.hash, filepath: selectedFile, onSelectCommit }))));
   }
   var SUMMARY_LIMIT = 72;
-  var IcoTrash = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15Z" }));
-  var IcoSpark = ({ size = 14 }) => /* @__PURE__ */ import_react6.default.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" }));
-  var IcoSort = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z" }));
-  var IcoPathView = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" }));
-  var IcoTreeView = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z" }));
-  var IcoCommit = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" }));
-  var IcoStash = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z" }));
-  var IcoCloud = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z" }));
-  var IcoChevron = ({ open }) => /* @__PURE__ */ import_react6.default.createElement("svg", { className: `st2-chev ${open ? "open" : ""}`, width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z" }));
+  var IcoTrash = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15Z" }));
+  var IcoSpark = ({ size = 14 }) => /* @__PURE__ */ import_react7.default.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" }));
+  var IcoSort = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z" }));
+  var IcoPathView = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" }));
+  var IcoTreeView = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z" }));
+  var IcoCommit = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" }));
+  var IcoStash = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z" }));
+  var IcoCloud = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z" }));
+  var IcoChevron = ({ open }) => /* @__PURE__ */ import_react7.default.createElement("svg", { className: `st2-chev ${open ? "open" : ""}`, width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z" }));
   function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff }) {
     const { t } = useLang();
     const isConflict = !!conflictMode;
-    const [changes, setChanges] = (0, import_react6.useState)({ staged: [], unstaged: [], untracked: [] });
-    const [summary, setSummary] = (0, import_react6.useState)("");
-    const [description, setDescription] = (0, import_react6.useState)("");
-    const [amend, setAmend] = (0, import_react6.useState)(false);
-    const [amendFiles, setAmendFiles] = (0, import_react6.useState)([]);
-    const [treeMode, setTreeMode] = (0, import_react6.useState)(() => localStorage.getItem("st-tree-mode") === "true");
-    const [sortAsc, setSortAsc] = (0, import_react6.useState)(true);
-    const [unstagedOpen, setUnstagedOpen] = (0, import_react6.useState)(true);
-    const [stagedOpen, setStagedOpen] = (0, import_react6.useState)(true);
-    const [optionsOpen, setOptionsOpen] = (0, import_react6.useState)(false);
-    const [signoff, setSignoff] = (0, import_react6.useState)(false);
-    const [committing, setCommitting] = (0, import_react6.useState)(false);
-    const [generating, setGenerating] = (0, import_react6.useState)(false);
-    const [selectedDiff, setSelectedDiff] = (0, import_react6.useState)(null);
-    const [formHeight, setFormHeight] = (0, import_react6.useState)(() => parseInt(localStorage.getItem("st-form-h") || "300"));
-    const dragRef = (0, import_react6.useRef)(null);
+    const [changes, setChanges] = (0, import_react7.useState)({ staged: [], unstaged: [], untracked: [] });
+    const [summary, setSummary] = (0, import_react7.useState)("");
+    const [description, setDescription] = (0, import_react7.useState)("");
+    const [amend, setAmend] = (0, import_react7.useState)(false);
+    const [amendFiles, setAmendFiles] = (0, import_react7.useState)([]);
+    const [treeMode, setTreeMode] = (0, import_react7.useState)(() => localStorage.getItem("st-tree-mode") === "true");
+    const [sortAsc, setSortAsc] = (0, import_react7.useState)(true);
+    const [unstagedOpen, setUnstagedOpen] = (0, import_react7.useState)(true);
+    const [stagedOpen, setStagedOpen] = (0, import_react7.useState)(true);
+    const [optionsOpen, setOptionsOpen] = (0, import_react7.useState)(false);
+    const [signoff, setSignoff] = (0, import_react7.useState)(false);
+    const [committing, setCommitting] = (0, import_react7.useState)(false);
+    const [generating, setGenerating] = (0, import_react7.useState)(false);
+    const [selectedDiff, setSelectedDiff] = (0, import_react7.useState)(null);
+    const [formHeight, setFormHeight] = (0, import_react7.useState)(() => parseInt(localStorage.getItem("st-form-h") || "300"));
+    const dragRef = (0, import_react7.useRef)(null);
     const splitMessage = (full) => {
       const lines = full.split("\n");
       setSummary(lines[0] ?? "");
       setDescription(lines.slice(1).join("\n").replace(/^\n+/, ""));
     };
-    const toggleAmend = (0, import_react6.useCallback)(async (checked) => {
+    const toggleAmend = (0, import_react7.useCallback)(async (checked) => {
       setAmend(checked);
       if (checked) {
         const [msgRes, filesRes] = await Promise.all([
@@ -10270,14 +10434,14 @@ ${line.date}`
         setAmendFiles([]);
       }
     }, []);
-    const load = (0, import_react6.useCallback)(async () => {
+    const load = (0, import_react7.useCallback)(async () => {
       const r = await window.gitAPI.getWorkingChanges();
       setChanges(r);
     }, []);
-    (0, import_react6.useEffect)(() => {
+    (0, import_react7.useEffect)(() => {
       load();
     }, [load]);
-    (0, import_react6.useEffect)(() => {
+    (0, import_react7.useEffect)(() => {
       const handler = () => load();
       window.gitAPI.onRepoChanged(handler);
       window.gitAPI.onWorkingChanged(handler);
@@ -10286,7 +10450,7 @@ ${line.date}`
         window.gitAPI.offWorkingChanged(handler);
       };
     }, [load]);
-    (0, import_react6.useEffect)(() => {
+    (0, import_react7.useEffect)(() => {
       if (isConflict) {
         window.gitAPI.getMergeMessage().then((r) => {
           if (r.message)
@@ -10294,7 +10458,7 @@ ${line.date}`
         });
       }
     }, [isConflict]);
-    const onResizeDown = (0, import_react6.useCallback)((e) => {
+    const onResizeDown = (0, import_react7.useCallback)((e) => {
       e.preventDefault();
       dragRef.current = { y: e.clientY, h: formHeight };
       const onMove = (ev) => {
@@ -10392,7 +10556,7 @@ ${line.date}`
       return t("panel.commit.changes", String(n), n !== 1 ? "s" : "");
     })();
     const commitReady = isConflict ? !!summary.trim() && !conflictFiles?.length : canCommit && !!summary.trim();
-    return /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-content rp-staging st2" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-topbar" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-icon-btn st2-danger", title: t("panel.discardAll"), onClick: discardAll, disabled: totalChanged === 0 }, /* @__PURE__ */ import_react6.default.createElement(IcoTrash, null)), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-topbar-mid" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "st2-changecount" }, totalChanged, " ", totalChanged === 1 ? t("panel.fileChange") : t("panel.fileChanges")), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st2-on" }, t("panel.on")), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st2-branch-chip", title: branchName }, branchName)), /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-icon-btn st2-ai", title: t("panel.generate.tooltip"), onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react6.default.createElement(IcoSpark, null))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react6.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react6.default.createElement(IcoPathView, null), " ", t("panel.view.path")), /* @__PURE__ */ import_react6.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react6.default.createElement(IcoTreeView, null), " ", t("panel.view.tree")))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react6.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st2-section-title" }, t("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react6.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { className: "st-empty" }, t("panel.noChanges")) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react6.default.createElement(
+    return /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-content rp-staging st2" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-topbar" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-icon-btn st2-danger", title: t("panel.discardAll"), onClick: discardAll, disabled: totalChanged === 0 }, /* @__PURE__ */ import_react7.default.createElement(IcoTrash, null)), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-topbar-mid" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "st2-changecount" }, totalChanged, " ", totalChanged === 1 ? t("panel.fileChange") : t("panel.fileChanges")), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st2-on" }, t("panel.on")), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st2-branch-chip", title: branchName }, branchName)), /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-icon-btn st2-ai", title: t("panel.generate.tooltip"), onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react7.default.createElement(IcoSpark, null))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react7.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react7.default.createElement(IcoPathView, null), " ", t("panel.view.path")), /* @__PURE__ */ import_react7.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react7.default.createElement(IcoTreeView, null), " ", t("panel.view.tree")))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react7.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st2-section-title" }, t("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react7.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react7.default.createElement("div", { className: "st-empty" }, t("panel.noChanges")) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react7.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -10404,23 +10568,23 @@ ${line.date}`
         onSelect: (p) => selectFile({ path: p, area: "unstaged" }),
         isSelected: selectedDiff?.area === "unstaged" && selectedDiff?.path === node.fullPath
       }
-    )) : /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, sortedUnstaged.map((f) => {
+    )) : /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, sortedUnstaged.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
       const isSelected = selectedDiff?.path === f.path && selectedDiff.area === "unstaged";
-      return /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react7.default.createElement(
         "div",
         {
           key: f.path,
           className: `st-file-row st-clickable ${isSelected ? "st-selected" : ""}`,
           onClick: () => selectFile({ path: f.path, area: "unstaged" })
         },
-        /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label),
-        /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-path", title: f.path }, f.path),
-        /* @__PURE__ */ import_react6.default.createElement("button", { className: "st-action st-stage", title: t("panel.stage.file", f.path), onClick: (e) => {
+        /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label),
+        /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-path", title: f.path }, f.path),
+        /* @__PURE__ */ import_react7.default.createElement("button", { className: "st-action st-stage", title: t("panel.stage.file", f.path), onClick: (e) => {
           e.stopPropagation();
           handle(() => window.gitAPI.stage([f.path]));
         } }, "+"),
-        /* @__PURE__ */ import_react6.default.createElement("button", { className: "st-action st-discard", title: t("panel.discard"), onClick: async (e) => {
+        /* @__PURE__ */ import_react7.default.createElement("button", { className: "st-action st-discard", title: t("panel.discard"), onClick: async (e) => {
           e.stopPropagation();
           if (!window.confirm(t("panel.discard.confirm", f.path)))
             return;
@@ -10429,7 +10593,7 @@ ${line.date}`
       );
     }), sortedUntracked.map((f) => {
       const isDir = f.endsWith("/");
-      return /* @__PURE__ */ import_react6.default.createElement("div", { key: f, className: "st-file-row" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-badge", style: { color: "#3fb950" } }, isDir ? "\u{1F4C1}" : "?"), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-path", title: f }, f, isDir && /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-dir-hint" }, " ", t("panel.folder"))), /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react7.default.createElement("div", { key: f, className: "st-file-row" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-badge", style: { color: "#3fb950" } }, isDir ? "\u{1F4C1}" : "?"), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-path", title: f }, f, isDir && /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-dir-hint" }, " ", t("panel.folder"))), /* @__PURE__ */ import_react7.default.createElement(
         "button",
         {
           className: "st-action st-stage",
@@ -10438,7 +10602,7 @@ ${line.date}`
         },
         "+"
       ));
-    })))), /* @__PURE__ */ import_react6.default.createElement("div", { className: `st2-section ${stagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-section-toggle", onClick: () => setStagedOpen((o) => !o) }, /* @__PURE__ */ import_react6.default.createElement(IcoChevron, { open: stagedOpen }), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st2-section-title" }, t("panel.staged"), " (", stagedCount, ")")), /* @__PURE__ */ import_react6.default.createElement("div", { style: { flex: 1 } }), changes.staged.length > 0 && /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-link st2-danger-link", onClick: () => handle(() => window.gitAPI.unstage(changes.staged.map((f) => f.path))) }, t("panel.unstageAll"))), stagedOpen && /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-file-list" }, stagedCount === 0 ? /* @__PURE__ */ import_react6.default.createElement("div", { className: "st-empty" }, t("panel.noStaged")) : treeMode ? stagedTree.map((node) => /* @__PURE__ */ import_react6.default.createElement(
+    })))), /* @__PURE__ */ import_react7.default.createElement("div", { className: `st2-section ${stagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-section-toggle", onClick: () => setStagedOpen((o) => !o) }, /* @__PURE__ */ import_react7.default.createElement(IcoChevron, { open: stagedOpen }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st2-section-title" }, t("panel.staged"), " (", stagedCount, ")")), /* @__PURE__ */ import_react7.default.createElement("div", { style: { flex: 1 } }), changes.staged.length > 0 && /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-link st2-danger-link", onClick: () => handle(() => window.gitAPI.unstage(changes.staged.map((f) => f.path))) }, t("panel.unstageAll"))), stagedOpen && /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-file-list" }, stagedCount === 0 ? /* @__PURE__ */ import_react7.default.createElement("div", { className: "st-empty" }, t("panel.noStaged")) : treeMode ? stagedTree.map((node) => /* @__PURE__ */ import_react7.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -10450,27 +10614,27 @@ ${line.date}`
         onSelect: (p) => selectFile({ path: p, area: "staged" }),
         isSelected: selectedDiff?.area === "staged" && selectedDiff?.path === node.fullPath
       }
-    )) : /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, sortedStaged.map((f) => {
+    )) : /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, sortedStaged.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
       const isSelected = selectedDiff?.path === f.path && selectedDiff.area === "staged";
-      return /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react7.default.createElement(
         "div",
         {
           key: f.path,
           className: `st-file-row st-clickable ${isSelected ? "st-selected" : ""}`,
           onClick: () => selectFile({ path: f.path, area: "staged" })
         },
-        /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label),
-        /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-path", title: f.path }, f.path),
-        /* @__PURE__ */ import_react6.default.createElement("button", { className: "st-action st-unstage", title: t("panel.unstaged"), onClick: (e) => {
+        /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label),
+        /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-path", title: f.path }, f.path),
+        /* @__PURE__ */ import_react7.default.createElement("button", { className: "st-action st-unstage", title: t("panel.unstaged"), onClick: (e) => {
           e.stopPropagation();
           handle(() => window.gitAPI.unstage([f.path]));
         } }, "\u2212")
       );
     }), amendOnly.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
-      return /* @__PURE__ */ import_react6.default.createElement("div", { key: f.path, className: "st-file-row st-amend-file", title: t("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react6.default.createElement("span", { className: "st-amend-tag" }, "amend"));
-    }))))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-resize-grip" })), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-commit", style: { height: formHeight } }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react6.default.createElement(IcoCommit, null), " ", t("panel.tab.commit")), /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-tab-icon", title: t("panel.tab.stash"), onClick: async () => {
+      return /* @__PURE__ */ import_react7.default.createElement("div", { key: f.path, className: "st-file-row st-amend-file", title: t("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react7.default.createElement("span", { className: "st-amend-tag" }, "amend"));
+    }))))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-resize-grip" })), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-commit", style: { height: formHeight } }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react7.default.createElement(IcoCommit, null), " ", t("panel.tab.commit")), /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-tab-icon", title: t("panel.tab.stash"), onClick: async () => {
       const r = await window.gitAPI.createStash();
       if (r?.success === false)
         showToast(t("toast.stashErr", r.error ?? ""), "err");
@@ -10479,13 +10643,13 @@ ${line.date}`
         await load();
         onCommitSuccess();
       }
-    } }, /* @__PURE__ */ import_react6.default.createElement(IcoStash, null)), /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-tab-icon", title: t("panel.tab.push"), onClick: async () => {
+    } }, /* @__PURE__ */ import_react7.default.createElement(IcoStash, null)), /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-tab-icon", title: t("panel.tab.push"), onClick: async () => {
       const r = await window.gitAPI.push();
       if (r?.success === false)
         showToast(t("toast.pushErr", r.error ?? ""), "err");
       else
         showToast(t("toast.pushOk", branchName));
-    } }, /* @__PURE__ */ import_react6.default.createElement(IcoCloud, null))), !isConflict && /* @__PURE__ */ import_react6.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react6.default.createElement("input", { type: "checkbox", checked: amend, onChange: (e) => toggleAmend(e.target.checked) }), /* @__PURE__ */ import_react6.default.createElement("span", null, t("panel.amendPrevious"))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-msgbox" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-summary-row" }, /* @__PURE__ */ import_react6.default.createElement(
+    } }, /* @__PURE__ */ import_react7.default.createElement(IcoCloud, null))), !isConflict && /* @__PURE__ */ import_react7.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react7.default.createElement("input", { type: "checkbox", checked: amend, onChange: (e) => toggleAmend(e.target.checked) }), /* @__PURE__ */ import_react7.default.createElement("span", null, t("panel.amendPrevious"))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-msgbox" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-summary-row" }, /* @__PURE__ */ import_react7.default.createElement(
       "input",
       {
         className: "st2-summary",
@@ -10497,7 +10661,7 @@ ${line.date}`
             doCommit();
         }
       }
-    ), /* @__PURE__ */ import_react6.default.createElement("span", { className: `st2-counter ${remaining < 0 ? "over" : ""}` }, remaining), /* @__PURE__ */ import_react6.default.createElement(
+    ), /* @__PURE__ */ import_react7.default.createElement("span", { className: `st2-counter ${remaining < 0 ? "over" : ""}` }, remaining), /* @__PURE__ */ import_react7.default.createElement(
       "button",
       {
         className: `st2-msg-ai ${generating ? "loading" : ""}`,
@@ -10505,8 +10669,8 @@ ${line.date}`
         onClick: generateMessage,
         disabled: generating
       },
-      /* @__PURE__ */ import_react6.default.createElement(IcoSpark, { size: 13 })
-    )), /* @__PURE__ */ import_react6.default.createElement(
+      /* @__PURE__ */ import_react7.default.createElement(IcoSpark, { size: 13 })
+    )), /* @__PURE__ */ import_react7.default.createElement(
       "textarea",
       {
         className: "st2-description",
@@ -10518,7 +10682,7 @@ ${line.date}`
             doCommit();
         }
       }
-    )), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-options-row" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-options-toggle", onClick: () => setOptionsOpen((o) => !o) }, /* @__PURE__ */ import_react6.default.createElement(IcoChevron, { open: optionsOpen }), " ", t("panel.commitOptions")), /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-compose", onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react6.default.createElement(IcoSpark, { size: 13 }), " ", t("panel.composeAI"))), optionsOpen && /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-options" }, /* @__PURE__ */ import_react6.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react6.default.createElement("input", { type: "checkbox", checked: signoff, onChange: (e) => setSignoff(e.target.checked) }), /* @__PURE__ */ import_react6.default.createElement("span", null, t("panel.signoff"))))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "st2-commit-actions" }, isConflict && /* @__PURE__ */ import_react6.default.createElement("button", { className: "st2-commit-btn st2-abort", onClick: onConflictAbort }, t("panel.abort")), /* @__PURE__ */ import_react6.default.createElement(
+    )), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-options-row" }, /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-options-toggle", onClick: () => setOptionsOpen((o) => !o) }, /* @__PURE__ */ import_react7.default.createElement(IcoChevron, { open: optionsOpen }), " ", t("panel.commitOptions")), /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-compose", onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react7.default.createElement(IcoSpark, { size: 13 }), " ", t("panel.composeAI"))), optionsOpen && /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-options" }, /* @__PURE__ */ import_react7.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react7.default.createElement("input", { type: "checkbox", checked: signoff, onChange: (e) => setSignoff(e.target.checked) }), /* @__PURE__ */ import_react7.default.createElement("span", null, t("panel.signoff"))))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "st2-commit-actions" }, isConflict && /* @__PURE__ */ import_react7.default.createElement("button", { className: "st2-commit-btn st2-abort", onClick: onConflictAbort }, t("panel.abort")), /* @__PURE__ */ import_react7.default.createElement(
       "button",
       {
         className: `st2-commit-btn ${commitReady ? "ready" : ""}`,
@@ -10526,7 +10690,7 @@ ${line.date}`
         onClick: doCommit,
         title: "\u2318\u21B5"
       },
-      /* @__PURE__ */ import_react6.default.createElement(IcoCommit, null),
+      /* @__PURE__ */ import_react7.default.createElement(IcoCommit, null),
       " ",
       commitLabel
     ))));
@@ -10571,16 +10735,16 @@ Signed-off-by: ` : full;
     onCommitSuccess
   }) {
     const { t } = useLang();
-    const [commitMsg, setCommitMsg] = (0, import_react6.useState)("");
-    const [committing, setCommitting] = (0, import_react6.useState)(false);
-    const [resolvedFiles, setResolvedFiles] = (0, import_react6.useState)([]);
-    (0, import_react6.useEffect)(() => {
+    const [commitMsg, setCommitMsg] = (0, import_react7.useState)("");
+    const [committing, setCommitting] = (0, import_react7.useState)(false);
+    const [resolvedFiles, setResolvedFiles] = (0, import_react7.useState)([]);
+    (0, import_react7.useEffect)(() => {
       window.gitAPI.getMergeMessage().then((r) => {
         if (r.message)
           setCommitMsg(r.message);
       });
     }, []);
-    (0, import_react6.useEffect)(() => {
+    (0, import_react7.useEffect)(() => {
       window.gitAPI.getWorkingChanges().then((r) => {
         if (r.staged) {
           const actuallyResolved = r.staged.filter((f) => !conflictFiles.includes(f.path));
@@ -10595,7 +10759,7 @@ Signed-off-by: ` : full;
       setCommitting(false);
     }
     const allResolved = conflictFiles.length === 0;
-    return /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-content rp-conflict-mode" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-conflict-header" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react6.default.createElement("span", { className: "cr-title" }, "Conflits en cours : ", /* @__PURE__ */ import_react6.default.createElement("strong", null, conflictMode))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-section-title" }, "Fichiers en conflit (", conflictFiles.length, ")")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-file-list" }, conflictFiles.length === 0 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-empty" }, "Tous les conflits sont r\xE9solus"), conflictFiles.map((f) => /* @__PURE__ */ import_react6.default.createElement("div", { key: f, className: "rp-file-row rp-file-conflicted", onClick: () => onOpenResolver(f) }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-file-status", style: { color: "#ffa657" } }, "!"), /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-file-path" }, f))))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-section-title" }, "Fichiers r\xE9solus (", resolvedFiles.length, ")")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-file-list" }, resolvedFiles.length === 0 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-empty" }, "Aucun fichier r\xE9solu"), resolvedFiles.map((f) => /* @__PURE__ */ import_react6.default.createElement("div", { key: f.path, className: "rp-file-row rp-file-resolved" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-file-status", style: { color: "#3fb950" } }, "\u2713"), /* @__PURE__ */ import_react6.default.createElement("span", { className: "rp-file-path" }, f.path))))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-commit-area", style: { marginTop: "auto" } }, /* @__PURE__ */ import_react6.default.createElement(
+    return /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-content rp-conflict-mode" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-conflict-header" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cr-title" }, "Conflits en cours : ", /* @__PURE__ */ import_react7.default.createElement("strong", null, conflictMode))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-section-title" }, "Fichiers en conflit (", conflictFiles.length, ")")), /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-file-list" }, conflictFiles.length === 0 && /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-empty" }, "Tous les conflits sont r\xE9solus"), conflictFiles.map((f) => /* @__PURE__ */ import_react7.default.createElement("div", { key: f, className: "rp-file-row rp-file-conflicted", onClick: () => onOpenResolver(f) }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-file-status", style: { color: "#ffa657" } }, "!"), /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-file-path" }, f))))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-section-title" }, "Fichiers r\xE9solus (", resolvedFiles.length, ")")), /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-file-list" }, resolvedFiles.length === 0 && /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-empty" }, "Aucun fichier r\xE9solu"), resolvedFiles.map((f) => /* @__PURE__ */ import_react7.default.createElement("div", { key: f.path, className: "rp-file-row rp-file-resolved" }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-file-status", style: { color: "#3fb950" } }, "\u2713"), /* @__PURE__ */ import_react7.default.createElement("span", { className: "rp-file-path" }, f.path))))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-commit-area", style: { marginTop: "auto" } }, /* @__PURE__ */ import_react7.default.createElement(
       "textarea",
       {
         className: "rp-commit-input",
@@ -10603,7 +10767,7 @@ Signed-off-by: ` : full;
         value: commitMsg,
         onChange: (e) => setCommitMsg(e.target.value)
       }
-    ), /* @__PURE__ */ import_react6.default.createElement("div", { className: "rp-commit-actions", style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ import_react6.default.createElement(
+    ), /* @__PURE__ */ import_react7.default.createElement("div", { className: "rp-commit-actions", style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ import_react7.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn-abort",
@@ -10612,7 +10776,7 @@ Signed-off-by: ` : full;
       },
       "Annuler le ",
       conflictMode
-    ), /* @__PURE__ */ import_react6.default.createElement(
+    ), /* @__PURE__ */ import_react7.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn-commit",
@@ -10643,7 +10807,7 @@ Signed-off-by: ` : full;
     const isConflict = conflictMode !== null && conflictMode !== void 0;
     const hasUnresolvedConflicts = isConflict && (conflictFiles?.length ?? 0) > 0;
     const allConflictsResolved = isConflict && (conflictFiles?.length ?? 0) === 0;
-    return /* @__PURE__ */ import_react6.default.createElement("div", { className: "right-panel" }, hasUnresolvedConflicts ? /* @__PURE__ */ import_react6.default.createElement(
+    return /* @__PURE__ */ import_react7.default.createElement("div", { className: "right-panel" }, hasUnresolvedConflicts ? /* @__PURE__ */ import_react7.default.createElement(
       ConflictPanel,
       {
         conflictFiles: conflictFiles ?? [],
@@ -10654,7 +10818,7 @@ Signed-off-by: ` : full;
         showToast,
         onCommitSuccess
       }
-    ) : (isWip || allConflictsResolved) && !hasCommit ? /* @__PURE__ */ import_react6.default.createElement(
+    ) : (isWip || allConflictsResolved) && !hasCommit ? /* @__PURE__ */ import_react7.default.createElement(
       StagingView,
       {
         onCommitSuccess,
@@ -10666,7 +10830,7 @@ Signed-off-by: ` : full;
         onConflictAbort,
         onOpenFileDiff
       }
-    ) : hasCommit ? /* @__PURE__ */ import_react6.default.createElement(
+    ) : hasCommit ? /* @__PURE__ */ import_react7.default.createElement(
       CommitDetail,
       {
         commit: selectedCommit,
@@ -10681,34 +10845,40 @@ Signed-off-by: ` : full;
 
   // src/webview/app.tsx
   function BrandHeader({ branch, repoName }) {
-    return /* @__PURE__ */ import_react7.default.createElement("div", { className: "gv-brand" }, /* @__PURE__ */ import_react7.default.createElement("svg", { className: "gv-brand-logo", viewBox: "0 0 512 512", width: "20", height: "20", "aria-hidden": true }, /* @__PURE__ */ import_react7.default.createElement("line", { x1: "148", y1: "82", x2: "256", y2: "422", stroke: "#3fb950", strokeWidth: "34", strokeLinecap: "round" }), /* @__PURE__ */ import_react7.default.createElement("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "34", strokeLinecap: "round" }), /* @__PURE__ */ import_react7.default.createElement("circle", { cx: "148", cy: "82", r: "30", fill: "#0d1117", stroke: "#3fb950", strokeWidth: "18" }), /* @__PURE__ */ import_react7.default.createElement("circle", { cx: "364", cy: "82", r: "30", fill: "#0d1117", stroke: "#58a6ff", strokeWidth: "18" }), /* @__PURE__ */ import_react7.default.createElement("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" }), /* @__PURE__ */ import_react7.default.createElement("circle", { cx: "256", cy: "422", r: "16", fill: "#0d1117" })), /* @__PURE__ */ import_react7.default.createElement("span", { className: "gv-brand-name" }, "Git Vertex"), /* @__PURE__ */ import_react7.default.createElement("span", { className: "gv-brand-sep" }, "\xB7"), /* @__PURE__ */ import_react7.default.createElement("span", { className: "gv-brand-repo" }, repoName), branch && /* @__PURE__ */ import_react7.default.createElement("span", { className: "gv-brand-branch" }, /* @__PURE__ */ import_react7.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), branch));
+    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "gv-brand" }, /* @__PURE__ */ import_react8.default.createElement("svg", { className: "gv-brand-logo", viewBox: "0 0 512 512", width: "20", height: "20", "aria-hidden": true }, /* @__PURE__ */ import_react8.default.createElement("line", { x1: "148", y1: "82", x2: "256", y2: "422", stroke: "#3fb950", strokeWidth: "34", strokeLinecap: "round" }), /* @__PURE__ */ import_react8.default.createElement("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "34", strokeLinecap: "round" }), /* @__PURE__ */ import_react8.default.createElement("circle", { cx: "148", cy: "82", r: "30", fill: "#0d1117", stroke: "#3fb950", strokeWidth: "18" }), /* @__PURE__ */ import_react8.default.createElement("circle", { cx: "364", cy: "82", r: "30", fill: "#0d1117", stroke: "#58a6ff", strokeWidth: "18" }), /* @__PURE__ */ import_react8.default.createElement("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" }), /* @__PURE__ */ import_react8.default.createElement("circle", { cx: "256", cy: "422", r: "16", fill: "#0d1117" })), /* @__PURE__ */ import_react8.default.createElement("span", { className: "gv-brand-name" }, "Git Vertex"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "gv-brand-sep" }, "\xB7"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "gv-brand-repo" }, repoName), branch && /* @__PURE__ */ import_react8.default.createElement("span", { className: "gv-brand-branch" }, /* @__PURE__ */ import_react8.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), branch));
   }
   function VertexApp() {
     const toast = useToast();
-    const showToast = (0, import_react7.useCallback)((msg, type) => {
+    const showToast = (0, import_react8.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const [commits, setCommits] = (0, import_react7.useState)([]);
-    const [branches, setBranches] = (0, import_react7.useState)([]);
-    const [currentBranch, setCurrentBranch] = (0, import_react7.useState)("");
-    const [repoName, setRepoName] = (0, import_react7.useState)("");
-    const [selectedCommit, setSelectedCommit] = (0, import_react7.useState)(null);
-    const [wipCount, setWipCount] = (0, import_react7.useState)(0);
-    const [conflictFiles, setConflictFiles] = (0, import_react7.useState)([]);
-    const [conflictMode, setConflictMode] = (0, import_react7.useState)(null);
-    const [searchQuery, setSearchQuery] = (0, import_react7.useState)("");
-    const [rightW, setRightW] = (0, import_react7.useState)(380);
-    const isLoadingRef = (0, import_react7.useRef)(false);
-    const loadRepoData = (0, import_react7.useCallback)(async () => {
+    const [commits, setCommits] = (0, import_react8.useState)([]);
+    const [branches, setBranches] = (0, import_react8.useState)([]);
+    const [currentBranch, setCurrentBranch] = (0, import_react8.useState)("");
+    const [repoName, setRepoName] = (0, import_react8.useState)("");
+    const [selectedCommit, setSelectedCommit] = (0, import_react8.useState)(null);
+    const [wipCount, setWipCount] = (0, import_react8.useState)(0);
+    const [conflictFiles, setConflictFiles] = (0, import_react8.useState)([]);
+    const [conflictMode, setConflictMode] = (0, import_react8.useState)(null);
+    const [searchQuery, setSearchQuery] = (0, import_react8.useState)("");
+    const [rightW, setRightW] = (0, import_react8.useState)(380);
+    const [showAllBranches, setShowAllBranches] = (0, import_react8.useState)(true);
+    const [stashCount, setStashCount] = (0, import_react8.useState)(0);
+    const [loading, setLoading] = (0, import_react8.useState)(false);
+    const isLoadingRef = (0, import_react8.useRef)(false);
+    const showAllRef = (0, import_react8.useRef)(showAllBranches);
+    showAllRef.current = showAllBranches;
+    const loadRepoData = (0, import_react8.useCallback)(async () => {
       if (isLoadingRef.current)
         return;
       isLoadingRef.current = true;
+      setLoading(true);
       try {
         const branchRes = await window.gitAPI.getBranches();
-        const logRes = await window.gitAPI.getLog({ maxCount: 500, all: true });
+        const logRes = await window.gitAPI.getLog({ maxCount: 500, all: showAllRef.current });
         if (logRes?.commits)
           setCommits(logRes.commits);
         if (branchRes?.branches) {
@@ -10726,6 +10896,11 @@ Signed-off-by: ` : full;
         const ch = await window.gitAPI.getWorkingChanges();
         setWipCount((ch?.staged?.length ?? 0) + (ch?.unstaged?.length ?? 0) + (ch?.untracked?.length ?? 0));
         try {
+          const st = await window.gitAPI.getStashes();
+          setStashCount(st?.stashes?.length ?? 0);
+        } catch {
+        }
+        try {
           const info = await window.gitAPI.appGetInfo();
           if (info?.repoName)
             setRepoName(info.repoName);
@@ -10733,12 +10908,13 @@ Signed-off-by: ` : full;
         }
       } finally {
         isLoadingRef.current = false;
+        setLoading(false);
       }
     }, []);
-    (0, import_react7.useEffect)(() => {
+    (0, import_react8.useEffect)(() => {
       loadRepoData();
     }, [loadRepoData]);
-    (0, import_react7.useEffect)(() => {
+    (0, import_react8.useEffect)(() => {
       const handler = () => loadRepoData();
       window.gitAPI.onRepoChanged(handler);
       window.gitAPI.onWorkingChanged(handler);
@@ -10747,14 +10923,14 @@ Signed-off-by: ` : full;
         window.gitAPI.offWorkingChanged(handler);
       };
     }, [loadRepoData]);
-    (0, import_react7.useEffect)(() => {
+    (0, import_react8.useEffect)(() => {
       if (!selectedCommit || selectedCommit.hash === "__WIP__")
         return;
       const still = commits.find((c) => c.hash === selectedCommit.hash);
       if (!still)
         setSelectedCommit(null);
     }, [commits]);
-    const runOp = (0, import_react7.useCallback)(async (label, op) => {
+    const runOp = (0, import_react8.useCallback)(async (label, op) => {
       const r = await op();
       if (r && r.success === false)
         showToast(r.error ?? `${label} a \xE9chou\xE9`, "err");
@@ -10762,21 +10938,40 @@ Signed-off-by: ` : full;
         showToast(`\u2713 ${label}`);
       await loadRepoData();
     }, [showToast, loadRepoData]);
-    const handleCheckout = (0, import_react7.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
-    const handleCherryPick = (0, import_react7.useCallback)((hash) => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash)), [runOp]);
-    const handleRevert = (0, import_react7.useCallback)((hash) => runOp("Revert", () => window.gitAPI.revert(hash)), [runOp]);
-    const handleReset = (0, import_react7.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode)), [runOp]);
-    const handleCreateTag = (0, import_react7.useCallback)(async (hash) => {
+    const handleCheckout = (0, import_react8.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
+    const handleCherryPick = (0, import_react8.useCallback)((hash) => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash)), [runOp]);
+    const handleRevert = (0, import_react8.useCallback)((hash) => runOp("Revert", () => window.gitAPI.revert(hash)), [runOp]);
+    const handleReset = (0, import_react8.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode)), [runOp]);
+    const handleCreateTag = (0, import_react8.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom du tag");
       if (name)
         runOp("Tag cr\xE9\xE9", () => window.gitAPI.createTag(name, hash));
     }, [runOp]);
-    const handleCreateBranchAt = (0, import_react7.useCallback)(async (hash) => {
+    const handleCreateBranchAt = (0, import_react8.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp("Branche cr\xE9\xE9e", () => window.gitAPI.createBranchAt(name, hash, true));
     }, [runOp]);
-    const startResizeRight = (0, import_react7.useCallback)((e) => {
+    const handleFetch = (0, import_react8.useCallback)(() => runOp("Fetch", () => window.gitAPI.fetch()), [runOp]);
+    const handlePull = (0, import_react8.useCallback)(() => runOp("Pull", () => window.gitAPI.pull()), [runOp]);
+    const handlePush = (0, import_react8.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
+    const handleUndo = (0, import_react8.useCallback)(() => runOp("Annul\xE9", () => window.gitAPI.undoLastAction()), [runOp]);
+    const handleStash = (0, import_react8.useCallback)(() => runOp("Stash cr\xE9\xE9", () => window.gitAPI.createStash()), [runOp]);
+    const handlePop = (0, import_react8.useCallback)(() => runOp("Stash appliqu\xE9", () => window.gitAPI.popStash(0)), [runOp]);
+    const handleTerminal = (0, import_react8.useCallback)(() => window.gitAPI.openTerminal(), []);
+    const handleNewBranch = (0, import_react8.useCallback)(async () => {
+      const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
+      if (name)
+        runOp("Branche cr\xE9\xE9e", () => window.gitAPI.createBranch(name));
+    }, [runOp]);
+    const handleToggleAllBranches = (0, import_react8.useCallback)(() => {
+      setShowAllBranches((v) => {
+        showAllRef.current = !v;
+        return !v;
+      });
+      setTimeout(() => loadRepoData(), 0);
+    }, [loadRepoData]);
+    const startResizeRight = (0, import_react8.useCallback)((e) => {
       e.preventDefault();
       const startX = e.clientX;
       const startW = rightW;
@@ -10792,7 +10987,30 @@ Signed-off-by: ` : full;
       window.addEventListener("mouseup", onUp);
     }, [rightW]);
     const showRight = !!selectedCommit || !!conflictMode;
-    return /* @__PURE__ */ import_react7.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react7.default.createElement(BrandHeader, { branch: currentBranch, repoName }), /* @__PURE__ */ import_react7.default.createElement("div", { className: "app-body" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "app-center", style: { flex: 1, display: "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react7.default.createElement(
+    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react8.default.createElement(BrandHeader, { branch: currentBranch, repoName }), /* @__PURE__ */ import_react8.default.createElement(
+      Toolbar,
+      {
+        repoPath: "webview",
+        currentBranch,
+        searchQuery,
+        showAllBranches,
+        onSearch: setSearchQuery,
+        onUndo: handleUndo,
+        onFetch: handleFetch,
+        onPush: handlePush,
+        onPushModal: handlePush,
+        onPull: handlePull,
+        onCreateBranch: handleNewBranch,
+        onStash: handleStash,
+        onPop: handlePop,
+        onTerminal: handleTerminal,
+        stashCount,
+        onToggleAllBranches: handleToggleAllBranches,
+        onRefresh: loadRepoData,
+        loading,
+        topRow: false
+      }
+    ), /* @__PURE__ */ import_react8.default.createElement("div", { className: "app-body" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "app-center", style: { flex: 1, display: "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react8.default.createElement(
       CommitGraph,
       {
         commits,
@@ -10815,7 +11033,7 @@ Signed-off-by: ` : full;
         wipCount,
         conflictMode
       }
-    )), showRight && /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react7.default.createElement("div", { className: "app-right", style: { width: rightW } }, /* @__PURE__ */ import_react7.default.createElement(
+    )), showRight && /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, /* @__PURE__ */ import_react8.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react8.default.createElement("div", { className: "app-right", style: { width: rightW } }, /* @__PURE__ */ import_react8.default.createElement(
       RightPanel,
       {
         selectedCommit,
@@ -10852,7 +11070,7 @@ Signed-off-by: ` : full;
     )))));
   }
   import_client.default.createRoot(document.getElementById("root")).render(
-    /* @__PURE__ */ import_react7.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react7.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react7.default.createElement(ToastProvider, null, /* @__PURE__ */ import_react7.default.createElement(VertexApp, null))))
+    /* @__PURE__ */ import_react8.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react8.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react8.default.createElement(ToastProvider, null, /* @__PURE__ */ import_react8.default.createElement(VertexApp, null))))
   );
 })();
 /*! Bundled license information:

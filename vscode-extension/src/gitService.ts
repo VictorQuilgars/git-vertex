@@ -445,6 +445,26 @@ export class GitService {
     }
   }
 
+  async popStash(index: number): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['stash', 'pop', `stash@{${index}}`]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async applyStash(index: number): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['stash', 'apply', `stash@{${index}}`]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async undoLastAction(): Promise<{ success: boolean; error?: string; action?: string }> {
+    // Best-effort: soft-reset to the previous HEAD position (like `git reset --soft HEAD@{1}`).
+    try {
+      await this.git.raw(['reset', '--soft', 'HEAD@{1}'])
+      return { success: true, action: 'reset --soft HEAD@{1}' }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   async getStashes(): Promise<{ stashes: { index: number; message: string }[] }> {
     try {
       const out = await this.git.raw(['stash', 'list', '--pretty=format:%gd|%s'])

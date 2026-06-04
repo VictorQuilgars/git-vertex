@@ -7,6 +7,10 @@
   padding: 4px;
   user-select: none;
   animation: ctx-appear 0.08s ease;
+  /* Stay within the viewport — scroll if taller than the available height
+     (e.g. inside the short VS Code panel). */
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
 }
 
 @keyframes ctx-appear {
