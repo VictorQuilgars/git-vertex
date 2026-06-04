@@ -1001,9 +1001,11 @@ async function detectGithubRepo(): Promise<{ owner: string; repo: string } | nul
 
 // Cache email → avatar URL in the main process (persists for the app lifetime).
 const avatarCache = new Map<string, string>()
-const gravatarUrl = (key: string) => {
-  const hash = createHash('md5').update(key).digest('hex')
-  return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=128`
+const githubIdenticonUrl = (key: string) => {
+  // GitHub's identicon generator: deterministic, colorful, matches github.com style.
+  // Any string produces a unique colored pixel-art avatar — far better than Gravatar's default.
+  const localPart = key.split('@')[0] || key
+  return `https://github.com/identicons/${encodeURIComponent(localPart)}.png`
 }
 
 // Load the authenticated user's avatar + all their verified emails into the
@@ -1118,8 +1120,8 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
     } catch { /* ignore network errors */ }
   }
 
-  // Last resort: Gravatar (identicon if the email has no Gravatar account).
-  const url = gravatarUrl(key)
+  // Last resort: GitHub identicon (colorful, matches github.com style).
+  const url = githubIdenticonUrl(key)
   avatarCache.set(key, url)
   return url
 })
