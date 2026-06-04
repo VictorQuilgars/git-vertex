@@ -92,7 +92,17 @@
 .gvt-branch-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gvt-branch-empty { padding: 8px; color: #6e7681; font-size: 11px; }
 
-.gvt-fetch-time { color: #6e7681; font-size: 10px; white-space: nowrap; margin-left: 1px; }
+/* Labelled Fetch button */
+.gvt-fetch {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 10px;
+  background: #21262d; border: 1px solid #30363d; border-radius: 5px;
+  color: #c9d1d9; font-size: 11px; font-weight: 600; cursor: pointer;
+  flex-shrink: 0; transition: background 0.1s, border-color 0.1s;
+}
+.gvt-fetch:hover:not(:disabled) { background: #2a3038; border-color: #3fb95066; color: #e6edf3; }
+.gvt-fetch:disabled { opacity: 0.5; cursor: default; }
+.gvt-fetch-time { color: #6e7681; font-size: 10px; white-space: nowrap; font-weight: 400; }
 
 /* Search */
 .gvt-search {

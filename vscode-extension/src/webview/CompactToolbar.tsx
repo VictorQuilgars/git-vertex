@@ -95,15 +95,14 @@ export default function CompactToolbar(p: Props) {
         )}
       </div>
 
-      {/* Fetch + timestamp */}
-      <IconBtn title="Fetch" onClick={p.onFetch} disabled={p.loading}>
-        <svg className={p.loading ? 'gvt-spin' : ''} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-      </IconBtn>
-      {p.lastFetch && <span className="gvt-fetch-time">{relTime(p.lastFetch)}</span>}
-
       <span className="gvt-spring" />
 
-      {/* Sync actions */}
+      {/* Sync actions — Fetch is a labelled button so it's unmistakable */}
+      <button className="gvt-fetch" title="Fetch" onClick={p.onFetch} disabled={p.loading}>
+        <svg className={p.loading ? 'gvt-spin' : ''} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+        <span>Fetch</span>
+        {p.lastFetch && <span className="gvt-fetch-time">{relTime(p.lastFetch)}</span>}
+      </button>
       <IconBtn title="Pull" onClick={p.onPull} disabled={p.loading}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/><polyline points="3 21 21 21"/></svg>
       </IconBtn>
@@ -134,9 +133,6 @@ export default function CompactToolbar(p: Props) {
 
       <IconBtn title="Afficher toutes les branches" onClick={p.onToggleAllBranches} active={p.showAllBranches}>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z"/></svg>
-      </IconBtn>
-      <IconBtn title="Rafraîchir" onClick={p.onRefresh}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       </IconBtn>
       <IconBtn title="Ouvrir dans Git Vertex Desktop" onClick={p.onOpenDesktop}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
