@@ -178,6 +178,29 @@ function getAvatarColor(str: string) {
   return colors[Math.abs(h) % colors.length]
 }
 function initials(name: string) { return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) }
+
+function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }: {
+  email: string; name: string; sha?: string; size?: number; radius?: number
+}) {
+  const [src, setSrc] = useState<string | null>(null)
+  useEffect(() => {
+    if (!email) return
+    ;(window.gitAPI as any).avatarResolve(email, sha).then(setSrc).catch(() => {})
+  }, [email, sha])
+
+  const base: React.CSSProperties = { width: size, height: size, borderRadius: radius, flexShrink: 0 }
+  if (src) {
+    return <img src={src} alt={name} style={{ ...base, objectFit: 'cover', display: 'block' }}
+      onError={() => setSrc(null)} />
+  }
+  return (
+    <div style={{ ...base, background: getAvatarColor(email), display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      color: '#fff', fontWeight: 700, fontSize: size * 0.38 }}>
+      {initials(name)}
+    </div>
+  )
+}
 function fmtDate(s: string) {
   try { return new Date(s).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) } catch { return s }
 }
@@ -362,9 +385,9 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 
   const parentShort = commit.parents?.[0]?.slice(0, 7) ?? null
 
-  // Parse co-authors from body
+  // Parse co-authors from body (name + email)
   const coAuthors = body
-    ? [...body.matchAll(/Co-Authored-By:\s*(.+?)\s*<[^>]+>/gi)].map(m => m[1].trim())
+    ? [...body.matchAll(/Co-Authored-By:\s*(.+?)\s*<([^>]+)>/gi)].map(m => ({ name: m[1].trim(), email: m[2].trim() }))
     : []
   // Body without co-author lines
   const cleanBody = body
@@ -413,9 +436,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
         <div className="cd-info-zone">
           {/* Author */}
           <div className="cd-author-block">
-            <div className="cd-avatar-sq" style={{ background: getAvatarColor(commit.authorEmail) }}>
-              {initials(commit.author)}
-            </div>
+            <GravatarAvatar email={commit.authorEmail} name={commit.author} sha={commit.hash} size={36} radius={6} />
             <div className="cd-author-mid">
               <span className="cd-author-name">{commit.author}</span>
               <span className="cd-author-meta">authored {fmtDate(commit.date)}</span>
@@ -431,10 +452,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             <div className="cd-coauthors">
               <span className="cd-label">Co-authors:</span>
               {coAuthors.map((a, i) => (
-                <div key={i} className="cd-coauthor-chip" title={a}
-                  style={{ background: getAvatarColor(a) }}>
-                  {initials(a)}
-                </div>
+                <GravatarAvatar key={i} email={a.email} name={a.name} size={28} radius={6} />
               ))}
             </div>
           )}

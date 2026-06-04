@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
 import { join } from 'path'
+import { createHash } from 'crypto'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import simpleGit from 'simple-git'
@@ -954,6 +955,121 @@ ipcMain.handle('github:disconnect', () => {
 
 ipcMain.handle('github:get-token', () => {
   return { token: readSettings().githubToken ?? null }
+})
+
+// Resolve the GitHub owner/repo of the currently open repository.
+async function detectGithubRepo(): Promise<{ owner: string; repo: string } | null> {
+  if (!gitService) return null
+  try {
+    const remotes = await (gitService as any).git.getRemotes(true)
+    const origin = remotes.find((r: any) => r.name === 'origin') ?? remotes[0]
+    if (!origin) return null
+    const url: string = origin.refs?.fetch ?? origin.refs?.push ?? ''
+    const match = url.match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
+    if (!match) return null
+    return { owner: match[1], repo: match[2] }
+  } catch { return null }
+}
+
+// Cache email → avatar URL in the main process (persists for the app lifetime).
+const avatarCache = new Map<string, string>()
+const gravatarUrl = (key: string) => {
+  const hash = createHash('md5').update(key).digest('hex')
+  return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=128`
+}
+
+// Load the authenticated user's avatar + all their verified emails into the
+// cache, once. This is the reliable path for the logged-in user's own commits
+// (including unpushed ones, where the commits API 422s) and for private emails
+// that the public search can't find. Memoized so we only hit the API once.
+let authedEmailsLoaded: Promise<void> | null = null
+function loadAuthedUserEmails(token: string): Promise<void> {
+  if (authedEmailsLoaded) return authedEmailsLoaded
+  authedEmailsLoaded = (async () => {
+    try {
+      const userRes = await fetch('https://api.github.com/user', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      })
+      if (!userRes.ok) return
+      const user: any = await userRes.json()
+      const avatar: string | undefined = user?.avatar_url
+      if (!avatar) return
+
+      const emails = new Set<string>()
+      if (user?.email) emails.add(String(user.email).trim().toLowerCase())
+
+      const emailsRes = await fetch('https://api.github.com/user/emails', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      })
+      if (emailsRes.ok) {
+        const list: any[] = await emailsRes.json()
+        for (const e of list) if (e?.email) emails.add(String(e.email).trim().toLowerCase())
+      }
+
+      for (const e of emails) avatarCache.set(e, avatar)
+    } catch {
+      authedEmailsLoaded = null // allow a retry next time
+    }
+  })()
+  return authedEmailsLoaded
+}
+
+ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
+  const key = email.trim().toLowerCase()
+  if (avatarCache.has(key)) return avatarCache.get(key)!
+
+  const token = readSettings().githubToken
+  if (token) {
+    // First: resolve via the authenticated user's own email list. Works for the
+    // logged-in user's commits even when unpushed or using a private email.
+    await loadAuthedUserEmails(token)
+    if (avatarCache.has(key)) return avatarCache.get(key)!
+
+    // Next: the commits API. GitHub resolves the commit's author to a real user
+    // account regardless of whether the email is public, and gives back
+    // avatar_url for both the author and committer. We cache by email so every
+    // distinct contributor is resolved at most once.
+    if (sha) {
+      const repo = await detectGithubRepo()
+      if (repo) {
+        try {
+          const res = await fetch(
+            `https://api.github.com/repos/${repo.owner}/${repo.repo}/commits/${sha}`,
+            { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+          )
+          if (res.ok) {
+            const data: any = await res.json()
+            const pairs: [string | undefined, string | undefined][] = [
+              [data?.commit?.author?.email, data?.author?.avatar_url],
+              [data?.commit?.committer?.email, data?.committer?.avatar_url],
+            ]
+            for (const [e, url] of pairs) {
+              if (e && url) avatarCache.set(e.trim().toLowerCase(), url)
+            }
+            if (avatarCache.has(key)) return avatarCache.get(key)!
+          }
+        } catch { /* ignore network errors */ }
+      }
+    }
+
+    // Fallback: search the user by public email.
+    try {
+      const res = await fetch(
+        `https://api.github.com/search/users?q=${encodeURIComponent(key)}+in:email&per_page=1`,
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+      )
+      if (res.ok) {
+        const data: any = await res.json()
+        const url: string | undefined = data?.items?.[0]?.avatar_url
+        if (url) { avatarCache.set(key, url); return url }
+      }
+    } catch { /* ignore network errors */ }
+  }
+
+  // Last resort: Gravatar (identicon if the email has no Gravatar account).
+  const url = gravatarUrl(key)
+  avatarCache.set(key, url)
+  return url
 })
 
 ipcMain.handle('updater:install', () => {

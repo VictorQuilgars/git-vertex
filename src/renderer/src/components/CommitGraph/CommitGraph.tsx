@@ -1,10 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { LayoutCommit, computeGraphLayout } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
-import { gravatarUrl } from '../../utils/gravatar'
 import { useSettings } from '../../contexts/SettingsContext'
 import './CommitGraph.css'
 
@@ -63,14 +62,21 @@ function sigBadge(sig?: string) {
   }
   return <span className={`cg-sig ${cls}`} title={titles[sig] ?? 'Signé'}>🔏</span>
 }
-// Commit graph node showing the author's Gravatar (pixel-art identicon fallback),
-// clipped to a circle, with a colored ring. Falls back to a colored initials
-// circle only if the image fails to load.
-function NodeAvatar({ cx, cy, r, email, name, color, clipId }: {
-  cx: number; cy: number; r: number; email: string; name: string; color: string; clipId: string
+// Commit graph node showing the author's avatar (GitHub avatar resolved via the
+// main process, Gravatar/initials fallback), clipped to a circle with a colored
+// ring. Falls back to a colored initials circle if the image fails to load.
+function NodeAvatar({ cx, cy, r, email, name, color, clipId, sha }: {
+  cx: number; cy: number; r: number; email: string; name: string; color: string; clipId: string; sha?: string
 }) {
   const [failed, setFailed] = useState(false)
-  if (failed || !email) {
+  const [src, setSrc] = useState<string | null>(null)
+  useEffect(() => {
+    setFailed(false)
+    if (!email) return
+    ;(window.gitAPI as any).avatarResolve(email, sha).then(setSrc).catch(() => {})
+  }, [email, sha])
+
+  if (failed || !email || !src) {
     return (
       <g>
         <circle cx={cx} cy={cy} r={r} fill={color} />
@@ -88,7 +94,7 @@ function NodeAvatar({ cx, cy, r, email, name, color, clipId }: {
       </defs>
       <circle cx={cx} cy={cy} r={r} fill="#161b22" />
       <image
-        href={gravatarUrl(email, 48, 'retro')}
+        href={src}
         x={cx - r} y={cy - r} width={r * 2} height={r * 2}
         clipPath={`url(#${clipId})`}
         preserveAspectRatio="xMidYMid slice"
@@ -676,7 +682,7 @@ export default function CommitGraph({
                   ) : showAvatars ? (
                     /* Normal commit: author avatar */
                     <NodeAvatar cx={cx} cy={cy} r={NODE_RADIUS}
-                      email={commit.authorEmail} name={commit.author}
+                      email={commit.authorEmail} name={commit.author} sha={commit.hash}
                       color={commit.color} clipId={`node-clip-${commit.hash}`} />
                   ) : (
                     /* Avatars off: colored circle with initials */

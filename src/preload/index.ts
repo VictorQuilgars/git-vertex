@@ -138,6 +138,7 @@ const gitAPI = {
   githubDisconnect: () => ipcRenderer.invoke('github:disconnect'),
   githubGetToken: () => ipcRenderer.invoke('github:get-token'),
   githubGetUser: () => ipcRenderer.invoke('github:get-user'),
+  avatarResolve: (email: string, sha?: string) => ipcRenderer.invoke('avatar:resolve', email, sha),
   onGithubAuthComplete: (cb: (result: { token?: string; error?: string }) => void) => {
     ipcRenderer.on('github:auth-complete', (_e, result) => cb(result))
   },
