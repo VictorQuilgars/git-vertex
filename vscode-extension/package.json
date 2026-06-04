@@ -1,0 +1,110 @@
+{
+  "name": "git-vertex",
+  "displayName": "Git Vertex",
+  "description": "Open repositories in Git Vertex — a GitKraken-inspired Git GUI",
+  "version": "1.5.0",
+  "publisher": "VictorQuilgars",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictorQuilgars/git-vertex"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "git gui",
+    "source control",
+    "gitgraph"
+  ],
+  "activationEvents": [
+    "workspaceContains:.git"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gitVertex.open",
+        "title": "Open in Git Vertex",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "gitVertex.openFile",
+        "title": "Open in Git Vertex",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "gitVertex.configure",
+        "title": "Git Vertex: Configure App Path"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "gitVertex.openFile",
+          "when": "explorerResourceIsFolder || !explorerResourceIsFolder",
+          "group": "navigation@99"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "gitVertex.open",
+          "when": "gitOpenRepositoryCount > 0",
+          "group": "navigation"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "gitVertex.open",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "gitVertex.open"
+        },
+        {
+          "command": "gitVertex.configure"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Git Vertex",
+      "properties": {
+        "gitVertex.appPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Git Vertex application. Leave empty to auto-detect from standard install locations."
+        },
+        "gitVertex.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Git Vertex button in the status bar."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTests.js",
+    "package": "vsce package --no-dependencies",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.9",
+    "mocha": "^10.3.0",
+    "typescript": "^5.3.0"
+  }
+}
