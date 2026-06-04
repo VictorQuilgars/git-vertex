@@ -279,6 +279,11 @@ ipcMain.handle('git:get-stashes', async () => {
   return gitService.getStashes()
 })
 
+ipcMain.handle('git:get-tracking', async () => {
+  if (!gitService) return { branch: null, upstream: null, ahead: 0, behind: 0 }
+  return gitService.getTracking()
+})
+
 // ── IPC: Git write operations ──────────────────────────────────
 ipcMain.handle('git:checkout', async (_event, ref: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
@@ -925,6 +930,29 @@ ipcMain.handle('app:open-in-editor', async (_e, filepath: string) => {
     const cmd = parts[0]
     const args = [...parts.slice(1), abs]
     const child = spawn(cmd, args, { cwd: gitService.repoPath, detached: true, stdio: 'ignore' })
+    child.on('error', () => {})
+    child.unref()
+    return { success: true }
+  } catch (e: any) {
+    return { success: false, error: e.message }
+  }
+})
+
+// Open the system terminal at the repository root.
+ipcMain.handle('app:open-terminal', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  const cwd = gitService.repoPath
+  try {
+    const { spawn } = await import('child_process')
+    let cmd: string, args: string[]
+    if (process.platform === 'darwin') {
+      cmd = 'open'; args = ['-a', 'Terminal', cwd]
+    } else if (process.platform === 'win32') {
+      cmd = 'cmd'; args = ['/c', 'start', 'cmd', '/k', `cd /d ${cwd}`]
+    } else {
+      cmd = 'x-terminal-emulator'; args = [`--working-directory=${cwd}`]
+    }
+    const child = spawn(cmd, args, { cwd, detached: true, stdio: 'ignore' })
     child.on('error', () => {})
     child.unref()
     return { success: true }

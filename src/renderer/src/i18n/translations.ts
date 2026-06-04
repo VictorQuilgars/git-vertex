@@ -33,6 +33,9 @@ const fr = {
   'gitflow.toast.finished': (type: string, name: string) => `✓ ${type}/${name} terminée`,
   'toolbar.fetchedNow': "fetched à l'instant",
   'toolbar.fetchedAgo': (mins: number) => `fetched il y a ${mins} min`,
+  'statusbar.ahead': (n: number) => `${n} commit(s) en avance sur le remote`,
+  'statusbar.behind': (n: number) => `${n} commit(s) en retard sur le remote`,
+  'statusbar.zoomReset': 'Réinitialiser le zoom (100%)',
   'toolbar.autoFetch.tooltip': 'Auto-fetch actif (toutes les 5 min)',
   'toolbar.update.tooltip': 'Une mise à jour est prête à être installée',
   'toolbar.update.label': 'Mise à jour',
@@ -40,6 +43,11 @@ const fr = {
   'toolbar.openPR.tooltip': 'Ouvrir une Pull Request sur GitHub',
   'toolbar.search.placeholder': 'Rechercher commits…',
   'toolbar.extSearch.tooltip': 'Recherche étendue dans les diffs',
+  'toolbar.undo.tooltip': 'Annuler la dernière action (reset --soft)',
+  'toolbar.redo.tooltip': 'Rétablir (non disponible)',
+  'toolbar.stash.tooltip': 'Remiser les modifications (stash)',
+  'toolbar.pop.tooltip': 'Appliquer et retirer le dernier stash (pop)',
+  'toolbar.terminal.tooltip': 'Ouvrir un terminal dans le dépôt',
 
   // Update banner
   'update.banner': '🚀 Une nouvelle version est disponible et prête à être installée.',
@@ -151,6 +159,9 @@ const fr = {
   // Settings
   'settings.title': 'Paramètres',
   'settings.back': 'Retour',
+  'settings.notifications': 'Notifications',
+  'settings.profile': 'Profil',
+  'settings.defaultProfile': 'Profil par défaut',
   'settings.save': 'Enregistrer',
   'settings.nav.git': '⎇ Git',
   'settings.nav.github': '🐙 GitHub',
@@ -406,6 +417,9 @@ const en: typeof fr = {
   'gitflow.toast.finished': (type: string, name: string) => `✓ ${type}/${name} finished`,
   'toolbar.fetchedNow': 'fetched just now',
   'toolbar.fetchedAgo': (mins: number) => `fetched ${mins} min ago`,
+  'statusbar.ahead': (n: number) => `${n} commit(s) ahead of remote`,
+  'statusbar.behind': (n: number) => `${n} commit(s) behind remote`,
+  'statusbar.zoomReset': 'Reset zoom (100%)',
   'toolbar.autoFetch.tooltip': 'Auto-fetch active (every 5 min)',
   'toolbar.update.tooltip': 'An update is ready to be installed',
   'toolbar.update.label': 'Update',
@@ -413,6 +427,11 @@ const en: typeof fr = {
   'toolbar.openPR.tooltip': 'Open a Pull Request on GitHub',
   'toolbar.search.placeholder': 'Search commits…',
   'toolbar.extSearch.tooltip': 'Extended search in diffs',
+  'toolbar.undo.tooltip': 'Undo last action (reset --soft)',
+  'toolbar.redo.tooltip': 'Redo (unavailable)',
+  'toolbar.stash.tooltip': 'Stash changes',
+  'toolbar.pop.tooltip': 'Apply and remove latest stash (pop)',
+  'toolbar.terminal.tooltip': 'Open a terminal in the repository',
 
   // Update banner
   'update.banner': '🚀 A new version is available and ready to install.',
@@ -524,6 +543,9 @@ const en: typeof fr = {
   // Settings
   'settings.title': 'Settings',
   'settings.back': 'Back',
+  'settings.notifications': 'Notifications',
+  'settings.profile': 'Profile',
+  'settings.defaultProfile': 'Default Profile',
   'settings.save': 'Save',
   'settings.nav.git': '⎇ Git',
   'settings.nav.github': '🐙 GitHub',

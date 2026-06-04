@@ -1,6 +1,9 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 
 const gitAPI = {
+  // Zoom (renderer webFrame)
+  zoomGet: () => webFrame.getZoomFactor(),
+  zoomSet: (factor: number) => { webFrame.setZoomFactor(factor); return webFrame.getZoomFactor() },
   // Repo management
   openRepo: () => ipcRenderer.invoke('git:open-repo'),
   setRepo: (path: string) => ipcRenderer.invoke('git:set-repo', path),
@@ -13,6 +16,7 @@ const gitAPI = {
   getCommitFiles: (commitHash: string) => ipcRenderer.invoke('git:get-commit-files', commitHash),
   getCommitBody: (hash: string) => ipcRenderer.invoke('git:get-commit-body', hash),
   getStatus: () => ipcRenderer.invoke('git:get-status'),
+  getTracking: () => ipcRenderer.invoke('git:get-tracking'),
   getStashes: () => ipcRenderer.invoke('git:get-stashes'),
   // Write
   checkout: (ref: string) => ipcRenderer.invoke('git:checkout', ref),
@@ -124,6 +128,7 @@ const gitAPI = {
   appGetInfo: () => ipcRenderer.invoke('app:get-info'),
   openExternal: (url: string) => ipcRenderer.invoke('app:open-external', url),
   openInEditor: (filepath: string) => ipcRenderer.invoke('app:open-in-editor', filepath),
+  openTerminal: () => ipcRenderer.invoke('app:open-terminal'),
   // GitHub
   githubDetectRepo: () => ipcRenderer.invoke('github:detect-repo'),
   githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) =>

@@ -1,7 +1,7 @@
 .toolbar {
   display: flex;
   align-items: center;
-  height: 44px;
+  height: 60px;
   background: #161b22;
   border-bottom: 1px solid #21262d;
   padding: 0 10px;
@@ -12,8 +12,75 @@
 .toolbar * { -webkit-app-region: no-drag; }
 
 .tb-mac-spacer { width: 78px; flex-shrink: 0; -webkit-app-region: drag; }
+.tb-spring { flex: 1; }
 
 .tb-divider { width: 1px; height: 20px; background: #30363d; margin: 0 5px; flex-shrink: 0; opacity: 0.6; }
+
+/* ── GitKraken-style centered action group ── */
+.tb-group {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.tb-group-sep {
+  width: 1px;
+  align-self: center;
+  height: 34px;
+  background: #30363d;
+  opacity: 0.5;
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+/* Label-on-top icon cell */
+.tb-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 52px;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  border-radius: 7px;
+  transition: color 0.12s, background 0.12s;
+}
+.tb-cell-label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  color: #8b949e;
+  transition: color 0.12s;
+}
+.tb-cell-icon { display: flex; align-items: center; justify-content: center; height: 20px; }
+.tb-cell:hover:not(:disabled) { background: #21262d; color: #e6edf3; }
+.tb-cell:hover:not(:disabled) .tb-cell-label { color: #e6edf3; }
+.tb-cell:active:not(:disabled) { transform: scale(0.96); }
+.tb-cell:disabled { opacity: 0.35; cursor: default; }
+.tb-cell.tb-accent-green:hover:not(:disabled),
+.tb-cell.tb-accent-green:hover:not(:disabled) .tb-cell-label { color: #3fb950; }
+.tb-cell.tb-accent-green:hover:not(:disabled) { background: #2ea04314; }
+
+/* Pull split cell (icon + chevron under one label) */
+.tb-cell-split { padding-bottom: 4px; }
+.tb-cell-split-row { display: flex; align-items: center; }
+.tb-split-icon, .tb-split-chev {
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: inherit; cursor: pointer;
+  border-radius: 5px; height: 20px;
+}
+.tb-split-icon { padding: 0 2px; }
+.tb-split-chev { padding: 0 2px; color: #6e7681; }
+.tb-split-icon:hover:not(:disabled), .tb-split-chev:hover:not(:disabled) { color: #e6edf3; }
+.tb-cell-disabled { opacity: 0.35; }
+.tb-cell-disabled .tb-split-icon, .tb-cell-disabled .tb-split-chev { cursor: default; }
+
+/* ── Secondary right cluster ── */
+.tb-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 
 /* Branch pill */
 .tb-branch-pill {

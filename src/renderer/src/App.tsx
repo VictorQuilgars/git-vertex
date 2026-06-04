@@ -3,6 +3,7 @@ import { CommitNode, BranchInfo, FileChange } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
+import StatusBar from './components/StatusBar/StatusBar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
 import { PromptDialog, ConfirmDialog } from './components/Dialog/Dialog'
@@ -230,6 +231,8 @@ export default function App() {
   const [rightW, setRightW] = useState<number>(360)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
+  const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
+  const [githubUser, setGithubUser] = useState<{ login: string; avatar: string } | null>(null)
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
   const [pushModalOpen, setPushModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -313,6 +316,10 @@ export default function App() {
         (changesRes.unstaged?.length ?? 0) +
         (changesRes.untracked?.length ?? 0)
       )
+      try {
+        const tr = await (window.gitAPI as any).getTracking()
+        setTracking({ ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0 })
+      } catch { /* no upstream */ }
     } finally {
       if (!silent) setLoading(false)
       isLoadingRef.current = false
@@ -320,6 +327,18 @@ export default function App() {
   }, [repoPath, showAllBranches, soloBranch, mutedBranches, loadStashes, loadTags])
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
+
+  // GitHub profile (for the top-bar profile chip). Refresh after OAuth too.
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await (window.gitAPI as any).githubGetUser()
+        setGithubUser(r?.user ?? null)
+      } catch { setGithubUser(null) }
+    }
+    load()
+    ;(window.gitAPI as any).onGithubAuthComplete?.(() => load())
+  }, [])
 
   // ── Auto-refresh via file watcher events from main process ────
   useEffect(() => {
@@ -565,6 +584,26 @@ export default function App() {
 
   const handlePushModal = () => {
     if (repoPath) setPushModalOpen(true)
+  }
+
+  const handleStash = async () => {
+    if (!repoPath) return
+    const r = await window.gitAPI.createStash()
+    if ((r as any)?.success === false) showToast(t('toast.stashErr', (r as any).error ?? ''), 'err')
+    else { showToast(t('toast.stashCreated')); await loadRepoData() }
+  }
+
+  const handlePop = async () => {
+    if (!repoPath || stashes.length === 0) return
+    const r = await window.gitAPI.popStash(0)
+    if ((r as any)?.success === false) showToast(t('toast.stashErr', (r as any).error ?? ''), 'err')
+    else { showToast(t('toast.stashPopped', 0)); await loadRepoData() }
+  }
+
+  const handleTerminal = async () => {
+    if (!repoPath) return
+    const r = await (window.gitAPI as any).openTerminal?.()
+    if (r?.success === false) showToast(r.error ?? 'Erreur terminal', 'err')
   }
 
   const handlePull = async () => {
@@ -973,6 +1012,32 @@ export default function App() {
           ))}
           <button className={`app-tab-add ${activeTabId === null && !settingsOpen ? 'active' : ''}`}
             title={t('tabs.new')} onClick={() => { setSettingsOpen(false); goHome() }}>+</button>
+
+          {/* Right cluster: notifications · settings · profile */}
+          <div className="app-tabs-right">
+            <button className="app-tb-icon" title={t('settings.notifications')} disabled>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 16a2 2 0 0 0 1.985-1.75c.017-.137-.097-.25-.235-.25h-3.5c-.138 0-.252.113-.235.25A2 2 0 0 0 8 16zm.535-13.518C10.456 2.787 12 4.482 12 6.5c0 1.5.286 2.658.66 3.516.187.43.39.764.578 1.011.094.124.18.225.249.302a3.86 3.86 0 0 0 .153.163l.013.013.004.004.001.001H14a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1h.342l.001-.001.004-.004.013-.013a3.86 3.86 0 0 0 .153-.163c.069-.077.155-.178.249-.302.188-.247.391-.581.578-1.011C4.714 9.158 5 8 5 6.5c0-2.018 1.544-3.713 3.465-4.018A1.5 1.5 0 0 1 8 1.5a1.5 1.5 0 0 1 .535.982z"/>
+              </svg>
+            </button>
+            <button className={`app-tb-icon ${settingsOpen ? 'active' : ''}`}
+              title={t('settings.title')} onClick={() => setSettingsOpen(v => !v)}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.376l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.318z"/>
+              </svg>
+            </button>
+            <button className="app-profile-chip" title={githubUser?.login ?? t('settings.profile')}
+              onClick={() => { setSettingsOpen(true) }}>
+              {githubUser?.avatar
+                ? <img className="app-profile-avatar" src={githubUser.avatar} alt={githubUser.login} />
+                : <span className="app-profile-avatar app-profile-avatar--fallback">{(githubUser?.login ?? '?').slice(0, 1).toUpperCase()}</span>}
+              <span className="app-profile-name">{githubUser?.login ?? t('settings.defaultProfile')}</span>
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"/>
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -991,6 +1056,10 @@ export default function App() {
         onPushModal={handlePushModal}
         onPull={handlePull}
         onCreateBranch={handleCreateBranch}
+        onStash={handleStash}
+        onPop={handlePop}
+        onTerminal={handleTerminal}
+        stashCount={stashes.length}
         onToggleAllBranches={() => setShowAllBranches(v => !v)}
         onRefresh={loadRepoData}
         loading={loading}
@@ -1276,6 +1345,19 @@ export default function App() {
           </>
         )}
       </div>
+
+      {/* ── Status bar (bottom) ── */}
+      {!settingsOpen && repoPath && (
+        <StatusBar
+          repoName={repoName}
+          branch={currentBranch}
+          ahead={tracking.ahead}
+          behind={tracking.behind}
+          lastFetchTime={lastFetchTime}
+          loading={loading}
+          onFetch={handleFetch}
+        />
+      )}
 
       {/* Command Palette */}
       {paletteOpen && (

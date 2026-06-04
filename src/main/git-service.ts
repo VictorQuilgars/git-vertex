@@ -270,6 +270,32 @@ export class GitService {
     }
   }
 
+  // Current branch + its upstream tracking status (commits ahead/behind).
+  // Returns ahead/behind = 0 when there is no upstream configured.
+  async getTracking(): Promise<{ branch: string | null; upstream: string | null; ahead: number; behind: number }> {
+    let branch: string | null = null
+    try {
+      branch = (await this.git.raw(['rev-parse', '--abbrev-ref', 'HEAD'])).trim() || null
+      if (branch === 'HEAD') branch = null // detached
+    } catch { /* no commits yet */ }
+
+    let upstream: string | null = null
+    try {
+      upstream = (await this.git.raw(['rev-parse', '--abbrev-ref', '@{u}'])).trim() || null
+    } catch { /* no upstream */ }
+
+    if (!upstream) return { branch, upstream: null, ahead: 0, behind: 0 }
+
+    try {
+      // "<behind>\t<ahead>" — left side is @{u}, right side is HEAD.
+      const out = (await this.git.raw(['rev-list', '--left-right', '--count', '@{u}...HEAD'])).trim()
+      const [behindStr, aheadStr] = out.split(/\s+/)
+      return { branch, upstream, ahead: parseInt(aheadStr) || 0, behind: parseInt(behindStr) || 0 }
+    } catch {
+      return { branch, upstream, ahead: 0, behind: 0 }
+    }
+  }
+
   async fetch(): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.fetch(['--all', '--prune'])
