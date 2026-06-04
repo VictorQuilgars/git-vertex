@@ -79,21 +79,35 @@
 .cd-ai-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  background: #3d1f8a;
-  border: 1px solid #7c47e8;
+  gap: 6px;
+  padding: 0 0 0 10px;
+  height: 26px;
+  flex: 1;
+  background: linear-gradient(135deg, #6e40c9 0%, #8957e5 100%);
+  border: 1px solid #9d6ef0;
   border-radius: 6px;
-  color: #c8a8ff;
+  color: #fff;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.12s;
+  transition: filter 0.12s;
+  overflow: hidden;
+}
+.cd-ai-btn:hover { filter: brightness(1.12); }
+.cd-ai-label { flex: 1; text-align: left; }
+.cd-ai-sep {
+  width: 1px;
+  height: 100%;
+  background: rgba(255,255,255,0.25);
   flex-shrink: 0;
 }
-.cd-ai-btn:hover { background: #4d2a9e; }
-.cd-ai-arrow { font-size: 9px; opacity: 0.7; margin-left: 2px; }
+.cd-ai-arrow {
+  font-size: 9px;
+  opacity: 0.85;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
 
 /* Scrollable body */
 .cd-scroll {
@@ -196,7 +210,12 @@
   border-bottom: 1px solid #21262d;
   flex-wrap: wrap;
 }
-.cd-coauthor { font-size: 11px; color: #8b949e; }
+.cd-coauthor-chip {
+  width: 28px; height: 28px; border-radius: 6px;
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0; cursor: default;
+}
 
 /* Refs */
 .cd-refs {
@@ -211,10 +230,14 @@
 .cd-files-count-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px 4px;
+  gap: 8px;
+  padding: 10px 14px 4px;
+  font-size: 12px;
+  font-weight: 600;
 }
-.cd-files-count-text { font-size: 12px; font-weight: 600; color: #c9d1d9; }
+.cd-count-mod { color: #c9d1d9; }
+.cd-count-add { color: #3fb950; }
+.cd-count-del { color: #f85149; }
 
 /* Files bar */
 .cd-files-bar {
@@ -298,10 +321,26 @@
 .rp-file-row.active { background: #1f2d3d; }
 
 .rp-file-badge { width: 14px; font-size: 10px; font-weight: 700; flex-shrink: 0; }
-.rp-file-path { flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c9d1d9; }
+.rp-file-path { flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-file-dir { color: #6e7681; }
+.rp-file-name { color: #e6edf3; font-weight: 600; }
 .rp-file-stats { display: flex; gap: 4px; flex-shrink: 0; font-size: 10px; font-weight: 600; }
 .rp-add { color: #3fb950; }
 .rp-del { color: #f85149; }
+
+/* File status icons in commit detail */
+.rp-file-pencil { flex-shrink: 0; }
+.rp-fsi {
+  font-size: 13px;
+  font-weight: 700;
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 1;
+}
+.rp-fsi-add { color: #3fb950; }
+.rp-fsi-del { color: #f85149; }
+.rp-fsi-ren { color: #d2a8ff; font-size: 11px; }
 
 /* ── Diff view ────────────────────────────────────────────── */
 .rp-diff-view { flex: 1; overflow-y: auto; font-size: 11px; }
@@ -350,8 +389,8 @@
 .st-empty { padding: 12px 14px; color: #484f58; font-size: 11px; font-style: italic; }
 
 .st-file-row {
-  display: flex; align-items: center; gap: 5px;
-  padding: 4px 10px; transition: background 0.1s;
+  display: flex; align-items: center; gap: 4px;
+  padding: 2px 8px; transition: background 0.1s;
 }
 .st-file-row:hover { background: #161b22; }
 .st-badge { font-size: 10px; font-weight: 700; width: 14px; flex-shrink: 0; }
@@ -726,26 +765,68 @@
 }
 
 /* ── Tree view ───────────────────────────────────────────── */
-.st-tree-dir {
-  cursor: default;
-  color: #8b949e;
+.st-tr {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  transition: background 0.1s;
+  min-width: 0;
 }
-.st-tree-dir:hover { background: #161b22; }
-.st-tree-chevron {
-  font-size: 9px;
-  width: 12px;
-  flex-shrink: 0;
-  color: #6e7681;
+.st-tr:hover { background: #1c2128; }
+.st-tr.st-selected { background: #1f2d3d !important; }
+
+.st-tr-dir {
   cursor: pointer;
   user-select: none;
 }
-.st-tree-dirname {
-  color: #8b949e;
-  cursor: pointer;
+.st-tr-tri {
+  font-size: 8px;
+  color: #6e7681;
+  flex-shrink: 0;
+  width: 10px;
 }
+.st-tr-dirname {
+  font-size: 13px;
+  color: #8b949e;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-tr-name {
+  font-size: 13px;
+  color: #e6edf3;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-tr-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+.st-stat-mod { color: #c9d1d9; }
+.st-stat-add { color: #3fb950; }
+.st-stat-del { color: #f85149; }
+
+.st-fsi {
+  font-size: 13px;
+  font-weight: 700;
+  width: 12px;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 1;
+}
+.st-fsi-add { color: #3fb950; }
+.st-fsi-del { color: #f85149; }
+
 .st-tree-branch {
-  border-left: 1px solid #30363d;
-  padding-left: 4px;
+  padding-left: 2px;
 }
 
 /* ── Conflict Panel ───────────────────────────────────────── */

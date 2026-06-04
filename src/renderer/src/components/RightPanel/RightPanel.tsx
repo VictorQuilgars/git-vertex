@@ -88,6 +88,23 @@ function buildTree(files: { path: string; status: string }[]): TreeNode[] {
   return root.children
 }
 
+const TreePencil = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" style={{ flexShrink: 0 }}>
+    <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
+  </svg>
+)
+
+function treeStats(node: TreeNode): { mod: number; add: number; del: number } {
+  if (node.isFile) {
+    const s = node.status ?? 'M'
+    return { mod: s !== 'A' && s !== 'D' ? 1 : 0, add: s === 'A' ? 1 : 0, del: s === 'D' ? 1 : 0 }
+  }
+  return node.children.reduce((acc, c) => {
+    const cs = treeStats(c)
+    return { mod: acc.mod + cs.mod, add: acc.add + cs.add, del: acc.del + cs.del }
+  }, { mod: 0, add: 0, del: 0 })
+}
+
 function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect, isSelected }: {
   node: TreeNode; depth: number
   onAction: (paths: string[]) => void
@@ -96,56 +113,60 @@ function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect,
   isSelected?: boolean
 }) {
   const [open, setOpen] = React.useState(true)
-  const indent = depth * 16
+  const indent = depth * 10
 
   if (node.isFile) {
-    const STATUS_META: Record<string, { label: string; color: string }> = {
-      M: { label: 'M', color: '#e3b341' }, A: { label: 'A', color: '#3fb950' },
-      D: { label: 'D', color: '#f85149' }, R: { label: 'R', color: '#58a6ff' },
-      '?': { label: '?', color: '#8b949e' }, U: { label: 'U', color: '#ffa657' },
-    }
-    const meta = STATUS_META[node.status ?? '?'] ?? STATUS_META['?']
+    const s = node.status ?? 'M'
     return (
       <div
-        className={`st-file-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+        className={`st-tr st-clickable ${isSelected ? 'st-selected' : ''}`}
         style={{ paddingLeft: indent + 4 }}
         onClick={() => onSelect?.(node.fullPath)}
       >
-        <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
-        <span className="st-path">{node.name}</span>
-        <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
-          title={actionTitle}
-          onClick={e => { e.stopPropagation(); onAction([node.fullPath]) }}>
-          {actionIcon}
-        </button>
+        {s === 'A' ? <span className="st-fsi st-fsi-add">+</span>
+          : s === 'D' ? <span className="st-fsi st-fsi-del">−</span>
+          : <TreePencil />}
+        <span className="st-tr-name">{node.name}</span>
+        {actionIcon && (
+          <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
+            title={actionTitle}
+            onClick={e => { e.stopPropagation(); onAction([node.fullPath]) }}>
+            {actionIcon}
+          </button>
+        )}
       </div>
     )
   }
 
   const allPaths = (n: TreeNode): string[] =>
     n.isFile ? [n.fullPath] : n.children.flatMap(allPaths)
+  const stats = !open ? treeStats(node) : null
 
   return (
     <>
-      <div className="st-file-row st-tree-dir st-clickable" style={{ paddingLeft: indent }} onClick={() => setOpen(o => !o)}>
-        <span className="st-tree-chevron">{open ? '▾' : '▸'}</span>
-        <span className="st-badge" style={{ color: '#8b949e', fontSize: 10 }}>📁</span>
-        <span className="st-path st-tree-dirname">{node.name}</span>
-        <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
-          title={`${actionTitle} dossier`}
-          onClick={e => { e.stopPropagation(); onAction(allPaths(node)) }}>
-          {actionIcon}
-        </button>
+      <div className="st-tr st-tr-dir" style={{ paddingLeft: indent }} onClick={() => setOpen(o => !o)}>
+        <span className="st-tr-tri">{open ? '▼' : '▶'}</span>
+        <span className="st-tr-dirname">{node.name}</span>
+        {stats && (
+          <div className="st-tr-stats">
+            {stats.mod > 0 && <><TreePencil /><span className="st-stat-mod">{stats.mod}</span></>}
+            {stats.add > 0 && <span className="st-stat-add">+{stats.add}</span>}
+            {stats.del > 0 && <span className="st-stat-del">−{stats.del}</span>}
+          </div>
+        )}
+        {actionIcon && (
+          <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
+            title={`${actionTitle} dossier`}
+            onClick={e => { e.stopPropagation(); onAction(allPaths(node)) }}>
+            {actionIcon}
+          </button>
+        )}
       </div>
-      {open && (
-        <div className="st-tree-branch" style={{ marginLeft: indent + 10 }}>
-          {node.children.map(c => (
-            <TreeFileRow key={c.fullPath} node={c} depth={depth + 1}
-              onAction={onAction} actionIcon={actionIcon} actionTitle={actionTitle}
-              onSelect={onSelect} isSelected={isSelected && c.fullPath === node.fullPath} />
-          ))}
-        </div>
-      )}
+      {open && node.children.map(c => (
+        <TreeFileRow key={c.fullPath} node={c} depth={depth + 1}
+          onAction={onAction} actionIcon={actionIcon} actionTitle={actionTitle}
+          onSelect={onSelect} isSelected={isSelected && c.fullPath === node.fullPath} />
+      ))}
     </>
   )
 }
@@ -367,11 +388,10 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           <code className="cd-hash" onClick={() => navigator.clipboard.writeText(commit.hash)}
             title={t('panel.copyHash')}>{commit.shortHash}</code>
         </div>
-        <button className="cd-ai-btn" onClick={async () => {
-          // Amend with AI — same as StagingView AI generation
-        }}>
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>
-          Recompose avec l'IA
+        <button className="cd-ai-btn">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>
+          <span className="cd-ai-label">Recompose commit with AI</span>
+          <span className="cd-ai-sep" />
           <span className="cd-ai-arrow">▼</span>
         </button>
       </div>
@@ -411,7 +431,10 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             <div className="cd-coauthors">
               <span className="cd-label">Co-authors:</span>
               {coAuthors.map((a, i) => (
-                <span key={i} className="cd-coauthor">{a}</span>
+                <div key={i} className="cd-coauthor-chip" title={a}
+                  style={{ background: getAvatarColor(a) }}>
+                  {initials(a)}
+                </div>
               ))}
             </div>
           )}
@@ -432,14 +455,23 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           )}
 
           {/* Files count */}
-          <div className="cd-files-count-row">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="#e3b341">
-              <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
-            </svg>
-            <span className="cd-files-count-text">
-              {files.length} {files.length !== 1 ? 'modified' : 'modified'}
-            </span>
-          </div>
+          {files.length > 0 && (() => {
+            const nMod = files.filter(f => f.status !== 'A' && f.status !== 'D').length
+            const nAdd = files.filter(f => f.status === 'A').length
+            const nDel = files.filter(f => f.status === 'D').length
+            return (
+              <div className="cd-files-count-row">
+                {nMod > 0 && <>
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" style={{ flexShrink: 0 }}>
+                    <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
+                  </svg>
+                  <span className="cd-count-mod">{nMod} modified</span>
+                </>}
+                {nAdd > 0 && <span className="cd-count-add">+ {nAdd} added</span>}
+                {nDel > 0 && <span className="cd-count-del">− {nDel} deleted</span>}
+              </div>
+            )
+          })()}
 
           {/* Files bar */}
           <div className="cd-files-bar">
@@ -479,14 +511,22 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                   ))
                 : files.map((f, i) => {
                     const { dir, name } = formatPath(f.path)
+                    const s = f.status ?? 'M'
                     return (
                       <div key={i}
                         className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
                         onClick={() => { setSelectedFile(f.path); onOpenFileDiff?.({ type: 'commit', commitHash: commit.hash, filePath: f.path }) }}
                       >
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" className="rp-file-pencil">
-                          <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
-                        </svg>
+                        {s === 'A'
+                          ? <span className="rp-fsi rp-fsi-add">+</span>
+                          : s === 'D'
+                          ? <span className="rp-fsi rp-fsi-del">−</span>
+                          : s === 'R'
+                          ? <span className="rp-fsi rp-fsi-ren">R</span>
+                          : <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" className="rp-file-pencil">
+                              <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
+                            </svg>
+                        }
                         <span className="rp-file-path">
                           {dir && <span className="rp-file-dir">{dir}</span>}
                           <span className="rp-file-name">{name}</span>
