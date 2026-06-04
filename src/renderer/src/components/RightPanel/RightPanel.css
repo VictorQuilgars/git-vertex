@@ -124,7 +124,64 @@
   background: #0d1117;
   overflow-y: auto;
   flex-shrink: 0;
+  cursor: text;
+  transition: background 0.1s;
 }
+.cd-message-block:hover { background: #111820; }
+.cd-message-block--editing {
+  padding: 10px;
+  cursor: default;
+  flex-shrink: 0;
+}
+.cd-message-block--editing:hover { background: #0d1117; }
+
+.cd-amend-textarea {
+  width: 100%;
+  min-height: 120px;
+  max-height: 340px;
+  background: #161b22;
+  border: 1px solid #58a6ff66;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  padding: 10px 12px;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.cd-amend-textarea:focus { border-color: #58a6ff; }
+
+.cd-amend-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #0d1117;
+  border-top: 1px solid #21262d;
+  flex-shrink: 0;
+}
+.cd-amend-confirm, .cd-amend-cancel {
+  flex: 1;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.1s, filter 0.1s;
+}
+.cd-amend-confirm {
+  background: #2d6a31;
+  color: #e6edf3;
+}
+.cd-amend-confirm:hover:not(:disabled) { filter: brightness(1.15); }
+.cd-amend-confirm:disabled { opacity: 0.4; cursor: default; }
+.cd-amend-cancel {
+  background: #6e1f1f;
+  color: #e6edf3;
+}
+.cd-amend-cancel:hover { filter: brightness(1.15); }
 
 /* Resize handle between the two zones */
 .cd-resize-handle {

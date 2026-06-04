@@ -116,6 +116,9 @@ const fr = {
   'panel.loadingBlame': 'Chargement du blame…',
   'panel.noBlame': 'Aucune donnée de blame',
   'panel.copyHash': 'Copier le hash',
+  'panel.clickToAmend': 'Cliquer pour modifier le message (amend)',
+  'panel.amendConfirm': 'Update Message',
+  'panel.amendCancel': 'Cancel Amend',
 
   // RightPanel — commit
   'panel.commitMsg.placeholder': 'Message de commit…\n\nDescription optionnelle',
@@ -500,6 +503,9 @@ const en: typeof fr = {
   'panel.loadingBlame': 'Loading blame…',
   'panel.noBlame': 'No blame data',
   'panel.copyHash': 'Copy hash',
+  'panel.clickToAmend': 'Click to edit message (amend)',
+  'panel.amendConfirm': 'Update Message',
+  'panel.amendCancel': 'Cancel Amend',
 
   // RightPanel — commit
   'panel.commitMsg.placeholder': 'Commit message…\n\nOptional description',

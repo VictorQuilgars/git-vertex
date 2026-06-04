@@ -339,12 +339,13 @@ function formatPath(path: string): { dir: string; name: string } {
 const MIN_MSG_H = 48
 const MAX_MSG_H = 400
 
-function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff }: {
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
   wipCount?: number
   onViewWip?: () => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
+  onAmendSuccess?: () => void
 }) {
   const { t } = useLang()
   const [files, setFiles] = useState<FileChange[]>([])
@@ -355,6 +356,9 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
   const [viewAll, setViewAll] = useState(false)
   const [msgHeight, setMsgHeight] = useState(120)
+  const [amendEditing, setAmendEditing] = useState(false)
+  const [amendMsg, setAmendMsg] = useState('')
+  const [amendLoading, setAmendLoading] = useState(false)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
 
   const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -377,6 +381,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 
   useEffect(() => {
     setFiles([]); setBody(''); setSelectedFile(null); setView('files')
+    setAmendEditing(false); setAmendMsg(''); setAmendLoading(false)
     Promise.all([
       window.gitAPI.getCommitFiles(commit.hash),
       (window.gitAPI as any).getCommitBody(commit.hash),
@@ -425,15 +430,65 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
       {/* ── Scrollable content ── */}
       <div className="cd-scroll">
         {/* Zone 1 — commit message (dark) */}
-        <div className="cd-message-block" style={{ height: msgHeight, minHeight: MIN_MSG_H, maxHeight: MAX_MSG_H }}>
-          <p className="cd-title">{commit.message}</p>
-          {cleanBody && <pre className="cd-body">{cleanBody}</pre>}
+        <div
+          className={`cd-message-block${amendEditing ? ' cd-message-block--editing' : ''}`}
+          style={amendEditing ? undefined : { height: msgHeight, minHeight: MIN_MSG_H, maxHeight: MAX_MSG_H }}
+          onClick={!amendEditing ? () => {
+            const full = commit.message + (body ? '\n\n' + body : '')
+            setAmendMsg(full)
+            setAmendEditing(true)
+          } : undefined}
+          title={!amendEditing ? t('panel.clickToAmend') : undefined}
+        >
+          {amendEditing ? (
+            <textarea
+              className="cd-amend-textarea"
+              value={amendMsg}
+              onChange={e => setAmendMsg(e.target.value)}
+              autoFocus
+              onClick={e => e.stopPropagation()}
+            />
+          ) : (
+            <>
+              <p className="cd-title">{commit.message}</p>
+              {cleanBody && <pre className="cd-body">{cleanBody}</pre>}
+            </>
+          )}
         </div>
 
+        {/* Amend action buttons */}
+        {amendEditing && (
+          <div className="cd-amend-actions">
+            <button
+              className="cd-amend-confirm"
+              disabled={amendLoading || !amendMsg.trim()}
+              onClick={async () => {
+                setAmendLoading(true)
+                try {
+                  await (window.gitAPI as any).amendMessage(amendMsg.trim())
+                  setAmendEditing(false)
+                  onAmendSuccess?.()
+                } catch (err) {
+                  console.error('amend failed', err)
+                } finally {
+                  setAmendLoading(false)
+                }
+              }}
+            >
+              {amendLoading ? '…' : t('panel.amendConfirm')}
+            </button>
+            <button className="cd-amend-cancel" onClick={() => setAmendEditing(false)}>
+              {t('panel.amendCancel')}
+            </button>
+          </div>
+        )}
+
         {/* Resize handle */}
-        <div className="cd-resize-handle" onMouseDown={onResizeMouseDown}>
-          <div className="cd-resize-grip" />
-        </div>
+        {!amendEditing && (
+          <div className="cd-resize-handle" onMouseDown={onResizeMouseDown}>
+            <div className="cd-resize-grip" />
+          </div>
+        )}
 
         {/* Zone 2 — commit info (lighter) */}
         <div className="cd-info-zone">
@@ -1211,6 +1266,7 @@ export default function RightPanel({
           wipCount={wipCount}
           onViewWip={onViewWip}
           onOpenFileDiff={onOpenFileDiff}
+          onAmendSuccess={onCommitSuccess}
         />
       ) : null}
     </div>
