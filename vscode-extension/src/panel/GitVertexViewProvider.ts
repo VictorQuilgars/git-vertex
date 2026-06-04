@@ -60,14 +60,21 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
     this._fsWatcher.onDidCreate(onGit, null, this._disposables)
     this._fsWatcher.onDidDelete(onGit, null, this._disposables)
 
-    // Working-tree changes (file edits outside .git)
+    // Working-tree changes (file edits outside .git). Ignore high-churn dirs so
+    // we don't fire a reload (and flicker the toolbar) on every build artifact.
+    const IGNORE = /(^|\/)(\.git|node_modules|out|dist|build|\.vscode-test|coverage|\.next|\.cache)(\/|$)/
     const wtWatcher = vscode.workspace.createFileSystemWatcher(
       new vscode.RelativePattern(repoPath, '**/*')
     )
-    const onWt = this._debounce(() => this._broadcast('workingChanged'), 800)
-    wtWatcher.onDidChange(onWt, null, this._disposables)
-    wtWatcher.onDidCreate(onWt, null, this._disposables)
-    wtWatcher.onDidDelete(onWt, null, this._disposables)
+    const onWt = this._debounce(() => this._broadcast('workingChanged'), 1000)
+    const onWtFiltered = (uri: vscode.Uri) => {
+      const rel = path.relative(repoPath, uri.fsPath)
+      if (IGNORE.test(rel)) return
+      onWt()
+    }
+    wtWatcher.onDidChange(onWtFiltered, null, this._disposables)
+    wtWatcher.onDidCreate(onWtFiltered, null, this._disposables)
+    wtWatcher.onDidDelete(onWtFiltered, null, this._disposables)
     this._disposables.push(wtWatcher)
   }
 

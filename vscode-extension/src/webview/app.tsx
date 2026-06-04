@@ -46,10 +46,12 @@ function VertexApp() {
   showAllRef.current = showAllBranches
 
   // ── Data loading (mirrors desktop App.loadRepoData) ──────────
-  const loadRepoData = useCallback(async () => {
+  // `silent` reloads (from file watchers) skip the loading flag so the toolbar
+  // icons don't flicker on every background refresh.
+  const loadRepoData = useCallback(async (silent = false) => {
     if (isLoadingRef.current) return
     isLoadingRef.current = true
-    setLoading(true)
+    if (!silent) setLoading(true)
     try {
       const branchRes = await window.gitAPI.getBranches()
       const logRes = await window.gitAPI.getLog({ maxCount: 500, all: showAllRef.current })
@@ -77,15 +79,16 @@ function VertexApp() {
       } catch { /* ignore */ }
     } finally {
       isLoadingRef.current = false
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
 
-  // Refresh on host broadcasts (.git or working-tree changes)
+  // Refresh on host broadcasts (.git or working-tree changes) — silent so the
+  // toolbar doesn't flicker.
   useEffect(() => {
-    const handler = () => loadRepoData()
+    const handler = () => loadRepoData(true)
     window.gitAPI.onRepoChanged(handler)
     window.gitAPI.onWorkingChanged(handler)
     return () => {

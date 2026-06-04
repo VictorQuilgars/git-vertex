@@ -10759,11 +10759,12 @@ Signed-off-by: ` : full;
     const isLoadingRef = (0, import_react8.useRef)(false);
     const showAllRef = (0, import_react8.useRef)(showAllBranches);
     showAllRef.current = showAllBranches;
-    const loadRepoData = (0, import_react8.useCallback)(async () => {
+    const loadRepoData = (0, import_react8.useCallback)(async (silent = false) => {
       if (isLoadingRef.current)
         return;
       isLoadingRef.current = true;
-      setLoading(true);
+      if (!silent)
+        setLoading(true);
       try {
         const branchRes = await window.gitAPI.getBranches();
         const logRes = await window.gitAPI.getLog({ maxCount: 500, all: showAllRef.current });
@@ -10796,14 +10797,15 @@ Signed-off-by: ` : full;
         }
       } finally {
         isLoadingRef.current = false;
-        setLoading(false);
+        if (!silent)
+          setLoading(false);
       }
     }, []);
     (0, import_react8.useEffect)(() => {
       loadRepoData();
     }, [loadRepoData]);
     (0, import_react8.useEffect)(() => {
-      const handler = () => loadRepoData();
+      const handler = () => loadRepoData(true);
       window.gitAPI.onRepoChanged(handler);
       window.gitAPI.onWorkingChanged(handler);
       return () => {
