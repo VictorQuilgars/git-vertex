@@ -7,6 +7,7 @@ import * as vscode from 'vscode'
 import * as path from 'path'
 import * as fs from 'fs'
 import { GitService } from '../gitService'
+import { findAppPath, launchApp } from '../appLocator'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
 
@@ -121,6 +122,13 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
       case 'uiConfirm': {
         const pick = await vscode.window.showWarningMessage(args[0], { modal: true }, 'OK')
         return pick === 'OK'
+      }
+      case 'openDesktop': {
+        const cfg = vscode.workspace.getConfiguration('gitVertex')
+        const appPath = (cfg.get<string>('appPath', '') || '').trim() || findAppPath()
+        if (!appPath) { vscode.window.showErrorMessage('Git Vertex desktop introuvable.'); return { success: false } }
+        if (this._repoPath) launchApp(appPath, this._repoPath)
+        return { success: true }
       }
     }
 

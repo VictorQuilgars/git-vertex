@@ -8767,161 +8767,51 @@ Commits beyond this point will be lost for that branch.`,
     )))));
   }
 
-  // ../src/renderer/src/components/Toolbar/Toolbar.tsx
+  // src/webview/CompactToolbar.tsx
   var import_react4 = __toESM(require_react());
-  function TBtn({ icon, label, onClick, disabled, title, accent }) {
-    return /* @__PURE__ */ import_react4.default.createElement(
-      "button",
-      {
-        className: `tb-cell ${accent ? `tb-accent-${accent}` : ""}`,
-        onClick,
-        disabled,
-        title
-      },
-      /* @__PURE__ */ import_react4.default.createElement("span", { className: "tb-cell-label" }, label),
-      /* @__PURE__ */ import_react4.default.createElement("span", { className: "tb-cell-icon" }, icon)
-    );
+  function IconBtn({ title, onClick, disabled, active, badge, children }) {
+    return /* @__PURE__ */ import_react4.default.createElement("button", { className: `gvt-btn${active ? " gvt-btn--active" : ""}`, title, onClick, disabled }, children, badge != null && badge > 0 && /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-badge" }, badge));
   }
-  function Toolbar({
-    repoPath,
-    currentBranch,
-    showAllBranches,
-    searchQuery,
-    onSearch,
-    onUndo,
-    onFetch,
-    onPush,
-    onPull,
-    onCreateBranch,
-    onStash,
-    onPop,
-    onTerminal,
-    stashCount = 0,
-    onToggleAllBranches,
-    loading,
-    extendedSearch,
-    extendedSearchLoading,
-    onToggleExtendedSearch,
-    updateReady,
-    onInstallUpdate,
-    githubRepoUrl,
-    onCreatePR,
-    onGitflow,
-    topRow = true
-  }) {
-    const { t } = useLang();
-    const isMac = window.appInfo?.platform === "darwin";
-    const disabled = !repoPath || loading;
-    return /* @__PURE__ */ import_react4.default.createElement("div", { className: "toolbar" }, isMac && topRow && /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-mac-spacer" }), repoPath && /* @__PURE__ */ import_react4.default.createElement(import_react4.default.Fragment, null, /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-spring" }), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-group" }, /* @__PURE__ */ import_react4.default.createElement(
-      TBtn,
+  function relTime(d) {
+    if (!d)
+      return "";
+    const s = Math.floor((Date.now() - d.getTime()) / 1e3);
+    if (s < 60)
+      return "\xE0 l'instant";
+    if (s < 3600)
+      return `il y a ${Math.floor(s / 60)} min`;
+    if (s < 86400)
+      return `il y a ${Math.floor(s / 3600)} h`;
+    return `il y a ${Math.floor(s / 86400)} j`;
+  }
+  function CompactToolbar(p) {
+    const [branchOpen, setBranchOpen] = (0, import_react4.useState)(false);
+    const branchRef = (0, import_react4.useRef)(null);
+    (0, import_react4.useEffect)(() => {
+      if (!branchOpen)
+        return;
+      const onDown = (e) => {
+        if (branchRef.current && !branchRef.current.contains(e.target))
+          setBranchOpen(false);
+      };
+      document.addEventListener("mousedown", onDown);
+      return () => document.removeEventListener("mousedown", onDown);
+    }, [branchOpen]);
+    const locals = p.branches.filter((b) => !b.remote && !b.name.includes("HEAD"));
+    return /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt" }, /* @__PURE__ */ import_react4.default.createElement("svg", { className: "gvt-logo", viewBox: "0 0 512 512", width: "16", height: "16", "aria-hidden": true }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "148", y1: "82", x2: "256", y2: "422", stroke: "#3fb950", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" })), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-brand" }, "Git Vertex"), p.repoName && /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-repo" }, p.repoName), /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-wrap", ref: branchRef }, /* @__PURE__ */ import_react4.default.createElement("button", { className: "gvt-branch", title: "Changer de branche", onClick: () => setBranchOpen((o) => !o) }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-branch-name" }, p.branch || "\u2014"), /* @__PURE__ */ import_react4.default.createElement("svg", { width: "8", height: "8", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z" }))), branchOpen && /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-menu" }, locals.length === 0 && /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-empty" }, "Aucune branche locale"), locals.map((b) => /* @__PURE__ */ import_react4.default.createElement(
+      "button",
       {
-        label: "Undo",
-        title: t("toolbar.undo.tooltip"),
-        disabled,
-        onClick: onUndo,
-        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "9 14 4 9 9 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M20 20v-7a4 4 0 0 0-4-4H4" }))
-      }
-    ), /* @__PURE__ */ import_react4.default.createElement(
-      TBtn,
-      {
-        label: "Redo",
-        title: t("toolbar.redo.tooltip"),
-        disabled: true,
+        key: b.name,
+        className: `gvt-branch-item${b.current ? " gvt-branch-item--current" : ""}`,
         onClick: () => {
-        },
-        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "15 14 20 9 15 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4 20v-7a4 4 0 0 1 4-4h12" }))
-      }
-    ), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-group-sep" }), /* @__PURE__ */ import_react4.default.createElement("div", { className: `tb-cell tb-cell-split ${disabled ? "tb-cell-disabled" : ""}` }, /* @__PURE__ */ import_react4.default.createElement("span", { className: "tb-cell-label" }, "Pull"), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-cell-split-row" }, /* @__PURE__ */ import_react4.default.createElement("button", { className: "tb-split-icon", disabled, onClick: onPull, title: t("toolbar.pull.tooltip") }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "7 10 12 15 17 10" }))), /* @__PURE__ */ import_react4.default.createElement("button", { className: "tb-split-chev", disabled, onClick: onFetch, title: t("toolbar.fetch.tooltip") }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "9", height: "9", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z" }))))), /* @__PURE__ */ import_react4.default.createElement(
-      TBtn,
-      {
-        label: "Push",
-        title: t("toolbar.push.tooltip"),
-        disabled,
-        onClick: onPush,
-        accent: "green",
-        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "21", x2: "12", y2: "9" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "7 14 12 9 17 14" }))
-      }
-    ), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-group-sep" }), /* @__PURE__ */ import_react4.default.createElement(
-      TBtn,
-      {
-        label: "Branch",
-        title: t("toolbar.newBranch.tooltip"),
-        disabled,
-        onClick: onCreateBranch,
-        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" }))
-      }
-    ), /* @__PURE__ */ import_react4.default.createElement(
-      TBtn,
-      {
-        label: "Stash",
-        title: t("toolbar.stash.tooltip"),
-        disabled,
-        onClick: () => onStash?.(),
-        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12h-6l-2 3h-4l-2-3H2" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" }))
-      }
-    ), /* @__PURE__ */ import_react4.default.createElement(
-      TBtn,
-      {
-        label: "Pop",
-        title: t("toolbar.pop.tooltip"),
-        disabled: disabled || stashCount === 0,
-        onClick: () => onPop?.(),
-        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M12 4v8" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "8 8 12 4 16 8" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6" }))
-      }
-    ), onGitflow && /* @__PURE__ */ import_react4.default.createElement(
-      TBtn,
-      {
-        label: "Gitflow",
-        title: t("toolbar.gitflow.tooltip"),
-        disabled,
-        onClick: onGitflow,
-        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm0 2.122a2.25 2.25 0 1 0-1.5 0v5.256a2.25 2.25 0 1 0 1.5 0V5.372zM5 13.5a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm6.75-3.5a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5zm0-2.122a2.25 2.25 0 1 1-1.5 0V5a1 1 0 0 0-1-1H6.5a.75.75 0 0 1 0-1.5h2.75a2.5 2.5 0 0 1 2.5 2.5v2.878z" }))
-      }
-    ), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-group-sep" }), /* @__PURE__ */ import_react4.default.createElement(
-      TBtn,
-      {
-        label: "Terminal",
-        title: t("toolbar.terminal.tooltip"),
-        disabled: !repoPath,
-        onClick: () => onTerminal?.(),
-        icon: /* @__PURE__ */ import_react4.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "4 17 10 11 4 5" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "19", x2: "20", y2: "19" }))
-      }
-    )), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-spring" }), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-right" }, githubRepoUrl && currentBranch && !["main", "master"].includes(currentBranch) && onCreatePR && /* @__PURE__ */ import_react4.default.createElement(
-      "button",
-      {
-        className: "tb-btn tb-accent-blue",
-        disabled,
-        onClick: onCreatePR,
-        title: t("toolbar.createPR.tooltip")
+          setBranchOpen(false);
+          if (!b.current)
+            p.onCheckout(b.name);
+        }
       },
-      /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z" })),
-      /* @__PURE__ */ import_react4.default.createElement("span", null, "PR")
-    ), /* @__PURE__ */ import_react4.default.createElement(
-      "button",
-      {
-        className: `tb-btn tb-toggle ${showAllBranches ? "active" : ""}`,
-        onClick: onToggleAllBranches,
-        disabled,
-        title: t("toolbar.allBranches.tooltip")
-      },
-      /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z" }))
-    ), /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-search" }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" })), /* @__PURE__ */ import_react4.default.createElement(
-      "input",
-      {
-        type: "text",
-        placeholder: t("toolbar.search.placeholder"),
-        value: searchQuery,
-        onChange: (e) => onSearch(e.target.value)
-      }
-    ), searchQuery && /* @__PURE__ */ import_react4.default.createElement("button", { className: "tb-clear", onClick: () => onSearch("") }, "\xD7"), onToggleExtendedSearch && /* @__PURE__ */ import_react4.default.createElement(
-      "button",
-      {
-        className: `tb-ext-search ${extendedSearch ? "active" : ""}`,
-        onClick: onToggleExtendedSearch,
-        title: t("toolbar.extSearch.tooltip")
-      },
-      extendedSearchLoading ? "\u2026" : "Ext"
-    )))), !repoPath && /* @__PURE__ */ import_react4.default.createElement("div", { className: "tb-spring" }), updateReady && /* @__PURE__ */ import_react4.default.createElement("button", { className: "tb-btn tb-update-btn", onClick: onInstallUpdate, title: t("toolbar.update.tooltip") }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), /* @__PURE__ */ import_react4.default.createElement("span", null, t("toolbar.update.label"))));
+      /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-branch-tick" }, b.current ? "\u2713" : ""),
+      /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-branch-label" }, b.name)
+    )))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Fetch", onClick: p.onFetch, disabled: p.loading }, /* @__PURE__ */ import_react4.default.createElement("svg", { className: p.loading ? "gvt-spin" : "", width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" }))), p.lastFetch && /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-fetch-time" }, relTime(p.lastFetch)), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-spring" }), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Pull", onClick: p.onPull, disabled: p.loading }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "7 10 12 15 17 10" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "3 21 21 21" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Push", onClick: p.onPush, disabled: p.loading }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "21", x2: "12", y2: "9" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "7 14 12 9 17 14" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "3 3 21 3" }))), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-sep" }), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Nouvelle branche", onClick: p.onNewBranch }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Stash", onClick: p.onStash }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12h-6l-2 3h-4l-2-3H2" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Pop stash", onClick: p.onPop, disabled: p.stashCount === 0, badge: p.stashCount }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M12 4v8" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "8 8 12 4 16 8" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Annuler la derni\xE8re action", onClick: p.onUndo }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "9 14 4 9 9 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M20 20v-7a4 4 0 0 0-4-4H4" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Terminal", onClick: p.onTerminal }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "4 17 10 11 4 5" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "19", x2: "20", y2: "19" }))), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-sep" }), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Afficher toutes les branches", onClick: p.onToggleAllBranches, active: p.showAllBranches }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Rafra\xEEchir", onClick: p.onRefresh }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "23 4 23 10 17 10" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "1 20 1 14 7 14" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Ouvrir dans Git Vertex Desktop", onClick: p.onOpenDesktop }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "15 3 21 3 21 9" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "10", y1: "14", x2: "21", y2: "3" }))), /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-search" }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" })), /* @__PURE__ */ import_react4.default.createElement("input", { type: "text", placeholder: "Rechercher\u2026", value: p.searchQuery, onChange: (e) => p.onSearch(e.target.value) }), p.searchQuery && /* @__PURE__ */ import_react4.default.createElement("button", { className: "gvt-search-clear", onClick: () => p.onSearch("") }, "\xD7")));
   }
 
   // ../src/renderer/src/components/CommitGraph/CommitGraph.tsx
@@ -10844,9 +10734,6 @@ Signed-off-by: ` : full;
   }
 
   // src/webview/app.tsx
-  function BrandHeader({ branch, repoName }) {
-    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "gv-brand" }, /* @__PURE__ */ import_react8.default.createElement("svg", { className: "gv-brand-logo", viewBox: "0 0 512 512", width: "20", height: "20", "aria-hidden": true }, /* @__PURE__ */ import_react8.default.createElement("line", { x1: "148", y1: "82", x2: "256", y2: "422", stroke: "#3fb950", strokeWidth: "34", strokeLinecap: "round" }), /* @__PURE__ */ import_react8.default.createElement("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "34", strokeLinecap: "round" }), /* @__PURE__ */ import_react8.default.createElement("circle", { cx: "148", cy: "82", r: "30", fill: "#0d1117", stroke: "#3fb950", strokeWidth: "18" }), /* @__PURE__ */ import_react8.default.createElement("circle", { cx: "364", cy: "82", r: "30", fill: "#0d1117", stroke: "#58a6ff", strokeWidth: "18" }), /* @__PURE__ */ import_react8.default.createElement("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" }), /* @__PURE__ */ import_react8.default.createElement("circle", { cx: "256", cy: "422", r: "16", fill: "#0d1117" })), /* @__PURE__ */ import_react8.default.createElement("span", { className: "gv-brand-name" }, "Git Vertex"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "gv-brand-sep" }, "\xB7"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "gv-brand-repo" }, repoName), branch && /* @__PURE__ */ import_react8.default.createElement("span", { className: "gv-brand-branch" }, /* @__PURE__ */ import_react8.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), branch));
-  }
   function VertexApp() {
     const toast = useToast();
     const showToast = (0, import_react8.useCallback)((msg, type) => {
@@ -10868,6 +10755,7 @@ Signed-off-by: ` : full;
     const [showAllBranches, setShowAllBranches] = (0, import_react8.useState)(true);
     const [stashCount, setStashCount] = (0, import_react8.useState)(0);
     const [loading, setLoading] = (0, import_react8.useState)(false);
+    const [lastFetch, setLastFetch] = (0, import_react8.useState)(null);
     const isLoadingRef = (0, import_react8.useRef)(false);
     const showAllRef = (0, import_react8.useRef)(showAllBranches);
     showAllRef.current = showAllBranches;
@@ -10952,7 +10840,11 @@ Signed-off-by: ` : full;
       if (name)
         runOp("Branche cr\xE9\xE9e", () => window.gitAPI.createBranchAt(name, hash, true));
     }, [runOp]);
-    const handleFetch = (0, import_react8.useCallback)(() => runOp("Fetch", () => window.gitAPI.fetch()), [runOp]);
+    const handleFetch = (0, import_react8.useCallback)(async () => {
+      await runOp("Fetch", () => window.gitAPI.fetch());
+      setLastFetch(/* @__PURE__ */ new Date());
+    }, [runOp]);
+    const handleOpenDesktop = (0, import_react8.useCallback)(() => window.gitAPI.openDesktop(), []);
     const handlePull = (0, import_react8.useCallback)(() => runOp("Pull", () => window.gitAPI.pull()), [runOp]);
     const handlePush = (0, import_react8.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
     const handleUndo = (0, import_react8.useCallback)(() => runOp("Annul\xE9", () => window.gitAPI.undoLastAction()), [runOp]);
@@ -10987,28 +10879,30 @@ Signed-off-by: ` : full;
       window.addEventListener("mouseup", onUp);
     }, [rightW]);
     const showRight = !!selectedCommit || !!conflictMode;
-    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react8.default.createElement(BrandHeader, { branch: currentBranch, repoName }), /* @__PURE__ */ import_react8.default.createElement(
-      Toolbar,
+    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react8.default.createElement(
+      CompactToolbar,
       {
-        repoPath: "webview",
-        currentBranch,
-        searchQuery,
+        repoName,
+        branch: currentBranch,
+        branches,
+        loading,
+        stashCount,
         showAllBranches,
+        searchQuery,
+        lastFetch,
+        onCheckout: handleCheckout,
         onSearch: setSearchQuery,
-        onUndo: handleUndo,
+        onToggleAllBranches: handleToggleAllBranches,
         onFetch: handleFetch,
-        onPush: handlePush,
-        onPushModal: handlePush,
         onPull: handlePull,
-        onCreateBranch: handleNewBranch,
+        onPush: handlePush,
+        onNewBranch: handleNewBranch,
         onStash: handleStash,
         onPop: handlePop,
+        onUndo: handleUndo,
         onTerminal: handleTerminal,
-        stashCount,
-        onToggleAllBranches: handleToggleAllBranches,
-        onRefresh: loadRepoData,
-        loading,
-        topRow: false
+        onOpenDesktop: handleOpenDesktop,
+        onRefresh: loadRepoData
       }
     ), /* @__PURE__ */ import_react8.default.createElement("div", { className: "app-body" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "app-center", style: { flex: 1, display: "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react8.default.createElement(
       CommitGraph,

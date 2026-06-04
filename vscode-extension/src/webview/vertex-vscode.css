@@ -5,21 +5,25 @@
   height: 100%;
 }
 
-/* Brand header — makes the panel unmistakably "Git Vertex desktop". */
-.gv-brand {
+/* The desktop App.css sets `.app { height: 100vh }`. In the panel webview the
+   available height is the viewport, so 100vh works, but force overflow hidden. */
+.gv-app.app { overflow: hidden; }
+
+/* ── Compact GitLens-style toolbar ───────────────────────────── */
+.gvt {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 30px;
+  gap: 4px;
+  height: 34px;
   flex-shrink: 0;
-  padding: 0 12px;
+  padding: 0 8px;
   background: #161b22;
   border-bottom: 1px solid #21262d;
   font-size: 12px;
   user-select: none;
 }
-.gv-brand-logo { flex-shrink: 0; }
-.gv-brand-name {
+.gvt-logo { flex-shrink: 0; }
+.gvt-brand {
   font-weight: 700;
   letter-spacing: 0.2px;
   background: linear-gradient(90deg, #3fb950, #58a6ff);
@@ -27,22 +31,78 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-.gv-brand-sep { color: #30363d; }
-.gv-brand-repo { color: #8b949e; font-weight: 500; }
-.gv-brand-branch {
+.gvt-repo { color: #6e7681; font-size: 11px; margin-left: 2px; }
+
+.gvt-spring { flex: 1; }
+.gvt-sep { width: 1px; height: 16px; background: #30363d; margin: 0 3px; flex-shrink: 0; }
+
+/* Icon buttons */
+.gvt-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-left: auto;
-  padding: 1px 9px;
-  border-radius: 20px;
-  background: #1f6feb22;
-  border: 1px solid #1f6feb44;
-  color: #58a6ff;
-  font-size: 11px;
-  font-weight: 600;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
 }
+.gvt-btn:hover:not(:disabled) { background: #21262d; color: #e6edf3; }
+.gvt-btn:disabled { opacity: 0.35; cursor: default; }
+.gvt-btn--active { background: #1f6feb22; color: #58a6ff; }
+.gvt-badge {
+  position: absolute; top: -2px; right: -2px;
+  background: #1f6feb; color: #fff; font-size: 8px; font-weight: 700;
+  min-width: 13px; height: 13px; line-height: 13px; text-align: center;
+  border-radius: 7px; padding: 0 2px;
+}
+.gvt-spin { animation: gvt-spin 1s linear infinite; }
+@keyframes gvt-spin { to { transform: rotate(360deg); } }
 
-/* The desktop App.css sets `.app { height: 100vh }`. In the panel webview the
-   available height is the viewport, so 100vh works, but force overflow hidden. */
-.gv-app.app { overflow: hidden; }
+/* Branch selector */
+.gvt-branch-wrap { position: relative; margin-left: 4px; }
+.gvt-branch {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; height: 22px;
+  background: #1f6feb18; border: 1px solid #1f6feb40; border-radius: 20px;
+  color: #58a6ff; font-size: 11px; font-weight: 600; cursor: pointer;
+  max-width: 200px;
+}
+.gvt-branch:hover { background: #1f6feb28; }
+.gvt-branch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.gvt-branch-menu {
+  position: absolute; top: 26px; left: 0; z-index: 9999;
+  min-width: 200px; max-height: 280px; overflow-y: auto;
+  background: #1c2128; border: 1px solid #30363d; border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5); padding: 4px;
+}
+.gvt-branch-item {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 5px 8px; border: none; background: transparent; border-radius: 5px;
+  color: #c9d1d9; font-size: 12px; cursor: pointer; text-align: left;
+}
+.gvt-branch-item:hover { background: #21262d; }
+.gvt-branch-item--current { color: #3fb950; }
+.gvt-branch-tick { width: 12px; flex-shrink: 0; color: #3fb950; }
+.gvt-branch-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gvt-branch-empty { padding: 8px; color: #6e7681; font-size: 11px; }
+
+.gvt-fetch-time { color: #6e7681; font-size: 10px; white-space: nowrap; margin-left: 1px; }
+
+/* Search */
+.gvt-search {
+  display: flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 8px; width: 150px;
+  background: #0d1117; border: 1px solid #30363d; border-radius: 5px;
+  color: #6e7681; flex-shrink: 0; transition: border-color 0.1s, width 0.15s;
+}
+.gvt-search:focus-within { border-color: #58a6ff; width: 200px; }
+.gvt-search input { flex: 1; width: 0; background: none; border: none; outline: none; color: #e6edf3; font-size: 11px; }
+.gvt-search input::placeholder { color: #484f58; }
+.gvt-search-clear { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.gvt-search-clear:hover { color: #e6edf3; }

@@ -10,7 +10,7 @@ import ReactDOM from 'react-dom/client'
 import { SettingsProvider } from '../../../src/renderer/src/contexts/SettingsContext'
 import { LanguageProvider } from '../../../src/renderer/src/i18n/LanguageContext'
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
-import Toolbar from '../../../src/renderer/src/components/Toolbar/Toolbar'
+import CompactToolbar from './CompactToolbar'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
@@ -20,31 +20,6 @@ import '../../../src/renderer/src/App.css'
 import './vertex-vscode.css'
 
 declare global { interface Window { gitAPI: any; appInfo: any } }
-
-// ── Brand header (so it's unmistakably Git Vertex) ─────────────
-function BrandHeader({ branch, repoName }: { branch: string; repoName: string }) {
-  return (
-    <div className="gv-brand">
-      <svg className="gv-brand-logo" viewBox="0 0 512 512" width="20" height="20" aria-hidden>
-        <line x1="148" y1="82" x2="256" y2="422" stroke="#3fb950" strokeWidth="34" strokeLinecap="round" />
-        <line x1="364" y1="82" x2="256" y2="422" stroke="#58a6ff" strokeWidth="34" strokeLinecap="round" />
-        <circle cx="148" cy="82" r="30" fill="#0d1117" stroke="#3fb950" strokeWidth="18" />
-        <circle cx="364" cy="82" r="30" fill="#0d1117" stroke="#58a6ff" strokeWidth="18" />
-        <circle cx="256" cy="422" r="34" fill="#3fb950" />
-        <circle cx="256" cy="422" r="16" fill="#0d1117" />
-      </svg>
-      <span className="gv-brand-name">Git Vertex</span>
-      <span className="gv-brand-sep">·</span>
-      <span className="gv-brand-repo">{repoName}</span>
-      {branch && (
-        <span className="gv-brand-branch">
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/></svg>
-          {branch}
-        </span>
-      )}
-    </div>
-  )
-}
 
 function VertexApp() {
   const toast = useToast()
@@ -65,6 +40,7 @@ function VertexApp() {
   const [showAllBranches, setShowAllBranches] = useState(true)
   const [stashCount, setStashCount] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [lastFetch, setLastFetch] = useState<Date | null>(null)
   const isLoadingRef = useRef(false)
   const showAllRef = useRef(showAllBranches)
   showAllRef.current = showAllBranches
@@ -149,7 +125,11 @@ function VertexApp() {
   }, [runOp])
 
   // ── Toolbar handlers (push / fetch / pull / branch / stash …) ─
-  const handleFetch = useCallback(() => runOp('Fetch', () => window.gitAPI.fetch()), [runOp])
+  const handleFetch = useCallback(async () => {
+    await runOp('Fetch', () => window.gitAPI.fetch())
+    setLastFetch(new Date())
+  }, [runOp])
+  const handleOpenDesktop = useCallback(() => window.gitAPI.openDesktop(), [])
   const handlePull = useCallback(() => runOp('Pull', () => window.gitAPI.pull()), [runOp])
   const handlePush = useCallback(() => runOp('Push', () => window.gitAPI.push()), [runOp])
   const handleUndo = useCallback(() => runOp('Annulé', () => window.gitAPI.undoLastAction()), [runOp])
@@ -186,27 +166,28 @@ function VertexApp() {
 
   return (
     <div className="app gv-app">
-      <BrandHeader branch={currentBranch} repoName={repoName} />
-      <Toolbar
-        repoPath="webview"
-        currentBranch={currentBranch}
-        searchQuery={searchQuery}
+      <CompactToolbar
+        repoName={repoName}
+        branch={currentBranch}
+        branches={branches}
+        loading={loading}
+        stashCount={stashCount}
         showAllBranches={showAllBranches}
+        searchQuery={searchQuery}
+        lastFetch={lastFetch}
+        onCheckout={handleCheckout}
         onSearch={setSearchQuery}
-        onUndo={handleUndo}
+        onToggleAllBranches={handleToggleAllBranches}
         onFetch={handleFetch}
-        onPush={handlePush}
-        onPushModal={handlePush}
         onPull={handlePull}
-        onCreateBranch={handleNewBranch}
+        onPush={handlePush}
+        onNewBranch={handleNewBranch}
         onStash={handleStash}
         onPop={handlePop}
+        onUndo={handleUndo}
         onTerminal={handleTerminal}
-        stashCount={stashCount}
-        onToggleAllBranches={handleToggleAllBranches}
+        onOpenDesktop={handleOpenDesktop}
         onRefresh={loadRepoData}
-        loading={loading}
-        topRow={false}
       />
       <div className="app-body">
         <div className="app-center" style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
