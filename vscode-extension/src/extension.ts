@@ -3,7 +3,7 @@ import * as path from 'path'
 import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { getGitInfo, getRepoRootForFile } from './gitInfo'
-import { GitVertexPanel } from './panel/GitVertexPanel'
+import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
 
 let statusBar: GitVertexStatusBar | null = null
 let refreshTimer: NodeJS.Timeout | null = null
@@ -58,16 +58,6 @@ async function openInGitVertex(uri?: vscode.Uri): Promise<void> {
   }
 }
 
-// ── Open panel command ─────────────────────────────────────────
-async function openPanel(context: vscode.ExtensionContext): Promise<void> {
-  const repoRoot = resolveRepoRoot()
-  if (!repoRoot) {
-    vscode.window.showWarningMessage('No Git repository found for this workspace.')
-    return
-  }
-  GitVertexPanel.createOrShow(context.extensionUri, repoRoot)
-}
-
 // ── Configure command ──────────────────────────────────────────
 async function configure(): Promise<void> {
   const result = await vscode.window.showOpenDialog({
@@ -108,6 +98,22 @@ function scheduleRefresh(delayMs = 3000): void {
 export function activate(context: vscode.ExtensionContext): void {
   statusBar = new GitVertexStatusBar('gitVertex.open')
 
+  // Create the WebviewViewProvider for the bottom panel
+  const provider = new GitVertexViewProvider(context.extensionUri)
+
+  // Register the provider (panel view)
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      GitVertexViewProvider.viewType,
+      provider,
+      { webviewOptions: { retainContextWhenHidden: true } }
+    )
+  )
+
+  // Resolve initial repo and inject into provider
+  const repoRoot = resolveRepoRoot()
+  if (repoRoot) provider.setRepo(repoRoot)
+
   // Initial refresh
   refreshStatusBar()
 
@@ -115,7 +121,11 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument(() => scheduleRefresh()),
     vscode.window.onDidChangeActiveTextEditor(() => scheduleRefresh(500)),
-    vscode.workspace.onDidChangeWorkspaceFolders(() => { refreshStatusBar() }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      refreshStatusBar()
+      const root = resolveRepoRoot()
+      if (root) provider.setRepo(root)
+    }),
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('gitVertex')) refreshStatusBar()
     }),
@@ -130,7 +140,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.open', () => openInGitVertex()),
     vscode.commands.registerCommand('gitVertex.openFile', (uri?: vscode.Uri) => openInGitVertex(uri)),
     vscode.commands.registerCommand('gitVertex.configure', () => configure()),
-    vscode.commands.registerCommand('gitVertex.openPanel', () => openPanel(context)),
+    vscode.commands.registerCommand('gitVertex.openPanel', () => {
+      vscode.commands.executeCommand('gitVertex.graphView.focus')
+    }),
   )
 
   context.subscriptions.push(statusBar)
@@ -139,5 +151,4 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   if (refreshTimer) clearTimeout(refreshTimer)
   statusBar?.dispose()
-  GitVertexPanel.currentPanel?.dispose()
 }

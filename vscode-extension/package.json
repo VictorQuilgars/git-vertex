@@ -27,6 +27,24 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "git-vertex",
+          "title": "Git Vertex",
+          "icon": "$(git-branch)"
+        }
+      ]
+    },
+    "views": {
+      "git-vertex": [
+        {
+          "type": "webview",
+          "id": "gitVertex.graphView",
+          "name": "Git Vertex"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "gitVertex.open",
@@ -40,7 +58,7 @@
       },
       {
         "command": "gitVertex.openPanel",
-        "title": "Git Vertex: Open Graph Panel",
+        "title": "Git Vertex: Show Graph",
         "icon": "$(git-branch)"
       },
       {
@@ -104,12 +122,11 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./ && npm run bundle-webview",
-    "bundle-webview": "node build-webview.js",
+    "compile": "tsc -p ./ && node build-webview.js",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "test": "node ./out/test/runTests.js",
-    "package": "vsce package --no-dependencies",
+    "package": "npm run compile && vsce package --no-dependencies",
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
