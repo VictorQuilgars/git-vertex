@@ -1,0 +1,131 @@
+name: Publish VS Code Extension
+
+# Runs on every push to main. Publishes only when the version in
+# vscode-extension/package.json is higher than the last ext-v* tag — so
+# bumping the version and pushing is all you need to trigger a release.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Only run when extension code or its version actually changed
+      - 'vscode-extension/**'
+      - '!vscode-extension/.vscode-test/**'
+      - '!vscode-extension/node_modules/**'
+
+permissions:
+  contents: write   # to create tags and GitHub Releases
+
+jobs:
+  check-version:
+    name: Check if version is new
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.check.outputs.should_publish }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # need full history to list existing tags
+
+      - name: Compare version with last release tag
+        id: check
+        run: |
+          VERSION=$(node -p "require('./vscode-extension/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # Check whether ext-v<VERSION> already exists as a git tag
+          if git tag --list "ext-v${VERSION}" | grep -q .; then
+            echo "ℹ️  ext-v${VERSION} already released — skipping."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "🚀 New version ext-v${VERSION} detected — will publish."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    name: Build & publish
+    needs: check-version
+    if: needs.check-version.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.check-version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: vscode-extension/package-lock.json
+
+      # Install root node_modules — the webview bundle imports desktop sources
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install extension dependencies
+        run: npm ci
+        working-directory: vscode-extension
+
+      - name: Build extension
+        run: npm run compile
+        working-directory: vscode-extension
+
+      - name: Run tests
+        run: npm test
+        working-directory: vscode-extension
+        env:
+          DISPLAY: ':99'
+        continue-on-error: true   # VS Code test runner needs a display; best-effort in CI
+
+      - name: Package VSIX
+        run: npx @vscode/vsce package --no-dependencies --out "git-vertex-${{ env.VERSION }}.vsix"
+        working-directory: vscode-extension
+
+      # ── Publish to VS Code Marketplace ─────────────────────────
+      - name: Publish to VS Code Marketplace
+        if: env.VSCE_PAT != ''
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          VSCE_PAT="$VSCE_PAT" npx @vscode/vsce publish \
+            --no-dependencies \
+            --packagePath "git-vertex-${{ env.VERSION }}.vsix"
+        working-directory: vscode-extension
+
+      # ── Publish to Open VSX (Cursor, VSCodium, Gitpod…) ────────
+      - name: Publish to Open VSX
+        if: env.OVSX_PAT != ''
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          npx ovsx publish "git-vertex-${{ env.VERSION }}.vsix" -p "$OVSX_PAT"
+        working-directory: vscode-extension
+
+      # ── Create git tag + GitHub Release ─────────────────────────
+      - name: Create git tag ext-v${{ env.VERSION }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "ext-v${{ env.VERSION }}"
+          git push origin "ext-v${{ env.VERSION }}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "ext-v${{ env.VERSION }}" \
+            "vscode-extension/git-vertex-${{ env.VERSION }}.vsix" \
+            --title "Git Vertex VS Code Extension v${{ env.VERSION }}" \
+            --notes "## Git Vertex VS Code Extension v${{ env.VERSION }}
+
+          Installe le VSIX directement :
+          \`\`\`
+          code --install-extension git-vertex-${{ env.VERSION }}.vsix
+          \`\`\`
+
+          Ou cherche **Git Vertex** dans le Marketplace VS Code.
+
+          🔗 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=VictorQuilgars.git-vertex)
+          🔗 [Open VSX](https://open-vsx.org/extension/VictorQuilgars/git-vertex)"
