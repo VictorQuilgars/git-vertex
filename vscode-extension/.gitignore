@@ -3,3 +3,4 @@ out/
 .vscode-test/
 *.vsix
 media/*.map
+.env.publish

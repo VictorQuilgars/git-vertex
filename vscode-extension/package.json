@@ -135,7 +135,11 @@
     "pretest": "npm run compile",
     "test": "node ./out/test/runTests.js",
     "package": "npm run compile && vsce package --no-dependencies",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "release:patch": "bash scripts/publish.sh --bump patch",
+    "release:minor": "bash scripts/publish.sh --bump minor",
+    "release:major": "bash scripts/publish.sh --bump major",
+    "release:dry":   "bash scripts/publish.sh --dry-run"
   },
   "dependencies": {
     "simple-git": "^3.22.0"
