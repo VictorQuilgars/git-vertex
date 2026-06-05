@@ -1,13 +1,21 @@
 {
   "name": "git-vertex",
   "displayName": "Git Vertex",
-  "description": "GitKraken-inspired Git GUI embedded in VS Code via WebviewPanel",
+  "description": "Full Git GUI in the VS Code panel — commit graph, staging, branches, and more.",
   "version": "1.5.0",
   "publisher": "VictorQuilgars",
+  "license": "MIT",
   "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0d1117",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/VictorQuilgars/git-vertex"
+  },
+  "bugs": {
+    "url": "https://github.com/VictorQuilgars/git-vertex/issues"
   },
   "engines": {
     "vscode": "^1.85.0"
