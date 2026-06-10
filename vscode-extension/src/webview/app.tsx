@@ -127,6 +127,30 @@ function VertexApp() {
     if (name) runOp('Branche créée', () => window.gitAPI.createBranchAt(name, hash, true))
   }, [runOp])
 
+  // History-rewriting ops — drop / reorder a commit and drag a branch onto a commit.
+  const handleDropCommit = useCallback(async (hash: string) => {
+    const ok = await window.gitAPI.uiConfirm(`Supprimer le commit ${hash.slice(0, 7)} ? Cette action réécrit l'historique.`)
+    if (!ok) return
+    setSelectedCommit(null)
+    await runOp('Commit supprimé', () => window.gitAPI.dropCommit(hash))
+  }, [runOp])
+
+  const handleMoveCommit = useCallback((hash: string, direction: 'up' | 'down') =>
+    runOp('Commit déplacé', () => window.gitAPI.moveCommit(hash, direction)), [runOp])
+
+  const handleBranchDrop = useCallback(async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => {
+    if (action === 'reset') {
+      const ok = await window.gitAPI.uiConfirm(`Réinitialiser ${branch} sur ${hash.slice(0, 7)} ?`)
+      if (!ok) return
+    }
+    const op = action === 'reset'
+      ? () => window.gitAPI.moveBranchTo(branch, hash)
+      : action === 'rebase'
+        ? () => window.gitAPI.rebaseBranchOnto(branch, hash)
+        : () => window.gitAPI.mergeCommitInto(branch, hash)
+    await runOp(action === 'reset' ? 'Branche réinitialisée' : action === 'rebase' ? 'Rebase effectué' : 'Merge effectué', op)
+  }, [runOp])
+
   // ── Toolbar handlers (push / fetch / pull / branch / stash …) ─
   const handleFetch = useCallback(async () => {
     await runOp('Fetch', () => window.gitAPI.fetch())
@@ -211,6 +235,9 @@ function VertexApp() {
               const found = commits.find(c => c.hash === hash)
               if (found) setSelectedCommit(found)
             }}
+            onDropCommit={handleDropCommit}
+            onMoveCommit={handleMoveCommit}
+            onBranchDrop={handleBranchDrop}
             wipCount={wipCount}
             conflictMode={conflictMode}
           />

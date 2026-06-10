@@ -576,6 +576,165 @@ export class GitService {
     } catch (e: any) { return { success: false, error: e.message } }
   }
 
+  // ── History-rewriting helpers (ported from the desktop GitService) ──
+
+  // True if the working tree has any tracked changes (staged or unstaged).
+  private async isDirty(): Promise<boolean> {
+    try {
+      const s = await this.git.status()
+      return s.files.some(f => f.index !== '?' || f.working_dir !== '?')
+    } catch {
+      return false
+    }
+  }
+
+  // Abort an in-progress rebase if there is one. Returns true if it aborted.
+  private async abortRebaseIfInProgress(): Promise<boolean> {
+    try {
+      await this.git.raw(['rebase', '--abort'])
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // Move a branch ref to a commit. On the current branch this is a hard reset,
+  // so it refuses when the working tree is dirty (avoids destroying work).
+  async moveBranchTo(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
+    try {
+      const status = await this.git.status()
+      if (status.current === branch) {
+        if (await this.isDirty()) {
+          return { success: false, error: 'Modifications non commitées — commit ou stash avant de déplacer la branche courante' }
+        }
+        await this.git.raw(['reset', '--hard', hash])
+      } else {
+        await this.git.raw(['branch', '-f', branch, hash])
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async rebaseBranchOnto(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
+    try {
+      await this.git.raw(['checkout', branch])
+      await this.git.raw(['rebase', '--autostash', hash])
+      return { success: true }
+    } catch (e: any) {
+      const aborted = await this.abortRebaseIfInProgress()
+      return {
+        success: false,
+        error: aborted ? 'Conflit de rebase — opération annulée, branche inchangée' : e.message
+      }
+    }
+  }
+
+  async mergeCommitInto(branch: string, hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
+    try {
+      await this.git.raw(['checkout', branch])
+      await this.git.raw(['merge', hash])
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Conflit de merge — résolvez les conflits pour continuer' }
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Commits in baseHash..HEAD, oldest → newest.
+  private async buildPickSequence(baseHash: string): Promise<{ hash: string }[]> {
+    const result = await this.git.raw(['log', '--pretty=format:%H', `${baseHash}..HEAD`])
+    return result.trim().split('\n').filter(Boolean).map(h => ({ hash: h.trim() })).reverse()
+  }
+
+  // Run a pre-built rebase sequence via GIT_SEQUENCE_EDITOR (oldest → newest).
+  private async runRebaseSequence(
+    baseRef: string,
+    sequence: { action: string; hash: string }[]
+  ): Promise<{ success: boolean; error?: string }> {
+    const fs = await import('fs')
+    const path = await import('path')
+    const os = await import('os')
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+
+    const tmpDir = os.tmpdir()
+    const seqFile = path.join(tmpDir, `gitvertex-rebase-seq-${Date.now()}.txt`)
+    const scriptFile = path.join(tmpDir, `gitvertex-rebase-editor-${Date.now()}.sh`)
+
+    try {
+      const seqContent = sequence.map(s => `${s.action} ${s.hash}`).join('\n') + '\n'
+      fs.writeFileSync(seqFile, seqContent, 'utf8')
+      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      fs.writeFileSync(scriptFile, scriptContent, 'utf8')
+      fs.chmodSync(scriptFile, 0o755)
+
+      await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
+        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile },
+        timeout: 30000
+      })
+      return { success: true }
+    } catch (e: any) {
+      const aborted = await this.abortRebaseIfInProgress()
+      const base = e.stderr ?? e.message
+      return {
+        success: false,
+        error: aborted ? 'Conflit de rebase — opération annulée, historique inchangé' : base
+      }
+    } finally {
+      try { fs.unlinkSync(seqFile) } catch {}
+      try { fs.unlinkSync(scriptFile) } catch {}
+    }
+  }
+
+  async dropCommit(hash: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
+    try {
+      const picks = await this.buildPickSequence(`${hash}^`)
+      if (picks.length === 0) return { success: false, error: 'Commit introuvable' }
+      const sequence = picks.map(p => ({
+        action: p.hash.startsWith(hash) || hash.startsWith(p.hash) ? 'drop' : 'pick',
+        hash: p.hash
+      }))
+      return await this.runRebaseSequence(`${hash}^`, sequence)
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // direction 'up' = toward HEAD (newer), 'down' = toward root (older)
+  async moveCommit(hash: string, direction: 'up' | 'down'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { success: false, error: bad }
+    try {
+      const base = direction === 'down' ? `${hash}^^` : `${hash}^`
+      const picks = await this.buildPickSequence(base)
+      const idx = picks.findIndex(p => p.hash.startsWith(hash) || hash.startsWith(p.hash))
+      if (idx === -1) return { success: false, error: 'Commit introuvable' }
+      const swapWith = direction === 'up' ? idx + 1 : idx - 1
+      if (swapWith < 0 || swapWith >= picks.length) {
+        return { success: false, error: 'Déplacement impossible' }
+      }
+      const reordered = [...picks]
+      ;[reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]]
+      const sequence = reordered.map(p => ({ action: 'pick', hash: p.hash }))
+      return await this.runRebaseSequence(base, sequence)
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // ── Avatar resolution (no network: deterministic GitHub avatars) ──
 
   avatarResolve(email: string, _sha?: string): string {
