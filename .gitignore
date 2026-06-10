@@ -21,3 +21,6 @@ tsconfig.node.tsbuildinfo
 # Test artifacts
 coverage/
 test-results/
+
+# graphify generated knowledge graph
+graphify-out/
