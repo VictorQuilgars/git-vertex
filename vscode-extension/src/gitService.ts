@@ -8,6 +8,11 @@ export class GitService {
   private git: SimpleGit
   public repoPath: string
 
+  // Redo stack: HEAD shas captured before each undo. Undo is a soft reset
+  // (non-destructive), so redo just soft-resets forward to the saved sha.
+  // Cleared when a new commit is made.
+  private redoStack: string[] = []
+
   constructor(repoPath: string) {
     this.repoPath = repoPath
     this.git = simpleGit(repoPath)
@@ -209,6 +214,9 @@ export class GitService {
 
   async commit(message: string, amend = false): Promise<{ success: boolean; error?: string }> {
     try {
+      // A new commit starts a fresh history line — previously undone actions
+      // can no longer be coherently redone.
+      this.redoStack = []
       if (amend) {
         await this.git.raw(['commit', '--amend', '-m', message])
       } else {
@@ -458,8 +466,23 @@ export class GitService {
   async undoLastAction(): Promise<{ success: boolean; error?: string; action?: string }> {
     // Best-effort: soft-reset to the previous HEAD position (like `git reset --soft HEAD@{1}`).
     try {
+      const before = (await this.git.revparse(['HEAD'])).trim()
       await this.git.raw(['reset', '--soft', 'HEAD@{1}'])
-      return { success: true, action: 'reset --soft HEAD@{1}' }
+      this.redoStack.push(before)
+      return { success: true, action: 'Action annulée' }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Redo the last undone action: soft-reset forward to the saved HEAD.
+  async redoLastAction(): Promise<{ success: boolean; error?: string; action?: string }> {
+    const target = this.redoStack.pop()
+    if (!target) return { success: false, error: 'Rien à rétablir' }
+    try {
+      await this.git.raw(['cat-file', '-e', `${target}^{commit}`])
+      await this.git.raw(['reset', '--soft', target])
+      return { success: true, action: 'Action rétablie' }
     } catch (e: any) {
       return { success: false, error: e.message }
     }

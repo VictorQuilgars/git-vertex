@@ -173,6 +173,7 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
       case 'popStash': return svc.popStash(args[0])
       case 'applyStash': return svc.applyStash(args[0])
       case 'undoLastAction': return svc.undoLastAction()
+      case 'redoLastAction': return svc.redoLastAction()
       case 'createTag': return svc.createTag(args[0], args[1], args[2])
       case 'deleteTag': return svc.deleteTag(args[0])
       case 'cherryPick': return svc.cherryPick(args[0])

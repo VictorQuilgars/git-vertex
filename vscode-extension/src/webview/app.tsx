@@ -162,6 +162,7 @@ function VertexApp() {
   const handlePull = useCallback(() => runOp('Pull', () => window.gitAPI.pull()), [runOp])
   const handlePush = useCallback(() => runOp('Push', () => window.gitAPI.push()), [runOp])
   const handleUndo = useCallback(() => runOp('Annulé', () => window.gitAPI.undoLastAction()), [runOp])
+  const handleRedo = useCallback(() => runOp('Rétabli', () => window.gitAPI.redoLastAction()), [runOp])
   const handleStash = useCallback(() => runOp('Stash créé', () => window.gitAPI.createStash()), [runOp])
   const handlePop = useCallback(() => runOp('Stash appliqué', () => window.gitAPI.popStash(0)), [runOp])
   const handleTerminal = useCallback(() => window.gitAPI.openTerminal(), [])
@@ -214,6 +215,7 @@ function VertexApp() {
         onStash={handleStash}
         onPop={handlePop}
         onUndo={handleUndo}
+        onRedo={handleRedo}
         onTerminal={handleTerminal}
         onOpenDesktop={handleOpenDesktop}
         onRefresh={loadRepoData}
