@@ -91,6 +91,7 @@ const gitAPI = {
   continueMerge: (message?: string) => ipcRenderer.invoke('git:continue-merge', message),
   abortRebase: () => ipcRenderer.invoke('git:abort-rebase'),
   undoLastAction: () => ipcRenderer.invoke('git:undo-last-action'),
+  redoLastAction: () => ipcRenderer.invoke('git:redo-last-action'),
   abortMerge: () => ipcRenderer.invoke('git:abort-merge'),
   getConflictMode: () => ipcRenderer.invoke('git:get-conflict-mode'),
   getMergeMessage: () => ipcRenderer.invoke('git:get-merge-message'),

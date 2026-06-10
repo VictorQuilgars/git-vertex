@@ -746,6 +746,53 @@ describe('GitService', () => {
   })
 
   // ─────────────────────────────────────────────────────────────────────
+  // redoLastAction
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('redoLastAction', () => {
+    test('redo restores a commit undone via undoLastAction', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'hello')
+      execSync(`cd ${tempDir} && git add . && git commit -m "First"`)
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'world')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Second"`)
+
+      await git.undoLastAction()
+      expect((await git.getLog()).commits[0].message).toBe('First')
+
+      const r = await git.redoLastAction()
+      expect(r.success).toBe(true)
+
+      // The "Second" commit is back at HEAD
+      expect((await git.getLog()).commits[0].message).toBe('Second')
+    })
+
+    test('fails gracefully when there is nothing to redo', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Root"`)
+
+      const r = await git.redoLastAction()
+      expect(r.success).toBe(false)
+      expect(r.error).toBeTruthy()
+    })
+
+    test('making a new commit clears the redo stack', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'hello')
+      execSync(`cd ${tempDir} && git add . && git commit -m "First"`)
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'world')
+      execSync(`cd ${tempDir} && git add . && git commit -m "Second"`)
+
+      await git.undoLastAction()
+      // A fresh commit invalidates the redo target
+      fs.writeFileSync(path.join(tempDir, 'c.txt'), 'new')
+      await git.stageAll()
+      await git.commit('Third')
+
+      const r = await git.redoLastAction()
+      expect(r.success).toBe(false)
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
   // Stash operations
   // ─────────────────────────────────────────────────────────────────────
 

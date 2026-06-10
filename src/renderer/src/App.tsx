@@ -527,6 +527,14 @@ export default function App() {
     setLoading(false)
   }
 
+  const handleRedo = async () => {
+    setLoading(true)
+    const r = await window.gitAPI.redoLastAction()
+    if (r.success) { showToast(`↪ ${r.action ?? 'Action rétablie'}`); await loadRepoData() }
+    else showToast(r.error ?? 'Rien à rétablir', 'err')
+    setLoading(false)
+  }
+
   // ── Keyboard shortcuts ─────────────────────────────────────
   // Declared after handleUndo so the dependency array doesn't hit a temporal
   // dead zone (referencing a `const` before its initialization throws at render).
@@ -548,6 +556,9 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && !isInput(e)) {
         e.preventDefault(); handleUndo(); return
       }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z') && !isInput(e)) {
+        e.preventDefault(); handleRedo(); return
+      }
       if (e.key === 'Escape') {
         if (conflictResolverFile) return
         setSelectedCommit(null)
@@ -556,7 +567,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [loadRepoData, handleUndo, conflictResolverFile])
+  }, [loadRepoData, handleUndo, handleRedo, conflictResolverFile])
 
   const handleFetch = async () => {
     setLoading(true)
@@ -1051,6 +1062,7 @@ export default function App() {
         showAllBranches={showAllBranches}
         onSearch={setSearchQuery}
         onUndo={handleUndo}
+        onRedo={handleRedo}
         onFetch={handleFetch}
         onPush={handlePush}
         onPushModal={handlePushModal}

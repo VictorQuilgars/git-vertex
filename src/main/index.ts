@@ -625,6 +625,11 @@ ipcMain.handle('git:undo-last-action', async () => {
   return gitService.undoLastAction()
 })
 
+ipcMain.handle('git:redo-last-action', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.redoLastAction()
+})
+
 ipcMain.handle('git:get-conflict-mode', async () => {
   if (!gitService) return { mode: null }
   return gitService.getConflictMode()
