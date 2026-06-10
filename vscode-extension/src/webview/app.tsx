@@ -13,6 +13,7 @@ import { ToastProvider, useToast } from '../../../src/renderer/src/components/To
 import CompactToolbar from './CompactToolbar'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
+import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
 
 import 'highlight.js/styles/github-dark.css'
@@ -41,6 +42,7 @@ function VertexApp() {
   const [stashCount, setStashCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
+  const [rebaseHash, setRebaseHash] = useState<string | null>(null)
   const isLoadingRef = useRef(false)
   const showAllRef = useRef(showAllBranches)
   showAllRef.current = showAllBranches
@@ -238,6 +240,7 @@ function VertexApp() {
             onDropCommit={handleDropCommit}
             onMoveCommit={handleMoveCommit}
             onBranchDrop={handleBranchDrop}
+            onInteractiveRebase={(hash) => setRebaseHash(hash)}
             wipCount={wipCount}
             conflictMode={conflictMode}
           />
@@ -274,6 +277,15 @@ function VertexApp() {
           </>
         )}
       </div>
+
+      {rebaseHash && (
+        <InteractiveRebase
+          baseHash={rebaseHash}
+          onClose={() => setRebaseHash(null)}
+          onSuccess={loadRepoData}
+          showToast={showToast}
+        />
+      )}
     </div>
   )
 }

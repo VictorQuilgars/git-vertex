@@ -183,6 +183,8 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
       case 'mergeCommitInto': return svc.mergeCommitInto(args[0], args[1])
       case 'dropCommit': return svc.dropCommit(args[0])
       case 'moveCommit': return svc.moveCommit(args[0], args[1])
+      case 'getRebaseSequence': return svc.getRebaseSequence(args[0])
+      case 'interactiveRebase': return svc.interactiveRebase(args[0])
       case 'fetch': return svc.fetch()
       case 'pull': return svc.pull()
       case 'push': return svc.push()

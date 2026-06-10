@@ -735,6 +735,58 @@ export class GitService {
     }
   }
 
+  // Commits in baseHash..HEAD for the interactive-rebase editor (oldest → newest).
+  async getRebaseSequence(baseHash: string): Promise<{ commits: { hash: string; shortHash: string; message: string }[] }> {
+    try {
+      const result = await this.git.raw(['log', '--pretty=format:%H|%s', `${baseHash}..HEAD`])
+      const commits = result.trim().split('\n').filter(Boolean).map(line => {
+        const [hash, ...rest] = line.split('|')
+        return { hash: hash.trim(), shortHash: hash.trim().slice(0, 7), message: rest.join('|').trim() }
+      }).reverse()
+      return { commits }
+    } catch {
+      return { commits: [] }
+    }
+  }
+
+  // Apply a full interactive-rebase sequence built in the UI.
+  async interactiveRebase(sequence: { action: string; hash: string }[]): Promise<{ success: boolean; error?: string }> {
+    if (!sequence.length) return { success: false, error: 'Séquence vide' }
+    const fs = await import('fs')
+    const path = await import('path')
+    const os = await import('os')
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+
+    const tmpDir = os.tmpdir()
+    const seqFile = path.join(tmpDir, `gitvertex-irebase-seq-${Date.now()}.txt`)
+    const scriptFile = path.join(tmpDir, `gitvertex-irebase-editor-${Date.now()}.sh`)
+
+    try {
+      const seqContent = sequence.map(s => `${s.action} ${s.hash} commit`).join('\n') + '\n'
+      fs.writeFileSync(seqFile, seqContent, 'utf8')
+      const scriptContent = `#!/bin/sh\ncp "${seqFile}" "$1"\n`
+      fs.writeFileSync(scriptFile, scriptContent, 'utf8')
+      fs.chmodSync(scriptFile, 0o755)
+
+      await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
+        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile },
+        timeout: 30000
+      })
+      return { success: true }
+    } catch (e: any) {
+      const aborted = await this.abortRebaseIfInProgress()
+      return {
+        success: false,
+        error: aborted ? 'Conflit de rebase — opération annulée, historique inchangé' : (e.stderr ?? e.message)
+      }
+    } finally {
+      try { fs.unlinkSync(seqFile) } catch {}
+      try { fs.unlinkSync(scriptFile) } catch {}
+    }
+  }
+
   // ── Avatar resolution (no network: deterministic GitHub avatars) ──
 
   avatarResolve(email: string, _sha?: string): string {
