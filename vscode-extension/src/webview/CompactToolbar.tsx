@@ -1,5 +1,5 @@
 // CompactToolbar.tsx — GitLens-style single-row icon toolbar for the panel.
-// Brand + branch selector + fetch on the left; compact icon actions on the right.
+// Logo + repo name + branch selector on the left; compact icon actions on the right.
 import React, { useState, useRef, useEffect } from 'react'
 import type { BranchInfo } from '../../../src/renderer/src/types'
 
@@ -78,13 +78,13 @@ export default function CompactToolbar(p: Props) {
 
   return (
     <div className="gvt">
-      {/* Brand */}
+      {/* Logo only — the VS Code panel title already reads "Git Vertex",
+          so the brand name here would be redundant. */}
       <svg className="gvt-logo" viewBox="0 0 512 512" width="16" height="16" aria-hidden>
         <line x1="148" y1="82" x2="256" y2="422" stroke="#3fb950" strokeWidth="40" strokeLinecap="round" />
         <line x1="364" y1="82" x2="256" y2="422" stroke="#58a6ff" strokeWidth="40" strokeLinecap="round" />
         <circle cx="256" cy="422" r="34" fill="#3fb950" />
       </svg>
-      <span className="gvt-brand">Git Vertex</span>
       {p.repoName && <span className="gvt-repo">{p.repoName}</span>}
 
       {/* Branch selector */}

@@ -23,15 +23,7 @@
   user-select: none;
 }
 .gvt-logo { flex-shrink: 0; }
-.gvt-brand {
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  background: linear-gradient(90deg, #3fb950, #58a6ff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.gvt-repo { color: #6e7681; font-size: 11px; margin-left: 2px; }
+.gvt-repo { color: #c9d1d9; font-size: 12px; font-weight: 600; margin-left: 4px; }
 
 .gvt-spring { flex: 1; }
 .gvt-sep { width: 1px; height: 16px; background: #30363d; margin: 0 3px; flex-shrink: 0; }
