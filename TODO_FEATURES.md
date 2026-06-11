@@ -34,6 +34,8 @@ Ce fichier suit l'évolution de Git Vertex vers une expérience complète et per
 - **Compteur de résultats de recherche** : Badge live dans la barre de recherche (bleu, rouge si 0 résultat).
 - **Skeleton de chargement** : Lignes shimmer dans le graphe pendant le premier chargement du log.
 - **UI responsive (VS Code + desktop)** : Colonnes auteur/date/SHA auto-masquées en largeur réduite, toolbar dégradée par paliers, panneau détail empilé plein écran < 640px, largeur du panneau droit clampée et persistée.
+- **Repo vide / premier commit** : Un repo fraîchement `git init` (aucun commit) affiche le nœud WIP autonome et la branche unborn ; indexation et tout premier commit possibles depuis l'UI.
+- **Staging en panneau bas** : La zone de commit se clampe en hauteur pour que les listes staged/unstaged restent toujours visibles dans les petits panneaux.
 
 ### Graphe & Navigation
 - **Graphe de commits moderne** : Lignes courbées GitKraken-style, couleurs distinctes par branche, commits ancêtres partagés sur la bonne couleur.
