@@ -1,6 +1,6 @@
 {
   "name": "git-gui",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "A GitKraken-inspired Git GUI built with Electron + React",
   "author": {
     "name": "Victor Quilgars",
