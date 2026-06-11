@@ -205,6 +205,7 @@ export default function App() {
   const [currentBranch, setCurrentBranch] = useState<string>('')
   const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [searchMatches, setSearchMatches] = useState(-1)
   const [showAllBranches, setShowAllBranches] = useState<boolean>(true)
   // Solo/mute branch filtering for the graph. Solo shows only one branch;
   // muted branches are excluded from the --all view.
@@ -1073,6 +1074,7 @@ export default function App() {
         repoPath={repoPath}
         currentBranch={currentBranch}
         searchQuery={searchQuery}
+        searchMatches={searchMatches}
         showAllBranches={showAllBranches}
         onSearch={setSearchQuery}
         onUndo={handleUndo}
@@ -1338,6 +1340,7 @@ export default function App() {
               conflictMode={conflictMode}
               githubRepo={githubOwnerRepo}
               loading={loading}
+              onSearchMatches={setSearchMatches}
             />
           )}
         </div>

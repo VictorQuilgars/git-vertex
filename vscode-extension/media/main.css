@@ -3568,6 +3568,19 @@ body {
 .gvt-search-clear:hover {
   color: #e6edf3;
 }
+.gvt-search-count {
+  background: #1f6feb33;
+  color: #58a6ff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.gvt-search-count--none {
+  background: #f8514922;
+  color: #f85149;
+}
 @media (max-width: 640px) {
   .gvt-tbtn-label {
     display: none;

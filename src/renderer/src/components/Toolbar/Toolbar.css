@@ -190,6 +190,16 @@
 .tb-search input::placeholder { color: #484f58; }
 .tb-clear { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 15px; padding: 0; line-height: 1; transition: color 0.1s; }
 .tb-clear:hover { color: #e6edf3; }
+.tb-search-count {
+  background: #1f6feb33;
+  color: #58a6ff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.tb-search-count--none { background: #f8514922; color: #f85149; }
 
 .tb-ext-search {
   background: transparent;

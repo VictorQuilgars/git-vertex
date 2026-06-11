@@ -6,6 +6,7 @@ interface ToolbarProps {
   repoPath: string | null
   currentBranch: string
   searchQuery: string
+  searchMatches?: number
   showAllBranches: boolean
   onSearch: (q: string) => void
   onUndo: () => void
@@ -55,7 +56,7 @@ function TBtn({ icon, label, onClick, disabled, title, accent }: {
 }
 
 export default function Toolbar({
-  repoPath, currentBranch, showAllBranches, searchQuery, onSearch,
+  repoPath, currentBranch, showAllBranches, searchQuery, searchMatches, onSearch,
   onUndo, onRedo, onFetch, onPush, onPull, onCreateBranch,
   onStash, onPop, onTerminal, stashCount = 0,
   onToggleAllBranches, loading,
@@ -151,6 +152,11 @@ export default function Toolbar({
           </svg>
           <input type="text" placeholder={t('toolbar.search.placeholder')}
             value={searchQuery} onChange={e => onSearch(e.target.value)} />
+          {searchQuery && searchMatches != null && searchMatches >= 0 && (
+            <span className={`tb-search-count${searchMatches === 0 ? ' tb-search-count--none' : ''}`}>
+              {searchMatches}
+            </span>
+          )}
           {searchQuery && <button className="tb-clear" onClick={() => onSearch('')}>×</button>}
           {onToggleExtendedSearch && (
             <button className={`tb-ext-search ${extendedSearch ? 'active' : ''}`}

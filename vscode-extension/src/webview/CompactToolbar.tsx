@@ -11,6 +11,7 @@ interface Props {
   stashCount: number
   showAllBranches: boolean
   searchQuery: string
+  searchMatches?: number
   lastFetch: Date | null
   onCheckout: (ref: string) => void
   onSearch: (q: string) => void
@@ -161,6 +162,11 @@ export default function CompactToolbar(p: Props) {
       <div className="gvt-search">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" placeholder="Rechercher…" value={p.searchQuery} onChange={e => p.onSearch(e.target.value)} />
+        {p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && (
+          <span className={`gvt-search-count${p.searchMatches === 0 ? ' gvt-search-count--none' : ''}`}>
+            {p.searchMatches}
+          </span>
+        )}
         {p.searchQuery && <button className="gvt-search-clear" onClick={() => p.onSearch('')}>×</button>}
       </div>
     </div>

@@ -37,6 +37,7 @@ function VertexApp() {
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchMatches, setSearchMatches] = useState(-1)
   const [rightW, setRightW] = useState(380)
   const [showAllBranches, setShowAllBranches] = useState(true)
   const [stashCount, setStashCount] = useState(0)
@@ -214,6 +215,7 @@ function VertexApp() {
         stashCount={stashCount}
         showAllBranches={showAllBranches}
         searchQuery={searchQuery}
+        searchMatches={searchMatches}
         lastFetch={lastFetch}
         onCheckout={handleCheckout}
         onSearch={setSearchQuery}
@@ -256,6 +258,7 @@ function VertexApp() {
             wipCount={wipCount}
             conflictMode={conflictMode}
             loading={loading}
+            onSearchMatches={setSearchMatches}
           />
         </div>
 

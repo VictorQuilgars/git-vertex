@@ -300,6 +300,7 @@ interface CommitGraphProps {
   conflictMode?: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
   githubRepo?: { owner: string; repo: string } | null
   loading?: boolean
+  onSearchMatches?: (count: number) => void
 }
 
 interface CtxState { x: number; y: number; commit: LayoutCommit }
@@ -310,7 +311,7 @@ export default function CommitGraph({
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onEditMessage,
   onCompareWorking, onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
-  conflictMode = null, githubRepo = null, loading = false,
+  conflictMode = null, githubRepo = null, loading = false, onSearchMatches,
 }: CommitGraphProps) {
   const { t } = useLang()
   const { getBool, get } = useSettings()
@@ -452,6 +453,11 @@ export default function CommitGraph({
     }
     return null
   }, [displayLayout, searchQuery])
+
+  // Report the match count to the toolbar (-1 = no active search)
+  useEffect(() => {
+    onSearchMatches?.(searchQuery ? (filtered?.size ?? 0) : -1)
+  }, [filtered, searchQuery, onSearchMatches])
 
   // Assign each commit to exactly one branch (its "owner"), GitKraken-style.
   // Process branch tips from the most-base to the most-derived and let each

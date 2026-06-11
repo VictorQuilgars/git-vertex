@@ -108,6 +108,12 @@
 .gvt-search input::placeholder { color: #484f58; }
 .gvt-search-clear { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
 .gvt-search-clear:hover { color: #e6edf3; }
+.gvt-search-count {
+  background: #1f6feb33; color: #58a6ff;
+  font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 8px; flex-shrink: 0;
+}
+.gvt-search-count--none { background: #f8514922; color: #f85149; }
 
 /* ── Responsive: the webview viewport IS the panel, so media queries track
    the panel width directly. Degrade gracefully as the panel narrows. ───── */
