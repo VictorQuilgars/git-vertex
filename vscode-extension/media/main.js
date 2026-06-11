@@ -8335,7 +8335,8 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "issue.merged": "Merg\xE9",
     "issue.loading": "Chargement\u2026",
     "graph.emptyRepo": "D\xE9p\xF4t sans commit \u2014 ajoutez ou modifiez des fichiers, ils appara\xEEtront ici pour cr\xE9er votre premier commit",
-    "toast.undo": "Annuler"
+    "toast.undo": "Annuler",
+    "panel.ccType.tooltip": "Type de commit conventionnel (feat, fix\u2026)"
   };
   var en = {
     // Toolbar
@@ -8714,7 +8715,8 @@ Commits beyond this point will be lost for that branch.`,
     "issue.merged": "Merged",
     "issue.loading": "Loading\u2026",
     "graph.emptyRepo": "No commits yet \u2014 add or edit files and they will show up here so you can create your first commit",
-    "toast.undo": "Undo"
+    "toast.undo": "Undo",
+    "panel.ccType.tooltip": "Conventional commit type (feat, fix\u2026)"
   };
   var translations = { fr, en };
 
@@ -10493,6 +10495,12 @@ ${line.date}`
   var IcoStash = () => /* @__PURE__ */ import_react8.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z" }));
   var IcoCloud = () => /* @__PURE__ */ import_react8.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z" }));
   var IcoChevron = ({ open }) => /* @__PURE__ */ import_react8.default.createElement("svg", { className: `st2-chev ${open ? "open" : ""}`, width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z" }));
+  var CC_TYPES = ["feat", "fix", "chore", "docs", "refactor", "perf", "test", "build", "ci"];
+  var CC_PREFIX_RE = /^([a-z]+)(\([^)]*\))?!?:\s*/;
+  function ccTypeOf(summary) {
+    const m = CC_PREFIX_RE.exec(summary);
+    return m && CC_TYPES.includes(m[1]) ? m[1] : "";
+  }
   function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff }) {
     const { t } = useLang();
     const isConflict = !!conflictMode;
@@ -10763,6 +10771,21 @@ ${line.date}`
       else
         showToast(t("toast.pushOk", branchName));
     } }, /* @__PURE__ */ import_react8.default.createElement(IcoCloud, null))), !isConflict && /* @__PURE__ */ import_react8.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react8.default.createElement("input", { type: "checkbox", checked: amend, onChange: (e) => toggleAmend(e.target.checked) }), /* @__PURE__ */ import_react8.default.createElement("span", null, t("panel.amendPrevious"))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-msgbox" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-summary-row" }, /* @__PURE__ */ import_react8.default.createElement(
+      "select",
+      {
+        className: "st2-cc-type",
+        title: t("panel.ccType.tooltip"),
+        value: ccTypeOf(summary),
+        onChange: (e) => {
+          const type = e.target.value;
+          const scope = CC_PREFIX_RE.exec(summary)?.[2] ?? "";
+          const rest = summary.replace(CC_PREFIX_RE, "");
+          setSummary(type ? `${type}${scope}: ${rest}` : rest);
+        }
+      },
+      /* @__PURE__ */ import_react8.default.createElement("option", { value: "" }, "type"),
+      CC_TYPES.map((c) => /* @__PURE__ */ import_react8.default.createElement("option", { key: c, value: c }, c))
+    ), /* @__PURE__ */ import_react8.default.createElement(
       "input",
       {
         className: "st2-summary",

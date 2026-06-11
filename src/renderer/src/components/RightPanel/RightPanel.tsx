@@ -660,6 +660,14 @@ const IcoStash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="cu
 const IcoCloud = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z"/></svg>)
 const IcoChevron = ({ open }: { open: boolean }) => (<svg className={`st2-chev ${open ? 'open' : ''}`} width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>)
 
+// Conventional-commit helper for the summary field
+const CC_TYPES = ['feat', 'fix', 'chore', 'docs', 'refactor', 'perf', 'test', 'build', 'ci']
+const CC_PREFIX_RE = /^([a-z]+)(\([^)]*\))?!?:\s*/
+function ccTypeOf(summary: string): string {
+  const m = CC_PREFIX_RE.exec(summary)
+  return m && CC_TYPES.includes(m[1]) ? m[1] : ''
+}
+
 function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
@@ -1034,6 +1042,20 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
         {/* Message box */}
         <div className="st2-msgbox">
           <div className="st2-summary-row">
+            <select
+              className="st2-cc-type"
+              title={t('panel.ccType.tooltip')}
+              value={ccTypeOf(summary)}
+              onChange={e => {
+                const type = e.target.value
+                const scope = CC_PREFIX_RE.exec(summary)?.[2] ?? ''
+                const rest = summary.replace(CC_PREFIX_RE, '')
+                setSummary(type ? `${type}${scope}: ${rest}` : rest)
+              }}
+            >
+              <option value="">type</option>
+              {CC_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
             <input
               className="st2-summary"
               placeholder={t('panel.commit.summary')}

@@ -392,6 +392,7 @@ const fr = {
   'issue.loading': 'Chargement…',
   'graph.emptyRepo': 'Dépôt sans commit — ajoutez ou modifiez des fichiers, ils apparaîtront ici pour créer votre premier commit',
   'toast.undo': 'Annuler',
+  'panel.ccType.tooltip': 'Type de commit conventionnel (feat, fix…)',
 }
 
 const en: typeof fr = {
@@ -786,6 +787,7 @@ const en: typeof fr = {
   'issue.loading': 'Loading…',
   'graph.emptyRepo': 'No commits yet — add or edit files and they will show up here so you can create your first commit',
   'toast.undo': 'Undo',
+  'panel.ccType.tooltip': 'Conventional commit type (feat, fix…)',
 }
 
 export const translations = { fr, en }

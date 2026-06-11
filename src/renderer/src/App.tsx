@@ -1060,6 +1060,7 @@ export default function App() {
               key={tab.id}
               className={`app-tab ${tab.id === activeTabId && !settingsOpen ? 'active' : ''}`}
               onClick={() => { setSettingsOpen(false); switchTab(tab) }}
+              onAuxClick={e => { if (e.button === 1) { e.preventDefault(); closeTab(tab.id) } }}
               onContextMenu={e => { e.preventDefault(); setTabMenu({ x: e.clientX, y: e.clientY, id: tab.id }) }}
               title={tab.path}
             >

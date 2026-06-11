@@ -2407,6 +2407,27 @@
 .st2-abort:hover {
   background: #f8514918;
 }
+.st2-cc-type {
+  flex-shrink: 0;
+  max-width: 86px;
+  height: 24px;
+  padding: 0 4px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #8b949e;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+.st2-cc-type:hover {
+  border-color: #58a6ff;
+  color: #c9d1d9;
+}
+.st2-cc-type:focus {
+  border-color: #58a6ff;
+}
 
 /* ../src/renderer/src/components/InteractiveRebase/InteractiveRebase.css */
 .ir-overlay {
