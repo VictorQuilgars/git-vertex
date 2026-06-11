@@ -385,6 +385,11 @@ const fr = {
   'toolbar.clone.tooltip': 'Cloner un repo GitHub',
   'toast.cloneOk': (name: string) => `✓ "${name}" cloné`,
   'toast.cloneErr': (e: string) => `Clone échoué : ${e}`,
+  // Issue links
+  'issue.open': 'Ouvert',
+  'issue.closed': 'Fermé',
+  'issue.merged': 'Mergé',
+  'issue.loading': 'Chargement…',
 }
 
 const en: typeof fr = {
@@ -772,6 +777,11 @@ const en: typeof fr = {
   'toolbar.clone.tooltip': 'Clone a GitHub repo',
   'toast.cloneOk': (name: string) => `✓ "${name}" cloned`,
   'toast.cloneErr': (e: string) => `Clone failed: ${e}`,
+  // Issue links
+  'issue.open': 'Open',
+  'issue.closed': 'Closed',
+  'issue.merged': 'Merged',
+  'issue.loading': 'Loading…',
 }
 
 export const translations = { fr, en }

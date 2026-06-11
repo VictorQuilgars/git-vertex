@@ -1293,6 +1293,28 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
   } catch (e: any) { return { error: e.message } }
 })
 
+ipcMain.handle('github:get-issue', async (_e, owner: string, repo: string, number: number) => {
+  const token = readSettings().githubToken
+  const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  try {
+    // The issues endpoint resolves both issues and PRs by number
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${number}`, { headers })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const d = await res.json() as any
+    return {
+      issue: {
+        number: d.number,
+        title: d.title,
+        state: d.state,
+        isPR: !!d.pull_request,
+        merged: d.pull_request?.merged_at != null,
+        url: d.html_url,
+      }
+    }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title: string, body: string, head: string, base: string) => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }

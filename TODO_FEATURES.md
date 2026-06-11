@@ -8,7 +8,7 @@ Ce fichier suit l'évolution de Git Vertex vers une expérience complète et per
 
 ### Intégrations externes (reste à faire)
 - [ ] **Support Git LFS :** Visualisation des fichiers trackés par LFS et gestion des locks. (Nécessite git-lfs installé ; détection via `.gitattributes` + `git lfs ls-files`.)
-- [ ] **Intégration Issue Trackers :** Lier les commits/branches à des tickets GitHub Issues ou Jira. (Détection des `#123` dans les messages + lien cliquable, puis API tickets.)
+- [ ] **Intégration Jira :** Lier les commits/branches à des tickets Jira (la partie GitHub Issues est faite).
 
 ---
 
@@ -27,6 +27,7 @@ Ce fichier suit l'évolution de Git Vertex vers une expérience complète et per
 - **Staging partiel** : Indexer/désindexer par bloc (hunk) ou ligne par ligne dans la diff centrale.
 
 ### Intégrations & UX
+- **Liens GitHub Issues/PRs** : Les références `#123` dans les messages de commit (graphe + panneau de détail) deviennent cliquables, avec tooltip au survol (titre + état Ouvert/Fermé/Mergé via l'API GitHub, cache en session).
 - **Avatars Gravatar des auteurs** : Image Gravatar dans le graphe, fallback initiales colorées.
 - **Éditeur de Diff/Merge externe** : Commande configurable (code, subl, meld…) ; bouton dans le résolveur de conflits.
 - **Raccourcis clavier** : F5/Ctrl+R = refresh, Ctrl+Z = undo, Ctrl+P = command palette.

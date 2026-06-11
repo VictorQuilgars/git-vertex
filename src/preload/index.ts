@@ -137,6 +137,8 @@ const gitAPI = {
   githubListBranches: (owner: string, repo: string) => ipcRenderer.invoke('github:list-branches', owner, repo),
   githubListPRs: (owner: string, repo: string) => ipcRenderer.invoke('github:list-prs', owner, repo),
   githubListIssues: (owner: string, repo: string) => ipcRenderer.invoke('github:list-issues', owner, repo),
+  githubGetIssue: (owner: string, repo: string, number: number) =>
+    ipcRenderer.invoke('github:get-issue', owner, repo, number),
   githubListRepos: () => ipcRenderer.invoke('github:list-repos'),
   githubClone: (cloneUrl: string, repoName: string) => ipcRenderer.invoke('github:clone', cloneUrl, repoName),
   // GitHub OAuth

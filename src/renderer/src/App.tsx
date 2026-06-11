@@ -1322,6 +1322,7 @@ export default function App() {
               onBranchDrop={handleBranchDrop}
               wipCount={wipCount}
               conflictMode={conflictMode}
+              githubRepo={githubOwnerRepo}
             />
           )}
         </div>
@@ -1352,6 +1353,7 @@ export default function App() {
                 onConflictAbort={handleConflictAbort}
                 onOpenResolver={(file) => setConflictResolverFile(file)}
                 onOpenFileDiff={setCenterDiff}
+                githubRepo={githubOwnerRepo}
               />
             </div>
           </>

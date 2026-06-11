@@ -4,6 +4,7 @@ import { CommitNode, FileChange, WorkingChanges } from '../../types'
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
+import { linkifyIssues, IssueRepo } from '../IssueLink/IssueLink'
 import './RightPanel.css'
 
 function detectLang(filename: string): string | undefined {
@@ -345,13 +346,14 @@ function formatPath(path: string): { dir: string; name: string } {
 const MIN_MSG_H = 48
 const MAX_MSG_H = 400
 
-function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess }: {
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
   wipCount?: number
   onViewWip?: () => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
   onAmendSuccess?: () => void
+  githubRepo?: IssueRepo | null
 }) {
   const { t } = useLang()
   const [files, setFiles] = useState<FileChange[]>([])
@@ -457,8 +459,8 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             />
           ) : (
             <>
-              <p className="cd-title">{commit.message}</p>
-              {cleanBody && <pre className="cd-body">{cleanBody}</pre>}
+              <p className="cd-title">{linkifyIssues(commit.message, githubRepo)}</p>
+              {cleanBody && <pre className="cd-body">{linkifyIssues(cleanBody, githubRepo)}</pre>}
             </>
           )}
         </div>
@@ -1230,11 +1232,12 @@ interface RightPanelProps {
   onConflictAbort?: () => void
   onOpenResolver?: (file: string) => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
+  githubRepo?: IssueRepo | null
 }
 
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
-  conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff
+  conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, githubRepo
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -1274,6 +1277,7 @@ export default function RightPanel({
           onViewWip={onViewWip}
           onOpenFileDiff={onOpenFileDiff}
           onAmendSuccess={onCommitSuccess}
+          githubRepo={githubRepo}
         />
       ) : null}
     </div>

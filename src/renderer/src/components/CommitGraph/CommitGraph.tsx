@@ -6,6 +6,7 @@ import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import { useSettings } from '../../contexts/SettingsContext'
+import { linkifyIssues } from '../IssueLink/IssueLink'
 import './CommitGraph.css'
 
 const ROW_HEIGHT  = 28
@@ -297,6 +298,7 @@ interface CommitGraphProps {
   onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => void
   wipCount?: number
   conflictMode?: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
+  githubRepo?: { owner: string; repo: string } | null
 }
 
 interface CtxState { x: number; y: number; commit: LayoutCommit }
@@ -307,7 +309,7 @@ export default function CommitGraph({
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onEditMessage,
   onCompareWorking, onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
-  conflictMode = null,
+  conflictMode = null, githubRepo = null,
 }: CommitGraphProps) {
   const { t } = useLang()
   const { getBool, get } = useSettings()
@@ -788,7 +790,7 @@ export default function CommitGraph({
                 {/* Message */}
                 <div className="cg-col-msg">
                   {!isWip && sigBadge(commit.signature)}
-                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`}>{commit.message}</span>
+                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo)}</span>
                 </div>
 
                 {/* Author */}
