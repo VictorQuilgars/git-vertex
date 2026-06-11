@@ -398,6 +398,39 @@ export default function CommitGraph({
     })
   }, [layout, hasWipNode, conflictMode, headHash])
 
+  // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel.
+  // Skipped while an input/textarea has focus.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Escape') return
+      const el = document.activeElement as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
+      // Let open modals/menus own the keyboard
+      if (ctx || drop) return
+      if (document.querySelector('[class$="-overlay"], [class*="-overlay "]')) return
+      if (displayLayout.length === 0) return
+      const idx = displayLayout.findIndex(c => c.hash === selectedHash)
+      if (e.key === 'Escape') {
+        if (idx !== -1) onSelectCommit(displayLayout[idx]) // toggles the selection off
+        return
+      }
+      const next = idx === -1 ? 0 : idx + (e.key === 'ArrowDown' ? 1 : -1)
+      if (next < 0 || next >= displayLayout.length) return
+      e.preventDefault()
+      onSelectCommit(displayLayout[next])
+      const body = bodyRef.current
+      if (body) {
+        const top = next * ROW_HEIGHT
+        if (top < body.scrollTop) body.scrollTop = top
+        else if (top + ROW_HEIGHT > body.scrollTop + body.clientHeight) {
+          body.scrollTop = top + ROW_HEIGHT - body.clientHeight
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop])
+
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
   const svgH = displayLayout.length * ROW_HEIGHT

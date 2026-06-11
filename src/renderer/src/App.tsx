@@ -228,7 +228,11 @@ export default function App() {
   const [stashes, setStashes] = useState<StashEntry[]>([])
   const [tags, setTags] = useState<TagEntry[]>([])
   const [sidebarW, setSidebarW] = useState<number>(230)
-  const [rightW, setRightW] = useState<number>(360)
+  const [rightW, setRightW] = useState<number>(() => {
+    const saved = parseInt(localStorage.getItem('app-right-w') ?? '', 10)
+    return Number.isFinite(saved) && saved >= 280 ? saved : 360
+  })
+  useEffect(() => { localStorage.setItem('app-right-w', String(rightW)) }, [rightW])
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
   const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
