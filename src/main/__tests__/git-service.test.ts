@@ -1075,4 +1075,45 @@ describe('GitService', () => {
     })
   })
 
+  // ─────────────────────────────────────────────────────────────────────
+  // Empty repository (no commit yet) — first-commit flow
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('empty repository', () => {
+    test('getLog returns an empty list instead of throwing', async () => {
+      const log = await git.getLog()
+      expect(log.commits).toEqual([])
+    })
+
+    test('getLog with all=true returns an empty list', async () => {
+      const log = await git.getLog({ all: true })
+      expect(log.commits).toEqual([])
+    })
+
+    test('getBranches reports the unborn current branch', async () => {
+      const r = await git.getBranches()
+      const current = r.branches.find(b => b.current)
+      expect(current).toBeDefined()
+      expect(current!.name.length).toBeGreaterThan(0)
+      expect(current!.remote).toBe(false)
+    })
+
+    test('first commit works and then appears in the log', async () => {
+      fs.writeFileSync(path.join(tempDir, 'first.txt'), 'hello')
+      execSync(`cd ${tempDir} && git add first.txt`)
+      const r = await git.commit('First commit')
+      expect(r.success).toBe(true)
+      const log = await git.getLog()
+      expect(log.commits.length).toBe(1)
+      expect(log.commits[0].parents).toEqual([])
+    })
+
+    test('getWorkingChanges sees untracked files before the first commit', async () => {
+      fs.writeFileSync(path.join(tempDir, 'new.txt'), 'x')
+      const r = await git.getWorkingChanges()
+      const all = [...r.untracked, ...r.unstaged.map(f => f.path), ...r.staged.map(f => f.path)]
+      expect(all.some(p => p.includes('new.txt'))).toBe(true)
+    })
+  })
+
 })

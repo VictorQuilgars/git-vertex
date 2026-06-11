@@ -390,6 +390,7 @@ const fr = {
   'issue.closed': 'Fermé',
   'issue.merged': 'Mergé',
   'issue.loading': 'Chargement…',
+  'graph.emptyRepo': 'Dépôt sans commit — ajoutez ou modifiez des fichiers, ils apparaîtront ici pour créer votre premier commit',
 }
 
 const en: typeof fr = {
@@ -782,6 +783,7 @@ const en: typeof fr = {
   'issue.closed': 'Closed',
   'issue.merged': 'Merged',
   'issue.loading': 'Loading…',
+  'graph.emptyRepo': 'No commits yet — add or edit files and they will show up here so you can create your first commit',
 }
 
 export const translations = { fr, en }

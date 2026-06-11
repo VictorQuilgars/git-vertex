@@ -689,6 +689,21 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const [formHeight, setFormHeight] = useState(() => parseInt(localStorage.getItem('st-form-h') || '300'))
   const dragRef = useRef<{ y: number; h: number } | null>(null)
 
+  // In short panels (VS Code panel next to a terminal…) the commit form must
+  // not swallow the file lists: clamp its height so the lists keep ≥ ~150px.
+  // The form content itself scrolls (st2-commit-scroll), so shrinking is safe.
+  const stRootRef = useRef<HTMLDivElement>(null)
+  const [panelH, setPanelH] = useState(0)
+  useEffect(() => {
+    const el = stRootRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => setPanelH(entries[0].contentRect.height))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const maxFormH = panelH > 0 ? Math.max(140, panelH - 220) : Infinity
+  const effFormHeight = Math.min(formHeight, maxFormH)
+
   const splitMessage = (full: string) => {
     const lines = full.split('\n')
     setSummary(lines[0] ?? '')
@@ -742,7 +757,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     const onMove = (ev: MouseEvent) => {
       if (!dragRef.current) return
       // dragging up grows the form, down shrinks it
-      const next = Math.min(560, Math.max(150, dragRef.current.h - (ev.clientY - dragRef.current.y)))
+      const next = Math.min(560, maxFormH, Math.max(150, dragRef.current.h - (ev.clientY - dragRef.current.y)))
       setFormHeight(next)
     }
     const onUp = () => {
@@ -753,7 +768,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [formHeight])
+  }, [formHeight, maxFormH])
 
   const generateMessage = async () => {
     setGenerating(true)
@@ -832,7 +847,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     : (canCommit && !!summary.trim())
 
   return (
-    <div className="rp-content rp-staging st2">
+    <div className="rp-content rp-staging st2" ref={stRootRef}>
       {/* ── Top bar ── */}
       <div className="st2-topbar">
         <button className="st2-icon-btn st2-danger" title={t('panel.discardAll')} onClick={discardAll} disabled={totalChanged === 0}>
@@ -991,7 +1006,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
       <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
 
       {/* ── Commit area ── */}
-      <div className="st2-commit" style={{ height: formHeight }}>
+      <div className="st2-commit" style={{ height: effFormHeight }}>
         <div className="st2-commit-scroll">
         {/* Tabs */}
         <div className="st2-tabs">

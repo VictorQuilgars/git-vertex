@@ -345,13 +345,15 @@ export default function CommitGraph({
   // are changes — e.g. main slides to the far left with a vertical dashed line
   // running up to the top, matching GitKraken — instead of waiting for a commit.
   const layout = useMemo(() => {
-    if (!hasWipNode || !headHash) return computeGraphLayout(commits)
+    if (!hasWipNode) return computeGraphLayout(commits)
     const wipMessage = conflictMode
       ? `⚠️ A file conflict was found when attempting to ${conflictMode}`
       : `//WIP  ✏ ${wipCount} fichier${wipCount !== 1 ? 's' : ''} modifié${wipCount !== 1 ? 's' : ''}`
+    // No headHash = empty repo (no commit yet): the WIP node stands alone as
+    // a root so the user can stage files and create the very first commit.
     const wip: CommitNode = {
       hash: WIP_HASH, shortHash: 'WIP', message: wipMessage,
-      author: '', authorEmail: '', date: '', parents: [headHash], refs: [],
+      author: '', authorEmail: '', date: '', parents: headHash ? [headHash] : [], refs: [],
     }
     return computeGraphLayout([wip, ...commits])
   }, [commits, hasWipNode, headHash, conflictMode, wipCount])
@@ -898,7 +900,7 @@ export default function CommitGraph({
               ))}
             </div>
           ) : (
-            <div className="cg-empty">{t('graph.empty')}</div>
+            <div className="cg-empty">{commits.length === 0 ? t('graph.emptyRepo') : t('graph.empty')}</div>
           )
         )}
       </div>

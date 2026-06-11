@@ -29,6 +29,17 @@ export class GitService {
     return null
   }
 
+  // Returns true if HEAD points to a commit (false in a freshly-initialized
+  // repo where no commit exists yet).
+  private async hasHead(): Promise<boolean> {
+    try {
+      await this.git.raw(['rev-parse', '--verify', 'HEAD'])
+      return true
+    } catch {
+      return false
+    }
+  }
+
   private async hasUnmergedPaths(): Promise<boolean> {
     try {
       const out = await this.git.raw(['ls-files', '--unmerged'])
@@ -41,6 +52,10 @@ export class GitService {
   // ── Read operations ────────────────────────────────────────────
 
   async getLog(options: { maxCount?: number; all?: boolean } = {}): Promise<{ commits: CommitNode[] }> {
+    // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
+    // An empty history is a valid state — the UI shows the WIP node so the
+    // user can stage and create the very first commit.
+    if (!(await this.hasHead())) return { commits: [] }
     const maxCount = options.maxCount ?? 300
     const args: string[] = [
       '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D|%G?',
@@ -83,6 +98,14 @@ export class GitService {
       commit: b.commit,
       label: b.label || b.name
     }))
+    // Empty repo: `git branch` lists nothing before the first commit, but the
+    // unborn branch (symbolic-ref) still has a name worth showing in the UI.
+    if (!branches.some(b => b.current)) {
+      try {
+        const name = (await this.git.raw(['symbolic-ref', '--short', 'HEAD'])).trim()
+        if (name) branches.push({ name, current: true, remote: false, commit: '', label: name })
+      } catch { /* detached HEAD — nothing to add */ }
+    }
     return { branches }
   }
 

@@ -8333,7 +8333,8 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "issue.open": "Ouvert",
     "issue.closed": "Ferm\xE9",
     "issue.merged": "Merg\xE9",
-    "issue.loading": "Chargement\u2026"
+    "issue.loading": "Chargement\u2026",
+    "graph.emptyRepo": "D\xE9p\xF4t sans commit \u2014 ajoutez ou modifiez des fichiers, ils appara\xEEtront ici pour cr\xE9er votre premier commit"
   };
   var en = {
     // Toolbar
@@ -8710,7 +8711,8 @@ Commits beyond this point will be lost for that branch.`,
     "issue.open": "Open",
     "issue.closed": "Closed",
     "issue.merged": "Merged",
-    "issue.loading": "Loading\u2026"
+    "issue.loading": "Loading\u2026",
+    "graph.emptyRepo": "No commits yet \u2014 add or edit files and they will show up here so you can create your first commit"
   };
   var translations = { fr, en };
 
@@ -9482,7 +9484,7 @@ Commits beyond this point will be lost for that branch.`,
       return h?.hash ?? commits[0]?.hash;
     }, [commits, currentBranch]);
     const layout = (0, import_react7.useMemo)(() => {
-      if (!hasWipNode || !headHash)
+      if (!hasWipNode)
         return computeGraphLayout(commits);
       const wipMessage = conflictMode ? `\u26A0\uFE0F A file conflict was found when attempting to ${conflictMode}` : `//WIP  \u270F ${wipCount} fichier${wipCount !== 1 ? "s" : ""} modifi\xE9${wipCount !== 1 ? "s" : ""}`;
       const wip = {
@@ -9492,7 +9494,7 @@ Commits beyond this point will be lost for that branch.`,
         author: "",
         authorEmail: "",
         date: "",
-        parents: [headHash],
+        parents: headHash ? [headHash] : [],
         refs: []
       };
       return computeGraphLayout([wip, ...commits]);
@@ -10007,7 +10009,7 @@ Commits beyond this point will be lost for that branch.`,
         effShowDate && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-date", style: { width: dateColW } }, !isWip ? fmtDate(commit.date, dateFormat) : ""),
         effShowSha && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-sha", style: { width: shaColW } }, !isWip && /* @__PURE__ */ import_react7.default.createElement("code", null, commit.shortHash))
       );
-    })), displayLayout.length === 0 && (loading ? /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-skeleton" }, Array.from({ length: 14 }).map((_, i) => /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-skel-row", key: i, style: { animationDelay: `${i * 60}ms` } }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-chip", style: { width: i % 4 === 0 ? 70 : 0 } }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-dot", style: { marginLeft: 12 + i % 3 * 18 } }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-bar", style: { width: `${38 + i * 23 % 42}%` } })))) : /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-empty" }, t("graph.empty")))), ctx && /* @__PURE__ */ import_react7.default.createElement(
+    })), displayLayout.length === 0 && (loading ? /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-skeleton" }, Array.from({ length: 14 }).map((_, i) => /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-skel-row", key: i, style: { animationDelay: `${i * 60}ms` } }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-chip", style: { width: i % 4 === 0 ? 70 : 0 } }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-dot", style: { marginLeft: 12 + i % 3 * 18 } }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-bar", style: { width: `${38 + i * 23 % 42}%` } })))) : /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-empty" }, commits.length === 0 ? t("graph.emptyRepo") : t("graph.empty")))), ctx && /* @__PURE__ */ import_react7.default.createElement(
       ContextMenu,
       {
         x: ctx.x,
@@ -10498,6 +10500,18 @@ ${line.date}`
     const [selectedDiff, setSelectedDiff] = (0, import_react8.useState)(null);
     const [formHeight, setFormHeight] = (0, import_react8.useState)(() => parseInt(localStorage.getItem("st-form-h") || "300"));
     const dragRef = (0, import_react8.useRef)(null);
+    const stRootRef = (0, import_react8.useRef)(null);
+    const [panelH, setPanelH] = (0, import_react8.useState)(0);
+    (0, import_react8.useEffect)(() => {
+      const el = stRootRef.current;
+      if (!el)
+        return;
+      const ro = new ResizeObserver((entries) => setPanelH(entries[0].contentRect.height));
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
+    const maxFormH = panelH > 0 ? Math.max(140, panelH - 220) : Infinity;
+    const effFormHeight = Math.min(formHeight, maxFormH);
     const splitMessage = (full) => {
       const lines = full.split("\n");
       setSummary(lines[0] ?? "");
@@ -10551,7 +10565,7 @@ ${line.date}`
       const onMove = (ev) => {
         if (!dragRef.current)
           return;
-        const next = Math.min(560, Math.max(150, dragRef.current.h - (ev.clientY - dragRef.current.y)));
+        const next = Math.min(560, maxFormH, Math.max(150, dragRef.current.h - (ev.clientY - dragRef.current.y)));
         setFormHeight(next);
       };
       const onUp = () => {
@@ -10563,7 +10577,7 @@ ${line.date}`
       };
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
-    }, [formHeight]);
+    }, [formHeight, maxFormH]);
     const generateMessage = async () => {
       setGenerating(true);
       try {
@@ -10643,7 +10657,7 @@ ${line.date}`
       return t("panel.commit.changes", String(n), n !== 1 ? "s" : "");
     })();
     const commitReady = isConflict ? !!summary.trim() && !conflictFiles?.length : canCommit && !!summary.trim();
-    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-content rp-staging st2" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-topbar" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-danger", title: t("panel.discardAll"), onClick: discardAll, disabled: totalChanged === 0 }, /* @__PURE__ */ import_react8.default.createElement(IcoTrash, null)), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-topbar-mid" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-changecount" }, totalChanged, " ", totalChanged === 1 ? t("panel.fileChange") : t("panel.fileChanges")), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-on" }, t("panel.on")), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-branch-chip", title: branchName }, branchName)), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-ai", title: t("panel.generate.tooltip"), onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react8.default.createElement(IcoSpark, null))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react8.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react8.default.createElement(IcoPathView, null), " ", t("panel.view.path")), /* @__PURE__ */ import_react8.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react8.default.createElement(IcoTreeView, null), " ", t("panel.view.tree")))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react8.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-section-title" }, t("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react8.default.createElement("div", { className: "st-empty" }, t("panel.noChanges")) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react8.default.createElement(
+    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-content rp-staging st2", ref: stRootRef }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-topbar" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-danger", title: t("panel.discardAll"), onClick: discardAll, disabled: totalChanged === 0 }, /* @__PURE__ */ import_react8.default.createElement(IcoTrash, null)), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-topbar-mid" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-changecount" }, totalChanged, " ", totalChanged === 1 ? t("panel.fileChange") : t("panel.fileChanges")), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-on" }, t("panel.on")), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-branch-chip", title: branchName }, branchName)), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-ai", title: t("panel.generate.tooltip"), onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react8.default.createElement(IcoSpark, null))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react8.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react8.default.createElement(IcoPathView, null), " ", t("panel.view.path")), /* @__PURE__ */ import_react8.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react8.default.createElement(IcoTreeView, null), " ", t("panel.view.tree")))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react8.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-section-title" }, t("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react8.default.createElement("div", { className: "st-empty" }, t("panel.noChanges")) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react8.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -10721,7 +10735,7 @@ ${line.date}`
     }), amendOnly.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
       return /* @__PURE__ */ import_react8.default.createElement("div", { key: f.path, className: "st-file-row st-amend-file", title: t("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st-amend-tag" }, "amend"));
-    }))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-resize-grip" })), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit", style: { height: formHeight } }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react8.default.createElement(IcoCommit, null), " ", t("panel.tab.commit")), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-tab-icon", title: t("panel.tab.stash"), onClick: async () => {
+    }))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-resize-grip" })), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit", style: { height: effFormHeight } }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react8.default.createElement(IcoCommit, null), " ", t("panel.tab.commit")), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-tab-icon", title: t("panel.tab.stash"), onClick: async () => {
       const r = await window.gitAPI.createStash();
       if (r?.success === false)
         showToast(t("toast.stashErr", r.error ?? ""), "err");
