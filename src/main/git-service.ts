@@ -1011,6 +1011,21 @@ export class GitService {
     }
   }
 
+  // Full patch of a stash, untracked files included when supported.
+  async getStashDiff(index: number): Promise<{ diff: string }> {
+    const ref = `stash@{${index}}`
+    try {
+      return { diff: await this.git.raw(['stash', 'show', '-p', '--include-untracked', ref]) }
+    } catch {
+      // --include-untracked on `stash show` needs git ≥ 2.32 — retry without
+      try {
+        return { diff: await this.git.raw(['stash', 'show', '-p', ref]) }
+      } catch {
+        return { diff: '' }
+      }
+    }
+  }
+
   // ── Reflog ─────────────────────────────────────────────────
 
   // ── Interactive Rebase ──────────────────────────────────────

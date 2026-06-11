@@ -36,6 +36,7 @@ interface SidebarProps {
   onApplyStash: (index: number) => void
   onPopStash: (index: number) => void
   onDropStash: (index: number) => void
+  onPreviewStash?: (index: number, message: string) => void
   onRefreshStashes: () => void
   onCreateTag: () => void
   onDeleteTag: (name: string) => void
@@ -192,16 +193,18 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
 }
 
 // ── Stash item ────────────────────────────────────────────────────
-function StashItem({ stash, onApply, onPop, onDrop }: {
+function StashItem({ stash, onApply, onPop, onDrop, onPreview }: {
   stash: StashEntry
   onApply: () => void
   onPop: () => void
   onDrop: () => void
+  onPreview?: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const label = stash.message.replace(/^stash@\{\d+\}: /, '')
 
   const menuItems: MenuItemDef[] = [
+    ...(onPreview ? [{ label: '👁 Aperçu du contenu', action: onPreview }] : []),
     { label: '▶ Appliquer (garder)', action: onApply },
     { label: '▶ Appliquer (pop)', action: onPop },
     { separator: true },
@@ -212,8 +215,9 @@ function StashItem({ stash, onApply, onPop, onDrop }: {
     <>
       <div
         className="sb-stash-item"
+        onClick={onPreview}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
-        title={stash.message}
+        title={onPreview ? `${stash.message} — clic : aperçu` : stash.message}
       >
         <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="stash-icon">
           <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h8.75a.75.75 0 0 1 0 1.5H2.5a.5.5 0 0 0 0 1H8a1 1 0 0 1 1 1v3.75a.75.75 0 0 1-1.5 0V6H2.5A1.5 1.5 0 0 1 1 4.5v-1Zm3 9A1.5 1.5 0 0 1 2.5 11h1.25a.75.75 0 0 0 0-1.5H2.5A1.5 1.5 0 0 1 1 8v-.5a.75.75 0 0 1 1.5 0V8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-.5a.75.75 0 0 1 1.5 0V8a1.5 1.5 0 0 1-1.5 1.5H4.5v1H14a.75.75 0 0 1 0 1.5H4.5v.5a.75.75 0 0 1-1.5 0v-.5Z"/>
@@ -394,7 +398,7 @@ export default function Sidebar({
   onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
-  onCreateStash, onApplyStash, onPopStash, onDropStash, onRefreshStashes,
+  onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
   onCreateTag, onDeleteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
@@ -742,6 +746,7 @@ export default function Sidebar({
                     onApply={() => onApplyStash(s.index)}
                     onPop={() => onPopStash(s.index)}
                     onDrop={() => onDropStash(s.index)}
+                    onPreview={onPreviewStash ? () => onPreviewStash(s.index, s.message) : undefined}
                   />
                 ))
             }

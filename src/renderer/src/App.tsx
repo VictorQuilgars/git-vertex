@@ -122,6 +122,37 @@ function CompareWorkingModal({ hash, onClose }: { hash: string; onClose: () => v
   )
 }
 
+// ── Stash content preview ───────────────────────────────────────
+function StashPreviewModal({ index, message, onClose }: { index: number; message: string; onClose: () => void }) {
+  const [diff, setDiff] = useState<string>('')
+  const [loading, setLoading] = useState(true)
+
+  React.useEffect(() => {
+    ;(window.gitAPI as any).stashDiff(index).then((r: any) => {
+      setDiff(r?.diff ?? '')
+      setLoading(false)
+    })
+  }, [index])
+
+  return (
+    <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bc-modal" style={{ width: '80vw', maxWidth: 1100, height: '80vh' }}>
+        <div className="bc-header">
+          <span className="bc-title">Stash <code>#{index}</code> — {message}</span>
+          <button className="bc-close" onClick={onClose}>×</button>
+        </div>
+        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {loading
+            ? <div className="bc-loading">Chargement…</div>
+            : diff.trim() === ''
+              ? <div className="bc-empty" style={{ padding: 24 }}>Stash vide</div>
+              : <DiffViewer commit={syntheticCommit(`stash@{${index}}`, message)} diff={diff} files={[]} loading={false} />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Minimal CommitNode so DiffViewer renders its body (it early-returns on null commit).
 function syntheticCommit(shortHash: string, message: string): CommitNode {
   return {
@@ -216,6 +247,7 @@ export default function App() {
   const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
   const [compareBranchModal, setCompareBranchModal] = useState<string | null>(null)
   const [compareWorkingHash, setCompareWorkingHash] = useState<string | null>(null)
+  const [stashPreview, setStashPreview] = useState<{ index: number; message: string } | null>(null)
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
   const [comparePair, setComparePair] = useState<{ from: string; to: string } | null>(null)
   const [gitflowOpen, setGitflowOpen] = useState(false)
@@ -1184,6 +1216,7 @@ export default function App() {
               onApplyStash={handleApplyStash}
               onPopStash={handlePopStash}
               onDropStash={handleDropStash}
+              onPreviewStash={(index, message) => setStashPreview({ index, message })}
               onRefreshStashes={loadStashes}
               onCreateTag={handleCreateTag}
               onDeleteTag={handleDeleteTag}
@@ -1487,6 +1520,15 @@ export default function App() {
         <CompareWorkingModal
           hash={compareWorkingHash}
           onClose={() => setCompareWorkingHash(null)}
+        />
+      )}
+
+      {/* Stash content preview */}
+      {stashPreview && (
+        <StashPreviewModal
+          index={stashPreview.index}
+          message={stashPreview.message}
+          onClose={() => setStashPreview(null)}
         />
       )}
 

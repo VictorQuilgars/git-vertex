@@ -515,6 +515,11 @@ ipcMain.handle('git:drop-stash', async (_event, index: number) => {
   return gitService.dropStash(index)
 })
 
+ipcMain.handle('git:stash-diff', async (_event, index: number) => {
+  if (!gitService) return { diff: '' }
+  return gitService.getStashDiff(index)
+})
+
 // ── IPC: Blame ─────────────────────────────────────────────
 ipcMain.handle('git:get-blame', async (_event, hash: string, filepath: string) => {
   if (!gitService) return { lines: [] }

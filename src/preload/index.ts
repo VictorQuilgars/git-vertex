@@ -65,6 +65,7 @@ const gitAPI = {
   createStash: (message?: string) => ipcRenderer.invoke('git:create-stash', message),
   applyStash: (index: number) => ipcRenderer.invoke('git:apply-stash', index),
   popStash: (index: number) => ipcRenderer.invoke('git:pop-stash', index),
+  stashDiff: (index: number) => ipcRenderer.invoke('git:stash-diff', index),
   dropStash: (index: number) => ipcRenderer.invoke('git:drop-stash', index),
   // Blame
   getBlame: (hash: string, filepath: string) => ipcRenderer.invoke('git:get-blame', hash, filepath),
