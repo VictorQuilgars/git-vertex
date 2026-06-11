@@ -2,7 +2,7 @@
   "name": "git-vertex",
   "displayName": "Git Vertex",
   "description": "Full Git GUI in the VS Code panel — commit graph, staging, branches, and more.",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "publisher": "VictorQuilgars",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -139,7 +139,7 @@
     "release:patch": "bash scripts/publish.sh --bump patch",
     "release:minor": "bash scripts/publish.sh --bump minor",
     "release:major": "bash scripts/publish.sh --bump major",
-    "release:dry":   "bash scripts/publish.sh --dry-run"
+    "release:dry": "bash scripts/publish.sh --dry-run"
   },
   "dependencies": {
     "simple-git": "^3.22.0"
