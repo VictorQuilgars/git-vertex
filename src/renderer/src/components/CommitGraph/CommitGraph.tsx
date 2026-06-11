@@ -399,6 +399,19 @@ export default function CommitGraph({
     })
   }, [layout, hasWipNode, conflictMode, headHash])
 
+  // When the selection changes from outside the graph (parent-commit link,
+  // keyboard …), make sure the selected row is visible.
+  useEffect(() => {
+    if (!selectedHash) return
+    const row = displayLayout.find(c => c.hash === selectedHash)?.row
+    const body = bodyRef.current
+    if (row == null || !body) return
+    const top = row * ROW_HEIGHT
+    if (top < body.scrollTop || top + ROW_HEIGHT > body.scrollTop + body.clientHeight) {
+      body.scrollTo({ top: Math.max(0, top - body.clientHeight / 2), behavior: 'smooth' })
+    }
+  }, [selectedHash])  // eslint-disable-line react-hooks/exhaustive-deps
+
   // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel.
   // Skipped while an input/textarea has focus.
   useEffect(() => {
@@ -849,7 +862,7 @@ export default function CommitGraph({
                 {/* Message */}
                 <div className="cg-col-msg">
                   {!isWip && sigBadge(commit.signature)}
-                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo)}</span>
+                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo)}</span>
                 </div>
 
                 {/* Author */}

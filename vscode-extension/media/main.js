@@ -9538,6 +9538,18 @@ Commits beyond this point will be lost for that branch.`,
       });
     }, [layout, hasWipNode, conflictMode, headHash]);
     (0, import_react7.useEffect)(() => {
+      if (!selectedHash)
+        return;
+      const row = displayLayout.find((c) => c.hash === selectedHash)?.row;
+      const body = bodyRef.current;
+      if (row == null || !body)
+        return;
+      const top = row * ROW_HEIGHT;
+      if (top < body.scrollTop || top + ROW_HEIGHT > body.scrollTop + body.clientHeight) {
+        body.scrollTo({ top: Math.max(0, top - body.clientHeight / 2), behavior: "smooth" });
+      }
+    }, [selectedHash]);
+    (0, import_react7.useEffect)(() => {
       const onKey = (e) => {
         if (e.key !== "ArrowUp" && e.key !== "ArrowDown" && e.key !== "Escape")
           return;
@@ -9989,7 +10001,7 @@ Commits beyond this point will be lost for that branch.`,
           stackCount > 0 && refExpand?.row !== commit.row && /* @__PURE__ */ import_react7.default.createElement("span", { className: "rc-stack-badge" }, "+", stackCount)
         ), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-ref-line-stub", style: { background: dimColor(commit.color) } })) : null),
         /* @__PURE__ */ import_react7.default.createElement("div", { style: { width: svgW, flexShrink: 0 } }),
-        /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-msg" }, !isWip && sigBadge(commit.signature), /* @__PURE__ */ import_react7.default.createElement("span", { className: `cg-msg ${isWip ? "cg-msg-wip" : ""}` }, isWip ? commit.message : linkifyIssues(commit.message, githubRepo))),
+        /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-msg" }, !isWip && sigBadge(commit.signature), /* @__PURE__ */ import_react7.default.createElement("span", { className: `cg-msg ${isWip ? "cg-msg-wip" : ""}`, title: isWip ? void 0 : commit.message }, isWip ? commit.message : linkifyIssues(commit.message, githubRepo))),
         effShowAuthor && !isWip && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-author", style: { width: authorColW } }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-author-name" }, commit.author)),
         effShowAuthor && isWip && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-author", style: { width: authorColW } }),
         effShowDate && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-date", style: { width: dateColW } }, !isWip ? fmtDate(commit.date, dateFormat) : ""),

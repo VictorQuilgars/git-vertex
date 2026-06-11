@@ -163,3 +163,11 @@
 }
 .gv-right-stacked { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .gv-right-stacked .right-panel { width: 100% !important; }
+
+/* Tighter detail-panel spacing in narrow panels */
+@media (max-width: 640px) {
+  .gv-app .cd-message-block { padding: 10px 10px 8px; }
+  .gv-app .cd-top-row { padding: 6px 8px; }
+  .gv-app .cd-ai-label { display: none; }
+  .gv-app .rp-content { font-size: 12px; }
+}

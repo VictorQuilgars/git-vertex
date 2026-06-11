@@ -3671,6 +3671,20 @@ body {
 .gv-right-stacked .right-panel {
   width: 100% !important;
 }
+@media (max-width: 640px) {
+  .gv-app .cd-message-block {
+    padding: 10px 10px 8px;
+  }
+  .gv-app .cd-top-row {
+    padding: 6px 8px;
+  }
+  .gv-app .cd-ai-label {
+    display: none;
+  }
+  .gv-app .rp-content {
+    font-size: 12px;
+  }
+}
 /*! Bundled license information:
 
 highlight.js/styles/github-dark.css:
