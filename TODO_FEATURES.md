@@ -36,6 +36,11 @@ Ce fichier suit l'évolution de Git Vertex vers une expérience complète et per
 - **UI responsive (VS Code + desktop)** : Colonnes auteur/date/SHA auto-masquées en largeur réduite, toolbar dégradée par paliers, panneau détail empilé plein écran < 640px, largeur du panneau droit clampée et persistée.
 - **Repo vide / premier commit** : Un repo fraîchement `git init` (aucun commit) affiche le nœud WIP autonome et la branche unborn ; indexation et tout premier commit possibles depuis l'UI.
 - **Staging en panneau bas** : La zone de commit se clampe en hauteur pour que les listes staged/unstaged restent toujours visibles dans les petits panneaux.
+- **Toast « Annuler »** : Les opérations qui réécrivent l'historique (reset, drop, move, drag-drop de branche) offrent un bouton Annuler pendant 8 s dans le toast.
+- **Badges ahead/behind** : ↑n / ↓n (et ✂ si l'upstream a été supprimé) à côté des branches locales dans la sidebar.
+- **Aperçu de stash** : Clic sur un stash dans la sidebar → modal avec le patch complet (untracked inclus).
+- **Sélecteur de type conventionnel** : Dropdown feat/fix/chore… à côté du résumé de commit, préserve le (scope).
+- **Clic molette sur un onglet** : Ferme l'onglet.
 
 ### Graphe & Navigation
 - **Graphe de commits moderne** : Lignes courbées GitKraken-style, couleurs distinctes par branche, commits ancêtres partagés sur la bonne couleur.
