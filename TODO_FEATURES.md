@@ -30,7 +30,10 @@ Ce fichier suit l'évolution de Git Vertex vers une expérience complète et per
 - **Liens GitHub Issues/PRs** : Les références `#123` dans les messages de commit (graphe + panneau de détail) deviennent cliquables, avec tooltip au survol (titre + état Ouvert/Fermé/Mergé via l'API GitHub, cache en session).
 - **Avatars Gravatar des auteurs** : Image Gravatar dans le graphe, fallback initiales colorées.
 - **Éditeur de Diff/Merge externe** : Commande configurable (code, subl, meld…) ; bouton dans le résolveur de conflits.
-- **Raccourcis clavier** : F5/Ctrl+R = refresh, Ctrl+Z = undo, Ctrl+P = command palette.
+- **Raccourcis clavier** : F5/Ctrl+R = refresh, Ctrl+Z = undo, Ctrl+P = command palette, ↑/↓ = naviguer dans le graphe, Échap = fermer le panneau.
+- **Compteur de résultats de recherche** : Badge live dans la barre de recherche (bleu, rouge si 0 résultat).
+- **Skeleton de chargement** : Lignes shimmer dans le graphe pendant le premier chargement du log.
+- **UI responsive (VS Code + desktop)** : Colonnes auteur/date/SHA auto-masquées en largeur réduite, toolbar dégradée par paliers, panneau détail empilé plein écran < 640px, largeur du panneau droit clampée et persistée.
 
 ### Graphe & Navigation
 - **Graphe de commits moderne** : Lignes courbées GitKraken-style, couleurs distinctes par branche, commits ancêtres partagés sur la bonne couleur.
