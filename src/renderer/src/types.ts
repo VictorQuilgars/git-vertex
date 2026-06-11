@@ -16,6 +16,7 @@ export interface GraphEdge {
 
 export interface BranchInfo {
   name: string; current: boolean; remote: boolean; commit: string; label: string
+  ahead?: number; behind?: number; gone?: boolean  // tracking vs upstream (local branches)
 }
 
 export interface FileChange {

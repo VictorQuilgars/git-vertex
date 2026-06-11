@@ -18,6 +18,9 @@ export interface BranchInfo {
   remote: boolean
   commit: string
   label: string
+  ahead?: number    // commits ahead of upstream
+  behind?: number   // commits behind upstream
+  gone?: boolean    // upstream configured but deleted on the remote
 }
 
 export interface FileChange {
@@ -142,6 +145,24 @@ export class GitService {
         if (name) branches.push({ name, current: true, remote: false, commit: '', label: name })
       } catch { /* detached HEAD — nothing to add */ }
     }
+    // Ahead/behind vs upstream for local branches, in a single git call.
+    try {
+      const track = await this.git.raw(['for-each-ref', 'refs/heads', '--format=%(refname:short)|%(upstream:track)'])
+      const info = new Map<string, { ahead: number; behind: number; gone: boolean }>()
+      for (const line of track.split('\n')) {
+        const [name, t] = line.split('|')
+        if (!name || !t) continue
+        info.set(name, {
+          ahead: parseInt(/ahead (\d+)/.exec(t)?.[1] ?? '0', 10),
+          behind: parseInt(/behind (\d+)/.exec(t)?.[1] ?? '0', 10),
+          gone: t.includes('gone'),
+        })
+      }
+      for (const b of branches) {
+        const tr = !b.remote ? info.get(b.name) : undefined
+        if (tr) Object.assign(b, tr)
+      }
+    } catch { /* tracking info is best-effort */ }
     return { branches }
   }
 

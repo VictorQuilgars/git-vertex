@@ -31,6 +31,9 @@ export interface BranchInfo {
   remote: boolean
   commit: string
   label: string
+  ahead?: number    // commits ahead of upstream
+  behind?: number   // commits behind upstream
+  gone?: boolean    // upstream configured but deleted on the remote
 }
 
 export interface FileChange {

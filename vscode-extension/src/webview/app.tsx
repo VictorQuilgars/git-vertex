@@ -108,17 +108,26 @@ function VertexApp() {
   }, [commits])
 
   // ── Commit-graph action handlers ─────────────────────────────
-  const runOp = useCallback(async (label: string, op: () => Promise<{ success?: boolean; error?: string }>) => {
+  const doUndo = useCallback(async () => {
+    const r = await window.gitAPI.undoLastAction()
+    if (r && r.success === false) toast.error(r.error ?? "Impossible d'annuler")
+    else toast.success('✓ Annulé')
+    await loadRepoData()
+  }, [toast, loadRepoData])
+
+  // `undoable` adds an "Annuler" button on the success toast (history rewrites)
+  const runOp = useCallback(async (label: string, op: () => Promise<{ success?: boolean; error?: string }>, undoable = false) => {
     const r = await op()
     if (r && r.success === false) showToast(r.error ?? `${label} a échoué`, 'err')
+    else if (undoable) toast.success(`✓ ${label}`, { label: 'Annuler', onClick: () => { void doUndo() } })
     else showToast(`✓ ${label}`)
     await loadRepoData()
-  }, [showToast, loadRepoData])
+  }, [showToast, toast, doUndo, loadRepoData])
 
   const handleCheckout = useCallback((ref: string) => runOp('Checkout', () => window.gitAPI.checkout(ref)), [runOp])
   const handleCherryPick = useCallback((hash: string) => runOp('Cherry-pick', () => window.gitAPI.cherryPick(hash)), [runOp])
   const handleRevert = useCallback((hash: string) => runOp('Revert', () => window.gitAPI.revert(hash)), [runOp])
-  const handleReset = useCallback((hash: string, mode: 'soft' | 'mixed' | 'hard') => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode)), [runOp])
+  const handleReset = useCallback((hash: string, mode: 'soft' | 'mixed' | 'hard') => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp])
 
   const handleCreateTag = useCallback(async (hash: string) => {
     const name = await window.gitAPI.uiPrompt('Nom du tag')
@@ -135,11 +144,11 @@ function VertexApp() {
     const ok = await window.gitAPI.uiConfirm(`Supprimer le commit ${hash.slice(0, 7)} ? Cette action réécrit l'historique.`)
     if (!ok) return
     setSelectedCommit(null)
-    await runOp('Commit supprimé', () => window.gitAPI.dropCommit(hash))
+    await runOp('Commit supprimé', () => window.gitAPI.dropCommit(hash), true)
   }, [runOp])
 
   const handleMoveCommit = useCallback((hash: string, direction: 'up' | 'down') =>
-    runOp('Commit déplacé', () => window.gitAPI.moveCommit(hash, direction)), [runOp])
+    runOp('Commit déplacé', () => window.gitAPI.moveCommit(hash, direction), true), [runOp])
 
   const handleBranchDrop = useCallback(async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => {
     if (action === 'reset') {
@@ -151,7 +160,7 @@ function VertexApp() {
       : action === 'rebase'
         ? () => window.gitAPI.rebaseBranchOnto(branch, hash)
         : () => window.gitAPI.mergeCommitInto(branch, hash)
-    await runOp(action === 'reset' ? 'Branche réinitialisée' : action === 'rebase' ? 'Rebase effectué' : 'Merge effectué', op)
+    await runOp(action === 'reset' ? 'Branche réinitialisée' : action === 'rebase' ? 'Rebase effectué' : 'Merge effectué', op, true)
   }, [runOp])
 
   // ── Toolbar handlers (push / fetch / pull / branch / stash …) ─

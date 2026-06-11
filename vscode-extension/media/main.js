@@ -8334,7 +8334,8 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "issue.closed": "Ferm\xE9",
     "issue.merged": "Merg\xE9",
     "issue.loading": "Chargement\u2026",
-    "graph.emptyRepo": "D\xE9p\xF4t sans commit \u2014 ajoutez ou modifiez des fichiers, ils appara\xEEtront ici pour cr\xE9er votre premier commit"
+    "graph.emptyRepo": "D\xE9p\xF4t sans commit \u2014 ajoutez ou modifiez des fichiers, ils appara\xEEtront ici pour cr\xE9er votre premier commit",
+    "toast.undo": "Annuler"
   };
   var en = {
     // Toolbar
@@ -8712,7 +8713,8 @@ Commits beyond this point will be lost for that branch.`,
     "issue.closed": "Closed",
     "issue.merged": "Merged",
     "issue.loading": "Loading\u2026",
-    "graph.emptyRepo": "No commits yet \u2014 add or edit files and they will show up here so you can create your first commit"
+    "graph.emptyRepo": "No commits yet \u2014 add or edit files and they will show up here so you can create your first commit",
+    "toast.undo": "Undo"
   };
   var translations = { fr, en };
 
@@ -8757,19 +8759,29 @@ Commits beyond this point will be lost for that branch.`,
   function ToastProvider({ children }) {
     const [toasts, setToasts] = (0, import_react3.useState)([]);
     const counter = (0, import_react3.useRef)(0);
-    const addToast = (0, import_react3.useCallback)((message, type) => {
+    const addToast = (0, import_react3.useCallback)((message, type, action) => {
       const id = ++counter.current;
-      setToasts((prev) => [...prev, { id, message, type }]);
+      setToasts((prev) => [...prev, { id, message, type, action }]);
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 4e3);
+      }, action ? 8e3 : 4e3);
     }, []);
     const ctx = {
-      success: (msg) => addToast(msg, "success"),
-      error: (msg) => addToast(msg, "error"),
-      info: (msg) => addToast(msg, "info")
+      success: (msg, action) => addToast(msg, "success", action),
+      error: (msg, action) => addToast(msg, "error", action),
+      info: (msg, action) => addToast(msg, "info", action)
     };
-    return /* @__PURE__ */ import_react3.default.createElement(ToastContext.Provider, { value: ctx }, children, /* @__PURE__ */ import_react3.default.createElement("div", { className: "toast-container" }, toasts.map((t) => /* @__PURE__ */ import_react3.default.createElement("div", { key: t.id, className: `toast-item toast-${t.type}` }, /* @__PURE__ */ import_react3.default.createElement("span", { className: "toast-icon" }, t.type === "success" ? "\u2713" : t.type === "error" ? "\u2715" : "\u2139"), /* @__PURE__ */ import_react3.default.createElement("span", { className: "toast-msg" }, t.message), /* @__PURE__ */ import_react3.default.createElement(
+    return /* @__PURE__ */ import_react3.default.createElement(ToastContext.Provider, { value: ctx }, children, /* @__PURE__ */ import_react3.default.createElement("div", { className: "toast-container" }, toasts.map((t) => /* @__PURE__ */ import_react3.default.createElement("div", { key: t.id, className: `toast-item toast-${t.type}` }, /* @__PURE__ */ import_react3.default.createElement("span", { className: "toast-icon" }, t.type === "success" ? "\u2713" : t.type === "error" ? "\u2715" : "\u2139"), /* @__PURE__ */ import_react3.default.createElement("span", { className: "toast-msg" }, t.message), t.action && /* @__PURE__ */ import_react3.default.createElement(
+      "button",
+      {
+        className: "toast-action",
+        onClick: () => {
+          setToasts((prev) => prev.filter((x) => x.id !== t.id));
+          t.action.onClick();
+        }
+      },
+      t.action.label
+    ), /* @__PURE__ */ import_react3.default.createElement(
       "button",
       {
         className: "toast-dismiss",
@@ -11130,18 +11142,30 @@ Signed-off-by: ` : full;
       if (!still)
         setSelectedCommit(null);
     }, [commits]);
-    const runOp = (0, import_react10.useCallback)(async (label, op) => {
+    const doUndo = (0, import_react10.useCallback)(async () => {
+      const r = await window.gitAPI.undoLastAction();
+      if (r && r.success === false)
+        toast.error(r.error ?? "Impossible d'annuler");
+      else
+        toast.success("\u2713 Annul\xE9");
+      await loadRepoData();
+    }, [toast, loadRepoData]);
+    const runOp = (0, import_react10.useCallback)(async (label, op, undoable = false) => {
       const r = await op();
       if (r && r.success === false)
         showToast(r.error ?? `${label} a \xE9chou\xE9`, "err");
+      else if (undoable)
+        toast.success(`\u2713 ${label}`, { label: "Annuler", onClick: () => {
+          void doUndo();
+        } });
       else
         showToast(`\u2713 ${label}`);
       await loadRepoData();
-    }, [showToast, loadRepoData]);
+    }, [showToast, toast, doUndo, loadRepoData]);
     const handleCheckout = (0, import_react10.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
     const handleCherryPick = (0, import_react10.useCallback)((hash) => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash)), [runOp]);
     const handleRevert = (0, import_react10.useCallback)((hash) => runOp("Revert", () => window.gitAPI.revert(hash)), [runOp]);
-    const handleReset = (0, import_react10.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode)), [runOp]);
+    const handleReset = (0, import_react10.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
     const handleCreateTag = (0, import_react10.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom du tag");
       if (name)
@@ -11157,9 +11181,9 @@ Signed-off-by: ` : full;
       if (!ok)
         return;
       setSelectedCommit(null);
-      await runOp("Commit supprim\xE9", () => window.gitAPI.dropCommit(hash));
+      await runOp("Commit supprim\xE9", () => window.gitAPI.dropCommit(hash), true);
     }, [runOp]);
-    const handleMoveCommit = (0, import_react10.useCallback)((hash, direction) => runOp("Commit d\xE9plac\xE9", () => window.gitAPI.moveCommit(hash, direction)), [runOp]);
+    const handleMoveCommit = (0, import_react10.useCallback)((hash, direction) => runOp("Commit d\xE9plac\xE9", () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
     const handleBranchDrop = (0, import_react10.useCallback)(async (branch, hash, action) => {
       if (action === "reset") {
         const ok = await window.gitAPI.uiConfirm(`R\xE9initialiser ${branch} sur ${hash.slice(0, 7)} ?`);
@@ -11167,7 +11191,7 @@ Signed-off-by: ` : full;
           return;
       }
       const op = action === "reset" ? () => window.gitAPI.moveBranchTo(branch, hash) : action === "rebase" ? () => window.gitAPI.rebaseBranchOnto(branch, hash) : () => window.gitAPI.mergeCommitInto(branch, hash);
-      await runOp(action === "reset" ? "Branche r\xE9initialis\xE9e" : action === "rebase" ? "Rebase effectu\xE9" : "Merge effectu\xE9", op);
+      await runOp(action === "reset" ? "Branche r\xE9initialis\xE9e" : action === "rebase" ? "Rebase effectu\xE9" : "Merge effectu\xE9", op, true);
     }, [runOp]);
     const handleFetch = (0, import_react10.useCallback)(async () => {
       await runOp("Fetch", () => window.gitAPI.fetch());

@@ -503,3 +503,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Ahead/behind tracking badges ─────────────────────────── */
+.sb-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.sb-track-ahead { color: #3fb950; }
+.sb-track-behind { color: #d29922; }
+.sb-track-gone { color: #f85149; font-size: 9px; }

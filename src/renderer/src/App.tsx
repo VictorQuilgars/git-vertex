@@ -261,9 +261,9 @@ export default function App() {
   // ── Toast (via ToastProvider) ──────────────────────────────
   const toastApi = useToast()
   const { t } = useLang()
-  const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok') => {
-    if (type === 'ok') toastApi.success(msg)
-    else toastApi.error(msg)
+  const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok', action?: { label: string; onClick: () => void }) => {
+    if (type === 'ok') toastApi.success(msg, action)
+    else toastApi.error(msg, action)
   }, [toastApi])
 
   // ── Load stashes ───────────────────────────────────────────
@@ -540,6 +540,9 @@ export default function App() {
     setLoading(false)
   }
 
+  // "Annuler" button offered on toasts after history-rewriting operations
+  const undoAction = () => ({ label: t('toast.undo'), onClick: () => { void handleUndo() } })
+
   // ── Keyboard shortcuts ─────────────────────────────────────
   // Declared after handleUndo so the dependency array doesn't hit a temporal
   // dead zone (referencing a `const` before its initialization throws at render).
@@ -773,7 +776,7 @@ export default function App() {
     setLoading(true)
     const r = await window.gitAPI.reset(hash, mode)
     if (r.success) {
-      showToast(t('toast.resetOk', mode, hash.slice(0, 7)))
+      showToast(t('toast.resetOk', mode, hash.slice(0, 7)), 'ok', undoAction())
       setSelectedCommit(null)
       await loadRepoData()
     } else {
@@ -799,7 +802,7 @@ export default function App() {
     if (!ok) return
     setLoading(true)
     const r = await window.gitAPI.dropCommit(hash)
-    if (r.success) { showToast(t('toast.commitDropped', hash.slice(0, 7))); setSelectedCommit(null); await loadRepoData() }
+    if (r.success) { showToast(t('toast.commitDropped', hash.slice(0, 7)), 'ok', undoAction()); setSelectedCommit(null); await loadRepoData() }
     else showToast(t('toast.err', r.error ?? ''), 'err')
     setLoading(false)
   }
@@ -816,7 +819,7 @@ export default function App() {
         ? await window.gitAPI.rebaseBranchOnto(branch, hash)
         : await window.gitAPI.mergeCommitInto(branch, hash)
     if (r.success) {
-      showToast(t('toast.branchDropOk', branch))
+      showToast(t('toast.branchDropOk', branch), 'ok', undoAction())
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
@@ -828,7 +831,7 @@ export default function App() {
   const handleMoveCommit = async (hash: string, direction: 'up' | 'down') => {
     setLoading(true)
     const r = await window.gitAPI.moveCommit(hash, direction)
-    if (r.success) { showToast(t('toast.commitMoved')); await loadRepoData() }
+    if (r.success) { showToast(t('toast.commitMoved'), 'ok', undoAction()); await loadRepoData() }
     else showToast(t('toast.err', r.error ?? ''), 'err')
     setLoading(false)
   }
