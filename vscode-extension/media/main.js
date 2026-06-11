@@ -9454,7 +9454,8 @@ Commits beyond this point will be lost for that branch.`,
     onBranchDrop,
     wipCount = 0,
     conflictMode = null,
-    githubRepo = null
+    githubRepo = null,
+    loading = false
   }) {
     const { t } = useLang();
     const { getBool, get } = useSettings();
@@ -9953,7 +9954,7 @@ Commits beyond this point will be lost for that branch.`,
         effShowDate && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-date", style: { width: dateColW } }, !isWip ? fmtDate(commit.date, dateFormat) : ""),
         effShowSha && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-sha", style: { width: shaColW } }, !isWip && /* @__PURE__ */ import_react7.default.createElement("code", null, commit.shortHash))
       );
-    })), displayLayout.length === 0 && /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-empty" }, t("graph.empty"))), ctx && /* @__PURE__ */ import_react7.default.createElement(
+    })), displayLayout.length === 0 && (loading ? /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-skeleton" }, Array.from({ length: 14 }).map((_, i) => /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-skel-row", key: i, style: { animationDelay: `${i * 60}ms` } }, /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-chip", style: { width: i % 4 === 0 ? 70 : 0 } }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-dot", style: { marginLeft: 12 + i % 3 * 18 } }), /* @__PURE__ */ import_react7.default.createElement("span", { className: "cg-skel-bar", style: { width: `${38 + i * 23 % 42}%` } })))) : /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-empty" }, t("graph.empty")))), ctx && /* @__PURE__ */ import_react7.default.createElement(
       ContextMenu,
       {
         x: ctx.x,
@@ -11198,7 +11199,8 @@ Signed-off-by: ` : full;
         onBranchDrop: handleBranchDrop,
         onInteractiveRebase: (hash) => setRebaseHash(hash),
         wipCount,
-        conflictMode
+        conflictMode,
+        loading
       }
     )), showRight && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, !stacked && /* @__PURE__ */ import_react10.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react10.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: rightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react10.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react10.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react10.default.createElement(
       RightPanel,

@@ -986,10 +986,20 @@ export default function App() {
     addEventListener('mousemove', move); addEventListener('mouseup', up)
   }
 
+  // The graph must keep at least ~45% of the window, whatever the panel width
+  const clampRightW = (w: number) =>
+    Math.max(Math.min(360, Math.floor(window.innerWidth * 0.3)), Math.min(w, 600, Math.floor(window.innerWidth * 0.45)))
+
+  useEffect(() => {
+    const onResize = () => setRightW(w => clampRightW(w))
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   const startResizeRight = (e: React.MouseEvent) => {
     e.preventDefault()
     const sx = e.clientX, rw = rightW
-    const move = (ev: MouseEvent) => setRightW(Math.max(360, Math.min(600, rw - (ev.clientX - sx))))
+    const move = (ev: MouseEvent) => setRightW(clampRightW(rw - (ev.clientX - sx)))
     const up = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', up) }
     addEventListener('mousemove', move); addEventListener('mouseup', up)
   }
@@ -1323,6 +1333,7 @@ export default function App() {
               wipCount={wipCount}
               conflictMode={conflictMode}
               githubRepo={githubOwnerRepo}
+              loading={loading}
             />
           )}
         </div>

@@ -255,6 +255,7 @@ function VertexApp() {
             onInteractiveRebase={(hash) => setRebaseHash(hash)}
             wipCount={wipCount}
             conflictMode={conflictMode}
+            loading={loading}
           />
         </div>
 

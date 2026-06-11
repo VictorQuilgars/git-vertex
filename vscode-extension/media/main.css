@@ -541,6 +541,54 @@
 .ref-expansion-popup .ref-chip {
   max-width: none;
 }
+.cg-skeleton {
+  padding: 6px 0;
+}
+.cg-skel-row {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  opacity: 0;
+  animation: cg-skel-in 0.3s ease forwards;
+}
+.cg-skel-chip,
+.cg-skel-dot,
+.cg-skel-bar {
+  background:
+    linear-gradient(
+      90deg,
+      #1c2128 25%,
+      #262c36 50%,
+      #1c2128 75%);
+  background-size: 200% 100%;
+  animation: cg-skel-shimmer 1.4s linear infinite;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.cg-skel-chip {
+  height: 14px;
+  border-radius: 10px;
+}
+.cg-skel-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-right: 16px;
+}
+.cg-skel-bar {
+  height: 10px;
+}
+@keyframes cg-skel-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes cg-skel-in {
+  to {
+    opacity: 1;
+  }
+}
 .cg-empty {
   padding: 40px;
   text-align: center;

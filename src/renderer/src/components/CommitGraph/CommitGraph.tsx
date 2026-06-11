@@ -299,6 +299,7 @@ interface CommitGraphProps {
   wipCount?: number
   conflictMode?: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
   githubRepo?: { owner: string; repo: string } | null
+  loading?: boolean
 }
 
 interface CtxState { x: number; y: number; commit: LayoutCommit }
@@ -309,7 +310,7 @@ export default function CommitGraph({
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onEditMessage,
   onCompareWorking, onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
-  conflictMode = null, githubRepo = null,
+  conflictMode = null, githubRepo = null, loading = false,
 }: CommitGraphProps) {
   const { t } = useLang()
   const { getBool, get } = useSettings()
@@ -834,7 +835,19 @@ export default function CommitGraph({
         </div>
 
         {displayLayout.length === 0 && (
-          <div className="cg-empty">{t('graph.empty')}</div>
+          loading ? (
+            <div className="cg-skeleton">
+              {Array.from({ length: 14 }).map((_, i) => (
+                <div className="cg-skel-row" key={i} style={{ animationDelay: `${i * 60}ms` }}>
+                  <span className="cg-skel-chip" style={{ width: i % 4 === 0 ? 70 : 0 }} />
+                  <span className="cg-skel-dot" style={{ marginLeft: 12 + (i % 3) * 18 }} />
+                  <span className="cg-skel-bar" style={{ width: `${38 + ((i * 23) % 42)}%` }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="cg-empty">{t('graph.empty')}</div>
+          )
         )}
       </div>
 
