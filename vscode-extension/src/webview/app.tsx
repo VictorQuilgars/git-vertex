@@ -192,6 +192,16 @@ function VertexApp() {
     window.addEventListener('mouseup', onUp)
   }, [rightW])
 
+  // Stacked mode — below this width the right panel replaces the graph
+  // entirely instead of squeezing it (typical narrow VS Code side panels).
+  const [viewportW, setViewportW] = useState(window.innerWidth)
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  const stacked = viewportW < 640
+
   const showRight = !!selectedCommit || !!conflictMode
 
   return (
@@ -221,7 +231,7 @@ function VertexApp() {
         onRefresh={loadRepoData}
       />
       <div className="app-body">
-        <div className="app-center" style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
+        <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph
             commits={commits}
             selectedHash={selectedCommit?.hash ?? null}
@@ -250,8 +260,18 @@ function VertexApp() {
 
         {showRight && (
           <>
-            <div className="resize-handle" onMouseDown={startResizeRight} />
-            <div className="app-right" style={{ width: rightW }}>
+            {!stacked && <div className="resize-handle" onMouseDown={startResizeRight} />}
+            <div className={stacked ? 'app-right gv-right-stacked' : 'app-right'} style={stacked ? undefined : { width: rightW }}>
+              {stacked && !conflictMode && (
+                <div className="gv-stacked-bar">
+                  <button className="gv-stacked-back" onClick={() => setSelectedCommit(null)}>
+                    ← Graphe
+                  </button>
+                  {selectedCommit && selectedCommit.hash !== '__WIP__' && (
+                    <span className="gv-stacked-title">{selectedCommit.shortHash} — {selectedCommit.message}</span>
+                  )}
+                </div>
+              )}
               <RightPanel
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}

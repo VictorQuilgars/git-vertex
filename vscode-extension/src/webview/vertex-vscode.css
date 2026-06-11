@@ -108,3 +108,52 @@
 .gvt-search input::placeholder { color: #484f58; }
 .gvt-search-clear { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
 .gvt-search-clear:hover { color: #e6edf3; }
+
+/* ── Responsive: the webview viewport IS the panel, so media queries track
+   the panel width directly. Degrade gracefully as the panel narrows. ───── */
+
+/* ≤ 640px — drop Fetch/Pull/Push labels (icons stay), shrink search */
+@media (max-width: 640px) {
+  .gvt-tbtn-label { display: none; }
+  .gvt-tbtn { padding: 0 6px; }
+  .gvt-search { width: 110px; }
+  .gvt-search:focus-within { width: 140px; }
+}
+
+/* ≤ 520px — drop repo name and secondary buttons (terminal, open desktop) */
+@media (max-width: 520px) {
+  .gvt-repo { display: none; }
+  .gvt-hide-narrow { display: none; }
+  .gvt-branch-name { max-width: 90px; }
+  .gvt { padding: 0 4px; gap: 2px; }
+}
+
+/* ≤ 420px — search becomes minimal, separators go */
+@media (max-width: 420px) {
+  .gvt-sep { display: none; }
+  .gvt-search { width: 80px; }
+  .gvt-search:focus-within { width: 120px; }
+  .gvt-branch { max-width: 120px; }
+  .gvt-branch-name { max-width: 70px; }
+}
+
+/* ── Stacked mode: in a narrow panel the right panel takes the full width
+   instead of squeezing the graph to nothing. ─────────────────────────── */
+.gv-stacked-bar {
+  display: flex; align-items: center; gap: 8px;
+  height: 30px; flex-shrink: 0; padding: 0 8px;
+  background: #161b22; border-bottom: 1px solid #21262d;
+}
+.gv-stacked-back {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 8px;
+  background: transparent; border: 1px solid #30363d; border-radius: 5px;
+  color: #8b949e; font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.gv-stacked-back:hover { background: #21262d; color: #e6edf3; }
+.gv-stacked-title {
+  color: #6e7681; font-size: 11px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gv-right-stacked { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gv-right-stacked .right-panel { width: 100% !important; }

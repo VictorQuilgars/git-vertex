@@ -131,6 +131,73 @@
   margin: 4px 0;
 }
 
+/* ../src/renderer/src/components/IssueLink/IssueLink.css */
+.issue-link-wrap {
+  position: relative;
+  display: inline;
+}
+.issue-link {
+  color: #58a6ff;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.issue-link:hover {
+  text-decoration: underline;
+  background: rgba(88, 166, 255, 0.12);
+}
+.issue-tooltip {
+  position: fixed;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  max-width: 360px;
+  padding: 8px 10px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(1, 4, 9, 0.85);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  cursor: default;
+}
+.issue-tooltip-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.issue-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.issue-state-label {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.issue-tooltip-kind {
+  color: #8b949e;
+  font-size: 11px;
+  margin-left: auto;
+}
+.issue-tooltip-title {
+  color: #e6edf3;
+  font-weight: 500;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.issue-tooltip-loading {
+  color: #8b949e;
+  font-style: italic;
+}
+
 /* ../src/renderer/src/components/CommitGraph/CommitGraph.css */
 .cg-container {
   display: flex;
@@ -3452,6 +3519,96 @@ body {
 }
 .gvt-search-clear:hover {
   color: #e6edf3;
+}
+@media (max-width: 640px) {
+  .gvt-tbtn-label {
+    display: none;
+  }
+  .gvt-tbtn {
+    padding: 0 6px;
+  }
+  .gvt-search {
+    width: 110px;
+  }
+  .gvt-search:focus-within {
+    width: 140px;
+  }
+}
+@media (max-width: 520px) {
+  .gvt-repo {
+    display: none;
+  }
+  .gvt-hide-narrow {
+    display: none;
+  }
+  .gvt-branch-name {
+    max-width: 90px;
+  }
+  .gvt {
+    padding: 0 4px;
+    gap: 2px;
+  }
+}
+@media (max-width: 420px) {
+  .gvt-sep {
+    display: none;
+  }
+  .gvt-search {
+    width: 80px;
+  }
+  .gvt-search:focus-within {
+    width: 120px;
+  }
+  .gvt-branch {
+    max-width: 120px;
+  }
+  .gvt-branch-name {
+    max-width: 70px;
+  }
+}
+.gv-stacked-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+}
+.gv-stacked-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid #30363d;
+  border-radius: 5px;
+  color: #8b949e;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gv-stacked-back:hover {
+  background: #21262d;
+  color: #e6edf3;
+}
+.gv-stacked-title {
+  color: #6e7681;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gv-right-stacked {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.gv-right-stacked .right-panel {
+  width: 100% !important;
 }
 /*! Bundled license information:
 

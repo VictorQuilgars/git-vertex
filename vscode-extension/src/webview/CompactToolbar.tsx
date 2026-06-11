@@ -28,12 +28,16 @@ interface Props {
   onRefresh: () => void
 }
 
-function IconBtn({ title, onClick, disabled, active, badge, children }: {
+function IconBtn({ title, onClick, disabled, active, badge, hideNarrow, children }: {
   title: string; onClick: () => void; disabled?: boolean; active?: boolean; badge?: number
+  hideNarrow?: boolean
   children: React.ReactNode
 }) {
   return (
-    <button className={`gvt-btn${active ? ' gvt-btn--active' : ''}`} title={title} onClick={onClick} disabled={disabled}>
+    <button
+      className={`gvt-btn${active ? ' gvt-btn--active' : ''}${hideNarrow ? ' gvt-hide-narrow' : ''}`}
+      title={title} onClick={onClick} disabled={disabled}
+    >
       {children}
       {badge != null && badge > 0 && <span className="gvt-badge">{badge}</span>}
     </button>
@@ -48,7 +52,7 @@ function TextBtn({ title, label, onClick, disabled, children }: {
   return (
     <button className="gvt-tbtn" title={title} onClick={onClick} disabled={disabled}>
       {children}
-      <span>{label}</span>
+      <span className="gvt-tbtn-label">{label}</span>
     </button>
   )
 }
@@ -140,7 +144,7 @@ export default function CompactToolbar(p: Props) {
       <IconBtn title="Rétablir la dernière action annulée" onClick={p.onRedo}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg>
       </IconBtn>
-      <IconBtn title="Terminal" onClick={p.onTerminal}>
+      <IconBtn title="Terminal" onClick={p.onTerminal} hideNarrow>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
       </IconBtn>
 
@@ -149,7 +153,7 @@ export default function CompactToolbar(p: Props) {
       <IconBtn title="Afficher toutes les branches" onClick={p.onToggleAllBranches} active={p.showAllBranches}>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z"/></svg>
       </IconBtn>
-      <IconBtn title="Ouvrir dans Git Vertex Desktop" onClick={p.onOpenDesktop}>
+      <IconBtn title="Ouvrir dans Git Vertex Desktop" onClick={p.onOpenDesktop} hideNarrow>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </IconBtn>
 

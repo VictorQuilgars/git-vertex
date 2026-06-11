@@ -319,6 +319,18 @@ export default function CommitGraph({
   const showSha = getBool('graphShowSha', true)
   const dateFormat = get('dateFormat', 'relative')
   const bodyRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Auto-hide secondary columns when the container is narrow (VS Code panel,
+  // small windows) — the message column always keeps room to breathe.
+  const [containerW, setContainerW] = useState(0)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => setContainerW(entries[0].contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const hasWipNode = wipCount > 0 || conflictMode !== null
   const headHash = useMemo(() => {
@@ -349,10 +361,17 @@ export default function CommitGraph({
   const refExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hoverDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [refsColW,   startResizeRefs]   = useColResize('cg-refs-w',   164, 80)
+  const [refsColWRaw, startResizeRefs]  = useColResize('cg-refs-w',   164, 80)
   const [authorColW, startResizeAuthor] = useColResize('cg-author-w', 140, 80)
   const [dateColW,   startResizeDate]   = useColResize('cg-date-w',   100, 70)
   const [shaColW,    startResizeSha]    = useColResize('cg-sha-w',     62, 50)
+
+  // Width breakpoints (0 = not yet measured → show everything)
+  const measured = containerW > 0
+  const effShowAuthor = showAuthor && (!measured || containerW >= 700)
+  const effShowDate   = showDate   && (!measured || containerW >= 560)
+  const effShowSha    = showSha    && (!measured || containerW >= 460)
+  const refsColW = measured && containerW < 480 ? Math.min(refsColWRaw, 110) : refsColWRaw
 
   // The WIP node is already in `layout` (a virtual tip on HEAD). Here we only
   // give it its working-tree styling: a grey dashed line up to HEAD, plus — in
@@ -560,22 +579,22 @@ export default function CommitGraph({
   }, [onBranchDrop, t])
 
   return (
-    <div className="cg-container">
+    <div className="cg-container" ref={containerRef}>
       {/* ── Header ── */}
       <div className="cg-header">
         <div className="cg-h-refs" style={{ width: refsColW }}>BRANCH / TAG</div>
         <div className="cg-col-handle" onMouseDown={startResizeRefs} />
         <div className="cg-h-graph" style={{ width: svgW }}>GRAPH</div>
         <div className="cg-h-msg">COMMIT MESSAGE</div>
-        {showAuthor && <>
+        {effShowAuthor && <>
           <div className="cg-col-handle" onMouseDown={startResizeAuthor} />
           <div className="cg-h-author" style={{ width: authorColW }}>AUTHOR</div>
         </>}
-        {showDate && <>
+        {effShowDate && <>
           <div className="cg-col-handle" onMouseDown={startResizeDate} />
           <div className="cg-h-date" style={{ width: dateColW }}>DATE</div>
         </>}
-        {showSha && <>
+        {effShowSha && <>
           <div className="cg-col-handle" onMouseDown={startResizeSha} />
           <div className="cg-h-sha" style={{ width: shaColW }}>SHA</div>
         </>}
@@ -794,17 +813,17 @@ export default function CommitGraph({
                 </div>
 
                 {/* Author */}
-                {showAuthor && !isWip && (
+                {effShowAuthor && !isWip && (
                   <div className="cg-col-author" style={{ width: authorColW }}>
                     <span className="cg-author-name">{commit.author}</span>
                   </div>
                 )}
-                {showAuthor && isWip && <div className="cg-col-author" style={{ width: authorColW }} />}
+                {effShowAuthor && isWip && <div className="cg-col-author" style={{ width: authorColW }} />}
 
-                {showDate && (
+                {effShowDate && (
                   <div className="cg-col-date" style={{ width: dateColW }}>{!isWip ? fmtDate(commit.date, dateFormat) : ''}</div>
                 )}
-                {showSha && (
+                {effShowSha && (
                   <div className="cg-col-sha" style={{ width: shaColW }}>
                     {!isWip && <code>{commit.shortHash}</code>}
                   </div>
