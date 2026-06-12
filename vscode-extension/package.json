@@ -2,7 +2,7 @@
   "name": "git-vertex",
   "displayName": "Git Vertex",
   "description": "Full Git GUI in the VS Code panel — commit graph, staging, branches, and more.",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "publisher": "VictorQuilgars",
   "license": "MIT",
   "icon": "images/icon.png",
