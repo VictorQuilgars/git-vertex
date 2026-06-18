@@ -40,6 +40,8 @@ interface SidebarProps {
   onRefreshStashes: () => void
   onCreateTag: () => void
   onDeleteTag: (name: string) => void
+  onPushTag: (name: string) => void
+  onDeleteRemoteTag: (name: string) => void
   onSelectCommit: (hash: string) => void
   onCompareBranch: (branchName: string) => void
   soloBranch: string | null
@@ -233,12 +235,16 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview }: {
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-function TagItem({ tag, onDelete }: { tag: TagEntry; onDelete: () => void }) {
+function TagItem({ tag, onDelete, onPush, onDeleteRemote }: {
+  tag: TagEntry; onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
+}) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const menuItems: MenuItemDef[] = [
     { label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(tag.name) },
+    { label: '⬆ Pousser le tag', action: onPush },
     { separator: true },
-    { label: '🗑 Supprimer', action: onDelete, danger: true },
+    { label: '🗑 Supprimer (local)', action: onDelete, danger: true },
+    { label: '🗑 Supprimer (distant)', action: onDeleteRemote, danger: true },
   ]
 
   return (
@@ -399,7 +405,7 @@ export default function Sidebar({
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
-  onCreateTag, onDeleteTag,
+  onCreateTag, onDeleteTag, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
   showToast, showPrompt, showConfirm,
@@ -662,7 +668,8 @@ export default function Sidebar({
             {tags.length === 0
               ? <div className="sb-empty">Aucun tag</div>
               : tags.map(t => (
-                  <TagItem key={t.name} tag={t} onDelete={() => onDeleteTag(t.name)} />
+                  <TagItem key={t.name} tag={t} onDelete={() => onDeleteTag(t.name)}
+                    onPush={() => onPushTag(t.name)} onDeleteRemote={() => onDeleteRemoteTag(t.name)} />
                 ))
             }
           </Section>

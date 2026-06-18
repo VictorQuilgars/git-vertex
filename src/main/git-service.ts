@@ -362,10 +362,13 @@ export class GitService {
     }
   }
 
-  async pushTo(remote: string, branch: string, setUpstream: boolean): Promise<{ success: boolean; error?: string }> {
+  async pushTo(remote: string, branch: string, setUpstream: boolean, force = false): Promise<{ success: boolean; error?: string }> {
     try {
       const args: string[] = ['push']
       if (setUpstream) args.push('--set-upstream')
+      // --force-with-lease is the safe force: it refuses to overwrite remote work
+      // that arrived since our last fetch, unlike the blunt --force.
+      if (force) args.push('--force-with-lease')
       args.push(remote, `HEAD:${branch}`)
       await this.git.raw(args)
       return { success: true }
@@ -583,7 +586,17 @@ export class GitService {
 
   async discardFile(file: string): Promise<{ success: boolean; error?: string }> {
     try {
-      // Try restore first (git 2.23+), then checkout
+      // An untracked file is not affected by restore/checkout (git has no prior
+      // version to restore). The only way to "discard" it is to delete it from
+      // the working tree — `git clean -fd` handles both files and directories.
+      const status = await this.git.status()
+      const isUntracked = status.not_added.includes(file)
+        || status.files.some(f => f.path === file && f.index === '?' && f.working_dir === '?')
+      if (isUntracked) {
+        await this.git.raw(['clean', '-fd', '--', file])
+        return { success: true }
+      }
+      // Tracked file: revert working-tree changes (git 2.23+ restore, else checkout)
       try {
         await this.git.raw(['restore', '--', file])
       } catch {
@@ -617,10 +630,54 @@ export class GitService {
     const bad = this.assertRef(hash, 'commit')
     if (bad) return { success: false, error: bad }
     try {
-      await this.git.raw(['revert', '--no-edit', hash])
+      // Reverting a merge commit requires picking which parent line to keep
+      // (-m 1 = first parent). Without it git refuses with "is a merge but no -m".
+      const parentStr = (await this.git.raw(['log', '--pretty=format:%P', '-n', '1', hash])).trim()
+      const parents = parentStr ? parentStr.split(/\s+/).filter(Boolean) : []
+      const mainline = parents.length > 1 ? ['-m', '1'] : []
+      await this.git.raw(['revert', '--no-edit', ...mainline, hash])
       if (await this.hasUnmergedPaths()) {
         return { success: false, error: 'Revert conflict — resolve conflicts before continuing' }
       }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Continue / abort a cherry-pick or revert that stopped on a conflict.
+  // (Rebase and merge have their own continue/abort already.) GIT_EDITOR=true
+  // accepts the pre-filled commit message without opening an editor.
+  async continueCherryPick(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['cherry-pick', '--continue'])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.stderr ?? e.message }
+    }
+  }
+
+  async abortCherryPick(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['cherry-pick', '--abort'])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async continueRevert(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['revert', '--continue'])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.stderr ?? e.message }
+    }
+  }
+
+  async abortRevert(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['revert', '--abort'])
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -921,10 +978,19 @@ export class GitService {
     }
   }
 
-  // Set the upstream of a local branch to origin/<branch>
-  async setUpstream(branch: string): Promise<{ success: boolean; error?: string }> {
+  // Set the upstream of a local branch. Defaults to <remote>/<branch>, preferring
+  // origin but falling back to the only/first configured remote so repos whose
+  // remote isn't named "origin" still work. An explicit `upstream` overrides all.
+  async setUpstream(branch: string, upstream?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.git.raw(['branch', `--set-upstream-to=origin/${branch}`, branch])
+      let target = upstream
+      if (!target) {
+        const remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
+        if (remotes.length === 0) return { success: false, error: 'Aucun remote configuré' }
+        const preferred = remotes.includes('origin') ? 'origin' : remotes[0]
+        target = `${preferred}/${branch}`
+      }
+      await this.git.raw(['branch', `--set-upstream-to=${target}`, branch])
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -971,6 +1037,31 @@ export class GitService {
     }
   }
 
+  // Push a single tag to a remote (default origin). Uses the fully-qualified
+  // refspec so a tag and branch sharing a name can't be confused.
+  async pushTag(name: string, remote = 'origin'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(name, 'tag')
+    if (bad) return { success: false, error: bad }
+    try {
+      await this.git.raw(['push', remote, `refs/tags/${name}`])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Delete a tag on a remote (default origin) via the empty-source refspec.
+  async deleteRemoteTag(name: string, remote = 'origin'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(name, 'tag')
+    if (bad) return { success: false, error: bad }
+    try {
+      await this.git.raw(['push', remote, `:refs/tags/${name}`])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // ── Stash operations ───────────────────────────────────────
 
   async createStash(message?: string): Promise<{ success: boolean; error?: string }> {
@@ -987,19 +1078,34 @@ export class GitService {
   async applyStash(index: number): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.raw(['stash', 'apply', `stash@{${index}}`])
-      return { success: true }
     } catch (e: any) {
+      // `git stash apply` exits non-zero on conflicts; surface a clear message
+      // rather than the raw git error.
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Stash applied with conflicts — resolve them, then stage the files' }
+      }
       return { success: false, error: e.message }
     }
+    if (await this.hasUnmergedPaths()) {
+      return { success: false, error: 'Stash applied with conflicts — resolve them, then stage the files' }
+    }
+    return { success: true }
   }
 
   async popStash(index: number): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.raw(['stash', 'pop', `stash@{${index}}`])
-      return { success: true }
     } catch (e: any) {
+      // On conflict git keeps the stash entry (does not drop it). Tell the user.
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Stash popped with conflicts — the stash was kept; resolve conflicts, then stage the files' }
+      }
       return { success: false, error: e.message }
     }
+    if (await this.hasUnmergedPaths()) {
+      return { success: false, error: 'Stash popped with conflicts — the stash was kept; resolve conflicts, then stage the files' }
+    }
+    return { success: true }
   }
 
   async dropStash(index: number): Promise<{ success: boolean; error?: string }> {
@@ -1669,6 +1775,18 @@ export class GitService {
     }
   }
 
+  // `git merge --no-ff` does not throw on conflict (simple-git caveat). Run it and,
+  // if it leaves the tree conflicted, abort so the repo isn't stranded mid-merge.
+  // Returns an error message on conflict, or null on a clean merge.
+  private async gitflowMerge(branch: string): Promise<string | null> {
+    await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
+    if (await this.hasUnmergedPaths()) {
+      await this.abortMerge()
+      return `Conflit en mergeant ${branch} — opération annulée, dépôt inchangé`
+    }
+    return null
+  }
+
   async gitflowFinish(type: 'feature' | 'release' | 'hotfix', name: string, tagName?: string): Promise<{ success: boolean; error?: string }> {
     const branch = `${type}/${name}`
     try {
@@ -1677,17 +1795,20 @@ export class GitService {
 
       if (type === 'feature') {
         await this.git.raw(['checkout', 'develop'])
-        await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
+        const conflict = await this.gitflowMerge(branch)
+        if (conflict) return { success: false, error: conflict }
       } else {
         // release / hotfix → merge into main (+ tag) and into develop
         await this.git.raw(['checkout', mainBranch])
-        await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
+        const conflict = await this.gitflowMerge(branch)
+        if (conflict) return { success: false, error: conflict }
         if (tagName) {
           await this.git.raw(['tag', '-a', tagName, '-m', tagName])
         }
         if (names.includes('develop')) {
           await this.git.raw(['checkout', 'develop'])
-          await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
+          const devConflict = await this.gitflowMerge(branch)
+          if (devConflict) return { success: false, error: devConflict }
         }
       }
       await this.git.raw(['branch', '-d', branch])

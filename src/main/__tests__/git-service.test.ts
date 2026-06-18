@@ -1116,4 +1116,115 @@ describe('GitService', () => {
     })
   })
 
+  // ─────────────────────────────────────────────────────────────────────
+  // Regression coverage for handled edge cases (matrix fixes)
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('discardFile on untracked files', () => {
+    test('removes an untracked file from the working tree', async () => {
+      fs.writeFileSync(path.join(tempDir, 'base.txt'), 'x')
+      execSync(`cd ${tempDir} && git add base.txt && git commit -m "base"`)
+      fs.writeFileSync(path.join(tempDir, 'junk.txt'), 'temp')
+
+      const r = await git.discardFile('junk.txt')
+      expect(r.success).toBe(true)
+      expect(fs.existsSync(path.join(tempDir, 'junk.txt'))).toBe(false)
+    })
+
+    test('still reverts a tracked file without deleting it', async () => {
+      fs.writeFileSync(path.join(tempDir, 'tracked.txt'), 'original')
+      execSync(`cd ${tempDir} && git add tracked.txt && git commit -m "base"`)
+      fs.writeFileSync(path.join(tempDir, 'tracked.txt'), 'modified')
+
+      const r = await git.discardFile('tracked.txt')
+      expect(r.success).toBe(true)
+      expect(fs.existsSync(path.join(tempDir, 'tracked.txt'))).toBe(true)
+      expect(fs.readFileSync(path.join(tempDir, 'tracked.txt'), 'utf8')).toBe('original')
+    })
+  })
+
+  describe('revert of a merge commit', () => {
+    test('succeeds by using the first parent as mainline', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add a.txt && git commit -m "init"`)
+      execSync(`cd ${tempDir} && git checkout -b side`)
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'b')
+      execSync(`cd ${tempDir} && git add b.txt && git commit -m "side change"`)
+      execSync(`cd ${tempDir} && git checkout main || git checkout master`)
+      fs.writeFileSync(path.join(tempDir, 'c.txt'), 'c')
+      execSync(`cd ${tempDir} && git add c.txt && git commit -m "main change"`)
+      execSync(`cd ${tempDir} && git merge --no-ff side -m "Merge side"`)
+
+      const mergeHash = (await git.getLog()).commits[0].hash
+      const r = await git.revert(mergeHash)
+      expect(r.success).toBe(true)
+      // The merge brought in b.txt; reverting it (mainline = first parent) removes it.
+      expect(fs.existsSync(path.join(tempDir, 'b.txt'))).toBe(false)
+    })
+  })
+
+  describe('setUpstream remote fallback', () => {
+    test('uses the only configured remote even when not named origin', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add a.txt && git commit -m "init"`)
+      // Bare repo acting as a remote called "upstream" (not "origin").
+      const remoteDir = `${tempDir}-remote.git`
+      execSync(`git init --bare ${remoteDir}`)
+      execSync(`cd ${tempDir} && git remote add upstream ${remoteDir}`)
+      const branch = (await git.getTracking()).branch ?? 'main'
+      execSync(`cd ${tempDir} && git push upstream ${branch}`)
+
+      const r = await git.setUpstream(branch)
+      expect(r.success).toBe(true)
+      const tracking = await git.getTracking()
+      expect(tracking.upstream).toBe(`upstream/${branch}`)
+      execSync(`rm -rf ${remoteDir}`)
+    })
+
+    test('fails cleanly when no remote is configured', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add a.txt && git commit -m "init"`)
+      const branch = (await git.getTracking()).branch ?? 'main'
+      const r = await git.setUpstream(branch)
+      expect(r.success).toBe(false)
+    })
+  })
+
+  describe('stash apply conflict detection', () => {
+    test('reports a conflict instead of a false success', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'base\n')
+      execSync(`cd ${tempDir} && git add f.txt && git commit -m "base"`)
+      // Stash a change to f.txt, then make a conflicting committed change.
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'stashed change\n')
+      await git.createStash('wip')
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'committed change\n')
+      execSync(`cd ${tempDir} && git add f.txt && git commit -m "diverge"`)
+
+      const r = await git.applyStash(0)
+      expect(r.success).toBe(false)
+      expect(r.error).toMatch(/conflict/i)
+    })
+  })
+
+  describe('gitflow finish with conflict', () => {
+    test('aborts the merge and reports rather than stranding the repo', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'base\n')
+      execSync(`cd ${tempDir} && git add f.txt && git commit -m "base"`)
+      await git.gitflowInit()
+      await git.gitflowStart('feature', 'x')
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'feature line\n')
+      execSync(`cd ${tempDir} && git add f.txt && git commit -m "feature"`)
+      // Make develop conflict with the feature on the same line.
+      execSync(`cd ${tempDir} && git checkout develop`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'develop line\n')
+      execSync(`cd ${tempDir} && git add f.txt && git commit -m "develop"`)
+
+      const r = await git.gitflowFinish('feature', 'x')
+      expect(r.success).toBe(false)
+      // Repo must be clean (merge aborted), not left mid-merge.
+      const mode = await git.getConflictMode()
+      expect(mode.mode).toBe(null)
+    })
+  })
+
 })

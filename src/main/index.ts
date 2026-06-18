@@ -334,9 +334,9 @@ ipcMain.handle('git:push', async () => {
   return gitService.push()
 })
 
-ipcMain.handle('git:push-to', async (_e, remote: string, branch: string, setUpstream: boolean) => {
+ipcMain.handle('git:push-to', async (_e, remote: string, branch: string, setUpstream: boolean, force = false) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.pushTo(remote, branch, setUpstream)
+  return gitService.pushTo(remote, branch, setUpstream, force)
 })
 
 ipcMain.handle('git:pull', async () => {
@@ -458,9 +458,9 @@ ipcMain.handle('git:delete-remote-branch', async (_event, branch: string) => {
   return gitService.deleteRemoteBranch(branch)
 })
 
-ipcMain.handle('git:set-upstream', async (_event, branch: string) => {
+ipcMain.handle('git:set-upstream', async (_event, branch: string, upstream?: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.setUpstream(branch)
+  return gitService.setUpstream(branch, upstream)
 })
 
 ipcMain.handle('git:move-branch-to', async (_event, branch: string, hash: string) => {
@@ -492,6 +492,16 @@ ipcMain.handle('git:create-tag', async (_event, name: string, hash?: string, mes
 ipcMain.handle('git:delete-tag', async (_event, name: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.deleteTag(name)
+})
+
+ipcMain.handle('git:push-tag', async (_event, name: string, remote?: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.pushTag(name, remote)
+})
+
+ipcMain.handle('git:delete-remote-tag', async (_event, name: string, remote?: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.deleteRemoteTag(name, remote)
 })
 
 // ── IPC: Stash operations ──────────────────────────────────
@@ -618,6 +628,26 @@ ipcMain.handle('git:continue-merge', async (_event, message?: string) => {
 ipcMain.handle('git:abort-rebase', async () => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.abortRebase()
+})
+
+ipcMain.handle('git:continue-cherry-pick', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.continueCherryPick()
+})
+
+ipcMain.handle('git:abort-cherry-pick', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.abortCherryPick()
+})
+
+ipcMain.handle('git:continue-revert', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.continueRevert()
+})
+
+ipcMain.handle('git:abort-revert', async () => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.abortRevert()
 })
 
 ipcMain.handle('git:abort-merge', async () => {

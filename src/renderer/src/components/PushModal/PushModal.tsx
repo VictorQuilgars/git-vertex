@@ -17,6 +17,7 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
   const [remote, setRemote] = useState('')
   const [targetBranch, setTargetBranch] = useState(currentBranch)
   const [setUpstream, setSetUpstream] = useState(false)
+  const [force, setForce] = useState(false)
   const [pushing, setPushing] = useState(false)
   const [pushError, setPushError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -51,7 +52,7 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
     if (!targetBranch.trim() || !remote) return
     setPushing(true)
     setPushError(null)
-    const r = await window.gitAPI.pushTo(remote, targetBranch.trim(), setUpstream)
+    const r = await window.gitAPI.pushTo(remote, targetBranch.trim(), setUpstream, force)
     setPushing(false)
     if (r.success) {
       showToast(t('toast.pushOk', `${remote}/${targetBranch.trim()}`))
@@ -105,6 +106,12 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
                 <input type="checkbox" checked={setUpstream} onChange={e => setSetUpstream(e.target.checked)} />
                 <span>{t('push.setUpstream')}</span>
               </label>
+
+              <label className="pm-checkbox-row">
+                <input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)} />
+                <span>{t('push.force')}</span>
+              </label>
+              {force && <div className="pm-force-warn">{t('push.forceWarn')}</div>}
 
               {pushError && <div className="pm-error">{pushError}</div>}
             </>

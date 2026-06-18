@@ -895,6 +895,20 @@ export default function App() {
     else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
+  const handlePushTag = async (name: string) => {
+    const r = await window.gitAPI.pushTag(name)
+    if (r.success) showToast(t('toast.tagPushed', name))
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
+  const handleDeleteRemoteTag = async (name: string) => {
+    const ok = await showConfirm(t('prompt.deleteRemoteTag', name), true)
+    if (!ok) return
+    const r = await window.gitAPI.deleteRemoteTag(name)
+    if (r.success) { showToast(t('toast.tagDeletedRemote', name)); await loadTags() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
   // ── Stash operations ───────────────────────────────────────
   const handleCreateStash = async () => {
     const message = await showPrompt(t('prompt.stashMessage'))
@@ -931,16 +945,22 @@ export default function App() {
   // ── Conflict resolution handlers ───────────────────────────
   const handleConflictFinish = async (action: 'rebase' | 'merge', message?: string) => {
     setLoading(true)
-    // Map 'rebase' | 'merge' to the actual continue command needed
+    // The operation that produced the conflict dictates which --continue to run.
+    // conflictMode is authoritative; `action` is only the resolver's coarse hint.
+    const mode = conflictMode ?? action
     let r: { success: boolean; error?: string }
-    if (action === 'rebase' || conflictMode === 'rebase') {
+    if (mode === 'rebase') {
       r = await window.gitAPI.continueRebase()
+    } else if (mode === 'cherry-pick') {
+      r = await window.gitAPI.continueCherryPick()
+    } else if (mode === 'revert') {
+      r = await window.gitAPI.continueRevert()
     } else {
       r = await window.gitAPI.continueMerge(message)
     }
 
     if (r.success) {
-      showToast(action === 'rebase' || conflictMode === 'rebase' ? t('toast.rebaseContinued') : t('toast.mergeContinued'))
+      showToast(mode === 'rebase' ? t('toast.rebaseContinued') : t('toast.mergeContinued'))
       setConflictFiles([])
       setConflictMode(null)
       await loadRepoData()
@@ -952,12 +972,17 @@ export default function App() {
 
   const handleConflictAbort = async () => {
     setLoading(true)
+    // Each operation has its own --abort; using the wrong one fails silently.
     if (conflictMode === 'merge') {
       await window.gitAPI.abortMerge()
       showToast(t('toast.mergeAborted'))
+    } else if (conflictMode === 'cherry-pick') {
+      await window.gitAPI.abortCherryPick()
+      showToast(t('toast.rebaseAborted'))
+    } else if (conflictMode === 'revert') {
+      await window.gitAPI.abortRevert()
+      showToast(t('toast.rebaseAborted'))
     } else {
-      // Default to abort rebase if unknown or rebase/cherry-pick/revert
-      // git rebase --abort handles rebase, cherry-pick and revert in many git versions
       await window.gitAPI.abortRebase()
       showToast(t('toast.rebaseAborted'))
     }
@@ -1221,6 +1246,8 @@ export default function App() {
               onRefreshStashes={loadStashes}
               onCreateTag={handleCreateTag}
               onDeleteTag={handleDeleteTag}
+              onPushTag={handlePushTag}
+              onDeleteRemoteTag={handleDeleteRemoteTag}
               onSelectCommit={(hash) => {
                 const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                 if (found) setSelectedCommit(found)

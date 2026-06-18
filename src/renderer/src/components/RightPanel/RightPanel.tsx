@@ -944,6 +944,11 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                             <button className="st-action st-stage"
                               title={isDir ? t('panel.stage.folder', f) : t('panel.stage.file', f)}
                               onClick={() => handle(() => window.gitAPI.stage([f]))}>+</button>
+                            <button className="st-action st-discard" title={t('panel.deleteUntracked')} onClick={async e => {
+                              e.stopPropagation()
+                              if (!window.confirm(t('panel.deleteUntracked.confirm', f))) return
+                              handle(() => window.gitAPI.discardFile(f))
+                            }}>🗑</button>
                           </div>
                         )
                       })}

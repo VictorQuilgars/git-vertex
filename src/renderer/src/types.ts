@@ -58,13 +58,14 @@ declare global {
       rebaseOnto: (branch: string) => Promise<R>
       pushBranch: (branch: string) => Promise<R>
       deleteRemoteBranch: (branch: string) => Promise<R>
-      setUpstream: (branch: string) => Promise<R>
+      setUpstream: (branch: string, upstream?: string) => Promise<R>
       moveBranchTo: (branch: string, hash: string) => Promise<R>
       rebaseBranchOnto: (branch: string, hash: string) => Promise<R>
       mergeCommitInto: (branch: string, hash: string) => Promise<R>
       // Remote
       fetch: () => Promise<R>
       push: () => Promise<R & { setUpstream?: boolean }>
+      pushTo: (remote: string, branch: string, setUpstream: boolean, force?: boolean) => Promise<R>
       pull: () => Promise<R>
       // Staging & commit
       getWorkingChanges: () => Promise<WorkingChanges>
@@ -91,6 +92,8 @@ declare global {
       // Tags
       createTag: (name: string, hash?: string, message?: string) => Promise<R>
       deleteTag: (name: string) => Promise<R>
+      pushTag: (name: string, remote?: string) => Promise<R>
+      deleteRemoteTag: (name: string, remote?: string) => Promise<R>
       // Stash
       createStash: (message?: string) => Promise<R>
       applyStash: (index: number) => Promise<R>
@@ -116,9 +119,16 @@ declare global {
       resolveConflict: (filepath: string, content: string) => Promise<R>
       resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => Promise<R>
       continueRebase: () => Promise<R>
-      continueMerge: () => Promise<R>
+      continueMerge: (message?: string) => Promise<R>
       abortRebase: () => Promise<R>
+      abortMerge: () => Promise<R>
+      continueCherryPick: () => Promise<R>
+      abortCherryPick: () => Promise<R>
+      continueRevert: () => Promise<R>
+      abortRevert: () => Promise<R>
+      getConflictMode: () => Promise<{ mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null }>
       undoLastAction: () => Promise<R & { action?: string }>
+      redoLastAction: () => Promise<R & { action?: string }>
       // Reflog
       getReflog: () => Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }>
       // File History
