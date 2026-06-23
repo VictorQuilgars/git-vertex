@@ -1324,16 +1324,27 @@ export class GitService {
   }
 
   async continueRebase(): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
+    const env = { ...process.env, GIT_EDITOR: 'true' } // accept default msg (squash/fixup)
     try {
-      // GIT_EDITOR=true so a squash/fixup step doesn't block on a commit-message editor.
-      await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['rebase', '--continue'])
+      await this.git.env(env).raw(['rebase', '--continue'])
       return { success: true }
     } catch (e: any) {
-      // Still mid-rebase → more conflicts to resolve, not a hard failure.
-      if (this.rebaseInProgress()) {
+      if (!this.rebaseInProgress()) return { success: false, error: e.stderr ?? e.message }
+      // Real conflicts remain → the user must resolve them first.
+      if (await this.hasUnmergedPaths()) {
         return { success: false, conflict: true, error: 'Conflits restants — résolvez-les puis continuez' }
       }
-      return { success: false, error: e.message }
+      // Clean tree but `--continue` couldn't advance → the current commit is
+      // empty / already applied. Skip it so the rebase moves on (no changes lost).
+      try {
+        await this.git.env(env).raw(['rebase', '--skip'])
+        if (this.rebaseInProgress() && await this.hasUnmergedPaths()) {
+          return { success: false, conflict: true, error: 'Conflits restants — résolvez-les puis continuez' }
+        }
+        return { success: true }
+      } catch (e2: any) {
+        return { success: false, error: e2.stderr ?? e2.message }
+      }
     }
   }
 
