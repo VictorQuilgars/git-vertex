@@ -384,8 +384,8 @@ function VertexApp() {
           <span className="gv-cb-text">
             <strong>{conflictMode}</strong> en cours
             {conflictFiles.length > 0
-              ? ` — ${conflictFiles.length} fichier${conflictFiles.length > 1 ? 's' : ''} en conflit`
-              : ' — conflits résolus, prêt à continuer'}
+              ? ` — ${conflictFiles.length} fichier${conflictFiles.length > 1 ? 's' : ''} à résoudre`
+              : ' — aucun conflit à résoudre, prêt à continuer'}
           </span>
           <span className="gv-cb-spring" />
           <button

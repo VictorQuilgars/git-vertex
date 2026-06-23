@@ -12225,7 +12225,7 @@ Signed-off-by: ` : full;
         sidebarOpen,
         onToggleSidebar: () => setSidebarOpen((o) => !o)
       }
-    ), conflictMode && /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react11.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} fichier${conflictFiles.length > 1 ? "s" : ""} en conflit` : " \u2014 conflits r\xE9solus, pr\xEAt \xE0 continuer"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react11.default.createElement(
+    ), conflictMode && /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react11.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} fichier${conflictFiles.length > 1 ? "s" : ""} \xE0 r\xE9soudre` : " \u2014 aucun conflit \xE0 r\xE9soudre, pr\xEAt \xE0 continuer"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react11.default.createElement(
       "button",
       {
         className: "gv-cb-btn gv-cb-continue",
