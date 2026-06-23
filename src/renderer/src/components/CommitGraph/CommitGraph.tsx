@@ -370,12 +370,13 @@ export default function CommitGraph({
   const [dateColW,   startResizeDate]   = useColResize('cg-date-w',   100, 70)
   const [shaColW,    startResizeSha]    = useColResize('cg-sha-w',     62, 50)
 
-  // Width breakpoints (0 = not yet measured → show everything)
+  // 0 = not yet measured → show everything. The branch/tag column is capped in
+  // narrow panels so it can't crowd out the message.
   const measured = containerW > 0
-  const effShowAuthor = showAuthor && (!measured || containerW >= 700)
-  const effShowDate   = showDate   && (!measured || containerW >= 560)
-  const effShowSha    = showSha    && (!measured || containerW >= 460)
   const refsColW = measured && containerW < 480 ? Math.min(refsColWRaw, 110) : refsColWRaw
+  // effShowAuthor/Date/Sha are computed below, once svgW (the graph column
+  // width, which grows with branch depth) is known — they must hide based on
+  // the space actually left for the columns, not just the viewport width.
 
   // The WIP node is already in `layout` (a virtual tip on HEAD). Here we only
   // give it its working-tree styling: a grey dashed line up to HEAD, plus — in
@@ -450,6 +451,20 @@ export default function CommitGraph({
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
   const svgH = displayLayout.length * ROW_HEIGHT
+
+  // Availability-based column visibility. The message column must always keep
+  // MSG_MIN px; the optional columns are granted space in priority order
+  // (sha kept longest, author dropped first) only if it remains after the
+  // branch/tag + graph columns. This prevents fixed-width columns from
+  // overflowing — and being clipped to invisibility — when the graph is deep
+  // or the panel is narrow (the VS Code panel case).
+  const MSG_MIN = 170
+  let colBudget = measured ? containerW - refsColW - svgW - MSG_MIN : Infinity
+  const effShowSha = showSha && colBudget >= shaColW
+  if (effShowSha) colBudget -= shaColW
+  const effShowDate = showDate && colBudget >= dateColW
+  if (effShowDate) colBudget -= dateColW
+  const effShowAuthor = showAuthor && colBudget >= authorColW
 
   // Search filter — dims commits that don't match the query. Selection no longer
   // dims anything (that behavior was removed); lane dimming happens on ref hover.

@@ -9541,9 +9541,6 @@ Commits beyond this point will be lost for that branch.`,
     const [dateColW, startResizeDate] = useColResize("cg-date-w", 100, 70);
     const [shaColW, startResizeSha] = useColResize("cg-sha-w", 62, 50);
     const measured = containerW > 0;
-    const effShowAuthor = showAuthor && (!measured || containerW >= 700);
-    const effShowDate = showDate && (!measured || containerW >= 560);
-    const effShowSha = showSha && (!measured || containerW >= 460);
     const refsColW = measured && containerW < 480 ? Math.min(refsColWRaw, 110) : refsColWRaw;
     const displayLayout = (0, import_react7.useMemo)(() => {
       if (!hasWipNode)
@@ -9621,6 +9618,15 @@ Commits beyond this point will be lost for that branch.`,
     const maxLane = (0, import_react7.useMemo)(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout]);
     const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48);
     const svgH = displayLayout.length * ROW_HEIGHT;
+    const MSG_MIN = 170;
+    let colBudget = measured ? containerW - refsColW - svgW - MSG_MIN : Infinity;
+    const effShowSha = showSha && colBudget >= shaColW;
+    if (effShowSha)
+      colBudget -= shaColW;
+    const effShowDate = showDate && colBudget >= dateColW;
+    if (effShowDate)
+      colBudget -= dateColW;
+    const effShowAuthor = showAuthor && colBudget >= authorColW;
     const filtered = (0, import_react7.useMemo)(() => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();

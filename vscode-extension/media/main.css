@@ -302,6 +302,7 @@
   transition: background 0.07s;
   z-index: 1;
   background: transparent;
+  overflow: hidden;
 }
 .cg-color-bar {
   width: 3px;

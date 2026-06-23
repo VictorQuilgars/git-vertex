@@ -67,6 +67,9 @@
   transition: background 0.07s;
   z-index: 1;
   background: transparent;
+  /* Clip any residual column overflow so fixed-width columns can never spill
+     past the row edge and overlap / disappear under the scrollbar. */
+  overflow: hidden;
 }
 
 /* Colored left stripe */
