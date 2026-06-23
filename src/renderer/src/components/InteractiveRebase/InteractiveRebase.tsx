@@ -66,6 +66,14 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
   }
 
   const handleLaunch = async () => {
+    // The first kept (non-drop) commit can't be squash/fixup — there's no
+    // earlier commit in the range to fold it into ("cannot squash without a
+    // previous commit"). Guard before launching to avoid a broken rebase todo.
+    const firstKept = entries.find(e => e.action !== 'drop')
+    if (firstKept && (firstKept.action === 'squash' || firstKept.action === 'fixup')) {
+      showToast("Le premier commit conservé ne peut pas être « squash »/« fixup » — choisissez « pick » ou incluez un commit plus ancien.", 'err')
+      return
+    }
     setRunning(true)
     const sequence = entries.map(e => ({ action: e.action, hash: e.hash }))
     const r = await window.gitAPI.interactiveRebase(sequence)
@@ -103,7 +111,7 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
           {!loading && entries.length === 0 && (
             <div className="ir-empty">Aucun commit à rebaser</div>
           )}
-          {entries.map((entry, i) => (
+          {(() => { const firstKeptIndex = entries.findIndex(e => e.action !== 'drop'); return entries.map((entry, i) => (
             <div
               key={entry.hash}
               className={`ir-row ${dragOver === i ? 'drag-over' : ''}`}
@@ -121,13 +129,18 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
                 style={{ color: ACTION_COLORS[entry.action] }}
               >
                 {ACTIONS.map(a => (
-                  <option key={a} value={a}>{a}</option>
+                  // squash/fixup need an earlier kept commit to fold into —
+                  // disable them on the first kept row.
+                  <option key={a} value={a}
+                    disabled={i === firstKeptIndex && (a === 'squash' || a === 'fixup')}>
+                    {a}
+                  </option>
                 ))}
               </select>
               <code className="ir-hash">{entry.shortHash}</code>
               <span className="ir-msg">{entry.message}</span>
             </div>
-          ))}
+          )) })()}
         </div>
 
         <div className="ir-footer">

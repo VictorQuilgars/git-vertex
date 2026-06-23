@@ -11812,6 +11812,11 @@ Signed-off-by: ` : full;
       setDragOver(null);
     };
     const handleLaunch = async () => {
+      const firstKept = entries.find((e) => e.action !== "drop");
+      if (firstKept && (firstKept.action === "squash" || firstKept.action === "fixup")) {
+        showToast("Le premier commit conserv\xE9 ne peut pas \xEAtre \xAB squash \xBB/\xAB fixup \xBB \u2014 choisissez \xAB pick \xBB ou incluez un commit plus ancien.", "err");
+        return;
+      }
       setRunning(true);
       const sequence = entries.map((e) => ({ action: e.action, hash: e.hash }));
       const r = await window.gitAPI.interactiveRebase(sequence);
@@ -11828,31 +11833,46 @@ Signed-off-by: ` : full;
         showToast(`Rebase \xE9chou\xE9 : ${r.error}`, "err");
       }
     };
-    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-overlay", onMouseDown: (e) => e.target === e.currentTarget && onClose() }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-panel" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react10.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react10.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-hint" }, "Glissez pour r\xE9ordonner \xB7 Changez l'action avec le menu d\xE9roulant"), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-empty" }, "Aucun commit \xE0 rebaser"), entries.map((entry, i) => /* @__PURE__ */ import_react10.default.createElement(
-      "div",
-      {
-        key: entry.hash,
-        className: `ir-row ${dragOver === i ? "drag-over" : ""}`,
-        draggable: true,
-        onDragStart: () => handleDragStart(i),
-        onDragOver: (e) => handleDragOver(e, i),
-        onDrop: () => handleDrop(i),
-        onDragEnd: () => setDragOver(null)
-      },
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-drag-handle", title: "Glisser pour r\xE9ordonner" }, "\u283F"),
-      /* @__PURE__ */ import_react10.default.createElement(
-        "select",
+    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-overlay", onMouseDown: (e) => e.target === e.currentTarget && onClose() }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-panel" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react10.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react10.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-hint" }, "Glissez pour r\xE9ordonner \xB7 Changez l'action avec le menu d\xE9roulant"), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-empty" }, "Aucun commit \xE0 rebaser"), (() => {
+      const firstKeptIndex = entries.findIndex((e) => e.action !== "drop");
+      return entries.map((entry, i) => /* @__PURE__ */ import_react10.default.createElement(
+        "div",
         {
-          className: "ir-action-select",
-          value: entry.action,
-          onChange: (e) => setAction(i, e.target.value),
-          style: { color: ACTION_COLORS[entry.action] }
+          key: entry.hash,
+          className: `ir-row ${dragOver === i ? "drag-over" : ""}`,
+          draggable: true,
+          onDragStart: () => handleDragStart(i),
+          onDragOver: (e) => handleDragOver(e, i),
+          onDrop: () => handleDrop(i),
+          onDragEnd: () => setDragOver(null)
         },
-        ACTIONS.map((a) => /* @__PURE__ */ import_react10.default.createElement("option", { key: a, value: a }, a))
-      ),
-      /* @__PURE__ */ import_react10.default.createElement("code", { className: "ir-hash" }, entry.shortHash),
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-msg" }, entry.message)
-    ))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-footer" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "ir-cancel", onClick: onClose }, "Annuler"), /* @__PURE__ */ import_react10.default.createElement(
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-drag-handle", title: "Glisser pour r\xE9ordonner" }, "\u283F"),
+        /* @__PURE__ */ import_react10.default.createElement(
+          "select",
+          {
+            className: "ir-action-select",
+            value: entry.action,
+            onChange: (e) => setAction(i, e.target.value),
+            style: { color: ACTION_COLORS[entry.action] }
+          },
+          ACTIONS.map((a) => (
+            // squash/fixup need an earlier kept commit to fold into —
+            // disable them on the first kept row.
+            /* @__PURE__ */ import_react10.default.createElement(
+              "option",
+              {
+                key: a,
+                value: a,
+                disabled: i === firstKeptIndex && (a === "squash" || a === "fixup")
+              },
+              a
+            )
+          ))
+        ),
+        /* @__PURE__ */ import_react10.default.createElement("code", { className: "ir-hash" }, entry.shortHash),
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-msg" }, entry.message)
+      ));
+    })()), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-footer" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "ir-cancel", onClick: onClose }, "Annuler"), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "ir-launch",

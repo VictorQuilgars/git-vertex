@@ -1179,6 +1179,11 @@ export class GitService {
   }
 
   async interactiveRebase(sequence: { action: string; hash: string }[]): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
+    // The first kept commit can't be squash/fixup (nothing earlier to fold into).
+    const firstKept = sequence.find(s => s.action !== 'drop')
+    if (firstKept && (firstKept.action === 'squash' || firstKept.action === 'fixup')) {
+      return { success: false, error: "Le premier commit conservé ne peut pas être « squash »/« fixup »." }
+    }
     const fs = await import('fs')
     const path = await import('path')
     const os = await import('os')
