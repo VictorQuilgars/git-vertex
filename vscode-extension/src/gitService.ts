@@ -273,6 +273,14 @@ export class GitService {
 
   async discardFile(file: string): Promise<{ success: boolean; error?: string }> {
     try {
+      // Untracked files have no prior version to restore — delete them instead.
+      const status = await this.git.status()
+      const isUntracked = status.not_added.includes(file)
+        || status.files.some(f => f.path === file && f.index === '?' && f.working_dir === '?')
+      if (isUntracked) {
+        await this.git.raw(['clean', '-fd', '--', file])
+        return { success: true }
+      }
       try {
         await this.git.raw(['restore', '--', file])
       } catch {
@@ -485,7 +493,7 @@ export class GitService {
 
   async createStash(message?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const args = ['stash', 'push']
+      const args = ['stash', 'push', '--include-untracked']
       if (message) args.push('-m', message)
       await this.git.raw(args)
       return { success: true }
@@ -495,13 +503,48 @@ export class GitService {
   }
 
   async popStash(index: number): Promise<{ success: boolean; error?: string }> {
-    try { await this.git.raw(['stash', 'pop', `stash@{${index}}`]); return { success: true } }
-    catch (e: any) { return { success: false, error: e.message } }
+    try {
+      await this.git.raw(['stash', 'pop', `stash@{${index}}`])
+    } catch (e: any) {
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Stash popped with conflicts — the stash was kept; resolve conflicts, then stage the files' }
+      }
+      return { success: false, error: e.message }
+    }
+    if (await this.hasUnmergedPaths()) {
+      return { success: false, error: 'Stash popped with conflicts — the stash was kept; resolve conflicts, then stage the files' }
+    }
+    return { success: true }
   }
 
   async applyStash(index: number): Promise<{ success: boolean; error?: string }> {
-    try { await this.git.raw(['stash', 'apply', `stash@{${index}}`]); return { success: true } }
+    try {
+      await this.git.raw(['stash', 'apply', `stash@{${index}}`])
+    } catch (e: any) {
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Stash applied with conflicts — resolve them, then stage the files' }
+      }
+      return { success: false, error: e.message }
+    }
+    if (await this.hasUnmergedPaths()) {
+      return { success: false, error: 'Stash applied with conflicts — resolve them, then stage the files' }
+    }
+    return { success: true }
+  }
+
+  async dropStash(index: number): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['stash', 'drop', `stash@{${index}}`]); return { success: true } }
     catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async getStashDiff(index: number): Promise<{ diff: string }> {
+    const ref = `stash@{${index}}`
+    try {
+      return { diff: await this.git.raw(['stash', 'show', '-p', '--include-untracked', ref]) }
+    } catch {
+      try { return { diff: await this.git.raw(['stash', 'show', '-p', ref]) } }
+      catch { return { diff: '' } }
+    }
   }
 
   async undoLastAction(): Promise<{ success: boolean; error?: string; action?: string }> {
@@ -600,14 +643,28 @@ export class GitService {
 
   async cherryPick(hash: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(hash); if (bad) return { success: false, error: bad }
-    try { await this.git.raw(['cherry-pick', hash]); return { success: true } }
-    catch (e: any) { return { success: false, error: e.message } }
+    try {
+      await this.git.raw(['cherry-pick', hash])
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Cherry-pick conflict — resolve conflicts before continuing' }
+      }
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
   }
 
   async revert(hash: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(hash); if (bad) return { success: false, error: bad }
-    try { await this.git.raw(['revert', '--no-edit', hash]); return { success: true } }
-    catch (e: any) { return { success: false, error: e.message } }
+    try {
+      // Reverting a merge commit requires -m to pick the mainline parent.
+      const parentStr = (await this.git.raw(['log', '--pretty=format:%P', '-n', '1', hash])).trim()
+      const parents = parentStr ? parentStr.split(/\s+/).filter(Boolean) : []
+      const mainline = parents.length > 1 ? ['-m', '1'] : []
+      await this.git.raw(['revert', '--no-edit', ...mainline, hash])
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Revert conflict — resolve conflicts before continuing' }
+      }
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
   }
 
   async reset(hash: string, mode: 'soft' | 'mixed' | 'hard'): Promise<{ success: boolean; error?: string }> {
@@ -629,6 +686,18 @@ export class GitService {
 
   async deleteTag(name: string): Promise<{ success: boolean; error?: string }> {
     try { await this.git.raw(['tag', '-d', name]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async pushTag(name: string, remote = 'origin'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(name, 'tag'); if (bad) return { success: false, error: bad }
+    try { await this.git.raw(['push', remote, `refs/tags/${name}`]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async deleteRemoteTag(name: string, remote = 'origin'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(name, 'tag'); if (bad) return { success: false, error: bad }
+    try { await this.git.raw(['push', remote, `:refs/tags/${name}`]); return { success: true } }
     catch (e: any) { return { success: false, error: e.message } }
   }
 
@@ -849,6 +918,271 @@ export class GitService {
       try { fs.unlinkSync(seqFile) } catch {}
       try { fs.unlinkSync(scriptFile) } catch {}
     }
+  }
+
+  // ── Conflict resolution (ported from desktop GitService) ──────────
+
+  async getConflictVersions(filepath: string): Promise<{ base: string; ours: string; theirs: string }> {
+    const read = async (stage: string) => {
+      try { return await this.git.raw(['show', `${stage}:${filepath}`]) } catch { return '' }
+    }
+    const [base, ours, theirs] = await Promise.all([read(':1'), read(':2'), read(':3')])
+    return { base, ours, theirs }
+  }
+
+  async getFileContent(filepath: string): Promise<{ content: string; error?: string }> {
+    try {
+      const fs = require('fs') as typeof import('fs')
+      const path = require('path') as typeof import('path')
+      return { content: fs.readFileSync(path.join(this.repoPath, filepath), 'utf-8') }
+    } catch (e: any) { return { content: '', error: e.message } }
+  }
+
+  async getFileAtCommit(commitHash: string, filepath: string): Promise<{ content: string; error?: string }> {
+    const bad = this.assertRef(commitHash, 'commit hash'); if (bad) return { content: '', error: bad }
+    try { return { content: await this.git.raw(['show', `${commitHash}:${filepath}`]) } }
+    catch (e: any) { return { content: '', error: e.message } }
+  }
+
+  async markResolved(filepath: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['add', '--', filepath]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async resolveConflict(filepath: string, content: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(filepath, 'file path'); if (bad) return { success: false, error: bad }
+    try {
+      const fs = require('fs') as typeof import('fs')
+      const path = require('path') as typeof import('path')
+      const abs = path.resolve(this.repoPath, filepath)
+      const repoAbs = path.resolve(this.repoPath)
+      if (abs !== repoAbs && !abs.startsWith(repoAbs + path.sep)) {
+        return { success: false, error: 'Path escapes repository' }
+      }
+      fs.writeFileSync(abs, content, 'utf8')
+      await this.git.raw(['add', '--', filepath])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async resolveConflictWithSide(filepath: string, side: 'ours' | 'theirs'): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(filepath, 'file path'); if (bad) return { success: false, error: bad }
+    try {
+      await this.git.raw(['checkout', `--${side}`, '--', filepath])
+      await this.git.raw(['add', '--', filepath])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async continueRebase(): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['rebase', '--continue']); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async continueMerge(message?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (message) { await this.git.commit(message); return { success: true } }
+      await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['merge', '--continue', '--no-edit'])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async abortRebase(): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['rebase', '--abort']); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async abortMerge(): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['merge', '--abort']); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async continueCherryPick(): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['cherry-pick', '--continue']); return { success: true } }
+    catch (e: any) { return { success: false, error: e.stderr ?? e.message } }
+  }
+
+  async abortCherryPick(): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['cherry-pick', '--abort']); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async continueRevert(): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['revert', '--continue']); return { success: true } }
+    catch (e: any) { return { success: false, error: e.stderr ?? e.message } }
+  }
+
+  async abortRevert(): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['revert', '--abort']); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  // ── Branch / remote operations (ported from desktop GitService) ───
+
+  async renameBranch(oldName: string, newName: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['branch', '-m', oldName, newName]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async merge(branch: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch'); if (bad) return { success: false, error: bad }
+    try {
+      await this.git.raw(['merge', branch])
+      if (await this.hasUnmergedPaths()) {
+        return { success: false, error: 'Merge conflict — resolve conflicts before continuing' }
+      }
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async rebaseOnto(branch: string): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(branch, 'branch'); if (bad) return { success: false, error: bad }
+    try { await this.git.raw(['rebase', '--autostash', branch]); return { success: true } }
+    catch (e: any) {
+      const aborted = await this.abortRebaseIfInProgress()
+      return { success: false, error: aborted ? 'Rebase conflict — operation aborted, your branch is unchanged' : e.message }
+    }
+  }
+
+  async pushBranch(branch: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['push', '--set-upstream', 'origin', branch]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message ?? String(e) } }
+  }
+
+  async pushTo(remote: string, branch: string, setUpstream: boolean, force = false): Promise<{ success: boolean; error?: string }> {
+    try {
+      const args: string[] = ['push']
+      if (setUpstream) args.push('--set-upstream')
+      if (force) args.push('--force-with-lease')
+      args.push(remote, `HEAD:${branch}`)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message ?? String(e) } }
+  }
+
+  async deleteRemoteBranch(branch: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const m = branch.match(/^remotes\/([^/]+)\/(.+)$/)
+      const remote = m ? m[1] : 'origin'
+      const name = m ? m[2] : branch
+      await this.git.raw(['push', remote, '--delete', name])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async setUpstream(branch: string, upstream?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      let target = upstream
+      if (!target) {
+        const remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
+        if (remotes.length === 0) return { success: false, error: 'Aucun remote configuré' }
+        const preferred = remotes.includes('origin') ? 'origin' : remotes[0]
+        target = `${preferred}/${branch}`
+      }
+      await this.git.raw(['branch', `--set-upstream-to=${target}`, branch])
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async getUpstream(): Promise<{ upstream: string | null }> {
+    try {
+      const result = await this.git.raw(['rev-parse', '--abbrev-ref', '@{u}'])
+      return { upstream: result.trim() || null }
+    } catch { return { upstream: null } }
+  }
+
+  async getStatus(): Promise<{ staged: string[]; unstaged: string[]; untracked: string[] }> {
+    try {
+      const status = await this.git.status()
+      return { staged: status.staged, unstaged: status.modified, untracked: status.not_added }
+    } catch { return { staged: [], unstaged: [], untracked: [] } }
+  }
+
+  async getRemotes(): Promise<{ remotes: { name: string; fetchUrl: string; pushUrl: string }[] }> {
+    try {
+      const result = await this.git.raw(['remote', '-v'])
+      const map = new Map<string, { fetchUrl: string; pushUrl: string }>()
+      for (const line of result.trim().split('\n').filter(Boolean)) {
+        const match = line.match(/^(\S+)\s+(\S+)\s+\((\w+)\)$/)
+        if (!match) continue
+        const [, name, url, type] = match
+        if (!map.has(name)) map.set(name, { fetchUrl: '', pushUrl: '' })
+        const entry = map.get(name)!
+        if (type === 'fetch') entry.fetchUrl = url
+        if (type === 'push') entry.pushUrl = url
+      }
+      return { remotes: Array.from(map.entries()).map(([name, urls]) => ({ name, ...urls })) }
+    } catch { return { remotes: [] } }
+  }
+
+  async addRemote(name: string, url: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['remote', 'add', name, url]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async removeRemote(name: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['remote', 'remove', name]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async renameRemote(oldName: string, newName: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['remote', 'rename', oldName, newName]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async fetchRemote(name: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['fetch', name]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  // ── History / diff helpers (ported from desktop GitService) ───────
+
+  async getReflog(): Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }> {
+    try {
+      const result = await this.git.raw(['reflog', '--pretty=format:%H|%gd|%gs|%ar', '--max-count=50'])
+      const entries = result.trim().split('\n').filter(Boolean).map(line => {
+        const [hash, ref, message, date] = line.split('|')
+        return { hash: hash?.trim() ?? '', ref: ref?.trim() ?? '', message: message?.trim() ?? '', date: date?.trim() ?? '' }
+      })
+      return { entries }
+    } catch { return { entries: [] } }
+  }
+
+  async compareBranches(current: string, other: string): Promise<{
+    ahead: { hash: string; shortHash: string; message: string }[]
+    behind: { hash: string; shortHash: string; message: string }[]
+  }> {
+    const parse = (output: string) =>
+      output.trim().split('\n').filter(Boolean).map(line => {
+        const [hash, ...rest] = line.split('|')
+        return { hash: hash.trim(), shortHash: hash.trim().slice(0, 7), message: rest.join('|').trim() }
+      })
+    try {
+      const [aheadRaw, behindRaw] = await Promise.all([
+        this.git.raw(['log', '--pretty=format:%H|%s', `${current}..${other}`]),
+        this.git.raw(['log', '--pretty=format:%H|%s', `${other}..${current}`]),
+      ])
+      return { ahead: parse(aheadRaw), behind: parse(behindRaw) }
+    } catch { return { ahead: [], behind: [] } }
+  }
+
+  async diffBetweenCommits(fromHash: string, toHash: string): Promise<{ diff: string; error?: string }> {
+    const bad = this.assertRef(fromHash, 'commit') || this.assertRef(toHash, 'commit')
+    if (bad) return { diff: '', error: bad }
+    try { return { diff: await this.git.raw(['diff', `${fromHash}..${toHash}`]) } }
+    catch (e: any) { return { diff: '', error: e.message } }
+  }
+
+  async diffCommitToWorking(hash: string): Promise<{ diff: string }> {
+    try { return { diff: await this.git.raw(['diff', hash]) } }
+    catch { return { diff: '' } }
+  }
+
+  async searchInDiffs(query: string): Promise<{ hashes: string[] }> {
+    try {
+      const result = await this.git.raw(['log', '--all', '--pretty=format:%H', '-S', query, '--max-count=100'])
+      return { hashes: result.trim().split('\n').filter(Boolean) }
+    } catch { return { hashes: [] } }
   }
 
   // ── Avatar resolution (no network: deterministic GitHub avatars) ──

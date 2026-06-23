@@ -11,6 +11,10 @@ import { findAppPath, launchApp } from '../appLocator'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
 
+// Virtual scheme serving a file's content at a git ref, so VS Code's native
+// diff editor can show "<ref>:<file>" on one side. Read-only.
+const DIFF_SCHEME = 'gitvertex'
+
 export class GitVertexViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'gitVertex.graphView'
   private _view?: vscode.WebviewView
@@ -18,6 +22,7 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
   private _fsWatcher?: vscode.FileSystemWatcher
   private _disposables: vscode.Disposable[] = []
   private _repoPath?: string
+  private _diffProviderRegistered = false
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -30,6 +35,7 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'media')],
     }
+    this._registerDiffProvider()
     view.webview.html = this._getHtml(view.webview)
     view.webview.onDidReceiveMessage(
       (msg: GitApiRequest) => { if (msg?.type === 'gitApi') this._handleApi(msg) },
@@ -87,6 +93,68 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
     this._view?.webview.postMessage({ type: 'event', name })
   }
 
+  // ── Native diff editor support ────────────────────────────────
+  // Register a content provider that resolves `gitvertex:<file>?<ref>` to the
+  // file's content at that ref (via the live GitService). Registered once.
+  private _registerDiffProvider(): void {
+    if (this._diffProviderRegistered) return
+    this._diffProviderRegistered = true
+    const provider: vscode.TextDocumentContentProvider = {
+      provideTextDocumentContent: async (uri): Promise<string> => {
+        const ref = uri.query
+        const filepath = uri.path.replace(/^\//, '')
+        if (!this._gitService || !ref) return ''
+        const res = await this._gitService.getFileAtCommit(ref, filepath)
+        return res.content ?? ''
+      },
+    }
+    this._disposables.push(
+      vscode.workspace.registerTextDocumentContentProvider(DIFF_SCHEME, provider)
+    )
+  }
+
+  private _refUri(ref: string, filepath: string): vscode.Uri {
+    return vscode.Uri.from({ scheme: DIFF_SCHEME, path: '/' + filepath, query: ref })
+  }
+
+  // Open a native side-by-side diff for a commit file or a working-tree file.
+  private async _openDiff(target: any): Promise<{ success: boolean }> {
+    if (!this._repoPath) return { success: false }
+    const file: string = target?.filePath ?? ''
+    if (!file) return { success: false }
+    const short = (h: string) => (h || '').slice(0, 7)
+    try {
+      if (target.type === 'commit' && target.commitHash) {
+        const right = this._refUri(target.commitHash, file)
+        const left = this._refUri(`${target.commitHash}~1`, file)
+        await vscode.commands.executeCommand('vscode.diff', left, right,
+          `${path.basename(file)} (${short(target.commitHash)})`)
+      } else {
+        // Working-tree file: HEAD (or index for staged) vs file on disk.
+        const left = this._refUri(target.area === 'staged' ? 'HEAD' : 'HEAD', file)
+        const right = vscode.Uri.file(path.join(this._repoPath, file))
+        await vscode.commands.executeCommand('vscode.diff', left, right,
+          `${path.basename(file)} (Working Tree)`)
+      }
+      return { success: true }
+    } catch {
+      return { success: false }
+    }
+  }
+
+  // Open a conflicted file in a native editor — VS Code shows its built-in
+  // merge-conflict CodeLens (Accept Current / Incoming / Both).
+  private async _openConflict(file: string): Promise<{ success: boolean }> {
+    if (!this._repoPath || !file) return { success: false }
+    try {
+      const uri = vscode.Uri.file(path.join(this._repoPath, file))
+      await vscode.window.showTextDocument(uri, { preview: false })
+      return { success: true }
+    } catch {
+      return { success: false }
+    }
+  }
+
   // ── gitApi router ─────────────────────────────────────────────
   private async _handleApi(req: GitApiRequest): Promise<void> {
     const { id, method, args } = req
@@ -123,6 +191,8 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
         term.show()
         return { success: true }
       }
+      case 'openDiff': return this._openDiff(args[0])
+      case 'openConflict': return this._openConflict(args[0])
       case 'zoomGet': return 1
       case 'zoomSet': return 1
       case 'uiPrompt': return vscode.window.showInputBox({ prompt: args[0], value: args[1] ?? '' })
@@ -141,62 +211,29 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
 
     if (!svc) throw new Error('No repository open')
 
-    // Methods that map 1:1 to GitService
+    // Overrides that don't map 1:1 to a GitService method.
     switch (method) {
-      case 'getLog': return svc.getLog(args[0] ?? {})
-      case 'getBranches': return svc.getBranches()
-      case 'getCommitFiles': return svc.getCommitFiles(args[0])
-      case 'getCommitBody': return svc.getCommitBody(args[0])
-      case 'getDiff': return svc.getDiff(args[0])
-      case 'getWorkingChanges': return svc.getWorkingChanges()
-      case 'getWorkingFileDiff': return svc.getWorkingFileDiff(args[0], args[1])
-      case 'getLastCommitMessage': return svc.getLastCommitMessage()
-      case 'getMergeMessage': return svc.getMergeMessage()
-      case 'getTracking': return svc.getTracking()
-      case 'getStashes': return svc.getStashes()
-      case 'getTags': return svc.getTags()
-      case 'getConflictedFiles': return svc.getConflictedFiles()
-      case 'getConflictMode': return svc.getConflictMode()
-      case 'getBlame': return svc.getBlame(args[0], args[1])
-      case 'getFileHistory': return svc.getFileHistory(args[0])
-      case 'stage': return svc.stage(args[0])
-      case 'stageAll': return svc.stageAll()
-      case 'unstage': return svc.unstage(args[0])
-      case 'commit': return svc.commit(args[0], args[1])
-      case 'amendMessage': return svc.amendMessage(args[0])
-      case 'discardFile': return svc.discardFile(args[0])
-      case 'checkout': return svc.checkout(args[0])
-      case 'createBranch': return svc.createBranch(args[0])
-      case 'createBranchAt': return svc.createBranchAt(args[0], args[1], args[2])
-      case 'deleteBranch': return svc.deleteBranch(args[0])
-      case 'createStash': return svc.createStash(args[0])
-      case 'popStash': return svc.popStash(args[0])
-      case 'applyStash': return svc.applyStash(args[0])
-      case 'undoLastAction': return svc.undoLastAction()
-      case 'redoLastAction': return svc.redoLastAction()
-      case 'createTag': return svc.createTag(args[0], args[1], args[2])
-      case 'deleteTag': return svc.deleteTag(args[0])
-      case 'cherryPick': return svc.cherryPick(args[0])
-      case 'revert': return svc.revert(args[0])
-      case 'reset': return svc.reset(args[0], args[1])
-      case 'moveBranchTo': return svc.moveBranchTo(args[0], args[1])
-      case 'rebaseBranchOnto': return svc.rebaseBranchOnto(args[0], args[1])
-      case 'mergeCommitInto': return svc.mergeCommitInto(args[0], args[1])
-      case 'dropCommit': return svc.dropCommit(args[0])
-      case 'moveCommit': return svc.moveCommit(args[0], args[1])
-      case 'getRebaseSequence': return svc.getRebaseSequence(args[0])
-      case 'interactiveRebase': return svc.interactiveRebase(args[0])
-      case 'fetch': return svc.fetch()
-      case 'pull': return svc.pull()
-      case 'push': return svc.push()
-      case 'searchInDiffs': return { matches: [] }
+      // avatarResolve is synchronous — return its value directly.
       case 'avatarResolve': return svc.avatarResolve(args[0], args[1])
+      // AI commit-message generation isn't wired in the extension host yet.
       case 'aiGenerateCommitMessage': return { error: 'NO_API_KEY' }
-      default:
-        // Unimplemented methods resolve to a benign empty result so the UI
-        // degrades gracefully instead of throwing.
-        return { success: false, error: `not-implemented: ${method}` }
     }
+
+    // Reflective forwarding: every GitService method is callable from the
+    // webview without enumerating it here. This keeps the bridge in sync with
+    // the service automatically (new git ops light up as soon as they exist).
+    // Guard against prototype-chain names (constructor, hasOwnProperty…) so only
+    // real GitService methods are reachable.
+    const isOwnMethod = method !== 'constructor'
+      && !(method in Object.prototype)
+      && typeof (svc as unknown as Record<string, unknown>)[method] === 'function'
+    if (isOwnMethod) {
+      const fn = (svc as unknown as Record<string, (...a: any[]) => unknown>)[method]
+      return fn.apply(svc, args)
+    }
+
+    // Unknown method → benign failure so the UI degrades gracefully.
+    return { success: false, error: `not-implemented: ${method}` }
   }
 
   private _getNonce(): string {

@@ -8041,6 +8041,8 @@
     "push.targetBranch": "Branche cible",
     "push.targetBranch.placeholder": "nom de la branche distante",
     "push.setUpstream": "D\xE9finir comme upstream (--set-upstream)",
+    "push.force": "Forcer le push (--force-with-lease)",
+    "push.forceWarn": "\u26A0 \xC9crase l'historique distant. Refus\xE9 si le remote a re\xE7u de nouveaux commits depuis votre dernier fetch.",
     "push.cancel": "Annuler",
     "push.pushing": "Push en cours\u2026",
     "push.button": (remote, branch) => `\u2B06 Push vers ${remote}/${branch}`,
@@ -8060,6 +8062,9 @@
     "panel.discard": "Annuler les modifications",
     "panel.discard.confirm": (path) => `Annuler les modifications de "${path}" ?
 Cette action est irr\xE9versible.`,
+    "panel.deleteUntracked": "Supprimer le fichier non suivi",
+    "panel.deleteUntracked.confirm": (path) => `Supprimer d\xE9finitivement "${path}" du disque ?
+Ce fichier n'est pas suivi par Git \u2014 il sera perdu.`,
     "panel.diff": "Diff",
     "panel.blame": "Blame",
     "panel.history": "Historique de ce fichier",
@@ -8221,6 +8226,8 @@ Cette action est irr\xE9versible.`,
     "toast.branchDropOk": (name) => `\u2713 "${name}" mise \xE0 jour`,
     "toast.tagCreated": (name) => `\u2713 Tag "${name}" cr\xE9\xE9`,
     "toast.tagDeleted": (name) => `Tag "${name}" supprim\xE9`,
+    "toast.tagPushed": (name) => `\u2713 Tag "${name}" pouss\xE9`,
+    "toast.tagDeletedRemote": (name) => `Tag distant "${name}" supprim\xE9`,
     "toast.stashCreated": "\u2713 Stash cr\xE9\xE9",
     "toast.stashErr": (e) => `Stash \xE9chou\xE9 : ${e}`,
     "toast.stashApplied": (i) => `\u2713 Stash #${i} appliqu\xE9 (gard\xE9)`,
@@ -8259,6 +8266,7 @@ Cela r\xE9\xE9crit l'historique via un rebase.`,
     "prompt.dropReset": (b, h) => `D\xE9placer "${b}" vers ${h} (reset --hard) ?
 Les commits au-del\xE0 seront perdus pour cette branche.`,
     "prompt.deleteTag": (name) => `Supprimer le tag "${name}" ?`,
+    "prompt.deleteRemoteTag": (name) => `Supprimer le tag "${name}" sur le remote ? (irr\xE9versible)`,
     "prompt.tagName": "Nom du tag :",
     "prompt.tagMessage": "Message du tag (laisser vide pour un tag l\xE9ger) :",
     "prompt.stashMessage": "Message du stash (optionnel) :",
@@ -8421,6 +8429,8 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "push.targetBranch": "Target branch",
     "push.targetBranch.placeholder": "remote branch name",
     "push.setUpstream": "Set as upstream (--set-upstream)",
+    "push.force": "Force push (--force-with-lease)",
+    "push.forceWarn": "\u26A0 Overwrites remote history. Refused if the remote got new commits since your last fetch.",
     "push.cancel": "Cancel",
     "push.pushing": "Pushing\u2026",
     "push.button": (remote, branch) => `\u2B06 Push to ${remote}/${branch}`,
@@ -8440,6 +8450,9 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "panel.discard": "Discard changes",
     "panel.discard.confirm": (path) => `Discard changes to "${path}"?
 This action is irreversible.`,
+    "panel.deleteUntracked": "Delete untracked file",
+    "panel.deleteUntracked.confirm": (path) => `Permanently delete "${path}" from disk?
+This file is not tracked by Git \u2014 it will be lost.`,
     "panel.diff": "Diff",
     "panel.blame": "Blame",
     "panel.history": "File history",
@@ -8601,6 +8614,8 @@ This action is irreversible.`,
     "toast.branchDropOk": (name) => `\u2713 "${name}" updated`,
     "toast.tagCreated": (name) => `\u2713 Tag "${name}" created`,
     "toast.tagDeleted": (name) => `Tag "${name}" deleted`,
+    "toast.tagPushed": (name) => `\u2713 Tag "${name}" pushed`,
+    "toast.tagDeletedRemote": (name) => `Remote tag "${name}" deleted`,
     "toast.stashCreated": "\u2713 Stash created",
     "toast.stashErr": (e) => `Stash failed: ${e}`,
     "toast.stashApplied": (i) => `\u2713 Stash #${i} applied (kept)`,
@@ -8639,6 +8654,7 @@ This rewrites history via a rebase.`,
     "prompt.dropReset": (b, h) => `Move "${b}" to ${h} (reset --hard)?
 Commits beyond this point will be lost for that branch.`,
     "prompt.deleteTag": (name) => `Delete tag "${name}"?`,
+    "prompt.deleteRemoteTag": (name) => `Delete tag "${name}" on the remote? (irreversible)`,
     "prompt.tagName": "Tag name:",
     "prompt.tagMessage": "Tag message (leave empty for lightweight tag):",
     "prompt.stashMessage": "Stash message (optional):",
@@ -10722,7 +10738,12 @@ ${line.date}`
           onClick: () => handle(() => window.gitAPI.stage([f]))
         },
         "+"
-      ));
+      ), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st-action st-discard", title: t("panel.deleteUntracked"), onClick: async (e) => {
+        e.stopPropagation();
+        if (!window.confirm(t("panel.deleteUntracked.confirm", f)))
+          return;
+        handle(() => window.gitAPI.discardFile(f));
+      } }, "\u{1F5D1}"));
     })))), /* @__PURE__ */ import_react8.default.createElement("div", { className: `st2-section ${stagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-section-toggle", onClick: () => setStagedOpen((o) => !o) }, /* @__PURE__ */ import_react8.default.createElement(IcoChevron, { open: stagedOpen }), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-section-title" }, t("panel.staged"), " (", stagedCount, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { style: { flex: 1 } }), changes.staged.length > 0 && /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-link st2-danger-link", onClick: () => handle(() => window.gitAPI.unstage(changes.staged.map((f) => f.path))) }, t("panel.unstageAll"))), stagedOpen && /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-file-list" }, stagedCount === 0 ? /* @__PURE__ */ import_react8.default.createElement("div", { className: "st-empty" }, t("panel.noStaged")) : treeMode ? stagedTree.map((node) => /* @__PURE__ */ import_react8.default.createElement(
       TreeFileRow,
       {
@@ -11216,6 +11237,41 @@ Signed-off-by: ` : full;
       const op = action === "reset" ? () => window.gitAPI.moveBranchTo(branch, hash) : action === "rebase" ? () => window.gitAPI.rebaseBranchOnto(branch, hash) : () => window.gitAPI.mergeCommitInto(branch, hash);
       await runOp(action === "reset" ? "Branche r\xE9initialis\xE9e" : action === "rebase" ? "Rebase effectu\xE9" : "Merge effectu\xE9", op, true);
     }, [runOp]);
+    const handleConflictFinish = (0, import_react10.useCallback)(async (action, message) => {
+      const mode = conflictMode ?? action;
+      let r;
+      if (mode === "rebase")
+        r = await window.gitAPI.continueRebase();
+      else if (mode === "cherry-pick")
+        r = await window.gitAPI.continueCherryPick();
+      else if (mode === "revert")
+        r = await window.gitAPI.continueRevert();
+      else
+        r = await window.gitAPI.continueMerge(message);
+      if (r && r.success === false)
+        showToast(r.error ?? "\xC9chec", "err");
+      else
+        showToast(mode === "rebase" ? "\u2713 Rebase continu\xE9" : "\u2713 Conflits r\xE9solus");
+      await loadRepoData();
+    }, [conflictMode, showToast, loadRepoData]);
+    const handleConflictAbort = (0, import_react10.useCallback)(async () => {
+      if (conflictMode === "merge")
+        await window.gitAPI.abortMerge();
+      else if (conflictMode === "cherry-pick")
+        await window.gitAPI.abortCherryPick();
+      else if (conflictMode === "revert")
+        await window.gitAPI.abortRevert();
+      else
+        await window.gitAPI.abortRebase();
+      showToast("Op\xE9ration abandonn\xE9e");
+      await loadRepoData();
+    }, [conflictMode, showToast, loadRepoData]);
+    const handleOpenResolver = (0, import_react10.useCallback)((file) => {
+      window.gitAPI.openConflict(file);
+    }, []);
+    const handleOpenFileDiff = (0, import_react10.useCallback)((target) => {
+      window.gitAPI.openDiff(target);
+    }, []);
     const handleFetch = (0, import_react10.useCallback)(async () => {
       await runOp("Fetch", () => window.gitAPI.fetch());
       setLastFetch(/* @__PURE__ */ new Date());
@@ -11290,7 +11346,16 @@ Signed-off-by: ` : full;
         onOpenDesktop: handleOpenDesktop,
         onRefresh: loadRepoData
       }
-    ), /* @__PURE__ */ import_react10.default.createElement("div", { className: "app-body" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react10.default.createElement(
+    ), conflictMode && /* @__PURE__ */ import_react10.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react10.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} fichier${conflictFiles.length > 1 ? "s" : ""} en conflit` : " \u2014 conflits r\xE9solus, pr\xEAt \xE0 continuer"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react10.default.createElement(
+      "button",
+      {
+        className: "gv-cb-btn gv-cb-continue",
+        disabled: conflictFiles.length > 0,
+        title: conflictFiles.length > 0 ? "R\xE9solvez et indexez tous les fichiers d'abord" : "Continuer l'op\xE9ration",
+        onClick: () => handleConflictFinish(conflictMode === "merge" ? "merge" : "rebase")
+      },
+      "Continuer"
+    ), /* @__PURE__ */ import_react10.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "app-body" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react10.default.createElement(
       CommitGraph,
       {
         commits,
@@ -11346,12 +11411,10 @@ Signed-off-by: ` : full;
         },
         conflictFiles,
         conflictMode,
-        onConflictFinish: () => loadRepoData(),
-        onConflictAbort: () => loadRepoData(),
-        onOpenResolver: () => {
-        },
-        onOpenFileDiff: () => {
-        }
+        onConflictFinish: handleConflictFinish,
+        onConflictAbort: handleConflictAbort,
+        onOpenResolver: handleOpenResolver,
+        onOpenFileDiff: handleOpenFileDiff
       }
     )))), rebaseHash && /* @__PURE__ */ import_react10.default.createElement(
       InteractiveRebase,

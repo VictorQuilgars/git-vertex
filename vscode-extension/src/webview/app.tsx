@@ -163,6 +163,32 @@ function VertexApp() {
     await runOp(action === 'reset' ? 'Branche réinitialisée' : action === 'rebase' ? 'Rebase effectué' : 'Merge effectué', op, true)
   }, [runOp])
 
+  // ── Conflict resolution (routed by the in-progress operation) ─
+  const handleConflictFinish = useCallback(async (action: 'rebase' | 'merge', message?: string) => {
+    const mode = conflictMode ?? action
+    let r: { success?: boolean; error?: string }
+    if (mode === 'rebase') r = await window.gitAPI.continueRebase()
+    else if (mode === 'cherry-pick') r = await window.gitAPI.continueCherryPick()
+    else if (mode === 'revert') r = await window.gitAPI.continueRevert()
+    else r = await window.gitAPI.continueMerge(message)
+    if (r && r.success === false) showToast(r.error ?? 'Échec', 'err')
+    else showToast(mode === 'rebase' ? '✓ Rebase continué' : '✓ Conflits résolus')
+    await loadRepoData()
+  }, [conflictMode, showToast, loadRepoData])
+
+  const handleConflictAbort = useCallback(async () => {
+    if (conflictMode === 'merge') await window.gitAPI.abortMerge()
+    else if (conflictMode === 'cherry-pick') await window.gitAPI.abortCherryPick()
+    else if (conflictMode === 'revert') await window.gitAPI.abortRevert()
+    else await window.gitAPI.abortRebase()
+    showToast('Opération abandonnée')
+    await loadRepoData()
+  }, [conflictMode, showToast, loadRepoData])
+
+  // Open a conflicted file / a file diff in a NATIVE VS Code editor tab.
+  const handleOpenResolver = useCallback((file: string) => { window.gitAPI.openConflict(file) }, [])
+  const handleOpenFileDiff = useCallback((target: any) => { window.gitAPI.openDiff(target) }, [])
+
   // ── Toolbar handlers (push / fetch / pull / branch / stash …) ─
   const handleFetch = useCallback(async () => {
     await runOp('Fetch', () => window.gitAPI.fetch())
@@ -241,6 +267,29 @@ function VertexApp() {
         onOpenDesktop={handleOpenDesktop}
         onRefresh={loadRepoData}
       />
+      {conflictMode && (
+        <div className="gv-conflict-banner">
+          <span className="gv-cb-icon">⚠️</span>
+          <span className="gv-cb-text">
+            <strong>{conflictMode}</strong> en cours
+            {conflictFiles.length > 0
+              ? ` — ${conflictFiles.length} fichier${conflictFiles.length > 1 ? 's' : ''} en conflit`
+              : ' — conflits résolus, prêt à continuer'}
+          </span>
+          <span className="gv-cb-spring" />
+          <button
+            className="gv-cb-btn gv-cb-continue"
+            disabled={conflictFiles.length > 0}
+            title={conflictFiles.length > 0 ? 'Résolvez et indexez tous les fichiers d\'abord' : 'Continuer l\'opération'}
+            onClick={() => handleConflictFinish(conflictMode === 'merge' ? 'merge' : 'rebase')}
+          >
+            Continuer
+          </button>
+          <button className="gv-cb-btn gv-cb-abort" onClick={handleConflictAbort}>
+            Abandonner
+          </button>
+        </div>
+      )}
       <div className="app-body">
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph
@@ -303,10 +352,10 @@ function VertexApp() {
                 }}
                 conflictFiles={conflictFiles}
                 conflictMode={conflictMode}
-                onConflictFinish={() => loadRepoData()}
-                onConflictAbort={() => loadRepoData()}
-                onOpenResolver={() => {}}
-                onOpenFileDiff={() => {}}
+                onConflictFinish={handleConflictFinish}
+                onConflictAbort={handleConflictAbort}
+                onOpenResolver={handleOpenResolver}
+                onOpenFileDiff={handleOpenFileDiff}
               />
             </div>
           </>

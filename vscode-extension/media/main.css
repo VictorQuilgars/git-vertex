@@ -3663,6 +3663,63 @@ body {
     max-width: 70px;
   }
 }
+.gv-conflict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 10px;
+  background: #3d2a12;
+  border-bottom: 1px solid #5c4813;
+  color: #f0c674;
+  font-size: 12px;
+}
+.gv-cb-icon {
+  flex-shrink: 0;
+}
+.gv-cb-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gv-cb-text strong {
+  text-transform: capitalize;
+  color: #ffd9a0;
+}
+.gv-cb-spring {
+  flex: 1;
+}
+.gv-cb-btn {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gv-cb-continue {
+  background: #238636;
+  color: #fff;
+  border-color: #2ea043;
+}
+.gv-cb-continue:hover:not(:disabled) {
+  background: #2ea043;
+}
+.gv-cb-continue:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.gv-cb-abort {
+  background: transparent;
+  color: #f0c674;
+  border-color: #5c4813;
+}
+.gv-cb-abort:hover {
+  background: #5c481333;
+}
 .gv-stacked-bar {
   display: flex;
   align-items: center;
