@@ -970,8 +970,15 @@ export class GitService {
   async resolveConflictWithSide(filepath: string, side: 'ours' | 'theirs'): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(filepath, 'file path'); if (bad) return { success: false, error: bad }
     try {
-      await this.git.raw(['checkout', `--${side}`, '--', filepath])
-      await this.git.raw(['add', '--', filepath])
+      try {
+        await this.git.raw(['checkout', `--${side}`, '--', filepath])
+        await this.git.raw(['add', '--', filepath])
+      } catch {
+        // Modify/delete conflict: the chosen side deleted the file, so
+        // `checkout --ours/--theirs` has no version to take. Taking that side
+        // means accepting the deletion → remove the path.
+        await this.git.raw(['rm', '-f', '--', filepath])
+      }
       return { success: true }
     } catch (e: any) { return { success: false, error: e.message } }
   }

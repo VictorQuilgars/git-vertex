@@ -1293,8 +1293,15 @@ export class GitService {
     const bad = this.assertRef(filepath, 'file path')
     if (bad) return { success: false, error: bad }
     try {
-      await this.git.raw(['checkout', `--${side}`, '--', filepath])
-      await this.git.raw(['add', '--', filepath])
+      try {
+        await this.git.raw(['checkout', `--${side}`, '--', filepath])
+        await this.git.raw(['add', '--', filepath])
+      } catch {
+        // Modify/delete conflict: the chosen side has no version of this path
+        // (it deleted the file), so `checkout --ours/--theirs` fails. Taking
+        // that side means accepting the deletion → remove the path.
+        await this.git.raw(['rm', '-f', '--', filepath])
+      }
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }

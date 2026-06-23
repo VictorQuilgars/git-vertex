@@ -1227,4 +1227,37 @@ describe('GitService', () => {
     })
   })
 
+  describe('resolveConflictWithSide on a modify/delete conflict', () => {
+    // Sets up a merge where fileB is modified on main (ours) and deleted on
+    // feature (theirs) → `checkout --theirs` has no version to take.
+    const setupModifyDelete = () => {
+      fs.writeFileSync(path.join(tempDir, 'fileB.txt'), 'base\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "base"`)
+      execSync(`cd ${tempDir} && git checkout -b feature`)
+      execSync(`cd ${tempDir} && git rm fileB.txt && git commit -m "delete fileB"`)
+      execSync(`cd ${tempDir} && git checkout main 2>/dev/null || git checkout master`)
+      fs.writeFileSync(path.join(tempDir, 'fileB.txt'), 'modified on main\n')
+      execSync(`cd ${tempDir} && git add fileB.txt && git commit -m "modify fileB"`)
+      try { execSync(`cd ${tempDir} && git merge feature`, { stdio: 'ignore' }) } catch { /* conflict */ }
+    }
+
+    test('taking the deleting side (theirs) removes the file and clears the conflict', async () => {
+      setupModifyDelete()
+      const r = await git.resolveConflictWithSide('fileB.txt', 'theirs')
+      expect(r.success).toBe(true)
+      expect(fs.existsSync(path.join(tempDir, 'fileB.txt'))).toBe(false)
+      const conflicts = await git.getConflictedFiles()
+      expect(conflicts.files).not.toContain('fileB.txt')
+    })
+
+    test('taking the modified side (ours) keeps the file and clears the conflict', async () => {
+      setupModifyDelete()
+      const r = await git.resolveConflictWithSide('fileB.txt', 'ours')
+      expect(r.success).toBe(true)
+      expect(fs.existsSync(path.join(tempDir, 'fileB.txt'))).toBe(true)
+      const conflicts = await git.getConflictedFiles()
+      expect(conflicts.files).not.toContain('fileB.txt')
+    })
+  })
+
 })
