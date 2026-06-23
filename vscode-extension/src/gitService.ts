@@ -884,6 +884,19 @@ export class GitService {
     }
   }
 
+  // Run a git command via execFile, bypassing simple-git's editor/env guards
+  // (it blocks both `-c core.editor` and a GIT_EDITOR env override). GIT_EDITOR=true
+  // accepts the default message for squash/fixup steps without opening an editor.
+  private async gitExec(args: string[]): Promise<void> {
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+    await execFileAsync('git', ['-C', this.repoPath, ...args], {
+      env: { ...process.env, GIT_EDITOR: 'true' },
+      timeout: 30000,
+    })
+  }
+
   // True if a rebase is currently in progress (stopped on a conflict, etc.).
   private rebaseInProgress(): boolean {
     const fs = require('fs') as typeof import('fs')
@@ -1000,7 +1013,7 @@ export class GitService {
     // without an editor. (We must NOT override the process env — re-injecting
     // GIT_CONFIG_COUNT from the VS Code host makes git refuse to run.)
     try {
-      await this.git.raw(['-c', 'core.editor=true', 'rebase', '--continue'])
+      await this.gitExec(['rebase', '--continue'])
       return { success: true }
     } catch (e: any) {
       if (!this.rebaseInProgress()) return { success: false, error: e.stderr ?? e.message }
@@ -1011,7 +1024,7 @@ export class GitService {
       // Clean tree but `--continue` couldn't advance → the current commit is
       // empty / already applied. Skip it so the rebase moves on (no changes lost).
       try {
-        await this.git.raw(['-c', 'core.editor=true', 'rebase', '--skip'])
+        await this.gitExec(['rebase', '--skip'])
         if (this.rebaseInProgress() && await this.hasUnmergedPaths()) {
           return { success: false, conflict: true, error: 'Conflits restants — résolvez-les puis continuez' }
         }
@@ -1025,7 +1038,7 @@ export class GitService {
   async continueMerge(message?: string): Promise<{ success: boolean; error?: string }> {
     try {
       if (message) { await this.git.commit(message); return { success: true } }
-      await this.git.raw(['-c', 'core.editor=true', 'merge', '--continue', '--no-edit'])
+      await this.gitExec(['merge', '--continue', '--no-edit'])
       return { success: true }
     } catch (e: any) { return { success: false, error: e.message } }
   }
@@ -1041,7 +1054,7 @@ export class GitService {
   }
 
   async continueCherryPick(): Promise<{ success: boolean; error?: string }> {
-    try { await this.git.raw(['-c', 'core.editor=true', 'cherry-pick', '--continue']); return { success: true } }
+    try { await this.gitExec(['cherry-pick', '--continue']); return { success: true } }
     catch (e: any) { return { success: false, error: e.stderr ?? e.message } }
   }
 
@@ -1051,7 +1064,7 @@ export class GitService {
   }
 
   async continueRevert(): Promise<{ success: boolean; error?: string }> {
-    try { await this.git.raw(['-c', 'core.editor=true', 'revert', '--continue']); return { success: true } }
+    try { await this.gitExec(['revert', '--continue']); return { success: true } }
     catch (e: any) { return { success: false, error: e.stderr ?? e.message } }
   }
 
