@@ -49,6 +49,7 @@ function VertexApp() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
+  const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
   const isLoadingRef = useRef(false)
   const showAllRef = useRef(showAllBranches)
@@ -101,6 +102,10 @@ function VertexApp() {
         setStashes(st?.stashes ?? [])
         setStashCount(st?.stashes?.length ?? 0)
       } catch { /* ignore */ }
+      try {
+        const tr = await window.gitAPI.getTracking()
+        setTracking({ ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0 })
+      } catch { /* no upstream */ }
       try {
         const info = await window.gitAPI.appGetInfo()
         if (info?.repoName) setRepoName(info.repoName)
@@ -354,6 +359,8 @@ function VertexApp() {
         searchQuery={searchQuery}
         searchMatches={searchMatches}
         lastFetch={lastFetch}
+        ahead={tracking.ahead}
+        behind={tracking.behind}
         onCheckout={handleCheckout}
         onSearch={setSearchQuery}
         onToggleAllBranches={handleToggleAllBranches}
@@ -435,6 +442,7 @@ function VertexApp() {
             showToast={showToast}
             showPrompt={showPrompt}
             showConfirm={showConfirm}
+            embedded
           />
         )}
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>

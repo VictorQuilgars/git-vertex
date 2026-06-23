@@ -4104,6 +4104,18 @@ body {
   opacity: 0.4;
   cursor: default;
 }
+.gvt-tbtn-count {
+  min-width: 15px;
+  height: 15px;
+  line-height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #1f6feb;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+}
 .gvt-branch-wrap {
   position: relative;
   margin-left: 4px;

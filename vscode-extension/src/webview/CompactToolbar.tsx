@@ -13,6 +13,8 @@ interface Props {
   searchQuery: string
   searchMatches?: number
   lastFetch: Date | null
+  ahead?: number
+  behind?: number
   onCheckout: (ref: string) => void
   onSearch: (q: string) => void
   onToggleAllBranches: () => void
@@ -49,13 +51,14 @@ function IconBtn({ title, onClick, disabled, active, badge, hideNarrow, children
 
 // Labelled button (icon + text) — used for the primary sync actions so each is
 // clearly identifiable while sharing one consistent style.
-function TextBtn({ title, label, onClick, disabled, children }: {
-  title: string; label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode
+function TextBtn({ title, label, onClick, disabled, count, children }: {
+  title: string; label: string; onClick: () => void; disabled?: boolean; count?: number; children: React.ReactNode
 }) {
   return (
     <button className="gvt-tbtn" title={title} onClick={onClick} disabled={disabled}>
       {children}
       <span className="gvt-tbtn-label">{label}</span>
+      {count != null && count > 0 && <span className="gvt-tbtn-count">{count}</span>}
     </button>
   )
 }
@@ -127,10 +130,14 @@ export default function CompactToolbar(p: Props) {
       <TextBtn title={p.lastFetch ? `Fetch · ${relTime(p.lastFetch)}` : 'Fetch'} label="Fetch" onClick={p.onFetch} disabled={p.loading}>
         <svg className={p.loading ? 'gvt-spin' : ''} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
       </TextBtn>
-      <TextBtn title="Pull" label="Pull" onClick={p.onPull} disabled={p.loading}>
+      <TextBtn
+        title={p.behind ? `Pull — ${p.behind} commit(s) en retard` : 'Pull'}
+        label="Pull" onClick={p.onPull} disabled={p.loading} count={p.behind}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/><polyline points="3 21 21 21"/></svg>
       </TextBtn>
-      <TextBtn title="Push" label="Push" onClick={p.onPush} disabled={p.loading}>
+      <TextBtn
+        title={p.ahead ? `Push — ${p.ahead} commit(s) en avance` : 'Push'}
+        label="Push" onClick={p.onPush} disabled={p.loading} count={p.ahead}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="21" x2="12" y2="9"/><polyline points="7 14 12 9 17 14"/><polyline points="3 3 21 3"/></svg>
       </TextBtn>
 

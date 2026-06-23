@@ -51,6 +51,9 @@ interface SidebarProps {
   showToast: (msg: string, type?: 'ok' | 'err') => void
   showPrompt: (msg: string, defaultValue?: string) => Promise<string | null>
   showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
+  // Embedded host (VS Code panel): the repo is the workspace, so the
+  // open/clone/recent repo picker doesn't apply and is hidden.
+  embedded?: boolean
 }
 
 // ── Collapse section ─────────────────────────────────────────────
@@ -408,7 +411,7 @@ export default function Sidebar({
   onCreateTag, onDeleteTag, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
-  showToast, showPrompt, showConfirm,
+  showToast, showPrompt, showConfirm, embedded = false,
 }: SidebarProps) {
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
@@ -542,7 +545,9 @@ export default function Sidebar({
 
   return (
     <div className="sidebar">
-      {/* ── Repo selector ── */}
+      {/* ── Repo selector ── (hidden when embedded in the VS Code panel: the
+          repo is always the workspace, so open/clone/recent don't apply) */}
+      {!embedded && (
       <div className="sb-repo-area" ref={repoMenuRef}>
         <button className="sb-repo-btn" onClick={() => setRepoMenuOpen(o => !o)}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="#3fb950">
@@ -593,6 +598,7 @@ export default function Sidebar({
           </div>
         )}
       </div>
+      )}
 
       {/* ── Branch filter ── */}
       {repoPath && (
