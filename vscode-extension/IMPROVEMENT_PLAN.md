@@ -25,6 +25,14 @@ parité fonctionnelle Git complète + UX au niveau de **GitLens** / **GitKraken*
 - `app.tsx` : `onConflictFinish`/`onConflictAbort`/`onOpenResolver`/`onOpenFileDiff` = no-op.
 - Le webview réutilise les composants desktop (CommitGraph/RightPanel/InteractiveRebase) via imports relatifs.
 
+## Avancement
+
+- ✅ **Phase A** — parité des opérations Git (dispatcher réflexif + port complet + renforts). Commit `cf5a93e`.
+- ✅ **Phase B** — flux conflits/opération en cours : continue/abort réels, bannière, onglets natifs (diff + conflit). Commit `cf5a93e`.
+- ✅ **Phase C** — responsive : colonnes masquées selon l'espace réel (fin du « colonnes invisibles »), clip anti-superposition. Commit `63f5426`.
+- ✅ **Bonus** — menu contextuel branche/tag sur le graphe (merge/rebase/rename/delete/push/upstream/tags). Commit `d3cafc5`.
+- ⏳ **Reste** : sidebar branches/remotes/tags/stashes ; modal push avec force ; AI commit message ; polish overlaps additionnels ; vérif visuelle.
+
 ## Phases
 
 ### Phase A — Parité des opérations Git  ✅ priorité
