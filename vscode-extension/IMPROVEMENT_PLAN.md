@@ -31,7 +31,8 @@ parité fonctionnelle Git complète + UX au niveau de **GitLens** / **GitKraken*
 - ✅ **Phase B** — flux conflits/opération en cours : continue/abort réels, bannière, onglets natifs (diff + conflit). Commit `cf5a93e`.
 - ✅ **Phase C** — responsive : colonnes masquées selon l'espace réel (fin du « colonnes invisibles »), clip anti-superposition. Commit `63f5426`.
 - ✅ **Bonus** — menu contextuel branche/tag sur le graphe (merge/rebase/rename/delete/push/upstream/tags). Commit `d3cafc5`.
-- ⏳ **Reste** : sidebar branches/remotes/tags/stashes ; modal push avec force ; AI commit message ; polish overlaps additionnels ; vérif visuelle.
+- ✅ **Sidebar** — réutilisation de la Sidebar desktop dans l'extension (branches/remotes/tags/stashes/submodules/worktrees/reflog), toggle dans la toolbar, solo/mute des branches, gestion des stashes par index. Port des dernières méthodes service (submodules, worktrees, getLog refs) + host `selectDirectory`.
+- ⏳ **Reste** : modal push avec force ; AI commit message ; vérif visuelle (dev host F5).
 
 ## Phases
 

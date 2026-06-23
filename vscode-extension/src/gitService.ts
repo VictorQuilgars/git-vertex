@@ -51,7 +51,7 @@ export class GitService {
 
   // ── Read operations ────────────────────────────────────────────
 
-  async getLog(options: { maxCount?: number; all?: boolean } = {}): Promise<{ commits: CommitNode[] }> {
+  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
     // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
@@ -62,7 +62,9 @@ export class GitService {
       `--max-count=${maxCount}`,
       '--date-order',
     ]
-    if (options.all) args.push('--all')
+    // Explicit refs (solo/mute branch filtering) take precedence over --all.
+    if (options.refs && options.refs.length) args.push(...options.refs)
+    else if (options.all) args.push('--all')
 
     const result = await this.git.raw(['log', ...args])
     const commits: CommitNode[] = []
@@ -1183,6 +1185,90 @@ export class GitService {
       const result = await this.git.raw(['log', '--all', '--pretty=format:%H', '-S', query, '--max-count=100'])
       return { hashes: result.trim().split('\n').filter(Boolean) }
     } catch { return { hashes: [] } }
+  }
+
+  // ── Submodules (ported from desktop GitService) ───────────────
+
+  async getSubmodules(): Promise<{ submodules: { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[] }> {
+    try {
+      const fs = require('fs') as typeof import('fs')
+      const pathMod = require('path') as typeof import('path')
+      const gitmodulesPath = pathMod.join(this.repoPath, '.gitmodules')
+      if (!fs.existsSync(gitmodulesPath)) return { submodules: [] }
+      const statusResult = await this.git.raw(['submodule', 'status'])
+      const submodules = statusResult.trim().split('\n').filter(Boolean).map(line => {
+        const match = line.match(/^([ +\-U])([0-9a-f]+) (.+?)( \(.*\))?$/)
+        if (!match) return null
+        const [, statusChar, , p] = match
+        const status: 'ok' | 'dirty' | 'uninitialized' =
+          statusChar === '-' ? 'uninitialized' : statusChar === '+' ? 'dirty' : 'ok'
+        return { path: p.trim(), url: '', status }
+      }).filter(Boolean) as { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[]
+      const content = fs.readFileSync(gitmodulesPath, 'utf8')
+      const urlMatches = content.matchAll(/\[submodule "(.+?)"\][\s\S]*?url\s*=\s*(.+)/g)
+      const urlMap: Record<string, string> = {}
+      for (const m of urlMatches) urlMap[m[1]] = m[2].trim()
+      for (const sub of submodules) sub.url = urlMap[sub.path] ?? ''
+      return { submodules }
+    } catch { return { submodules: [] } }
+  }
+
+  async initSubmodule(p: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['submodule', 'init', p]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async updateSubmodule(p: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['submodule', 'update', p]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  // ── Worktrees (ported from desktop GitService) ────────────────
+
+  async listWorktrees(): Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }> {
+    try {
+      const result = await this.git.raw(['worktree', 'list', '--porcelain'])
+      const worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] = []
+      let cur: { path: string; branch: string; head: string; locked: boolean } | null = null
+      for (const line of result.split('\n')) {
+        if (line.startsWith('worktree ')) {
+          if (cur) worktrees.push({ ...cur, isMain: false })
+          cur = { path: line.slice(9).trim(), branch: '', head: '', locked: false }
+        } else if (cur && line.startsWith('HEAD ')) {
+          cur.head = line.slice(5).trim().slice(0, 7)
+        } else if (cur && line.startsWith('branch ')) {
+          cur.branch = line.slice(7).trim().replace('refs/heads/', '')
+        } else if (cur && line.trim() === 'detached') {
+          cur.branch = '(detached)'
+        } else if (cur && line.startsWith('locked')) {
+          cur.locked = true
+        }
+      }
+      if (cur) worktrees.push({ ...cur, isMain: false })
+      if (worktrees.length > 0) worktrees[0].isMain = true
+      return { worktrees }
+    } catch { return { worktrees: [] } }
+  }
+
+  async addWorktree(p: string, ref: string, newBranch?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const args = ['worktree', 'add']
+      if (newBranch) args.push('-b', newBranch)
+      args.push(p)
+      if (ref) args.push(ref)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  async removeWorktree(p: string, force = false): Promise<{ success: boolean; error?: string }> {
+    try {
+      const args = ['worktree', 'remove']
+      if (force) args.push('--force')
+      args.push(p)
+      await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) { return { success: false, error: e.message } }
   }
 
   // ── Avatar resolution (no network: deterministic GitHub avatars) ──

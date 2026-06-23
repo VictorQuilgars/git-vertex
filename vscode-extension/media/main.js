@@ -7892,7 +7892,7 @@
   window.appInfo = { platform: "vscode" };
 
   // src/webview/app.tsx
-  var import_react10 = __toESM(require_react());
+  var import_react11 = __toESM(require_react());
   var import_client = __toESM(require_client());
 
   // ../src/renderer/src/contexts/SettingsContext.tsx
@@ -8853,7 +8853,7 @@ Commits beyond this point will be lost for that branch.`,
       return () => document.removeEventListener("mousedown", onDown);
     }, [branchOpen]);
     const locals = p.branches.filter((b) => !b.remote && !b.name.includes("HEAD"));
-    return /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt" }, /* @__PURE__ */ import_react4.default.createElement("svg", { className: "gvt-logo", viewBox: "0 0 512 512", width: "16", height: "16", "aria-hidden": true }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "148", y1: "82", x2: "256", y2: "422", stroke: "#3fb950", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" })), p.repoName && /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-repo" }, p.repoName), /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-wrap", ref: branchRef }, /* @__PURE__ */ import_react4.default.createElement("button", { className: "gvt-branch", title: "Changer de branche", onClick: () => setBranchOpen((o) => !o) }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-branch-name" }, p.branch || "\u2014"), /* @__PURE__ */ import_react4.default.createElement("svg", { width: "8", height: "8", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z" }))), branchOpen && /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-menu" }, locals.length === 0 && /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-empty" }, "Aucune branche locale"), locals.map((b) => /* @__PURE__ */ import_react4.default.createElement(
+    return /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt" }, /* @__PURE__ */ import_react4.default.createElement("svg", { className: "gvt-logo", viewBox: "0 0 512 512", width: "16", height: "16", "aria-hidden": true }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "148", y1: "82", x2: "256", y2: "422", stroke: "#3fb950", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" })), p.onToggleSidebar && /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Afficher/masquer le panneau lat\xE9ral", onClick: p.onToggleSidebar, active: p.sidebarOpen }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0zM1.5 1.75v12.5c0 .138.112.25.25.25H6V1.5H1.75a.25.25 0 0 0-.25.25zM7.5 1.5v13h6.75a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H7.5z" }))), p.repoName && /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-repo" }, p.repoName), /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-wrap", ref: branchRef }, /* @__PURE__ */ import_react4.default.createElement("button", { className: "gvt-branch", title: "Changer de branche", onClick: () => setBranchOpen((o) => !o) }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-branch-name" }, p.branch || "\u2014"), /* @__PURE__ */ import_react4.default.createElement("svg", { width: "8", height: "8", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z" }))), branchOpen && /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-menu" }, locals.length === 0 && /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-empty" }, "Aucune branche locale"), locals.map((b) => /* @__PURE__ */ import_react4.default.createElement(
       "button",
       {
         key: b.name,
@@ -11102,8 +11102,589 @@ Signed-off-by: ` : full;
     ) : null);
   }
 
-  // ../src/renderer/src/components/InteractiveRebase/InteractiveRebase.tsx
+  // ../src/renderer/src/components/Sidebar/Sidebar.tsx
   var import_react9 = __toESM(require_react());
+  function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }) {
+    const [open, setOpen] = (0, import_react9.useState)(defaultOpen);
+    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-section" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-section-header", onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement("svg", { className: `chevron ${open ? "open" : ""}`, width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "m4 1 8 7-8 7V1z" })), /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-section-title" }, title), count !== void 0 && /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-section-count" }, count), onAdd && /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: "sb-add-btn",
+        title: addLabel ?? "Ajouter",
+        onClick: (e) => {
+          e.stopPropagation();
+          onAdd();
+        }
+      },
+      /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" }))
+    )), open && /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-section-body" }, children));
+  }
+  function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, onToggleSolo, onToggleMute, ahead = 0, behind = 0, gone = false }) {
+    const [hover, setHover] = (0, import_react9.useState)(false);
+    const [ctx, setCtx] = (0, import_react9.useState)(null);
+    const lastClickTime = (0, import_react9.useRef)(0);
+    const display = remote ? name.replace(/^remotes\/[^/]+\//, "") : name;
+    const menuItems = [
+      ...!current ? [{ label: "\u2713 Checkout", action: onCheckout }] : [],
+      ...!current && onMerge ? [{ label: `\u21D2 Merger dans "${currentBranch}"`, action: onMerge }] : [],
+      ...!current && onRebaseOnto ? [{ label: `\u2935 Rebaser "${currentBranch}" dessus`, action: onRebaseOnto }] : [],
+      ...!current && onCompare ? [{ label: `\u21C4 Comparer avec "${currentBranch}"`, action: onCompare }] : [],
+      { separator: true },
+      ...!remote && onPush ? [{ label: "\u2B06 Push", action: onPush }] : [],
+      ...!remote && onSetUpstream ? [{ label: "\u{1F517} D\xE9finir l'upstream (origin)", action: onSetUpstream }] : [],
+      { label: "\u{1F4CB} Copier le nom", action: () => navigator.clipboard.writeText(display) },
+      ...onToggleSolo ? [{ label: soloed ? "\u{1F441} Annuler le solo" : "\u{1F441} Solo (afficher seule)", action: onToggleSolo }] : [],
+      ...onToggleMute ? [{ label: muted ? "\u{1F50A} R\xE9afficher" : "\u{1F507} Masquer du graphe", action: onToggleMute }] : [],
+      ...!remote && onRename ? [{ label: "\u270F\uFE0F Renommer", action: onRename }] : [],
+      ...!current && !remote && onDelete ? [
+        { separator: true },
+        { label: "\u{1F5D1} Supprimer", action: onDelete, danger: true }
+      ] : [],
+      ...remote && onDeleteRemote ? [
+        { separator: true },
+        { label: "\u{1F5D1} Supprimer la branche distante", action: onDeleteRemote, danger: true }
+      ] : []
+    ];
+    const handleMouseDown = (e) => {
+      if (current)
+        return;
+      const now = Date.now();
+      if (now - lastClickTime.current < 400) {
+        e.preventDefault();
+        onCheckout();
+        lastClickTime.current = 0;
+      } else {
+        lastClickTime.current = now;
+      }
+    };
+    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(
+      "div",
+      {
+        className: `sb-branch-item ${current ? "current" : ""} ${remote ? "remote" : ""} ${muted ? "muted" : ""} ${soloed ? "soloed" : ""}`,
+        onMouseDown: handleMouseDown,
+        onContextMenu: (e) => {
+          e.preventDefault();
+          setCtx({ x: e.clientX, y: e.clientY });
+        },
+        onMouseEnter: () => setHover(true),
+        onMouseLeave: () => setHover(false),
+        title: current ? `${name} (branche courante)` : `Double-clic: checkout \u2022 Clic droit: options`
+      },
+      /* @__PURE__ */ import_react9.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "branch-icon" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })),
+      /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-branch-name" }, display),
+      (ahead > 0 || behind > 0) && /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-track", title: `${ahead} commit${ahead > 1 ? "s" : ""} en avance, ${behind} en retard sur l'upstream` }, ahead > 0 && /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-track-ahead" }, "\u2191", ahead), behind > 0 && /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-track-behind" }, "\u2193", behind)),
+      gone && /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-track sb-track-gone", title: "Upstream supprim\xE9 sur le remote" }, "\u2702"),
+      soloed && /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-branch-flag", title: "Solo" }, "\u{1F441}"),
+      muted && /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-branch-flag", title: "Masqu\xE9e" }, "\u{1F507}"),
+      current && /* @__PURE__ */ import_react9.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "#3fb950", className: "current-check" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" })),
+      hover && !current && onDelete && /* @__PURE__ */ import_react9.default.createElement(
+        "button",
+        {
+          className: "sb-delete-btn",
+          title: "Supprimer",
+          onClick: (e) => {
+            e.stopPropagation();
+            onDelete();
+          }
+        },
+        /* @__PURE__ */ import_react9.default.createElement("svg", { width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z" }))
+      )
+    ), ctx && menuItems.length > 0 && /* @__PURE__ */ import_react9.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+  }
+  function StashItem({ stash, onApply, onPop, onDrop, onPreview }) {
+    const [ctx, setCtx] = (0, import_react9.useState)(null);
+    const label = stash.message.replace(/^stash@\{\d+\}: /, "");
+    const menuItems = [
+      ...onPreview ? [{ label: "\u{1F441} Aper\xE7u du contenu", action: onPreview }] : [],
+      { label: "\u25B6 Appliquer (garder)", action: onApply },
+      { label: "\u25B6 Appliquer (pop)", action: onPop },
+      { separator: true },
+      { label: "\u{1F5D1} Supprimer", action: onDrop, danger: true }
+    ];
+    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(
+      "div",
+      {
+        className: "sb-stash-item",
+        onClick: onPreview,
+        onContextMenu: (e) => {
+          e.preventDefault();
+          setCtx({ x: e.clientX, y: e.clientY });
+        },
+        title: onPreview ? `${stash.message} \u2014 clic : aper\xE7u` : stash.message
+      },
+      /* @__PURE__ */ import_react9.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "stash-icon" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M1 3.5A1.5 1.5 0 0 1 2.5 2h8.75a.75.75 0 0 1 0 1.5H2.5a.5.5 0 0 0 0 1H8a1 1 0 0 1 1 1v3.75a.75.75 0 0 1-1.5 0V6H2.5A1.5 1.5 0 0 1 1 4.5v-1Zm3 9A1.5 1.5 0 0 1 2.5 11h1.25a.75.75 0 0 0 0-1.5H2.5A1.5 1.5 0 0 1 1 8v-.5a.75.75 0 0 1 1.5 0V8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-.5a.75.75 0 0 1 1.5 0V8a1.5 1.5 0 0 1-1.5 1.5H4.5v1H14a.75.75 0 0 1 0 1.5H4.5v.5a.75.75 0 0 1-1.5 0v-.5Z" })),
+      /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-stash-label" }, label),
+      /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-stash-index" }, "#", stash.index)
+    ), ctx && /* @__PURE__ */ import_react9.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+  }
+  function TagItem({ tag, onDelete, onPush, onDeleteRemote }) {
+    const [ctx, setCtx] = (0, import_react9.useState)(null);
+    const menuItems = [
+      { label: "\u{1F4CB} Copier le nom", action: () => navigator.clipboard.writeText(tag.name) },
+      { label: "\u2B06 Pousser le tag", action: onPush },
+      { separator: true },
+      { label: "\u{1F5D1} Supprimer (local)", action: onDelete, danger: true },
+      { label: "\u{1F5D1} Supprimer (distant)", action: onDeleteRemote, danger: true }
+    ];
+    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(
+      "div",
+      {
+        className: "sb-tag-item",
+        onContextMenu: (e) => {
+          e.preventDefault();
+          setCtx({ x: e.clientX, y: e.clientY });
+        },
+        title: `${tag.name} \u2192 ${tag.hash}`
+      },
+      /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-tag-icon" }, "\u{1F3F7}"),
+      /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-tag-name" }, tag.name),
+      /* @__PURE__ */ import_react9.default.createElement("code", { className: "sb-tag-hash" }, tag.hash)
+    ), ctx && /* @__PURE__ */ import_react9.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+  }
+  function ReflogItem({ entry, onSelect }) {
+    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-reflog-item", onClick: onSelect, title: `${entry.ref}: ${entry.message}` }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-reflog-icon" }, "\u{1F4CB}"), /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-reflog-info" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-reflog-ref" }, entry.ref), /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-reflog-msg" }, entry.message), /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-reflog-date" }, entry.date)));
+  }
+  function RemoteItem({
+    remote,
+    onFetch,
+    onRename,
+    onRemove,
+    onCopyUrl
+  }) {
+    const [ctx, setCtx] = (0, import_react9.useState)(null);
+    const menuItems = [
+      { label: "\u2B07 Fetch ce remote", action: onFetch },
+      { label: "\u{1F4CB} Copier l'URL", action: onCopyUrl },
+      { label: "\u270F\uFE0F Renommer", action: onRename },
+      { separator: true },
+      { label: "\u{1F5D1} Supprimer", action: onRemove, danger: true }
+    ];
+    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(
+      "div",
+      {
+        className: "sb-remote-item",
+        onContextMenu: (e) => {
+          e.preventDefault();
+          setCtx({ x: e.clientX, y: e.clientY });
+        },
+        title: remote.fetchUrl
+      },
+      /* @__PURE__ */ import_react9.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "remote-icon" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2ZM1.5 12.251c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V5.809L8.38 9.397a.75.75 0 0 1-.76 0L1.5 5.809v6.442Zm13-8.181v-.32a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25v.32L8 7.88Z" })),
+      /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-remote-info" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-remote-name" }, remote.name), /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-remote-url" }, remote.fetchUrl))
+    ), ctx && /* @__PURE__ */ import_react9.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+  }
+  function SubmoduleItem({
+    sub,
+    onInit,
+    onUpdate
+  }) {
+    const [ctx, setCtx] = (0, import_react9.useState)(null);
+    const statusColor = sub.status === "ok" ? "#3fb950" : sub.status === "dirty" ? "#ffa657" : "#484f58";
+    const statusLabel = sub.status === "ok" ? "\u2713" : sub.status === "dirty" ? "~" : "\u25CB";
+    const menuItems = [
+      ...sub.status === "uninitialized" ? [{ label: "\u2B07 Initialiser", action: onInit }] : [],
+      { label: "\u21BA Mettre \xE0 jour", action: onUpdate }
+    ];
+    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(
+      "div",
+      {
+        className: "sb-submodule-item",
+        onContextMenu: (e) => {
+          e.preventDefault();
+          setCtx({ x: e.clientX, y: e.clientY });
+        },
+        title: sub.url
+      },
+      /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-sub-status", style: { color: statusColor } }, statusLabel),
+      /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-sub-path" }, sub.path), /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-sub-url" }, sub.url))
+    ), ctx && menuItems.length > 0 && /* @__PURE__ */ import_react9.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+  }
+  function WorktreeItem({ wt, onOpen, onRemove }) {
+    const [ctx, setCtx] = (0, import_react9.useState)(null);
+    const name = wt.path.split("/").pop() || wt.path;
+    const menuItems = [
+      { label: "\u{1F4C2} Ouvrir", action: onOpen },
+      { label: "\u{1F4CB} Copier le chemin", action: () => navigator.clipboard.writeText(wt.path) },
+      ...!wt.isMain ? [
+        { separator: true },
+        { label: "\u{1F5D1} Supprimer le worktree", action: onRemove, danger: true }
+      ] : []
+    ];
+    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(
+      "div",
+      {
+        className: "sb-submodule-item",
+        onClick: onOpen,
+        onContextMenu: (e) => {
+          e.preventDefault();
+          setCtx({ x: e.clientX, y: e.clientY });
+        },
+        title: wt.path,
+        style: { cursor: "pointer" }
+      },
+      /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-sub-status", style: { color: wt.isMain ? "#3fb950" : "#58a6ff" } }, wt.isMain ? "\u25C9" : "\u25CB"),
+      /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-sub-path" }, name, " ", /* @__PURE__ */ import_react9.default.createElement("code", { style: { opacity: 0.6 } }, wt.branch)), /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-sub-url" }, wt.path))
+    ), ctx && /* @__PURE__ */ import_react9.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+  }
+  function Sidebar({
+    repoPath,
+    repoName,
+    currentBranch,
+    branches,
+    recentRepos,
+    stashes,
+    tags,
+    onOpenRepo,
+    onClone,
+    onSetRepo,
+    onRemoveRecent,
+    onCheckout,
+    onCreateBranch,
+    onDeleteBranch,
+    onMergeBranch,
+    onRenameBranch,
+    onRebaseOnto,
+    onPushBranch,
+    onDeleteRemoteBranch,
+    onSetUpstream,
+    onCreateStash,
+    onApplyStash,
+    onPopStash,
+    onDropStash,
+    onPreviewStash,
+    onRefreshStashes,
+    onCreateTag,
+    onDeleteTag,
+    onPushTag,
+    onDeleteRemoteTag,
+    onSelectCommit,
+    onCompareBranch,
+    soloBranch,
+    mutedBranches,
+    onToggleSolo,
+    onToggleMute,
+    showToast,
+    showPrompt,
+    showConfirm
+  }) {
+    const [reflog, setReflog] = (0, import_react9.useState)([]);
+    const [remotes, setRemotes] = (0, import_react9.useState)([]);
+    const [submodules, setSubmodules] = (0, import_react9.useState)([]);
+    const [worktrees, setWorktrees] = (0, import_react9.useState)([]);
+    const loadWorktrees = (0, import_react9.useCallback)(() => {
+      window.gitAPI.listWorktrees().then((r) => setWorktrees(r.worktrees ?? []));
+    }, []);
+    (0, import_react9.useEffect)(() => {
+      if (!repoPath)
+        return;
+      window.gitAPI.getReflog().then((r) => setReflog(r.entries ?? []));
+      window.gitAPI.getRemotes().then((r) => setRemotes(r.remotes ?? []));
+      window.gitAPI.getSubmodules().then((r) => setSubmodules(r.submodules ?? []));
+      loadWorktrees();
+    }, [repoPath, loadWorktrees]);
+    const handleAddWorktree = async () => {
+      const dir = await window.gitAPI.selectDirectory("Emplacement du nouveau worktree");
+      if (!dir.path)
+        return;
+      const ref = await showPrompt("Branche ou commit \xE0 extraire (laisser vide = nouvelle branche) :", currentBranch);
+      if (ref === null)
+        return;
+      const r = await window.gitAPI.addWorktree(dir.path, ref || "");
+      if (r.success) {
+        showToast(`\u2713 Worktree cr\xE9\xE9 : ${dir.path.split("/").pop()}`);
+        loadWorktrees();
+      } else
+        showToast(`Erreur : ${r.error}`, "err");
+    };
+    const handleRemoveWorktree = async (path) => {
+      const ok = await showConfirm(`Supprimer le worktree "${path}" ?`, true);
+      if (!ok)
+        return;
+      let r = await window.gitAPI.removeWorktree(path);
+      if (!r.success && r.error && /contains modified|untracked|use --force|locked/i.test(r.error)) {
+        const force = await showConfirm("Le worktree contient des modifications. Forcer la suppression ?", true);
+        if (force)
+          r = await window.gitAPI.removeWorktree(path, true);
+      }
+      if (r.success) {
+        showToast(`Worktree supprim\xE9`);
+        loadWorktrees();
+      } else
+        showToast(`Erreur : ${r.error}`, "err");
+    };
+    const handleInitSubmodule = async (path) => {
+      const r = await window.gitAPI.initSubmodule(path);
+      if (r.success) {
+        showToast(`\u2713 Submodule "${path}" initialis\xE9`);
+        const updated = await window.gitAPI.getSubmodules();
+        setSubmodules(updated.submodules ?? []);
+      } else {
+        showToast(`Erreur : ${r.error}`, "err");
+      }
+    };
+    const handleUpdateSubmodule = async (path) => {
+      const r = await window.gitAPI.updateSubmodule(path);
+      if (r.success) {
+        showToast(`\u2713 Submodule "${path}" mis \xE0 jour`);
+        const updated = await window.gitAPI.getSubmodules();
+        setSubmodules(updated.submodules ?? []);
+      } else {
+        showToast(`Erreur : ${r.error}`, "err");
+      }
+    };
+    const handleAddRemote = async () => {
+      const name = await showPrompt("Nom du remote :");
+      if (!name)
+        return;
+      const url = await showPrompt("URL du remote :");
+      if (!url)
+        return;
+      const r = await window.gitAPI.addRemote(name, url);
+      if (r.success) {
+        showToast(`\u2713 Remote "${name}" ajout\xE9`);
+        const updated = await window.gitAPI.getRemotes();
+        setRemotes(updated.remotes ?? []);
+      } else {
+        showToast(`Erreur : ${r.error}`, "err");
+      }
+    };
+    const handleRemoveRemote = async (name) => {
+      const ok = await showConfirm(`Supprimer le remote "${name}" ?`, true);
+      if (!ok)
+        return;
+      const r = await window.gitAPI.removeRemote(name);
+      if (r.success) {
+        showToast(`Remote "${name}" supprim\xE9`);
+        const updated = await window.gitAPI.getRemotes();
+        setRemotes(updated.remotes ?? []);
+      } else {
+        showToast(`Erreur : ${r.error}`, "err");
+      }
+    };
+    const handleRenameRemote = async (name) => {
+      const newName = await showPrompt(`Renommer "${name}" en :`, name);
+      if (!newName || newName === name)
+        return;
+      const r = await window.gitAPI.renameRemote(name, newName);
+      if (r.success) {
+        showToast(`\u2713 Remote renomm\xE9 en "${newName}"`);
+        const updated = await window.gitAPI.getRemotes();
+        setRemotes(updated.remotes ?? []);
+      } else {
+        showToast(`Erreur : ${r.error}`, "err");
+      }
+    };
+    const handleFetchRemote = async (name) => {
+      const r = await window.gitAPI.fetchRemote(name);
+      if (r.success)
+        showToast(`\u2713 Fetch "${name}" r\xE9ussi`);
+      else
+        showToast(`Fetch \xE9chou\xE9 : ${r.error}`, "err");
+    };
+    const [repoMenuOpen, setRepoMenuOpen] = (0, import_react9.useState)(false);
+    const [branchFilter, setBranchFilter] = (0, import_react9.useState)("");
+    const repoMenuRef = (0, import_react9.useRef)(null);
+    (0, import_react9.useEffect)(() => {
+      const handler = (e) => {
+        if (repoMenuRef.current && !repoMenuRef.current.contains(e.target)) {
+          setRepoMenuOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", handler);
+      return () => document.removeEventListener("mousedown", handler);
+    }, []);
+    const localBranches = branches.filter((b) => !b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()));
+    const remoteBranches = branches.filter((b) => b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()));
+    const otherRecents = recentRepos.filter((r) => r !== repoPath);
+    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "sidebar" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-repo-area", ref: repoMenuRef }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "sb-repo-btn", onClick: () => setRepoMenuOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#3fb950" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })), /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-repo-name" }, repoName || "Ouvrir un d\xE9p\xF4t"), /* @__PURE__ */ import_react9.default.createElement("svg", { width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z" }))), repoMenuOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-repo-dropdown" }, /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: "sb-dropdown-item sb-open-item",
+        onClick: () => {
+          onOpenRepo();
+          setRepoMenuOpen(false);
+        }
+      },
+      /* @__PURE__ */ import_react9.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M.75 9.75a.75.75 0 0 0 0 1.5h14.5a.75.75 0 0 0 0-1.5H.75ZM0 2.75C0 2.336.336 2 .75 2h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 2.75ZM0 6.25C0 5.836.336 5.5.75 5.5h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 6.25Z" })),
+      "Ouvrir un d\xE9p\xF4t\u2026"
+    ), /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: "sb-dropdown-item sb-open-item",
+        onClick: () => {
+          onClone();
+          setRepoMenuOpen(false);
+        }
+      },
+      /* @__PURE__ */ import_react9.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })),
+      "Cloner depuis GitHub\u2026"
+    ), otherRecents.length > 0 && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-dropdown-sep" }), /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-dropdown-label" }, "R\xC9CENTS"), otherRecents.map((path) => /* @__PURE__ */ import_react9.default.createElement("div", { key: path, className: "sb-dropdown-item sb-recent-item" }, /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: "sb-recent-path",
+        onClick: () => {
+          onSetRepo(path);
+          setRepoMenuOpen(false);
+        },
+        title: path
+      },
+      /* @__PURE__ */ import_react9.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })),
+      /* @__PURE__ */ import_react9.default.createElement("span", null, path.split("/").pop()),
+      /* @__PURE__ */ import_react9.default.createElement("span", { className: "sb-recent-full" }, path)
+    ), /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: "sb-recent-remove",
+        title: "Retirer",
+        onClick: () => onRemoveRecent(path)
+      },
+      "\xD7"
+    )))))), repoPath && /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-search" }, /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z" })), /* @__PURE__ */ import_react9.default.createElement(
+      "input",
+      {
+        type: "text",
+        placeholder: "Filtrer les branches\u2026",
+        value: branchFilter,
+        onChange: (e) => setBranchFilter(e.target.value)
+      }
+    ), branchFilter && /* @__PURE__ */ import_react9.default.createElement("button", { className: "sb-filter-clear", onClick: () => setBranchFilter("") }, "\xD7")), repoPath && /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-sections" }, /* @__PURE__ */ import_react9.default.createElement(Section, { title: "LOCAL", count: localBranches.length, onAdd: onCreateBranch, addLabel: "Nouvelle branche" }, localBranches.length === 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-empty" }, "Aucune branche locale"), localBranches.map((b) => /* @__PURE__ */ import_react9.default.createElement(
+      BranchItem,
+      {
+        key: b.name,
+        name: b.name,
+        current: b.current,
+        currentBranch,
+        onCheckout: () => !b.current && onCheckout(b.name),
+        onDelete: () => onDeleteBranch(b.name),
+        onMerge: () => onMergeBranch(b.name),
+        onRename: () => onRenameBranch(b.name),
+        onCompare: !b.current ? () => onCompareBranch(b.name) : void 0,
+        onRebaseOnto: !b.current ? () => onRebaseOnto(b.name) : void 0,
+        onPush: () => onPushBranch(b.name),
+        onSetUpstream: () => onSetUpstream(b.name),
+        soloed: soloBranch === b.name,
+        muted: mutedBranches.has(b.name),
+        onToggleSolo: () => onToggleSolo(b.name),
+        onToggleMute: () => onToggleMute(b.name),
+        ahead: b.ahead,
+        behind: b.behind,
+        gone: b.gone
+      }
+    ))), remoteBranches.length > 0 && /* @__PURE__ */ import_react9.default.createElement(Section, { title: "REMOTE", count: remoteBranches.length, defaultOpen: false }, remoteBranches.map((b) => /* @__PURE__ */ import_react9.default.createElement(
+      BranchItem,
+      {
+        key: b.name,
+        name: b.name,
+        current: false,
+        remote: true,
+        currentBranch,
+        onCheckout: () => {
+          const localName = b.name.replace(/^remotes\/[^/]+\//, "");
+          onCheckout(localName);
+        },
+        onDeleteRemote: () => onDeleteRemoteBranch(b.name),
+        soloed: soloBranch === b.name,
+        muted: mutedBranches.has(b.name),
+        onToggleSolo: () => onToggleSolo(b.name),
+        onToggleMute: () => onToggleMute(b.name)
+      }
+    ))), /* @__PURE__ */ import_react9.default.createElement(
+      Section,
+      {
+        title: "TAGS",
+        count: tags.length,
+        defaultOpen: false,
+        onAdd: onCreateTag,
+        addLabel: "Nouveau tag"
+      },
+      tags.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-empty" }, "Aucun tag") : tags.map((t) => /* @__PURE__ */ import_react9.default.createElement(
+        TagItem,
+        {
+          key: t.name,
+          tag: t,
+          onDelete: () => onDeleteTag(t.name),
+          onPush: () => onPushTag(t.name),
+          onDeleteRemote: () => onDeleteRemoteTag(t.name)
+        }
+      ))
+    ), /* @__PURE__ */ import_react9.default.createElement(
+      Section,
+      {
+        title: "REMOTES",
+        count: remotes.length,
+        defaultOpen: false,
+        onAdd: handleAddRemote,
+        addLabel: "Ajouter un remote"
+      },
+      remotes.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-empty" }, "Aucun remote") : remotes.map((r) => /* @__PURE__ */ import_react9.default.createElement(
+        RemoteItem,
+        {
+          key: r.name,
+          remote: r,
+          onFetch: () => handleFetchRemote(r.name),
+          onRename: () => handleRenameRemote(r.name),
+          onRemove: () => handleRemoveRemote(r.name),
+          onCopyUrl: () => navigator.clipboard.writeText(r.fetchUrl)
+        }
+      ))
+    ), submodules.length > 0 && /* @__PURE__ */ import_react9.default.createElement(Section, { title: "SUBMODULES", count: submodules.length, defaultOpen: false }, submodules.map((sub) => /* @__PURE__ */ import_react9.default.createElement(
+      SubmoduleItem,
+      {
+        key: sub.path,
+        sub,
+        onInit: () => handleInitSubmodule(sub.path),
+        onUpdate: () => handleUpdateSubmodule(sub.path)
+      }
+    ))), /* @__PURE__ */ import_react9.default.createElement(
+      Section,
+      {
+        title: "WORKTREES",
+        count: worktrees.length,
+        defaultOpen: false,
+        onAdd: handleAddWorktree,
+        addLabel: "Ajouter un worktree"
+      },
+      worktrees.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-empty" }, "Aucun worktree") : worktrees.map((wt) => /* @__PURE__ */ import_react9.default.createElement(
+        WorktreeItem,
+        {
+          key: wt.path,
+          wt,
+          onOpen: () => onSetRepo(wt.path),
+          onRemove: () => handleRemoveWorktree(wt.path)
+        }
+      ))
+    ), /* @__PURE__ */ import_react9.default.createElement(Section, { title: "REFLOG", count: reflog.length, defaultOpen: false }, reflog.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-empty" }, "Reflog vide") : reflog.map((entry, i) => /* @__PURE__ */ import_react9.default.createElement(
+      ReflogItem,
+      {
+        key: i,
+        entry,
+        onSelect: () => onSelectCommit(entry.hash)
+      }
+    ))), /* @__PURE__ */ import_react9.default.createElement(
+      Section,
+      {
+        title: "STASH",
+        count: stashes.length,
+        defaultOpen: false,
+        onAdd: onCreateStash,
+        addLabel: "Cr\xE9er un stash"
+      },
+      stashes.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-empty" }, "Aucun stash") : stashes.map((s) => /* @__PURE__ */ import_react9.default.createElement(
+        StashItem,
+        {
+          key: s.index,
+          stash: s,
+          onApply: () => onApplyStash(s.index),
+          onPop: () => onPopStash(s.index),
+          onDrop: () => onDropStash(s.index),
+          onPreview: onPreviewStash ? () => onPreviewStash(s.index, s.message) : void 0
+        }
+      ))
+    )), !repoPath && /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-no-repo" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "sb-open-btn", onClick: onOpenRepo }, "Ouvrir un d\xE9p\xF4t"), /* @__PURE__ */ import_react9.default.createElement("button", { className: "sb-open-btn sb-clone-btn", onClick: onClone }, /* @__PURE__ */ import_react9.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })), "Cloner depuis GitHub"), recentRepos.length > 0 && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "sb-recents-title" }, "R\xC9CENTS"), recentRepos.map((path) => /* @__PURE__ */ import_react9.default.createElement("button", { key: path, className: "sb-recent-btn", onClick: () => onSetRepo(path), title: path }, /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })), path.split("/").pop())))));
+  }
+
+  // ../src/renderer/src/components/InteractiveRebase/InteractiveRebase.tsx
+  var import_react10 = __toESM(require_react());
   var ACTIONS = ["pick", "reword", "squash", "fixup", "drop"];
   var ACTION_COLORS = {
     pick: "#3fb950",
@@ -11113,12 +11694,12 @@ Signed-off-by: ` : full;
     drop: "#f85149"
   };
   function InteractiveRebase({ baseHash, onClose, onSuccess, showToast }) {
-    const [entries, setEntries] = (0, import_react9.useState)([]);
-    const [loading, setLoading] = (0, import_react9.useState)(true);
-    const [running, setRunning] = (0, import_react9.useState)(false);
-    const dragIndex = (0, import_react9.useRef)(null);
-    const [dragOver, setDragOver] = (0, import_react9.useState)(null);
-    (0, import_react9.useEffect)(() => {
+    const [entries, setEntries] = (0, import_react10.useState)([]);
+    const [loading, setLoading] = (0, import_react10.useState)(true);
+    const [running, setRunning] = (0, import_react10.useState)(false);
+    const dragIndex = (0, import_react10.useRef)(null);
+    const [dragOver, setDragOver] = (0, import_react10.useState)(null);
+    (0, import_react10.useEffect)(() => {
       window.gitAPI.getRebaseSequence(baseHash).then((r) => {
         setEntries(r.commits.map((c) => ({ ...c, action: "pick" })));
         setLoading(false);
@@ -11162,7 +11743,7 @@ Signed-off-by: ` : full;
         showToast(`Rebase \xE9chou\xE9 : ${r.error}`, "err");
       }
     };
-    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "ir-overlay", onMouseDown: (e) => e.target === e.currentTarget && onClose() }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "ir-panel" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react9.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react9.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react9.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react9.default.createElement("div", { className: "ir-hint" }, "Glissez pour r\xE9ordonner \xB7 Changez l'action avec le menu d\xE9roulant"), /* @__PURE__ */ import_react9.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react9.default.createElement("div", { className: "ir-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "ir-empty" }, "Aucun commit \xE0 rebaser"), entries.map((entry, i) => /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-overlay", onMouseDown: (e) => e.target === e.currentTarget && onClose() }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-panel" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react10.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react10.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-hint" }, "Glissez pour r\xE9ordonner \xB7 Changez l'action avec le menu d\xE9roulant"), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-empty" }, "Aucun commit \xE0 rebaser"), entries.map((entry, i) => /* @__PURE__ */ import_react10.default.createElement(
       "div",
       {
         key: entry.hash,
@@ -11173,8 +11754,8 @@ Signed-off-by: ` : full;
         onDrop: () => handleDrop(i),
         onDragEnd: () => setDragOver(null)
       },
-      /* @__PURE__ */ import_react9.default.createElement("span", { className: "ir-drag-handle", title: "Glisser pour r\xE9ordonner" }, "\u283F"),
-      /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-drag-handle", title: "Glisser pour r\xE9ordonner" }, "\u283F"),
+      /* @__PURE__ */ import_react10.default.createElement(
         "select",
         {
           className: "ir-action-select",
@@ -11182,11 +11763,11 @@ Signed-off-by: ` : full;
           onChange: (e) => setAction(i, e.target.value),
           style: { color: ACTION_COLORS[entry.action] }
         },
-        ACTIONS.map((a) => /* @__PURE__ */ import_react9.default.createElement("option", { key: a, value: a }, a))
+        ACTIONS.map((a) => /* @__PURE__ */ import_react10.default.createElement("option", { key: a, value: a }, a))
       ),
-      /* @__PURE__ */ import_react9.default.createElement("code", { className: "ir-hash" }, entry.shortHash),
-      /* @__PURE__ */ import_react9.default.createElement("span", { className: "ir-msg" }, entry.message)
-    ))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "ir-footer" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "ir-cancel", onClick: onClose }, "Annuler"), /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("code", { className: "ir-hash" }, entry.shortHash),
+      /* @__PURE__ */ import_react10.default.createElement("span", { className: "ir-msg" }, entry.message)
+    ))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "ir-footer" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "ir-cancel", onClick: onClose }, "Annuler"), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "ir-launch",
@@ -11200,32 +11781,41 @@ Signed-off-by: ` : full;
   // src/webview/app.tsx
   function VertexApp() {
     const toast = useToast();
-    const showToast = (0, import_react10.useCallback)((msg, type) => {
+    const showToast = (0, import_react11.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const [commits, setCommits] = (0, import_react10.useState)([]);
-    const [branches, setBranches] = (0, import_react10.useState)([]);
-    const [currentBranch, setCurrentBranch] = (0, import_react10.useState)("");
-    const [repoName, setRepoName] = (0, import_react10.useState)("");
-    const [selectedCommit, setSelectedCommit] = (0, import_react10.useState)(null);
-    const [wipCount, setWipCount] = (0, import_react10.useState)(0);
-    const [conflictFiles, setConflictFiles] = (0, import_react10.useState)([]);
-    const [conflictMode, setConflictMode] = (0, import_react10.useState)(null);
-    const [searchQuery, setSearchQuery] = (0, import_react10.useState)("");
-    const [searchMatches, setSearchMatches] = (0, import_react10.useState)(-1);
-    const [rightW, setRightW] = (0, import_react10.useState)(380);
-    const [showAllBranches, setShowAllBranches] = (0, import_react10.useState)(true);
-    const [stashCount, setStashCount] = (0, import_react10.useState)(0);
-    const [loading, setLoading] = (0, import_react10.useState)(false);
-    const [lastFetch, setLastFetch] = (0, import_react10.useState)(null);
-    const [rebaseHash, setRebaseHash] = (0, import_react10.useState)(null);
-    const isLoadingRef = (0, import_react10.useRef)(false);
-    const showAllRef = (0, import_react10.useRef)(showAllBranches);
+    const [commits, setCommits] = (0, import_react11.useState)([]);
+    const [branches, setBranches] = (0, import_react11.useState)([]);
+    const [currentBranch, setCurrentBranch] = (0, import_react11.useState)("");
+    const [repoName, setRepoName] = (0, import_react11.useState)("");
+    const [selectedCommit, setSelectedCommit] = (0, import_react11.useState)(null);
+    const [wipCount, setWipCount] = (0, import_react11.useState)(0);
+    const [conflictFiles, setConflictFiles] = (0, import_react11.useState)([]);
+    const [conflictMode, setConflictMode] = (0, import_react11.useState)(null);
+    const [searchQuery, setSearchQuery] = (0, import_react11.useState)("");
+    const [searchMatches, setSearchMatches] = (0, import_react11.useState)(-1);
+    const [rightW, setRightW] = (0, import_react11.useState)(380);
+    const [showAllBranches, setShowAllBranches] = (0, import_react11.useState)(true);
+    const [stashCount, setStashCount] = (0, import_react11.useState)(0);
+    const [stashes, setStashes] = (0, import_react11.useState)([]);
+    const [tags, setTags] = (0, import_react11.useState)([]);
+    const [soloBranch, setSoloBranch] = (0, import_react11.useState)(null);
+    const [mutedBranches, setMutedBranches] = (0, import_react11.useState)(/* @__PURE__ */ new Set());
+    const [sidebarOpen, setSidebarOpen] = (0, import_react11.useState)(true);
+    const [loading, setLoading] = (0, import_react11.useState)(false);
+    const [lastFetch, setLastFetch] = (0, import_react11.useState)(null);
+    const [rebaseHash, setRebaseHash] = (0, import_react11.useState)(null);
+    const isLoadingRef = (0, import_react11.useRef)(false);
+    const showAllRef = (0, import_react11.useRef)(showAllBranches);
     showAllRef.current = showAllBranches;
-    const loadRepoData = (0, import_react10.useCallback)(async (silent = false) => {
+    const soloRef = (0, import_react11.useRef)(soloBranch);
+    soloRef.current = soloBranch;
+    const mutedRef = (0, import_react11.useRef)(mutedBranches);
+    mutedRef.current = mutedBranches;
+    const loadRepoData = (0, import_react11.useCallback)(async (silent = false) => {
       if (isLoadingRef.current)
         return;
       isLoadingRef.current = true;
@@ -11233,7 +11823,15 @@ Signed-off-by: ` : full;
         setLoading(true);
       try {
         const branchRes = await window.gitAPI.getBranches();
-        const logRes = await window.gitAPI.getLog({ maxCount: 500, all: showAllRef.current });
+        const refForGit = (n) => n.replace(/^remotes\//, "");
+        let logOpts = { maxCount: 500, all: showAllRef.current };
+        if (soloRef.current) {
+          logOpts = { maxCount: 500, refs: [refForGit(soloRef.current)] };
+        } else if (mutedRef.current.size > 0 && branchRes?.branches) {
+          const visible = branchRes.branches.filter((b) => !mutedRef.current.has(b.name)).map((b) => refForGit(b.name));
+          logOpts = { maxCount: 500, refs: visible.length ? visible : ["HEAD"] };
+        }
+        const logRes = await window.gitAPI.getLog(logOpts);
         if (logRes?.commits)
           setCommits(logRes.commits);
         if (branchRes?.branches) {
@@ -11241,6 +11839,11 @@ Signed-off-by: ` : full;
           const cur = branchRes.branches.find((b) => b.current);
           if (cur)
             setCurrentBranch(cur.name);
+        }
+        try {
+          const tg = await window.gitAPI.getTags();
+          setTags(tg?.tags ?? []);
+        } catch {
         }
         const [conflictRes, modeRes] = await Promise.all([
           window.gitAPI.getConflictedFiles(),
@@ -11252,6 +11855,7 @@ Signed-off-by: ` : full;
         setWipCount((ch?.staged?.length ?? 0) + (ch?.unstaged?.length ?? 0) + (ch?.untracked?.length ?? 0));
         try {
           const st = await window.gitAPI.getStashes();
+          setStashes(st?.stashes ?? []);
           setStashCount(st?.stashes?.length ?? 0);
         } catch {
         }
@@ -11267,10 +11871,10 @@ Signed-off-by: ` : full;
           setLoading(false);
       }
     }, []);
-    (0, import_react10.useEffect)(() => {
+    (0, import_react11.useEffect)(() => {
       loadRepoData();
     }, [loadRepoData]);
-    (0, import_react10.useEffect)(() => {
+    (0, import_react11.useEffect)(() => {
       const handler = () => loadRepoData(true);
       window.gitAPI.onRepoChanged(handler);
       window.gitAPI.onWorkingChanged(handler);
@@ -11279,14 +11883,14 @@ Signed-off-by: ` : full;
         window.gitAPI.offWorkingChanged(handler);
       };
     }, [loadRepoData]);
-    (0, import_react10.useEffect)(() => {
+    (0, import_react11.useEffect)(() => {
       if (!selectedCommit || selectedCommit.hash === "__WIP__")
         return;
       const still = commits.find((c) => c.hash === selectedCommit.hash);
       if (!still)
         setSelectedCommit(null);
     }, [commits]);
-    const doUndo = (0, import_react10.useCallback)(async () => {
+    const doUndo = (0, import_react11.useCallback)(async () => {
       const r = await window.gitAPI.undoLastAction();
       if (r && r.success === false)
         toast.error(r.error ?? "Impossible d'annuler");
@@ -11294,7 +11898,7 @@ Signed-off-by: ` : full;
         toast.success("\u2713 Annul\xE9");
       await loadRepoData();
     }, [toast, loadRepoData]);
-    const runOp = (0, import_react10.useCallback)(async (label, op, undoable = false) => {
+    const runOp = (0, import_react11.useCallback)(async (label, op, undoable = false) => {
       const r = await op();
       if (r && r.success === false)
         showToast(r.error ?? `${label} a \xE9chou\xE9`, "err");
@@ -11306,59 +11910,109 @@ Signed-off-by: ` : full;
         showToast(`\u2713 ${label}`);
       await loadRepoData();
     }, [showToast, toast, doUndo, loadRepoData]);
-    const handleCheckout = (0, import_react10.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
-    const handleCherryPick = (0, import_react10.useCallback)((hash) => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash)), [runOp]);
-    const handleRevert = (0, import_react10.useCallback)((hash) => runOp("Revert", () => window.gitAPI.revert(hash)), [runOp]);
-    const handleReset = (0, import_react10.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
-    const handleCreateTag = (0, import_react10.useCallback)(async (hash) => {
+    const handleCheckout = (0, import_react11.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
+    const handleCherryPick = (0, import_react11.useCallback)((hash) => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash)), [runOp]);
+    const handleRevert = (0, import_react11.useCallback)((hash) => runOp("Revert", () => window.gitAPI.revert(hash)), [runOp]);
+    const handleReset = (0, import_react11.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
+    const handleCreateTag = (0, import_react11.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom du tag");
       if (name)
         runOp("Tag cr\xE9\xE9", () => window.gitAPI.createTag(name, hash));
     }, [runOp]);
-    const handleCreateBranchAt = (0, import_react10.useCallback)(async (hash) => {
+    const handleCreateBranchAt = (0, import_react11.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp("Branche cr\xE9\xE9e", () => window.gitAPI.createBranchAt(name, hash, true));
     }, [runOp]);
-    const handleDropCommit = (0, import_react10.useCallback)(async (hash) => {
+    const handleDropCommit = (0, import_react11.useCallback)(async (hash) => {
       const ok = await window.gitAPI.uiConfirm(`Supprimer le commit ${hash.slice(0, 7)} ? Cette action r\xE9\xE9crit l'historique.`);
       if (!ok)
         return;
       setSelectedCommit(null);
       await runOp("Commit supprim\xE9", () => window.gitAPI.dropCommit(hash), true);
     }, [runOp]);
-    const handleMoveCommit = (0, import_react10.useCallback)((hash, direction) => runOp("Commit d\xE9plac\xE9", () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
-    const handleMergeBranch = (0, import_react10.useCallback)((name) => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true), [runOp]);
-    const handleRebaseCurrentOnto = (0, import_react10.useCallback)((name) => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true), [runOp]);
-    const handleRenameBranch = (0, import_react10.useCallback)(async (name) => {
+    const handleMoveCommit = (0, import_react11.useCallback)((hash, direction) => runOp("Commit d\xE9plac\xE9", () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
+    const handleMergeBranch = (0, import_react11.useCallback)((name) => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true), [runOp]);
+    const handleRebaseCurrentOnto = (0, import_react11.useCallback)((name) => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true), [runOp]);
+    const handleRenameBranch = (0, import_react11.useCallback)(async (name) => {
       const newName = await window.gitAPI.uiPrompt("Nouveau nom de branche", name);
       if (newName && newName !== name)
         runOp("Branche renomm\xE9e", () => window.gitAPI.renameBranch(name, newName));
     }, [runOp]);
-    const handleDeleteBranch = (0, import_react10.useCallback)(async (name) => {
+    const handleDeleteBranch = (0, import_react11.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer la branche "${name}" ?`)) {
         runOp("Branche supprim\xE9e", () => window.gitAPI.deleteBranch(name));
       }
     }, [runOp]);
-    const handlePushBranch = (0, import_react10.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
-    const handleSetUpstream = (0, import_react10.useCallback)((name) => runOp("Upstream d\xE9fini", () => window.gitAPI.setUpstream(name)), [runOp]);
-    const handleDeleteRemoteBranch = (0, import_react10.useCallback)(async (ref) => {
+    const handlePushBranch = (0, import_react11.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
+    const handleSetUpstream = (0, import_react11.useCallback)((name) => runOp("Upstream d\xE9fini", () => window.gitAPI.setUpstream(name)), [runOp]);
+    const handleDeleteRemoteBranch = (0, import_react11.useCallback)(async (ref) => {
       if (await window.gitAPI.uiConfirm(`Supprimer la branche distante "${ref}" ?`)) {
         runOp("Branche distante supprim\xE9e", () => window.gitAPI.deleteRemoteBranch(ref));
       }
     }, [runOp]);
-    const handlePushTag = (0, import_react10.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
-    const handleDeleteTag = (0, import_react10.useCallback)(async (name) => {
+    const handlePushTag = (0, import_react11.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
+    const handleDeleteTag = (0, import_react11.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le tag "${name}" ?`)) {
         runOp("Tag supprim\xE9", () => window.gitAPI.deleteTag(name));
       }
     }, [runOp]);
-    const handleDeleteRemoteTag = (0, import_react10.useCallback)(async (name) => {
+    const handleDeleteRemoteTag = (0, import_react11.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le tag distant "${name}" ?`)) {
         runOp("Tag distant supprim\xE9", () => window.gitAPI.deleteRemoteTag(name));
       }
     }, [runOp]);
-    const handleBranchDrop = (0, import_react10.useCallback)(async (branch, hash, action) => {
+    const loadStashes = (0, import_react11.useCallback)(async () => {
+      try {
+        const st = await window.gitAPI.getStashes();
+        setStashes(st?.stashes ?? []);
+        setStashCount(st?.stashes?.length ?? 0);
+      } catch {
+      }
+    }, []);
+    const showPrompt = (0, import_react11.useCallback)(async (msg, def) => {
+      const r = await window.gitAPI.uiPrompt(msg, def);
+      return r ?? null;
+    }, []);
+    const showConfirm = (0, import_react11.useCallback)((msg) => window.gitAPI.uiConfirm(msg), []);
+    const handleApplyStash = (0, import_react11.useCallback)((index) => runOp("Stash appliqu\xE9", () => window.gitAPI.applyStash(index)), [runOp]);
+    const handlePopStashIndex = (0, import_react11.useCallback)((index) => runOp("Stash d\xE9pil\xE9", () => window.gitAPI.popStash(index)), [runOp]);
+    const handleDropStash = (0, import_react11.useCallback)(async (index) => {
+      if (await window.gitAPI.uiConfirm(`Supprimer le stash @{${index}} ?`)) {
+        runOp("Stash supprim\xE9", () => window.gitAPI.dropStash(index));
+      }
+    }, [runOp]);
+    const handleCreateTagPrompt = (0, import_react11.useCallback)(async () => {
+      const name = await window.gitAPI.uiPrompt("Nom du tag (sur HEAD)");
+      if (name)
+        runOp("Tag cr\xE9\xE9", () => window.gitAPI.createTag(name));
+    }, [runOp]);
+    const handleSelectCommitByHash = (0, import_react11.useCallback)((hash) => {
+      const found = commits.find((c) => c.hash === hash || c.hash.startsWith(hash));
+      if (found)
+        setSelectedCommit(found);
+    }, [commits]);
+    const handleToggleSolo = (0, import_react11.useCallback)((name) => {
+      setSoloBranch((prev) => {
+        const next = prev === name ? null : name;
+        soloRef.current = next;
+        return next;
+      });
+      setTimeout(() => loadRepoData(), 0);
+    }, [loadRepoData]);
+    const handleToggleMute = (0, import_react11.useCallback)((name) => {
+      setMutedBranches((prev) => {
+        const next = new Set(prev);
+        if (next.has(name))
+          next.delete(name);
+        else
+          next.add(name);
+        mutedRef.current = next;
+        return next;
+      });
+      setTimeout(() => loadRepoData(), 0);
+    }, [loadRepoData]);
+    const handleBranchDrop = (0, import_react11.useCallback)(async (branch, hash, action) => {
       if (action === "reset") {
         const ok = await window.gitAPI.uiConfirm(`R\xE9initialiser ${branch} sur ${hash.slice(0, 7)} ?`);
         if (!ok)
@@ -11367,7 +12021,7 @@ Signed-off-by: ` : full;
       const op = action === "reset" ? () => window.gitAPI.moveBranchTo(branch, hash) : action === "rebase" ? () => window.gitAPI.rebaseBranchOnto(branch, hash) : () => window.gitAPI.mergeCommitInto(branch, hash);
       await runOp(action === "reset" ? "Branche r\xE9initialis\xE9e" : action === "rebase" ? "Rebase effectu\xE9" : "Merge effectu\xE9", op, true);
     }, [runOp]);
-    const handleConflictFinish = (0, import_react10.useCallback)(async (action, message) => {
+    const handleConflictFinish = (0, import_react11.useCallback)(async (action, message) => {
       const mode = conflictMode ?? action;
       let r;
       if (mode === "rebase")
@@ -11384,7 +12038,7 @@ Signed-off-by: ` : full;
         showToast(mode === "rebase" ? "\u2713 Rebase continu\xE9" : "\u2713 Conflits r\xE9solus");
       await loadRepoData();
     }, [conflictMode, showToast, loadRepoData]);
-    const handleConflictAbort = (0, import_react10.useCallback)(async () => {
+    const handleConflictAbort = (0, import_react11.useCallback)(async () => {
       if (conflictMode === "merge")
         await window.gitAPI.abortMerge();
       else if (conflictMode === "cherry-pick")
@@ -11396,37 +12050,37 @@ Signed-off-by: ` : full;
       showToast("Op\xE9ration abandonn\xE9e");
       await loadRepoData();
     }, [conflictMode, showToast, loadRepoData]);
-    const handleOpenResolver = (0, import_react10.useCallback)((file) => {
+    const handleOpenResolver = (0, import_react11.useCallback)((file) => {
       window.gitAPI.openConflict(file);
     }, []);
-    const handleOpenFileDiff = (0, import_react10.useCallback)((target) => {
+    const handleOpenFileDiff = (0, import_react11.useCallback)((target) => {
       window.gitAPI.openDiff(target);
     }, []);
-    const handleFetch = (0, import_react10.useCallback)(async () => {
+    const handleFetch = (0, import_react11.useCallback)(async () => {
       await runOp("Fetch", () => window.gitAPI.fetch());
       setLastFetch(/* @__PURE__ */ new Date());
     }, [runOp]);
-    const handleOpenDesktop = (0, import_react10.useCallback)(() => window.gitAPI.openDesktop(), []);
-    const handlePull = (0, import_react10.useCallback)(() => runOp("Pull", () => window.gitAPI.pull()), [runOp]);
-    const handlePush = (0, import_react10.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
-    const handleUndo = (0, import_react10.useCallback)(() => runOp("Annul\xE9", () => window.gitAPI.undoLastAction()), [runOp]);
-    const handleRedo = (0, import_react10.useCallback)(() => runOp("R\xE9tabli", () => window.gitAPI.redoLastAction()), [runOp]);
-    const handleStash = (0, import_react10.useCallback)(() => runOp("Stash cr\xE9\xE9", () => window.gitAPI.createStash()), [runOp]);
-    const handlePop = (0, import_react10.useCallback)(() => runOp("Stash appliqu\xE9", () => window.gitAPI.popStash(0)), [runOp]);
-    const handleTerminal = (0, import_react10.useCallback)(() => window.gitAPI.openTerminal(), []);
-    const handleNewBranch = (0, import_react10.useCallback)(async () => {
+    const handleOpenDesktop = (0, import_react11.useCallback)(() => window.gitAPI.openDesktop(), []);
+    const handlePull = (0, import_react11.useCallback)(() => runOp("Pull", () => window.gitAPI.pull()), [runOp]);
+    const handlePush = (0, import_react11.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
+    const handleUndo = (0, import_react11.useCallback)(() => runOp("Annul\xE9", () => window.gitAPI.undoLastAction()), [runOp]);
+    const handleRedo = (0, import_react11.useCallback)(() => runOp("R\xE9tabli", () => window.gitAPI.redoLastAction()), [runOp]);
+    const handleStash = (0, import_react11.useCallback)(() => runOp("Stash cr\xE9\xE9", () => window.gitAPI.createStash()), [runOp]);
+    const handlePop = (0, import_react11.useCallback)(() => runOp("Stash appliqu\xE9", () => window.gitAPI.popStash(0)), [runOp]);
+    const handleTerminal = (0, import_react11.useCallback)(() => window.gitAPI.openTerminal(), []);
+    const handleNewBranch = (0, import_react11.useCallback)(async () => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp("Branche cr\xE9\xE9e", () => window.gitAPI.createBranch(name));
     }, [runOp]);
-    const handleToggleAllBranches = (0, import_react10.useCallback)(() => {
+    const handleToggleAllBranches = (0, import_react11.useCallback)(() => {
       setShowAllBranches((v) => {
         showAllRef.current = !v;
         return !v;
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const startResizeRight = (0, import_react10.useCallback)((e) => {
+    const startResizeRight = (0, import_react11.useCallback)((e) => {
       e.preventDefault();
       const startX = e.clientX;
       const startW = rightW;
@@ -11441,15 +12095,15 @@ Signed-off-by: ` : full;
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     }, [rightW]);
-    const [viewportW, setViewportW] = (0, import_react10.useState)(window.innerWidth);
-    (0, import_react10.useEffect)(() => {
+    const [viewportW, setViewportW] = (0, import_react11.useState)(window.innerWidth);
+    (0, import_react11.useEffect)(() => {
       const onResize = () => setViewportW(window.innerWidth);
       window.addEventListener("resize", onResize);
       return () => window.removeEventListener("resize", onResize);
     }, []);
     const stacked = viewportW < 640;
     const showRight = !!selectedCommit || !!conflictMode;
-    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react11.default.createElement(
       CompactToolbar,
       {
         repoName,
@@ -11474,9 +12128,11 @@ Signed-off-by: ` : full;
         onRedo: handleRedo,
         onTerminal: handleTerminal,
         onOpenDesktop: handleOpenDesktop,
-        onRefresh: loadRepoData
+        onRefresh: loadRepoData,
+        sidebarOpen,
+        onToggleSidebar: () => setSidebarOpen((o) => !o)
       }
-    ), conflictMode && /* @__PURE__ */ import_react10.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react10.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} fichier${conflictFiles.length > 1 ? "s" : ""} en conflit` : " \u2014 conflits r\xE9solus, pr\xEAt \xE0 continuer"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react10.default.createElement(
+    ), conflictMode && /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react11.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} fichier${conflictFiles.length > 1 ? "s" : ""} en conflit` : " \u2014 conflits r\xE9solus, pr\xEAt \xE0 continuer"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react11.default.createElement(
       "button",
       {
         className: "gv-cb-btn gv-cb-continue",
@@ -11485,7 +12141,54 @@ Signed-off-by: ` : full;
         onClick: () => handleConflictFinish(conflictMode === "merge" ? "merge" : "rebase")
       },
       "Continuer"
-    ), /* @__PURE__ */ import_react10.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "app-body" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react10.default.createElement(
+    ), /* @__PURE__ */ import_react11.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react11.default.createElement("div", { className: "app-body" }, sidebarOpen && !stacked && /* @__PURE__ */ import_react11.default.createElement(
+      Sidebar,
+      {
+        repoPath: repoName || "repo",
+        repoName,
+        currentBranch,
+        branches,
+        recentRepos: [],
+        stashes,
+        tags,
+        onOpenRepo: () => {
+        },
+        onClone: () => {
+        },
+        onSetRepo: () => {
+        },
+        onRemoveRecent: () => {
+        },
+        onCheckout: handleCheckout,
+        onCreateBranch: handleNewBranch,
+        onDeleteBranch: handleDeleteBranch,
+        onMergeBranch: handleMergeBranch,
+        onRenameBranch: handleRenameBranch,
+        onRebaseOnto: handleRebaseCurrentOnto,
+        onPushBranch: handlePushBranch,
+        onDeleteRemoteBranch: handleDeleteRemoteBranch,
+        onSetUpstream: handleSetUpstream,
+        onCreateStash: handleStash,
+        onApplyStash: handleApplyStash,
+        onPopStash: handlePopStashIndex,
+        onDropStash: handleDropStash,
+        onRefreshStashes: loadStashes,
+        onCreateTag: handleCreateTagPrompt,
+        onDeleteTag: handleDeleteTag,
+        onPushTag: handlePushTag,
+        onDeleteRemoteTag: handleDeleteRemoteTag,
+        onSelectCommit: handleSelectCommitByHash,
+        onCompareBranch: () => {
+        },
+        soloBranch,
+        mutedBranches,
+        onToggleSolo: handleToggleSolo,
+        onToggleMute: handleToggleMute,
+        showToast,
+        showPrompt,
+        showConfirm
+      }
+    ), /* @__PURE__ */ import_react11.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react11.default.createElement(
       CommitGraph,
       {
         commits,
@@ -11524,7 +12227,7 @@ Signed-off-by: ` : full;
         loading,
         onSearchMatches: setSearchMatches
       }
-    )), showRight && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, !stacked && /* @__PURE__ */ import_react10.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react10.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: rightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react10.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react10.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react10.default.createElement(
+    )), showRight && /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, !stacked && /* @__PURE__ */ import_react11.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react11.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: rightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react11.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react11.default.createElement(
       RightPanel,
       {
         selectedCommit,
@@ -11556,7 +12259,7 @@ Signed-off-by: ` : full;
         onOpenResolver: handleOpenResolver,
         onOpenFileDiff: handleOpenFileDiff
       }
-    )))), rebaseHash && /* @__PURE__ */ import_react10.default.createElement(
+    )))), rebaseHash && /* @__PURE__ */ import_react11.default.createElement(
       InteractiveRebase,
       {
         baseHash: rebaseHash,
@@ -11567,7 +12270,7 @@ Signed-off-by: ` : full;
     ));
   }
   import_client.default.createRoot(document.getElementById("root")).render(
-    /* @__PURE__ */ import_react10.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react10.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react10.default.createElement(ToastProvider, null, /* @__PURE__ */ import_react10.default.createElement(VertexApp, null))))
+    /* @__PURE__ */ import_react11.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react11.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react11.default.createElement(ToastProvider, null, /* @__PURE__ */ import_react11.default.createElement(VertexApp, null))))
   );
 })();
 /*! Bundled license information:

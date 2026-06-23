@@ -13,6 +13,7 @@ import { ToastProvider, useToast } from '../../../src/renderer/src/components/To
 import CompactToolbar from './CompactToolbar'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
+import Sidebar from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
 
@@ -41,12 +42,19 @@ function VertexApp() {
   const [rightW, setRightW] = useState(380)
   const [showAllBranches, setShowAllBranches] = useState(true)
   const [stashCount, setStashCount] = useState(0)
+  const [stashes, setStashes] = useState<{ index: number; message: string }[]>([])
+  const [tags, setTags] = useState<{ name: string; hash: string }[]>([])
+  const [soloBranch, setSoloBranch] = useState<string | null>(null)
+  const [mutedBranches, setMutedBranches] = useState<Set<string>>(new Set())
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
   const isLoadingRef = useRef(false)
   const showAllRef = useRef(showAllBranches)
   showAllRef.current = showAllBranches
+  const soloRef = useRef(soloBranch); soloRef.current = soloBranch
+  const mutedRef = useRef(mutedBranches); mutedRef.current = mutedBranches
 
   // ── Data loading (mirrors desktop App.loadRepoData) ──────────
   // `silent` reloads (from file watchers) skip the loading flag so the toolbar
@@ -57,13 +65,29 @@ function VertexApp() {
     if (!silent) setLoading(true)
     try {
       const branchRes = await window.gitAPI.getBranches()
-      const logRes = await window.gitAPI.getLog({ maxCount: 500, all: showAllRef.current })
+      // Solo (show one branch) / mute (hide some) drive an explicit refs list,
+      // which takes precedence over --all in getLog.
+      const refForGit = (n: string) => n.replace(/^remotes\//, '')
+      let logOpts: { maxCount: number; all?: boolean; refs?: string[] } = { maxCount: 500, all: showAllRef.current }
+      if (soloRef.current) {
+        logOpts = { maxCount: 500, refs: [refForGit(soloRef.current)] }
+      } else if (mutedRef.current.size > 0 && branchRes?.branches) {
+        const visible = branchRes.branches
+          .filter((b: BranchInfo) => !mutedRef.current.has(b.name))
+          .map((b: BranchInfo) => refForGit(b.name))
+        logOpts = { maxCount: 500, refs: visible.length ? visible : ['HEAD'] }
+      }
+      const logRes = await window.gitAPI.getLog(logOpts)
       if (logRes?.commits) setCommits(logRes.commits)
       if (branchRes?.branches) {
         setBranches(branchRes.branches)
         const cur = branchRes.branches.find((b: BranchInfo) => b.current)
         if (cur) setCurrentBranch(cur.name)
       }
+      try {
+        const tg = await window.gitAPI.getTags()
+        setTags(tg?.tags ?? [])
+      } catch { /* ignore */ }
       const [conflictRes, modeRes] = await Promise.all([
         window.gitAPI.getConflictedFiles(),
         window.gitAPI.getConflictMode(),
@@ -74,6 +98,7 @@ function VertexApp() {
       setWipCount((ch?.staged?.length ?? 0) + (ch?.unstaged?.length ?? 0) + (ch?.untracked?.length ?? 0))
       try {
         const st = await window.gitAPI.getStashes()
+        setStashes(st?.stashes ?? [])
         setStashCount(st?.stashes?.length ?? 0)
       } catch { /* ignore */ }
       try {
@@ -185,6 +210,47 @@ function VertexApp() {
       runOp('Tag distant supprimé', () => window.gitAPI.deleteRemoteTag(name))
     }
   }, [runOp])
+
+  // ── Sidebar-specific handlers ────────────────────────────────
+  const loadStashes = useCallback(async () => {
+    try { const st = await window.gitAPI.getStashes(); setStashes(st?.stashes ?? []); setStashCount(st?.stashes?.length ?? 0) }
+    catch { /* ignore */ }
+  }, [])
+  const showPrompt = useCallback(async (msg: string, def?: string): Promise<string | null> => {
+    const r = await window.gitAPI.uiPrompt(msg, def)
+    return (r ?? null) as string | null
+  }, [])
+  const showConfirm = useCallback((msg: string): Promise<boolean> => window.gitAPI.uiConfirm(msg), [])
+  const handleApplyStash = useCallback((index: number) =>
+    runOp('Stash appliqué', () => window.gitAPI.applyStash(index)), [runOp])
+  const handlePopStashIndex = useCallback((index: number) =>
+    runOp('Stash dépilé', () => window.gitAPI.popStash(index)), [runOp])
+  const handleDropStash = useCallback(async (index: number) => {
+    if (await window.gitAPI.uiConfirm(`Supprimer le stash @{${index}} ?`)) {
+      runOp('Stash supprimé', () => window.gitAPI.dropStash(index))
+    }
+  }, [runOp])
+  const handleCreateTagPrompt = useCallback(async () => {
+    const name = await window.gitAPI.uiPrompt('Nom du tag (sur HEAD)')
+    if (name) runOp('Tag créé', () => window.gitAPI.createTag(name))
+  }, [runOp])
+  const handleSelectCommitByHash = useCallback((hash: string) => {
+    const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
+    if (found) setSelectedCommit(found)
+  }, [commits])
+  const handleToggleSolo = useCallback((name: string) => {
+    setSoloBranch(prev => { const next = prev === name ? null : name; soloRef.current = next; return next })
+    setTimeout(() => loadRepoData(), 0)
+  }, [loadRepoData])
+  const handleToggleMute = useCallback((name: string) => {
+    setMutedBranches(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name); else next.add(name)
+      mutedRef.current = next
+      return next
+    })
+    setTimeout(() => loadRepoData(), 0)
+  }, [loadRepoData])
 
   const handleBranchDrop = useCallback(async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => {
     if (action === 'reset') {
@@ -302,6 +368,8 @@ function VertexApp() {
         onTerminal={handleTerminal}
         onOpenDesktop={handleOpenDesktop}
         onRefresh={loadRepoData}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen(o => !o)}
       />
       {conflictMode && (
         <div className="gv-conflict-banner">
@@ -327,6 +395,48 @@ function VertexApp() {
         </div>
       )}
       <div className="app-body">
+        {sidebarOpen && !stacked && (
+          <Sidebar
+            repoPath={repoName || 'repo'}
+            repoName={repoName}
+            currentBranch={currentBranch}
+            branches={branches}
+            recentRepos={[]}
+            stashes={stashes}
+            tags={tags}
+            onOpenRepo={() => {}}
+            onClone={() => {}}
+            onSetRepo={() => {}}
+            onRemoveRecent={() => {}}
+            onCheckout={handleCheckout}
+            onCreateBranch={handleNewBranch}
+            onDeleteBranch={handleDeleteBranch}
+            onMergeBranch={handleMergeBranch}
+            onRenameBranch={handleRenameBranch}
+            onRebaseOnto={handleRebaseCurrentOnto}
+            onPushBranch={handlePushBranch}
+            onDeleteRemoteBranch={handleDeleteRemoteBranch}
+            onSetUpstream={handleSetUpstream}
+            onCreateStash={handleStash}
+            onApplyStash={handleApplyStash}
+            onPopStash={handlePopStashIndex}
+            onDropStash={handleDropStash}
+            onRefreshStashes={loadStashes}
+            onCreateTag={handleCreateTagPrompt}
+            onDeleteTag={handleDeleteTag}
+            onPushTag={handlePushTag}
+            onDeleteRemoteTag={handleDeleteRemoteTag}
+            onSelectCommit={handleSelectCommitByHash}
+            onCompareBranch={() => {}}
+            soloBranch={soloBranch}
+            mutedBranches={mutedBranches}
+            onToggleSolo={handleToggleSolo}
+            onToggleMute={handleToggleMute}
+            showToast={showToast}
+            showPrompt={showPrompt}
+            showConfirm={showConfirm}
+          />
+        )}
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph
             commits={commits}

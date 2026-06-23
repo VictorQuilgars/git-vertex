@@ -193,6 +193,13 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
       }
       case 'openDiff': return this._openDiff(args[0])
       case 'openConflict': return this._openConflict(args[0])
+      case 'selectDirectory': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
+          title: args[0] ?? 'Choisir un dossier',
+        })
+        return picked && picked.length > 0 ? picked[0].fsPath : null
+      }
       case 'zoomGet': return 1
       case 'zoomSet': return 1
       case 'uiPrompt': return vscode.window.showInputBox({ prompt: args[0], value: args[1] ?? '' })

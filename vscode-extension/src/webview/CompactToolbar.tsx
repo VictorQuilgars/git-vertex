@@ -27,6 +27,8 @@ interface Props {
   onTerminal: () => void
   onOpenDesktop: () => void
   onRefresh: () => void
+  sidebarOpen?: boolean
+  onToggleSidebar?: () => void
 }
 
 function IconBtn({ title, onClick, disabled, active, badge, hideNarrow, children }: {
@@ -91,6 +93,11 @@ export default function CompactToolbar(p: Props) {
         <line x1="364" y1="82" x2="256" y2="422" stroke="#58a6ff" strokeWidth="40" strokeLinecap="round" />
         <circle cx="256" cy="422" r="34" fill="#3fb950" />
       </svg>
+      {p.onToggleSidebar && (
+        <IconBtn title="Afficher/masquer le panneau latéral" onClick={p.onToggleSidebar} active={p.sidebarOpen}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0zM1.5 1.75v12.5c0 .138.112.25.25.25H6V1.5H1.75a.25.25 0 0 0-.25.25zM7.5 1.5v13h6.75a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H7.5z"/></svg>
+        </IconBtn>
+      )}
       {p.repoName && <span className="gvt-repo">{p.repoName}</span>}
 
       {/* Branch selector */}
