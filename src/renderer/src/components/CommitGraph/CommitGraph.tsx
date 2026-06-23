@@ -226,12 +226,13 @@ const IconTag = () => (
   </svg>
 )
 
-function RefChip({ pref, laneColor, onDoubleClick, onDragStartBranch, onDragEndBranch }: {
+function RefChip({ pref, laneColor, onDoubleClick, onDragStartBranch, onDragEndBranch, onContextMenu }: {
   pref: ProcessedRef
   laneColor?: string
   onDoubleClick?: (name: string) => void
   onDragStartBranch?: (name: string) => void
   onDragEndBranch?: () => void
+  onContextMenu?: (e: React.MouseEvent, pref: ProcessedRef) => void
 }) {
   const isDraggable = (pref.cls === 'rc-local' || pref.cls === 'rc-head') && !!pref.branchName
   const colorStyle = laneColor ? {
@@ -258,6 +259,7 @@ function RefChip({ pref, laneColor, onDoubleClick, onDragStartBranch, onDragEndB
           onDoubleClick(pref.branchName)
         }
       }}
+      onContextMenu={e => { if (onContextMenu) { e.preventDefault(); e.stopPropagation(); onContextMenu(e, pref) } }}
       style={colorStyle}
     >
       {pref.isHead && <span className="rc-check">✓</span>}
@@ -285,6 +287,17 @@ interface CommitGraphProps {
   onCreateTag: (hash: string) => void
   onCreateBranchAt: (hash: string) => void
   onCheckoutBranch?: (name: string) => void
+  // Branch chip context-menu actions (all optional — only provided actions show)
+  onMergeBranch?: (name: string) => void
+  onRebaseCurrentOnto?: (name: string) => void
+  onRenameBranch?: (name: string) => void
+  onDeleteBranch?: (name: string) => void
+  onPushBranch?: (name: string) => void
+  onSetUpstream?: (name: string) => void
+  onDeleteRemoteBranch?: (ref: string) => void
+  onPushTag?: (name: string) => void
+  onDeleteTag?: (name: string) => void
+  onDeleteRemoteTag?: (name: string) => void
   onInteractiveRebase?: (hash: string) => void
   onCheckoutCommit?: (hash: string) => void
   onEditMessage?: (hash: string) => void
@@ -312,6 +325,9 @@ export default function CommitGraph({
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onEditMessage,
   onCompareWorking, onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
   conflictMode = null, githubRepo = null, loading = false, onSearchMatches,
+  onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch,
+  onPushBranch, onSetUpstream, onDeleteRemoteBranch, onPushTag, onDeleteTag,
+  onDeleteRemoteTag,
 }: CommitGraphProps) {
   const { t } = useLang()
   const { getBool, get } = useSettings()
@@ -358,6 +374,7 @@ export default function CommitGraph({
     return computeGraphLayout([wip, ...commits])
   }, [commits, hasWipNode, headHash, conflictMode, wipCount])
   const [ctx, setCtx] = useState<CtxState | null>(null)
+  const [branchCtx, setBranchCtx] = useState<{ x: number; y: number; pref: ProcessedRef } | null>(null)
   const [dragBranch, setDragBranch] = useState<string | null>(null)
   const [dragOverRow, setDragOverRow] = useState<number | null>(null)
   const [drop, setDrop] = useState<DropState | null>(null)
@@ -648,6 +665,48 @@ export default function CommitGraph({
     ]
   }, [onBranchDrop, t])
 
+  // Right-click menu on a branch/tag chip. Only actions whose handler was
+  // provided are shown, so each host (desktop / VS Code) opts in independently.
+  const buildBranchMenu = useCallback((pref: ProcessedRef): MenuItemDef[] => {
+    const items: MenuItemDef[] = []
+    const name = pref.branchName
+
+    if (pref.cls === 'rc-tag') {
+      const tag = pref.display
+      items.push({ label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(tag) })
+      if (onPushTag) items.push({ label: '⬆ Pousser le tag', action: () => onPushTag(tag) })
+      if (onDeleteTag || onDeleteRemoteTag) items.push({ separator: true })
+      if (onDeleteTag) items.push({ label: '🗑 Supprimer (local)', action: () => onDeleteTag(tag), danger: true })
+      if (onDeleteRemoteTag) items.push({ label: '🗑 Supprimer (distant)', action: () => onDeleteRemoteTag(tag), danger: true })
+      return items
+    }
+
+    if (pref.cls === 'rc-remote' && name) {
+      if (onCheckoutBranch) items.push({ label: '✓ Checkout', action: () => onCheckoutBranch(name) })
+      if (onDeleteRemoteBranch) items.push({ label: '🗑 Supprimer la branche distante', action: () => onDeleteRemoteBranch(name), danger: true })
+      items.push({ label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(pref.display) })
+      return items
+    }
+
+    // Local or current (head) branch
+    if (!name) return items
+    if (!pref.isHead && onCheckoutBranch) items.push({ label: '✓ Checkout', action: () => onCheckoutBranch(name) })
+    if (!pref.isHead && onMergeBranch && currentBranch) items.push({ label: `⛙ Merger dans ${currentBranch}`, action: () => onMergeBranch(name) })
+    if (!pref.isHead && onRebaseCurrentOnto && currentBranch) items.push({ label: `⤵ Rebaser ${currentBranch} sur ${pref.display}`, action: () => onRebaseCurrentOnto(name) })
+    if (items.length) items.push({ separator: true })
+    if (onPushBranch) items.push({ label: '⬆ Push', action: () => onPushBranch(name) })
+    if (onSetUpstream) items.push({ label: '🔗 Définir l\'upstream', action: () => onSetUpstream(name) })
+    if (onRenameBranch) items.push({ label: '✏️ Renommer', action: () => onRenameBranch(name) })
+    items.push({ label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(name) })
+    if (!pref.isHead && onDeleteBranch) {
+      items.push({ separator: true })
+      items.push({ label: '🗑 Supprimer', action: () => onDeleteBranch(name), danger: true })
+    }
+    return items
+  }, [currentBranch, onCheckoutBranch, onMergeBranch, onRebaseCurrentOnto, onPushBranch,
+      onSetUpstream, onRenameBranch, onDeleteBranch, onDeleteRemoteBranch,
+      onPushTag, onDeleteTag, onDeleteRemoteTag])
+
   return (
     <div className="cg-container" ref={containerRef}>
       {/* ── Header ── */}
@@ -862,7 +921,8 @@ export default function CommitGraph({
                       >
                         <RefChip pref={primary} laneColor={commit.color} onDoubleClick={onCheckoutBranch}
                           onDragStartBranch={setDragBranch}
-                          onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
+                          onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
+                          onContextMenu={(e, pref) => setBranchCtx({ x: e.clientX, y: e.clientY, pref })} />
                         {stackCount > 0 && refExpand?.row !== commit.row && (
                           <span className="rc-stack-badge">+{stackCount}</span>
                         )}
@@ -936,6 +996,18 @@ export default function CommitGraph({
         />
       )}
 
+      {branchCtx && (() => {
+        const items = buildBranchMenu(branchCtx.pref)
+        if (items.length === 0) { return null }
+        return (
+          <ContextMenu
+            x={branchCtx.x} y={branchCtx.y}
+            items={items}
+            onClose={() => setBranchCtx(null)}
+          />
+        )
+      })()}
+
       {refExpand && (() => {
         const expandCommit = displayLayout.find(c => c.row === refExpand.row)
         if (!expandCommit) return null
@@ -955,7 +1027,8 @@ export default function CommitGraph({
             {hiddenPrefs.map((p, i) => (
               <RefChip key={i} pref={p} laneColor={expandCommit.color} onDoubleClick={onCheckoutBranch}
                 onDragStartBranch={setDragBranch}
-                onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }} />
+                onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
+                onContextMenu={(e, pref) => setBranchCtx({ x: e.clientX, y: e.clientY, pref })} />
             ))}
           </div>,
           document.body

@@ -9429,7 +9429,7 @@ Commits beyond this point will be lost for that branch.`,
   var IconMonitor = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M0 4s0-2 2-2h12s2 0 2 2v6s0 2-2 2h-4c0 .667.083 1.167.25 1.5H11a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1h.75c.167-.333.25-.833.25-1.5H2s-2 0-2-2V4zm1.398-.855a.758.758 0 0 0-.254.302A1.46 1.46 0 0 0 1 4v6c0 .325.078.502.145.602.07.105.17.188.302.254a1.464 1.464 0 0 0 .538.143L2.5 11h11l.515-.001a1.464 1.464 0 0 0 .538-.143.758.758 0 0 0 .302-.254A.858.858 0 0 0 15 10V4a.857.857 0 0 0-.145-.598.758.758 0 0 0-.302-.254A1.464 1.464 0 0 0 14.013 3H1.987a1.464 1.464 0 0 0-.589.145z" }));
   var IconCloud = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383z" }));
   var IconTag = () => /* @__PURE__ */ import_react7.default.createElement("svg", { width: ICON_SIZE, height: ICON_SIZE, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react7.default.createElement("path", { d: "M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0z" }), /* @__PURE__ */ import_react7.default.createElement("path", { d: "M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1zm0 5.586 7 7 4.586-4.586-7-7H2v4.586z" }));
-  function RefChip({ pref, laneColor, onDoubleClick, onDragStartBranch, onDragEndBranch }) {
+  function RefChip({ pref, laneColor, onDoubleClick, onDragStartBranch, onDragEndBranch, onContextMenu }) {
     const isDraggable = (pref.cls === "rc-local" || pref.cls === "rc-head") && !!pref.branchName;
     const colorStyle = laneColor ? {
       color: laneColor,
@@ -9455,6 +9455,13 @@ Commits beyond this point will be lost for that branch.`,
           e.stopPropagation();
           if (pref.cls !== "rc-tag" && onDoubleClick && pref.branchName) {
             onDoubleClick(pref.branchName);
+          }
+        },
+        onContextMenu: (e) => {
+          if (onContextMenu) {
+            e.preventDefault();
+            e.stopPropagation();
+            onContextMenu(e, pref);
           }
         },
         style: colorStyle
@@ -9488,7 +9495,17 @@ Commits beyond this point will be lost for that branch.`,
     conflictMode = null,
     githubRepo = null,
     loading = false,
-    onSearchMatches
+    onSearchMatches,
+    onMergeBranch,
+    onRebaseCurrentOnto,
+    onRenameBranch,
+    onDeleteBranch,
+    onPushBranch,
+    onSetUpstream,
+    onDeleteRemoteBranch,
+    onPushTag,
+    onDeleteTag,
+    onDeleteRemoteTag
   }) {
     const { t } = useLang();
     const { getBool, get } = useSettings();
@@ -9530,6 +9547,7 @@ Commits beyond this point will be lost for that branch.`,
       return computeGraphLayout([wip, ...commits]);
     }, [commits, hasWipNode, headHash, conflictMode, wipCount]);
     const [ctx, setCtx] = (0, import_react7.useState)(null);
+    const [branchCtx, setBranchCtx] = (0, import_react7.useState)(null);
     const [dragBranch, setDragBranch] = (0, import_react7.useState)(null);
     const [dragOverRow, setDragOverRow] = (0, import_react7.useState)(null);
     const [drop, setDrop] = (0, import_react7.useState)(null);
@@ -9804,6 +9822,66 @@ Commits beyond this point will be lost for that branch.`,
         { label: t("graph.drop.merge", d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, "merge") }
       ];
     }, [onBranchDrop, t]);
+    const buildBranchMenu = (0, import_react7.useCallback)((pref) => {
+      const items = [];
+      const name = pref.branchName;
+      if (pref.cls === "rc-tag") {
+        const tag = pref.display;
+        items.push({ label: "\u{1F4CB} Copier le nom", action: () => navigator.clipboard.writeText(tag) });
+        if (onPushTag)
+          items.push({ label: "\u2B06 Pousser le tag", action: () => onPushTag(tag) });
+        if (onDeleteTag || onDeleteRemoteTag)
+          items.push({ separator: true });
+        if (onDeleteTag)
+          items.push({ label: "\u{1F5D1} Supprimer (local)", action: () => onDeleteTag(tag), danger: true });
+        if (onDeleteRemoteTag)
+          items.push({ label: "\u{1F5D1} Supprimer (distant)", action: () => onDeleteRemoteTag(tag), danger: true });
+        return items;
+      }
+      if (pref.cls === "rc-remote" && name) {
+        if (onCheckoutBranch)
+          items.push({ label: "\u2713 Checkout", action: () => onCheckoutBranch(name) });
+        if (onDeleteRemoteBranch)
+          items.push({ label: "\u{1F5D1} Supprimer la branche distante", action: () => onDeleteRemoteBranch(name), danger: true });
+        items.push({ label: "\u{1F4CB} Copier le nom", action: () => navigator.clipboard.writeText(pref.display) });
+        return items;
+      }
+      if (!name)
+        return items;
+      if (!pref.isHead && onCheckoutBranch)
+        items.push({ label: "\u2713 Checkout", action: () => onCheckoutBranch(name) });
+      if (!pref.isHead && onMergeBranch && currentBranch)
+        items.push({ label: `\u26D9 Merger dans ${currentBranch}`, action: () => onMergeBranch(name) });
+      if (!pref.isHead && onRebaseCurrentOnto && currentBranch)
+        items.push({ label: `\u2935 Rebaser ${currentBranch} sur ${pref.display}`, action: () => onRebaseCurrentOnto(name) });
+      if (items.length)
+        items.push({ separator: true });
+      if (onPushBranch)
+        items.push({ label: "\u2B06 Push", action: () => onPushBranch(name) });
+      if (onSetUpstream)
+        items.push({ label: "\u{1F517} D\xE9finir l'upstream", action: () => onSetUpstream(name) });
+      if (onRenameBranch)
+        items.push({ label: "\u270F\uFE0F Renommer", action: () => onRenameBranch(name) });
+      items.push({ label: "\u{1F4CB} Copier le nom", action: () => navigator.clipboard.writeText(name) });
+      if (!pref.isHead && onDeleteBranch) {
+        items.push({ separator: true });
+        items.push({ label: "\u{1F5D1} Supprimer", action: () => onDeleteBranch(name), danger: true });
+      }
+      return items;
+    }, [
+      currentBranch,
+      onCheckoutBranch,
+      onMergeBranch,
+      onRebaseCurrentOnto,
+      onPushBranch,
+      onSetUpstream,
+      onRenameBranch,
+      onDeleteBranch,
+      onDeleteRemoteBranch,
+      onPushTag,
+      onDeleteTag,
+      onDeleteRemoteTag
+    ]);
     return /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-container", ref: containerRef }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-header" }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-h-refs", style: { width: refsColW } }, "BRANCH / TAG"), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeRefs }), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-h-graph", style: { width: svgW } }, "GRAPH"), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-h-msg" }, "COMMIT MESSAGE"), effShowAuthor && /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeAuthor }), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-h-author", style: { width: authorColW } }, "AUTHOR")), effShowDate && /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeDate }), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-h-date", style: { width: dateColW } }, "DATE")), effShowSha && /* @__PURE__ */ import_react7.default.createElement(import_react7.default.Fragment, null, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-col-handle", onMouseDown: startResizeSha }), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-h-sha", style: { width: shaColW } }, "SHA"))), /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-body", ref: bodyRef }, /* @__PURE__ */ import_react7.default.createElement("div", { className: "cg-scroll-content", style: { height: svgH, position: "relative" } }, /* @__PURE__ */ import_react7.default.createElement(
       "svg",
       {
@@ -10033,7 +10111,8 @@ Commits beyond this point will be lost for that branch.`,
               onDragEndBranch: () => {
                 setDragBranch(null);
                 setDragOverRow(null);
-              }
+              },
+              onContextMenu: (e, pref) => setBranchCtx({ x: e.clientX, y: e.clientY, pref })
             }
           ),
           stackCount > 0 && refExpand?.row !== commit.row && /* @__PURE__ */ import_react7.default.createElement("span", { className: "rc-stack-badge" }, "+", stackCount)
@@ -10061,7 +10140,21 @@ Commits beyond this point will be lost for that branch.`,
         items: buildDropItems(drop),
         onClose: () => setDrop(null)
       }
-    ), refExpand && (() => {
+    ), branchCtx && (() => {
+      const items = buildBranchMenu(branchCtx.pref);
+      if (items.length === 0) {
+        return null;
+      }
+      return /* @__PURE__ */ import_react7.default.createElement(
+        ContextMenu,
+        {
+          x: branchCtx.x,
+          y: branchCtx.y,
+          items,
+          onClose: () => setBranchCtx(null)
+        }
+      );
+    })(), refExpand && (() => {
       const expandCommit = displayLayout.find((c) => c.row === refExpand.row);
       if (!expandCommit)
         return null;
@@ -10097,7 +10190,8 @@ Commits beyond this point will be lost for that branch.`,
               onDragEndBranch: () => {
                 setDragBranch(null);
                 setDragOverRow(null);
-              }
+              },
+              onContextMenu: (e, pref) => setBranchCtx({ x: e.clientX, y: e.clientY, pref })
             }
           ))
         ),
@@ -11234,6 +11328,36 @@ Signed-off-by: ` : full;
       await runOp("Commit supprim\xE9", () => window.gitAPI.dropCommit(hash), true);
     }, [runOp]);
     const handleMoveCommit = (0, import_react10.useCallback)((hash, direction) => runOp("Commit d\xE9plac\xE9", () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
+    const handleMergeBranch = (0, import_react10.useCallback)((name) => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true), [runOp]);
+    const handleRebaseCurrentOnto = (0, import_react10.useCallback)((name) => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true), [runOp]);
+    const handleRenameBranch = (0, import_react10.useCallback)(async (name) => {
+      const newName = await window.gitAPI.uiPrompt("Nouveau nom de branche", name);
+      if (newName && newName !== name)
+        runOp("Branche renomm\xE9e", () => window.gitAPI.renameBranch(name, newName));
+    }, [runOp]);
+    const handleDeleteBranch = (0, import_react10.useCallback)(async (name) => {
+      if (await window.gitAPI.uiConfirm(`Supprimer la branche "${name}" ?`)) {
+        runOp("Branche supprim\xE9e", () => window.gitAPI.deleteBranch(name));
+      }
+    }, [runOp]);
+    const handlePushBranch = (0, import_react10.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
+    const handleSetUpstream = (0, import_react10.useCallback)((name) => runOp("Upstream d\xE9fini", () => window.gitAPI.setUpstream(name)), [runOp]);
+    const handleDeleteRemoteBranch = (0, import_react10.useCallback)(async (ref) => {
+      if (await window.gitAPI.uiConfirm(`Supprimer la branche distante "${ref}" ?`)) {
+        runOp("Branche distante supprim\xE9e", () => window.gitAPI.deleteRemoteBranch(ref));
+      }
+    }, [runOp]);
+    const handlePushTag = (0, import_react10.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
+    const handleDeleteTag = (0, import_react10.useCallback)(async (name) => {
+      if (await window.gitAPI.uiConfirm(`Supprimer le tag "${name}" ?`)) {
+        runOp("Tag supprim\xE9", () => window.gitAPI.deleteTag(name));
+      }
+    }, [runOp]);
+    const handleDeleteRemoteTag = (0, import_react10.useCallback)(async (name) => {
+      if (await window.gitAPI.uiConfirm(`Supprimer le tag distant "${name}" ?`)) {
+        runOp("Tag distant supprim\xE9", () => window.gitAPI.deleteRemoteTag(name));
+      }
+    }, [runOp]);
     const handleBranchDrop = (0, import_react10.useCallback)(async (branch, hash, action) => {
       if (action === "reset") {
         const ok = await window.gitAPI.uiConfirm(`R\xE9initialiser ${branch} sur ${hash.slice(0, 7)} ?`);
@@ -11384,6 +11508,16 @@ Signed-off-by: ` : full;
         onDropCommit: handleDropCommit,
         onMoveCommit: handleMoveCommit,
         onBranchDrop: handleBranchDrop,
+        onMergeBranch: handleMergeBranch,
+        onRebaseCurrentOnto: handleRebaseCurrentOnto,
+        onRenameBranch: handleRenameBranch,
+        onDeleteBranch: handleDeleteBranch,
+        onPushBranch: handlePushBranch,
+        onSetUpstream: handleSetUpstream,
+        onDeleteRemoteBranch: handleDeleteRemoteBranch,
+        onPushTag: handlePushTag,
+        onDeleteTag: handleDeleteTag,
+        onDeleteRemoteTag: handleDeleteRemoteTag,
         onInteractiveRebase: (hash) => setRebaseHash(hash),
         wipCount,
         conflictMode,

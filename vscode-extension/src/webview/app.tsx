@@ -150,6 +150,42 @@ function VertexApp() {
   const handleMoveCommit = useCallback((hash: string, direction: 'up' | 'down') =>
     runOp('Commit déplacé', () => window.gitAPI.moveCommit(hash, direction), true), [runOp])
 
+  // ── Branch / tag context-menu operations ─────────────────────
+  const handleMergeBranch = useCallback((name: string) =>
+    runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true), [runOp])
+  const handleRebaseCurrentOnto = useCallback((name: string) =>
+    runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true), [runOp])
+  const handleRenameBranch = useCallback(async (name: string) => {
+    const newName = await window.gitAPI.uiPrompt('Nouveau nom de branche', name)
+    if (newName && newName !== name) runOp('Branche renommée', () => window.gitAPI.renameBranch(name, newName))
+  }, [runOp])
+  const handleDeleteBranch = useCallback(async (name: string) => {
+    if (await window.gitAPI.uiConfirm(`Supprimer la branche "${name}" ?`)) {
+      runOp('Branche supprimée', () => window.gitAPI.deleteBranch(name))
+    }
+  }, [runOp])
+  const handlePushBranch = useCallback((name: string) =>
+    runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp])
+  const handleSetUpstream = useCallback((name: string) =>
+    runOp('Upstream défini', () => window.gitAPI.setUpstream(name)), [runOp])
+  const handleDeleteRemoteBranch = useCallback(async (ref: string) => {
+    if (await window.gitAPI.uiConfirm(`Supprimer la branche distante "${ref}" ?`)) {
+      runOp('Branche distante supprimée', () => window.gitAPI.deleteRemoteBranch(ref))
+    }
+  }, [runOp])
+  const handlePushTag = useCallback((name: string) =>
+    runOp(`Tag ${name} poussé`, () => window.gitAPI.pushTag(name)), [runOp])
+  const handleDeleteTag = useCallback(async (name: string) => {
+    if (await window.gitAPI.uiConfirm(`Supprimer le tag "${name}" ?`)) {
+      runOp('Tag supprimé', () => window.gitAPI.deleteTag(name))
+    }
+  }, [runOp])
+  const handleDeleteRemoteTag = useCallback(async (name: string) => {
+    if (await window.gitAPI.uiConfirm(`Supprimer le tag distant "${name}" ?`)) {
+      runOp('Tag distant supprimé', () => window.gitAPI.deleteRemoteTag(name))
+    }
+  }, [runOp])
+
   const handleBranchDrop = useCallback(async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => {
     if (action === 'reset') {
       const ok = await window.gitAPI.uiConfirm(`Réinitialiser ${branch} sur ${hash.slice(0, 7)} ?`)
@@ -312,6 +348,16 @@ function VertexApp() {
             onDropCommit={handleDropCommit}
             onMoveCommit={handleMoveCommit}
             onBranchDrop={handleBranchDrop}
+            onMergeBranch={handleMergeBranch}
+            onRebaseCurrentOnto={handleRebaseCurrentOnto}
+            onRenameBranch={handleRenameBranch}
+            onDeleteBranch={handleDeleteBranch}
+            onPushBranch={handlePushBranch}
+            onSetUpstream={handleSetUpstream}
+            onDeleteRemoteBranch={handleDeleteRemoteBranch}
+            onPushTag={handlePushTag}
+            onDeleteTag={handleDeleteTag}
+            onDeleteRemoteTag={handleDeleteRemoteTag}
             onInteractiveRebase={(hash) => setRebaseHash(hash)}
             wipCount={wipCount}
             conflictMode={conflictMode}
