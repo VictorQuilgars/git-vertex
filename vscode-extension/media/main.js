@@ -11009,6 +11009,24 @@ Signed-off-by: ` : full;
         }
       });
     }, [conflictFiles]);
+    const takeSide = async (file, side) => {
+      const r = await window.gitAPI.resolveConflictSide(file, side);
+      if (r && r.success === false)
+        showToast(r.error ?? "\xC9chec de la r\xE9solution", "err");
+      else {
+        showToast(`\u2713 ${file} \u2014 ${side === "ours" ? "Current" : "Incoming"}`);
+        onCommitSuccess();
+      }
+    };
+    const markResolved = async (file) => {
+      const r = await window.gitAPI.markResolved(file);
+      if (r && r.success === false)
+        showToast(r.error ?? "\xC9chec", "err");
+      else {
+        showToast(`\u2713 ${file} marqu\xE9 r\xE9solu`);
+        onCommitSuccess();
+      }
+    };
     async function doCommit() {
       setCommitting(true);
       const action = conflictMode === "rebase" || conflictMode === "cherry-pick" || conflictMode === "revert" ? "rebase" : "merge";
@@ -11016,7 +11034,49 @@ Signed-off-by: ` : full;
       setCommitting(false);
     }
     const allResolved = conflictFiles.length === 0;
-    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-content rp-conflict-mode" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-conflict-header" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "cr-title" }, "Conflits en cours : ", /* @__PURE__ */ import_react8.default.createElement("strong", null, conflictMode))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-section-title" }, "Fichiers en conflit (", conflictFiles.length, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-file-list" }, conflictFiles.length === 0 && /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-empty" }, "Tous les conflits sont r\xE9solus"), conflictFiles.map((f) => /* @__PURE__ */ import_react8.default.createElement("div", { key: f, className: "rp-file-row rp-file-conflicted", onClick: () => onOpenResolver(f) }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-file-status", style: { color: "#ffa657" } }, "!"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-file-path" }, f))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-section-title" }, "Fichiers r\xE9solus (", resolvedFiles.length, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-file-list" }, resolvedFiles.length === 0 && /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-empty" }, "Aucun fichier r\xE9solu"), resolvedFiles.map((f) => /* @__PURE__ */ import_react8.default.createElement("div", { key: f.path, className: "rp-file-row rp-file-resolved" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-file-status", style: { color: "#3fb950" } }, "\u2713"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-file-path" }, f.path))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-commit-area", style: { marginTop: "auto" } }, /* @__PURE__ */ import_react8.default.createElement(
+    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-content rp-conflict-mode" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-conflict-header" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "cr-title" }, "Conflits en cours : ", /* @__PURE__ */ import_react8.default.createElement("strong", null, conflictMode))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-section-title" }, "Fichiers en conflit (", conflictFiles.length, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-file-list" }, conflictFiles.length === 0 && /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-empty" }, "Tous les conflits sont r\xE9solus"), conflictFiles.map((f) => /* @__PURE__ */ import_react8.default.createElement("div", { key: f, className: "rp-file-row rp-file-conflicted" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-file-status", style: { color: "#ffa657" } }, "!"), /* @__PURE__ */ import_react8.default.createElement(
+      "span",
+      {
+        className: "rp-file-path",
+        style: { flex: 1, cursor: "pointer" },
+        title: "Ouvrir dans l'\xE9diteur",
+        onClick: () => onOpenResolver(f)
+      },
+      f
+    ), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-conflict-actions" }, /* @__PURE__ */ import_react8.default.createElement(
+      "button",
+      {
+        className: "rp-cf-btn",
+        title: "Garder la version courante (ours)",
+        onClick: (e) => {
+          e.stopPropagation();
+          takeSide(f, "ours");
+        }
+      },
+      "Current"
+    ), /* @__PURE__ */ import_react8.default.createElement(
+      "button",
+      {
+        className: "rp-cf-btn",
+        title: "Garder la version entrante (theirs)",
+        onClick: (e) => {
+          e.stopPropagation();
+          takeSide(f, "theirs");
+        }
+      },
+      "Incoming"
+    ), /* @__PURE__ */ import_react8.default.createElement(
+      "button",
+      {
+        className: "rp-cf-btn rp-cf-btn--ok",
+        title: "Marquer r\xE9solu (indexer le fichier \xE9dit\xE9)",
+        onClick: (e) => {
+          e.stopPropagation();
+          markResolved(f);
+        }
+      },
+      "\u2713"
+    )))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-section-title" }, "Fichiers r\xE9solus (", resolvedFiles.length, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-file-list" }, resolvedFiles.length === 0 && /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-empty" }, "Aucun fichier r\xE9solu"), resolvedFiles.map((f) => /* @__PURE__ */ import_react8.default.createElement("div", { key: f.path, className: "rp-file-row rp-file-resolved" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-file-status", style: { color: "#3fb950" } }, "\u2713"), /* @__PURE__ */ import_react8.default.createElement("span", { className: "rp-file-path" }, f.path))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-commit-area", style: { marginTop: "auto" } }, /* @__PURE__ */ import_react8.default.createElement(
       "textarea",
       {
         className: "rp-commit-input",

@@ -1183,6 +1183,21 @@ function ConflictPanel({
     })
   }, [conflictFiles])
 
+  // Resolve a file by taking one whole side (writes + stages it), or mark a
+  // manually-edited file as resolved (stages it). Editing the file in an editor
+  // does NOT clear its unmerged state — it must be staged, which is what gates
+  // "Continue". Refresh afterwards so the conflict list updates.
+  const takeSide = async (file: string, side: 'ours' | 'theirs') => {
+    const r = await (window.gitAPI as any).resolveConflictSide(file, side)
+    if (r && r.success === false) showToast(r.error ?? 'Échec de la résolution', 'err')
+    else { showToast(`✓ ${file} — ${side === 'ours' ? 'Current' : 'Incoming'}`); onCommitSuccess() }
+  }
+  const markResolved = async (file: string) => {
+    const r = await window.gitAPI.markResolved(file)
+    if (r && r.success === false) showToast(r.error ?? 'Échec', 'err')
+    else { showToast(`✓ ${file} marqué résolu`); onCommitSuccess() }
+  }
+
   async function doCommit() {
     setCommitting(true)
     const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
@@ -1207,9 +1222,18 @@ function ConflictPanel({
         <div className="rp-file-list">
           {conflictFiles.length === 0 && <div className="rp-empty">Tous les conflits sont résolus</div>}
           {conflictFiles.map(f => (
-            <div key={f} className="rp-file-row rp-file-conflicted" onClick={() => onOpenResolver(f)}>
+            <div key={f} className="rp-file-row rp-file-conflicted">
               <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>
-              <span className="rp-file-path">{f}</span>
+              <span className="rp-file-path" style={{ flex: 1, cursor: 'pointer' }}
+                title="Ouvrir dans l'éditeur" onClick={() => onOpenResolver(f)}>{f}</span>
+              <div className="rp-conflict-actions">
+                <button className="rp-cf-btn" title="Garder la version courante (ours)"
+                  onClick={e => { e.stopPropagation(); takeSide(f, 'ours') }}>Current</button>
+                <button className="rp-cf-btn" title="Garder la version entrante (theirs)"
+                  onClick={e => { e.stopPropagation(); takeSide(f, 'theirs') }}>Incoming</button>
+                <button className="rp-cf-btn rp-cf-btn--ok" title="Marquer résolu (indexer le fichier édité)"
+                  onClick={e => { e.stopPropagation(); markResolved(f) }}>✓</button>
+              </div>
             </div>
           ))}
         </div>

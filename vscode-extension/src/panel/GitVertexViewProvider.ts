@@ -224,6 +224,9 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
       case 'avatarResolve': return svc.avatarResolve(args[0], args[1])
       // AI commit-message generation isn't wired in the extension host yet.
       case 'aiGenerateCommitMessage': return { error: 'NO_API_KEY' }
+      // The renderer calls `resolveConflictSide` (desktop preload name); the
+      // service method is `resolveConflictWithSide`.
+      case 'resolveConflictSide': return svc.resolveConflictWithSide(args[0], args[1])
     }
 
     // Reflective forwarding: every GitService method is callable from the

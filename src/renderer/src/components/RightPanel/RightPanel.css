@@ -928,6 +928,29 @@
   opacity: 0.8;
 }
 
+/* Per-file conflict resolution actions (take Current / Incoming / mark resolved) */
+.rp-conflict-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.rp-cf-btn {
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid #30363d;
+  border-radius: 5px;
+  background: #21262d;
+  color: #c9d1d9;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rp-cf-btn:hover { background: #30363d; border-color: #8b949e; }
+.rp-cf-btn--ok { color: #3fb950; }
+.rp-cf-btn--ok:hover { background: #238636; color: #fff; border-color: #2ea043; }
+
 .rp-commit-area {
   display: flex;
   flex-direction: column;
