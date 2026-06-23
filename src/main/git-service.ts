@@ -1157,7 +1157,15 @@ export class GitService {
     }
   }
 
-  async interactiveRebase(sequence: { action: string; hash: string }[]): Promise<{ success: boolean; error?: string }> {
+  // True if a rebase is currently in progress (stopped on a conflict, etc.).
+  private rebaseInProgress(): boolean {
+    const fs = require('fs')
+    const path = require('path')
+    const g = path.join(this.repoPath, '.git')
+    return fs.existsSync(path.join(g, 'rebase-merge')) || fs.existsSync(path.join(g, 'rebase-apply'))
+  }
+
+  async interactiveRebase(sequence: { action: string; hash: string }[]): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
     const fs = await import('fs')
     const path = await import('path')
     const os = await import('os')
@@ -1177,12 +1185,19 @@ export class GitService {
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
+      // GIT_EDITOR=true accepts the default message for squash/fixup/reword
+      // steps instead of opening an editor (which would hang here).
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
-        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile },
+        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: 'true' },
         timeout: 30000
       })
       return { success: true }
     } catch (e: any) {
+      // Stopped on a conflict → leave the rebase in progress so the user can
+      // resolve via the conflict UI and continue (don't treat it as a failure).
+      if (this.rebaseInProgress()) {
+        return { success: false, conflict: true, error: 'Conflit de rebase — résolvez les conflits puis cliquez sur Continuer' }
+      }
       return { success: false, error: e.stderr ?? e.message }
     } finally {
       try { require('fs').unlinkSync(seqFile) } catch {}
@@ -1308,11 +1323,16 @@ export class GitService {
     }
   }
 
-  async continueRebase(): Promise<{ success: boolean; error?: string }> {
+  async continueRebase(): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
     try {
-      await this.git.raw(['rebase', '--continue'])
+      // GIT_EDITOR=true so a squash/fixup step doesn't block on a commit-message editor.
+      await this.git.env({ ...process.env, GIT_EDITOR: 'true' }).raw(['rebase', '--continue'])
       return { success: true }
     } catch (e: any) {
+      // Still mid-rebase → more conflicts to resolve, not a hard failure.
+      if (this.rebaseInProgress()) {
+        return { success: false, conflict: true, error: 'Conflits restants — résolvez-les puis continuez' }
+      }
       return { success: false, error: e.message }
     }
   }

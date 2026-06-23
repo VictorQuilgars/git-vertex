@@ -74,6 +74,12 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
       showToast('✓ Rebase interactif réussi')
       onSuccess()
       onClose()
+    } else if ((r as { conflict?: boolean }).conflict) {
+      // Rebase stopped on a conflict and is still in progress. Close the modal
+      // and refresh so the conflict banner / resolver becomes visible.
+      showToast(r.error ?? 'Conflit de rebase — résolvez puis continuez', 'err')
+      onSuccess()
+      onClose()
     } else {
       showToast(`Rebase échoué : ${r.error}`, 'err')
     }

@@ -11820,6 +11820,10 @@ Signed-off-by: ` : full;
         showToast("\u2713 Rebase interactif r\xE9ussi");
         onSuccess();
         onClose();
+      } else if (r.conflict) {
+        showToast(r.error ?? "Conflit de rebase \u2014 r\xE9solvez puis continuez", "err");
+        onSuccess();
+        onClose();
       } else {
         showToast(`Rebase \xE9chou\xE9 : ${r.error}`, "err");
       }
