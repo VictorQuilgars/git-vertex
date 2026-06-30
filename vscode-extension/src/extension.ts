@@ -4,6 +4,7 @@ import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { getGitInfo, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
+import { openGitVertexEditor, setEditorRepo } from './panel/GitVertexHost'
 
 let statusBar: GitVertexStatusBar | null = null
 let refreshTimer: NodeJS.Timeout | null = null
@@ -124,7 +125,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       refreshStatusBar()
       const root = resolveRepoRoot()
-      if (root) provider.setRepo(root)
+      if (root) { provider.setRepo(root); setEditorRepo(root) }
     }),
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('gitVertex')) refreshStatusBar()
@@ -142,6 +143,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.configure', () => configure()),
     vscode.commands.registerCommand('gitVertex.openPanel', () => {
       vscode.commands.executeCommand('gitVertex.graphView.focus')
+    }),
+    // Open Git Vertex as a movable/splittable editor tab (reuses the same UI).
+    vscode.commands.registerCommand('gitVertex.openInEditor', () => {
+      openGitVertexEditor(context.extensionUri, context.globalState, resolveRepoRoot() ?? undefined)
     }),
   )
 

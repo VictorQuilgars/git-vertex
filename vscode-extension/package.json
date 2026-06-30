@@ -2,7 +2,7 @@
   "name": "git-vertex",
   "displayName": "Git Vertex",
   "description": "Full Git GUI in the VS Code panel — commit graph, staging, branches, and more.",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "publisher": "VictorQuilgars",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -70,11 +70,23 @@
         "icon": "$(git-branch)"
       },
       {
+        "command": "gitVertex.openInEditor",
+        "title": "Git Vertex: Open in Editor Tab",
+        "icon": "$(link-external)"
+      },
+      {
         "command": "gitVertex.configure",
         "title": "Git Vertex: Configure App Path"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "gitVertex.openInEditor",
+          "when": "view == gitVertex.graphView",
+          "group": "navigation"
+        }
+      ],
       "explorer/context": [
         {
           "command": "gitVertex.openFile",
@@ -107,6 +119,9 @@
         },
         {
           "command": "gitVertex.openPanel"
+        },
+        {
+          "command": "gitVertex.openInEditor"
         },
         {
           "command": "gitVertex.configure"
