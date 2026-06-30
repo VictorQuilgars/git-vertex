@@ -1407,3 +1407,134 @@
 }
 .st2-cc-type:hover { border-color: #58a6ff; color: #c9d1d9; }
 .st2-cc-type:focus { border-color: #58a6ff; }
+
+/* ── Compact mode (short panels, e.g. VS Code panel under a terminal) ──────
+   The commit form shrinks to its essentials so the file lists keep priority
+   and the summary field + Commit button stay visible without resizing. */
+.st2--trimtop .st2-topbar { display: none; }        /* "N modifs sur main" + trash + AI — redundant up to 500px */
+.st2--compact .st2-viewbar { display: none; }       /* sort + path/tree toggle */
+.st2--compact .st2-resize { display: none; }         /* manual resize handle */
+.st2--trimtop .st2-tabs { display: none; }           /* stash/push tabs (in toolbar) — they pushed the summary out of view */
+.st2--trimtop .st2-options-row,
+.st2--trimtop .st2-options { display: none; }        /* compose + signoff options */
+/* Vertical compact only: drop the body field to keep the form tiny.
+   In row mode there's full height on the right, so it stays. */
+.st2--compact:not(.st2--row) .st2-description { display: none; }
+
+/* File lists scroll as one block (headers + files) so they never collapse to
+   nothing or overlap; they keep priority over the compact form. */
+.st2--compact .st2-lists { overflow-y: auto; }
+.st2--compact .st2-section.open { flex: 0 0 auto; }
+.st2--compact:not(.st2--row) .st2-file-list { max-height: 38vh; }
+
+/* Commit area: natural height (summary + button), lists take the rest. */
+.st2--compact .st2-commit {
+  height: auto;
+  flex-shrink: 0;
+}
+.st2--compact .st2-commit-scroll {
+  overflow: visible;
+  gap: 6px;
+  padding-top: 8px;
+}
+.st2--compact .st2-amend { font-size: 11px; }
+
+/* ── Compact + wide → horizontal split: files | commit form ───────────────
+   Short panels are usually wide (docked under a terminal). Stacking wastes the
+   width and runs out of height, so put the file lists and the commit form side
+   by side, each using the full panel height. */
+.st2--row { flex-direction: row; }
+/* Files area: the two sections (Unstaged | Staged) side by side, each on the
+   full height with its own scroll — so many files in one don't crush the other.
+   Shared by the full horizontal layout (.st2--row, form on the side) and by the
+   classic vertical layout's list split (.st2--splitlists, form below). */
+.st2--row .st2-lists {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  border-right: 1px solid #21262d;
+}
+.st2--row .st2-lists,
+.st2--splitlists .st2-lists {
+  flex-direction: row;
+  overflow: hidden;
+}
+.st2--row .st2-section,
+.st2--row .st2-section.open,
+.st2--splitlists .st2-section,
+.st2--splitlists .st2-section.open {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  border-top: none;
+  border-right: 1px solid #21262d;
+}
+.st2--row .st2-section:last-child,
+.st2--splitlists .st2-section:last-child { border-right: none; }
+.st2--row .st2-file-list,
+.st2--splitlists .st2-file-list { flex: 1; overflow-y: auto; max-height: none; }
+.st2--row .st2-commit {
+  flex: 0 0 300px;
+  width: 300px;
+  height: 100%;
+  border-top: none;
+}
+.st2--row .st2-commit-scroll { overflow-y: auto; }
+
+/* ── Very short panel → single-row commit bar ─────────────────────────────
+   [ summary …………………… ⚡ ] [ Commit ]  — keeps the file lists tall. */
+.st2-commit--mini {
+  flex: 0 0 auto;
+  height: auto;
+  border-top: 1px solid #21262d;
+  background: #0d1117;
+  padding: 6px 8px;
+}
+.st2-mini-row { display: flex; align-items: center; gap: 6px; }
+.st2-mini-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 12px;
+  padding: 7px 9px;
+  outline: none;
+}
+.st2-mini-input:focus { border-color: var(--accent,#58a6ff); }
+.st2-mini-input::placeholder { color: #6e7681; }
+.st2-mini-btn {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 32px;
+  padding: 0;
+}
+
+/* Tiny panel (<190px): commit button → small check floating over the
+   description (no band). At 190–300px a normal labelled button is kept. */
+.st2--tiny .st2-commit { position: relative; }
+.st2--tiny .st2-commit-actions {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  z-index: 5;
+}
+.st2-commit-btn--mini {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  gap: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* 190–300px: short labelled button ("Commiter"), auto width, right-aligned */
+.st2--compact:not(.st2--tiny) .st2-commit-actions { justify-content: flex-end; }
+.st2-commit-btn--short {
+  flex: 0 0 auto;
+  padding: 8px 18px;
+}

@@ -657,6 +657,7 @@ const IcoPathView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill=
 const IcoTreeView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z"/></svg>)
 const IcoCommit = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg>)
 const IcoStash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z"/></svg>)
+const IcoCheck = ({ size = 16 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.97 8.53a.75.75 0 0 1 1.06-1.06L6 10.44l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>)
 const IcoCloud = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z"/></svg>)
 const IcoChevron = ({ open }: { open: boolean }) => (<svg className={`st2-chev ${open ? 'open' : ''}`} width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>)
 
@@ -701,16 +702,46 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   // not swallow the file lists: clamp its height so the lists keep ≥ ~150px.
   // The form content itself scrolls (st2-commit-scroll), so shrinking is safe.
   const stRootRef = useRef<HTMLDivElement>(null)
-  const [panelH, setPanelH] = useState(0)
+  const [panelSize, setPanelSize] = useState({ w: 0, h: 0 })
   useEffect(() => {
     const el = stRootRef.current
     if (!el) return
-    const ro = new ResizeObserver(entries => setPanelH(entries[0].contentRect.height))
+    const ro = new ResizeObserver(entries => {
+      const r = entries[0].contentRect
+      setPanelSize({ w: r.width, h: r.height })
+    })
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  const maxFormH = panelH > 0 ? Math.max(140, panelH - 220) : Infinity
+  const panelH = panelSize.h
+  // Reserve less vertical room below 500px since the top banner is hidden there,
+  // so the form can grow enough to show the summary + description.
+  const maxFormH = panelH > 0 ? Math.max(140, panelH - (panelH < 500 ? 150 : 220)) : Infinity
   const effFormHeight = Math.min(formHeight, maxFormH)
+  // In short panels (VS Code panel docked under a terminal) the classic vertical
+  // stack (file lists above, commit form below) runs out of height. Two responsive
+  // fallbacks:
+  //  • compact     — short panel: trim the chrome (topbar, viewbar, resize…).
+  //  • compactRow  — short *and* wide: lay out files | commit form side by side,
+  //                  each on the full height, so nothing gets clipped.
+  // Height tiers:
+  //  • ≥ 300px        → classic layout (unchanged).
+  //  • 190–300px      → compact layout + a normal labelled commit button.
+  //  • < 190px (tiny) → compact layout + a floating ✓ button; if also narrow,
+  //                     the commit area becomes a single [summary … ⚡] [✓] row.
+  const compact = panelH > 0 && panelH < 300
+  const compactRow = compact && panelSize.w >= 640
+  const tiny = compact && panelH < 190
+  const mini = compact && !compactRow && tiny
+  // Up to 500px the top banner (discard-all, "N changes on branch", AI) is
+  // redundant chrome — counts are in the section headers, AI is in the message
+  // box — so hide it to give the file lists more room, even in classic layout.
+  const trimTop = panelH > 0 && panelH < 500
+  // Up to 500px (and wide enough), put Unstaged | Staged side by side so both
+  // are readable without one pushing the other down. In the full horizontal
+  // (compactRow) layout the lists are already split, so this only adds the
+  // split to the classic vertical layout.
+  const splitLists = trimTop && panelSize.w >= 360
 
   const splitMessage = (full: string) => {
     const lines = full.split('\n')
@@ -855,7 +886,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     : (canCommit && !!summary.trim())
 
   return (
-    <div className="rp-content rp-staging st2" ref={stRootRef}>
+    <div className={`rp-content rp-staging st2 ${compact ? 'st2--compact' : ''} ${compactRow ? 'st2--row' : ''} ${tiny ? 'st2--tiny' : ''} ${trimTop ? 'st2--trimtop' : ''} ${splitLists ? 'st2--splitlists' : ''}`} ref={stRootRef}>
       {/* ── Top bar ── */}
       <div className="st2-topbar">
         <button className="st2-icon-btn st2-danger" title={t('panel.discardAll')} onClick={discardAll} disabled={totalChanged === 0}>
@@ -1019,7 +1050,32 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
       <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
 
       {/* ── Commit area ── */}
-      <div className="st2-commit" style={{ height: effFormHeight }}>
+      {mini ? (
+        <div className="st2-commit st2-commit--mini">
+          <div className="st2-mini-row">
+            <input
+              className="st2-mini-input"
+              placeholder={t('panel.commit.summary')}
+              value={summary}
+              onChange={e => setSummary(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doCommit() }}
+            />
+            <button className={`st2-msg-ai ${generating ? 'loading' : ''}`} title={t('panel.generate.tooltip')}
+              onClick={generateMessage} disabled={generating}>
+              <IcoSpark size={13} />
+            </button>
+            <button
+              className={`st2-commit-btn st2-mini-btn ${commitReady ? 'ready' : ''}`}
+              disabled={!commitReady || committing}
+              onClick={doCommit}
+              title={commitLabel}
+            >
+              <IcoCheck />
+            </button>
+          </div>
+        </div>
+      ) : (
+      <div className="st2-commit" style={compact ? undefined : { height: effFormHeight }}>
         <div className="st2-commit-scroll">
         {/* Tabs */}
         <div className="st2-tabs">
@@ -1109,15 +1165,16 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
             <button className="st2-commit-btn st2-abort" onClick={onConflictAbort}>{t('panel.abort')}</button>
           )}
           <button
-            className={`st2-commit-btn ${commitReady ? 'ready' : ''}`}
+            className={`st2-commit-btn ${tiny ? 'st2-commit-btn--mini' : ''} ${compact && !tiny ? 'st2-commit-btn--short' : ''} ${commitReady ? 'ready' : ''}`}
             disabled={!commitReady || committing}
             onClick={doCommit}
-            title="⌘↵"
+            title={compact ? commitLabel : '⌘↵'}
           >
-            <IcoCommit /> {commitLabel}
+            {tiny ? <IcoCheck /> : <><IcoCommit /> {compact ? t('panel.commit.short') : commitLabel}</>}
           </button>
         </div>
       </div>
+      )}
     </div>
   )
 

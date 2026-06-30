@@ -2459,6 +2459,151 @@
 .st2-cc-type:focus {
   border-color: #58a6ff;
 }
+.st2--trimtop .st2-topbar {
+  display: none;
+}
+.st2--compact .st2-viewbar {
+  display: none;
+}
+.st2--compact .st2-resize {
+  display: none;
+}
+.st2--trimtop .st2-tabs {
+  display: none;
+}
+.st2--trimtop .st2-options-row,
+.st2--trimtop .st2-options {
+  display: none;
+}
+.st2--compact:not(.st2--row) .st2-description {
+  display: none;
+}
+.st2--compact .st2-lists {
+  overflow-y: auto;
+}
+.st2--compact .st2-section.open {
+  flex: 0 0 auto;
+}
+.st2--compact:not(.st2--row) .st2-file-list {
+  max-height: 38vh;
+}
+.st2--compact .st2-commit {
+  height: auto;
+  flex-shrink: 0;
+}
+.st2--compact .st2-commit-scroll {
+  overflow: visible;
+  gap: 6px;
+  padding-top: 8px;
+}
+.st2--compact .st2-amend {
+  font-size: 11px;
+}
+.st2--row {
+  flex-direction: row;
+}
+.st2--row .st2-lists {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  border-right: 1px solid #21262d;
+}
+.st2--row .st2-lists,
+.st2--splitlists .st2-lists {
+  flex-direction: row;
+  overflow: hidden;
+}
+.st2--row .st2-section,
+.st2--row .st2-section.open,
+.st2--splitlists .st2-section,
+.st2--splitlists .st2-section.open {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  border-top: none;
+  border-right: 1px solid #21262d;
+}
+.st2--row .st2-section:last-child,
+.st2--splitlists .st2-section:last-child {
+  border-right: none;
+}
+.st2--row .st2-file-list,
+.st2--splitlists .st2-file-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: none;
+}
+.st2--row .st2-commit {
+  flex: 0 0 300px;
+  width: 300px;
+  height: 100%;
+  border-top: none;
+}
+.st2--row .st2-commit-scroll {
+  overflow-y: auto;
+}
+.st2-commit--mini {
+  flex: 0 0 auto;
+  height: auto;
+  border-top: 1px solid #21262d;
+  background: #0d1117;
+  padding: 6px 8px;
+}
+.st2-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.st2-mini-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 12px;
+  padding: 7px 9px;
+  outline: none;
+}
+.st2-mini-input:focus {
+  border-color: var(--accent,#58a6ff);
+}
+.st2-mini-input::placeholder {
+  color: #6e7681;
+}
+.st2-mini-btn {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 32px;
+  padding: 0;
+}
+.st2--tiny .st2-commit {
+  position: relative;
+}
+.st2--tiny .st2-commit-actions {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  z-index: 5;
+}
+.st2-commit-btn--mini {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  gap: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.st2--compact:not(.st2--tiny) .st2-commit-actions {
+  justify-content: flex-end;
+}
+.st2-commit-btn--short {
+  flex: 0 0 auto;
+  padding: 8px 18px;
+}
 
 /* ../src/renderer/src/components/Sidebar/Sidebar.css */
 .sidebar {

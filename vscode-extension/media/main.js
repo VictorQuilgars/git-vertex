@@ -8112,6 +8112,7 @@ Cette action est irr\xE9versible.`,
     "panel.commit.typeMessage": "Saisissez un message pour commiter",
     "panel.commit.amend": "Amender le commit",
     "panel.commit.changes": (n, s) => `Commiter ${n} fichier${s}`,
+    "panel.commit.short": "Commiter",
     // RightPanel — errors
     "panel.gen.noKey": "Cl\xE9 API manquante \u2014 configurez-la dans Param\xE8tres \u2192 IA",
     "panel.gen.failed": (err) => `G\xE9n\xE9ration \xE9chou\xE9e : ${err}`,
@@ -8500,6 +8501,7 @@ This action is irreversible.`,
     "panel.commit.typeMessage": "Type a Message to Commit",
     "panel.commit.amend": "Amend commit",
     "panel.commit.changes": (n, s) => `Commit Changes to ${n} File${s}`,
+    "panel.commit.short": "Commit",
     // RightPanel — errors
     "panel.gen.noKey": "Missing API key \u2014 configure it in Settings \u2192 AI",
     "panel.gen.failed": (err) => `Generation failed: ${err}`,
@@ -10629,6 +10631,7 @@ ${line.date}`
   var IcoTreeView = () => /* @__PURE__ */ import_react8.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z" }));
   var IcoCommit = () => /* @__PURE__ */ import_react8.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" }));
   var IcoStash = () => /* @__PURE__ */ import_react8.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z" }));
+  var IcoCheck = ({ size = 16 }) => /* @__PURE__ */ import_react8.default.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.97 8.53a.75.75 0 0 1 1.06-1.06L6 10.44l6.72-6.72a.75.75 0 0 1 1.06 0Z" }));
   var IcoCloud = () => /* @__PURE__ */ import_react8.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z" }));
   var IcoChevron = ({ open }) => /* @__PURE__ */ import_react8.default.createElement("svg", { className: `st2-chev ${open ? "open" : ""}`, width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z" }));
   var CC_TYPES = ["feat", "fix", "chore", "docs", "refactor", "perf", "test", "build", "ci"];
@@ -10657,17 +10660,27 @@ ${line.date}`
     const [formHeight, setFormHeight] = (0, import_react8.useState)(() => parseInt(localStorage.getItem("st-form-h") || "300"));
     const dragRef = (0, import_react8.useRef)(null);
     const stRootRef = (0, import_react8.useRef)(null);
-    const [panelH, setPanelH] = (0, import_react8.useState)(0);
+    const [panelSize, setPanelSize] = (0, import_react8.useState)({ w: 0, h: 0 });
     (0, import_react8.useEffect)(() => {
       const el = stRootRef.current;
       if (!el)
         return;
-      const ro = new ResizeObserver((entries) => setPanelH(entries[0].contentRect.height));
+      const ro = new ResizeObserver((entries) => {
+        const r = entries[0].contentRect;
+        setPanelSize({ w: r.width, h: r.height });
+      });
       ro.observe(el);
       return () => ro.disconnect();
     }, []);
-    const maxFormH = panelH > 0 ? Math.max(140, panelH - 220) : Infinity;
+    const panelH = panelSize.h;
+    const maxFormH = panelH > 0 ? Math.max(140, panelH - (panelH < 500 ? 150 : 220)) : Infinity;
     const effFormHeight = Math.min(formHeight, maxFormH);
+    const compact = panelH > 0 && panelH < 300;
+    const compactRow = compact && panelSize.w >= 640;
+    const tiny = compact && panelH < 190;
+    const mini = compact && !compactRow && tiny;
+    const trimTop = panelH > 0 && panelH < 500;
+    const splitLists = trimTop && panelSize.w >= 360;
     const splitMessage = (full) => {
       const lines = full.split("\n");
       setSummary(lines[0] ?? "");
@@ -10813,7 +10826,7 @@ ${line.date}`
       return t("panel.commit.changes", String(n), n !== 1 ? "s" : "");
     })();
     const commitReady = isConflict ? !!summary.trim() && !conflictFiles?.length : canCommit && !!summary.trim();
-    return /* @__PURE__ */ import_react8.default.createElement("div", { className: "rp-content rp-staging st2", ref: stRootRef }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-topbar" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-danger", title: t("panel.discardAll"), onClick: discardAll, disabled: totalChanged === 0 }, /* @__PURE__ */ import_react8.default.createElement(IcoTrash, null)), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-topbar-mid" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-changecount" }, totalChanged, " ", totalChanged === 1 ? t("panel.fileChange") : t("panel.fileChanges")), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-on" }, t("panel.on")), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-branch-chip", title: branchName }, branchName)), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-ai", title: t("panel.generate.tooltip"), onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react8.default.createElement(IcoSpark, null))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react8.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react8.default.createElement(IcoPathView, null), " ", t("panel.view.path")), /* @__PURE__ */ import_react8.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react8.default.createElement(IcoTreeView, null), " ", t("panel.view.tree")))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react8.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-section-title" }, t("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react8.default.createElement("div", { className: "st-empty" }, t("panel.noChanges")) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react8.default.createElement(
+    return /* @__PURE__ */ import_react8.default.createElement("div", { className: `rp-content rp-staging st2 ${compact ? "st2--compact" : ""} ${compactRow ? "st2--row" : ""} ${tiny ? "st2--tiny" : ""} ${trimTop ? "st2--trimtop" : ""} ${splitLists ? "st2--splitlists" : ""}`, ref: stRootRef }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-topbar" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-danger", title: t("panel.discardAll"), onClick: discardAll, disabled: totalChanged === 0 }, /* @__PURE__ */ import_react8.default.createElement(IcoTrash, null)), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-topbar-mid" }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-changecount" }, totalChanged, " ", totalChanged === 1 ? t("panel.fileChange") : t("panel.fileChanges")), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-on" }, t("panel.on")), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-branch-chip", title: branchName }, branchName)), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-ai", title: t("panel.generate.tooltip"), onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react8.default.createElement(IcoSpark, null))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react8.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react8.default.createElement(IcoPathView, null), " ", t("panel.view.path")), /* @__PURE__ */ import_react8.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react8.default.createElement(IcoTreeView, null), " ", t("panel.view.tree")))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react8.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st2-section-title" }, t("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react8.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react8.default.createElement("div", { className: "st-empty" }, t("panel.noChanges")) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react8.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -10896,7 +10909,37 @@ ${line.date}`
     }), amendOnly.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
       return /* @__PURE__ */ import_react8.default.createElement("div", { key: f.path, className: "st-file-row st-amend-file", title: t("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react8.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react8.default.createElement("span", { className: "st-amend-tag" }, "amend"));
-    }))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-resize-grip" })), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit", style: { height: effFormHeight } }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react8.default.createElement(IcoCommit, null), " ", t("panel.tab.commit")), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-tab-icon", title: t("panel.tab.stash"), onClick: async () => {
+    }))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-resize-grip" })), mini ? /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit st2-commit--mini" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-mini-row" }, /* @__PURE__ */ import_react8.default.createElement(
+      "input",
+      {
+        className: "st2-mini-input",
+        placeholder: t("panel.commit.summary"),
+        value: summary,
+        onChange: (e) => setSummary(e.target.value),
+        onKeyDown: (e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey))
+            doCommit();
+        }
+      }
+    ), /* @__PURE__ */ import_react8.default.createElement(
+      "button",
+      {
+        className: `st2-msg-ai ${generating ? "loading" : ""}`,
+        title: t("panel.generate.tooltip"),
+        onClick: generateMessage,
+        disabled: generating
+      },
+      /* @__PURE__ */ import_react8.default.createElement(IcoSpark, { size: 13 })
+    ), /* @__PURE__ */ import_react8.default.createElement(
+      "button",
+      {
+        className: `st2-commit-btn st2-mini-btn ${commitReady ? "ready" : ""}`,
+        disabled: !commitReady || committing,
+        onClick: doCommit,
+        title: commitLabel
+      },
+      /* @__PURE__ */ import_react8.default.createElement(IcoCheck, null)
+    ))) : /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit", style: compact ? void 0 : { height: effFormHeight } }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react8.default.createElement(IcoCommit, null), " ", t("panel.tab.commit")), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-tab-icon", title: t("panel.tab.stash"), onClick: async () => {
       const r = await window.gitAPI.createStash();
       if (r?.success === false)
         showToast(t("toast.stashErr", r.error ?? ""), "err");
@@ -10962,14 +11005,12 @@ ${line.date}`
     )), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-options-row" }, /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-options-toggle", onClick: () => setOptionsOpen((o) => !o) }, /* @__PURE__ */ import_react8.default.createElement(IcoChevron, { open: optionsOpen }), " ", t("panel.commitOptions")), /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-compose", onClick: generateMessage, disabled: generating }, /* @__PURE__ */ import_react8.default.createElement(IcoSpark, { size: 13 }), " ", t("panel.composeAI"))), optionsOpen && /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-options" }, /* @__PURE__ */ import_react8.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react8.default.createElement("input", { type: "checkbox", checked: signoff, onChange: (e) => setSignoff(e.target.checked) }), /* @__PURE__ */ import_react8.default.createElement("span", null, t("panel.signoff"))))), /* @__PURE__ */ import_react8.default.createElement("div", { className: "st2-commit-actions" }, isConflict && /* @__PURE__ */ import_react8.default.createElement("button", { className: "st2-commit-btn st2-abort", onClick: onConflictAbort }, t("panel.abort")), /* @__PURE__ */ import_react8.default.createElement(
       "button",
       {
-        className: `st2-commit-btn ${commitReady ? "ready" : ""}`,
+        className: `st2-commit-btn ${tiny ? "st2-commit-btn--mini" : ""} ${compact && !tiny ? "st2-commit-btn--short" : ""} ${commitReady ? "ready" : ""}`,
         disabled: !commitReady || committing,
         onClick: doCommit,
-        title: "\u2318\u21B5"
+        title: compact ? commitLabel : "\u2318\u21B5"
       },
-      /* @__PURE__ */ import_react8.default.createElement(IcoCommit, null),
-      " ",
-      commitLabel
+      tiny ? /* @__PURE__ */ import_react8.default.createElement(IcoCheck, null) : /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, /* @__PURE__ */ import_react8.default.createElement(IcoCommit, null), " ", compact ? t("panel.commit.short") : commitLabel)
     ))));
     async function doCommit() {
       if (!summary.trim())
@@ -12213,6 +12254,18 @@ Signed-off-by: ` : full;
       return () => window.removeEventListener("resize", onResize);
     }, []);
     const stacked = viewportW < 640;
+    const appBodyRef = (0, import_react11.useRef)(null);
+    const [bodyH, setBodyH] = (0, import_react11.useState)(0);
+    (0, import_react11.useEffect)(() => {
+      const el = appBodyRef.current;
+      if (!el)
+        return;
+      const ro = new ResizeObserver((entries) => setBodyH(entries[0].contentRect.height));
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
+    const shortPanel = bodyH > 0 && bodyH < 300 && !stacked;
+    const effRightW = shortPanel ? Math.min(Math.max(rightW, 700), viewportW - 340) : rightW;
     const showRight = !!selectedCommit || !!conflictMode;
     return /* @__PURE__ */ import_react11.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react11.default.createElement(
       CompactToolbar,
@@ -12254,7 +12307,7 @@ Signed-off-by: ` : full;
         onClick: () => handleConflictFinish(conflictMode === "merge" ? "merge" : "rebase")
       },
       "Continuer"
-    ), /* @__PURE__ */ import_react11.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react11.default.createElement("div", { className: "app-body" }, sidebarOpen && !stacked && /* @__PURE__ */ import_react11.default.createElement(
+    ), /* @__PURE__ */ import_react11.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react11.default.createElement("div", { className: "app-body", ref: appBodyRef }, sidebarOpen && !stacked && /* @__PURE__ */ import_react11.default.createElement(
       Sidebar,
       {
         repoPath: repoName || "repo",
@@ -12341,7 +12394,7 @@ Signed-off-by: ` : full;
         loading,
         onSearchMatches: setSearchMatches
       }
-    )), showRight && /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, !stacked && /* @__PURE__ */ import_react11.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react11.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: rightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react11.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react11.default.createElement(
+    )), showRight && /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, !stacked && !shortPanel && /* @__PURE__ */ import_react11.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react11.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: effRightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react11.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react11.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react11.default.createElement(
       RightPanel,
       {
         selectedCommit,

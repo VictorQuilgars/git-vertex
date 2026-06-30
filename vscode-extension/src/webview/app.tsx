@@ -345,6 +345,30 @@ function VertexApp() {
   }, [])
   const stacked = viewportW < 640
 
+  // Measure the body (graph + right panel) height — it equals the right panel's
+  // own height, so the widening decision below aligns exactly with RightPanel's
+  // compact threshold (no toolbar-offset guesswork, no widened-but-classic band).
+  const appBodyRef = useRef<HTMLDivElement>(null)
+  const [bodyH, setBodyH] = useState(0)
+  useEffect(() => {
+    const el = appBodyRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => setBodyH(entries[0].contentRect.height))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Short + wide panel (docked under a terminal): the staging UX needs width
+  // more than the graph does, so widen the right panel — the graph drops its
+  // Author/Date/SHA columns on its own, and the right panel can lay out
+  // files | commit-form side by side. Transient: the user's saved rightW is
+  // restored as soon as the panel is tall again. The < 300 here is the same
+  // threshold RightPanel uses to switch to its compact layout.
+  const shortPanel = bodyH > 0 && bodyH < 300 && !stacked
+  const effRightW = shortPanel
+    ? Math.min(Math.max(rightW, 700), viewportW - 340)
+    : rightW
+
   const showRight = !!selectedCommit || !!conflictMode
 
   return (
@@ -401,7 +425,7 @@ function VertexApp() {
           </button>
         </div>
       )}
-      <div className="app-body">
+      <div className="app-body" ref={appBodyRef}>
         {sidebarOpen && !stacked && (
           <Sidebar
             repoPath={repoName || 'repo'}
@@ -486,8 +510,8 @@ function VertexApp() {
 
         {showRight && (
           <>
-            {!stacked && <div className="resize-handle" onMouseDown={startResizeRight} />}
-            <div className={stacked ? 'app-right gv-right-stacked' : 'app-right'} style={stacked ? undefined : { width: rightW }}>
+            {!stacked && !shortPanel && <div className="resize-handle" onMouseDown={startResizeRight} />}
+            <div className={stacked ? 'app-right gv-right-stacked' : 'app-right'} style={stacked ? undefined : { width: effRightW }}>
               {stacked && !conflictMode && (
                 <div className="gv-stacked-bar">
                   <button className="gv-stacked-back" onClick={() => setSelectedCommit(null)}>

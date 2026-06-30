@@ -156,6 +156,7 @@ const fr = {
   'panel.commit.typeMessage': 'Saisissez un message pour commiter',
   'panel.commit.amend': 'Amender le commit',
   'panel.commit.changes': (n: string, s: string) => `Commiter ${n} fichier${s}`,
+  'panel.commit.short': 'Commiter',
 
   // RightPanel — errors
   'panel.gen.noKey': 'Clé API manquante — configurez-la dans Paramètres → IA',
@@ -558,6 +559,7 @@ const en: typeof fr = {
   'panel.commit.typeMessage': 'Type a Message to Commit',
   'panel.commit.amend': 'Amend commit',
   'panel.commit.changes': (n: string, s: string) => `Commit Changes to ${n} File${s}`,
+  'panel.commit.short': 'Commit',
 
   // RightPanel — errors
   'panel.gen.noKey': 'Missing API key — configure it in Settings → AI',
