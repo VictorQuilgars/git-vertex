@@ -56,6 +56,26 @@
   flex: 1;
 }
 
+.cfd-area-toggle {
+  display: inline-flex;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cfd-area-toggle button {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 11px;
+  cursor: pointer;
+}
+.cfd-area-toggle button + button { border-left: 1px solid #30363d; }
+.cfd-area-toggle button.active { background: rgba(88,166,255,0.12); color: var(--accent,#58a6ff); }
+.cfd-area-toggle button:not(.active):hover { color: #c9d1d9; background: #21262d; }
+
 .cfd-toggle {
   background: none;
   border: 1px solid #30363d;
@@ -164,6 +184,21 @@
 .cfd-dl--selectable:hover { filter: brightness(1.3); }
 .cfd-dl--selected.cfd-dl-add    { background: rgba(63, 185, 80, 0.3); outline: 1px solid rgba(63,185,80,0.4); }
 .cfd-dl--selected.cfd-dl-remove { background: rgba(248, 81, 73, 0.3); outline: 1px solid rgba(248,81,73,0.4); }
+
+/* Indexé view: the action is UNstage — use amber so selecting a line doesn't
+   look like (re)staging it. */
+.cfd-staged-mode .cfd-apply-btn {
+  background: rgba(255, 166, 87, 0.15);
+  border-color: #ffa657;
+  color: #ffa657;
+}
+.cfd-staged-mode .cfd-apply-btn:hover { background: rgba(255, 166, 87, 0.28); }
+.cfd-staged-mode .cfd-hunk-apply:hover { color: #ffa657; border-color: #ffa657; background: rgba(255, 166, 87, 0.12); }
+.cfd-staged-mode .cfd-dl--selected.cfd-dl-add,
+.cfd-staged-mode .cfd-dl--selected.cfd-dl-remove {
+  background: rgba(255, 166, 87, 0.22);
+  outline: 1px solid rgba(255, 166, 87, 0.55);
+}
 
 .cfd-ln {
   width: 44px;

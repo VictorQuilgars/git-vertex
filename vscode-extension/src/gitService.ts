@@ -211,14 +211,35 @@ export class GitService {
     }
   }
 
-  async getWorkingFileDiff(filepath: string, staged: boolean): Promise<{ diff: string }> {
+  async getWorkingFileDiff(filepath: string, staged: boolean, context?: number): Promise<{ diff: string }> {
     try {
-      const args = staged ? ['diff', '--cached', '--', filepath] : ['diff', '--', filepath]
+      const ctx = Number.isFinite(context as number) ? [`-U${Math.max(0, Math.floor(context as number))}`] : []
+      const args = staged
+        ? ['diff', '--cached', ...ctx, '--', filepath]
+        : ['diff', ...ctx, '--', filepath]
       const diff = await this.git.raw(args)
       return { diff }
     } catch {
       return { diff: '' }
     }
+  }
+
+  // Apply a unified-diff patch (built in the renderer from selected hunks/lines)
+  // to the index. `reverse` unstages. Reads the patch from stdin like
+  // `git add -p` does. Mirrors the desktop gitAPI (same flags, no --recount) so
+  // the same StagingEditor patches apply identically on both.
+  async applyPatch(patch: string, reverse: boolean = false): Promise<{ success: boolean; error?: string }> {
+    const cp = require('child_process') as typeof import('child_process')
+    const args = ['apply', '--cached']
+    if (reverse) args.push('--reverse')
+    args.push('-')
+    return new Promise(resolve => {
+      const child = cp.execFile('git', args, { cwd: this.repoPath }, (err, _out, stderr) => {
+        if (err) resolve({ success: false, error: (stderr || err.message || '').trim() })
+        else resolve({ success: true })
+      })
+      child.stdin?.end(patch.endsWith('\n') ? patch : patch + '\n')
+    })
   }
 
   // ── Write operations ───────────────────────────────────────────

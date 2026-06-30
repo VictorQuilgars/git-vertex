@@ -658,6 +658,7 @@ const IcoTreeView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill=
 const IcoCommit = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg>)
 const IcoStash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z"/></svg>)
 const IcoCheck = ({ size = 16 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.97 8.53a.75.75 0 0 1 1.06-1.06L6 10.44l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>)
+const IcoHunks = () => (<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75A.75.75 0 0 1 2.75 2h10.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75V2.75ZM3.5 3.5v9H7.25v-9H3.5Zm5.25 0v9H12.5v-9H8.75Z"/></svg>)
 const IcoCloud = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z"/></svg>)
 const IcoChevron = ({ open }: { open: boolean }) => (<svg className={`st2-chev ${open ? 'open' : ''}`} width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>)
 
@@ -669,7 +670,7 @@ function ccTypeOf(summary: string): string {
   return m && CC_TYPES.includes(m[1]) ? m[1] : ''
 }
 
-function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff }: {
+function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   currentBranch?: string
@@ -678,6 +679,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
   onConflictAbort?: () => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
+  onOpenStagingEditor?: (file: string) => void
 }) {
   const { t } = useLang()
   const isConflict = !!conflictMode
@@ -955,6 +957,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                             onClick={() => selectFile({ path: f.path, area: 'unstaged' })}>
                             <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
                             <span className="st-path" title={f.path}>{f.path}</span>
+                            {onOpenStagingEditor && <button className="st-action st-hunk-editor" title="Éditeur de staging (par bloc)" onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
                             <button className="st-action st-stage" title={t('panel.stage.file', f.path)} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
                             <button className="st-action st-discard" title={t('panel.discard')} onClick={async e => {
                               e.stopPropagation()
@@ -1025,6 +1028,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                             onClick={() => selectFile({ path: f.path, area: 'staged' })}>
                             <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
                             <span className="st-path" title={f.path}>{f.path}</span>
+                            {onOpenStagingEditor && <button className="st-action st-hunk-editor" title="Éditeur de staging (par bloc)" onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
                             <button className="st-action st-unstage" title={t('panel.unstaged')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
                           </div>
                         )
@@ -1355,12 +1359,13 @@ interface RightPanelProps {
   onConflictAbort?: () => void
   onOpenResolver?: (file: string) => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
+  onOpenStagingEditor?: (file: string) => void
   githubRepo?: IssueRepo | null
 }
 
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
-  conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, githubRepo
+  conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -1391,6 +1396,7 @@ export default function RightPanel({
           onConflictFinish={onConflictFinish}
           onConflictAbort={onConflictAbort}
           onOpenFileDiff={onOpenFileDiff}
+          onOpenStagingEditor={onOpenStagingEditor}
         />
       ) : hasCommit ? (
         <CommitDetail

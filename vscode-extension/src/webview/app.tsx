@@ -15,6 +15,7 @@ import CommitGraph from '../../../src/renderer/src/components/CommitGraph/Commit
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import Sidebar from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
+import StagingEditor from '../../../src/renderer/src/components/StagingEditor/StagingEditor'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
 
 import 'highlight.js/styles/github-dark.css'
@@ -544,6 +545,7 @@ function VertexApp() {
                 onConflictAbort={handleConflictAbort}
                 onOpenResolver={handleOpenResolver}
                 onOpenFileDiff={handleOpenFileDiff}
+                onOpenStagingEditor={(f) => window.gitAPI.openStagingEditor(f)}
               />
             </div>
           </>
@@ -562,11 +564,17 @@ function VertexApp() {
   )
 }
 
+// A focused tool (e.g. the staging editor) can be booted into the same bundle
+// via window.__GV_BOOT__, injected by the host's HTML.
+const boot = (window as any).__GV_BOOT__ as { mode?: string; file?: string } | undefined
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <SettingsProvider>
     <LanguageProvider>
       <ToastProvider>
-        <VertexApp />
+        {boot?.mode === 'stage' && boot.file
+          ? <StagingEditor file={boot.file} />
+          : <VertexApp />}
       </ToastProvider>
     </LanguageProvider>
   </SettingsProvider>

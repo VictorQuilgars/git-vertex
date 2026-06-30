@@ -6,7 +6,7 @@ export type CenterDiffTarget =
   | { type: 'commit'; commitHash: string; filePath: string }
   | { type: 'working'; filePath: string; area: 'staged' | 'unstaged' }
 
-interface DiffLine { type: 'add' | 'remove' | 'context'; content: string; oldLine?: number; newLine?: number }
+interface DiffLine { type: 'add' | 'remove' | 'context'; content: string; oldLine?: number; newLine?: number; noNewline?: boolean }
 interface DiffHunk { header: string; lines: DiffLine[] }
 
 function parseDiff(raw: string): { to: string; hunks: DiffHunk[] }[] {
@@ -28,7 +28,13 @@ function parseDiff(raw: string): { to: string; hunks: DiffHunk[] }[] {
       } else if (h) {
         if (line.startsWith('+')) h.lines.push({ type: 'add', content: line.slice(1), newLine: nl++ })
         else if (line.startsWith('-')) h.lines.push({ type: 'remove', content: line.slice(1), oldLine: ol++ })
-        else if (!line.startsWith('\\') && !line.startsWith('index ') && !line.startsWith('---') && !line.startsWith('+++'))
+        // "\ No newline at end of file" applies to the line just emitted — keep it
+        // so the rebuilt patch reproduces the missing trailing newline exactly.
+        else if (line.startsWith('\\')) { if (h.lines.length) h.lines[h.lines.length - 1].noNewline = true }
+        // A real blank context line is " " (length 1); a length-0 line is the
+        // trailing split('\n') artifact — skip it so it isn't counted as a
+        // phantom context line (which made the rebuilt patch fail to apply).
+        else if (line.length > 0 && !line.startsWith('index ') && !line.startsWith('---') && !line.startsWith('+++'))
           h.lines.push({ type: 'context', content: line.slice(1), oldLine: ol++, newLine: nl++ })
       }
     }
@@ -81,18 +87,23 @@ function buildPatch(filePath: string, hunk: DiffHunk, selectedLineKeys?: Set<str
   const rest = m?.[3] ?? ''
 
   const hunkHeader = `@@ -${oldStart},${oldCount} +${newStart},${newCount} @@${rest}`
-  const lineStrings = lines.map(l => {
+  const lineStrings: string[] = []
+  for (const l of lines) {
     const prefix = l.type === 'add' ? '+' : l.type === 'remove' ? '-' : ' '
-    return prefix + l.content
-  })
+    lineStrings.push(prefix + l.content)
+    if (l.noNewline) lineStrings.push('\\ No newline at end of file')
+  }
 
   return `--- a/${filePath}\n+++ b/${filePath}\n${hunkHeader}\n${lineStrings.join('\n')}\n`
 }
 
-export default function CenterFileDiff({ target, onClose, onStaged }: {
+export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea }: {
   target: CenterDiffTarget
-  onClose: () => void
+  onClose?: () => void
   onStaged?: () => void
+  // When provided (e.g. the standalone staging editor tab), shows a
+  // Non-indexé/Indexé toggle in the header for working files.
+  onChangeArea?: (area: 'staged' | 'unstaged') => void
 }) {
   const [hunks, setHunks] = useState<DiffHunk[]>([])
   const [loading, setLoading] = useState(true)
@@ -101,6 +112,9 @@ export default function CenterFileDiff({ target, onClose, onStaged }: {
   const [fullLoading, setFullLoading] = useState(false)
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set())
   const [applyError, setApplyError] = useState<string | null>(null)
+  // Working files: show only the changes (3 lines of context) or the whole file
+  // with the changes highlighted. Same renderer — just a wider `git diff -U`.
+  const [wholeFile, setWholeFile] = useState(false)
 
   const filePath = target.filePath
   const lang = detectLang(filePath)
@@ -121,12 +135,12 @@ export default function CenterFileDiff({ target, onClose, onStaged }: {
             const all = parseDiff(r.diff ?? '')
             return all.find(f => f.to === target.filePath)?.hunks ?? []
           })
-        : window.gitAPI.getWorkingFileDiff(target.filePath, target.area === 'staged').then(r => {
+        : window.gitAPI.getWorkingFileDiff(target.filePath, target.area === 'staged', wholeFile ? 100000 : 3).then(r => {
             const all = parseDiff(r.diff ?? '')
             return all.flatMap(f => f.hunks)
           })
     fetch.then(h => { setHunks(h); setLoading(false) })
-  }, [key])
+  }, [key, wholeFile])
 
   useEffect(() => {
     if (showFullFile && target.type === 'commit' && !fullContent) {
@@ -173,14 +187,14 @@ export default function CenterFileDiff({ target, onClose, onStaged }: {
     if (result.success) {
       onStaged?.()
       // Reload diff
-      const r = await window.gitAPI.getWorkingFileDiff(filePath, isStaged)
+      const r = await window.gitAPI.getWorkingFileDiff(filePath, isStaged, wholeFile ? 100000 : 3)
       const all = parseDiff(r.diff ?? '')
       setHunks(all.flatMap(f => f.hunks))
       setSelectedLines(new Set())
     } else {
       setApplyError(result.error ?? 'Erreur inconnue')
     }
-  }, [filePath, isStaged, onStaged])
+  }, [filePath, isStaged, onStaged, wholeFile])
 
   const applySelectedLines = useCallback(async () => {
     if (selectedLines.size === 0) return
@@ -204,11 +218,11 @@ export default function CenterFileDiff({ target, onClose, onStaged }: {
       }
     }
     onStaged?.()
-    const r = await window.gitAPI.getWorkingFileDiff(filePath, isStaged)
+    const r = await window.gitAPI.getWorkingFileDiff(filePath, isStaged, wholeFile ? 100000 : 3)
     const all = parseDiff(r.diff ?? '')
     setHunks(all.flatMap(f => f.hunks))
     setSelectedLines(new Set())
-  }, [selectedLines, hunks, filePath, isStaged, onStaged])
+  }, [selectedLines, hunks, filePath, isStaged, onStaged, wholeFile])
 
   const areaLabel =
     target.type === 'working'
@@ -223,16 +237,34 @@ export default function CenterFileDiff({ target, onClose, onStaged }: {
   const actionLabel = isStaged ? 'Désindexer' : 'Indexer'
 
   return (
-    <div className="cfd-container">
+    <div className={`cfd-container ${isStaged ? 'cfd-staged-mode' : ''}`}>
       <div className="cfd-header">
-        <button className="cfd-back" onClick={onClose} title="Retour au graphe">
-          ← Retour
-        </button>
-        <span className={`cfd-area-badge ${badgeCls}`}>{areaLabel}</span>
+        {onClose && (
+          <button className="cfd-back" onClick={onClose} title="Retour au graphe">
+            ← Retour
+          </button>
+        )}
+        {onChangeArea && isWorking ? (
+          <div className="cfd-area-toggle">
+            <button className={!isStaged ? 'active' : ''} onClick={() => onChangeArea('unstaged')}>Non-indexé</button>
+            <button className={isStaged ? 'active' : ''} onClick={() => onChangeArea('staged')}>Indexé</button>
+          </div>
+        ) : (
+          <span className={`cfd-area-badge ${badgeCls}`}>{areaLabel}</span>
+        )}
         <span className="cfd-filepath">{filePath}</span>
         {isWorking && selectedLines.size > 0 && (
           <button className="cfd-apply-btn" onClick={applySelectedLines}>
-            {actionLabel} {selectedLines.size} ligne{selectedLines.size > 1 ? 's' : ''}
+            {isStaged ? '◂ ' : ''}{actionLabel} {selectedLines.size} ligne{selectedLines.size > 1 ? 's' : ''}{isStaged ? '' : ' ▸'}
+          </button>
+        )}
+        {isWorking && (
+          <button
+            className={`cfd-toggle ${wholeFile ? 'active' : ''}`}
+            onClick={() => setWholeFile(v => !v)}
+            title={wholeFile ? 'Afficher seulement les modifications' : 'Afficher tout le fichier'}
+          >
+            {wholeFile ? '◆ Fichier entier' : '◇ Modifications'}
           </button>
         )}
         {target.type === 'commit' && (
@@ -293,7 +325,7 @@ export default function CenterFileDiff({ target, onClose, onStaged }: {
                           onClick={() => applyHunk(hunk)}
                           title={`${actionLabel} ce bloc`}
                         >
-                          {actionLabel} le bloc
+                          {isStaged ? '◂ ' : ''}{actionLabel} le bloc{isStaged ? '' : ' ▸'}
                         </button>
                       </div>
                     )}

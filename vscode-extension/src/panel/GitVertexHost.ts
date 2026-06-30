@@ -35,6 +35,9 @@ export class GitVertexHost implements vscode.Disposable {
     private readonly _webview: vscode.Webview,
     private readonly _extensionUri: vscode.Uri,
     private readonly _state: vscode.Memento,
+    // Optional boot payload injected as window.__GV_BOOT__ so the same bundle can
+    // render a focused tool (e.g. the staging editor) instead of the full app.
+    private readonly _boot?: Record<string, unknown>,
   ) {
     this._webview.options = {
       enableScripts: true,
@@ -199,6 +202,12 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'openDiff': return this._openDiff(args[0])
       case 'openConflict': return this._openConflict(args[0])
+      case 'openStagingEditor': {
+        if (this._repoPath && args[0]) {
+          openGitVertexStagingEditor(this._extensionUri, this._state, this._repoPath, args[0])
+        }
+        return { success: true }
+      }
       case 'selectDirectory': {
         const picked = await vscode.window.showOpenDialog({
           canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
@@ -263,6 +272,9 @@ export class GitVertexHost implements vscode.Disposable {
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'))
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'))
     const nonce = this._getNonce()
+    const bootScript = this._boot
+      ? `<script nonce="${nonce}">window.__GV_BOOT__=${JSON.stringify(this._boot).replace(/</g, '\\u003c')};</script>`
+      : ''
     return /* html */`<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -284,6 +296,7 @@ export class GitVertexHost implements vscode.Disposable {
 </head>
 <body>
   <div id="root"></div>
+  ${bootScript}
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`
@@ -338,4 +351,38 @@ export function openGitVertexEditor(
 // Keep the editor tab (if open) pointed at the current repo.
 export function setEditorRepo(repoPath: string): void {
   editorHost?.setRepo(repoPath)
+}
+
+// ── Staging editor tabs (one WebviewPanel per file) ───────────────
+const STAGING_VIEW_TYPE = 'gitVertex.stagingEditor'
+const stagingPanels = new Map<string, vscode.WebviewPanel>()
+
+export function openGitVertexStagingEditor(
+  extensionUri: vscode.Uri,
+  state: vscode.Memento,
+  repoPath: string,
+  file: string,
+): void {
+  const existing = stagingPanels.get(file)
+  if (existing) { existing.reveal(existing.viewColumn); return }
+
+  const panel = vscode.window.createWebviewPanel(
+    STAGING_VIEW_TYPE,
+    `Stage — ${file.split('/').pop()}`,
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+    },
+  )
+
+  const host = new GitVertexHost(panel.webview, extensionUri, state, { mode: 'stage', file })
+  host.setRepo(repoPath)
+
+  panel.onDidDispose(() => {
+    host.dispose()
+    stagingPanels.delete(file)
+  })
+  stagingPanels.set(file, panel)
 }

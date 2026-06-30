@@ -462,6 +462,8 @@
 .st-unstage:hover { background: #1f6feb44; }
 .st-discard { background: #f8514922; color: #f85149; }
 .st-discard:hover { background: #f8514944; }
+.st-hunk-editor { color: #8b949e; }
+.st-hunk-editor:hover { background: #30363d; color: #c9d1d9; }
 
 /* Commit form */
 .st-form {

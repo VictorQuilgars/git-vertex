@@ -69,7 +69,7 @@ declare global {
       pull: () => Promise<R>
       // Staging & commit
       getWorkingChanges: () => Promise<WorkingChanges>
-      getWorkingFileDiff: (filepath: string, staged: boolean) => Promise<{ diff: string }>
+      getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => Promise<{ diff: string }>
       getFileAtCommit: (commitHash: string, filepath: string) => Promise<{ content: string; error?: string }>
       applyPatch: (patch: string, reverse: boolean) => Promise<R>
       stage: (files: string[]) => Promise<R>
