@@ -352,6 +352,7 @@ function CommitList({ commits, graphRows, sel, visible, width }: { commits: Layo
               ))}
               <Text>{' '.repeat(pad)} </Text>
               <Text color={THEME.dim}>{c.shortHash} </Text>
+              {refSegs(c.refs).map((s, k) => <Text key={k} color={s.color} bold={s.bold}>{s.text} </Text>)}
               <Text backgroundColor={active ? THEME.selBg : undefined} color={active ? '#ffffff' : THEME.text}>{c.message}</Text>
             </Text>
           </Box>
@@ -397,6 +398,19 @@ function Footer({ mode, tab, commitMsg, branchName, confirm }: { mode: Mode; tab
       : tab === 'branches' ? 'Entrée checkout · n nouvelle · D supprimer'
         : 'Ctrl+D/U défiler le diff'
   return <Text wrap="truncate-end"><Text color="#7ee787">{perTab}</Text><Text dimColor>  │  {common}</Text></Text>
+}
+
+// Branch / tag / HEAD chips shown before a commit message, like the desktop.
+function refSegs(refs: string[]): { text: string; color: string; bold?: boolean }[] {
+  const out: { text: string; color: string; bold?: boolean }[] = []
+  for (const r of refs) {
+    if (r.startsWith('tag: ')) out.push({ text: '⌂' + r.slice(5), color: '#d2a8ff' })
+    else if (r.startsWith('HEAD -> ')) out.push({ text: '⎇' + r.slice(8), color: '#3fb950', bold: true })
+    else if (r === 'HEAD') out.push({ text: 'HEAD', color: '#f0e68c', bold: true })
+    else if (r.includes('/')) out.push({ text: r, color: '#6e7681' })
+    else out.push({ text: '⎇' + r, color: '#58a6ff' })
+  }
+  return out
 }
 
 function truncate(s: string, w: number): string {
