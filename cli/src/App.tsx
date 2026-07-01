@@ -5,6 +5,7 @@ import type { BranchInfo, WorkingChanges } from './core/types.js'
 import { computeGraphLayout, type LayoutCommit } from './core/graphLayout.js'
 import { buildGraphRows } from './graph/asciiGraph.js'
 import { useDimensions } from './hooks/useDimensions.js'
+import Panel, { THEME } from './ui/Panel.js'
 
 type Tab = 'files' | 'branches' | 'commits'
 type Mode = 'normal' | 'commit' | 'help' | 'confirm' | 'newbranch'
@@ -138,10 +139,14 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
   const listLen = tab === 'files' ? files.length : tab === 'branches' ? branches.length : commits.length
   const move = (delta: number) => setIdx(p => ({ ...p, [tab]: clamp(p[tab] + delta, listLen) }))
 
-  const bodyRows = Math.max(4, rows - 2)      // minus header + help
-  const listVisible = Math.max(1, bodyRows - 3) // minus border(2) + tabs(1)
-  const rightVisible = Math.max(1, bodyRows - 3)
-  const leftW = Math.min(46, Math.max(28, Math.floor(cols * 0.4)))
+  const panelH = Math.max(5, rows - 2)         // minus header + footer lines
+  const innerH = Math.max(1, panelH - 2)       // minus Panel top/bottom border
+  const listVisible = innerH
+  const rightVisible = innerH
+  const leftW = Math.min(48, Math.max(30, Math.floor(cols * 0.42)))
+  const rightW = Math.max(24, cols - leftW)
+  const leftContentW = leftW - 4
+  const rightContentW = rightW - 4
 
   useInput((input, key) => {
     if (mode === 'help') { if (key.escape || input === '?' || input === 'q') setMode('normal'); return }
@@ -179,6 +184,9 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     // ── NORMAL ──
     if (input === 'q') { exit(); return }
     if (input === '?') { setMode('help'); return }
+    if (input === '1') { setTab('files'); return }
+    if (input === '2') { setTab('branches'); return }
+    if (input === '3') { setTab('commits'); return }
     if (key.tab) { const dir = key.shift ? -1 : 1; setTab(TABS[(TABS.indexOf(tab) + dir + TABS.length) % TABS.length]); return }
     if (input === 'r') { reload(); flash('Rechargé'); return }
     if (input === 'f') { run('Fetch', () => git.fetch()); return }
@@ -211,6 +219,10 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
 
   // ── Rendering ──
   const graphRows = useMemo(() => buildGraphRows(commits), [commits])
+  const rightTitle =
+    tab === 'files' ? (files[idx.files]?.path.split('/').pop() ?? 'Diff')
+      : tab === 'commits' ? (commits[idx.commits]?.shortHash ?? 'Commit')
+        : (branches[idx.branches]?.name ?? 'Branche')
 
   return (
     <Box flexDirection="column" width={cols} height={rows}>
@@ -226,37 +238,36 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
 
       {/* Body */}
       {mode === 'help' ? (
-        <Box flexGrow={1} borderStyle="round" borderColor="#30363d" flexDirection="column" paddingX={1}>
-          <Text color="#58a6ff" bold>Git Vertex — Aide</Text>
+        <Panel width={cols} height={panelH} num="?" title="Aide" accent={THEME.title}>
+          <Text color={THEME.title} bold>Git Vertex — TUI</Text>
           <Text> </Text>
-          <Text><Text color="#3fb950">Global</Text>  Tab/⇧Tab changer de panneau · ↑↓ ou j/k naviguer · r recharger · q quitter</Text>
-          <Text><Text color="#3fb950">Remote</Text>  f fetch · p pull · P push</Text>
-          <Text><Text color="#3fb950">Fichiers</Text> Espace (dé)indexer · a tout indexer · A tout désindexer · c commit · d annuler modifs</Text>
-          <Text><Text color="#3fb950">Branches</Text> Entrée checkout · n nouvelle branche · D supprimer</Text>
-          <Text><Text color="#3fb950">Diff</Text>    Ctrl+D / Ctrl+U défiler</Text>
+          <Text><Text color={THEME.title}>Global  </Text>Tab/⇧Tab changer de panneau · ↑↓ ou j/k naviguer · r recharger · q quitter</Text>
+          <Text><Text color={THEME.title}>Remote  </Text>f fetch · p pull · P push</Text>
+          <Text><Text color={THEME.title}>Fichiers</Text> Espace (dé)indexer · a tout indexer · A tout désindexer · c commit · d annuler</Text>
+          <Text><Text color={THEME.title}>Branches</Text> Entrée checkout · n nouvelle branche · D supprimer</Text>
+          <Text><Text color={THEME.title}>Diff    </Text>Ctrl+D / Ctrl+U défiler</Text>
           <Text> </Text>
           <Text dimColor>Une touche pour fermer.</Text>
-        </Box>
+        </Panel>
       ) : (
-      <Box flexGrow={1}>
-        {/* Left */}
-        <Box flexDirection="column" width={leftW} borderStyle="round" borderColor={tab ? '#30363d' : '#30363d'}>
-          <Box width={leftW - 2}>
-            <Text wrap="truncate-end">
-              <Text color="#6e7681">{TABS.indexOf(tab) + 1}/3 </Text>
-              <Text bold color="#58a6ff">{labelOf(tab, files.length, branches.length, commits.length)}</Text>
-              <Text dimColor>  · ↹ Tab</Text>
-            </Text>
-          </Box>
-          {tab === 'files' && <FileList files={files} sel={idx.files} visible={listVisible} width={leftW - 2} />}
-          {tab === 'branches' && <BranchList branches={branches} sel={idx.branches} visible={listVisible} width={leftW - 2} />}
-          {tab === 'commits' && <CommitList commits={commits} graphRows={graphRows} sel={idx.commits} visible={listVisible} width={leftW - 2} />}
-        </Box>
+      <Box flexDirection="row" height={panelH}>
+        {/* Left — Files / Branches / Commits */}
+        <Panel
+          width={leftW}
+          height={panelH}
+          num={String(TABS.indexOf(tab) + 1)}
+          title={labelOf(tab, files.length, branches.length, commits.length)}
+          menu={TABS.filter(t => t !== tab).map(t => ({ label: labelOf(t, files.length, branches.length, commits.length).split(' ')[0] }))}
+        >
+          {tab === 'files' && <FileList files={files} sel={idx.files} visible={listVisible} width={leftContentW} />}
+          {tab === 'branches' && <BranchList branches={branches} sel={idx.branches} visible={listVisible} width={leftContentW} />}
+          {tab === 'commits' && <CommitList commits={commits} graphRows={graphRows} sel={idx.commits} visible={listVisible} width={leftContentW} />}
+        </Panel>
 
-        {/* Right */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="#30363d">
-          <DiffPane text={rightText} scroll={rightScroll} visible={rightVisible} />
-        </Box>
+        {/* Right — Diff / details */}
+        <Panel width={rightW} height={panelH} num="4" title={rightTitle} accent={THEME.menuOn}>
+          <DiffPane text={rightText} scroll={rightScroll} visible={rightVisible} width={rightContentW} />
+        </Panel>
       </Box>
       )}
 
@@ -346,11 +357,13 @@ function CommitList({ commits, graphRows, sel, visible, width }: { commits: Layo
   )
 }
 
-function DiffPane({ text, scroll, visible }: { text: string; scroll: number; visible: number }) {
+function DiffPane({ text, scroll, visible, width }: { text: string; scroll: number; visible: number; width: number }) {
   const lines = text ? text.split('\n') : ['']
-  const maxScroll = Math.max(0, lines.length - visible)
+  const hasFooter = lines.length > visible
+  const room = hasFooter ? visible - 1 : visible
+  const maxScroll = Math.max(0, lines.length - room)
   const start = Math.min(scroll, maxScroll)
-  const view = lines.slice(start, start + visible)
+  const view = lines.slice(start, start + room)
   return (
     <Box flexDirection="column">
       {view.map((l, i) => {
@@ -361,9 +374,10 @@ function DiffPane({ text, scroll, visible }: { text: string; scroll: number; vis
         else if (l.startsWith('+')) color = '#3fb950'
         else if (l.startsWith('-')) color = '#f85149'
         else color = '#8b949e'
-        return <Text key={i} color={color} dimColor={dim} wrap="truncate-end">{l.length ? l : ' '}</Text>
+        const s = truncate(l, width)
+        return <Text key={i} color={color} dimColor={dim} wrap="truncate-end">{s.length ? s : ' '}</Text>
       })}
-      {lines.length > visible && <Text dimColor>  … {start + view.length}/{lines.length} lignes (Ctrl+D/Ctrl+U)</Text>}
+      {hasFooter && <Text color={THEME.dim}>… {start + view.length}/{lines.length} lignes · Ctrl+D/U défiler</Text>}
     </Box>
   )
 }
@@ -373,12 +387,12 @@ function Footer({ mode, tab, commitMsg, branchName, confirm }: { mode: Mode; tab
   if (mode === 'newbranch') return <Text><Text color="#58a6ff">Nouvelle branche : </Text><Text>{branchName}</Text><Text color="#58a6ff">▏</Text><Text dimColor>  (Entrée créer · Échap annuler)</Text></Text>
   if (mode === 'confirm') return <Text><Text color="#d29922">{confirm?.text} </Text><Text dimColor>(y / n)</Text></Text>
   if (mode === 'help') return <Text dimColor>Aide affichée — une touche pour fermer</Text>
-  const common = 'Tab panneau · ↑↓/jk naviguer · f fetch · p pull · P push · r recharger · ? aide · q quitter'
+  const common = '1/2/3 ou Tab · ↑↓/jk · f/p/P fetch/pull/push · r · ? aide · q'
   const perTab =
-    tab === 'files' ? 'Espace (dé)indexer · a tout indexer · c commit · d annuler modifs'
+    tab === 'files' ? 'Espace (dé)indexer · a tout · c commit · d annuler'
       : tab === 'branches' ? 'Entrée checkout · n nouvelle · D supprimer'
         : 'Ctrl+D/U défiler le diff'
-  return <Text dimColor>{perTab} │ {common}</Text>
+  return <Text wrap="truncate-end"><Text color="#7ee787">{perTab}</Text><Text dimColor>  │  {common}</Text></Text>
 }
 
 function truncate(s: string, w: number): string {
