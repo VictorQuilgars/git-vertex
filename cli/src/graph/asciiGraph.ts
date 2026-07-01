@@ -34,11 +34,13 @@ export function buildGraphRows(commits: LayoutCommit[]): GraphCell[][] {
   for (let r = 0; r < n; r++) {
     const c = commits[r]
     const cells: GraphCell[] = []
-    for (let lane = 0; lane <= maxLane; lane++) {
+    // Only render up to the last occupied lane on this row (keeps it compact).
+    let last = c.lane
+    for (const lane of through[r].keys()) last = Math.max(last, lane)
+    for (let lane = 0; lane <= last; lane++) {
       if (lane === c.lane) cells.push({ char: '●', color: c.color || '#58a6ff' })
       else if (through[r].has(lane)) cells.push({ char: '│', color: through[r].get(lane)! })
       else cells.push({ char: ' ', color: '' })
-      cells.push({ char: ' ', color: '' }) // spacer between lanes
     }
     rows.push(cells)
   }

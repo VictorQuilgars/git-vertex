@@ -63,7 +63,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
   const reload = useCallback(async () => {
     try {
       const [log, br, ch] = await Promise.all([
-        git.getLog({ maxCount: 300 }),
+        git.getLog({ maxCount: 300, all: true }),
         git.getBranches(),
         git.getWorkingChanges(),
       ])
@@ -228,12 +228,12 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     <Box flexDirection="column" width={cols} height={rows}>
       {/* Header */}
       <Box>
-        <Text color="#58a6ff" bold>❯ Git Vertex </Text>
-        <Text dimColor>· {repo} · </Text>
-        <Text color="#3fb950">⎇ {currentBranch}</Text>
-        {(ahead > 0 || behind > 0) && <Text dimColor> ↑{ahead} ↓{behind}</Text>}
+        <Text color={THEME.menuOn} bold>❯ Git Vertex </Text>
+        <Text color={THEME.dim}>· {repo} · </Text>
+        <Text color={THEME.title}>⎇ {currentBranch}</Text>
+        {(ahead > 0 || behind > 0) && <Text color={THEME.dim}> ↑{ahead} ↓{behind}</Text>}
         <Text> </Text>
-        {status && <Text color={status.startsWith('✗') ? '#f85149' : '#8b949e'}>{status}</Text>}
+        {status && <Text color={status.startsWith('✗') ? '#f85149' : THEME.dim}>{status}</Text>}
       </Box>
 
       {/* Body */}
@@ -335,20 +335,24 @@ function CommitList({ commits, graphRows, sel, visible, width }: { commits: Layo
   if (commits.length === 0) return <Text dimColor>  Aucun commit</Text>
   const start = windowStart(sel, commits.length, visible)
   const view = commits.slice(start, start + visible)
+  // Pad the graph column to a fixed width so hashes/messages align.
+  const gcol = Math.min(8, Math.max(1, ...view.map((_, i) => (graphRows[start + i]?.length ?? 1))))
   return (
     <Box flexDirection="column">
       {view.map((c, i) => {
         const gi = start + i
         const active = gi === sel
-        const g = (graphRows[gi] ?? []).slice(0, 12)
+        const g = (graphRows[gi] ?? []).slice(0, gcol)
+        const pad = Math.max(0, gcol - g.length)
         return (
           <Box key={c.hash} width={width}>
             <Text wrap="truncate-end">
               {g.map((cell, k) => (
                 <Text key={k} color={cell.color || undefined}>{cell.char}</Text>
               ))}
-              <Text color="#6e7681">{c.shortHash} </Text>
-              <Text backgroundColor={active ? '#1f3a5f' : undefined} color={active ? '#ffffff' : '#c9d1d9'}>{c.message}</Text>
+              <Text>{' '.repeat(pad)} </Text>
+              <Text color={THEME.dim}>{c.shortHash} </Text>
+              <Text backgroundColor={active ? THEME.selBg : undefined} color={active ? '#ffffff' : THEME.text}>{c.message}</Text>
             </Text>
           </Box>
         )

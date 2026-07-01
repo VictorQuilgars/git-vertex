@@ -6,17 +6,19 @@ export interface MenuItem { label: string; active?: boolean }
 const SUP: Record<string, string> = { '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶' }
 const superscript = (n?: string) => (n ? (SUP[n] ?? n) : '')
 
-// btop-ish theme
+// btop-style layout with the Git Vertex desktop dark palette (#0d1117, etc.)
 export const THEME = {
-  border: '#3a4048',
-  title: '#7ee787',   // green accent
+  bg: '#0d1117',      // desktop background
+  surface: '#161b22',
+  border: '#30363d',
+  title: '#3fb950',   // desktop green
   num: '#f85149',     // red hotkey number
   menu: '#6e7681',    // dim menu word
   menuKey: '#c9d1d9', // brighter first letter
-  menuOn: '#58a6ff',  // active menu item
+  menuOn: '#58a6ff',  // blue accent (active)
   text: '#c9d1d9',
   dim: '#6e7681',
-  selBg: '#1f2d3d',
+  selBg: '#1f3a5f',
 }
 
 function TopLine({ width, title, num, menu, accent, borderColor }: {
