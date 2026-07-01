@@ -4,12 +4,40 @@
   "description": "Git Vertex — terminal UI (TUI) Git client. Commit graph, staging, branches, all from the keyboard.",
   "type": "module",
   "bin": {
-    "gv": "./bin/gv.mjs"
+    "gv": "./bin/gv.mjs",
+    "git-vertex-cli": "./bin/gv.mjs"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "git",
+    "tui",
+    "terminal",
+    "cli",
+    "ink",
+    "git-gui",
+    "commit-graph",
+    "lazygit"
+  ],
+  "license": "MIT",
+  "author": "Victor Quilgars",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictorQuilgars/git-vertex",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/VictorQuilgars/git-vertex/issues"
   },
   "scripts": {
     "start": "tsx src/cli.tsx",
     "dev": "tsx src/cli.tsx",
-    "typecheck": "tsc --noEmit"
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=18"

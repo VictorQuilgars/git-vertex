@@ -1,7 +1,7 @@
 // Graph layout algorithm — adapted from src/renderer/src/components/CommitGraph/graph-layout.ts
 // Computes lane assignments and edges for a commit graph (GitKraken-style).
 
-import { CommitNode, GraphEdge } from './types'
+import { CommitNode, GraphEdge } from './types.js'
 
 export const LANE_COLORS = [
   '#2dd4bf', // teal

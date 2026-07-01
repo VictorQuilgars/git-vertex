@@ -6,20 +6,26 @@ extension. Commit graph, staging, branches — all from the keyboard.
 Built with [Ink](https://github.com/vadimdemedes/ink) (React for the terminal) and
 reuses the same `GitService` logic (vendored, Node-pure) as the rest of the project.
 
-## Run
+## Install & run
+
+Published on npm — no clone needed:
+
+```bash
+npx git-vertex-cli            # run in the current repo, zero install
+npx git-vertex-cli ~/code/x   # a specific repo
+
+npm i -g git-vertex-cli       # then use the `gv` command anywhere
+gv
+```
+
+### From source (development)
 
 ```bash
 cd cli
 npm install
-npm start            # opens the TUI for the current repo
+npm start                # runs the TS sources via tsx (current repo)
 npm start -- /path/to/repo
-```
-
-Or via the launcher (after `npm install`):
-
-```bash
-./bin/gv.mjs            # current repo
-./bin/gv.mjs ~/code/x   # a specific repo
+npm run build            # compile to dist/ (what gets published)
 ```
 
 ## Layout

@@ -3,11 +3,11 @@
 // ESM imports so it runs under Ink's ESM runtime. Keep in sync with
 // vscode-extension/src/gitService.ts.
 
-import simpleGit, { SimpleGit, BranchSummary } from 'simple-git'
+import { simpleGit, SimpleGit, BranchSummary } from 'simple-git'
 import * as nodeFs from 'fs'
 import * as nodePath from 'path'
 import * as nodeChildProcess from 'child_process'
-import { CommitNode, BranchInfo, FileChange, WorkingChanges } from './types'
+import { CommitNode, BranchInfo, FileChange, WorkingChanges } from './types.js'
 
 export class GitService {
   private git: SimpleGit
