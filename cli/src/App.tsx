@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Box, Text, useApp, useInput } from 'ink'
 import type { GitService } from './core/gitService.js'
-import type { BranchInfo, WorkingChanges } from './core/types.js'
+import type { BranchInfo, WorkingChanges, FileChange } from './core/types.js'
 import { computeGraphLayout, type LayoutCommit } from './core/graphLayout.js'
 import { buildGraphRows } from './graph/asciiGraph.js'
 import { useDimensions } from './hooks/useDimensions.js'
@@ -67,6 +67,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
   const [diffText, setDiffText] = useState('')
   const [diffTitle, setDiffTitle] = useState('')
   const [diffScroll, setDiffScroll] = useState(0)
+  const [commitFiles, setCommitFiles] = useState<FileChange[]>([])
 
   const files: FileItem[] = useMemo(() => {
     const out: FileItem[] = []
@@ -93,6 +94,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
   const ahead = branches.find(b => b.current)?.ahead ?? 0
   const behind = branches.find(b => b.current)?.behind ?? 0
   const totalChanged = changes.staged.length + changes.unstaged.length + changes.untracked.length
+  const selectedCommit = sGraph > 0 ? commits[sGraph - 1] : null
 
   const reload = useCallback(async () => {
     try {
@@ -111,6 +113,14 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     } catch (e: any) { setStatus(`✗ ${e?.message ?? e}`) }
   }, [git])
   useEffect(() => { reload() }, [reload])
+
+  // Load the selected commit's changed files (for the right-panel details).
+  useEffect(() => {
+    let cancel = false
+    if (selectedCommit) git.getCommitFiles(selectedCommit.hash).then(r => { if (!cancel) setCommitFiles(r.files ?? []) })
+    else setCommitFiles([])
+    return () => { cancel = true }
+  }, [selectedCommit?.hash, git])
 
   const flash = (m: string) => setStatus(m)
   const run = useCallback(async (label: string, fn: () => Promise<any>) => {
@@ -284,10 +294,10 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
               focused={focus === 'graph'} wipCount={totalChanged} branch={currentBranch} />
           </Panel>
         )}
-        {/* Staging + commit */}
-        <Panel width={stageW} height={panelH} num="3" title={`${totalChanged} modif${totalChanged !== 1 ? 's' : ''}`} accent={focus === 'staging' ? THEME.menuOn : THEME.title}>
-          <StagingView files={files} changes={changes} sel={sStage} visible={innerH} width={stageW - 4}
-            focused={focus === 'staging'} commitMode={mode === 'commit'} commitMsg={commitMsg} branch={currentBranch} />
+        {/* Right: commit details (top) + staging (bottom) + commit message */}
+        <Panel width={stageW} height={panelH} num="3" title={selectedCommit ? selectedCommit.shortHash : `${totalChanged} modif${totalChanged !== 1 ? 's' : ''}`} accent={focus === 'staging' ? THEME.menuOn : THEME.title}>
+          <RightPanel commit={selectedCommit} commitFiles={commitFiles} files={files} sel={sStage} width={stageW - 4} height={innerH}
+            focused={focus === 'staging'} commitMode={mode === 'commit'} commitMsg={commitMsg} />
         </Panel>
       </Box>
       <Footer mode={mode} focus={focus} center={center} commitMsg={commitMsg} branchName={branchName} confirm={confirm} />
@@ -390,53 +400,22 @@ function GraphView({ commits, graphRows, sel, visible, width, focused, wipCount,
   )
 }
 
-function StagingView({ files, changes, sel, visible, width, focused, commitMode, commitMsg, branch }: {
-  files: FileItem[]; changes: WorkingChanges; sel: number; visible: number; width: number; focused: boolean; commitMode: boolean; commitMsg: string; branch: string
+// Right panel = commit details (top) + staging (bottom) + commit message field.
+function RightPanel({ commit, commitFiles, files, sel, width, height, focused, commitMode, commitMsg }: {
+  commit: LayoutCommit | null; commitFiles: FileChange[]; files: FileItem[]; sel: number
+  width: number; height: number; focused: boolean; commitMode: boolean; commitMsg: string
 }) {
-  // Reserve 3 rows for the commit message box at the bottom.
-  const msgRows = 3
-  const listVisible = Math.max(1, visible - msgRows)
-  const unstaged = files.filter(f => f.kind !== 'staged')
-  const staged = files.filter(f => f.kind === 'staged')
-
-  // Build a display list with section headers (for rendering only).
-  const rows: { file?: FileItem; header?: string }[] = []
-  rows.push({ header: `Non indexé (${unstaged.length})` })
-  unstaged.forEach(f => rows.push({ file: f }))
-  rows.push({ header: `Indexé (${staged.length})` })
-  staged.forEach(f => rows.push({ file: f }))
-  // Map selection (index into files) to display row
-  const fileRowIndex = (fi: number) => {
-    const f = files[fi]
-    return rows.findIndex(r => r.file === f)
-  }
-  const selRow = fileRowIndex(sel)
-  const start = windowStart(selRow < 0 ? 0 : selRow, rows.length, listVisible)
-  const view = rows.slice(start, start + listVisible)
+  const msgRows = 2 // separator + message line
+  const hasDetails = !!commit
+  const detailsSep = hasDetails ? 1 : 0
+  const detailsH = hasDetails ? Math.min(Math.max(6, Math.floor((height - msgRows) * 0.5)), height - msgRows - 4) : 0
+  const stagingH = Math.max(2, height - detailsH - detailsSep - msgRows)
 
   return (
     <Box flexDirection="column">
-      {view.map((r, i) => {
-        const gi = start + i
-        if (r.header) return <Text key={gi} color={THEME.dim} bold>{r.header}</Text>
-        const f = r.file!
-        const active = focused && files[sel] === f
-        const mark = f.kind === 'staged' ? '●' : f.kind === 'untracked' ? '+' : '○'
-        const mc = f.kind === 'staged' ? '#3fb950' : f.kind === 'untracked' ? '#3fb950' : '#d29922'
-        return (
-          <Box key={gi} width={width}>
-            <Text wrap="truncate-end" backgroundColor={active ? THEME.selBg : undefined}>
-              <Text color={mc}>{mark} </Text>
-              <Text color={statusColor(f.status)}>{f.status} </Text>
-              <Text color={active ? '#ffffff' : THEME.text}>{fit(f.path, width - 5)}</Text>
-            </Text>
-          </Box>
-        )
-      })}
-      {files.length === 0 && <Text dimColor>  Aucun changement</Text>}
-      {/* filler */}
-      {Array.from({ length: Math.max(0, listVisible - view.length - (files.length === 0 ? 1 : 0)) }).map((_, i) => <Text key={'f' + i}> </Text>)}
-      {/* commit message box */}
+      {hasDetails && <CommitDetails commit={commit!} files={commitFiles} width={width} height={detailsH} />}
+      {hasDetails && <Text color={THEME.border}>{'━'.repeat(Math.max(0, width))}</Text>}
+      <Staging files={files} sel={sel} width={width} height={stagingH} focused={focused} />
       <Text color={THEME.border}>{'─'.repeat(Math.max(0, width))}</Text>
       <Text wrap="truncate-end">
         <Text color={commitMode ? THEME.menuOn : THEME.dim}>✎ </Text>
@@ -447,6 +426,60 @@ function StagingView({ files, changes, sel, visible, width, focused, commitMode,
       </Text>
     </Box>
   )
+}
+
+function CommitDetails({ commit, files, width, height }: { commit: LayoutCommit; files: FileChange[]; width: number; height: number }) {
+  const rows: React.ReactNode[] = []
+  rows.push(<Text key="h" wrap="truncate-end"><Text color={THEME.menuOn} bold>{commit.shortHash}</Text><Text color={THEME.dim}>  {(commit.date || '').slice(0, 16)}</Text></Text>)
+  rows.push(<Text key="a" wrap="truncate-end" color={THEME.dim}>{fit(commit.author, width)}</Text>)
+  rows.push(<Text key="m" wrap="truncate-end" color={THEME.text}>{fit(commit.message, width)}</Text>)
+  const refs = refSegs(commit.refs)
+  if (refs.length) rows.push(<Text key="r" wrap="truncate-end">{refs.map((s, k) => <Text key={k} color={s.color} bold={s.bold}>{s.text} </Text>)}</Text>)
+  const add = files.reduce((n, f) => n + (f.additions || 0), 0)
+  const del = files.reduce((n, f) => n + (f.deletions || 0), 0)
+  rows.push(<Text key="c" wrap="truncate-end"><Text color={THEME.dim}>{files.length} fichier{files.length !== 1 ? 's' : ''}  </Text><Text color="#3fb950">+{add}</Text><Text> </Text><Text color="#f85149">-{del}</Text></Text>)
+  const fileRoom = Math.max(0, height - rows.length)
+  files.slice(0, fileRoom).forEach((f, k) => rows.push(
+    <Box key={'f' + k} width={width}><Text wrap="truncate-end">
+      <Text color={statusColor(f.status)}>{f.status} </Text>
+      <Text color={THEME.text}>{fit(f.path.split('/').pop() ?? f.path, Math.max(3, width - 12))}</Text>
+      <Text color="#3fb950"> +{f.additions}</Text><Text color="#f85149"> -{f.deletions}</Text>
+    </Text></Box>
+  ))
+  while (rows.length < height) rows.push(<Text key={'p' + rows.length}> </Text>)
+  return <Box flexDirection="column">{rows.slice(0, height)}</Box>
+}
+
+function Staging({ files, sel, width, height, focused }: { files: FileItem[]; sel: number; width: number; height: number; focused: boolean }) {
+  const unstaged = files.filter(f => f.kind !== 'staged')
+  const staged = files.filter(f => f.kind === 'staged')
+  const rows: { file?: FileItem; header?: string }[] = []
+  rows.push({ header: `Non indexé (${unstaged.length})` })
+  unstaged.forEach(f => rows.push({ file: f }))
+  rows.push({ header: `Indexé (${staged.length})` })
+  staged.forEach(f => rows.push({ file: f }))
+  const selRow = rows.findIndex(r => r.file === files[sel])
+  const start = windowStart(selRow < 0 ? 0 : selRow, rows.length, height)
+  const view = rows.slice(start, start + height)
+  const nodes: React.ReactNode[] = view.map((r, i) => {
+    const gi = start + i
+    if (r.header) return <Text key={gi} color={THEME.dim} bold wrap="truncate-end">{r.header}</Text>
+    const f = r.file!
+    const active = focused && files[sel] === f
+    const mark = f.kind === 'staged' ? '●' : f.kind === 'untracked' ? '+' : '○'
+    const mc = f.kind === 'staged' ? '#3fb950' : f.kind === 'untracked' ? '#3fb950' : '#d29922'
+    return (
+      <Box key={gi} width={width}>
+        <Text wrap="truncate-end" backgroundColor={active ? THEME.selBg : undefined}>
+          <Text color={mc}>{mark} </Text>
+          <Text color={statusColor(f.status)}>{f.status} </Text>
+          <Text color={active ? '#ffffff' : THEME.text}>{fit(f.path, width - 5)}</Text>
+        </Text>
+      </Box>
+    )
+  })
+  while (nodes.length < height) nodes.push(<Text key={'p' + nodes.length}> </Text>)
+  return <Box flexDirection="column">{nodes.slice(0, height)}</Box>
 }
 
 function DiffPane({ text, scroll, visible, width }: { text: string; scroll: number; visible: number; width: number }) {
