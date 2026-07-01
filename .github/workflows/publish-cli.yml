@@ -13,6 +13,9 @@ on:
     paths:
       - 'cli/**'
       - '!cli/node_modules/**'
+  # Manual trigger from the Actions tab ("Run workflow") — publishes the current
+  # cli/package.json version if it isn't already released.
+  workflow_dispatch:
 
 permissions:
   contents: write   # to create tags and GitHub Releases
