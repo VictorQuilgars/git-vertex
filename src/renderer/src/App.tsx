@@ -1213,6 +1213,16 @@ export default function App() {
     showToast(t('toast.patchCopied'))
   }
 
+  // Cloud Patches without a server: the patch goes to a secret gist and the
+  // shareable link lands in the clipboard.
+  const handleSharePatch = async (hash: string) => {
+    const res = await (window.gitAPI as any).githubSharePatch(hash)
+    if (res.error === 'not_authenticated') { showToast(t('toast.sharePatch.needAuth'), 'err'); return }
+    if (res.error) { showToast(t('toast.err', res.error), 'err'); return }
+    navigator.clipboard.writeText(res.url)
+    showToast(t('toast.sharePatch.copied'), 'ok', { label: t('toast.open'), onClick: () => (window.gitAPI as any).openExternal(res.url) })
+  }
+
   const handleCreateWorktreeAt = async (hash: string) => {
     const dir = await window.gitAPI.selectDirectory(t('worktree.selectDir'))
     if (!dir.path) return
@@ -1932,6 +1942,7 @@ export default function App() {
               onPushToCommit={handlePushToCommit}
               onCreatePatch={handleCreatePatch}
               onCopyPatch={handleCopyPatch}
+              onSharePatch={handleSharePatch}
               onCreateWorktreeAt={handleCreateWorktreeAt}
               onOpenCommitOnRemote={handleOpenCommitOnRemote}
               wipCount={wipCount}

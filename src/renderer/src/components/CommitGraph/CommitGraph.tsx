@@ -437,6 +437,7 @@ interface CommitGraphProps {
   onPushToCommit?: (hash: string) => void
   onCreatePatch?: (hash: string) => void
   onCopyPatch?: (hash: string) => void
+  onSharePatch?: (hash: string) => void
   onCreateWorktreeAt?: (hash: string) => void
   onOpenCommitOnRemote?: (hash: string) => void
   wipCount?: number
@@ -468,7 +469,7 @@ export default function CommitGraph({
   onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch,
   onPushBranch, onSetUpstream, onDeleteRemoteBranch, onPushTag, onDeleteTag,
   onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch,
-  onCopyPatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false,
+  onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false,
   onNativeMenuTarget,
 }: CommitGraphProps) {
   const { t } = useLang()
@@ -943,6 +944,7 @@ export default function CommitGraph({
     )
     if (onCreatePatch) items.push({ label: t('graph.menu.createPatch'), action: () => onCreatePatch(commit.hash) })
     if (onCopyPatch) items.push({ label: t('graph.menu.copyPatch'), action: () => onCopyPatch(commit.hash) })
+    if (onSharePatch) items.push({ label: t('graph.menu.sharePatch'), action: () => onSharePatch(commit.hash) })
     if (onOpenCommitOnRemote) items.push({ label: t('graph.menu.openOnRemote'), action: () => onOpenCommitOnRemote(commit.hash) })
     if (onCompareWorking || onSelectForCompare || (onCompareWithSelected && compareBaseHash)) {
       items.push({ separator: true })
@@ -956,7 +958,7 @@ export default function CommitGraph({
   }, [currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onInteractiveRebase,
       onCheckoutCommit, onRewordCommit, onCompareWorking, onSelectForCompare, onCompareWithSelected,
       compareBaseHash, onDropCommit, onMoveCommit, onRebaseCurrentOntoCommit, onPushToCommit,
-      onCreatePatch, onCopyPatch, onCreateWorktreeAt, onOpenCommitOnRemote, t, branchActionItems])
+      onCreatePatch, onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, t, branchActionItems])
 
   const handleRowContextMenu = useCallback((e: React.MouseEvent, commit: LayoutCommit) => {
     if (commit.hash === WIP_HASH) return
