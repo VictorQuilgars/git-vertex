@@ -173,6 +173,7 @@ const gitAPI = {
   openTerminal: () => ipcRenderer.invoke('app:open-terminal'),
   // GitHub
   githubDetectRepo: () => ipcRenderer.invoke('github:detect-repo'),
+  githubDetectRepoAt: (path: string) => ipcRenderer.invoke('github:detect-repo-at', path),
   githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) =>
     ipcRenderer.invoke('github:create-pr', owner, repo, title, body, head, base),
   githubListBranches: (owner: string, repo: string) => ipcRenderer.invoke('github:list-branches', owner, repo),

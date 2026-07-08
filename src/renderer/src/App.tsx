@@ -1744,7 +1744,7 @@ export default function App() {
             />
           )}
           {activeView === 'github' && (
-            <GitHubPanel repoPath={repoPath} />
+            <GitHubPanel repoPath={repoPath} recentRepos={recentRepos} />
           )}
         </div>
         )}
