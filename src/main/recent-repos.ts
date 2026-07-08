@@ -35,3 +35,31 @@ export function removeRecentRepo(repoPath: string): string[] {
   } catch {}
   return repos
 }
+
+// ── Workspaces ─────────────────────────────────────────────────
+// Named groups over the recent repos: a simple { repoPath: workspaceName }
+// map in its own file, so the recent-repos format stays untouched.
+function getWorkspacesPath(): string {
+  return join(app.getPath('userData'), 'workspaces.json')
+}
+
+export function getWorkspaces(): Record<string, string> {
+  try {
+    const fp = getWorkspacesPath()
+    if (!existsSync(fp)) return {}
+    return JSON.parse(readFileSync(fp, 'utf-8'))
+  } catch {
+    return {}
+  }
+}
+
+// Empty name removes the repo from its workspace.
+export function setRepoWorkspace(repoPath: string, workspace: string): Record<string, string> {
+  const map = getWorkspaces()
+  if (workspace.trim()) map[repoPath] = workspace.trim()
+  else delete map[repoPath]
+  try {
+    writeFileSync(getWorkspacesPath(), JSON.stringify(map, null, 2))
+  } catch {}
+  return map
+}
