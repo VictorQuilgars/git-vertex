@@ -18,6 +18,8 @@ const gitAPI = {
   setRepo: (path: string) => ipcRenderer.invoke('git:set-repo', path),
   initRepo: (dir: string) => ipcRenderer.invoke('git:init-repo', dir),
   getRecentRepos: () => ipcRenderer.invoke('app:get-recent-repos'),
+  getWorkspaces: () => ipcRenderer.invoke('app:get-workspaces'),
+  setRepoWorkspace: (path: string, workspace: string) => ipcRenderer.invoke('app:set-repo-workspace', path, workspace),
   removeRecentRepo: (path: string) => ipcRenderer.invoke('app:remove-recent-repo', path),
   // Deep links (gitgui://open — e.g. from the MCP server's open_in_git_vertex)
   getPendingDeepLink: () => ipcRenderer.invoke('app:get-pending-deeplink'),

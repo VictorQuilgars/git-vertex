@@ -269,6 +269,8 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(false)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
   const [repoSearch, setRepoSearch] = useState('')   // welcome-screen recents filter
+  // Named workspaces over the recent repos: { repoPath: workspaceName }
+  const [workspaces, setWorkspaces] = useState<Record<string, string>>({})
   const [stashes, setStashes] = useState<StashEntry[]>([])
   const [tags, setTags] = useState<TagEntry[]>([])
   const [sidebarW, setSidebarW] = useState<number>(230)
@@ -470,6 +472,7 @@ export default function App() {
   // ── Load recent repos on mount ─────────────────────────────
   useEffect(() => {
     window.gitAPI.getRecentRepos().then(r => setRecentRepos(r ?? []))
+    ;(window.gitAPI as any).getWorkspaces?.().then((w: Record<string, string>) => setWorkspaces(w ?? {})).catch(() => {})
   }, [])
 
   // ── "What's new" after an update ───────────────────────────
@@ -480,6 +483,15 @@ export default function App() {
       if (w) { setWhatsNew(w); setWhatsNewActive(true); (window.gitAPI as any).markWhatsNewSeen?.() }
     }).catch(() => {})
   }, [])
+
+  // Assign a recent repo to a named workspace (empty name = remove).
+  const handleAssignWorkspace = useCallback(async (path: string) => {
+    const current = workspaces[path] ?? ''
+    const name = await showPrompt(t('sb.workspacePrompt', path.split('/').pop() ?? ''), current)
+    if (name === null || name === current) return
+    const updated = await (window.gitAPI as any).setRepoWorkspace(path, name)
+    setWorkspaces(updated ?? {})
+  }, [workspaces])  // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // ── Extended search ────────────────────────────────────────
@@ -1690,6 +1702,8 @@ export default function App() {
               onClone={() => setCloneOpen(true)}
               onSetRepo={handleSetRepo}
               onRemoveRecent={handleRemoveRecent}
+              workspaces={workspaces}
+              onAssignWorkspace={handleAssignWorkspace}
               onCheckout={handleCheckout}
               onCreateBranch={handleCreateBranch}
               onDeleteBranch={handleDeleteBranch}

@@ -7,7 +7,7 @@ import simpleGit from 'simple-git'
 
 import { GitService } from './git-service'
 import { RELEASE_NOTES } from './release-notes'
-import { getRecentRepos, addRecentRepo, removeRecentRepo } from './recent-repos'
+import { getRecentRepos, addRecentRepo, removeRecentRepo, getWorkspaces, setRepoWorkspace } from './recent-repos'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 import { splashHtml } from './splash'
 import iconPng from '../../resources/icon.png?asset'
@@ -361,6 +361,11 @@ async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; name?: 
 ipcMain.handle('app:get-recent-repos', () => getRecentRepos())
 
 ipcMain.handle('app:remove-recent-repo', (_event, path: string) => removeRecentRepo(path))
+
+ipcMain.handle('app:get-workspaces', () => getWorkspaces())
+
+ipcMain.handle('app:set-repo-workspace', (_event, path: string, workspace: string) =>
+  setRepoWorkspace(path, workspace))
 
 ipcMain.handle('git:open-repo', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
