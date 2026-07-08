@@ -816,6 +816,8 @@ const fr = {
   'gh.panel.comments': (n: number) => `${n} commentaire${n !== 1 ? 's' : ''}`,
   'gh.panel.ago': (s: string) => `il y a ${s}`,
   'gh.panel.error': (e: string) => `Erreur : ${e}`,
+  'gh.panel.allRepos': 'Tous les dépôts',
+  'gh.panel.scopeTooltip': 'Basculer entre le dépôt courant et tous les dépôts récents',
   'toolbar.github.tooltip': 'PRs & Issues GitHub',
 
   // Clone from GitHub
@@ -1663,6 +1665,8 @@ const en: typeof fr = {
   'gh.panel.comments': (n: number) => `${n} comment${n !== 1 ? 's' : ''}`,
   'gh.panel.ago': (s: string) => `${s} ago`,
   'gh.panel.error': (e: string) => `Error: ${e}`,
+  'gh.panel.allRepos': 'All repositories',
+  'gh.panel.scopeTooltip': 'Toggle between the current repo and all recent repos',
   'toolbar.github.tooltip': 'PRs & Issues GitHub',
 
   // Clone from GitHub

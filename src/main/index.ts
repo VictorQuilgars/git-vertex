@@ -1764,6 +1764,20 @@ ipcMain.handle('github:detect-repo', async () => {
   } catch { return { owner: null, repo: null } }
 })
 
+// Same GitHub-remote detection, but for an arbitrary local path (cross-repo
+// Launchpad: recent repos other than the currently-open one).
+ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
+  try {
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const exec = promisify(execFile)
+    const r = await exec('git', ['-C', repoPath, 'remote', 'get-url', 'origin'])
+    const match = r.stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
+    if (!match) return { owner: null, repo: null }
+    return { owner: match[1], repo: match[2] }
+  } catch { return { owner: null, repo: null } }
+})
+
 ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }
