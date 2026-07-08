@@ -177,6 +177,7 @@ const gitAPI = {
   githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) =>
     ipcRenderer.invoke('github:create-pr', owner, repo, title, body, head, base),
   githubListBranches: (owner: string, repo: string) => ipcRenderer.invoke('github:list-branches', owner, repo),
+  githubSharePatch: (hash: string) => ipcRenderer.invoke('github:share-patch', hash),
   githubListPRs: (owner: string, repo: string) => ipcRenderer.invoke('github:list-prs', owner, repo),
   githubListIssues: (owner: string, repo: string) => ipcRenderer.invoke('github:list-issues', owner, repo),
   githubGetIssue: (owner: string, repo: string, number: number) =>

@@ -1807,6 +1807,37 @@ ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
   } catch (e: any) { return { error: e.message } }
 })
 
+// Cloud Patches, the zero-server way: the commit's patch goes into a SECRET
+// gist under the user's own account and the shareable URL comes back.
+// Secret gists are unlisted (anyone with the link can read) — good enough
+// for "feedback before the PR", and revocable by deleting the gist.
+ipcMain.handle('github:share-patch', async (_e, hash: string) => {
+  if (!gitService) return { error: 'No repo open' }
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  const patchRes = await gitService.createPatch(hash)
+  if ((patchRes as any).error) return { error: (patchRes as any).error }
+  try {
+    const short = hash.slice(0, 7)
+    let subject = short
+    try {
+      subject = (await (gitService as any).git.raw(['log', '-1', '--pretty=format:%s', hash])).trim() || short
+    } catch { /* subject is cosmetic */ }
+    const res = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        description: `git-vertex patch — ${short}: ${subject}`,
+        public: false,
+        files: { [`${short}.patch`]: { content: patchRes.patch } },
+      }),
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any
+    return { url: data.html_url }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }
