@@ -1,0 +1,128 @@
+{
+  "name": "git-gui",
+  "version": "1.10.0",
+  "description": "A modern, local-first Git client built with Electron + React",
+  "license": "FSL-1.1-MIT",
+  "author": {
+    "name": "Victor Quilgars",
+    "email": "victorqlgs@gmail.com"
+  },
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite dev",
+    "package": "electron-vite build && electron-builder",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:report": "jest --coverage && open coverage/index.html"
+  },
+  "build": {
+    "appId": "com.victor.gitvertex",
+    "productName": "Git Vertex",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "VictorQuilgars",
+      "repo": "git-vertex",
+      "releaseType": "release"
+    },
+    "protocols": [
+      {
+        "name": "Git Vertex",
+        "schemes": [
+          "gitgui"
+        ]
+      }
+    ],
+    "mac": {
+      "icon": "resources/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "icon": "resources/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "icon": "resources/icon.png",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Development"
+    }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.99.0",
+    "@google/generative-ai": "^0.24.1",
+    "diff2html": "^3.4.47",
+    "electron-updater": "^6.8.3",
+    "groq-sdk": "^1.2.0",
+    "highlight.js": "^11.11.1",
+    "openai": "^6.39.0",
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@electron-toolkit/utils": "^3.0.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.17.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0",
+    "electron-vite": "^2.3.0",
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0"
+  }
+}

@@ -1,0 +1,415 @@
+.cg-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  font-size: 12px;
+  color: #c9d1d9;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.cg-header {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6e7681;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.cg-h-refs   { flex-shrink: 0; padding: 0 8px; height: 100%; display: flex; align-items: center; }
+.cg-h-graph  { flex-shrink: 0; padding: 0 6px; height: 100%; display: flex; align-items: center; }
+.cg-h-msg    { flex: 1; padding: 0 10px; min-width: 0; }
+.cg-h-author { flex-shrink: 0; padding: 0 8px; display: flex; align-items: center; height: 100%; }
+.cg-h-date   { flex-shrink: 0; padding: 0 8px; display: flex; align-items: center; height: 100%; }
+.cg-h-sha    { flex-shrink: 0; padding: 0 8px; }
+.cg-h-stats  { flex-shrink: 0; padding: 0 8px; height: 100%; display: flex; align-items: center; }
+
+.cg-col-handle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  height: 100%;
+  z-index: 10;
+}
+.cg-col-handle:hover { background: var(--accent,#58a6ff); }
+
+/* ── Body ────────────────────────────────────────────────── */
+.cg-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  position: relative;
+}
+
+.cg-scroll-content {
+  position: relative;
+}
+
+.cg-graph-svg { display: block; }
+
+/* ── Rows ────────────────────────────────────────────────── */
+.cg-row {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  cursor: pointer;
+  box-shadow: 0 1px 0 0 #21262d40;
+  transition: background 0.07s;
+  z-index: 1;
+  background: transparent;
+  /* Clip any residual column overflow so fixed-width columns can never spill
+     past the row edge and overlap / disappear under the scrollbar. */
+  overflow: hidden;
+}
+
+/* Colored left stripe */
+.cg-color-bar {
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.1s;
+}
+.cg-row:hover .cg-color-bar { opacity: 0.9; }
+.cg-selected .cg-color-bar { opacity: 1 !important; }
+.cg-row:hover { background: #161b2299; }
+.cg-selected  { background: #1a3a5c !important; }
+/* Dimming applies only to the commit info columns (message, author, date, sha) —
+   the branch/tag chips, color bar and graph nodes stay at full opacity.
+   The transition on the base elements lets the opacity animate in both directions. */
+.cg-col-msg, .cg-col-author, .cg-col-date, .cg-col-sha, .cg-col-stats {
+  transition: opacity 0.35s ease;
+}
+.cg-dimmed .cg-col-msg,
+.cg-dimmed .cg-col-author,
+.cg-dimmed .cg-col-date,
+.cg-dimmed .cg-col-sha,
+.cg-dimmed .cg-col-stats { opacity: 0.25; }
+.cg-drop-target {
+  background: #1f6feb33 !important;
+  box-shadow: inset 0 0 0 1px var(--accent,#58a6ff);
+}
+.ref-chip[draggable="true"] { cursor: grab; }
+.ref-chip[draggable="true"]:active { cursor: grabbing; }
+
+/* WIP row */
+.cg-row-wip { cursor: default; }
+.cg-row-wip:hover { background: #161b2255 !important; }
+
+/* ── BRANCH / TAG column ─────────────────────────────────── */
+.cg-refs-col {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 0 0 8px;
+  overflow: hidden;
+  height: 100%;
+  gap: 0;
+}
+
+/* Inner wrapper that hugs the chips — used as anchor for the expansion popup */
+.cg-refs-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+/* Flex stub: sits after the chip in the refs-col, fills to just before the SVG boundary */
+.cg-ref-line-stub {
+  flex: 1;
+  height: 1px;
+  align-self: center;
+  min-width: 0;
+}
+
+/* ── Columns ─────────────────────────────────────────────── */
+.cg-col-msg {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cg-msg-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+}
+
+.cg-msg {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cg-sig {
+  flex-shrink: 0;
+  margin-right: 5px;
+  font-size: 11px;
+  line-height: 1;
+  filter: grayscale(1) brightness(1.4);
+}
+.cg-sig--good { filter: none; }
+.cg-sig--bad  { filter: hue-rotate(-50deg) saturate(3); }
+.cg-sig--warn { filter: sepia(1) saturate(2) hue-rotate(5deg); }
+
+.cg-msg-wip {
+  color: #6e7681;
+  font-style: italic;
+}
+
+.cg-msg-sub {
+  display: block;
+  font-size: 10px;
+  color: #6e7681;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cg-col-author {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  overflow: hidden;
+}
+
+/* Compact layout: avatar bullet beside the (now plain-dot) graph node */
+.cg-author-bullet {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid transparent;
+  background: #161b22;
+}
+.cg-author-bullet img { width: 100%; height: 100%; object-fit: cover; }
+.cg-author-bullet-initials {
+  font-size: 7px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cg-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.cg-avatar-img { object-fit: cover; background: #21262d; }
+
+.cg-author-name {
+  font-size: 11px;
+  color: #8b949e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cg-col-date {
+  flex-shrink: 0;
+  color: #6e7681;
+  padding: 0 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.cg-col-sha {
+  flex-shrink: 0;
+  padding: 0 8px;
+}
+.cg-col-sha code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #484f58;
+}
+
+/* ── Ajouts / suppressions ───────────────────────────────── */
+.cg-col-stats {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  overflow: hidden;
+}
+.cg-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cg-stats-bar {
+  display: inline-flex;
+  width: 34px;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #21262d;
+  flex-shrink: 0;
+}
+.cg-stats-bar--compact { width: 20px; }
+.cg-stats-add { background: #3fb950; height: 100%; }
+.cg-stats-del { background: #f85149; height: 100%; }
+.cg-stats-nums {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 10px;
+  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+}
+.cg-stats-add-n { color: #3fb950; }
+.cg-stats-del-n { color: #f85149; }
+
+/* ── Ref chips ───────────────────────────────────────────── */
+.ref-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px 0 8px;
+  height: 26px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid;
+  line-height: 1;
+  user-select: none;
+  max-width: 200px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* checkmark for HEAD */
+.rc-check { font-size: 11px; opacity: 0.9; flex-shrink: 0; }
+
+/* Compact layout: icons/checkmark only, no branch/tag name — tighter padding
+   since there's no text to give the chip room to breathe. */
+.ref-chip--compact { padding: 0 6px; gap: 3px; }
+
+/* branch name — truncated */
+.rc-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+/* icon cluster (monitor + cloud) — fixed width set inline to avoid chip size variation */
+.rc-icons {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.rc-local  { background: #1f6feb18; color: var(--accent,#58a6ff); border-color: #1f6feb55; }
+.rc-remote { background: #2ea04318; color: #3fb950; border-color: #2ea04355; }
+.rc-head   { background: #f1e05a22; color: #f1e05a; border-color: #f1e05a66; }
+.rc-tag    { background: #8957e518; color: #d2a8ff; border-color: #8957e555; }
+.rc-overflow { background: #30363d; color: #8b949e; border-color: #484f58; cursor: default; padding: 2px 7px; }
+
+/* Stack badge — shown when a commit has hidden refs */
+.rc-stack-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  background: #30363d;
+  color: #8b949e;
+  border: 1px solid #484f58;
+  cursor: default;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* Hover expansion popup */
+.ref-expansion-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ref-expansion-popup .ref-chip {
+  max-width: none;
+  /* width set by align-items: stretch from parent flex column */
+}
+
+/* ── Loading skeleton ────────────────────────────────────── */
+.cg-skeleton {
+  padding: 6px 0;
+}
+.cg-skel-row {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  opacity: 0;
+  animation: cg-skel-in 0.3s ease forwards;
+}
+.cg-skel-chip,
+.cg-skel-dot,
+.cg-skel-bar {
+  background: linear-gradient(90deg, #1c2128 25%, #262c36 50%, #1c2128 75%);
+  background-size: 200% 100%;
+  animation: cg-skel-shimmer 1.4s linear infinite;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.cg-skel-chip { height: 14px; border-radius: 10px; }
+.cg-skel-dot { width: 14px; height: 14px; border-radius: 50%; margin-right: 16px; }
+.cg-skel-bar { height: 10px; }
+@keyframes cg-skel-shimmer {
+  to { background-position: -200% 0; }
+}
+@keyframes cg-skel-in {
+  to { opacity: 1; }
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.cg-empty {
+  padding: 40px;
+  text-align: center;
+  color: #484f58;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+.cg-body::-webkit-scrollbar { width: 5px; }
+.cg-body::-webkit-scrollbar-track { background: transparent; }
+.cg-body::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+.cg-body::-webkit-scrollbar-thumb:hover { background: #30363d; }

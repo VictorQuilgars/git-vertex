@@ -1,0 +1,142 @@
+.cv-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0d1117;
+  color: #e6edf3;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.cv-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #21262d;
+  background: #161b22;
+  flex-shrink: 0;
+}
+
+.cv-title {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.cv-ref-select {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  padding: 4px 8px;
+  font-size: 12px;
+  max-width: 220px;
+}
+
+.cv-swap {
+  background: transparent;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #8b949e;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.cv-swap:hover {
+  color: #e6edf3;
+  background: #21262d;
+}
+
+.cv-summary {
+  color: #8b949e;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.cv-sum-ahead {
+  color: #3fb950;
+}
+
+.cv-sum-behind {
+  color: #f85149;
+}
+
+.cv-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.cv-left {
+  width: 300px;
+  min-width: 240px;
+  border-right: 1px solid #21262d;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.cv-commits-section {
+  padding: 8px 0;
+  border-bottom: 1px solid #161b22;
+}
+
+.cv-commits-title {
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cv-commits-count {
+  color: #484f58;
+  font-weight: 400;
+}
+
+.cv-commits-empty {
+  padding: 6px 14px;
+  color: #484f58;
+  font-size: 12px;
+}
+
+.cv-commit {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 14px;
+  line-height: 1.5;
+}
+
+.cv-commit:hover {
+  background: #161b22;
+}
+
+.cv-commit-hash {
+  color: #58a6ff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.cv-commit-msg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.cv-right {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cv-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #484f58;
+}

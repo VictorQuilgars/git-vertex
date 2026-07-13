@@ -1,0 +1,55 @@
+{
+  "name": "git-vertex-mcp",
+  "version": "0.4.0",
+  "description": "Git Vertex — local MCP server exposing your Git repositories to AI agents (Claude Code, Cursor, Copilot…). Read-only, no cloud.",
+  "type": "module",
+  "bin": {
+    "gv-mcp": "./bin/gv-mcp.mjs",
+    "git-vertex-mcp": "./bin/gv-mcp.mjs"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "git",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "cursor",
+    "ai-agent",
+    "git-gui",
+    "commit-graph"
+  ],
+  "license": "FSL-1.1-MIT",
+  "author": "Victor Quilgars",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictorQuilgars/git-vertex",
+    "directory": "mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/VictorQuilgars/git-vertex/issues"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "simple-git": "^3.22.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.3.0"
+  }
+}

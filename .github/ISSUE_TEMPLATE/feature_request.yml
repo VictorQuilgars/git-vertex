@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest an idea or improvement
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: Which part of Git Vertex would this apply to?
+      options:
+        - Desktop app
+        - VS Code extension
+        - Terminal UI (CLI)
+        - MCP server
+        - All / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the workflow that is painful or impossible today.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work? Mockups welcome.
