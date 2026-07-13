@@ -1,0 +1,57 @@
+{
+  "name": "git-vertex-cli",
+  "version": "0.1.0",
+  "description": "Git Vertex — terminal UI (TUI) Git client. Commit graph, staging, branches, all from the keyboard.",
+  "type": "module",
+  "bin": {
+    "gv": "./bin/gv.mjs",
+    "git-vertex-cli": "./bin/gv.mjs"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "git",
+    "tui",
+    "terminal",
+    "cli",
+    "ink",
+    "git-gui",
+    "commit-graph",
+    "lazygit"
+  ],
+  "license": "FSL-1.1-MIT",
+  "author": "Victor Quilgars",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictorQuilgars/git-vertex",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/VictorQuilgars/git-vertex/issues"
+  },
+  "scripts": {
+    "start": "tsx src/cli.tsx",
+    "dev": "tsx src/cli.tsx",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ink": "^5.0.1",
+    "react": "^18.3.1",
+    "simple-git": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.3",
+    "ink-testing-library": "^4.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.3.0"
+  }
+}

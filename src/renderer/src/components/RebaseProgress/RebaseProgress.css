@@ -1,0 +1,471 @@
+.rp-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0d1117;
+  color: #e6edf3;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.rp-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #21262d;
+  background: #161b22;
+  flex-shrink: 0;
+}
+
+.rp-header-top {
+  display: flex;
+  align-items: center;
+}
+
+.rp-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rp-header-refs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-header-spring {
+  flex: 1;
+}
+
+.rp-ref-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  color: #e6edf3;
+}
+
+.rp-ref-chip--commit {
+  color: #58a6ff;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.rp-ref-icon {
+  opacity: 0.7;
+}
+
+.rp-ref-onto {
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.rp-counter {
+  color: #8b949e;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-progressbar {
+  height: 3px;
+  background: #21262d;
+  flex-shrink: 0;
+}
+
+.rp-progressbar-fill {
+  height: 100%;
+  background: #3fb950;
+  transition: width 0.3s ease;
+}
+
+.rp-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: rgba(88, 166, 255, 0.08);
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+.rp-banner--conflict {
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.rp-banner-text {
+  color: #e6edf3;
+}
+
+.rp-banner-text code {
+  color: #58a6ff;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.rp-banner-link {
+  background: transparent;
+  border: none;
+  color: #58a6ff;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.rp-banner-link:hover {
+  color: #79c0ff;
+}
+
+.rp-banner-spring {
+  flex: 1;
+}
+
+.rp-banner-count {
+  color: #8b949e;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.rp-conflicts-section {
+  border-top: 1px solid #21262d;
+  flex-shrink: 0;
+  max-height: 40%;
+  display: flex;
+  flex-direction: column;
+}
+
+.rp-conflicts-header {
+  padding: 10px 18px 6px;
+  flex-shrink: 0;
+}
+
+.rp-conflicts-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e3b341;
+}
+
+.rp-conflicts-filter {
+  margin: 0 18px 8px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 12px;
+  padding: 5px 10px;
+  flex-shrink: 0;
+}
+
+.rp-conflicts-filter:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
+
+.rp-conflicts-list {
+  overflow-y: auto;
+}
+
+.rp-conflict-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 18px;
+  background: transparent;
+  border: none;
+  color: #e6edf3;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rp-conflict-file:hover {
+  background: #161b22;
+}
+
+.rp-conflict-spring {
+  flex: 1;
+}
+
+.rp-conflict-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #e3b341;
+  flex-shrink: 0;
+}
+
+.rp-conflict-badge {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f85149;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rp-conflict-path {
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-steps {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.rp-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 18px;
+  line-height: 1.4;
+}
+
+.rp-step--done {
+  opacity: 0.55;
+}
+
+.rp-step--current {
+  background: #161b22;
+  border-left: 2px solid #58a6ff;
+  padding-left: 16px;
+}
+
+/* The commit git is actually stuck on (a real conflict, not just paused) —
+   red instead of the neutral "current" blue, same as GitLens. */
+.rp-step--conflict {
+  background: rgba(248, 81, 73, 0.15);
+  border-left: 2px solid #f85149;
+  padding-left: 16px;
+}
+
+.rp-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3fb950;
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.rp-step-dot--current {
+  background: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+}
+
+.rp-step-dot--conflict {
+  background: #f85149;
+  box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.25);
+}
+
+.rp-step-action {
+  width: 58px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.rp-step-spring {
+  flex: 1;
+}
+
+.rp-step-date {
+  color: #484f58;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.rp-step-hash {
+  color: #8b949e;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.rp-step--editable {
+  cursor: grab;
+  outline: none;
+}
+
+.rp-step--editable:hover,
+.rp-step--editable:focus {
+  background: #161b22;
+}
+
+.rp-step--editable.drag-over {
+  border-top: 2px solid #58a6ff;
+}
+
+.rp-step-drag {
+  color: #484f58;
+  flex-shrink: 0;
+  width: 12px;
+  text-align: center;
+}
+
+.rp-step-select {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  width: 84px;
+  flex-shrink: 0;
+}
+
+.rp-step-directive {
+  color: #8b949e;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.rp-msg-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 18px 10px 40px;
+  background: #0d1117;
+}
+
+.rp-msg-editor-label {
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.rp-msg-textarea {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.rp-msg-textarea:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
+
+.rp-legend {
+  padding: 6px 18px;
+  font-size: 11px;
+  color: #484f58;
+  border-top: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+.rp-legend kbd {
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #e6edf3;
+}
+
+.rp-step-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #21262d;
+  background: #161b22;
+  flex-shrink: 0;
+}
+
+.rp-footer-spring {
+  flex: 1;
+}
+
+.rp-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.rp-btn:hover:not(:disabled) {
+  background: #30363d;
+}
+
+.rp-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.rp-btn--continue {
+  background: #238636;
+  border-color: #2ea043;
+}
+
+.rp-btn--continue:hover:not(:disabled) {
+  background: #2ea043;
+}
+
+.rp-btn--abort {
+  color: #f85149;
+}
+
+.rp-btn--abort:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.rp-empty,
+.rp-finished {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  color: #8b949e;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.rp-finished-icon {
+  font-size: 40px;
+}
+
+.rp-finished-icon.rp-ok {
+  color: #3fb950;
+}
+
+.rp-finished-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.rp-finished-sub {
+  font-size: 12px;
+  max-width: 420px;
+}

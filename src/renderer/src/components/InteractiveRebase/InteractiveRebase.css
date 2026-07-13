@@ -1,0 +1,231 @@
+.ir-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ir-panel {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  width: 720px;
+  max-width: 95vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+/* Embedded (tab) mode — fills the whole tab/page instead of a centered card. */
+.ir-page {
+  position: static;
+  height: 100%;
+  width: 100%;
+  background: #0d1117;
+  display: flex;
+}
+
+.ir-panel--embedded {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ir-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+}
+
+.ir-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.ir-base {
+  font-size: 12px;
+  color: #8b949e;
+  flex: 1;
+}
+
+.ir-base code {
+  color: var(--accent,#58a6ff);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.ir-close {
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.ir-close:hover { color: #e6edf3; }
+
+.ir-hint {
+  padding: 6px 18px;
+  font-size: 11px;
+  color: #484f58;
+  border-bottom: 1px solid #21262d;
+  background: #0d1117;
+  flex-shrink: 0;
+}
+
+/* Agent proposal banner (MCP propose_rebase_plan) */
+.ir-plan-banner {
+  padding: 7px 18px;
+  font-size: 12px;
+  color: #58a6ff;
+  background: #58a6ff12;
+  border-bottom: 1px solid #58a6ff55;
+  flex-shrink: 0;
+}
+
+.ir-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 0;
+}
+
+.ir-empty {
+  padding: 20px;
+  text-align: center;
+  color: #484f58;
+  font-size: 13px;
+}
+
+.ir-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border-bottom: 1px solid #21262d;
+  cursor: default;
+  transition: background 0.1s;
+}
+
+.ir-row:hover { background: #1c2128; }
+
+.ir-row.drag-over {
+  background: #1f6feb22;
+  border-top: 2px solid var(--accent,#58a6ff);
+}
+
+.ir-drag-handle {
+  color: #484f58;
+  cursor: grab;
+  font-size: 14px;
+  flex-shrink: 0;
+  user-select: none;
+}
+.ir-drag-handle:active { cursor: grabbing; }
+
+.ir-action-select {
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  min-width: 72px;
+  flex-shrink: 0;
+}
+.ir-action-select:focus { border-color: var(--accent,#58a6ff); }
+
+.ir-hash {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent,#58a6ff);
+  flex-shrink: 0;
+}
+
+.ir-msg {
+  font-size: 12px;
+  color: #c9d1d9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.ir-msg-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 18px 10px 40px;
+  background: #0d1117;
+  border-bottom: 1px solid #21262d;
+}
+
+.ir-msg-editor-label {
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.ir-msg-textarea {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.ir-msg-textarea:focus {
+  outline: none;
+  border-color: var(--accent, #58a6ff);
+}
+
+.ir-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #30363d;
+  flex-shrink: 0;
+  background: #0d1117;
+}
+
+.ir-cancel {
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.ir-cancel:hover { border-color: #6e7681; color: #e6edf3; }
+
+.ir-launch {
+  background: #6e40c9;
+  border: none;
+  color: #fff;
+  padding: 7px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.ir-launch:hover:not(:disabled) { background: #8957e5; }
+.ir-launch:disabled { opacity: 0.5; cursor: not-allowed; }

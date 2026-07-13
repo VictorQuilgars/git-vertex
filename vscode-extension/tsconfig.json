@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "outDir": "./out",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": true
+  },
+  "include": ["src"],
+  "//": "src/webview is bundled by esbuild (build-webview.js), not tsc — it imports the desktop React sources which live outside rootDir.",
+  "exclude": ["node_modules", ".vscode-test", "src/webview"]
+}

@@ -1,0 +1,244 @@
+.cfd-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+.cfd-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+}
+
+.cfd-back {
+  background: none;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #8b949e;
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: 0.15s;
+}
+.cfd-back:hover {
+  color: #c9d1d9;
+  background: #21262d;
+  border-color: #484f58;
+}
+
+.cfd-area-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  flex-shrink: 0;
+}
+.cfd-staged   { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
+.cfd-unstaged { background: rgba(255, 166, 87, 0.15); color: #ffa657; }
+.cfd-commit   { background: rgba(88, 166, 255, 0.15); color: var(--accent,#58a6ff); }
+
+.cfd-filepath {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: #e6edf3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.cfd-area-toggle {
+  display: inline-flex;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cfd-area-toggle button {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 11px;
+  cursor: pointer;
+}
+.cfd-area-toggle button + button { border-left: 1px solid #30363d; }
+.cfd-area-toggle button.active { background: rgba(88,166,255,0.12); color: var(--accent,#58a6ff); }
+.cfd-area-toggle button:not(.active):hover { color: #c9d1d9; background: #21262d; }
+
+.cfd-toggle {
+  background: none;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #8b949e;
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: 0.15s;
+  margin-left: 8px;
+}
+.cfd-toggle:hover {
+  color: #c9d1d9;
+  background: #21262d;
+  border-color: #484f58;
+}
+.cfd-toggle.active {
+  background: rgba(88, 166, 255, 0.1);
+  color: var(--accent,#58a6ff);
+  border-color: var(--accent,#58a6ff);
+}
+
+.cfd-body {
+  flex: 1;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.cfd-loading {
+  padding: 24px;
+  color: #8b949e;
+  text-align: center;
+}
+
+.cfd-error {
+  padding: 6px 14px;
+  background: rgba(248, 81, 73, 0.1);
+  border-bottom: 1px solid rgba(248, 81, 73, 0.3);
+  color: #f85149;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.cfd-apply-btn {
+  background: rgba(63, 185, 80, 0.15);
+  border: 1px solid #3fb950;
+  border-radius: 6px;
+  color: #3fb950;
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: 0.15s;
+}
+.cfd-apply-btn:hover { background: rgba(63, 185, 80, 0.25); }
+
+.cfd-hunk { margin-bottom: 2px; }
+
+.cfd-hunk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: #161b22;
+  color: var(--accent,#58a6ff);
+  font-size: 11px;
+  font-style: italic;
+  border-top: 1px solid #21262d;
+  border-bottom: 1px solid #21262d;
+}
+
+.cfd-hunk-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cfd-hunk-select,
+.cfd-hunk-apply {
+  background: none;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  color: #8b949e;
+  font-size: 11px;
+  font-style: normal;
+  padding: 1px 8px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.cfd-hunk-select:hover { color: #c9d1d9; background: #21262d; border-color: #484f58; }
+.cfd-hunk-select.active { color: var(--accent,#58a6ff); border-color: var(--accent,#58a6ff); background: rgba(88,166,255,0.1); }
+.cfd-hunk-apply:hover { color: #3fb950; border-color: #3fb950; background: rgba(63,185,80,0.1); }
+
+.cfd-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cfd-dl { white-space: pre; }
+.cfd-dl-add    { background: rgba(63, 185, 80, 0.1); }
+.cfd-dl-remove { background: rgba(248, 81, 73, 0.1); }
+.cfd-dl--selectable { cursor: pointer; }
+.cfd-dl--selectable:hover { filter: brightness(1.3); }
+.cfd-dl--selected.cfd-dl-add    { background: rgba(63, 185, 80, 0.3); outline: 1px solid rgba(63,185,80,0.4); }
+.cfd-dl--selected.cfd-dl-remove { background: rgba(248, 81, 73, 0.3); outline: 1px solid rgba(248,81,73,0.4); }
+
+/* Indexé view: the action is UNstage — use amber so selecting a line doesn't
+   look like (re)staging it. */
+.cfd-staged-mode .cfd-apply-btn {
+  background: rgba(255, 166, 87, 0.15);
+  border-color: #ffa657;
+  color: #ffa657;
+}
+.cfd-staged-mode .cfd-apply-btn:hover { background: rgba(255, 166, 87, 0.28); }
+.cfd-staged-mode .cfd-hunk-apply:hover { color: #ffa657; border-color: #ffa657; background: rgba(255, 166, 87, 0.12); }
+.cfd-staged-mode .cfd-dl--selected.cfd-dl-add,
+.cfd-staged-mode .cfd-dl--selected.cfd-dl-remove {
+  background: rgba(255, 166, 87, 0.22);
+  outline: 1px solid rgba(255, 166, 87, 0.55);
+}
+
+.cfd-ln {
+  width: 44px;
+  min-width: 44px;
+  text-align: right;
+  padding: 0 8px 0 4px;
+  color: #6e7681;
+  user-select: none;
+  border-right: 1px solid #21262d;
+}
+
+.cfd-lm {
+  width: 20px;
+  text-align: center;
+  padding: 0 4px;
+  color: #6e7681;
+  user-select: none;
+}
+.cfd-dl-add .cfd-lm    { color: #3fb950; }
+.cfd-dl-remove .cfd-lm { color: #f85149; }
+
+.cfd-lc { padding: 0 8px; }
+.cfd-lc code { font-family: inherit; font-size: inherit; }
+
+.cfd-full-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cfd-full-line { white-space: pre; }
+
+.cfd-full-ln {
+  width: 44px;
+  min-width: 44px;
+  text-align: right;
+  padding: 0 8px 0 4px;
+  color: #6e7681;
+  user-select: none;
+  border-right: 1px solid #21262d;
+}
+
+.cfd-full-lc { padding: 0 8px; }
+.cfd-full-lc code { font-family: inherit; font-size: inherit; }

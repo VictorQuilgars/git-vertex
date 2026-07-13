@@ -1,0 +1,213 @@
+/* vertex-vscode.css — webview-only tweaks + Git Vertex brand header.
+   Keeps the desktop look but adapts the shell to the VS Code panel. */
+
+.gv-app {
+  height: 100%;
+}
+
+/* The desktop App.css sets `.app { height: 100vh }`. In the panel webview the
+   available height is the viewport, so 100vh works, but force overflow hidden. */
+.gv-app.app { overflow: hidden; }
+
+/* ── Compact GitLens-style toolbar ───────────────────────────── */
+.gvt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  font-size: 12px;
+  user-select: none;
+}
+.gvt-logo { flex-shrink: 0; }
+.gvt-repo { color: #c9d1d9; font-size: 12px; font-weight: 600; margin-left: 4px; }
+
+.gvt-spring { flex: 1; }
+.gvt-sep { width: 1px; height: 16px; background: #30363d; margin: 0 3px; flex-shrink: 0; }
+
+/* Icon buttons */
+.gvt-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+.gvt-btn:hover:not(:disabled) { background: #21262d; color: #e6edf3; }
+.gvt-btn:disabled { opacity: 0.35; cursor: default; }
+.gvt-btn--active { background: #1f6feb22; color: #58a6ff; }
+.gvt-badge {
+  position: absolute; top: -2px; right: -2px;
+  background: #1f6feb; color: #fff; font-size: 8px; font-weight: 700;
+  min-width: 13px; height: 13px; line-height: 13px; text-align: center;
+  border-radius: 7px; padding: 0 2px;
+}
+.gvt-spin { animation: gvt-spin 1s linear infinite; }
+@keyframes gvt-spin { to { transform: rotate(360deg); } }
+
+/* Labelled sync buttons (Fetch / Pull / Push) — one consistent style */
+.gvt-tbtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 10px;
+  background: transparent; border: 1px solid transparent; border-radius: 5px;
+  color: #8b949e; font-size: 11px; font-weight: 600; cursor: pointer;
+  flex-shrink: 0; transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.gvt-tbtn:hover:not(:disabled) { background: #21262d; color: #e6edf3; border-color: #30363d; }
+.gvt-tbtn:disabled { opacity: 0.4; cursor: default; }
+/* ahead/behind count badge on Pull / Push (GitLens-style) */
+.gvt-tbtn-count {
+  min-width: 15px; height: 15px; line-height: 15px; padding: 0 4px;
+  border-radius: 8px; background: #1f6feb; color: #fff;
+  font-size: 9px; font-weight: 700; text-align: center;
+}
+
+/* Branch selector */
+.gvt-branch-wrap { position: relative; margin-left: 4px; }
+.gvt-branch {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; height: 22px;
+  background: #1f6feb18; border: 1px solid #1f6feb40; border-radius: 20px;
+  color: #58a6ff; font-size: 11px; font-weight: 600; cursor: pointer;
+  max-width: 200px;
+}
+.gvt-branch:hover { background: #1f6feb28; }
+.gvt-branch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.gvt-branch-menu {
+  position: absolute; top: 26px; left: 0; z-index: 9999;
+  min-width: 200px; max-height: 280px; overflow-y: auto;
+  background: #1c2128; border: 1px solid #30363d; border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5); padding: 4px;
+}
+.gvt-branch-item {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 5px 8px; border: none; background: transparent; border-radius: 5px;
+  color: #c9d1d9; font-size: 12px; cursor: pointer; text-align: left;
+}
+.gvt-branch-item:hover { background: #21262d; }
+.gvt-branch-item--current { color: #3fb950; }
+.gvt-branch-tick { width: 12px; flex-shrink: 0; color: #3fb950; }
+.gvt-branch-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gvt-branch-empty { padding: 8px; color: #6e7681; font-size: 11px; }
+
+
+/* Search */
+.gvt-search {
+  display: flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 8px; width: 150px;
+  background: #0d1117; border: 1px solid #30363d; border-radius: 5px;
+  color: #6e7681; flex-shrink: 0; transition: border-color 0.1s, width 0.15s;
+}
+.gvt-search:focus-within { border-color: #58a6ff; width: 200px; }
+.gvt-search input { flex: 1; width: 0; background: none; border: none; outline: none; color: #e6edf3; font-size: 11px; }
+.gvt-search input::placeholder { color: #484f58; }
+.gvt-search-clear { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.gvt-search-clear:hover { color: #e6edf3; }
+.gvt-search-count {
+  background: #1f6feb33; color: #58a6ff;
+  font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 8px; flex-shrink: 0;
+}
+.gvt-search-count--none { background: #f8514922; color: #f85149; }
+
+/* ── Responsive: the webview viewport IS the panel, so media queries track
+   the panel width directly. Degrade gracefully as the panel narrows. ───── */
+
+/* ≤ 640px — drop Fetch/Pull/Push labels (icons stay), shrink search */
+@media (max-width: 640px) {
+  .gvt-tbtn-label { display: none; }
+  .gvt-tbtn { padding: 0 6px; }
+  .gvt-search { width: 110px; }
+  .gvt-search:focus-within { width: 140px; }
+}
+
+/* ≤ 520px — drop repo name and secondary buttons (terminal, open desktop) */
+@media (max-width: 520px) {
+  .gvt-repo { display: none; }
+  .gvt-hide-narrow { display: none; }
+  .gvt-branch-name { max-width: 90px; }
+  .gvt { padding: 0 4px; gap: 2px; }
+}
+
+/* ≤ 420px — search becomes minimal, separators go */
+@media (max-width: 420px) {
+  .gvt-sep { display: none; }
+  .gvt-search { width: 80px; }
+  .gvt-search:focus-within { width: 120px; }
+  .gvt-branch { max-width: 120px; }
+  .gvt-branch-name { max-width: 70px; }
+}
+
+/* ── In-progress operation banner (GitLens-style) ─────────────── */
+.gv-conflict-banner {
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0; height: 30px; padding: 0 10px;
+  background: #3d2a12; border-bottom: 1px solid #5c4813;
+  color: #f0c674; font-size: 12px;
+}
+.gv-cb-icon { flex-shrink: 0; }
+.gv-cb-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gv-cb-text strong { text-transform: capitalize; color: #ffd9a0; }
+.gv-cb-spring { flex: 1; }
+.gv-cb-btn {
+  flex-shrink: 0; height: 22px; padding: 0 10px;
+  border-radius: 5px; border: 1px solid transparent;
+  font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.gv-cb-continue { background: #238636; color: #fff; border-color: #2ea043; }
+.gv-cb-continue:hover:not(:disabled) { background: #2ea043; }
+.gv-cb-continue:disabled { opacity: 0.4; cursor: default; }
+.gv-cb-abort { background: transparent; color: #f0c674; border-color: #5c4813; }
+.gv-cb-abort:hover { background: #5c481333; }
+
+/* ── Stacked mode: in a narrow panel the right panel takes the full width
+   instead of squeezing the graph to nothing. ─────────────────────────── */
+.gv-stacked-bar {
+  display: flex; align-items: center; gap: 8px;
+  height: 30px; flex-shrink: 0; padding: 0 8px;
+  background: #161b22; border-bottom: 1px solid #21262d;
+}
+.gv-stacked-back {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 8px;
+  background: transparent; border: 1px solid #30363d; border-radius: 5px;
+  color: #8b949e; font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.gv-stacked-back:hover { background: #21262d; color: #e6edf3; }
+.gv-stacked-title {
+  color: #6e7681; font-size: 11px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gv-right-stacked { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gv-right-stacked .right-panel { width: 100% !important; }
+
+/* Tighter detail-panel spacing in narrow panels */
+@media (max-width: 640px) {
+  .gv-app .cd-message-block { padding: 10px 10px 8px; }
+  .gv-app .cd-top-row { padding: 6px 8px; }
+  .gv-app .cd-ai-label { display: none; }
+  .gv-app .rp-content { font-size: 12px; }
+}
+
+/* ── Settings overlay (shared SettingsModal, embedded) ──────── */
+.gv-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #0d1117;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.gv-settings-overlay .stg-page { flex: 1; min-height: 0; }

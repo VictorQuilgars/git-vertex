@@ -1,0 +1,621 @@
+{
+  "name": "git-vertex",
+  "displayName": "Git Vertex",
+  "description": "Full Git GUI in the VS Code panel — commit graph, staging, branches, and more.",
+  "version": "1.15.0",
+  "publisher": "VictorQuilgars",
+  "license": "FSL-1.1-MIT",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0d1117",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictorQuilgars/git-vertex"
+  },
+  "bugs": {
+    "url": "https://github.com/VictorQuilgars/git-vertex/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "git gui",
+    "source control",
+    "gitgraph"
+  ],
+  "activationEvents": [
+    "workspaceContains:.git"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "git-vertex",
+          "title": "Git Vertex",
+          "icon": "$(git-branch)"
+        }
+      ]
+    },
+    "views": {
+      "git-vertex": [
+        {
+          "type": "webview",
+          "id": "gitVertex.graphView",
+          "name": "Git Vertex"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "gitVertex.open",
+        "title": "Open in Git Vertex",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "gitVertex.openFile",
+        "title": "Open in Git Vertex",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "gitVertex.openPanel",
+        "title": "Git Vertex: Show Graph",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "gitVertex.openInEditor",
+        "title": "Git Vertex: Open in Editor Tab",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "gitVertex.openRebaseTab",
+        "title": "Git Vertex: Show Rebase in Progress",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "gitVertex.enableRebaseEditor",
+        "title": "Git Vertex: Toggle Interactive Rebase Editor (sequence.editor + core.editor)"
+      },
+      {
+        "command": "gitVertex.fileHistory",
+        "title": "Git Vertex: File History & Blame",
+        "icon": "$(history)"
+      },
+      {
+        "command": "gitVertex.compare",
+        "title": "Git Vertex: Compare References",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "gitVertex.openGitHub",
+        "title": "Git Vertex: GitHub PRs & Issues",
+        "icon": "$(github)"
+      },
+      {
+        "command": "gitVertex.setGithubToken",
+        "title": "Git Vertex: Set GitHub Token"
+      },
+      {
+        "command": "gitVertex.configure",
+        "title": "Git Vertex: Configure App Path"
+      },
+      {
+        "command": "gitVertex.commitMenu.switchTo",
+        "title": "Switch to Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.createBranch",
+        "title": "Create Branch Here"
+      },
+      {
+        "command": "gitVertex.commitMenu.createTag",
+        "title": "Create Tag Here"
+      },
+      {
+        "command": "gitVertex.commitMenu.createWorktree",
+        "title": "Create Worktree Here"
+      },
+      {
+        "command": "gitVertex.commitMenu.modifyFromHere",
+        "title": "Interactive Rebase from Here"
+      },
+      {
+        "command": "gitVertex.commitMenu.reword",
+        "title": "Reword Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.cherryPick",
+        "title": "Cherry-pick Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.revert",
+        "title": "Revert Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.drop",
+        "title": "Drop Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.moveUp",
+        "title": "Move Commit Up"
+      },
+      {
+        "command": "gitVertex.commitMenu.moveDown",
+        "title": "Move Commit Down"
+      },
+      {
+        "command": "gitVertex.commitMenu.rebaseOnto",
+        "title": "Rebase Current Branch onto Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.resetSoft",
+        "title": "Reset Current Branch to Here (Soft)"
+      },
+      {
+        "command": "gitVertex.commitMenu.resetMixed",
+        "title": "Reset Current Branch to Here (Mixed)"
+      },
+      {
+        "command": "gitVertex.commitMenu.resetHard",
+        "title": "Reset Current Branch to Here (Hard)"
+      },
+      {
+        "command": "gitVertex.commitMenu.pushToCommit",
+        "title": "Push to Commit"
+      },
+      {
+        "command": "gitVertex.commitMenu.copyShortHash",
+        "title": "Copy Short Hash"
+      },
+      {
+        "command": "gitVertex.commitMenu.copyFullHash",
+        "title": "Copy Full Hash"
+      },
+      {
+        "command": "gitVertex.commitMenu.copyMessage",
+        "title": "Copy Commit Message"
+      },
+      {
+        "command": "gitVertex.commitMenu.createPatch",
+        "title": "Create Patch"
+      },
+      {
+        "command": "gitVertex.commitMenu.copyPatch",
+        "title": "Copy Changes (Patch)"
+      },
+      {
+        "command": "gitVertex.commitMenu.openOnRemote",
+        "title": "Open Commit on Remote"
+      },
+      {
+        "command": "gitVertex.commitMenu.compareWorking",
+        "title": "Compare Working Tree to Here"
+      },
+      {
+        "command": "gitVertex.commitMenu.selectForCompare",
+        "title": "Select for Compare"
+      },
+      {
+        "command": "gitVertex.commitMenu.compareWithSelected",
+        "title": "Compare with Selected"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "gitVertex.openInEditor",
+          "when": "view == gitVertex.graphView",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "gitVertex.openFile",
+          "when": "explorerResourceIsFolder || !explorerResourceIsFolder",
+          "group": "navigation@99"
+        },
+        {
+          "command": "gitVertex.fileHistory",
+          "when": "!explorerResourceIsFolder",
+          "group": "navigation@98"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "gitVertex.open",
+          "when": "gitOpenRepositoryCount > 0",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "gitVertex.fileHistory",
+          "when": "resourceScheme == file",
+          "group": "1_diff@99"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "gitVertex.open",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        },
+        {
+          "command": "gitVertex.openPanel",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "gitVertex.open"
+        },
+        {
+          "command": "gitVertex.openPanel"
+        },
+        {
+          "command": "gitVertex.openInEditor"
+        },
+        {
+          "command": "gitVertex.openRebaseTab"
+        },
+        {
+          "command": "gitVertex.enableRebaseEditor"
+        },
+        {
+          "command": "gitVertex.fileHistory"
+        },
+        {
+          "command": "gitVertex.compare"
+        },
+        {
+          "command": "gitVertex.openGitHub"
+        },
+        {
+          "command": "gitVertex.setGithubToken"
+        },
+        {
+          "command": "gitVertex.configure"
+        },
+        {
+          "command": "gitVertex.commitMenu.switchTo",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.createBranch",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.createTag",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.createWorktree",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.modifyFromHere",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.reword",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.cherryPick",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.revert",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.drop",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.moveUp",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.moveDown",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.rebaseOnto",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.resetSoft",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.resetMixed",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.resetHard",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.pushToCommit",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.copyShortHash",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.copyFullHash",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.copyMessage",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.createPatch",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.copyPatch",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.openOnRemote",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.compareWorking",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.selectForCompare",
+          "when": "false"
+        },
+        {
+          "command": "gitVertex.commitMenu.compareWithSelected",
+          "when": "false"
+        }
+      ],
+      "webview/context": [
+        {
+          "command": "gitVertex.commitMenu.switchTo",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "1_switch@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.createBranch",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "2_create@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.createTag",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "2_create@2"
+        },
+        {
+          "command": "gitVertex.commitMenu.createWorktree",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "2_create@3"
+        },
+        {
+          "command": "gitVertex.commitMenu.modifyFromHere",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "3_rebase@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.rebaseOnto",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && !isHead",
+          "group": "3_rebase@2"
+        },
+        {
+          "command": "gitVertex.commitMenu.reword",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && canReword",
+          "group": "4_edit@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.cherryPick",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && !isHead",
+          "group": "4_edit@2"
+        },
+        {
+          "command": "gitVertex.commitMenu.revert",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "4_edit@3"
+        },
+        {
+          "command": "gitVertex.commitMenu.drop",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "4_edit@4"
+        },
+        {
+          "command": "gitVertex.commitMenu.moveUp",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "4_edit@5"
+        },
+        {
+          "command": "gitVertex.commitMenu.moveDown",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "4_edit@6"
+        },
+        {
+          "command": "gitVertex.commitMenu.resetSoft",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "5_reset@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.resetMixed",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "5_reset@2"
+        },
+        {
+          "command": "gitVertex.commitMenu.resetHard",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "5_reset@3"
+        },
+        {
+          "command": "gitVertex.commitMenu.pushToCommit",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "6_push@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.copyShortHash",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "7_copy@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.copyFullHash",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "7_copy@2"
+        },
+        {
+          "command": "gitVertex.commitMenu.copyMessage",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "7_copy@3"
+        },
+        {
+          "command": "gitVertex.commitMenu.createPatch",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "7_copy@4"
+        },
+        {
+          "command": "gitVertex.commitMenu.copyPatch",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "7_copy@5"
+        },
+        {
+          "command": "gitVertex.commitMenu.openOnRemote",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "7_copy@6"
+        },
+        {
+          "command": "gitVertex.commitMenu.compareWorking",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "8_compare@1"
+        },
+        {
+          "command": "gitVertex.commitMenu.selectForCompare",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit'",
+          "group": "8_compare@2"
+        },
+        {
+          "command": "gitVertex.commitMenu.compareWithSelected",
+          "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
+          "group": "8_compare@3"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "gitVertex.rebaseTodoEditor",
+        "displayName": "Git Vertex Rebase",
+        "selector": [
+          {
+            "filenamePattern": "git-rebase-todo"
+          }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "gitVertex.conflictResolver",
+        "displayName": "Git Vertex — Résolution de conflit",
+        "selector": [
+          {
+            "filenamePattern": "*"
+          }
+        ],
+        "priority": "option"
+      },
+      {
+        "viewType": "gitVertex.commitMsgEditor",
+        "displayName": "Git Vertex — Message de commit",
+        "selector": [
+          {
+            "filenamePattern": "COMMIT_EDITMSG"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "configurationDefaults": {
+      "workbench.editorAssociations": {
+        "**/git-rebase-todo": "gitVertex.rebaseTodoEditor",
+        "**/COMMIT_EDITMSG": "gitVertex.commitMsgEditor"
+      }
+    },
+    "configuration": {
+      "title": "Git Vertex",
+      "properties": {
+        "gitVertex.appPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Git Vertex application. Leave empty to auto-detect from standard install locations."
+        },
+        "gitVertex.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Git Vertex button in the status bar."
+        },
+        "gitVertex.autoOpenRebaseTab": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open the Rebase tab when a rebase is detected (started from Git Vertex, the terminal, or any external tool)."
+        },
+        "gitVertex.aiProvider": {
+          "type": "string",
+          "enum": [
+            "anthropic",
+            "google",
+            "groq",
+            "openai"
+          ],
+          "default": "groq",
+          "description": "AI provider for commit-message generation, commit recompose/explain, conflict resolution and natural-language search."
+        },
+        "gitVertex.aiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for the selected AI provider. Required to enable the AI features."
+        },
+        "gitVertex.aiModel": {
+          "type": "string",
+          "default": "",
+          "description": "Model to use (e.g. claude-haiku-4-5-20251001, gemini-2.0-flash, llama-3.3-70b-versatile, gpt-4o-mini). Leave empty for the provider's default."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./ && node build-webview.js",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTests.js",
+    "package": "npm run compile && vsce package --no-dependencies",
+    "lint": "eslint src --ext ts",
+    "release:patch": "bash scripts/publish.sh --bump patch",
+    "release:minor": "bash scripts/publish.sh --bump minor",
+    "release:major": "bash scripts/publish.sh --bump major",
+    "release:dry": "bash scripts/publish.sh --dry-run"
+  },
+  "dependencies": {
+    "simple-git": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.9",
+    "esbuild": "^0.20.0",
+    "mocha": "^10.3.0",
+    "typescript": "^5.3.0"
+  }
+}

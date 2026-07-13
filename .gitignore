@@ -1,0 +1,32 @@
+node_modules/
+dist/
+dist-electron/
+out/
+.DS_Store
+*.log
+
+# Claude Code local config (permissions, etc.)
+.claude/
+
+# Electron builder cache
+.electron-builder-cache/
+
+# Environment variables (au cas où)
+.env
+.env.local
+.env.*
+tsconfig.web.tsbuildinfo
+tsconfig.node.tsbuildinfo
+
+# Test artifacts
+coverage/
+test-results/
+
+# graphify generated knowledge graph
+graphify-out/
+
+# Notes privées (analyses concurrentielles, etc.)
+docs-private/
+
+# IDE local config
+vscode-extension/.vscode/
