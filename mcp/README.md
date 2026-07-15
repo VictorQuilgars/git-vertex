@@ -73,4 +73,13 @@ cd mcp
 npm install
 npm run dev        # tsx, stdio on the terminal
 npm run build      # → dist/
+npm test           # end-to-end suite: builds, regenerates fixture repos
+                   # (tests/fixtures/, git-ignored) and drives every tool
+                   # through a real stdio MCP client (tests/run-tests.mjs)
 ```
+
+The suite covers all tools, `--read-only`, `GV_REPO`, argv-injection and
+path-traversal guards, a full bisect session, and MCP sampling (simulated
+client). The desktop-handoff happy paths (`gitgui://`) are validation-only —
+they would open the app. Two `KNOWN-BUG (locale fr)` tests pin the current
+behaviour under a French git locale; invert them when fixing it.
