@@ -37,6 +37,7 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
+    "test": "npm run build && bash tests/setup-fixtures.sh && node tests/run-tests.mjs",
     "prepublishOnly": "npm run build"
   },
   "engines": {
