@@ -539,7 +539,10 @@ export default function App() {
       await detectGithub()
       // Register or activate a tab for this repo
       setTabs(prev => {
-        const existing = prev.find(tb => tb.path === res.path)
+        // Paths are NFC-normalized in the main process, but a tab registered
+        // before that (or from a differently-normalized source) must still
+        // match rather than open a second tab on the same repo.
+        const existing = prev.find(tb => tb.path.normalize('NFC') === res.path!.normalize('NFC'))
         if (existing) { setActiveTabId(existing.id); return prev }
         const id = `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
         setActiveTabId(id)

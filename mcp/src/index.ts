@@ -25,14 +25,22 @@ const READ_ONLY = process.argv.includes('--read-only') || process.env.GV_MCP_REA
 // simple-git instances are cached per resolved path.
 const gitCache = new Map<string, SimpleGit>()
 
+// Accented paths reach us in whichever Unicode normalization the caller used,
+// while macOS filesystems hand back their own — "démo" as NFC from an agent
+// prompt and as NFD from readdir are different strings that compare unequal
+// even though they name the same directory. Both forms open the same file, so
+// we settle on NFC at every boundary and let the desktop app do the same,
+// keeping the paths we emit in deep links comparable on the other side.
+const nfc = (p: string) => p.normalize('NFC')
+
 async function openRepo(repo?: string): Promise<{ git: SimpleGit; root: string }> {
-  const base = path.resolve(repo || process.env.GV_REPO || process.cwd())
+  const base = nfc(path.resolve(repo || process.env.GV_REPO || process.cwd()))
   const cached = gitCache.get(base)
   const git: SimpleGit = cached ?? simpleGit(base)
   if (!cached) gitCache.set(base, git)
   const isRepo = await git.checkIsRepo()
   if (!isRepo) throw new Error(`Not a git repository: ${base}`)
-  const root = (await git.revparse(['--show-toplevel'])).trim()
+  const root = nfc((await git.revparse(['--show-toplevel'])).trim())
   return { git, root }
 }
 
