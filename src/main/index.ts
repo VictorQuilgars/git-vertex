@@ -271,7 +271,12 @@ app.on('window-all-closed', () => {
 })
 
 // ── Helpers ───────────────────────────────────────────────────
-async function openRepoAt(repoPath: string): Promise<{ path?: string; name?: string; error?: string }> {
+async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; name?: string; error?: string }> {
+  // Settle on NFC: a path coming from a gitgui:// deep link, a recent-repos
+  // entry or a macOS directory listing can name the same accented folder in
+  // different Unicode normalizations, and the renderer compares these strings
+  // to decide whether a tab is already open for the repo.
+  const repoPath = rawRepoPath.normalize('NFC')
   try {
     const svc = new GitService(repoPath)
     await svc.checkRepo()
