@@ -563,18 +563,29 @@ server.tool(
     repo: repoParam,
     view: z.enum(['graph', 'resolve', 'commit']).optional().describe('Surface to open (default "graph")'),
     file: z.string().optional().describe('For view=resolve: the conflicted file path, relative to the repo root'),
-    hash: z.string().optional().describe('For view=commit: the commit hash to select'),
+    hash: z.string().optional().describe('For view=commit: the commit to select — a full or short hash, or any revision that names one (tag like "v1.0", branch, "HEAD~2"); it is resolved to a SHA for you'),
     resolution: z.string().optional().describe('For view=resolve: a proposed resolved-file content to preload into the resolver\'s editor for review — NOT written to disk or staged until the user saves it themselves'),
   },
   async ({ repo, view, file, hash, resolution }) => {
     try {
-      const { root } = await openRepo(repo)
+      const { git, root } = await openRepo(repo)
       const v = view ?? 'graph'
       if (v === 'resolve' && !file) throw new Error('view=resolve requires `file`')
       if (v === 'commit' && !hash) throw new Error('view=commit requires `hash`')
       const params = new URLSearchParams({ repo: root, view: v })
       if (file) params.set('file', safeArg(file, 'file'))
-      if (hash) params.set('hash', safeArg(hash, 'hash'))
+      // The app matches the deep-link hash against commit SHAs, so a tag or
+      // branch name ("v1.0", "main") would never select anything — resolve any
+      // revision to its SHA here, like propose_rebase_plan does for `base`.
+      if (hash) {
+        let resolved: string
+        try {
+          resolved = (await git.revparse([`${safeArg(hash, 'hash')}^{commit}`])).trim()
+        } catch {
+          throw new Error(`Unknown revision: ${hash} — pass a commit hash, tag or branch that exists in this repository`)
+        }
+        params.set('hash', resolved)
+      }
       let proposalPath: string | null = null
       if (v === 'resolve' && resolution != null) {
         proposalPath = writeProposal(resolution)
