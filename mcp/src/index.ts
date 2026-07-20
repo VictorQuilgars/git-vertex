@@ -581,7 +581,12 @@ server.tool(
         params.set('proposal', proposalPath)
       }
       await openDeepLink(params)
-      return text(`Opened Git Vertex: ${v}${file ? ` on ${file}` : ''}${hash ? ` at ${hash}` : ''}${proposalPath ? ' with your proposed resolution preloaded for review' : ''} (${root}).\nThe user still needs to review and click "Enregistrer & Résoudre" in the app — this call did not write or stage anything.\nIf nothing happened, the Git Vertex desktop app may not be installed — the gitgui:// scheme is registered by the app.`)
+      // Only the resolver has a save button — don't tell the user to click it
+      // when all we did was open the graph or a commit's details.
+      const nextStep = v === 'resolve'
+        ? 'The user still needs to review and click "Enregistrer & Résoudre" in the app — this call did not write or stage anything.'
+        : 'This call only opened a view — nothing was written, staged or modified.'
+      return text(`Opened Git Vertex: ${v}${file ? ` on ${file}` : ''}${hash ? ` at ${hash}` : ''}${proposalPath ? ' with your proposed resolution preloaded for review' : ''} (${root}).\n${nextStep}\nIf nothing happened, the Git Vertex desktop app may not be installed — the gitgui:// scheme is registered by the app.`)
     } catch (e) { return errText(e) }
   }
 )
