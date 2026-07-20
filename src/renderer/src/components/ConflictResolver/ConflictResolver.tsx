@@ -9,7 +9,7 @@ interface ConflictResolverProps {
   initialProposal?: string
   onFinish: () => void
   onAbort: () => void
-  showToast: (msg: string, type?: 'ok' | 'err') => void
+  showToast: (msg: string, type?: 'ok' | 'err', action?: { label: string; onClick: () => void }) => void
 }
 
 interface Chunk {
@@ -141,7 +141,14 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
   const theirsRef = React.useRef<HTMLDivElement>(null)
   const isSyncing = React.useRef(false)
 
-  useEffect(() => {
+  // Raw on-disk content behind the chunks currently displayed, so a watcher
+  // event can tell an actual external rewrite from unrelated worktree noise.
+  const loadedRawRef = React.useRef<string | null>(null)
+  // Set as soon as the user picks a line or types in the free-text editor —
+  // an external reload must never silently discard their work.
+  const userEditedRef = React.useRef(false)
+
+  const load = React.useCallback((applyProposal: boolean) => {
     setLoading(true)
     setManualOutput(null)
     Promise.all([
@@ -150,6 +157,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
     ]).then(([fileRes, versionsRes]) => {
       if (fileRes.error) { showToast(fileRes.error, 'err'); return }
       const raw = fileRes.content || ''
+      loadedRawRef.current = raw
       const lines = raw.split('\n')
       const newChunks: Chunk[] = []
       let currCommon: string[] = []
@@ -217,7 +225,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
       let initialSel: Selections = {}
       newChunks.forEach(c => { if (c.type === 'conflict') initialSel[c.id] = [] })
 
-      if (initialProposal != null) {
+      if (applyProposal && initialProposal != null) {
         const reconciled = reconcileProposalToSelections(newChunks, initialProposal)
         if (reconciled) {
           // Proposal maps cleanly onto whole ours/theirs/base lines — seed
@@ -238,6 +246,44 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
     // initialProposal is intentionally a one-shot preload tied to opening
     // this file (from a deep link), not a value to re-apply on every change.
   }, [file]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    userEditedRef.current = false
+    load(true)
+  }, [load])
+
+  // The file can be rewritten under us while the resolver is open — typically
+  // an agent calling the MCP server's resolve_conflict on the very file being
+  // displayed. Without this the view keeps showing the stale pre-write chunks.
+  // (A file that stops being conflicted entirely is handled upstream in
+  // App.tsx, which closes or moves the resolver on.)
+  useEffect(() => {
+    const handler = async () => {
+      const r = await window.gitAPI.getFileContent(file)
+      if (r.error) return
+      const raw = r.content || ''
+      if (raw === loadedRawRef.current) return
+      if (userEditedRef.current) {
+        // Reloading here would throw away line picks the user already made,
+        // so leave the view alone and let them decide.
+        loadedRawRef.current = raw
+        showToast(
+          `${file} a été modifié en dehors de l'app — vos sélections sont conservées`,
+          'err',
+          { label: 'Recharger', onClick: () => { userEditedRef.current = false; load(false) } },
+        )
+        return
+      }
+      load(false)
+      showToast(`${file} a été modifié en dehors de l'app — vue rechargée`)
+    }
+    window.gitAPI.onWorkingChanged(handler)
+    window.gitAPI.onRepoChanged(handler)
+    return () => {
+      window.gitAPI.offWorkingChanged(handler)
+      window.gitAPI.offRepoChanged(handler)
+    }
+  }, [file, load, showToast])
 
   const conflictIndexMap = useMemo(() => {
     const map: Record<number, number> = {}
@@ -274,6 +320,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
 
   // Toggle a single line in/out of the output
   const toggleLine = (chunkId: number, side: 'ours' | 'theirs', index: number) => {
+    userEditedRef.current = true
     setSelections(prev => {
       const current = prev[chunkId] ?? []
       const exists = current.some(r => r.side === side && r.index === index)
@@ -289,6 +336,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
 
   // Toggle ALL lines of a side for a chunk (block header click)
   const toggleBlock = (chunkId: number, side: 'ours' | 'theirs') => {
+    userEditedRef.current = true
     const chunk = chunks.find(c => c.id === chunkId)
     if (!chunk) return
     const lines = side === 'ours' ? chunk.ours : chunk.theirs
@@ -309,6 +357,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
 
   // Tout A / Tout B — toggle all lines of a side across all chunks
   const selectAll = (side: 'ours' | 'theirs') => {
+    userEditedRef.current = true
     const conflictChunks = chunks.filter(c => c.type === 'conflict')
     const allIn = conflictChunks.every(c => {
       const lines = side === 'ours' ? c.ours : c.theirs
@@ -531,7 +580,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
               <textarea
                 className="mt-output-editor"
                 value={manualOutput}
-                onChange={e => setManualOutput(e.target.value)}
+                onChange={e => { userEditedRef.current = true; setManualOutput(e.target.value) }}
                 spellCheck={false}
                 wrap="off"
                 autoFocus
