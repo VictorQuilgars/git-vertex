@@ -668,7 +668,7 @@ server.tool(
 
 server.tool(
   'generate_commit_message',
-  'Draft a commit message from the STAGED changes using the MCP client\'s own LLM (MCP sampling) — no API key needed on this server, works with any provider. Returns the proposed message; nothing is committed. If the client does not support sampling, returns the staged diff with instructions so the calling agent writes the message itself. Pair with propose_commit to hand the result to the user for review in the app.',
+  'Draft a commit message from the STAGED changes using the MCP client\'s own LLM (MCP sampling) — no API key needed on this server, works with any provider. Returns the proposed message to YOU, the calling agent — it does NOT open the app and does NOT put anything in the app\'s commit box. Nothing is committed. If the client does not support sampling, returns the staged diff with instructions so you write the message yourself. ALWAYS call propose_commit with the resulting message afterwards if the user expects to see it in Git Vertex — this tool alone leaves the app untouched, so never tell the user the message is waiting in the app unless you called propose_commit.',
   { repo: repoParam },
   async ({ repo }) => {
     try {
@@ -691,7 +691,14 @@ server.tool(
       })
       const msg = res.content.type === 'text' ? res.content.text.trim() : ''
       if (!msg) throw new Error('Sampling returned an empty message — write it yourself from git_diff staged')
-      return text(msg)
+      // The message and the next-step reminder travel as separate blocks so
+      // the reminder can't leak into a message the agent copies verbatim.
+      return {
+        content: [
+          { type: 'text' as const, text: msg },
+          { type: 'text' as const, text: 'Note for the agent, not part of the message: this call did not open Git Vertex and did not fill its commit box. Call propose_commit with this message to put it in front of the user in the app.' },
+        ],
+      }
     } catch (e) { return errText(e) }
   }
 )
