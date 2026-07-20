@@ -311,6 +311,11 @@ await t(c1, 'open_in_git_vertex: view=commit without hash → error', 'open_in_g
 await t(c1, 'open_in_git_vertex: non-repo → error', 'open_in_git_vertex', { repo: NOTAREPO }, {
   isError: true, expect: ['Not a git repository'],
 })
+// The app matches the deep-link hash against SHAs, so an unresolvable revision
+// has to fail here rather than open a view that silently selects nothing.
+await t(c1, 'open_in_git_vertex: view=commit with unknown revision → error', 'open_in_git_vertex', { repo: main, view: 'commit', hash: 'v9.9-nope' }, {
+  isError: true, expect: ['Unknown revision'],
+})
 await t(c1, 'propose_commit: file path traversal rejected', 'propose_commit', { repo: main, message: 'feat: x', files: ['../merge-conflict/a.txt'] }, {
   isError: true, expect: ['escapes the repository'],
 })
