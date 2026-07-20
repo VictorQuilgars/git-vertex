@@ -567,6 +567,20 @@ export default function App() {
   const applyDeepLink = useCallback(async (link: { repo: string; view: string; file?: string; hash?: string; proposalContent?: string } | null) => {
     if (!link?.repo) return
     await handleSetRepo(link.repo)
+    // A deep link that carries a proposal but arrives without it, or with one
+    // we can't parse, used to do nothing at all: the repo opened, no view
+    // switched, no error anywhere. The agent meanwhile reported success, so
+    // the user was told the message/plan was waiting in the app when it was
+    // not. Every failure below is surfaced instead of swallowed.
+    const proposalMissing = (what: string) => {
+      console.error('[deeplink] missing proposal payload', link)
+      showToast(`Git Vertex a été ouvert sans ${what} — la proposition de l'agent n'est pas arrivée`, 'err')
+    }
+    const proposalUnreadable = (what: string, e: unknown) => {
+      console.error('[deeplink] malformed proposal payload', link, e)
+      showToast(`${what} de l'agent est illisible — proposition ignorée`, 'err')
+    }
+
     if (link.view === 'resolve' && link.file) {
       setConflictResolverFile(link.file)
       // Preload an agent-proposed resolution into the manual editor for
@@ -574,9 +588,10 @@ export default function App() {
       setConflictResolverProposal(link.proposalContent ?? null)
     } else if (link.view === 'commit' && link.hash) {
       setDeepLinkHash(link.hash)
-    } else if (link.view === 'propose-commit' && link.proposalContent) {
+    } else if (link.view === 'propose-commit') {
       // MCP propose_commit: preload the message (and proposed file list) into
       // the staging form — the user stages and commits themselves.
+      if (!link.proposalContent) { proposalMissing('le message proposé'); return }
       try {
         const p = JSON.parse(link.proposalContent)
         setCommitProposal({
@@ -587,19 +602,25 @@ export default function App() {
           hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
           author: '', authorEmail: '', date: '', parents: [], refs: []
         })
-      } catch { /* malformed proposal — ignore */ }
-    } else if (link.view === 'propose-rebase' && link.hash && link.proposalContent) {
+      } catch (e) { proposalUnreadable('Le message de commit', e) }
+    } else if (link.view === 'propose-rebase') {
       // MCP propose_rebase_plan: open the visual rebase editor with the
       // agent's plan preloaded — the user reviews and launches it themselves.
+      if (!link.hash) { proposalUnreadable('Le plan de rebase', 'missing base hash'); return }
+      if (!link.proposalContent) { proposalMissing('le plan de rebase'); return }
       try {
         const p = JSON.parse(link.proposalContent)
-        if (Array.isArray(p.steps)) {
-          setRebasePlanProposal(p.steps)
-          setRebaseHash(link.hash)
-        }
-      } catch { /* malformed proposal — ignore */ }
+        if (!Array.isArray(p.steps)) throw new Error('proposal has no steps array')
+        setRebasePlanProposal(p.steps)
+        setRebaseHash(link.hash)
+      } catch (e) { proposalUnreadable('Le plan de rebase', e) }
+    } else if (link.view !== 'graph') {
+      // "graph" is just "open this repo" and needs nothing more; anything else
+      // reaching here is a view we know but whose required parameter is absent.
+      console.error('[deeplink] nothing to do for this link', link)
+      showToast(`Lien Git Vertex incomplet (vue "${link.view}") — rien à afficher`, 'err')
     }
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showToast])  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     ;(window.gitAPI as any).getPendingDeepLink?.().then(applyDeepLink).catch(() => {})

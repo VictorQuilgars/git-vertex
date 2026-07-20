@@ -130,11 +130,21 @@ function readAndConsumeProposal(proposalPath: string | null): string | undefined
   try {
     const dir = fs.realpathSync(path.join(os.tmpdir(), 'git-vertex-mcp-proposals'))
     const abs = fs.realpathSync(proposalPath)
-    if (!abs.startsWith(dir + path.sep)) return undefined
+    if (!abs.startsWith(dir + path.sep)) {
+      // Not ours to read. Most likely the MCP server resolved a different tmp
+      // dir than we do (different TMPDIR between the agent's process and the
+      // app), which silently strips the payload — so say which paths disagreed.
+      console.error(`[deeplink] proposal outside the expected directory, ignored: ${abs} (expected under ${dir})`)
+      return undefined
+    }
     const content = fs.readFileSync(abs, 'utf-8')
     fs.unlink(abs, () => {}) // best-effort cleanup, single-use file
     return content
-  } catch {
+  } catch (e) {
+    // Single-use file: already consumed by an earlier launch, or the MCP
+    // process cleaned up before we got here. The renderer reports the missing
+    // payload to the user; this line says why it went missing.
+    console.error(`[deeplink] could not read proposal ${proposalPath}:`, e)
     return undefined
   }
 }
