@@ -2,6 +2,16 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.14.0': `## Quoi de neuf dans la 1.14.0
+
+### 🚀 Nouvel écran d'accueil
+- Une **page d'accueil** repensée en deux colonnes : à gauche **Ouvrir / Cloner / Créer** un dépôt, une **recherche** et vos **récents** ; à droite un panneau **Ressources** (Notes de version, Code source, Documentation).
+- Nouveau : bouton **Créer** un dépôt (\`git init\`).
+- L'accueil est un **onglet** que vous pouvez garder ouvert ; ouvrir un dépôt le referme, ouvrir les notes de version le laisse ouvert.
+
+### 📝 Notes de version
+- Accessibles **à tout moment** depuis *Ressources › Notes de version*, avec un lien **Ouvrir dans le navigateur**.
+`,
   '1.13.0': `## Quoi de neuf dans la 1.13.0
 
 ### 🖱️ Menus du graphe repensés
