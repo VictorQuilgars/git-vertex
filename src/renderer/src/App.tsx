@@ -916,9 +916,8 @@ export default function App() {
     const ok = await showConfirm(t('prompt.rebaseOnto', currentBranch, name))
     if (!ok) return
     await guardConflict(
-      // Heuristic for rebase: models a single merge of the two tips, not the
-      // per-commit replay — advisory only.
-      () => window.gitAPI.predictConflicts(name),
+      // Accurate rebase prediction: simulates the per-commit replay.
+      () => window.gitAPI.predictRebaseConflicts(name),
       async () => {
         setLoading(true)
         const r = await window.gitAPI.rebaseOnto(name)
@@ -1076,7 +1075,7 @@ export default function App() {
 
   const handleRebaseCurrentOntoCommit = async (hash: string) => {
     await guardConflict(
-      () => window.gitAPI.predictConflicts(hash),   // rebase heuristic (tip merge)
+      () => window.gitAPI.predictRebaseConflicts(hash),   // accurate per-commit replay
       async () => {
         setLoading(true)
         const r = await window.gitAPI.rebaseOnto(hash)
@@ -1154,8 +1153,8 @@ export default function App() {
     if (action === 'reset') { await run(); return }
     await guardConflict(
       action === 'merge'
-        ? () => window.gitAPI.predictConflicts(hash, branch)   // merge hash into branch
-        : () => window.gitAPI.predictConflicts(branch, hash),  // rebase branch onto hash (heuristic)
+        ? () => window.gitAPI.predictConflicts(hash, branch)          // merge hash into branch
+        : () => window.gitAPI.predictRebaseConflicts(hash, branch),   // rebase branch onto hash (per-commit replay)
       run,
     )
   }
