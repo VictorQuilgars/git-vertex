@@ -430,23 +430,27 @@ function VertexApp() {
     setTimeout(() => loadRepoData(), 0)
   }, [loadRepoData])
 
-  const handleBranchDrop = useCallback(async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => {
+  // Drag branch A onto a target. `targetBranch` (B) is set when the drop landed
+  // on a branch tip — the only case that offers "merge". Merge A INTO B, rebase
+  // A ONTO B, reset A to the target.
+  const handleBranchDrop = useCallback(async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => {
+    if (action === 'merge' && !targetBranch) return
     if (action === 'reset') {
-      const ok = await window.gitAPI.uiConfirm(`Réinitialiser ${branch} sur ${hash.slice(0, 7)} ?`)
+      const ok = await window.gitAPI.uiConfirm(`Réinitialiser ${branch} sur ${targetBranch ?? hash.slice(0, 7)} ?`)
       if (!ok) return
     }
     const op = action === 'reset'
       ? () => window.gitAPI.moveBranchTo(branch, hash)
       : action === 'rebase'
-        ? () => window.gitAPI.rebaseBranchOnto(branch, hash)
-        : () => window.gitAPI.mergeCommitInto(branch, hash)
+        ? () => window.gitAPI.rebaseBranchOnto(branch, hash)              // rebase A onto B's tip
+        : () => window.gitAPI.mergeCommitInto(targetBranch!, branch)      // checkout B, merge A (merge A into B)
     const run = () => runOp(action === 'reset' ? 'Branche réinitialisée' : action === 'rebase' ? 'Rebase effectué' : 'Merge effectué', op, true)
     // Reset just moves a ref — it can't conflict. Merge/rebase can.
     if (action === 'reset') { await run(); return }
     await guardConflict(
       action === 'merge'
-        ? () => window.gitAPI.predictConflicts(hash, branch)          // merge hash into branch
-        : () => window.gitAPI.predictRebaseConflicts(hash, branch),   // rebase branch onto hash
+        ? () => window.gitAPI.predictConflicts(branch, targetBranch)      // merge A into B
+        : () => window.gitAPI.predictRebaseConflicts(hash, branch),       // rebase A onto B's tip
       run,
     )
   }, [runOp, guardConflict])

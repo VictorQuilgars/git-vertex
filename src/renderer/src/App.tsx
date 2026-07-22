@@ -1139,21 +1139,27 @@ export default function App() {
     window.gitAPI.openExternal(`https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/commit/${hash}`)
   }
 
-  const handleBranchDrop = async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => {
+  // Drag branch A onto a target. `targetBranch` (B) is set when the drop landed
+  // on a branch tip, which is the only case that offers "merge". Direction
+  // follows the gesture: merge A INTO B, rebase A ONTO B, reset A to the target.
+  const handleBranchDrop = async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => {
+    if (action === 'merge' && !targetBranch) return   // merge needs a branch to merge into
     const short = hash.slice(0, 7)
     if (action === 'reset') {
-      const ok = await showConfirm(t('prompt.dropReset', branch, short), true)
+      const ok = await showConfirm(t('prompt.dropReset', branch, targetBranch ?? short), true)
       if (!ok) return
     }
+    // merge updates the TARGET branch (and checks it out); rebase/reset update A.
+    const updated = action === 'merge' ? targetBranch! : branch
     const run = async () => {
       setLoading(true)
       const r = action === 'reset'
         ? await window.gitAPI.moveBranchTo(branch, hash)
         : action === 'rebase'
-          ? await window.gitAPI.rebaseBranchOnto(branch, hash)
-          : await window.gitAPI.mergeCommitInto(branch, hash)
+          ? await window.gitAPI.rebaseBranchOnto(branch, hash)             // rebase A onto B's tip
+          : await window.gitAPI.mergeCommitInto(targetBranch!, branch)     // checkout B, merge A (merge A into B)
       if (r.success) {
-        showToast(t('toast.branchDropOk', branch), 'ok', undoAction())
+        showToast(t('toast.branchDropOk', updated), 'ok', undoAction())
       } else {
         showToast(t('toast.err', r.error ?? ''), 'err')
       }
@@ -1165,8 +1171,8 @@ export default function App() {
     if (action === 'reset') { await run(); return }
     await guardConflict(
       action === 'merge'
-        ? () => window.gitAPI.predictConflicts(hash, branch)          // merge hash into branch
-        : () => window.gitAPI.predictRebaseConflicts(hash, branch),   // rebase branch onto hash (per-commit replay)
+        ? () => window.gitAPI.predictConflicts(branch, targetBranch)       // merge A into B
+        : () => window.gitAPI.predictRebaseConflicts(hash, branch),        // rebase A onto B's tip
       run,
     )
   }
@@ -1737,6 +1743,8 @@ export default function App() {
               onCreateTag={handleCreateTagAtCommit}
               onCreateBranchAt={handleCreateBranchAt}
               onCheckoutBranch={handleCheckout}
+              onMergeBranch={handleMergeBranch}
+              onRebaseCurrentOnto={handleRebaseOnto}
               onInteractiveRebase={(hash) => setRebaseHash(hash)}
               onCheckoutCommit={handleCheckout}
               onRewordCommit={handleRewordCommit}

@@ -59886,7 +59886,10 @@
     "graph.menu.compareWithSelected": "\u21C4 Comparer avec le commit s\xE9lectionn\xE9",
     "graph.drop.reset": (b, h) => `\u23EA D\xE9placer "${b}" ici (reset --hard ${h})`,
     "graph.drop.rebase": (b, h) => `\u26A1 Rebaser "${b}" sur ${h}`,
-    "graph.drop.merge": (b, h) => `\u21D2 Merger ${h} dans "${b}"`,
+    // Dropped on a branch tip — name both sides, direction = dragged into/onto target.
+    "graph.drop.mergeBranch": (a, b) => `\u21D2 Merger "${a}" dans "${b}"`,
+    "graph.drop.rebaseBranch": (a, b) => `\u26A1 Rebaser "${a}" sur "${b}"`,
+    "graph.drop.resetBranch": (a, b) => `\u23EA D\xE9placer "${a}" sur "${b}" (reset --hard)`,
     // PushModal
     "push.title": "\u2B06 Push",
     "push.localBranch": "Branche locale",
@@ -60304,7 +60307,9 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "graph.menu.compareWithSelected": "\u21C4 Compare with Selected",
     "graph.drop.reset": (b, h) => `\u23EA Move "${b}" here (reset --hard ${h})`,
     "graph.drop.rebase": (b, h) => `\u26A1 Rebase "${b}" onto ${h}`,
-    "graph.drop.merge": (b, h) => `\u21D2 Merge ${h} into "${b}"`,
+    "graph.drop.mergeBranch": (a, b) => `\u21D2 Merge "${a}" into "${b}"`,
+    "graph.drop.rebaseBranch": (a, b) => `\u26A1 Rebase "${a}" onto "${b}"`,
+    "graph.drop.resetBranch": (a, b) => `\u23EA Move "${a}" onto "${b}" (reset --hard)`,
     // PushModal
     "push.title": "\u2B06 Push",
     "push.localBranch": "Local branch",
@@ -62646,16 +62651,32 @@ Commits beyond this point will be lost for that branch.`,
       setDragBranch(null);
       if (!branch || commit.hash === WIP_HASH)
         return;
+      if (branch === currentBranch)
+        return;
       setDrop({ x: e.clientX, y: e.clientY, hash: commit.hash, branch });
-    }, [dragBranch]);
+    }, [dragBranch, currentBranch]);
+    const localBranchAt = (0, import_react8.useCallback)((hash, exclude) => {
+      const c = commits.find((cc) => cc.hash === hash);
+      if (!c)
+        return null;
+      const pick = processRefs(c.refs).find((r) => (r.cls === "rc-local" || r.cls === "rc-head") && r.branchName && r.branchName !== exclude);
+      return pick?.branchName ?? null;
+    }, [commits]);
     const buildDropItems = (0, import_react8.useCallback)((d) => {
+      const target = localBranchAt(d.hash, d.branch);
+      if (target) {
+        return [
+          { label: t("graph.drop.mergeBranch", d.branch, target), action: () => onBranchDrop?.(d.branch, d.hash, "merge", target) },
+          { label: t("graph.drop.rebaseBranch", d.branch, target), action: () => onBranchDrop?.(d.branch, d.hash, "rebase", target) },
+          { label: t("graph.drop.resetBranch", d.branch, target), action: () => onBranchDrop?.(d.branch, d.hash, "reset", target), danger: true }
+        ];
+      }
       const short = d.hash.slice(0, 7);
       return [
-        { label: t("graph.drop.reset", d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, "reset"), danger: true },
         { label: t("graph.drop.rebase", d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, "rebase") },
-        { label: t("graph.drop.merge", d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, "merge") }
+        { label: t("graph.drop.reset", d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, "reset"), danger: true }
       ];
-    }, [onBranchDrop, t]);
+    }, [onBranchDrop, t, localBranchAt]);
     const buildBranchMenu = (0, import_react8.useCallback)((pref) => {
       const items = [];
       const name = pref.branchName;
@@ -67227,21 +67248,23 @@ ${lineStrings.join("\n")}
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const handleBranchDrop = (0, import_react23.useCallback)(async (branch, hash, action) => {
+    const handleBranchDrop = (0, import_react23.useCallback)(async (branch, hash, action, targetBranch) => {
+      if (action === "merge" && !targetBranch)
+        return;
       if (action === "reset") {
-        const ok = await window.gitAPI.uiConfirm(`R\xE9initialiser ${branch} sur ${hash.slice(0, 7)} ?`);
+        const ok = await window.gitAPI.uiConfirm(`R\xE9initialiser ${branch} sur ${targetBranch ?? hash.slice(0, 7)} ?`);
         if (!ok)
           return;
       }
-      const op = action === "reset" ? () => window.gitAPI.moveBranchTo(branch, hash) : action === "rebase" ? () => window.gitAPI.rebaseBranchOnto(branch, hash) : () => window.gitAPI.mergeCommitInto(branch, hash);
+      const op = action === "reset" ? () => window.gitAPI.moveBranchTo(branch, hash) : action === "rebase" ? () => window.gitAPI.rebaseBranchOnto(branch, hash) : () => window.gitAPI.mergeCommitInto(targetBranch, branch);
       const run = () => runOp(action === "reset" ? "Branche r\xE9initialis\xE9e" : action === "rebase" ? "Rebase effectu\xE9" : "Merge effectu\xE9", op, true);
       if (action === "reset") {
         await run();
         return;
       }
       await guardConflict(
-        action === "merge" ? () => window.gitAPI.predictConflicts(hash, branch) : () => window.gitAPI.predictRebaseConflicts(hash, branch),
-        // rebase branch onto hash
+        action === "merge" ? () => window.gitAPI.predictConflicts(branch, targetBranch) : () => window.gitAPI.predictRebaseConflicts(hash, branch),
+        // rebase A onto B's tip
         run
       );
     }, [runOp, guardConflict]);
