@@ -7,6 +7,7 @@ const gitAPI = {
   // Repo management
   openRepo: () => ipcRenderer.invoke('git:open-repo'),
   setRepo: (path: string) => ipcRenderer.invoke('git:set-repo', path),
+  initRepo: (dir: string) => ipcRenderer.invoke('git:init-repo', dir),
   getRecentRepos: () => ipcRenderer.invoke('app:get-recent-repos'),
   removeRecentRepo: (path: string) => ipcRenderer.invoke('app:remove-recent-repo', path),
   // Deep links (gitgui://open — e.g. from the MCP server's open_in_git_vertex)
@@ -154,6 +155,7 @@ const gitAPI = {
   gitSetGlobalConfig: (userName: string, userEmail: string) => ipcRenderer.invoke('git:set-global-config', userName, userEmail),
   appGetInfo: () => ipcRenderer.invoke('app:get-info'),
   getWhatsNew: () => ipcRenderer.invoke('app:get-whats-new'),
+  getReleaseNotes: () => ipcRenderer.invoke('app:get-release-notes'),
   markWhatsNewSeen: () => ipcRenderer.invoke('app:mark-whats-new-seen'),
   openExternal: (url: string) => ipcRenderer.invoke('app:open-external', url),
   openInEditor: (filepath: string) => ipcRenderer.invoke('app:open-in-editor', filepath),
