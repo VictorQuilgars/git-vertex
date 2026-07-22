@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.17.0
+
+### Added
+- **"What's new" after an update** — the first time you use the extension after it updates, its changelog opens automatically (like VS Code's own release notes).
+
 ## 1.16.0
 
 ### Added
