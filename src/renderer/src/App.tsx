@@ -285,6 +285,9 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   // Release notes shown once after an update (like VS Code's "what's new" tab).
   const [whatsNew, setWhatsNew] = useState<{ version: string; notes: string } | null>(null)
+  // The "what's new" tab is a normal tab: it can stay open in the background
+  // while you work in a repo. `whatsNewActive` is whether it's the current view.
+  const [whatsNewActive, setWhatsNewActive] = useState(false)
   const [cloneOpen, setCloneOpen] = useState(false)
   const [githubConnected, setGithubConnected] = useState(false)
   const [activeView, setActiveView] = useState<'git' | 'github'>('git')
@@ -440,7 +443,7 @@ export default function App() {
   // mark this version seen so it doesn't reappear.
   useEffect(() => {
     ;(window.gitAPI as any).getWhatsNew?.().then((w: { version: string; notes: string } | null) => {
-      if (w) { setWhatsNew(w); (window.gitAPI as any).markWhatsNewSeen?.() }
+      if (w) { setWhatsNew(w); setWhatsNewActive(true); (window.gitAPI as any).markWhatsNewSeen?.() }
     }).catch(() => {})
   }, [])
 
@@ -542,6 +545,7 @@ export default function App() {
 
   const applyRepo = useCallback(async (res: { path?: string; name?: string; error?: string }) => {
     if (res.path) {
+      setWhatsNewActive(false)   // opening a repo leaves the what's-new view
       const name = res.name ?? res.path.split('/').pop()!
       setRepoPath(res.path)
       setRepoName(name)
@@ -651,6 +655,7 @@ export default function App() {
   // open / clone / a recent repo.
   const goHome = useCallback(() => {
     if (conflictResolverFile || rebaseHash) return
+    setWhatsNewActive(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setActiveTabId(null)
     setRepoPath(null)
@@ -662,6 +667,7 @@ export default function App() {
   }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash])
 
   const switchTab = useCallback(async (tab: { id: string; path: string; name: string }) => {
+    setWhatsNewActive(false)   // clicking a repo tab leaves the what's-new view (tab stays open)
     if (tab.id === activeTabId) return
     if (conflictResolverFile || rebaseHash) return
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
@@ -1402,7 +1408,7 @@ export default function App() {
           {tabs.map(tab => (
             <div
               key={tab.id}
-              className={`app-tab ${tab.id === activeTabId && !settingsOpen ? 'active' : ''}`}
+              className={`app-tab ${tab.id === activeTabId && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
               onClick={() => { setSettingsOpen(false); switchTab(tab) }}
               onAuxClick={e => { if (e.button === 1) { e.preventDefault(); closeTab(tab.id) } }}
               onContextMenu={e => { e.preventDefault(); setTabMenu({ x: e.clientX, y: e.clientY, id: tab.id }) }}
@@ -1425,14 +1431,15 @@ export default function App() {
             </div>
           )}
           {whatsNew && (
-            <div className="app-tab app-tab--tool active" title="Quoi de neuf">
+            <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title="Quoi de neuf"
+              onClick={() => { setSettingsOpen(false); setWhatsNewActive(true) }}>
               <span className="app-tab-icon app-tab-icon--tool">✨</span>
               <span className="app-tab-name">Quoi de neuf</span>
               <button className="app-tab-close" title={t('tabs.close')}
-                onClick={e => { e.stopPropagation(); setWhatsNew(null) }}>×</button>
+                onClick={e => { e.stopPropagation(); setWhatsNew(null); setWhatsNewActive(false) }}>×</button>
             </div>
           )}
-          <button className={`app-tab-add ${activeTabId === null && !settingsOpen ? 'active' : ''}`}
+          <button className={`app-tab-add ${activeTabId === null && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
             title={t('tabs.new')} onClick={() => { setSettingsOpen(false); goHome() }}>+</button>
 
           {/* Right cluster: notifications · settings · profile */}
@@ -1464,7 +1471,7 @@ export default function App() {
       )}
 
       {/* Git action bar — hidden while in preferences */}
-      {!settingsOpen && (
+      {!settingsOpen && !whatsNewActive && (
       <Toolbar
         topRow={tabs.length === 0}
         repoPath={repoPath}
@@ -1530,7 +1537,15 @@ export default function App() {
         />
       )}
 
-      <div className="app-body" style={{ display: settingsOpen ? 'none' : undefined }}>
+      {/* "What's new" is a full-page tab: no repo sidebar/toolbar behind it, so
+          repo actions aren't reachable while it's the active view. */}
+      {whatsNewActive && whatsNew && !settingsOpen && (
+        <div className="app-fullpage-view">
+          <WhatsNew version={whatsNew.version} notes={whatsNew.notes} />
+        </div>
+      )}
+
+      <div className="app-body" style={{ display: settingsOpen || whatsNewActive ? 'none' : undefined }}>
         {/* ── Activity bar ── */}
         <div className="app-activity-bar">
           <button
@@ -1615,9 +1630,7 @@ export default function App() {
         <div className="resize-handle" onMouseDown={startResizeSidebar} />
 
         <div className="app-center">
-          {whatsNew ? (
-            <WhatsNew version={whatsNew.version} notes={whatsNew.notes} onClose={() => setWhatsNew(null)} />
-          ) : centerDiff && !conflictResolverFile ? (
+          {centerDiff && !conflictResolverFile ? (
             <CenterFileDiff target={centerDiff} onClose={() => setCenterDiff(null)} onStaged={() => loadRepoData(true)} />
           ) : conflictResolverFile ? (
             <ConflictResolver
