@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.0
+
+### Added
+- **Conflict prediction warnings** — before a merge, rebase, cherry-pick, revert or pull (and the graph's drag-drop merge/rebase), Git Vertex predicts whether the operation will conflict — a dry run via `git merge-tree`, nothing written to disk — and shows a warning with the choice to continue or cancel. Rebase prediction simulates the replay commit by commit, so it catches conflicts a naive tip-merge would miss (and doesn't cry wolf on changes undone later in the branch). A **"Prévenir avant un conflit"** toggle in Settings › Comportement (on by default) controls it, with a "don't ask again" shortcut on the warning itself.
+
 ## 1.15.0
 
 ### Added
