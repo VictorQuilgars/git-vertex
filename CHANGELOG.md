@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.13.1
+
+### Fixed
+- The "What's new" release-notes view is now a normal, non-blocking tab: you can open a repository without closing it, keep it in the background, and close it by its × (no more "C'est parti" button, and the repo's sidebar/toolbar are no longer reachable behind it).
+
 ## 1.13.0
 
 ### Changed
