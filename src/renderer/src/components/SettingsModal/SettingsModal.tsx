@@ -149,6 +149,7 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
   const [notifyCommit, setNotifyCommit] = useState(false)
   const [notifyUpdate, setNotifyUpdate] = useState(true)
   const [autoStash, setAutoStash] = useState(false)
+  const [warnBeforeConflict, setWarnBeforeConflict] = useState(true)
 
   // ── GPG & profiles/identities ──
   const [gpgSign, setGpgSign] = useState(false)
@@ -196,6 +197,7 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
       setNotifyCommit(s.notifyCommit === 'true')
       setNotifyUpdate(s.notifyUpdate !== 'false')
       setAutoStash(s.autoStash === 'true')
+      setWarnBeforeConflict(s.warnBeforeConflict !== 'false')
       setGpgSign(s.gpgSign === 'true')
       setExternalEditor(s.externalEditor ?? '')
       try { setProfiles(s.gitProfiles ? JSON.parse(s.gitProfiles) : []) } catch { setProfiles([]) }
@@ -683,6 +685,15 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
                       await window.gitAPI.settingsSet('autoStash', String(e.target.checked))
                     }} />
                   <span>Auto-stash au checkout <span style={{ color: '#8b949e', fontSize: 12 }}>(stashe les modifications locales avant de changer de branche, les restaure après)</span></span>
+                </label>
+
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
+                  <input type="checkbox" checked={warnBeforeConflict}
+                    onChange={async e => {
+                      setWarnBeforeConflict(e.target.checked)
+                      await window.gitAPI.settingsSet('warnBeforeConflict', String(e.target.checked))
+                    }} />
+                  <span>Prévenir avant un conflit <span style={{ color: '#8b949e', fontSize: 12 }}>(merge, rebase, cherry-pick, revert, pull : affiche un avertissement si l'opération va créer un conflit, avec le choix de continuer ou non)</span></span>
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12 }}>

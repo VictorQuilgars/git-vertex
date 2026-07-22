@@ -305,9 +305,10 @@ export default function App() {
   // ── Toast (via ToastProvider) ──────────────────────────────
   const toastApi = useToast()
   const { t } = useLang()
-  const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok', action?: { label: string; onClick: () => void }) => {
-    if (type === 'ok') toastApi.success(msg, action)
-    else toastApi.error(msg, action)
+  type ToastAction = { label: string; onClick: () => void }
+  const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok', action?: ToastAction | ToastAction[], sticky?: boolean) => {
+    if (type === 'ok') toastApi.success(msg, action, sticky)
+    else toastApi.error(msg, action, sticky)
   }, [toastApi])
 
   // ── Load stashes ───────────────────────────────────────────
@@ -806,11 +807,18 @@ export default function App() {
   }
 
   const handlePull = async () => {
-    setLoading(true)
-    const r = await window.gitAPI.pull()
-    if (r.success) { showToast(t('toast.pullOk')); await loadRepoData() }
-    else showToast(t('toast.pullErr', r.error ?? ''), 'err')
-    setLoading(false)
+    await guardConflict(
+      // Predicts the merge of the already-known upstream tip; pull will fetch
+      // first, so brand-new upstream commits aren't seen here (advisory).
+      () => window.gitAPI.predictConflicts('@{u}'),
+      async () => {
+        setLoading(true)
+        const r = await window.gitAPI.pull()
+        if (r.success) { showToast(t('toast.pullOk')); await loadRepoData() }
+        else showToast(t('toast.pullErr', r.error ?? ''), 'err')
+        setLoading(false)
+      },
+    )
   }
 
   const handleCheckout = async (name: string) => {
@@ -862,27 +870,66 @@ export default function App() {
     else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
+  // Warn (per the user's `warnBeforeConflict` setting) before an operation that
+  // is predicted to conflict. `predict` returns the files that would clash —
+  // empty means clean OR the prediction couldn't run, and either way we don't
+  // block. On a predicted conflict a sticky toast offers Continue, "don't ask
+  // again" (flips the setting off, then continues), or dismiss (×) to cancel.
+  const guardConflict = useCallback(async (
+    predict: () => Promise<{ files: string[]; error?: string }>,
+    op: () => void | Promise<void>,
+  ) => {
+    const settings = await window.gitAPI.settingsGetAll().catch(() => ({} as Record<string, string>))
+    if ((settings as any)?.warnBeforeConflict === 'false') { await op(); return }
+    const { files } = await predict().catch(() => ({ files: [] as string[] }))
+    if (files.length === 0) { await op(); return }   // clean, or prediction unavailable
+    showToast(
+      t('toast.conflictPredicted', String(files.length)),
+      'err',
+      [
+        { label: t('toast.conflictContinue'), onClick: () => { void op() } },
+        { label: t('toast.conflictDontAsk'), onClick: () => {
+          void window.gitAPI.settingsSet('warnBeforeConflict', 'false')
+          void op()
+        } },
+      ],
+      true,   // sticky — a go/no-go decision must not silently time out
+    )
+  }, [showToast, t])
+
   const handleMergeBranch = async (name: string) => {
     const ok = await showConfirm(t('prompt.mergeBranch', name, currentBranch))
     if (!ok) return
-    setLoading(true)
-    const r = await window.gitAPI.merge(name)
-    if (r.success) { showToast(t('toast.mergeOk', name)); await loadRepoData() }
-    else showToast(t('toast.mergeErr', r.error ?? ''), 'err')
-    setLoading(false)
+    await guardConflict(
+      () => window.gitAPI.predictConflicts(name),
+      async () => {
+        setLoading(true)
+        const r = await window.gitAPI.merge(name)
+        if (r.success) { showToast(t('toast.mergeOk', name)); await loadRepoData() }
+        else showToast(t('toast.mergeErr', r.error ?? ''), 'err')
+        setLoading(false)
+      },
+    )
   }
 
   const handleRebaseOnto = async (name: string) => {
     const ok = await showConfirm(t('prompt.rebaseOnto', currentBranch, name))
     if (!ok) return
-    setLoading(true)
-    const r = await window.gitAPI.rebaseOnto(name)
-    if (r.success) showToast(t('toast.rebaseOntoOk', name))
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-    // Refresh even on a conflict — the rebase is left paused (not aborted),
-    // so the conflict banner/resolver needs the reloaded state to show up.
-    await loadRepoData()
-    setLoading(false)
+    await guardConflict(
+      // Heuristic for rebase: models a single merge of the two tips, not the
+      // per-commit replay — advisory only.
+      () => window.gitAPI.predictConflicts(name),
+      async () => {
+        setLoading(true)
+        const r = await window.gitAPI.rebaseOnto(name)
+        if (r.success) showToast(t('toast.rebaseOntoOk', name))
+        else showToast(t('toast.err', r.error ?? ''), 'err')
+        // Refresh even on a conflict — the rebase is left paused (not aborted),
+        // so the conflict banner/resolver needs the reloaded state to show up.
+        await loadRepoData()
+        setLoading(false)
+      },
+    )
   }
 
   const handlePushBranch = async (name: string) => {
@@ -936,19 +983,31 @@ export default function App() {
   }
 
   const handleCherryPick = async (hash: string) => {
-    setLoading(true)
-    const r = await window.gitAPI.cherryPick(hash)
-    if (r.success) { showToast(t('toast.cherryPickOk', hash.slice(0, 7))); await loadRepoData() }
-    else showToast(t('toast.cherryPickErr', r.error ?? ''), 'err')
-    setLoading(false)
+    await guardConflict(
+      // Cherry-pick = 3-way merge with the commit's parent as base.
+      () => window.gitAPI.predictConflicts(hash, 'HEAD', `${hash}^`),
+      async () => {
+        setLoading(true)
+        const r = await window.gitAPI.cherryPick(hash)
+        if (r.success) { showToast(t('toast.cherryPickOk', hash.slice(0, 7))); await loadRepoData() }
+        else showToast(t('toast.cherryPickErr', r.error ?? ''), 'err')
+        setLoading(false)
+      },
+    )
   }
 
   const handleRevert = async (hash: string) => {
-    setLoading(true)
-    const r = await window.gitAPI.revert(hash)
-    if (r.success) { showToast(t('toast.revertOk', hash.slice(0, 7))); await loadRepoData() }
-    else showToast(t('toast.revertErr', r.error ?? ''), 'err')
-    setLoading(false)
+    await guardConflict(
+      // Revert = apply the inverse: base is the commit, "theirs" its parent.
+      () => window.gitAPI.predictConflicts(`${hash}^`, 'HEAD', hash),
+      async () => {
+        setLoading(true)
+        const r = await window.gitAPI.revert(hash)
+        if (r.success) { showToast(t('toast.revertOk', hash.slice(0, 7))); await loadRepoData() }
+        else showToast(t('toast.revertErr', r.error ?? ''), 'err')
+        setLoading(false)
+      },
+    )
   }
 
   const handleReset = async (hash: string, mode: 'soft' | 'mixed' | 'hard') => {
@@ -1016,14 +1075,19 @@ export default function App() {
   }
 
   const handleRebaseCurrentOntoCommit = async (hash: string) => {
-    setLoading(true)
-    const r = await window.gitAPI.rebaseOnto(hash)
-    if (r.success) showToast(`✓ Rebasé sur ${hash.slice(0, 7)}`)
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-    // Refresh even on a conflict — the rebase is left paused (not aborted),
-    // so the conflict banner/resolver needs the reloaded state to show up.
-    await loadRepoData()
-    setLoading(false)
+    await guardConflict(
+      () => window.gitAPI.predictConflicts(hash),   // rebase heuristic (tip merge)
+      async () => {
+        setLoading(true)
+        const r = await window.gitAPI.rebaseOnto(hash)
+        if (r.success) showToast(`✓ Rebasé sur ${hash.slice(0, 7)}`)
+        else showToast(t('toast.err', r.error ?? ''), 'err')
+        // Refresh even on a conflict — the rebase is left paused (not aborted),
+        // so the conflict banner/resolver needs the reloaded state to show up.
+        await loadRepoData()
+        setLoading(false)
+      },
+    )
   }
 
   const handlePushToCommit = async (hash: string) => {
@@ -1066,23 +1130,34 @@ export default function App() {
 
   const handleBranchDrop = async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => {
     const short = hash.slice(0, 7)
-    let ok = true
-    if (action === 'reset') ok = await showConfirm(t('prompt.dropReset', branch, short), true)
-    if (!ok) return
-    setLoading(true)
-    const r = action === 'reset'
-      ? await window.gitAPI.moveBranchTo(branch, hash)
-      : action === 'rebase'
-        ? await window.gitAPI.rebaseBranchOnto(branch, hash)
-        : await window.gitAPI.mergeCommitInto(branch, hash)
-    if (r.success) {
-      showToast(t('toast.branchDropOk', branch), 'ok', undoAction())
-    } else {
-      showToast(t('toast.err', r.error ?? ''), 'err')
+    if (action === 'reset') {
+      const ok = await showConfirm(t('prompt.dropReset', branch, short), true)
+      if (!ok) return
     }
-    // Always load repo data to catch conflicts that prevent success
-    await loadRepoData()
-    setLoading(false)
+    const run = async () => {
+      setLoading(true)
+      const r = action === 'reset'
+        ? await window.gitAPI.moveBranchTo(branch, hash)
+        : action === 'rebase'
+          ? await window.gitAPI.rebaseBranchOnto(branch, hash)
+          : await window.gitAPI.mergeCommitInto(branch, hash)
+      if (r.success) {
+        showToast(t('toast.branchDropOk', branch), 'ok', undoAction())
+      } else {
+        showToast(t('toast.err', r.error ?? ''), 'err')
+      }
+      // Always load repo data to catch conflicts that prevent success
+      await loadRepoData()
+      setLoading(false)
+    }
+    // Reset just moves a ref — it can't conflict. Merge/rebase can.
+    if (action === 'reset') { await run(); return }
+    await guardConflict(
+      action === 'merge'
+        ? () => window.gitAPI.predictConflicts(hash, branch)   // merge hash into branch
+        : () => window.gitAPI.predictConflicts(branch, hash),  // rebase branch onto hash (heuristic)
+      run,
+    )
   }
 
   const handleMoveCommit = async (hash: string, direction: 'up' | 'down') => {

@@ -54,6 +54,8 @@ const gitAPI = {
   createBranchAt: (name: string, hash: string, checkout: boolean) => ipcRenderer.invoke('git:create-branch-at', name, hash, checkout),
   renameBranch: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-branch', oldName, newName),
   merge: (branch: string) => ipcRenderer.invoke('git:merge', branch),
+  predictConflicts: (theirs: string, ours?: string, mergeBase?: string) =>
+    ipcRenderer.invoke('git:predict-conflicts', theirs, ours, mergeBase),
   rebaseOnto: (branch: string) => ipcRenderer.invoke('git:rebase-onto', branch),
   pushBranch: (branch: string) => ipcRenderer.invoke('git:push-branch', branch),
   pushToCommit: (hash: string) => ipcRenderer.invoke('git:push-to-commit', hash),
