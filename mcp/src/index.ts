@@ -480,7 +480,7 @@ server.tool(
       const { execFile } = await import('node:child_process')
       const { promisify } = await import('node:util')
       const exec = promisify(execFile)
-      const r = await exec('git', ['-C', root, '-c', 'core.editor=true', OP_CMD[st.mode], '--continue'])
+      const r = await exec('git', ['-C', root, '-c', 'core.editor=true', OP_CMD[st.mode], '--continue'], { env: C_LOCALE_ENV })
       return text(`${st.mode} continued.\n${truncate((r.stdout + r.stderr).trim(), 2000)}`)
     } catch (e) { return errText(e) }
   }
