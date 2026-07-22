@@ -94,8 +94,10 @@ const API_KEY_TUTORIALS: Record<AIProvider, { steps: string[]; url: string; urlL
 interface SettingsModalProps {
   onClose: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
-  // VS Code panel host: hides desktop-only sections (notifications/updater,
-  // about) and swaps the GitHub OAuth flow for a manual token field.
+  // VS Code panel host: hides the desktop-only About section (and the OS
+  // notification toggles inside Comportement) and swaps the GitHub OAuth flow
+  // for a manual token field. Behaviour toggles (auto-stash, conflict warning,
+  // external editor) stay available.
   embedded?: boolean
 }
 
@@ -106,7 +108,7 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
 
   const navGroups = embedded
     ? NAV_GROUPS
-        .map(g => ({ ...g, items: g.items.filter(i => i.id !== 'notifications' && i.id !== 'about') }))
+        .map(g => ({ ...g, items: g.items.filter(i => i.id !== 'about') }))
         .filter(g => g.items.length > 0)
     : NAV_GROUPS
 
@@ -709,35 +711,40 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
                   />
                 </label>
 
-                <h2 className="stg-section-title" style={{ marginTop: 16 }}>{t('settings.notifications.title')}</h2>
-                <p className="stg-desc">{t('settings.notifications.desc')}</p>
+                {/* OS notifications — desktop only (no-op in the VS Code host) */}
+                {!embedded && (
+                  <>
+                    <h2 className="stg-section-title" style={{ marginTop: 16 }}>{t('settings.notifications.title')}</h2>
+                    <p className="stg-desc">{t('settings.notifications.desc')}</p>
 
-                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <input type="checkbox" checked={notifyFetch}
-                    onChange={async e => {
-                      setNotifyFetch(e.target.checked)
-                      await window.gitAPI.settingsSet('notifyFetch', String(e.target.checked))
-                    }} />
-                  <span>{t('settings.notifications.fetch')}</span>
-                </label>
+                    <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <input type="checkbox" checked={notifyFetch}
+                        onChange={async e => {
+                          setNotifyFetch(e.target.checked)
+                          await window.gitAPI.settingsSet('notifyFetch', String(e.target.checked))
+                        }} />
+                      <span>{t('settings.notifications.fetch')}</span>
+                    </label>
 
-                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <input type="checkbox" checked={notifyCommit}
-                    onChange={async e => {
-                      setNotifyCommit(e.target.checked)
-                      await window.gitAPI.settingsSet('notifyCommit', String(e.target.checked))
-                    }} />
-                  <span>{t('settings.notifications.commit')}</span>
-                </label>
+                    <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <input type="checkbox" checked={notifyCommit}
+                        onChange={async e => {
+                          setNotifyCommit(e.target.checked)
+                          await window.gitAPI.settingsSet('notifyCommit', String(e.target.checked))
+                        }} />
+                      <span>{t('settings.notifications.commit')}</span>
+                    </label>
 
-                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <input type="checkbox" checked={notifyUpdate}
-                    onChange={async e => {
-                      setNotifyUpdate(e.target.checked)
-                      await window.gitAPI.settingsSet('notifyUpdate', String(e.target.checked))
-                    }} />
-                  <span>{t('settings.notifications.update')}</span>
-                </label>
+                    <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <input type="checkbox" checked={notifyUpdate}
+                        onChange={async e => {
+                          setNotifyUpdate(e.target.checked)
+                          await window.gitAPI.settingsSet('notifyUpdate', String(e.target.checked))
+                        }} />
+                      <span>{t('settings.notifications.update')}</span>
+                    </label>
+                  </>
+                )}
               </div>
             )}
 

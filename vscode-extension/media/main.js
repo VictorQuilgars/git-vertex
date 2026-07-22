@@ -59951,7 +59951,7 @@ Ce fichier n'est pas suivi par Git \u2014 il sera perdu.`,
     "panel.stageAndCommit": "Indexer et commiter",
     "panel.commit": "Commit",
     "panel.clickCommit": "Cliquez sur un commit",
-    // RightPanel — commit panel (GitKraken-style)
+    // RightPanel — commit panel
     "panel.discardAll": "Annuler toutes les modifications",
     "panel.discardAll.confirm": (n) => `Annuler les modifications de ${n} fichier(s) ?
 Cette action est irr\xE9versible.`,
@@ -59982,6 +59982,12 @@ Cette action est irr\xE9versible.`,
     "panel.gen.failed": (err) => `G\xE9n\xE9ration \xE9chou\xE9e : ${err}`,
     "panel.gen.empty": "Erreur : message vide re\xE7u",
     "panel.gen.unexpected": (msg) => `Erreur inattendue : ${msg}`,
+    // RightPanel — agent proposal (MCP propose_commit)
+    "panel.proposal.title": "Proposition d\u2019agent",
+    "panel.proposal.msg": "Message de commit pr\xE9charg\xE9 \u2014 v\xE9rifiez avant de valider.",
+    "panel.proposal.stage": (n) => `Indexer les ${n} fichier(s) propos\xE9(s)`,
+    "panel.proposal.missing": (n) => `${n} fichier(s) propos\xE9(s) introuvable(s) dans les changements`,
+    "panel.proposal.dismiss": "Ignorer la proposition",
     // Settings
     "settings.title": "Param\xE8tres",
     "settings.back": "Retour",
@@ -60077,6 +60083,9 @@ Cette action est irr\xE9versible.`,
     "toast.branchRenamed": (name) => `\u2713 Branche renomm\xE9e en "${name}"`,
     "toast.mergeOk": (name) => `\u2713 Merge de "${name}" r\xE9ussi`,
     "toast.mergeErr": (e) => `Merge \xE9chou\xE9 : ${e}`,
+    "toast.conflictPredicted": (n) => `\u26A0 Un conflit est pr\xE9vu sur ${n} fichier(s). Continuer ?`,
+    "toast.conflictContinue": "Continuer",
+    "toast.conflictDontAsk": "Ne plus me le demander",
     "toast.cherryPickOk": (h) => `\u2713 Cherry-pick ${h} appliqu\xE9`,
     "toast.cherryPickErr": (e) => `Cherry-pick \xE9chou\xE9 : ${e}`,
     "toast.revertOk": (h) => `\u2713 Revert ${h} appliqu\xE9`,
@@ -60360,7 +60369,7 @@ This file is not tracked by Git \u2014 it will be lost.`,
     "panel.stageAndCommit": "Stage and commit",
     "panel.commit": "Commit",
     "panel.clickCommit": "Click on a commit",
-    // RightPanel — commit panel (GitKraken-style)
+    // RightPanel — commit panel
     "panel.discardAll": "Discard all changes",
     "panel.discardAll.confirm": (n) => `Discard changes to ${n} file(s)?
 This action is irreversible.`,
@@ -60391,6 +60400,12 @@ This action is irreversible.`,
     "panel.gen.failed": (err) => `Generation failed: ${err}`,
     "panel.gen.empty": "Error: empty response received",
     "panel.gen.unexpected": (msg) => `Unexpected error: ${msg}`,
+    // RightPanel — agent proposal (MCP propose_commit)
+    "panel.proposal.title": "Agent proposal",
+    "panel.proposal.msg": "Commit message preloaded \u2014 review before committing.",
+    "panel.proposal.stage": (n) => `Stage the ${n} proposed file(s)`,
+    "panel.proposal.missing": (n) => `${n} proposed file(s) not found among the changes`,
+    "panel.proposal.dismiss": "Dismiss proposal",
     // Settings
     "settings.title": "Settings",
     "settings.back": "Back",
@@ -60486,6 +60501,9 @@ This action is irreversible.`,
     "toast.branchRenamed": (name) => `\u2713 Branch renamed to "${name}"`,
     "toast.mergeOk": (name) => `\u2713 Merge of "${name}" successful`,
     "toast.mergeErr": (e) => `Merge failed: ${e}`,
+    "toast.conflictPredicted": (n) => `\u26A0 A conflict is expected in ${n} file(s). Continue?`,
+    "toast.conflictContinue": "Continue",
+    "toast.conflictDontAsk": "Don't ask again",
     "toast.cherryPickOk": (h) => `\u2713 Cherry-pick ${h} applied`,
     "toast.cherryPickErr": (e) => `Cherry-pick failed: ${e}`,
     "toast.revertOk": (h) => `\u2713 Revert ${h} applied`,
@@ -60663,29 +60681,33 @@ Commits beyond this point will be lost for that branch.`,
   function ToastProvider({ children }) {
     const [toasts, setToasts] = (0, import_react3.useState)([]);
     const counter = (0, import_react3.useRef)(0);
-    const addToast = (0, import_react3.useCallback)((message, type, action) => {
+    const addToast = (0, import_react3.useCallback)((message, type, action, sticky) => {
       const id = ++counter.current;
-      setToasts((prev) => [...prev, { id, message, type, action }]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, action ? 8e3 : 4e3);
+      const actions = action ? Array.isArray(action) ? action : [action] : void 0;
+      setToasts((prev) => [...prev, { id, message, type, actions, sticky }]);
+      if (!sticky) {
+        setTimeout(() => {
+          setToasts((prev) => prev.filter((t) => t.id !== id));
+        }, actions?.length ? 8e3 : 4e3);
+      }
     }, []);
     const ctx = {
-      success: (msg, action) => addToast(msg, "success", action),
-      error: (msg, action) => addToast(msg, "error", action),
-      info: (msg, action) => addToast(msg, "info", action)
+      success: (msg, action, sticky) => addToast(msg, "success", action, sticky),
+      error: (msg, action, sticky) => addToast(msg, "error", action, sticky),
+      info: (msg, action, sticky) => addToast(msg, "info", action, sticky)
     };
-    return /* @__PURE__ */ import_react3.default.createElement(ToastContext.Provider, { value: ctx }, children, /* @__PURE__ */ import_react3.default.createElement("div", { className: "toast-container" }, toasts.map((t) => /* @__PURE__ */ import_react3.default.createElement("div", { key: t.id, className: `toast-item toast-${t.type}` }, /* @__PURE__ */ import_react3.default.createElement("span", { className: "toast-icon" }, t.type === "success" ? "\u2713" : t.type === "error" ? "\u2715" : "\u2139"), /* @__PURE__ */ import_react3.default.createElement("span", { className: "toast-msg" }, t.message), t.action && /* @__PURE__ */ import_react3.default.createElement(
+    return /* @__PURE__ */ import_react3.default.createElement(ToastContext.Provider, { value: ctx }, children, /* @__PURE__ */ import_react3.default.createElement("div", { className: "toast-container" }, toasts.map((t) => /* @__PURE__ */ import_react3.default.createElement("div", { key: t.id, className: `toast-item toast-${t.type}` }, /* @__PURE__ */ import_react3.default.createElement("span", { className: "toast-icon" }, t.type === "success" ? "\u2713" : t.type === "error" ? "\u2715" : "\u2139"), /* @__PURE__ */ import_react3.default.createElement("span", { className: "toast-msg" }, t.message), t.actions?.map((a, i) => /* @__PURE__ */ import_react3.default.createElement(
       "button",
       {
+        key: i,
         className: "toast-action",
         onClick: () => {
           setToasts((prev) => prev.filter((x) => x.id !== t.id));
-          t.action.onClick();
+          a.onClick();
         }
       },
-      t.action.label
-    ), /* @__PURE__ */ import_react3.default.createElement(
+      a.label
+    )), /* @__PURE__ */ import_react3.default.createElement(
       "button",
       {
         className: "toast-dismiss",
@@ -60853,7 +60875,7 @@ Commits beyond this point will be lost for that branch.`,
     const { t, lang, setLang } = useLang();
     const { get, getBool, set } = useSettings();
     const [section, setSection] = (0, import_react5.useState)("git");
-    const navGroups = embedded ? NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== "notifications" && i.id !== "about") })).filter((g) => g.items.length > 0) : NAV_GROUPS;
+    const navGroups = embedded ? NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== "about") })).filter((g) => g.items.length > 0) : NAV_GROUPS;
     const [gitUserName, setGitUserName] = (0, import_react5.useState)("");
     const [gitUserEmail, setGitUserEmail] = (0, import_react5.useState)("");
     const [githubToken, setGithubToken] = (0, import_react5.useState)("");
@@ -60884,6 +60906,7 @@ Commits beyond this point will be lost for that branch.`,
     const [notifyCommit, setNotifyCommit] = (0, import_react5.useState)(false);
     const [notifyUpdate, setNotifyUpdate] = (0, import_react5.useState)(true);
     const [autoStash, setAutoStash] = (0, import_react5.useState)(false);
+    const [warnBeforeConflict, setWarnBeforeConflict] = (0, import_react5.useState)(true);
     const [gpgSign, setGpgSign] = (0, import_react5.useState)(false);
     const [profiles, setProfiles] = (0, import_react5.useState)([]);
     const [externalEditor, setExternalEditor] = (0, import_react5.useState)("");
@@ -60933,6 +60956,7 @@ Commits beyond this point will be lost for that branch.`,
         setNotifyCommit(s.notifyCommit === "true");
         setNotifyUpdate(s.notifyUpdate !== "false");
         setAutoStash(s.autoStash === "true");
+        setWarnBeforeConflict(s.warnBeforeConflict !== "false");
         setGpgSign(s.gpgSign === "true");
         setExternalEditor(s.externalEditor ?? "");
         try {
@@ -61253,7 +61277,17 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("autoStash", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, "Auto-stash au checkout ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, "(stashe les modifications locales avant de changer de branche, les restaure apr\xE8s)"))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, "\xC9diteur externe ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, "(commande pour ouvrir les fichiers/conflits, ex : ", /* @__PURE__ */ import_react5.default.createElement("code", null, "code"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "code --wait"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "subl"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "meld"), ". Vide = app par d\xE9faut)")), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react5.default.createElement("span", null, "Auto-stash au checkout ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, "(stashe les modifications locales avant de changer de branche, les restaure apr\xE8s)"))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: warnBeforeConflict,
+        onChange: async (e) => {
+          setWarnBeforeConflict(e.target.checked);
+          await window.gitAPI.settingsSet("warnBeforeConflict", String(e.target.checked));
+        }
+      }
+    ), /* @__PURE__ */ import_react5.default.createElement("span", null, "Pr\xE9venir avant un conflit ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, "(merge, rebase, cherry-pick, revert, pull : affiche un avertissement si l'op\xE9ration va cr\xE9er un conflit, avec le choix de continuer ou non)"))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, "\xC9diteur externe ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, "(commande pour ouvrir les fichiers/conflits, ex : ", /* @__PURE__ */ import_react5.default.createElement("code", null, "code"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "code --wait"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "subl"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "meld"), ". Vide = app par d\xE9faut)")), /* @__PURE__ */ import_react5.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -61264,7 +61298,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "code"
       }
-    )), /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 16 } }, t("settings.notifications.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t("settings.notifications.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+    )), !embedded && /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 16 } }, t("settings.notifications.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t("settings.notifications.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -61294,7 +61328,7 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("notifyUpdate", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t("settings.notifications.update")))), section === "about" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-hero" }, /* @__PURE__ */ import_react5.default.createElement("img", { src: "../../resources/icon.png", className: "stg-about-icon", alt: "Git Vertex", onError: (e) => e.currentTarget.style.display = "none" }), /* @__PURE__ */ import_react5.default.createElement("div", null, /* @__PURE__ */ import_react5.default.createElement("h1", { className: "stg-about-name" }, "Git Vertex"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-version" }, "v", appInfo?.version ?? "\u2014"))), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t("settings.about.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-links" }, /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), t("settings.about.sourceCode")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/releases") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), t("settings.about.releases")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/issues") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "8", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" })), t("settings.about.reportBug"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-author" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t("settings.about.createdBy")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars") }, "Victor Quilgars")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-lang" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t("settings.about.language")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-lang-btns" }, ["fr", "en"].map((l) => /* @__PURE__ */ import_react5.default.createElement("button", { key: l, className: `stg-lang-btn ${lang === l ? "active" : ""}`, onClick: () => setLang(l) }, l === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F1EC}\u{1F1E7}", " ", t(`settings.lang.${l}`))))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-env" }, /* @__PURE__ */ import_react5.default.createElement("h3", { className: "stg-about-env-title" }, t("settings.about.env")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-env-grid" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Git Vertex"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.version ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Electron"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.electron ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Node.js"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.node ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Chrome"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.chrome ?? "\u2014"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-update" }, updateReady ? /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t("settings.notifications.update"))))), section === "about" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-hero" }, /* @__PURE__ */ import_react5.default.createElement("img", { src: "../../resources/icon.png", className: "stg-about-icon", alt: "Git Vertex", onError: (e) => e.currentTarget.style.display = "none" }), /* @__PURE__ */ import_react5.default.createElement("div", null, /* @__PURE__ */ import_react5.default.createElement("h1", { className: "stg-about-name" }, "Git Vertex"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-version" }, "v", appInfo?.version ?? "\u2014"))), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t("settings.about.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-links" }, /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), t("settings.about.sourceCode")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/releases") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), t("settings.about.releases")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/issues") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "8", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" })), t("settings.about.reportBug"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-author" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t("settings.about.createdBy")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars") }, "Victor Quilgars")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-lang" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t("settings.about.language")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-lang-btns" }, ["fr", "en"].map((l) => /* @__PURE__ */ import_react5.default.createElement("button", { key: l, className: `stg-lang-btn ${lang === l ? "active" : ""}`, onClick: () => setLang(l) }, l === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F1EC}\u{1F1E7}", " ", t(`settings.lang.${l}`))))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-env" }, /* @__PURE__ */ import_react5.default.createElement("h3", { className: "stg-about-env-title" }, t("settings.about.env")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-env-grid" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Git Vertex"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.version ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Electron"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.electron ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Node.js"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.node ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Chrome"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.chrome ?? "\u2014"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-update" }, updateReady ? /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
       "button",
       {
         className: "stg-about-install-btn",
@@ -62840,7 +62874,7 @@ Commits beyond this point will be lost for that branch.`,
           }
         ), isMerge || compactColumns ? (
           /* Merge commit, or compact layout: small plain dot
-             (de-emphasized, GitKraken-style) — in compact mode the
+             (de-emphasized) — in compact mode the
              avatar moves beside the graph instead (see AuthorBullet). */
           /* @__PURE__ */ import_react8.default.createElement(
             "circle",
@@ -63588,7 +63622,7 @@ ${line.date}`
     const m = CC_PREFIX_RE.exec(summary);
     return m && CC_TYPES.includes(m[1]) ? m[1] : "";
   }
-  function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor }) {
+  function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed }) {
     const { t } = useLang();
     const isConflict = !!conflictMode;
     const [changes, setChanges] = (0, import_react9.useState)({ staged: [], unstaged: [], untracked: [] });
@@ -63676,6 +63710,23 @@ ${line.date}`
         });
       }
     }, [isConflict]);
+    (0, import_react9.useEffect)(() => {
+      if (commitProposal)
+        splitMessage(commitProposal.message);
+    }, [commitProposal]);
+    const stageProposedFiles = async () => {
+      if (!commitProposal?.files.length)
+        return;
+      const stageable = /* @__PURE__ */ new Set([...changes.unstaged.map((f) => f.path), ...changes.untracked]);
+      const stagedAlready = new Set(changes.staged.map((f) => f.path));
+      const toStage = commitProposal.files.filter((f) => stageable.has(f));
+      if (toStage.length)
+        await window.gitAPI.stage(toStage);
+      await load();
+      const missing = commitProposal.files.filter((f) => !stageable.has(f) && !stagedAlready.has(f)).length;
+      if (missing > 0)
+        showToast(t("panel.proposal.missing", String(missing)), "err");
+    };
     const onResizeDown = (0, import_react9.useCallback)((e) => {
       e.preventDefault();
       dragRef.current = { y: e.clientY, h: formHeight };
@@ -63910,7 +63961,15 @@ ${line.date}`
         showToast(t("toast.pushErr", r.error ?? ""), "err");
       else
         showToast(t("toast.pushOk", branchName));
-    } }, /* @__PURE__ */ import_react9.default.createElement(IcoCloud, null))), !isConflict && /* @__PURE__ */ import_react9.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react9.default.createElement("input", { type: "checkbox", checked: amend, onChange: (e) => toggleAmend(e.target.checked) }), /* @__PURE__ */ import_react9.default.createElement("span", null, t("panel.amendPrevious"))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-msgbox" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-summary-row" }, /* @__PURE__ */ import_react9.default.createElement(
+    } }, /* @__PURE__ */ import_react9.default.createElement(IcoCloud, null))), !isConflict && /* @__PURE__ */ import_react9.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react9.default.createElement("input", { type: "checkbox", checked: amend, onChange: (e) => toggleAmend(e.target.checked) }), /* @__PURE__ */ import_react9.default.createElement("span", null, t("panel.amendPrevious"))), commitProposal && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-proposal" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-proposal-head" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-proposal-title" }, "\u{1F916} ", t("panel.proposal.title")), /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: "st2-proposal-close",
+        title: t("panel.proposal.dismiss"),
+        onClick: () => onProposalConsumed?.()
+      },
+      "\xD7"
+    )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-proposal-body" }, t("panel.proposal.msg")), commitProposal.files.length > 0 && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("ul", { className: "st2-proposal-files" }, commitProposal.files.map((f) => /* @__PURE__ */ import_react9.default.createElement("li", { key: f, title: f }, f))), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-proposal-stage", onClick: stageProposedFiles }, t("panel.proposal.stage", String(commitProposal.files.length))))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-msgbox" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-summary-row" }, /* @__PURE__ */ import_react9.default.createElement(
       "select",
       {
         className: "st2-cc-type",
@@ -63991,6 +64050,7 @@ Signed-off-by: ` : full;
           setDescription("");
           setAmend(false);
           setSelectedDiff(null);
+          onProposalConsumed?.();
           await load();
           onCommitSuccess();
         } else
@@ -64137,7 +64197,9 @@ Signed-off-by: ` : full;
     onOpenFileDiff,
     onOpenStagingEditor,
     githubRepo,
-    onRewordWithMessage
+    onRewordWithMessage,
+    commitProposal,
+    onCommitProposalConsumed
   }) {
     const isWip = selectedCommit?.hash === "__WIP__";
     const hasCommit = !!selectedCommit && !isWip;
@@ -64166,7 +64228,9 @@ Signed-off-by: ` : full;
         onConflictFinish,
         onConflictAbort,
         onOpenFileDiff,
-        onOpenStagingEditor
+        onOpenStagingEditor,
+        commitProposal,
+        onProposalConsumed: onCommitProposalConsumed
       }
     ) : hasCommit ? /* @__PURE__ */ import_react9.default.createElement(
       CommitDetail,
@@ -64836,19 +64900,40 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     drop: "#f85149"
   };
   var groupKey = (g) => `${g.leaderIndex}:${g.memberIndexes.join(",")}`;
-  function InteractiveRebase({ baseHash, onClose, onSuccess, showToast, embedded }) {
+  function InteractiveRebase({ baseHash, onClose, onSuccess, showToast, embedded, initialPlan }) {
     const [entries, setEntries] = (0, import_react11.useState)([]);
     const [loading, setLoading] = (0, import_react11.useState)(true);
     const [running, setRunning] = (0, import_react11.useState)(false);
+    const [fromPlan, setFromPlan] = (0, import_react11.useState)(false);
     const dragIndex = (0, import_react11.useRef)(null);
     const [dragOver, setDragOver] = (0, import_react11.useState)(null);
     const [groupMessages, setGroupMessages] = (0, import_react11.useState)({});
     (0, import_react11.useEffect)(() => {
       window.gitAPI.getRebaseSequence(baseHash).then((r) => {
-        setEntries(r.commits.map((c) => ({ ...c, action: "pick" })));
+        let list = r.commits.map((c) => ({ ...c, action: "pick" }));
+        if (initialPlan?.length) {
+          const stepFor = (hash) => initialPlan.find((s) => hash.startsWith(s.hash) || s.hash.startsWith(hash));
+          list = list.map((e) => {
+            const step = stepFor(e.hash);
+            return step && ACTIONS.includes(step.action) ? { ...e, action: step.action } : e;
+          });
+          const gs = computeMessageGroups(list.map((e) => ({ action: e.action, hash: e.hash, message: e.message })));
+          const gm = {};
+          for (const g of gs) {
+            if (!g.needsMessage)
+              continue;
+            const step = stepFor(list[g.leaderIndex].hash);
+            if (step?.message)
+              gm[groupKey(g)] = step.message;
+          }
+          if (Object.keys(gm).length)
+            setGroupMessages(gm);
+          setFromPlan(true);
+        }
+        setEntries(list);
         setLoading(false);
       });
-    }, [baseHash]);
+    }, [baseHash, initialPlan]);
     const groups = (0, import_react11.useMemo)(
       () => computeMessageGroups(entries.map((e) => ({ action: e.action, hash: e.hash, message: e.message }))),
       [entries]
@@ -64922,7 +65007,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         className: embedded ? "ir-page" : "ir-overlay",
         onMouseDown: embedded ? void 0 : (e) => e.target === e.currentTarget && onClose()
       },
-      /* @__PURE__ */ import_react11.default.createElement("div", { className: embedded ? "ir-panel ir-panel--embedded" : "ir-panel" }, /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react11.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react11.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-hint" }, "Glissez pour r\xE9ordonner \xB7 Changez l'action avec le menu d\xE9roulant \xB7 Choisissez le message final pour un squash/reword"), /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-empty" }, "Aucun commit \xE0 rebaser"), (() => {
+      /* @__PURE__ */ import_react11.default.createElement("div", { className: embedded ? "ir-panel ir-panel--embedded" : "ir-panel" }, /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react11.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react11.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-hint" }, "Glissez pour r\xE9ordonner \xB7 Changez l'action avec le menu d\xE9roulant \xB7 Choisissez le message final pour un squash/reword"), fromPlan && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-plan-banner" }, "\u{1F916} Plan propos\xE9 par un agent \u2014 v\xE9rifiez chaque action et message avant de lancer le rebase."), /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-empty" }, "Aucun commit \xE0 rebaser"), (() => {
         const firstKeptIndex = entries.findIndex((e) => e.action !== "drop");
         return entries.map((entry, i) => {
           const msgGroup = messageGroupByLastIndex.get(i);
@@ -65697,7 +65782,55 @@ ${lineStrings.join("\n")}
 
   // ../src/renderer/src/components/ConflictResolver/ConflictResolver.tsx
   var import_react16 = __toESM(require_react());
-  function ConflictResolver({ file, onFinish, onAbort, showToast }) {
+  function matchesAt(propLines, pos, candidate) {
+    if (pos + candidate.length > propLines.length)
+      return false;
+    for (let i = 0; i < candidate.length; i++) {
+      if (propLines[pos + i] !== candidate[i])
+        return false;
+    }
+    return true;
+  }
+  function reconcileFrom(chunks, propLines, chunkIdx, pos, acc) {
+    if (chunkIdx === chunks.length)
+      return pos === propLines.length ? acc : null;
+    const c = chunks[chunkIdx];
+    if (c.type === "common") {
+      if (!matchesAt(propLines, pos, c.lines))
+        return null;
+      return reconcileFrom(chunks, propLines, chunkIdx + 1, pos + c.lines.length, acc);
+    }
+    const oursSel = c.ours.map((_, i) => ({ side: "ours", index: i }));
+    const theirsSel = c.theirs.map((_, i) => ({ side: "theirs", index: i }));
+    const candidates = [
+      { lines: c.ours, sel: oursSel },
+      { lines: c.theirs, sel: theirsSel },
+      { lines: [...c.ours, ...c.theirs], sel: [...oursSel, ...theirsSel] },
+      { lines: [...c.theirs, ...c.ours], sel: [...theirsSel, ...oursSel] },
+      { lines: c.base, sel: [] }
+      // neither side — matches the UI's own "no selection" default
+    ];
+    for (const cand of candidates) {
+      if (!matchesAt(propLines, pos, cand.lines))
+        continue;
+      const result = reconcileFrom(chunks, propLines, chunkIdx + 1, pos + cand.lines.length, { ...acc, [c.id]: cand.sel });
+      if (result)
+        return result;
+    }
+    return null;
+  }
+  function reconcileProposalToSelections(chunks, proposalText) {
+    let propLines = proposalText.split("\n");
+    if (propLines.length > 0 && propLines[propLines.length - 1] === "")
+      propLines = propLines.slice(0, -1);
+    let matchChunks = chunks;
+    const last = chunks[chunks.length - 1];
+    if (last?.type === "common" && last.lines.length > 0 && last.lines[last.lines.length - 1] === "") {
+      matchChunks = chunks.slice(0, -1).concat([{ ...last, lines: last.lines.slice(0, -1) }]);
+    }
+    return reconcileFrom(matchChunks, propLines, 0, 0, {});
+  }
+  function ConflictResolver({ file, initialProposal, onFinish, onAbort, showToast }) {
     const [chunks, setChunks] = (0, import_react16.useState)([]);
     const [selections, setSelections] = (0, import_react16.useState)({});
     const [manualOutput, setManualOutput] = (0, import_react16.useState)(null);
@@ -65734,7 +65867,9 @@ ${lineStrings.join("\n")}
     const oursRef = import_react16.default.useRef(null);
     const theirsRef = import_react16.default.useRef(null);
     const isSyncing = import_react16.default.useRef(false);
-    (0, import_react16.useEffect)(() => {
+    const loadedRawRef = import_react16.default.useRef(null);
+    const userEditedRef = import_react16.default.useRef(false);
+    const load = import_react16.default.useCallback((applyProposal) => {
       setLoading(true);
       setManualOutput(null);
       Promise.all([
@@ -65746,6 +65881,7 @@ ${lineStrings.join("\n")}
           return;
         }
         const raw = fileRes.content || "";
+        loadedRawRef.current = raw;
         const lines = raw.split("\n");
         const newChunks = [];
         let currCommon = [];
@@ -65828,15 +65964,59 @@ ${lineStrings.join("\n")}
           }
         }
         setChunks(newChunks);
-        const initialSel = {};
+        let initialSel = {};
         newChunks.forEach((c) => {
           if (c.type === "conflict")
             initialSel[c.id] = [];
         });
+        if (applyProposal && initialProposal != null) {
+          const reconciled = reconcileProposalToSelections(newChunks, initialProposal);
+          if (reconciled) {
+            initialSel = { ...initialSel, ...reconciled };
+            showToast("Proposition de l'agent charg\xE9e \u2014 ajustez en cliquant sur les lignes si besoin, puis Enregistrer & R\xE9soudre");
+          } else {
+            setManualOutput(initialProposal);
+            showToast("Proposition de l'agent charg\xE9e en \xE9dition libre (le texte ne correspond pas exactement \xE0 un des deux c\xF4t\xE9s ligne par ligne)");
+          }
+        }
         setSelections(initialSel);
         setLoading(false);
       });
-    }, [file]);
+    }, [file, initialProposal]);
+    (0, import_react16.useEffect)(() => {
+      userEditedRef.current = false;
+      load(true);
+    }, [load]);
+    (0, import_react16.useEffect)(() => {
+      const handler = async () => {
+        const r = await window.gitAPI.getFileContent(file);
+        if (r.error)
+          return;
+        const raw = r.content || "";
+        if (raw === loadedRawRef.current)
+          return;
+        if (userEditedRef.current) {
+          loadedRawRef.current = raw;
+          showToast(
+            `${file} a \xE9t\xE9 modifi\xE9 en dehors de l'app \u2014 vos s\xE9lections sont conserv\xE9es`,
+            "err",
+            { label: "Recharger", onClick: () => {
+              userEditedRef.current = false;
+              load(false);
+            } }
+          );
+          return;
+        }
+        load(false);
+        showToast(`${file} a \xE9t\xE9 modifi\xE9 en dehors de l'app \u2014 vue recharg\xE9e`);
+      };
+      window.gitAPI.onWorkingChanged(handler);
+      window.gitAPI.onRepoChanged(handler);
+      return () => {
+        window.gitAPI.offWorkingChanged(handler);
+        window.gitAPI.offRepoChanged(handler);
+      };
+    }, [file, load, showToast]);
     const conflictIndexMap = (0, import_react16.useMemo)(() => {
       const map = {};
       let idx = 0;
@@ -65870,6 +66050,7 @@ ${lineStrings.join("\n")}
     const outputString = (0, import_react16.useMemo)(() => outputLines.map((l) => l.text).join("\n"), [outputLines]);
     const currentOutput = manualOutput !== null ? manualOutput : outputString;
     const toggleLine = (chunkId, side, index) => {
+      userEditedRef.current = true;
       setSelections((prev) => {
         const current = prev[chunkId] ?? [];
         const exists = current.some((r) => r.side === side && r.index === index);
@@ -65881,6 +66062,7 @@ ${lineStrings.join("\n")}
       setManualOutput(null);
     };
     const toggleBlock = (chunkId, side) => {
+      userEditedRef.current = true;
       const chunk = chunks.find((c) => c.id === chunkId);
       if (!chunk)
         return;
@@ -65899,6 +66081,7 @@ ${lineStrings.join("\n")}
       setManualOutput(null);
     };
     const selectAll = (side) => {
+      userEditedRef.current = true;
       const conflictChunks2 = chunks.filter((c) => c.type === "conflict");
       const allIn = conflictChunks2.every((c) => {
         const lines = side === "ours" ? c.ours : c.theirs;
@@ -66040,7 +66223,10 @@ ${lineStrings.join("\n")}
       {
         className: "mt-output-editor",
         value: manualOutput,
-        onChange: (e) => setManualOutput(e.target.value),
+        onChange: (e) => {
+          userEditedRef.current = true;
+          setManualOutput(e.target.value);
+        },
         spellCheck: false,
         wrap: "off",
         autoFocus: true
@@ -66719,9 +66905,43 @@ ${lineStrings.join("\n")}
         showToast(`\u2713 ${label}`);
       await loadRepoData();
     }, [showToast, toast, doUndo, loadRepoData]);
+    const guardConflict = (0, import_react23.useCallback)(async (predict, op) => {
+      const settings = await window.gitAPI.settingsGetAll().catch(() => ({}));
+      if (settings?.warnBeforeConflict === "false") {
+        await op();
+        return;
+      }
+      const { files } = await predict().catch(() => ({ files: [] }));
+      if (files.length === 0) {
+        await op();
+        return;
+      }
+      toast.error(
+        `\u26A0 Un conflit est pr\xE9vu sur ${files.length} fichier(s). Continuer ?`,
+        [
+          { label: "Continuer", onClick: () => {
+            void op();
+          } },
+          { label: "Ne plus me le demander", onClick: () => {
+            void window.gitAPI.settingsSet("warnBeforeConflict", "false");
+            void op();
+          } }
+        ],
+        true
+        // sticky — a go/no-go decision must not silently time out
+      );
+    }, [toast]);
     const handleCheckout = (0, import_react23.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
-    const handleCherryPick = (0, import_react23.useCallback)((hash) => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash)), [runOp]);
-    const handleRevert = (0, import_react23.useCallback)((hash) => runOp("Revert", () => window.gitAPI.revert(hash)), [runOp]);
+    const handleCherryPick = (0, import_react23.useCallback)((hash) => guardConflict(
+      () => window.gitAPI.predictConflicts(hash, "HEAD", `${hash}^`),
+      // base = commit's parent
+      () => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash))
+    ), [runOp, guardConflict]);
+    const handleRevert = (0, import_react23.useCallback)((hash) => guardConflict(
+      () => window.gitAPI.predictConflicts(`${hash}^`, "HEAD", hash),
+      // apply the inverse
+      () => runOp("Revert", () => window.gitAPI.revert(hash))
+    ), [runOp, guardConflict]);
     const handleReset = (0, import_react23.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
     const handleCreateTag = (0, import_react23.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom du tag");
@@ -66741,8 +66961,15 @@ ${lineStrings.join("\n")}
       await runOp("Commit supprim\xE9", () => window.gitAPI.dropCommit(hash), true);
     }, [runOp]);
     const handleMoveCommit = (0, import_react23.useCallback)((hash, direction) => runOp("Commit d\xE9plac\xE9", () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
-    const handleMergeBranch = (0, import_react23.useCallback)((name) => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true), [runOp]);
-    const handleRebaseCurrentOnto = (0, import_react23.useCallback)((name) => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true), [runOp]);
+    const handleMergeBranch = (0, import_react23.useCallback)((name) => guardConflict(
+      () => window.gitAPI.predictConflicts(name),
+      () => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true)
+    ), [runOp, guardConflict]);
+    const handleRebaseCurrentOnto = (0, import_react23.useCallback)((name) => guardConflict(
+      () => window.gitAPI.predictRebaseConflicts(name),
+      // accurate per-commit replay
+      () => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true)
+    ), [runOp, guardConflict]);
     const handleRewordCommit = (0, import_react23.useCallback)(async (hash) => {
       const current = commits.find((c) => c.hash === hash);
       if (!current)
@@ -66767,7 +66994,11 @@ ${lineStrings.join("\n")}
       const sequence = seq.commits.map((c) => ({ action: c.hash === current.hash ? "reword" : "pick", hash: c.hash }));
       await runOp("Message modifi\xE9", () => window.gitAPI.interactiveRebase(sequence, [newMsg]));
     }, [runOp, commits, currentBranch, showToast]);
-    const handleRebaseCurrentOntoCommit = (0, import_react23.useCallback)((hash) => runOp(`Rebase sur ${hash.slice(0, 7)}`, () => window.gitAPI.rebaseOnto(hash), true), [runOp]);
+    const handleRebaseCurrentOntoCommit = (0, import_react23.useCallback)((hash) => guardConflict(
+      () => window.gitAPI.predictRebaseConflicts(hash),
+      // accurate per-commit replay
+      () => runOp(`Rebase sur ${hash.slice(0, 7)}`, () => window.gitAPI.rebaseOnto(hash), true)
+    ), [runOp, guardConflict]);
     const handlePushToCommit = (0, import_react23.useCallback)((hash) => runOp(`Push jusqu'\xE0 ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp]);
     const handleCreatePatch = (0, import_react23.useCallback)(async (hash) => {
       const res = await window.gitAPI.createPatch(hash);
@@ -67003,8 +67234,17 @@ ${lineStrings.join("\n")}
           return;
       }
       const op = action === "reset" ? () => window.gitAPI.moveBranchTo(branch, hash) : action === "rebase" ? () => window.gitAPI.rebaseBranchOnto(branch, hash) : () => window.gitAPI.mergeCommitInto(branch, hash);
-      await runOp(action === "reset" ? "Branche r\xE9initialis\xE9e" : action === "rebase" ? "Rebase effectu\xE9" : "Merge effectu\xE9", op, true);
-    }, [runOp]);
+      const run = () => runOp(action === "reset" ? "Branche r\xE9initialis\xE9e" : action === "rebase" ? "Rebase effectu\xE9" : "Merge effectu\xE9", op, true);
+      if (action === "reset") {
+        await run();
+        return;
+      }
+      await guardConflict(
+        action === "merge" ? () => window.gitAPI.predictConflicts(hash, branch) : () => window.gitAPI.predictRebaseConflicts(hash, branch),
+        // rebase branch onto hash
+        run
+      );
+    }, [runOp, guardConflict]);
     const handleConflictFinish = (0, import_react23.useCallback)(async (action, message) => {
       const mode = conflictMode ?? action;
       let r;
@@ -67045,7 +67285,11 @@ ${lineStrings.join("\n")}
       setLastFetch(/* @__PURE__ */ new Date());
     }, [runOp]);
     const handleOpenDesktop = (0, import_react23.useCallback)(() => window.gitAPI.openDesktop(), []);
-    const handlePull = (0, import_react23.useCallback)(() => runOp("Pull", () => window.gitAPI.pull()), [runOp]);
+    const handlePull = (0, import_react23.useCallback)(() => guardConflict(
+      () => window.gitAPI.predictConflicts("@{u}"),
+      // merge of the already-known upstream tip (pre-fetch)
+      () => runOp("Pull", () => window.gitAPI.pull())
+    ), [runOp, guardConflict]);
     const handlePush = (0, import_react23.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
     const handleUndo = (0, import_react23.useCallback)(() => runOp("Annul\xE9", () => window.gitAPI.undoLastAction()), [runOp]);
     const handleRedo = (0, import_react23.useCallback)(() => runOp("R\xE9tabli", () => window.gitAPI.redoLastAction()), [runOp]);

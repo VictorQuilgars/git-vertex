@@ -182,9 +182,41 @@ function VertexApp() {
     await loadRepoData()
   }, [showToast, toast, doUndo, loadRepoData])
 
+  // Warn (per the user's `warnBeforeConflict` setting) before an operation
+  // predicted to conflict. `predict` returns the files that would clash — empty
+  // means clean OR the prediction couldn't run, and either way we don't block.
+  // On a predicted conflict a sticky toast offers Continue, "don't ask again"
+  // (flips the setting off, then continues), or dismiss (×) to cancel.
+  const guardConflict = useCallback(async (
+    predict: () => Promise<{ files: string[]; error?: string }>,
+    op: () => void | Promise<void>,
+  ) => {
+    const settings = await window.gitAPI.settingsGetAll().catch(() => ({} as Record<string, string>))
+    if ((settings as any)?.warnBeforeConflict === 'false') { await op(); return }
+    const { files } = await predict().catch(() => ({ files: [] as string[] }))
+    if (files.length === 0) { await op(); return }
+    toast.error(
+      `⚠ Un conflit est prévu sur ${files.length} fichier(s). Continuer ?`,
+      [
+        { label: 'Continuer', onClick: () => { void op() } },
+        { label: 'Ne plus me le demander', onClick: () => {
+          void window.gitAPI.settingsSet('warnBeforeConflict', 'false')
+          void op()
+        } },
+      ],
+      true,   // sticky — a go/no-go decision must not silently time out
+    )
+  }, [toast])
+
   const handleCheckout = useCallback((ref: string) => runOp('Checkout', () => window.gitAPI.checkout(ref)), [runOp])
-  const handleCherryPick = useCallback((hash: string) => runOp('Cherry-pick', () => window.gitAPI.cherryPick(hash)), [runOp])
-  const handleRevert = useCallback((hash: string) => runOp('Revert', () => window.gitAPI.revert(hash)), [runOp])
+  const handleCherryPick = useCallback((hash: string) => guardConflict(
+    () => window.gitAPI.predictConflicts(hash, 'HEAD', `${hash}^`),   // base = commit's parent
+    () => runOp('Cherry-pick', () => window.gitAPI.cherryPick(hash)),
+  ), [runOp, guardConflict])
+  const handleRevert = useCallback((hash: string) => guardConflict(
+    () => window.gitAPI.predictConflicts(`${hash}^`, 'HEAD', hash),   // apply the inverse
+    () => runOp('Revert', () => window.gitAPI.revert(hash)),
+  ), [runOp, guardConflict])
   const handleReset = useCallback((hash: string, mode: 'soft' | 'mixed' | 'hard') => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp])
 
   const handleCreateTag = useCallback(async (hash: string) => {
@@ -209,10 +241,14 @@ function VertexApp() {
     runOp('Commit déplacé', () => window.gitAPI.moveCommit(hash, direction), true), [runOp])
 
   // ── Branch / tag context-menu operations ─────────────────────
-  const handleMergeBranch = useCallback((name: string) =>
-    runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true), [runOp])
-  const handleRebaseCurrentOnto = useCallback((name: string) =>
-    runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true), [runOp])
+  const handleMergeBranch = useCallback((name: string) => guardConflict(
+    () => window.gitAPI.predictConflicts(name),
+    () => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true),
+  ), [runOp, guardConflict])
+  const handleRebaseCurrentOnto = useCallback((name: string) => guardConflict(
+    () => window.gitAPI.predictRebaseConflicts(name),   // accurate per-commit replay
+    () => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true),
+  ), [runOp, guardConflict])
 
   // Reword works on any commit: HEAD is a plain amend; any other commit goes
   // through a targeted mini-rebase (pick everything, reword just that one),
@@ -241,8 +277,10 @@ function VertexApp() {
     await runOp('Message modifié', () => window.gitAPI.interactiveRebase(sequence, [newMsg]))
   }, [runOp, commits, currentBranch, showToast])
 
-  const handleRebaseCurrentOntoCommit = useCallback((hash: string) =>
-    runOp(`Rebase sur ${hash.slice(0, 7)}`, () => window.gitAPI.rebaseOnto(hash), true), [runOp])
+  const handleRebaseCurrentOntoCommit = useCallback((hash: string) => guardConflict(
+    () => window.gitAPI.predictRebaseConflicts(hash),   // accurate per-commit replay
+    () => runOp(`Rebase sur ${hash.slice(0, 7)}`, () => window.gitAPI.rebaseOnto(hash), true),
+  ), [runOp, guardConflict])
 
   const handlePushToCommit = useCallback((hash: string) =>
     runOp(`Push jusqu'à ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp])
@@ -402,8 +440,16 @@ function VertexApp() {
       : action === 'rebase'
         ? () => window.gitAPI.rebaseBranchOnto(branch, hash)
         : () => window.gitAPI.mergeCommitInto(branch, hash)
-    await runOp(action === 'reset' ? 'Branche réinitialisée' : action === 'rebase' ? 'Rebase effectué' : 'Merge effectué', op, true)
-  }, [runOp])
+    const run = () => runOp(action === 'reset' ? 'Branche réinitialisée' : action === 'rebase' ? 'Rebase effectué' : 'Merge effectué', op, true)
+    // Reset just moves a ref — it can't conflict. Merge/rebase can.
+    if (action === 'reset') { await run(); return }
+    await guardConflict(
+      action === 'merge'
+        ? () => window.gitAPI.predictConflicts(hash, branch)          // merge hash into branch
+        : () => window.gitAPI.predictRebaseConflicts(hash, branch),   // rebase branch onto hash
+      run,
+    )
+  }, [runOp, guardConflict])
 
   // ── Conflict resolution (routed by the in-progress operation) ─
   const handleConflictFinish = useCallback(async (action: 'rebase' | 'merge', message?: string) => {
@@ -438,7 +484,10 @@ function VertexApp() {
     setLastFetch(new Date())
   }, [runOp])
   const handleOpenDesktop = useCallback(() => window.gitAPI.openDesktop(), [])
-  const handlePull = useCallback(() => runOp('Pull', () => window.gitAPI.pull()), [runOp])
+  const handlePull = useCallback(() => guardConflict(
+    () => window.gitAPI.predictConflicts('@{u}'),   // merge of the already-known upstream tip (pre-fetch)
+    () => runOp('Pull', () => window.gitAPI.pull()),
+  ), [runOp, guardConflict])
   const handlePush = useCallback(() => runOp('Push', () => window.gitAPI.push()), [runOp])
   const handleUndo = useCallback(() => runOp('Annulé', () => window.gitAPI.undoLastAction()), [runOp])
   const handleRedo = useCallback(() => runOp('Rétabli', () => window.gitAPI.redoLastAction()), [runOp])
