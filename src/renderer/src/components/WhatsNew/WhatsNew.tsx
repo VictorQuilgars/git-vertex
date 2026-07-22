@@ -38,13 +38,12 @@ function renderNotes(md: string): React.ReactNode[] {
   return out
 }
 
-export default function WhatsNew({ version, notes, onClose }: { version: string; notes: string; onClose: () => void }) {
+export default function WhatsNew({ version, notes }: { version: string; notes: string }) {
   return (
     <div className="wn">
       <div className="wn-inner">
         <div className="wn-badge">Git Vertex v{version}</div>
         <div className="wn-body">{renderNotes(notes)}</div>
-        <button className="wn-cta" onClick={onClose}>C'est parti →</button>
       </div>
     </div>
   )

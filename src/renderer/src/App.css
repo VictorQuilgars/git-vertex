@@ -12,6 +12,9 @@ body {
 .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
 .app-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+/* Full-page tab views (e.g. "what's new") — fill the area below the tab bar,
+   with no repo chrome (sidebar/toolbar) behind them. */
+.app-fullpage-view { flex: 1; min-height: 0; overflow: hidden; }
 
 /* ── Repo tabs ── */
 .app-tabs {
