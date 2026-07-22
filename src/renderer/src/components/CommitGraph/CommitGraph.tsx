@@ -454,7 +454,7 @@ interface CommitGraphProps {
   onNativeMenuTarget?: (hash: string) => void
 }
 
-interface CtxState { x: number; y: number; commit: LayoutCommit }
+interface CtxState { x: number; y: number; commit: LayoutCommit; branchName?: string }
 interface DropState { x: number; y: number; hash: string; branch: string }
 
 export default function CommitGraph({
@@ -866,13 +866,38 @@ export default function CommitGraph({
     )
   }, [])
 
-  const buildMenuItems = useCallback((commit: LayoutCommit): MenuItemDef[] => {
+  // Branch operations for a local branch, shared by the branch chip and the
+  // menu of the commit that is its tip — so both offer the exact same actions
+  // (GitKraken behaviour: right-clicking a branch name == its tip commit).
+  const branchActionItems = useCallback((name: string, isHead: boolean, display: string): MenuItemDef[] => {
+    const items: MenuItemDef[] = []
+    if (!isHead && onCheckoutBranch) items.push({ label: `✓ Checkout "${display}"`, action: () => onCheckoutBranch(name) })
+    if (!isHead && onMergeBranch && currentBranch) items.push({ label: `⛙ Merger "${display}" dans "${currentBranch}"`, action: () => onMergeBranch(name) })
+    if (!isHead && onRebaseCurrentOnto && currentBranch) items.push({ label: `⤵ Rebaser "${currentBranch}" sur "${display}"`, action: () => onRebaseCurrentOnto(name) })
+    if (onRenameBranch) items.push({ label: `✏️ Renommer "${display}"`, action: () => onRenameBranch(name) })
+    if (!isHead && onDeleteBranch) items.push({ label: `🗑 Supprimer "${display}"`, action: () => onDeleteBranch(name), danger: true })
+    if (onPushBranch) items.push({ label: '⬆ Push la branche', action: () => onPushBranch(name) })
+    if (onSetUpstream) items.push({ label: '🔗 Définir l\'upstream', action: () => onSetUpstream(name) })
+    items.push({ label: '📋 Copier le nom de la branche', action: () => navigator.clipboard.writeText(name) })
+    return items
+  }, [onCheckoutBranch, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, currentBranch])
+
+  const buildMenuItems = useCallback((commit: LayoutCommit, branchName?: string): MenuItemDef[] => {
     const isHead = commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
+    // If this commit carries a local branch (clicked explicitly, or its tip),
+    // lead with that branch's actions so the menu matches the branch chip's.
+    const bp = processRefs(commit.refs).find(r =>
+      (r.cls === 'rc-local' || r.cls === 'rc-head') && r.branchName &&
+      (branchName ? r.branchName === branchName : true))
+    const branchLead: MenuItemDef[] = bp?.branchName
+      ? [...branchActionItems(bp.branchName, !!bp.isHead, bp.display), { separator: true }]
+      : []
     // A root commit (no parents) can only be reworded when it's HEAD (plain
     // amend) — rewording it elsewhere in history would need `rebase --root`,
     // which isn't supported by the targeted mini-rebase this menu uses.
     const canReword = isHead || commit.parents.length > 0
     const items: MenuItemDef[] = [
+      ...branchLead,
       { label: t('graph.menu.checkout'), action: () => onCheckoutCommit?.(commit.hash) },
       { separator: true },
       { label: t('graph.menu.createBranch'), action: () => onCreateBranchAt(commit.hash) },
@@ -894,19 +919,25 @@ export default function CommitGraph({
       { label: t('graph.menu.cherryPick'), action: () => onCherryPick(commit.hash), disabled: isHead },
       { label: t('graph.menu.revert'), action: () => onRevert(commit.hash) },
       { label: t('graph.menu.dropCommit'), action: () => onDropCommit?.(commit.hash), danger: true },
-      { label: t('graph.menu.moveUp'), action: () => onMoveCommit?.(commit.hash, 'up') },
-      { label: t('graph.menu.moveDown'), action: () => onMoveCommit?.(commit.hash, 'down') },
+      { label: t('graph.menu.move'), submenu: [
+        { label: t('graph.menu.moveUp'), action: () => onMoveCommit?.(commit.hash, 'up') },
+        { label: t('graph.menu.moveDown'), action: () => onMoveCommit?.(commit.hash, 'down') },
+      ] },
       { separator: true },
-      { label: t('graph.menu.resetSoft'), action: () => onReset(commit.hash, 'soft') },
-      { label: t('graph.menu.resetMixed'), action: () => onReset(commit.hash, 'mixed') },
-      { label: t('graph.menu.resetHard'), action: () => onReset(commit.hash, 'hard'), danger: true },
+      { label: t('graph.menu.reset'), submenu: [
+        { label: t('graph.menu.resetSoft'), action: () => onReset(commit.hash, 'soft') },
+        { label: t('graph.menu.resetMixed'), action: () => onReset(commit.hash, 'mixed') },
+        { label: t('graph.menu.resetHard'), action: () => onReset(commit.hash, 'hard'), danger: true },
+      ] },
     )
     if (onPushToCommit) items.push({ separator: true }, { label: t('graph.menu.pushToCommit'), action: () => onPushToCommit(commit.hash) })
     items.push(
       { separator: true },
-      { label: t('graph.menu.copyShortHash'), action: () => navigator.clipboard.writeText(commit.shortHash) },
-      { label: t('graph.menu.copyFullHash'), action: () => navigator.clipboard.writeText(commit.hash) },
-      { label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(commit.message) },
+      { label: t('graph.menu.copy'), submenu: [
+        { label: t('graph.menu.copyShortHash'), action: () => navigator.clipboard.writeText(commit.shortHash) },
+        { label: t('graph.menu.copyFullHash'), action: () => navigator.clipboard.writeText(commit.hash) },
+        { label: t('graph.menu.copyMessage'), action: () => navigator.clipboard.writeText(commit.message) },
+      ] },
     )
     if (onCreatePatch) items.push({ label: t('graph.menu.createPatch'), action: () => onCreatePatch(commit.hash) })
     if (onCopyPatch) items.push({ label: t('graph.menu.copyPatch'), action: () => onCopyPatch(commit.hash) })
@@ -923,7 +954,7 @@ export default function CommitGraph({
   }, [currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onInteractiveRebase,
       onCheckoutCommit, onRewordCommit, onCompareWorking, onSelectForCompare, onCompareWithSelected,
       compareBaseHash, onDropCommit, onMoveCommit, onRebaseCurrentOntoCommit, onPushToCommit,
-      onCreatePatch, onCopyPatch, onCreateWorktreeAt, onOpenCommitOnRemote, t])
+      onCreatePatch, onCopyPatch, onCreateWorktreeAt, onOpenCommitOnRemote, t, branchActionItems])
 
   const handleRowContextMenu = useCallback((e: React.MouseEvent, commit: LayoutCommit) => {
     if (commit.hash === WIP_HASH) return
@@ -932,6 +963,17 @@ export default function CommitGraph({
     e.stopPropagation()
     setCtx({ x: e.clientX, y: e.clientY, commit })
   }, [nativeContextMenu, onNativeMenuTarget])
+
+  // Right-click on a ref chip. A LOCAL branch opens the same menu as its tip
+  // commit (branch actions + commit actions, GitKraken-style); tags and remote
+  // branches keep their own dedicated menu.
+  const openRefMenu = useCallback((e: React.MouseEvent, pref: ProcessedRef, commit: LayoutCommit) => {
+    if ((pref.cls === 'rc-local' || pref.cls === 'rc-head') && pref.branchName) {
+      setCtx({ x: e.clientX, y: e.clientY, commit, branchName: pref.branchName })
+    } else {
+      setBranchCtx({ x: e.clientX, y: e.clientY, pref })
+    }
+  }, [])
 
   const handleRowDrop = useCallback((e: React.DragEvent, commit: LayoutCommit) => {
     e.preventDefault()
@@ -1270,7 +1312,7 @@ export default function CommitGraph({
                         <RefChip pref={primary} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
                           onDragStartBranch={setDragBranch}
                           onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
-                          onContextMenu={(e, pref) => setBranchCtx({ x: e.clientX, y: e.clientY, pref })} />
+                          onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
                         {stackCount > 0 && refExpand?.row !== commit.row && (
                           <span className="rc-stack-badge">+{stackCount}</span>
                         )}
@@ -1341,7 +1383,7 @@ export default function CommitGraph({
       {ctx && (
         <ContextMenu
           x={ctx.x} y={ctx.y}
-          items={buildMenuItems(ctx.commit)}
+          items={buildMenuItems(ctx.commit, ctx.branchName)}
           onClose={() => setCtx(null)}
         />
       )}
@@ -1394,7 +1436,7 @@ export default function CommitGraph({
               <RefChip key={i} pref={p} laneColor={expandCommit.color} onDoubleClick={onCheckoutBranch}
                 onDragStartBranch={setDragBranch}
                 onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
-                onContextMenu={(e, pref) => setBranchCtx({ x: e.clientX, y: e.clientY, pref })} />
+                onContextMenu={(e, pref) => openRefMenu(e, pref, expandCommit)} />
             ))}
           </div>,
           document.body
