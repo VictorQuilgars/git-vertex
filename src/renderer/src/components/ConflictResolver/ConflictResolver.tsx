@@ -243,9 +243,13 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
       setSelections(initialSel)
       setLoading(false)
     })
-    // initialProposal is intentionally a one-shot preload tied to opening
-    // this file (from a deep link), not a value to re-apply on every change.
-  }, [file]) // eslint-disable-line react-hooks/exhaustive-deps
+    // Keyed on file AND initialProposal: a deep link (open_in_git_vertex with a
+    // `resolution`) targeting the file already open in the resolver changes the
+    // proposal but not the file, and writes nothing to disk — so neither a file
+    // change nor the content watcher below would fire. Without initialProposal
+    // here the agent's proposal would silently never load (T5). initialProposal
+    // is a string, compared by value, so an unrelated re-render won't re-run.
+  }, [file, initialProposal]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     userEditedRef.current = false
