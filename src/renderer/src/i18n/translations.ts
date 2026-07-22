@@ -85,7 +85,10 @@ const fr = {
   'graph.menu.compareWithSelected': '⇄ Comparer avec le commit sélectionné',
   'graph.drop.reset': (b: string, h: string) => `⏪ Déplacer "${b}" ici (reset --hard ${h})`,
   'graph.drop.rebase': (b: string, h: string) => `⚡ Rebaser "${b}" sur ${h}`,
-  'graph.drop.merge': (b: string, h: string) => `⇒ Merger ${h} dans "${b}"`,
+  // Dropped on a branch tip — name both sides, direction = dragged into/onto target.
+  'graph.drop.mergeBranch': (a: string, b: string) => `⇒ Merger "${a}" dans "${b}"`,
+  'graph.drop.rebaseBranch': (a: string, b: string) => `⚡ Rebaser "${a}" sur "${b}"`,
+  'graph.drop.resetBranch': (a: string, b: string) => `⏪ Déplacer "${a}" sur "${b}" (reset --hard)`,
 
   // PushModal
   'push.title': '⬆ Push',
@@ -519,7 +522,9 @@ const en: typeof fr = {
   'graph.menu.compareWithSelected': '⇄ Compare with Selected',
   'graph.drop.reset': (b: string, h: string) => `⏪ Move "${b}" here (reset --hard ${h})`,
   'graph.drop.rebase': (b: string, h: string) => `⚡ Rebase "${b}" onto ${h}`,
-  'graph.drop.merge': (b: string, h: string) => `⇒ Merge ${h} into "${b}"`,
+  'graph.drop.mergeBranch': (a: string, b: string) => `⇒ Merge "${a}" into "${b}"`,
+  'graph.drop.rebaseBranch': (a: string, b: string) => `⚡ Rebase "${a}" onto "${b}"`,
+  'graph.drop.resetBranch': (a: string, b: string) => `⏪ Move "${a}" onto "${b}" (reset --hard)`,
 
   // PushModal
   'push.title': '⬆ Push',

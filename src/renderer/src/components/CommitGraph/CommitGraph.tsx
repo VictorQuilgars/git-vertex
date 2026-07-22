@@ -429,7 +429,7 @@ interface CommitGraphProps {
   compareBaseHash?: string | null
   onDropCommit?: (hash: string) => void
   onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
-  onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge') => void
+  onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => void
   // Commit-menu actions added for GitLens parity (all optional — only
   // provided actions show, same convention as the branch-chip menu above)
   onRebaseCurrentOntoCommit?: (hash: string) => void
@@ -939,17 +939,39 @@ export default function CommitGraph({
     const branch = dragBranch ?? e.dataTransfer.getData('text/plain')
     setDragBranch(null)
     if (!branch || commit.hash === WIP_HASH) return
+    // Don't offer to move the checked-out branch elsewhere — you drag OTHER
+    // branches onto your position, not your current branch away from it.
+    if (branch === currentBranch) return
     setDrop({ x: e.clientX, y: e.clientY, hash: commit.hash, branch })
-  }, [dragBranch])
+  }, [dragBranch, currentBranch])
+
+  // A local branch tip sitting on this commit, other than the dragged one —
+  // makes the drop a branch-to-branch operation (named both sides) instead of
+  // "onto a bare SHA".
+  const localBranchAt = useCallback((hash: string, exclude: string): string | null => {
+    const c = commits.find(cc => cc.hash === hash)
+    if (!c) return null
+    const pick = processRefs(c.refs).find(r => (r.cls === 'rc-local' || r.cls === 'rc-head') && r.branchName && r.branchName !== exclude)
+    return pick?.branchName ?? null
+  }, [commits])
 
   const buildDropItems = useCallback((d: DropState): MenuItemDef[] => {
+    const target = localBranchAt(d.hash, d.branch)
+    if (target) {
+      // Dropped on a branch tip → merge/rebase the dragged branch INTO/ONTO it.
+      return [
+        { label: t('graph.drop.mergeBranch', d.branch, target), action: () => onBranchDrop?.(d.branch, d.hash, 'merge', target) },
+        { label: t('graph.drop.rebaseBranch', d.branch, target), action: () => onBranchDrop?.(d.branch, d.hash, 'rebase', target) },
+        { label: t('graph.drop.resetBranch', d.branch, target), action: () => onBranchDrop?.(d.branch, d.hash, 'reset', target), danger: true },
+      ]
+    }
+    // Dropped on a bare commit — no branch to merge into.
     const short = d.hash.slice(0, 7)
     return [
-      { label: t('graph.drop.reset', d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, 'reset'), danger: true },
       { label: t('graph.drop.rebase', d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, 'rebase') },
-      { label: t('graph.drop.merge', d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, 'merge') },
+      { label: t('graph.drop.reset', d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, 'reset'), danger: true },
     ]
-  }, [onBranchDrop, t])
+  }, [onBranchDrop, t, localBranchAt])
 
   // Right-click menu on a branch/tag chip. Only actions whose handler was
   // provided are shown, so each host (desktop / VS Code) opts in independently.
