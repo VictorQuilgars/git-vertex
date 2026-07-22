@@ -13,6 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The tag must sit on a commit whose package.json already carries the
+      # matching version — no silent injection at build time. Fail loudly
+      # otherwise so a tag can never diverge from the sources it points to.
+      - name: Verify tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG. Bump package.json in the release commit before tagging."
+            exit 1
+          fi
+          echo "✓ tag v$TAG matches package.json $PKG"
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -32,8 +44,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Set version from tag
-        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version --allow-same-version
       - name: Build & publish macOS
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -51,9 +61,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Set version from tag
-        shell: bash
-        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version --allow-same-version
       - name: Build & publish Windows
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -71,8 +78,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Set version from tag
-        run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version --allow-same-version
       - name: Build & publish Linux
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
