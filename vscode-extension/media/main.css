@@ -3181,6 +3181,65 @@
 .st2-amend input {
   accent-color: var(--accent,#58a6ff);
 }
+.st2-proposal {
+  border: 1px solid #58a6ff55;
+  border-radius: 8px;
+  background: #58a6ff12;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.st2-proposal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.st2-proposal-title {
+  color: #58a6ff;
+  font-weight: 600;
+}
+.st2-proposal-close {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.st2-proposal-close:hover {
+  color: #e6edf3;
+}
+.st2-proposal-body {
+  color: #8b949e;
+  margin-top: 3px;
+}
+.st2-proposal-files {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 90px;
+  overflow-y: auto;
+  color: #e6edf3;
+}
+.st2-proposal-files li {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.st2-proposal-stage {
+  margin-top: 7px;
+  background: #1f6feb;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.st2-proposal-stage:hover {
+  background: #388bfd;
+}
 .st2-msgbox {
   border: 1px solid #30363d;
   border-radius: 8px;
@@ -4217,6 +4276,14 @@
   color: #484f58;
   border-bottom: 1px solid #21262d;
   background: #0d1117;
+  flex-shrink: 0;
+}
+.ir-plan-banner {
+  padding: 7px 18px;
+  font-size: 12px;
+  color: #58a6ff;
+  background: #58a6ff12;
+  border-bottom: 1px solid #58a6ff55;
   flex-shrink: 0;
 }
 .ir-list {
