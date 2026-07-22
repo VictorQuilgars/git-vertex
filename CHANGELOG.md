@@ -1,5 +1,14 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.14.0
+
+### Added
+- **Redesigned launchpad (welcome screen)** — a two-column home with a vertical divider: Open / Clone / **Create** (git init), a repository search box, and the recent list (capped, no scroll); plus a **Resources** panel (Release notes, Source code, Documentation).
+- **Release notes on demand** — open the (GitKraken-style) release notes anytime from Resources, with an "Open in browser" link.
+
+### Changed
+- The home is a named, non-permanent tab (🏠): opening a repository from it closes it; opening a non-repo view (release notes) keeps it, before it in the tab bar (opening order). The repo sidebar and activity bar are hidden on the home.
+
 ## 1.13.1
 
 ### Fixed
