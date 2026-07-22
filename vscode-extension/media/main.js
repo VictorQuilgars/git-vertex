@@ -59870,9 +59870,12 @@
     "graph.menu.moveUp": "\u2B06 D\xE9placer vers le haut",
     "graph.menu.moveDown": "\u2B07 D\xE9placer vers le bas",
     "graph.menu.rebaseOntoCommit": "\u2935 Rebaser la branche courante sur ce commit\u2026",
-    "graph.menu.resetSoft": "\u23EA R\xE9initialiser la branche courante ici (soft) \u2014 garde les changements index\xE9s",
-    "graph.menu.resetMixed": "\u23EA R\xE9initialiser la branche courante ici (mixed) \u2014 garde les changements non-index\xE9s",
-    "graph.menu.resetHard": "\u23EA R\xE9initialiser la branche courante ici (hard) \u2014 supprime tous les changements",
+    "graph.menu.reset": "\u23EA R\xE9initialiser la branche ici",
+    "graph.menu.copy": "\u{1F4CB} Copier",
+    "graph.menu.move": "\u2195 D\xE9placer le commit",
+    "graph.menu.resetSoft": "Soft \u2014 garde les changements index\xE9s",
+    "graph.menu.resetMixed": "Mixed \u2014 garde les changements non-index\xE9s",
+    "graph.menu.resetHard": "Hard \u2014 supprime tous les changements",
     "graph.menu.pushToCommit": "\u2B06 Pousser jusqu'\xE0 ce commit\u2026",
     "graph.menu.createTag": "\u{1F3F7} Cr\xE9er un tag ici\u2026",
     "graph.menu.copyShortHash": "\u{1F4CB} Copier le hash court",
@@ -60291,9 +60294,12 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "graph.menu.moveUp": "\u2B06 Move commit up",
     "graph.menu.moveDown": "\u2B07 Move commit down",
     "graph.menu.rebaseOntoCommit": "\u2935 Rebase Current Branch onto Commit\u2026",
-    "graph.menu.resetSoft": "\u23EA Reset Current Branch to Here (Soft) \u2014 keeps staged changes",
-    "graph.menu.resetMixed": "\u23EA Reset Current Branch to Here (Mixed) \u2014 keeps unstaged changes",
-    "graph.menu.resetHard": "\u23EA Reset Current Branch to Here (Hard) \u2014 deletes all changes",
+    "graph.menu.reset": "\u23EA Reset branch to here",
+    "graph.menu.copy": "\u{1F4CB} Copy",
+    "graph.menu.move": "\u2195 Move commit",
+    "graph.menu.resetSoft": "Soft \u2014 keeps staged changes",
+    "graph.menu.resetMixed": "Mixed \u2014 keeps unstaged changes",
+    "graph.menu.resetHard": "Hard \u2014 deletes all changes",
     "graph.menu.pushToCommit": "\u2B06 Push to Commit\u2026",
     "graph.menu.createTag": "\u{1F3F7} Create Tag Here\u2026",
     "graph.menu.copyShortHash": "\u{1F4CB} Copy short hash",
@@ -61550,12 +61556,19 @@ Commits beyond this point will be lost for that branch.`,
   // ../src/renderer/src/components/ContextMenu/ContextMenu.tsx
   var import_react6 = __toESM(require_react());
   var import_react_dom = __toESM(require_react_dom());
+  var OPEN_DELAY = 200;
+  var CLOSE_DELAY = 220;
   function ContextMenu({ x, y, items, onClose }) {
     const ref = (0, import_react6.useRef)(null);
+    const subRef = (0, import_react6.useRef)(null);
+    const timer = (0, import_react6.useRef)();
+    const [sub, setSub] = (0, import_react6.useState)(null);
     (0, import_react6.useEffect)(() => {
       const onMouseDown = (e) => {
-        if (ref.current && !ref.current.contains(e.target))
-          onClose();
+        const t = e.target;
+        if (ref.current?.contains(t) || subRef.current?.contains(t))
+          return;
+        onClose();
       };
       const onKeyDown = (e) => {
         if (e.key === "Escape")
@@ -61572,9 +61585,7 @@ Commits beyond this point will be lost for that branch.`,
       if (!ref.current)
         return;
       const rect = ref.current.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const M = 4;
+      const vw = window.innerWidth, vh = window.innerHeight, M = 4;
       let left = x;
       if (x + rect.width > vw)
         left = vw - rect.width - M;
@@ -61586,35 +61597,50 @@ Commits beyond this point will be lost for that branch.`,
       ref.current.style.left = `${left}px`;
       ref.current.style.top = `${top}px`;
     }, [x, y]);
-    const menu = /* @__PURE__ */ import_react6.default.createElement(
+    const openSub = (i, el) => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => {
+        const r = el.getBoundingClientRect();
+        setSub({ i, x: r.right - 3, y: r.top - 4 });
+      }, OPEN_DELAY);
+    };
+    const closeSubSoon = () => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setSub(null), CLOSE_DELAY);
+    };
+    const row = (item, i, close) => /* @__PURE__ */ import_react6.default.createElement(
+      "button",
+      {
+        key: i,
+        className: `ctx-item${item.danger ? " ctx-danger" : ""}${item.disabled ? " ctx-disabled" : ""}`,
+        disabled: item.disabled,
+        onMouseEnter: (e) => {
+          item.submenu?.length ? openSub(i, e.currentTarget) : (clearTimeout(timer.current), setSub(null));
+        },
+        onClick: () => {
+          if (item.disabled || item.submenu?.length)
+            return;
+          item.action?.();
+          close();
+        }
+      },
+      item.checked !== void 0 && /* @__PURE__ */ import_react6.default.createElement("span", { className: "ctx-check" }, item.checked ? "\u2713" : ""),
+      /* @__PURE__ */ import_react6.default.createElement("span", { className: "ctx-label" }, item.label),
+      !!item.submenu?.length && /* @__PURE__ */ import_react6.default.createElement("span", { className: "ctx-chevron" }, "\u203A")
+    );
+    const openItem = sub != null ? items[sub.i] : null;
+    const subItems = openItem && !("separator" in openItem) ? openItem.submenu : void 0;
+    const menu = /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("div", { ref, className: "ctx-menu", style: { position: "fixed", left: x, top: y, zIndex: 9999 } }, items.map((item, i) => "separator" in item ? /* @__PURE__ */ import_react6.default.createElement("div", { key: i, className: "ctx-sep" }) : row(item, i, onClose))), subItems && sub && /* @__PURE__ */ import_react6.default.createElement(
       "div",
       {
-        ref,
+        ref: subRef,
         className: "ctx-menu",
-        style: { position: "fixed", left: x, top: y, zIndex: 9999 }
+        style: { position: "fixed", left: sub.x, top: sub.y, zIndex: 1e4 },
+        onMouseEnter: () => clearTimeout(timer.current),
+        onMouseLeave: closeSubSoon
       },
-      items.map((item, i) => {
-        if ("separator" in item) {
-          return /* @__PURE__ */ import_react6.default.createElement("div", { key: i, className: "ctx-sep" });
-        }
-        return /* @__PURE__ */ import_react6.default.createElement(
-          "button",
-          {
-            key: i,
-            className: `ctx-item${item.danger ? " ctx-danger" : ""}${item.disabled ? " ctx-disabled" : ""}`,
-            disabled: item.disabled,
-            onClick: () => {
-              if (!item.disabled) {
-                item.action();
-                onClose();
-              }
-            }
-          },
-          item.checked !== void 0 && /* @__PURE__ */ import_react6.default.createElement("span", { className: "ctx-check" }, item.checked ? "\u2713" : ""),
-          item.label
-        );
-      })
-    );
+      subItems.map((item, i) => "separator" in item ? /* @__PURE__ */ import_react6.default.createElement("div", { key: i, className: "ctx-sep" }) : row(item, i, onClose))
+    ));
     return (0, import_react_dom.createPortal)(menu, document.body);
   }
 
@@ -62553,10 +62579,32 @@ Commits beyond this point will be lost for that branch.`,
         }
       );
     }, []);
-    const buildMenuItems = (0, import_react8.useCallback)((commit) => {
+    const branchActionItems = (0, import_react8.useCallback)((name, isHead, display) => {
+      const items = [];
+      if (!isHead && onCheckoutBranch)
+        items.push({ label: `\u2713 Checkout "${display}"`, action: () => onCheckoutBranch(name) });
+      if (!isHead && onMergeBranch && currentBranch)
+        items.push({ label: `\u26D9 Merger "${display}" dans "${currentBranch}"`, action: () => onMergeBranch(name) });
+      if (!isHead && onRebaseCurrentOnto && currentBranch)
+        items.push({ label: `\u2935 Rebaser "${currentBranch}" sur "${display}"`, action: () => onRebaseCurrentOnto(name) });
+      if (onRenameBranch)
+        items.push({ label: `\u270F\uFE0F Renommer "${display}"`, action: () => onRenameBranch(name) });
+      if (!isHead && onDeleteBranch)
+        items.push({ label: `\u{1F5D1} Supprimer "${display}"`, action: () => onDeleteBranch(name), danger: true });
+      if (onPushBranch)
+        items.push({ label: "\u2B06 Push la branche", action: () => onPushBranch(name) });
+      if (onSetUpstream)
+        items.push({ label: "\u{1F517} D\xE9finir l'upstream", action: () => onSetUpstream(name) });
+      items.push({ label: "\u{1F4CB} Copier le nom de la branche", action: () => navigator.clipboard.writeText(name) });
+      return items;
+    }, [onCheckoutBranch, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, currentBranch]);
+    const buildMenuItems = (0, import_react8.useCallback)((commit, branchName) => {
       const isHead = commit.refs.some((r) => r.includes("HEAD ->") && r.includes(currentBranch));
+      const bp = processRefs(commit.refs).find((r) => (r.cls === "rc-local" || r.cls === "rc-head") && r.branchName && (branchName ? r.branchName === branchName : true));
+      const branchLead = bp?.branchName ? [...branchActionItems(bp.branchName, !!bp.isHead, bp.display), { separator: true }] : [];
       const canReword = isHead || commit.parents.length > 0;
       const items = [
+        ...branchLead,
         { label: t("graph.menu.checkout"), action: () => onCheckoutCommit?.(commit.hash) },
         { separator: true },
         { label: t("graph.menu.createBranch"), action: () => onCreateBranchAt(commit.hash) },
@@ -62577,20 +62625,26 @@ Commits beyond this point will be lost for that branch.`,
         { label: t("graph.menu.cherryPick"), action: () => onCherryPick(commit.hash), disabled: isHead },
         { label: t("graph.menu.revert"), action: () => onRevert(commit.hash) },
         { label: t("graph.menu.dropCommit"), action: () => onDropCommit?.(commit.hash), danger: true },
-        { label: t("graph.menu.moveUp"), action: () => onMoveCommit?.(commit.hash, "up") },
-        { label: t("graph.menu.moveDown"), action: () => onMoveCommit?.(commit.hash, "down") },
+        { label: t("graph.menu.move"), submenu: [
+          { label: t("graph.menu.moveUp"), action: () => onMoveCommit?.(commit.hash, "up") },
+          { label: t("graph.menu.moveDown"), action: () => onMoveCommit?.(commit.hash, "down") }
+        ] },
         { separator: true },
-        { label: t("graph.menu.resetSoft"), action: () => onReset(commit.hash, "soft") },
-        { label: t("graph.menu.resetMixed"), action: () => onReset(commit.hash, "mixed") },
-        { label: t("graph.menu.resetHard"), action: () => onReset(commit.hash, "hard"), danger: true }
+        { label: t("graph.menu.reset"), submenu: [
+          { label: t("graph.menu.resetSoft"), action: () => onReset(commit.hash, "soft") },
+          { label: t("graph.menu.resetMixed"), action: () => onReset(commit.hash, "mixed") },
+          { label: t("graph.menu.resetHard"), action: () => onReset(commit.hash, "hard"), danger: true }
+        ] }
       );
       if (onPushToCommit)
         items.push({ separator: true }, { label: t("graph.menu.pushToCommit"), action: () => onPushToCommit(commit.hash) });
       items.push(
         { separator: true },
-        { label: t("graph.menu.copyShortHash"), action: () => navigator.clipboard.writeText(commit.shortHash) },
-        { label: t("graph.menu.copyFullHash"), action: () => navigator.clipboard.writeText(commit.hash) },
-        { label: t("graph.menu.copyMessage"), action: () => navigator.clipboard.writeText(commit.message) }
+        { label: t("graph.menu.copy"), submenu: [
+          { label: t("graph.menu.copyShortHash"), action: () => navigator.clipboard.writeText(commit.shortHash) },
+          { label: t("graph.menu.copyFullHash"), action: () => navigator.clipboard.writeText(commit.hash) },
+          { label: t("graph.menu.copyMessage"), action: () => navigator.clipboard.writeText(commit.message) }
+        ] }
       );
       if (onCreatePatch)
         items.push({ label: t("graph.menu.createPatch"), action: () => onCreatePatch(commit.hash) });
@@ -62631,7 +62685,8 @@ Commits beyond this point will be lost for that branch.`,
       onCopyPatch,
       onCreateWorktreeAt,
       onOpenCommitOnRemote,
-      t
+      t,
+      branchActionItems
     ]);
     const handleRowContextMenu = (0, import_react8.useCallback)((e, commit) => {
       if (commit.hash === WIP_HASH)
@@ -62644,6 +62699,13 @@ Commits beyond this point will be lost for that branch.`,
       e.stopPropagation();
       setCtx({ x: e.clientX, y: e.clientY, commit });
     }, [nativeContextMenu, onNativeMenuTarget]);
+    const openRefMenu = (0, import_react8.useCallback)((e, pref, commit) => {
+      if ((pref.cls === "rc-local" || pref.cls === "rc-head") && pref.branchName) {
+        setCtx({ x: e.clientX, y: e.clientY, commit, branchName: pref.branchName });
+      } else {
+        setBranchCtx({ x: e.clientX, y: e.clientY, pref });
+      }
+    }, []);
     const handleRowDrop = (0, import_react8.useCallback)((e, commit) => {
       e.preventDefault();
       setDragOverRow(null);
@@ -63016,7 +63078,7 @@ Commits beyond this point will be lost for that branch.`,
                 setDragBranch(null);
                 setDragOverRow(null);
               },
-              onContextMenu: (e, pref) => setBranchCtx({ x: e.clientX, y: e.clientY, pref })
+              onContextMenu: (e, pref) => openRefMenu(e, pref, commit)
             }
           ),
           stackCount > 0 && refExpand?.row !== commit.row && /* @__PURE__ */ import_react8.default.createElement("span", { className: "rc-stack-badge" }, "+", stackCount)
@@ -63034,7 +63096,7 @@ Commits beyond this point will be lost for that branch.`,
       {
         x: ctx.x,
         y: ctx.y,
-        items: buildMenuItems(ctx.commit),
+        items: buildMenuItems(ctx.commit, ctx.branchName),
         onClose: () => setCtx(null)
       }
     ), headerCtx && /* @__PURE__ */ import_react8.default.createElement(
@@ -63104,7 +63166,7 @@ Commits beyond this point will be lost for that branch.`,
                 setDragBranch(null);
                 setDragOverRow(null);
               },
-              onContextMenu: (e, pref) => setBranchCtx({ x: e.clientX, y: e.clientY, pref })
+              onContextMenu: (e, pref) => openRefMenu(e, pref, expandCommit)
             }
           ))
         ),

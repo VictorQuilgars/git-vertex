@@ -69,6 +69,17 @@
   color: var(--accent, #58a6ff);
 }
 
+.ctx-label { flex: 1 1 auto; }
+
+.ctx-chevron {
+  flex-shrink: 0;
+  margin-left: 14px;
+  color: #6e7681;
+  font-size: 15px;
+  line-height: 1;
+}
+.ctx-item:hover:not(.ctx-disabled) .ctx-chevron { color: #adbac7; }
+
 .ctx-sep {
   height: 1px;
   background: #30363d;
