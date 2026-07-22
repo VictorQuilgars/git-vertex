@@ -33,10 +33,20 @@ const gitCache = new Map<string, SimpleGit>()
 // keeping the paths we emit in deep links comparable on the other side.
 const nfc = (p: string) => p.normalize('NFC')
 
+// git localizes its output (errors, fsck's "dangling commit", status), and we
+// parse that output by its English wording — under a French (or any non-C)
+// locale, "dangling commit" becomes "objet commit fantôme" and the parse
+// silently finds nothing. Force LC_ALL=C on every git invocation so the output
+// we read is always the stable English form, whatever the user's locale.
+// (execFile fully replaces the child env, so we spread process.env here;
+// simple-git gets the name/value form below, which merges rather than replaces
+// — passing a full env object trips its GIT_EDITOR safety guard.)
+const C_LOCALE_ENV = { ...process.env, LC_ALL: 'C' }
+
 async function openRepo(repo?: string): Promise<{ git: SimpleGit; root: string }> {
   const base = nfc(path.resolve(repo || process.env.GV_REPO || process.cwd()))
   const cached = gitCache.get(base)
-  const git: SimpleGit = cached ?? simpleGit(base)
+  const git: SimpleGit = cached ?? simpleGit(base).env('LC_ALL', 'C')
   if (!cached) gitCache.set(base, git)
   const isRepo = await git.checkIsRepo()
   if (!isRepo) throw new Error(`Not a git repository: ${base}`)
@@ -216,7 +226,7 @@ server.tool(
 async function execGit(root: string, args: string[]): Promise<{ code: number; out: string }> {
   const { execFile } = await import('node:child_process')
   return await new Promise((resolve, reject) => {
-    execFile('git', ['-C', root, ...args], { maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile('git', ['-C', root, ...args], { maxBuffer: 16 * 1024 * 1024, env: C_LOCALE_ENV }, (err, stdout, stderr) => {
       const code = err ? (typeof (err as NodeJS.ErrnoException & { code?: unknown }).code === 'number' ? (err as unknown as { code: number }).code : 1) : 0
       // exit codes we want to interpret (e.g. merge-tree's 1 = conflicts)
       // come back as "errors" from execFile — surface them, not reject,

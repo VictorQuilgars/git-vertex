@@ -380,15 +380,16 @@ await t(c4, 'read-only: git_bisect start blocked, log allowed', 'git_bisect', { 
 })
 await c4.close()
 
-// ── locale bug demonstration (server under French git locale) ──
-// These tests PASS when the bug is present — they document behavior under
-// LANG=fr_FR.UTF-8 (the real environment on this machine).
+// ── locale independence (server started under a French git locale) ──
+// The server forces LC_ALL=C internally, so its output stays English even when
+// the ambient locale is French — the environment where the bug used to bite.
+// These are regression guards for that fix: run them under fr, expect English.
 const c5 = await connect({ env: { LC_ALL: 'fr_FR.UTF-8', LANG: 'fr_FR.UTF-8' } })
-await t(c5, 'KNOWN-BUG (locale fr): non-repo error is raw French, not "Not a git repository"', 'git_status', { repo: NOTAREPO }, {
-  isError: true, expect: ['fatal'], reject: ['Not a git repository'],
+await t(c5, 'locale fr: non-repo error is the clean English "Not a git repository"', 'git_status', { repo: NOTAREPO }, {
+  isError: true, expect: ['Not a git repository'],
 })
-await t(c5, 'KNOWN-BUG (locale fr): find_lost_work misses dangling commits (fsck says "objet commit fantôme")', 'find_lost_work', { repo: main }, {
-  expect: ['No dangling commits'], reject: [/dangling commits \(\d/],
+await t(c5, 'locale fr: find_lost_work still finds dangling commits (fsck output forced to English)', 'find_lost_work', { repo: main }, {
+  expect: [/dangling commits \(\d/, 'WIP: lost work'], reject: ['No dangling commits'],
 })
 await c5.close()
 
