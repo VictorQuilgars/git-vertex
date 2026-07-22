@@ -1,5 +1,15 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.13.0
+
+### Changed
+- **Unified graph context menu** — right-clicking a local branch chip now opens the same menu as its tip commit (branch actions + commit actions), matching GitKraken; a non-tip commit keeps the commit-only menu.
+- **Shorter menu with submenus** — Reset (soft/mixed/hard), Copy (hashes/message) and Move (up/down) are now hover submenus.
+- **Clearer branch drag-drop** — dragging branch A onto branch B offers "Merge A into B" / "Rebase A onto B" with real branch names (not the target SHA), in the expected direction; no menu when dragging the checked-out branch.
+
+### Fixed
+- The branch chip in the graph now offers Merge/Rebase (they were missing; only the sidebar had them).
+
 ## 1.12.0
 
 ### Added

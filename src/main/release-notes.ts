@@ -2,6 +2,14 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.13.0': `## Quoi de neuf dans la 1.13.0
+
+### 🖱️ Menus du graphe repensés
+- **Clic droit sur une branche = sur son commit-tip** : le même menu complet (merge/rebase/renommer/supprimer… + les actions du commit), comme GitKraken. Un commit qui ne porte pas de branche garde son menu de commit.
+- **Menu plus compact** : *Réinitialiser*, *Copier* et *Déplacer* sont maintenant des **sous-menus** qui s'ouvrent au survol.
+- **Glisser-déposer clarifié** : glisser une branche A sur une branche B propose *« Merger A dans B »* / *« Rebaser A sur B »* avec les **vrais noms** (plus de SHA), dans le bon sens.
+- La puce de branche dans le graphe propose enfin **Merger / Rebaser** (elles manquaient).
+`,
   '1.12.0': `## Quoi de neuf dans la 1.12.0
 
 ### 🆕 Quoi de neuf après chaque mise à jour

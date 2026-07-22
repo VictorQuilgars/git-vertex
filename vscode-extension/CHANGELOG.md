@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.18.0
+
+### Changed
+- **Unified graph context menu** — right-clicking a local branch opens the same menu as its tip commit (branch actions + commit actions); Reset/Copy/Move are now hover submenus for a shorter menu.
+- **Clearer branch drag-drop** — "Merge A into B" / "Rebase A onto B" with real branch names, correct direction; no menu when dragging the checked-out branch.
+
 ## 1.17.0
 
 ### Added
