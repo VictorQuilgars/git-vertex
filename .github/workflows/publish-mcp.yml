@@ -1,0 +1,102 @@
+name: Publish MCP to npm
+
+# Runs on every push to main. Publishes git-vertex-mcp to npm only when the
+# version in mcp/package.json is higher than the last mcp-v* tag — so bumping
+# the version and pushing is all you need to trigger a release.
+#
+# Requires an NPM_TOKEN repository secret (an npm automation token with publish
+# rights) — the same one publish-cli.yml already uses.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mcp/**'
+      - '!mcp/node_modules/**'
+  # Manual trigger from the Actions tab ("Run workflow") — publishes the current
+  # mcp/package.json version if it isn't already released.
+  workflow_dispatch:
+
+permissions:
+  contents: write   # to create tags and GitHub Releases
+
+jobs:
+  check-version:
+    name: Check if version is new
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.check.outputs.should_publish }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare version with last release tag
+        id: check
+        run: |
+          VERSION=$(node -p "require('./mcp/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git tag --list "mcp-v${VERSION}" | grep -q .; then
+            echo "ℹ️  mcp-v${VERSION} already released — skipping."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "🚀 New version mcp-v${VERSION} detected — will publish."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    name: Build & publish
+    needs: check-version
+    if: needs.check-version.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.check-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: mcp
+
+      - name: Build
+        run: npm run build
+        working-directory: mcp
+
+      - name: Publish to npm
+        run: npm publish --access public
+        working-directory: mcp
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create git tag mcp-v${{ env.VERSION }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "mcp-v${{ env.VERSION }}"
+          git push origin "mcp-v${{ env.VERSION }}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "mcp-v${{ env.VERSION }}" \
+            --title "Git Vertex MCP v${{ env.VERSION }}" \
+            --notes "## Git Vertex MCP v${{ env.VERSION }}
+
+          Local MCP server exposing your Git repositories to AI agents (Claude Code, Cursor, Copilot…). Read-mostly, no cloud.
+
+          \`\`\`
+          npx git-vertex-mcp
+          # or
+          npm i -g git-vertex-mcp && gv-mcp
+          \`\`\`
+
+          🔗 [npm](https://www.npmjs.com/package/git-vertex-mcp)"
