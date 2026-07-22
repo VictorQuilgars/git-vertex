@@ -6,6 +6,7 @@ import { autoUpdater } from 'electron-updater'
 import simpleGit from 'simple-git'
 
 import { GitService } from './git-service'
+import { RELEASE_NOTES } from './release-notes'
 import { getRecentRepos, addRecentRepo, removeRecentRepo } from './recent-repos'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 
@@ -1374,6 +1375,25 @@ ipcMain.handle('app:get-info', () => {
     node:     process.versions.node,
     chrome:   process.versions.chrome,
   }
+})
+
+// "What's new": the first time the app runs after an update, hand the renderer
+// the release notes for the current version so it can open a tab (like VS Code).
+// A fresh install just records the version silently — no notes on first run.
+ipcMain.handle('app:get-whats-new', () => {
+  const current = app.getVersion()
+  const s = readSettings()
+  const last = s.lastSeenVersion
+  if (!last) { s.lastSeenVersion = current; writeSettings(s); return null }
+  if (last === current) return null
+  const notes = RELEASE_NOTES[current]
+  if (!notes) { s.lastSeenVersion = current; writeSettings(s); return null }
+  return { version: current, notes }
+})
+
+ipcMain.handle('app:mark-whats-new-seen', () => {
+  const s = readSettings(); s.lastSeenVersion = app.getVersion(); writeSettings(s)
+  return { success: true }
 })
 
 ipcMain.handle('github:start-auth', () => {

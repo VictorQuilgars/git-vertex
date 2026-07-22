@@ -11,6 +11,7 @@ import CommandPalette, { PaletteCommand } from './components/CommandPalette/Comm
 import { ToastProvider, useToast } from './components/Toast/Toast'
 import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
+import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
 import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
@@ -282,6 +283,8 @@ export default function App() {
   const [rebasePlanProposal, setRebasePlanProposal] = useState<{ hash: string; action: string; message?: string }[] | null>(null)
   const [pushModalOpen, setPushModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Release notes shown once after an update (like VS Code's "what's new" tab).
+  const [whatsNew, setWhatsNew] = useState<{ version: string; notes: string } | null>(null)
   const [cloneOpen, setCloneOpen] = useState(false)
   const [githubConnected, setGithubConnected] = useState(false)
   const [activeView, setActiveView] = useState<'git' | 'github'>('git')
@@ -430,6 +433,15 @@ export default function App() {
   // ── Load recent repos on mount ─────────────────────────────
   useEffect(() => {
     window.gitAPI.getRecentRepos().then(r => setRecentRepos(r ?? []))
+  }, [])
+
+  // ── "What's new" after an update ───────────────────────────
+  // On first launch after a version bump, show the release notes in a tab and
+  // mark this version seen so it doesn't reappear.
+  useEffect(() => {
+    ;(window.gitAPI as any).getWhatsNew?.().then((w: { version: string; notes: string } | null) => {
+      if (w) { setWhatsNew(w); (window.gitAPI as any).markWhatsNewSeen?.() }
+    }).catch(() => {})
   }, [])
 
 
@@ -1376,7 +1388,9 @@ export default function App() {
       {/* Tabs stay visible in preferences; also keep the bar
           when settings is open with no tabs so the mac traffic lights keep their
           spacing and the window stays draggable. */}
-      {(tabs.length > 0 || settingsOpen || rebaseHash) && (
+      {/* Always render the top bar so Settings/profile stay reachable from the
+          welcome screen too (not only once a repo/tab is open). */}
+      {(
         <div className="app-tabs">
           {isMac && <div className="app-tabs-mac-spacer" />}
           {tabs.map(tab => (
@@ -1402,6 +1416,14 @@ export default function App() {
               <span className="app-tab-name">Rebase interactif</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); setRebaseHash(null) }}>×</button>
+            </div>
+          )}
+          {whatsNew && (
+            <div className="app-tab app-tab--tool active" title="Quoi de neuf">
+              <span className="app-tab-icon app-tab-icon--tool">✨</span>
+              <span className="app-tab-name">Quoi de neuf</span>
+              <button className="app-tab-close" title={t('tabs.close')}
+                onClick={e => { e.stopPropagation(); setWhatsNew(null) }}>×</button>
             </div>
           )}
           <button className={`app-tab-add ${activeTabId === null && !settingsOpen ? 'active' : ''}`}
@@ -1587,7 +1609,9 @@ export default function App() {
         <div className="resize-handle" onMouseDown={startResizeSidebar} />
 
         <div className="app-center">
-          {centerDiff && !conflictResolverFile ? (
+          {whatsNew ? (
+            <WhatsNew version={whatsNew.version} notes={whatsNew.notes} onClose={() => setWhatsNew(null)} />
+          ) : centerDiff && !conflictResolverFile ? (
             <CenterFileDiff target={centerDiff} onClose={() => setCenterDiff(null)} onStaged={() => loadRepoData(true)} />
           ) : conflictResolverFile ? (
             <ConflictResolver
