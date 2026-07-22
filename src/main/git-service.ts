@@ -947,6 +947,48 @@ export class GitService {
     }
   }
 
+  // Accurately predict whether rebasing `branch` (default HEAD) onto `upstream`
+  // will conflict — by SIMULATING the replay commit by commit, never touching
+  // the working tree. `merge-tree --write-tree` writes each merged tree to the
+  // object DB and prints its OID, which we feed as the base ("ours") of the next
+  // step — exactly what a real rebase does. This catches a conflict that only
+  // surfaces mid-replay, and avoids the false positives/negatives of merging the
+  // two tips in one shot (e.g. a change made in one commit and undone in a later
+  // one nets to zero for a tip-merge but still conflicts on replay). Returns the
+  // conflicted files of the FIRST failing commit (with its short hash), or no
+  // files when the whole replay is clean. Prediction failures never block.
+  async predictRebaseConflicts(upstream: string, branch = 'HEAD'): Promise<{ files: string[]; error?: string; atCommit?: string }> {
+    const badU = this.assertRef(upstream, 'upstream'); if (badU) return { files: [], error: badU }
+    const badB = this.assertRef(branch, 'branch'); if (badB) return { files: [], error: badB }
+    try {
+      // The commits a default `git rebase` would replay, oldest first: the
+      // non-merge commits in upstream..branch, parents before children.
+      const listed = await this.execRaw(['rev-list', '--reverse', '--topo-order', '--no-merges', `${upstream}..${branch}`])
+      if (listed.code !== 0) return { files: [], error: (listed.stderr || 'rev-list failed').trim() }
+      const commits = listed.stdout.split('\n').map(s => s.trim()).filter(Boolean)
+      if (commits.length === 0) return { files: [] }                    // nothing to replay
+      // A very long range would mean hundreds of merge-tree calls on a
+      // pre-flight check — fall back to the cheap single tip-merge past this cap.
+      if (commits.length > 100) return this.predictConflicts(branch, upstream)
+      let current = (await this.execRaw(['rev-parse', `${upstream}^{commit}`])).stdout.trim()
+      if (!current) return { files: [], error: `Unknown upstream: ${upstream}` }
+      for (const c of commits) {
+        // Replay c onto the accumulated tree: 3-way merge with c's parent as base.
+        const r = await this.execRaw(['merge-tree', '--write-tree', '--name-only', `--merge-base=${c}^`, current, c])
+        if (r.code === 0) { current = r.stdout.trim().split('\n')[0]; continue }   // clean → next base
+        if (r.code === 1) {
+          const [head] = r.stdout.split('\n\n')
+          const files = head.split('\n').slice(1).map(s => s.trim()).filter(Boolean)
+          return { files, atCommit: c.slice(0, 7) }
+        }
+        return { files: [], error: (r.stderr || r.stdout || 'merge-tree failed').trim() }  // bail out (don't block)
+      }
+      return { files: [] }                                              // whole replay is clean
+    } catch (e: any) {
+      return { files: [], error: e.message }
+    }
+  }
+
   // Rebase the current branch onto another branch
   // On a conflict, this leaves the rebase PAUSED (same as the interactive
   // rebase planner) instead of silently aborting it, so the user can resolve

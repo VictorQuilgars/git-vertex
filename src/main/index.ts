@@ -541,6 +541,11 @@ ipcMain.handle('git:predict-conflicts', async (_event, theirs: string, ours?: st
   return gitService.predictConflicts(theirs, ours, mergeBase)
 })
 
+ipcMain.handle('git:predict-rebase-conflicts', async (_event, upstream: string, branch?: string) => {
+  if (!gitService) return { files: [], error: 'No repo open' }
+  return gitService.predictRebaseConflicts(upstream, branch)
+})
+
 ipcMain.handle('git:rebase-onto', async (_event, branch: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.rebaseOnto(branch)

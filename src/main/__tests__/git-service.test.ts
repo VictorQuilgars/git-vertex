@@ -352,6 +352,75 @@ describe('GitService', () => {
   })
 
   // ─────────────────────────────────────────────────────────────────────
+  // Conflict prediction (dry-run, never touches the working tree)
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('conflict prediction', () => {
+    test('predictConflicts: clean merge predicts no files', async () => {
+      fs.writeFileSync(path.join(tempDir, 'file.txt'), 'base')
+      execSync(`cd ${tempDir} && git add . && git commit -m base`)
+      execSync(`cd ${tempDir} && git checkout -b feature`)
+      fs.writeFileSync(path.join(tempDir, 'other.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m feat`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      const r = await git.predictConflicts('feature')
+      expect(r.error).toBeUndefined()
+      expect(r.files).toEqual([])
+    })
+
+    test('predictConflicts: conflicting merge lists the file', async () => {
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'base')
+      execSync(`cd ${tempDir} && git add . && git commit -m base`)
+      execSync(`cd ${tempDir} && git checkout -b feature`)
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'feature')
+      execSync(`cd ${tempDir} && git add . && git commit -m feat`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'main')
+      execSync(`cd ${tempDir} && git add . && git commit -m mainedit`)
+      const r = await git.predictConflicts('feature')
+      expect(r.files).toContain('shared.txt')
+    })
+
+    test('predictRebaseConflicts: clean replay predicts no files', async () => {
+      fs.writeFileSync(path.join(tempDir, 'file.txt'), 'base')
+      execSync(`cd ${tempDir} && git add . && git commit -m base`)
+      execSync(`cd ${tempDir} && git checkout -b topic`)
+      fs.writeFileSync(path.join(tempDir, 'topic.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m t1`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      fs.writeFileSync(path.join(tempDir, 'main.txt'), 'y')
+      execSync(`cd ${tempDir} && git add . && git commit -m m1`)
+      const r = await git.predictRebaseConflicts('main', 'topic')
+      expect(r.error).toBeUndefined()
+      expect(r.files).toEqual([])
+    })
+
+    // The decisive case: f.txt L2 is changed then reverted on topic, so the net
+    // change is zero — a one-shot tip-merge sees NO conflict (false negative),
+    // but the real per-commit replay conflicts on the first topic commit.
+    test('predictRebaseConflicts catches a mid-replay conflict a tip-merge misses', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'L1\nL2\nL3\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m base`)
+      execSync(`cd ${tempDir} && git checkout -b topic`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'L1\nL2-topic\nL3\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m c1`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'L1\nL2\nL3\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m c2-revert`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'L1\nL2-main\nL3\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m mainedit`)
+
+      // Tip-merge heuristic misses it (net topic change on L2 is zero).
+      const heuristic = await git.predictConflicts('topic', 'main')
+      expect(heuristic.files).toEqual([])
+      // Accurate simulation catches it, and points at the offending commit.
+      const sim = await git.predictRebaseConflicts('main', 'topic')
+      expect(sim.files).toContain('f.txt')
+      expect(sim.atCommit).toBeTruthy()
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
   // Other operations
   // ─────────────────────────────────────────────────────────────────────
 

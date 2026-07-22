@@ -56,6 +56,8 @@ const gitAPI = {
   merge: (branch: string) => ipcRenderer.invoke('git:merge', branch),
   predictConflicts: (theirs: string, ours?: string, mergeBase?: string) =>
     ipcRenderer.invoke('git:predict-conflicts', theirs, ours, mergeBase),
+  predictRebaseConflicts: (upstream: string, branch?: string) =>
+    ipcRenderer.invoke('git:predict-rebase-conflicts', upstream, branch),
   rebaseOnto: (branch: string) => ipcRenderer.invoke('git:rebase-onto', branch),
   pushBranch: (branch: string) => ipcRenderer.invoke('git:push-branch', branch),
   pushToCommit: (hash: string) => ipcRenderer.invoke('git:push-to-commit', hash),
