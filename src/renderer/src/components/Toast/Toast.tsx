@@ -6,17 +6,23 @@ interface ToastAction {
   onClick: () => void
 }
 
+// One or several action buttons. `sticky` keeps the toast up until the user
+// acts or dismisses it — used for decisions (e.g. "a conflict is coming,
+// continue?") that must not silently time out.
+type ToastArg = ToastAction | ToastAction[]
+
 interface ToastItem {
   id: number
   message: string
   type: 'success' | 'error' | 'info'
-  action?: ToastAction
+  actions?: ToastAction[]
+  sticky?: boolean
 }
 
 interface ToastContextValue {
-  success: (msg: string, action?: ToastAction) => void
-  error: (msg: string, action?: ToastAction) => void
-  info: (msg: string, action?: ToastAction) => void
+  success: (msg: string, action?: ToastArg, sticky?: boolean) => void
+  error: (msg: string, action?: ToastArg, sticky?: boolean) => void
+  info: (msg: string, action?: ToastArg, sticky?: boolean) => void
 }
 
 const ToastContext = createContext<ToastContextValue>({
@@ -33,19 +39,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const counter = useRef(0)
 
-  const addToast = useCallback((message: string, type: ToastItem['type'], action?: ToastAction) => {
+  const addToast = useCallback((message: string, type: ToastItem['type'], action?: ToastArg, sticky?: boolean) => {
     const id = ++counter.current
-    setToasts(prev => [...prev, { id, message, type, action }])
-    // Leave more time to react when an action (e.g. undo) is offered
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, action ? 8000 : 4000)
+    const actions = action ? (Array.isArray(action) ? action : [action]) : undefined
+    setToasts(prev => [...prev, { id, message, type, actions, sticky }])
+    // Sticky toasts wait for the user; otherwise leave more time when an action
+    // (e.g. undo) is offered than for a plain notification.
+    if (!sticky) {
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id))
+      }, actions?.length ? 8000 : 4000)
+    }
   }, [])
 
   const ctx: ToastContextValue = {
-    success: (msg, action) => addToast(msg, 'success', action),
-    error: (msg, action) => addToast(msg, 'error', action),
-    info: (msg, action) => addToast(msg, 'info', action),
+    success: (msg, action, sticky) => addToast(msg, 'success', action, sticky),
+    error: (msg, action, sticky) => addToast(msg, 'error', action, sticky),
+    info: (msg, action, sticky) => addToast(msg, 'info', action, sticky),
   }
 
   return (
@@ -58,15 +68,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               {t.type === 'success' ? '✓' : t.type === 'error' ? '✕' : 'ℹ'}
             </span>
             <span className="toast-msg">{t.message}</span>
-            {t.action && (
+            {t.actions?.map((a, i) => (
               <button
+                key={i}
                 className="toast-action"
                 onClick={() => {
                   setToasts(prev => prev.filter(x => x.id !== t.id))
-                  t.action!.onClick()
+                  a.onClick()
                 }}
-              >{t.action.label}</button>
-            )}
+              >{a.label}</button>
+            ))}
             <button
               className="toast-dismiss"
               onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}

@@ -899,6 +899,54 @@ export class GitService {
     }
   }
 
+  // Run git and return its exit code + stdout WITHOUT throwing on a non-zero
+  // exit — needed for `merge-tree`, which exits 1 to mean "would conflict"
+  // (simple-git's .raw() would reject on that and lose the stdout we need).
+  private async execRaw(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+    const { execFile } = await import('node:child_process')
+    return new Promise(resolve => {
+      execFile('git', ['-C', this.repoPath, ...args], { maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+        const code = err && typeof (err as NodeJS.ErrnoException & { code?: unknown }).code === 'number'
+          ? (err as unknown as { code: number }).code
+          : (err ? 1 : 0)
+        resolve({ code, stdout: stdout || '', stderr: stderr || '' })
+      })
+    })
+  }
+
+  // Predict whether reconciling `theirs` into `ours` (default HEAD) would
+  // conflict, and on which files — a DRY RUN via `git merge-tree` that never
+  // touches the working tree, the index or any ref. Pass `mergeBase` to pin the
+  // 3-way base: a cherry-pick uses the commit's parent, a revert the commit
+  // itself; omit it for a plain merge (git finds the base). For a rebase this is
+  // only a heuristic (it models a single merge of the two tips, not the
+  // per-commit replay), so treat a rebase result as advisory. Requires git ≥ 2.38.
+  // Returns `error` when the prediction itself couldn't run (bad ref, old git),
+  // which callers should treat as "unknown" and NOT as "will conflict".
+  async predictConflicts(theirs: string, ours = 'HEAD', mergeBase?: string): Promise<{ files: string[]; error?: string }> {
+    for (const [ref, label] of ([[theirs, 'theirs'], [ours, 'ours'], ...(mergeBase ? [[mergeBase, 'merge-base']] : [])] as [string, string][])) {
+      const bad = this.assertRef(ref, label)
+      if (bad) return { files: [], error: bad }
+    }
+    try {
+      const args = ['merge-tree', '--write-tree', '--name-only']
+      if (mergeBase) args.push(`--merge-base=${mergeBase}`)
+      args.push(ours, theirs)
+      const { code, stdout, stderr } = await this.execRaw(args)
+      if (code === 0) return { files: [] }                    // clean
+      if (code === 1) {                                        // conflicts
+        // stdout: merged tree OID, then the conflicted file names, a blank
+        // line, then informational messages. Take the names off the first block.
+        const [head] = stdout.split('\n\n')
+        const files = head.split('\n').slice(1).map(s => s.trim()).filter(Boolean)
+        return { files }
+      }
+      return { files: [], error: (stderr || stdout || 'merge-tree failed').trim() }  // real failure
+    } catch (e: any) {
+      return { files: [], error: e.message }
+    }
+  }
+
   // Rebase the current branch onto another branch
   // On a conflict, this leaves the rebase PAUSED (same as the interactive
   // rebase planner) instead of silently aborting it, so the user can resolve
