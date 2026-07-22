@@ -263,6 +263,7 @@ export default function App() {
   const selectedByTab = useRef<Map<string, CommitNode | null>>(new Map())
   const [loading, setLoading] = useState<boolean>(false)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
+  const [repoSearch, setRepoSearch] = useState('')   // welcome-screen recents filter
   const [stashes, setStashes] = useState<StashEntry[]>([])
   const [tags, setTags] = useState<TagEntry[]>([])
   const [sidebarW, setSidebarW] = useState<number>(230)
@@ -572,6 +573,17 @@ export default function App() {
 
   const handleOpenRepo = async () => applyRepo(await window.gitAPI.openRepo())
   const handleSetRepo = async (path: string) => applyRepo(await window.gitAPI.setRepo(path))
+  const handleCreateRepo = async () => {
+    const dir = await window.gitAPI.selectDirectory(t('welcome.createHint'))
+    if (!dir.path) return
+    applyRepo(await (window.gitAPI as any).initRepo(dir.path))
+  }
+  // Open the current release notes on demand (welcome "Notes de version" link).
+  const openReleaseNotes = async () => {
+    const w = await (window.gitAPI as any).getReleaseNotes?.().catch(() => null)
+    if (w) { setWhatsNew(w); setWhatsNewActive(true); setSettingsOpen(false) }
+    else showToast('Aucune note de version disponible', 'err')
+  }
   const handleRemoveRecent = async (path: string) => {
     const updated = await window.gitAPI.removeRecentRepo(path)
     setRecentRepos(updated ?? [])
@@ -1430,6 +1442,18 @@ export default function App() {
                 onClick={e => { e.stopPropagation(); setRebaseHash(null) }}>×</button>
             </div>
           )}
+          {/* Tab order = opening order. The home is a "pick a repo" screen: opening
+              a REPO from it closes it (this tab disappears once a repo is active).
+              It stays only while the home is the view, or while a non-repo view
+              (release notes) opened FROM it is up — and it renders BEFORE those,
+              since they're opened after it. */}
+          {(activeTabId === null || whatsNewActive) && (
+            <div className={`app-tab app-tab--tool ${activeTabId === null && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
+              title={t('tabs.home')} onClick={() => { setSettingsOpen(false); goHome() }}>
+              <span className="app-tab-icon app-tab-icon--tool">🏠</span>
+              <span className="app-tab-name">{t('tabs.home')}</span>
+            </div>
+          )}
           {whatsNew && (
             <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title="Quoi de neuf"
               onClick={() => { setSettingsOpen(false); setWhatsNewActive(true) }}>
@@ -1439,7 +1463,7 @@ export default function App() {
                 onClick={e => { e.stopPropagation(); setWhatsNew(null); setWhatsNewActive(false) }}>×</button>
             </div>
           )}
-          <button className={`app-tab-add ${activeTabId === null && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
+          <button className="app-tab-add"
             title={t('tabs.new')} onClick={() => { setSettingsOpen(false); goHome() }}>+</button>
 
           {/* Right cluster: notifications · settings · profile */}
@@ -1546,7 +1570,8 @@ export default function App() {
       )}
 
       <div className="app-body" style={{ display: settingsOpen || whatsNewActive ? 'none' : undefined }}>
-        {/* ── Activity bar ── */}
+        {/* ── Activity bar — only with a repo open (useless/empty on the home) ── */}
+        {repoPath && (
         <div className="app-activity-bar">
           <button
             className={`act-btn ${activeView === 'git' ? 'active' : ''}`}
@@ -1567,8 +1592,10 @@ export default function App() {
             </svg>
           </button>
         </div>
+        )}
 
-        {/* ── Sidebar panel ── */}
+        {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
+        {repoPath && (
         <div className="app-sidebar" style={{ width: sidebarW }}>
           {activeView === 'git' && (
             <Sidebar
@@ -1626,8 +1653,9 @@ export default function App() {
             <GitHubPanel repoPath={repoPath} />
           )}
         </div>
+        )}
 
-        <div className="resize-handle" onMouseDown={startResizeSidebar} />
+        {repoPath && <div className="resize-handle" onMouseDown={startResizeSidebar} />}
 
         <div className="app-center">
           {centerDiff && !conflictResolverFile ? (
@@ -1712,35 +1740,68 @@ export default function App() {
                     </svg>
                     {t('clone.title')}
                   </button>
+                  <button className="welcome-btn welcome-btn-secondary" onClick={handleCreateRepo}>
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M7.75 2a.75.75 0 0 1 .75.75V7.25h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 7.75 2Z"/>
+                    </svg>
+                    {t('welcome.create')}
+                  </button>
                 </div>
+
+                <div className="welcome-search">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-3.04-3.04ZM11.5 7a4.5 4.5 0 1 0-9 0 4.5 4.5 0 0 0 9 0Z"/>
+                  </svg>
+                  <input className="welcome-search-input" value={repoSearch}
+                    onChange={e => setRepoSearch(e.target.value)}
+                    placeholder={t('welcome.searchRepos')} />
+                </div>
+
+                {recentRepos.length > 0 && (() => {
+                  const q = repoSearch.trim().toLowerCase()
+                  const list = q ? recentRepos.filter(p => p.toLowerCase().includes(q)) : recentRepos
+                  return (
+                    <div className="welcome-recents">
+                      <div className="welcome-recents-title">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/>
+                        </svg>
+                        {t('welcome.recents')}
+                      </div>
+                      <div className="welcome-recents-list">
+                        {list.slice(0, 8).map(path => (
+                          <button key={path} className="welcome-recent-item" onClick={() => handleSetRepo(path)} title={path}>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-icon">
+                              <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+                            </svg>
+                            <div className="welcome-recent-info">
+                              <span className="welcome-recent-name">{path.split('/').pop()}</span>
+                              <span className="welcome-recent-path">{path.split('/').slice(0, -1).join('/')}</span>
+                            </div>
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-arrow">
+                              <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>
+                            </svg>
+                          </button>
+                        ))}
+                        {list.length === 0 && <div className="welcome-recents-empty">{t('welcome.noResults')}</div>}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
-              {recentRepos.length > 0 && (
-                <div className="welcome-recents">
-                  <div className="welcome-recents-title">
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/>
-                    </svg>
-                    {t('welcome.recents')}
-                  </div>
-                  <div className="welcome-recents-list">
-                    {recentRepos.slice(0, 8).map(path => (
-                      <button key={path} className="welcome-recent-item" onClick={() => handleSetRepo(path)} title={path}>
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-icon">
-                          <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-                        </svg>
-                        <div className="welcome-recent-info">
-                          <span className="welcome-recent-name">{path.split('/').pop()}</span>
-                          <span className="welcome-recent-path">{path.split('/').slice(0, -1).join('/')}</span>
-                        </div>
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-arrow">
-                          <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>
-                        </svg>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="welcome-resources">
+                <div className="welcome-res-title">{t('welcome.resources')}</div>
+                <button className="welcome-res-link" onClick={openReleaseNotes}>
+                  <span className="welcome-res-icon">✨</span>{t('welcome.releaseNotes')}
+                </button>
+                <button className="welcome-res-link" onClick={() => (window.gitAPI as any).openExternal?.('https://github.com/VictorQuilgars/git-vertex')}>
+                  <span className="welcome-res-icon">{'</>'}</span>{t('welcome.sourceCode')}
+                </button>
+                <button className="welcome-res-link" onClick={() => (window.gitAPI as any).openExternal?.('https://github.com/VictorQuilgars/git-vertex#readme')}>
+                  <span className="welcome-res-icon">📖</span>{t('welcome.docs')}
+                </button>
+              </div>
             </div>
           ) : (
             <CommitGraph

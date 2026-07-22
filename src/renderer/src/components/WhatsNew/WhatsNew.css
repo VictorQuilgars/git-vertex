@@ -11,6 +11,38 @@
   width: 100%;
 }
 
+.wn-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #21262d;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+}
+.wn-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #e6edf3;
+  letter-spacing: -0.5px;
+}
+.wn-browser {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #58a6ff;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wn-browser:hover { text-decoration: underline; }
+.wn-intro {
+  color: #8b949e;
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
 .wn-badge {
   display: inline-block;
   background: linear-gradient(135deg, #3fb950, #58a6ff);

@@ -212,12 +212,13 @@ body {
 .app-welcome {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: row;
+  align-items: stretch;
   justify-content: center;
-  gap: 32px;
-  padding: 48px 32px;
+  gap: 40px;
+  padding: 56px 40px;
   background: #0d1117;
+  overflow-y: auto;
   animation: welcome-in 0.3s ease both;
 }
 
@@ -229,9 +230,11 @@ body {
 .welcome-hero {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 28px;
-  text-align: center;
+  align-items: stretch;
+  gap: 20px;
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
 }
 
 .welcome-brand {
@@ -307,7 +310,6 @@ body {
 /* Recent repos */
 .welcome-recents {
   width: 100%;
-  max-width: 480px;
   animation: welcome-in 0.4s 0.08s ease both;
 }
 
@@ -328,6 +330,77 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+/* Repo search + empty state */
+.welcome-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #6e7681;
+}
+.welcome-search:focus-within { border-color: var(--accent, #58a6ff); }
+.welcome-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #e6edf3;
+  font-size: 13px;
+}
+.welcome-search-input::placeholder { color: #6e7681; }
+.welcome-recents-empty {
+  padding: 16px 12px;
+  color: #6e7681;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Right column: resources — separated by a vertical divider */
+.welcome-resources {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 0 40px;
+  border-left: 1px solid #21262d;
+}
+.welcome-res-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #484f58;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+.welcome-res-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #58a6ff;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.welcome-res-link:hover { background: #161b22; }
+.welcome-res-icon {
+  width: 18px;
+  flex-shrink: 0;
+  color: #8b949e;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  text-align: center;
 }
 
 .welcome-recent-item {

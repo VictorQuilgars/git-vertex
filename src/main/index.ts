@@ -319,6 +319,17 @@ ipcMain.handle('git:set-repo', async (_event, repoPath: string) => {
   return openRepoAt(repoPath)
 })
 
+// Create a new repository: git init in the chosen (possibly empty) directory,
+// then open it. Idempotent if the directory is already a repo.
+ipcMain.handle('git:init-repo', async (_event, dir: string) => {
+  try {
+    await simpleGit(dir).init(['-b', 'main'])
+    return openRepoAt(dir)
+  } catch (e: any) {
+    return { error: e.message }
+  }
+})
+
 ipcMain.handle('app:select-directory', async (_event, title?: string) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory', 'createDirectory'],
@@ -1389,6 +1400,21 @@ ipcMain.handle('app:get-whats-new', () => {
   const notes = RELEASE_NOTES[current]
   if (!notes) { s.lastSeenVersion = current; writeSettings(s); return null }
   return { version: current, notes }
+})
+
+// On-demand release notes (the welcome screen's "Notes de version" link):
+// the current version's notes, or the newest entry we ship if this exact
+// version has none (e.g. a patch release without its own note).
+ipcMain.handle('app:get-release-notes', () => {
+  const current = app.getVersion()
+  if (RELEASE_NOTES[current]) return { version: current, notes: RELEASE_NOTES[current] }
+  const cmp = (a: string, b: string) => {
+    const pa = a.split('.').map(Number), pb = b.split('.').map(Number)
+    for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pb[i] || 0) - (pa[i] || 0)
+    return 0
+  }
+  const newest = Object.keys(RELEASE_NOTES).sort(cmp)[0]
+  return newest ? { version: newest, notes: RELEASE_NOTES[newest] } : null
 })
 
 ipcMain.handle('app:mark-whats-new-seen', () => {

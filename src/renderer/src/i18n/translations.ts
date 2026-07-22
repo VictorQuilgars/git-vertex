@@ -11,6 +11,7 @@ const fr = {
   'toolbar.refresh.tooltip': 'Rafraîchir',
   'toolbar.gitflow.tooltip': 'Gitflow — feature / release / hotfix',
   'tabs.new': 'Nouvel onglet',
+  'tabs.home': 'Accueil',
   'tabs.close': 'Fermer l\'onglet',
   'tabs.closeOthers': 'Fermer les autres onglets',
   'tabs.openRepo': '📂 Ouvrir un dépôt…',
@@ -374,7 +375,15 @@ const fr = {
   // Welcome
   'welcome.hint': 'Visualisez vos branches, indexez vos changements et gérez vos commits.',
   'welcome.open': 'Ouvrir un dépôt',
+  'welcome.create': 'Créer',
+  'welcome.createHint': 'Emplacement du nouveau dépôt',
+  'welcome.searchRepos': 'Rechercher un dépôt…',
+  'welcome.noResults': 'Aucun dépôt correspondant',
   'welcome.recents': 'Récents',
+  'welcome.resources': 'Ressources',
+  'welcome.releaseNotes': 'Notes de version',
+  'welcome.sourceCode': 'Code source',
+  'welcome.docs': 'Documentation',
 
   // Create PR modal
   'pr.title': 'Créer une Pull Request',
@@ -451,6 +460,7 @@ const en: typeof fr = {
   'toolbar.refresh.tooltip': 'Refresh',
   'toolbar.gitflow.tooltip': 'Gitflow — feature / release / hotfix',
   'tabs.new': 'New tab',
+  'tabs.home': 'Home',
   'tabs.close': 'Close tab',
   'tabs.closeOthers': 'Close other tabs',
   'tabs.openRepo': '📂 Open a repository…',
@@ -813,7 +823,15 @@ const en: typeof fr = {
   // Welcome
   'welcome.hint': 'Visualize your branches, stage your changes and manage your commits.',
   'welcome.open': 'Open a repository',
+  'welcome.create': 'Create',
+  'welcome.createHint': 'Location for the new repository',
+  'welcome.searchRepos': 'Search repositories…',
+  'welcome.noResults': 'No matching repository',
   'welcome.recents': 'Recent',
+  'welcome.resources': 'Resources',
+  'welcome.releaseNotes': 'Release notes',
+  'welcome.sourceCode': 'Source code',
+  'welcome.docs': 'Documentation',
 
   // Create PR modal
   'pr.title': 'Create a Pull Request',
