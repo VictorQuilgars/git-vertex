@@ -223,8 +223,22 @@ function setupRebaseWatch(context: vscode.ExtensionContext, repoRoot: string): v
 }
 
 // ── Activation ────────────────────────────────────────────────
+// Open the changelog the first time a new version runs (like VS Code's own
+// release-notes tab). A fresh install just records the version, no tab.
+async function showWhatsNewIfUpdated(context: vscode.ExtensionContext): Promise<void> {
+  const current = (context.extension?.packageJSON?.version as string | undefined) ?? ''
+  if (!current) return
+  const last = context.globalState.get<string>('gvLastVersion')
+  await context.globalState.update('gvLastVersion', current)
+  if (!last || last === current) return
+  const changelog = vscode.Uri.joinPath(context.extensionUri, 'CHANGELOG.md')
+  try { await vscode.commands.executeCommand('markdown.showPreview', changelog) } catch { /* preview unavailable — ignore */ }
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   statusBar = new GitVertexStatusBar('gitVertex.open')
+
+  void showWhatsNewIfUpdated(context)
 
   // Create the WebviewViewProvider for the bottom panel
   const provider = new GitVertexViewProvider(context.extensionUri, context.globalState)
