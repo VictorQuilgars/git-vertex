@@ -2,6 +2,13 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.14.2': `## Quoi de neuf dans la 1.14.2
+
+### 🐛 Corrections
+- **Windows** : le nom de l'application affiche enfin **« Git Vertex »** dans la barre de titre, la barre des tâches et Alt-Tab (au lieu de « Git GUI »).
+- **Graphe des commits** : le trait pointillé du **WIP** (changements en cours) ne **traverse plus** le commit d'une autre branche — il est désormais **décalé** sur sa propre lane et ne rejoint sa branche qu'en bas.
+- Plus d'avertissement **MaxListeners** dans la console : les abonnements internes (deep-link, mises à jour, connexion GitHub) ne s'accumulent plus.
+`,
   '1.14.1': `## Quoi de neuf dans la 1.14.1
 
 ### 🐛 Corrections Windows
