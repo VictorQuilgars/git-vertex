@@ -4,9 +4,8 @@ import './SettingsModal.css'
 // relative "../../resources/icon.png" path only worked in dev and was silently
 // hidden by onError in production.
 import iconUrl from '../../../../../resources/icon.png'
-import { useLang } from '../../i18n/LanguageContext'
+import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
 import { useSettings } from '../../contexts/SettingsContext'
-import type { Lang } from '../../i18n/translations'
 
 type Section = 'git' | 'appearance' | 'graph' | 'github' | 'ai' | 'notifications' | 'about'
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
@@ -789,16 +788,18 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars')}>Victor Quilgars</a>
                 </div>
 
-                <div className="stg-about-lang">
-                  <span className="stg-about-label">{t('settings.about.language')}</span>
-                  <div className="stg-lang-btns">
-                    {(['fr', 'en'] as Lang[]).map(l => (
-                      <button key={l} className={`stg-lang-btn ${lang === l ? 'active' : ''}`} onClick={() => setLang(l)}>
-                        {l === 'fr' ? '🇫🇷' : '🇬🇧'} {t(`settings.lang.${l}` as any)}
-                      </button>
-                    ))}
+                {ENABLED_LANGS.length > 1 && (
+                  <div className="stg-about-lang">
+                    <span className="stg-about-label">{t('settings.about.language')}</span>
+                    <div className="stg-lang-btns">
+                      {ENABLED_LANGS.map(l => (
+                        <button key={l} className={`stg-lang-btn ${lang === l ? 'active' : ''}`} onClick={() => setLang(l)}>
+                          {l === 'fr' ? '🇫🇷' : '🇬🇧'} {t(`settings.lang.${l}` as any)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="stg-about-env">
                   <h3 className="stg-about-env-title">{t('settings.about.env')}</h3>
