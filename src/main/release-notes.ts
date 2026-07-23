@@ -2,6 +2,14 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.16.0': `## Quoi de neuf dans la 1.16.0
+
+### 🔔 Centre de notifications
+- La **cloche** en haut à droite est maintenant fonctionnelle : un clic ouvre un **panneau de notifications**.
+- Chaque notification peut être **marquée comme lue/non lue** ou **supprimée** ; boutons **« Tout marquer comme lu »** et **« Tout effacer »**.
+- Une **pastille bleue** indique le nombre de notifications **non lues**.
+- Les **mises à jour disponibles** créent automatiquement une notification, conservée entre les sessions.
+`,
   '1.15.4': `## Quoi de neuf dans la 1.15.4
 
 ### 🟢 Bouton « Mise à jour » plus clair
