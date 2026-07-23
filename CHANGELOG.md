@@ -1,5 +1,14 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.15.0
+
+### Added
+- **Écran de lancement animé** — au démarrage (et juste après une mise à jour), une petite fenêtre affiche le graphe en V de Git Vertex qui se dessine, avant de laisser place à l'application. Le retour de l'app après une mise à jour paraît net plutôt que « vide ».
+- **Mise à jour par étapes, avec vraie barre de progression** — le flux passe désormais par un écran clair : *disponible → téléchargement (avec pourcentage réel) → installation*. Le téléchargement démarre à votre clic (donc sa progression est visible), et la phase d'installation indique honnêtement que l'app va redémarrer dans un instant.
+
+### Changed
+- Un seul et même flux de mise à jour : « Vérifier les mises à jour » dans les Réglages ouvre le même écran que le bandeau, au lieu d'une progression séparée.
+
 ## 1.14.2
 
 ### Fixed
