@@ -2,6 +2,14 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.16.1': `## What's new in 1.16.1
+
+### 🇬🇧 English-only, fully applied
+- The remaining French text still hardcoded across the app (Settings, sidebar, commit graph menus, conflict resolver, rebase screens, commit panel, diff viewer, and native messages) now goes through the same English-only layer introduced in 1.16.0.
+
+### 🐛 Fixed
+- Undo/redo and Gitflow merge messages now correctly show the commit subject / branch name again (an earlier cleanup had dropped it).
+`,
   '1.16.0': `## What's new in 1.16.0
 
 ### 🔔 Notification center
