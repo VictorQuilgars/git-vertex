@@ -1431,7 +1431,7 @@ function ConflictPanel({
           <span className="rp-section-title">Fichiers en conflit ({conflictFiles.length})</span>
         </div>
         <div className="rp-file-list">
-          {conflictFiles.length === 0 && <div className="rp-empty">Tous les conflits sont résolus</div>}
+          {conflictFiles.length === 0 && <div className="rp-empty">{t('rp.allResolved')}</div>}
           {conflictFiles.map(f => (
             <div key={f} className="rp-file-row rp-file-conflicted">
               <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>

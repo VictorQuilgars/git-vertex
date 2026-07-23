@@ -4,7 +4,8 @@
 // commit, `git tag -a`, etc. Saving writes the message and closes the tab,
 // which is what `code --wait` (core.editor) is blocked on; git applies its
 // own cleanup (stripping '#' comment lines, trimming blank lines) on top.
-import React, { useState, useCallback } from 'react'
+import React
+import { useLang } from '../../../src/renderer/src/i18n/LanguageContext', { useState, useCallback } from 'react'
 import '../../../src/renderer/src/components/RebaseProgress/RebaseProgress.css'
 
 declare global { interface Window { gitAPI: any } }
@@ -19,11 +20,13 @@ interface CommitMsgBoot {
 
 function titleFor(boot: CommitMsgBoot): string {
   if (boot.action === 'reword') return '✏️ Reword — reformuler le message'
-  if (boot.action === 'squash') return '🔗 Squash — message combiné'
+  if (boot.action === 'squash') return t('ext.commit.squashMsg')
   return '📝 Message de commit'
 }
 
 export default function CommitMsgEditorView({ boot }: { boot: CommitMsgBoot }) {
+  const { t } = useLang();
+
   const [text, setText] = useState(boot.initialMessage ?? '')
   const [saving, setSaving] = useState(false)
 
@@ -76,7 +79,7 @@ export default function CommitMsgEditorView({ boot }: { boot: CommitMsgBoot }) {
         />
       </div>
 
-      <div className="rp-legend">Les lignes commençant par « # » et les lignes vides en fin de message sont retirées automatiquement par git.</div>
+      <div className="rp-legend">{t('ext.commit.help')}</div>
 
       <div className="rp-footer">
         <span className="rp-footer-spring" />
@@ -84,7 +87,7 @@ export default function CommitMsgEditorView({ boot }: { boot: CommitMsgBoot }) {
           className="rp-btn rp-btn--continue"
           disabled={saving || !text.trim()}
           onClick={handleSave}
-          title="Enregistrer et continuer (Ctrl+Entrée)"
+          title=t('ext.commit.save')
         >
           {saving ? '…' : 'Enregistrer'}
         </button>

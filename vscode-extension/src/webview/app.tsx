@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
 
 import { SettingsProvider } from '../../../src/renderer/src/contexts/SettingsContext'
-import { LanguageProvider } from '../../../src/renderer/src/i18n/LanguageContext'
+import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
@@ -34,6 +34,7 @@ import './vertex-vscode.css'
 declare global { interface Window { gitAPI: any; appInfo: any } }
 
 function VertexApp() {
+  const { t } = useLang();
   const toast = useToast()
   const showToast = useCallback((msg: string, type?: 'ok' | 'err') => {
     if (type === 'err') toast.error(msg); else toast.success(msg)
@@ -169,7 +170,7 @@ function VertexApp() {
   const doUndo = useCallback(async () => {
     const r = await window.gitAPI.undoLastAction()
     if (r && r.success === false) toast.error(r.error ?? "Impossible d'annuler")
-    else toast.success('✓ Annulé')
+    else toast.success(t('ext.app.undoOk'))
     await loadRepoData()
   }, [toast, loadRepoData])
 
@@ -196,7 +197,7 @@ function VertexApp() {
     const { files } = await predict().catch(() => ({ files: [] as string[] }))
     if (files.length === 0) { await op(); return }
     toast.error(
-      `⚠ Un conflit est prévu sur ${files.length} fichier(s). Continuer ?`,
+      `⚠ A conflict is expected on ${files.length} file(s). Continue?`,
       [
         { label: 'Continuer', onClick: () => { void op() } },
         { label: 'Ne plus me le demander', onClick: () => {
@@ -221,24 +222,24 @@ function VertexApp() {
 
   const handleCreateTag = useCallback(async (hash: string) => {
     const name = await window.gitAPI.uiPrompt('Nom du tag')
-    if (name) runOp('Tag créé', () => window.gitAPI.createTag(name, hash))
+    if (name) runOp(t('ext.app.tagCreated'), () => window.gitAPI.createTag(name, hash))
   }, [runOp])
 
   const handleCreateBranchAt = useCallback(async (hash: string) => {
     const name = await window.gitAPI.uiPrompt('Nom de la nouvelle branche')
-    if (name) runOp('Branche créée', () => window.gitAPI.createBranchAt(name, hash, true))
+    if (name) runOp(t('ext.app.branchCreated'), () => window.gitAPI.createBranchAt(name, hash, true))
   }, [runOp])
 
   // History-rewriting ops — drop / reorder a commit and drag a branch onto a commit.
   const handleDropCommit = useCallback(async (hash: string) => {
-    const ok = await window.gitAPI.uiConfirm(`Supprimer le commit ${hash.slice(0, 7)} ? Cette action réécrit l'historique.`)
+    const ok = await window.gitAPI.uiConfirm(`Delete commit ${hash.slice(0, 7)}? This rewrites history.`)
     if (!ok) return
     setSelectedCommit(null)
-    await runOp('Commit supprimé', () => window.gitAPI.dropCommit(hash), true)
+    await runOp(t('ext.app.commitDeleted'), () => window.gitAPI.dropCommit(hash), true)
   }, [runOp])
 
   const handleMoveCommit = useCallback((hash: string, direction: 'up' | 'down') =>
-    runOp('Commit déplacé', () => window.gitAPI.moveCommit(hash, direction), true), [runOp])
+    runOp(t('ext.app.commitMoved'), () => window.gitAPI.moveCommit(hash, direction), true), [runOp])
 
   // ── Branch / tag context-menu operations ─────────────────────
   const handleMergeBranch = useCallback((name: string) => guardConflict(
@@ -263,18 +264,18 @@ function VertexApp() {
       const fullMsg = (await window.gitAPI.getLastCommitMessage()).message || current.message
       const newMsg = await window.gitAPI.uiPrompt('Nouveau message de commit', fullMsg)
       if (!newMsg || newMsg === fullMsg) return
-      await runOp('Message modifié', () => window.gitAPI.amendMessage(newMsg))
+      await runOp(t('ext.app.msgModified'), () => window.gitAPI.amendMessage(newMsg))
       return
     }
     if (current.parents.length === 0) {
-      showToast('Impossible de reformuler le tout premier commit du dépôt (utilisez amend depuis HEAD).', 'err')
+      showToast(t('ext.app.noRewordFirst'), 'err')
       return
     }
     const newMsg = await window.gitAPI.uiPrompt('Nouveau message de commit', current.message)
     if (!newMsg || newMsg === current.message) return
     const seq = await window.gitAPI.getRebaseSequence(current.parents[0])
     const sequence = seq.commits.map((c: { hash: string }) => ({ action: c.hash === current.hash ? 'reword' : 'pick', hash: c.hash }))
-    await runOp('Message modifié', () => window.gitAPI.interactiveRebase(sequence, [newMsg]))
+    await runOp(t('ext.app.msgModified'), () => window.gitAPI.interactiveRebase(sequence, [newMsg]))
   }, [runOp, commits, currentBranch, showToast])
 
   const handleRebaseCurrentOntoCommit = useCallback((hash: string) => guardConflict(
@@ -283,13 +284,13 @@ function VertexApp() {
   ), [runOp, guardConflict])
 
   const handlePushToCommit = useCallback((hash: string) =>
-    runOp(`Push jusqu'à ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp])
+    runOp(`Push to ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp])
 
   const handleCreatePatch = useCallback(async (hash: string) => {
     const res = await window.gitAPI.createPatch(hash)
     if (res.error) { showToast(res.error, 'err'); return }
     const r = await window.gitAPI.savePatchFile(res.patch, `${hash.slice(0, 7)}.patch`)
-    if (r.success) showToast('✓ Patch enregistré')
+    if (r.success) showToast(t('ext.app.patchSavedOk'))
     else if (!r.canceled) showToast(r.error ?? 'Échec', 'err')
   }, [showToast])
 
@@ -297,7 +298,7 @@ function VertexApp() {
     const res = await window.gitAPI.createPatch(hash)
     if (res.error) { showToast(res.error, 'err'); return }
     navigator.clipboard.writeText(res.patch)
-    showToast('✓ Patch copié dans le presse-papiers')
+    showToast(t('ext.app.patchCopiedOk'))
   }, [showToast])
 
   const handleCreateWorktreeAt = useCallback(async (hash: string) => {
@@ -307,13 +308,13 @@ function VertexApp() {
     const branch = await window.gitAPI.uiPrompt('Nom de la nouvelle branche (laisser vide = detached)', '')
     if (branch === null || branch === undefined) return
     const r = await window.gitAPI.addWorktree(dirPath, hash, branch || undefined)
-    if (r.success) showToast('✓ Worktree créé')
+    if (r.success) showToast(t('ext.app.worktreeCreatedOk'))
     else showToast(r.error ?? 'Échec', 'err')
   }, [showToast])
 
   const handleOpenCommitOnRemote = useCallback(async (hash: string) => {
     const detected = await window.gitAPI.githubDetectRepo()
-    if (!detected?.owner) { showToast('Aucun dépôt GitHub détecté', 'err'); return }
+    if (!detected?.owner) { showToast(t('ext.app.noGithub'), 'err'); return }
     window.gitAPI.openExternal(`https://github.com/${detected.owner}/${detected.repo}/commit/${hash}`)
   }, [showToast])
 
@@ -348,7 +349,7 @@ function VertexApp() {
         case 'copyPatch': handleCopyPatch(hash); break
         case 'openOnRemote': handleOpenCommitOnRemote(hash); break
         case 'compareWorking': window.gitAPI.openCompareWorkingTab(hash); break
-        case 'selectForCompare': setCompareBaseHash(hash); showToast('◎ Commit sélectionné pour comparaison'); break
+        case 'selectForCompare': setCompareBaseHash(hash); showToast(t('ext.app.commitSelected')); break
         case 'compareWithSelected': if (compareBaseHash) window.gitAPI.openCompare(compareBaseHash, hash); break
       }
     }
@@ -360,32 +361,32 @@ function VertexApp() {
       handleOpenCommitOnRemote, showToast])
   const handleRenameBranch = useCallback(async (name: string) => {
     const newName = await window.gitAPI.uiPrompt('Nouveau nom de branche', name)
-    if (newName && newName !== name) runOp('Branche renommée', () => window.gitAPI.renameBranch(name, newName))
+    if (newName && newName !== name) runOp(t('ext.app.branchRenamed'), () => window.gitAPI.renameBranch(name, newName))
   }, [runOp])
   const handleDeleteBranch = useCallback(async (name: string) => {
     if (await window.gitAPI.uiConfirm(`Supprimer la branche "${name}" ?`)) {
-      runOp('Branche supprimée', () => window.gitAPI.deleteBranch(name))
+      runOp(t('ext.app.branchDeleted'), () => window.gitAPI.deleteBranch(name))
     }
   }, [runOp])
   const handlePushBranch = useCallback((name: string) =>
     runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp])
   const handleSetUpstream = useCallback((name: string) =>
-    runOp('Upstream défini', () => window.gitAPI.setUpstream(name)), [runOp])
+    runOp(t('ext.app.upstreamSet'), () => window.gitAPI.setUpstream(name)), [runOp])
   const handleDeleteRemoteBranch = useCallback(async (ref: string) => {
     if (await window.gitAPI.uiConfirm(`Supprimer la branche distante "${ref}" ?`)) {
-      runOp('Branche distante supprimée', () => window.gitAPI.deleteRemoteBranch(ref))
+      runOp(t('ext.app.remoteBranchDeleted'), () => window.gitAPI.deleteRemoteBranch(ref))
     }
   }, [runOp])
   const handlePushTag = useCallback((name: string) =>
     runOp(`Tag ${name} poussé`, () => window.gitAPI.pushTag(name)), [runOp])
   const handleDeleteTag = useCallback(async (name: string) => {
     if (await window.gitAPI.uiConfirm(`Supprimer le tag "${name}" ?`)) {
-      runOp('Tag supprimé', () => window.gitAPI.deleteTag(name))
+      runOp(t('ext.app.tagDeleted'), () => window.gitAPI.deleteTag(name))
     }
   }, [runOp])
   const handleDeleteRemoteTag = useCallback(async (name: string) => {
     if (await window.gitAPI.uiConfirm(`Supprimer le tag distant "${name}" ?`)) {
-      runOp('Tag distant supprimé', () => window.gitAPI.deleteRemoteTag(name))
+      runOp(t('ext.app.remoteTagDeleted'), () => window.gitAPI.deleteRemoteTag(name))
     }
   }, [runOp])
 
@@ -400,17 +401,17 @@ function VertexApp() {
   }, [])
   const showConfirm = useCallback((msg: string): Promise<boolean> => window.gitAPI.uiConfirm(msg), [])
   const handleApplyStash = useCallback((index: number) =>
-    runOp('Stash appliqué', () => window.gitAPI.applyStash(index)), [runOp])
+    runOp(t('ext.app.stashApplied'), () => window.gitAPI.applyStash(index)), [runOp])
   const handlePopStashIndex = useCallback((index: number) =>
-    runOp('Stash dépilé', () => window.gitAPI.popStash(index)), [runOp])
+    runOp(t('ext.app.stashPopped'), () => window.gitAPI.popStash(index)), [runOp])
   const handleDropStash = useCallback(async (index: number) => {
     if (await window.gitAPI.uiConfirm(`Supprimer le stash @{${index}} ?`)) {
-      runOp('Stash supprimé', () => window.gitAPI.dropStash(index))
+      runOp(t('ext.app.stashDropped'), () => window.gitAPI.dropStash(index))
     }
   }, [runOp])
   const handleCreateTagPrompt = useCallback(async () => {
     const name = await window.gitAPI.uiPrompt('Nom du tag (sur HEAD)')
-    if (name) runOp('Tag créé', () => window.gitAPI.createTag(name))
+    if (name) runOp(t('ext.app.tagCreated'), () => window.gitAPI.createTag(name))
   }, [runOp])
   const handleSelectCommitByHash = useCallback((hash: string) => {
     const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
@@ -436,7 +437,7 @@ function VertexApp() {
   const handleBranchDrop = useCallback(async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => {
     if (action === 'merge' && !targetBranch) return
     if (action === 'reset') {
-      const ok = await window.gitAPI.uiConfirm(`Réinitialiser ${branch} sur ${targetBranch ?? hash.slice(0, 7)} ?`)
+      const ok = await window.gitAPI.uiConfirm(`Reset ${branch} onto ${targetBranch ?? hash.slice(0, 7)}?`)
       if (!ok) return
     }
     const op = action === 'reset'
@@ -444,7 +445,7 @@ function VertexApp() {
       : action === 'rebase'
         ? () => window.gitAPI.rebaseBranchOnto(branch, hash)              // rebase A onto B's tip
         : () => window.gitAPI.mergeCommitInto(targetBranch!, branch)      // checkout B, merge A (merge A into B)
-    const run = () => runOp(action === 'reset' ? 'Branche réinitialisée' : action === 'rebase' ? 'Rebase effectué' : 'Merge effectué', op, true)
+    const run = () => runOp(action === 'reset' ? t('ext.app.branchReset') : action === 'rebase' ? t('ext.app.rebaseDone') : t('ext.app.mergeDone'), op, true)
     // Reset just moves a ref — it can't conflict. Merge/rebase can.
     if (action === 'reset') { await run(); return }
     await guardConflict(
@@ -464,7 +465,7 @@ function VertexApp() {
     else if (mode === 'revert') r = await window.gitAPI.continueRevert()
     else r = await window.gitAPI.continueMerge(message)
     if (r && r.success === false) showToast(r.error ?? 'Échec', 'err')
-    else showToast(mode === 'rebase' ? '✓ Rebase continué' : '✓ Conflits résolus')
+    else showToast(mode === 'rebase' ? t('ext.app.rebaseContinued') : t('ext.app.conflictsResolved'))
     await loadRepoData()
   }, [conflictMode, showToast, loadRepoData])
 
@@ -473,7 +474,7 @@ function VertexApp() {
     else if (conflictMode === 'cherry-pick') await window.gitAPI.abortCherryPick()
     else if (conflictMode === 'revert') await window.gitAPI.abortRevert()
     else await window.gitAPI.abortRebase()
-    showToast('Opération abandonnée')
+    showToast(t('ext.app.opAborted'))
     await loadRepoData()
   }, [conflictMode, showToast, loadRepoData])
 
@@ -493,14 +494,14 @@ function VertexApp() {
     () => runOp('Pull', () => window.gitAPI.pull()),
   ), [runOp, guardConflict])
   const handlePush = useCallback(() => runOp('Push', () => window.gitAPI.push()), [runOp])
-  const handleUndo = useCallback(() => runOp('Annulé', () => window.gitAPI.undoLastAction()), [runOp])
-  const handleRedo = useCallback(() => runOp('Rétabli', () => window.gitAPI.redoLastAction()), [runOp])
-  const handleStash = useCallback(() => runOp('Stash créé', () => window.gitAPI.createStash()), [runOp])
-  const handlePop = useCallback(() => runOp('Stash appliqué', () => window.gitAPI.popStash(0)), [runOp])
+  const handleUndo = useCallback(() => runOp(t('ext.app.undone'), () => window.gitAPI.undoLastAction()), [runOp])
+  const handleRedo = useCallback(() => runOp(t('ext.app.redone'), () => window.gitAPI.redoLastAction()), [runOp])
+  const handleStash = useCallback(() => runOp(t('ext.app.stashCreated'), () => window.gitAPI.createStash()), [runOp])
+  const handlePop = useCallback(() => runOp(t('ext.app.stashApplied'), () => window.gitAPI.popStash(0)), [runOp])
   const handleTerminal = useCallback(() => window.gitAPI.openTerminal(), [])
   const handleNewBranch = useCallback(async () => {
     const name = await window.gitAPI.uiPrompt('Nom de la nouvelle branche')
-    if (name) runOp('Branche créée', () => window.gitAPI.createBranch(name))
+    if (name) runOp(t('ext.app.branchCreated'), () => window.gitAPI.createBranch(name))
   }, [runOp])
   const handleToggleAllBranches = useCallback(() => {
     setShowAllBranches(v => { showAllRef.current = !v; return !v })
@@ -603,14 +604,14 @@ function VertexApp() {
           <span className="gv-cb-text">
             <strong>{conflictMode}</strong> en cours
             {conflictFiles.length > 0
-              ? ` — ${conflictFiles.length} fichier${conflictFiles.length > 1 ? 's' : ''} à résoudre`
-              : ' — aucun conflit à résoudre, prêt à continuer'}
+              ? ` — ${conflictFiles.length} file(s) to resolve`
+              : t('ext.app.noConflictToResolve')}
           </span>
           <span className="gv-cb-spring" />
           <button
             className="gv-cb-btn gv-cb-continue"
             disabled={conflictFiles.length > 0}
-            title={conflictFiles.length > 0 ? 'Résolvez et indexez tous les fichiers d\'abord' : 'Continuer l\'opération'}
+            title={conflictFiles.length > 0 ? t('ext.app.resolveFirst') : t('ext.app.continueOp')}
             onClick={() => handleConflictFinish(conflictMode === 'merge' ? 'merge' : 'rebase')}
           >
             Continuer
@@ -701,7 +702,7 @@ function VertexApp() {
             onOpenCommitOnRemote={handleOpenCommitOnRemote}
             onCompareWorking={(hash) => window.gitAPI.openCompareWorkingTab(hash)}
             compareBaseHash={compareBaseHash}
-            onSelectForCompare={(hash) => { setCompareBaseHash(hash); showToast('◎ Commit sélectionné pour comparaison') }}
+            onSelectForCompare={(hash) => { setCompareBaseHash(hash); showToast(t('ext.app.commitSelected')) }}
             onCompareWithSelected={(hash) => { if (compareBaseHash) window.gitAPI.openCompare(compareBaseHash, hash) }}
             wipCount={wipCount}
             conflictMode={conflictMode}

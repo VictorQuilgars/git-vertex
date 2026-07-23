@@ -128,7 +128,7 @@ export default function FileHistory({ file }: { file: string }) {
             <div className="fh-blame">
               {loadingPane && <div className="fh-empty">Chargement…</div>}
               {!loadingPane && blame.length === 0 && (
-                <div className="fh-empty">Blame indisponible à cette révision</div>
+                <div className="fh-empty">{t('fh.noBlame')}</div>
               )}
               {!loadingPane && blame.map((l, i) => (
                 <div key={i} className="fh-blame-line">

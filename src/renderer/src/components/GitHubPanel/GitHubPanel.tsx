@@ -31,16 +31,16 @@ interface Props {
   repoPath: string | null
 }
 
-function timeAgo(dateStr: string, lang: string): string {
+function timeAgo(dateStr: string, lang: string, t: (k: string) => string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (diff < 60) return lang === 'fr' ? "à l'instant" : 'just now'
+  if (diff < 60) return t('github.justNow')
   if (diff < 3600) {
     const m = Math.floor(diff / 60)
     return lang === 'fr' ? `${m} min` : `${m}m`
   }
   if (diff < 86400) {
     const h = Math.floor(diff / 3600)
-    return lang === 'fr' ? `${h}h` : `${h}h`
+    return lang === 'fr' ? `${h} h` : `${h}h`
   }
   if (diff < 2592000) {
     const d = Math.floor(diff / 86400)
@@ -83,7 +83,7 @@ function PRItem({ pr, lang }: { pr: PR; lang: string }) {
         <span className="ghp-dot">·</span>
         <span className="ghp-author">@{pr.author}</span>
         <span className="ghp-dot">·</span>
-        <span className="ghp-time">{timeAgo(pr.createdAt, lang)}</span>
+        <span className="ghp-time">{timeAgo(pr.createdAt, lang, t)}</span>
         {pr.comments > 0 && (
           <>
             <span className="ghp-dot">·</span>
@@ -116,7 +116,7 @@ function IssueItem({ issue, lang }: { issue: Issue; lang: string }) {
       <div className="ghp-item-meta">
         <span className="ghp-author">@{issue.author}</span>
         <span className="ghp-dot">·</span>
-        <span className="ghp-time">{timeAgo(issue.createdAt, lang)}</span>
+        <span className="ghp-time">{timeAgo(issue.createdAt, lang, t)}</span>
         {issue.comments > 0 && (
           <>
             <span className="ghp-dot">·</span>
