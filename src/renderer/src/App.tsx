@@ -1496,8 +1496,17 @@ export default function App() {
           <button className="app-tab-add"
             title={t('tabs.new')} onClick={() => { setSettingsOpen(false); goHome() }}>+</button>
 
-          {/* Right cluster: notifications · settings · profile */}
+          {/* Right cluster: update · notifications · settings · profile */}
           <div className="app-tabs-right">
+            {updatePhase !== 'idle' && (
+              <button className="app-tb-icon app-tb-update" title={t('toolbar.update.tooltip')}
+                onClick={() => setUpdateOverlayOpen(true)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span className="app-tb-update-dot" />
+              </button>
+            )}
             <button className="app-tb-icon" title={t('settings.notifications')} disabled>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 16a2 2 0 0 0 1.985-1.75c.017-.137-.097-.25-.235-.25h-3.5c-.138 0-.252.113-.235.25A2 2 0 0 0 8 16zm.535-13.518C10.456 2.787 12 4.482 12 6.5c0 1.5.286 2.658.66 3.516.187.43.39.764.578 1.011.094.124.18.225.249.302a3.86 3.86 0 0 0 .153.163l.013.013.004.004.001.001H14a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1h.342l.001-.001.004-.004.013-.013a3.86 3.86 0 0 0 .153-.163c.069-.077.155-.178.249-.302.188-.247.391-.581.578-1.011C4.714 9.158 5 8 5 6.5c0-2.018 1.544-3.713 3.465-4.018A1.5 1.5 0 0 1 8 1.5a1.5 1.5 0 0 1 .535.982z"/>
@@ -1558,8 +1567,6 @@ export default function App() {
         onAiSearchSubmit={runAiSearch}
         onSettings={() => setSettingsOpen(v => !v)}
         settingsOpen={settingsOpen}
-        updateReady={updatePhase !== 'idle'}
-        onInstallUpdate={() => setUpdateOverlayOpen(true)}
         githubRepoUrl={githubRepoUrl}
         onCreatePR={githubOwnerRepo ? () => setPrModalOpen(true) : undefined}
         onGitflow={repoPath ? () => setGitflowOpen(true) : undefined}

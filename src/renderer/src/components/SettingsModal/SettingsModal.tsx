@@ -855,10 +855,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         }
                         console.log('[updater] remote version:', r?.version, '— will update:', !!r?.version)
                         if (r?.version) {
-                          // Hand off to the app-level overlay (single download+install flow).
+                          // Hand off to the app-level overlay (single download+install
+                          // flow). Keep Settings open underneath so "Later" returns
+                          // here instead of dropping the user back on the home page.
                           setUpdateStatus('idle')
                           onUpdateFound?.(r.version)
-                          onClose()
                         } else setUpdateStatus('up-to-date')
                       }}
                     >

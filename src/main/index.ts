@@ -320,10 +320,15 @@ app.whenReady().then(() => {
       console.error('[updater] error:', err.message)
       mainWindow?.webContents.send('updater:error', err.message)
     })
-    // Plain check (no auto-download): surfaces update-available to the renderer.
-    autoUpdater.checkForUpdates().catch(err => {
-      console.error('[updater] checkForUpdates failed:', err.message)
+    // Plain check (no auto-download): surfaces update-available to the renderer,
+    // which shows the discreet badge next to the notification bell. Check a few
+    // seconds after boot (network settled), then poll every 30 min so an update
+    // released while the app is open is picked up without a restart.
+    const runCheck = () => autoUpdater.checkForUpdates().catch(err => {
+      console.error('[updater] checkForUpdates failed:', err?.message ?? err)
     })
+    setTimeout(runCheck, 4000)
+    setInterval(runCheck, 30 * 60 * 1000)
   }
 })
 

@@ -527,40 +527,24 @@ body {
 .bc-msg { font-size: 12px; color: #c9d1d9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 
-/* ── Update banner ───────────────────────────────────────────── */
-.update-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 16px;
-  background: #1c2128;
-  border-bottom: 1px solid #f0883e55;
-  font-size: 13px;
-  color: #e6edf3;
-  flex-shrink: 0;
+/* ── Update badge (discreet, next to the notification bell) ──── */
+.app-tb-update { position: relative; color: #c9d1d9; }
+.app-tb-update:hover { color: #58a6ff; }
+.app-tb-update-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3fb950;
+  box-shadow: 0 0 0 2px #0d1117;
+  animation: app-tb-update-pulse 2.2s ease-in-out infinite;
 }
-.update-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.update-btn-install {
-  padding: 5px 14px;
-  background: #f0883e;
-  border: none;
-  border-radius: 6px;
-  color: #0d1117;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.12s;
+@keyframes app-tb-update-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
-.update-btn-install:hover { opacity: 0.85; }
-.update-btn-later {
-  padding: 5px 12px;
-  background: transparent;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  color: #8b949e;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.12s;
+@media (prefers-reduced-motion: reduce) {
+  .app-tb-update-dot { animation: none; }
 }
-.update-btn-later:hover { border-color: #8b949e; color: #e6edf3; }
