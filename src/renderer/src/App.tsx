@@ -1800,20 +1800,25 @@ export default function App() {
                         {t('welcome.recents')}
                       </div>
                       <div className="welcome-recents-list">
-                        {list.slice(0, 8).map(path => (
+                        {list.slice(0, 8).map(path => {
+                          const parts = path.split(/[\\/]/).filter(Boolean)
+                          const name = parts[parts.length - 1] ?? path
+                          const parent = parts.slice(0, -1).join('/')
+                          return (
                           <button key={path} className="welcome-recent-item" onClick={() => handleSetRepo(path)} title={path}>
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-icon">
                               <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
                             </svg>
                             <div className="welcome-recent-info">
-                              <span className="welcome-recent-name">{path.split('/').pop()}</span>
-                              <span className="welcome-recent-path">{path.split('/').slice(0, -1).join('/')}</span>
+                              <span className="welcome-recent-name">{name}</span>
+                              <span className="welcome-recent-path">{parent}</span>
                             </div>
                             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-arrow">
                               <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>
                             </svg>
                           </button>
-                        ))}
+                          )
+                        })}
                         {list.length === 0 && <div className="welcome-recents-empty">{t('welcome.noResults')}</div>}
                       </div>
                     </div>
