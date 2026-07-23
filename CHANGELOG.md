@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.15.4
+
+### Changed
+- **Bouton « Mise à jour » explicite** — quand une mise à jour est disponible, un petit bouton vert « Mise à jour » (avec libellé) apparaît en haut à droite, à la place de la simple icône avec un point vert. Un clic ouvre l'écran de mise à jour, comme avant.
+
 ## 1.15.3
 
 ### Fixed

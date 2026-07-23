@@ -527,24 +527,22 @@ body {
 .bc-msg { font-size: 12px; color: #c9d1d9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 
-/* ── Update badge (discreet, next to the notification bell) ──── */
-.app-tb-update { position: relative; color: #c9d1d9; }
-.app-tb-update:hover { color: #58a6ff; }
-.app-tb-update-dot {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #3fb950;
-  box-shadow: 0 0 0 2px #0d1117;
-  animation: app-tb-update-pulse 2.2s ease-in-out infinite;
+/* ── Update button (small labeled pill, next to the bell) ────── */
+.app-tb-update-btn {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #3fb95055;
+  border-radius: 6px;
+  background: #3fb95018;
+  color: #3fb950;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
 }
-@keyframes app-tb-update-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .app-tb-update-dot { animation: none; }
-}
+.app-tb-update-btn:hover { background: #3fb95030; border-color: #3fb95099; }
+.app-tb-update-btn-label { line-height: 1; }
