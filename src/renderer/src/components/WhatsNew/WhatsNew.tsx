@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLang } from '../../i18n/LanguageContext'
 import './WhatsNew.css'
 
 // Minimal markdown-subset renderer for our own curated release notes:
@@ -39,17 +40,18 @@ function renderNotes(md: string): React.ReactNode[] {
 }
 
 export default function WhatsNew({ version, notes }: { version: string; notes: string }) {
+  const { t } = useLang()
   const releaseUrl = `https://github.com/VictorQuilgars/git-vertex/releases/tag/v${version}`
   return (
     <div className="wn">
       <div className="wn-inner">
         <div className="wn-head">
-          <h1 className="wn-title">Notes de version</h1>
+          <h1 className="wn-title">{t('whatsnew.title')}</h1>
           <button className="wn-browser" onClick={() => (window as any).gitAPI?.openExternal?.(releaseUrl)}>
-            Ouvrir dans le navigateur ↗
+            {t('whatsnew.openInBrowser')}
           </button>
         </div>
-        <p className="wn-intro">Retrouvez les nouveautés, améliorations et corrections de Git Vertex, version après version.</p>
+        <p className="wn-intro">{t('whatsnew.intro')}</p>
         <div className="wn-badge">Git Vertex v{version}</div>
         <div className="wn-body">{renderNotes(notes)}</div>
       </div>

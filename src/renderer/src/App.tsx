@@ -1514,10 +1514,10 @@ export default function App() {
             </div>
           )}
           {whatsNew && (
-            <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title="Quoi de neuf"
+            <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title={t('tabs.whatsNew')}
               onClick={() => { setSettingsOpen(false); setWhatsNewActive(true) }}>
               <span className="app-tab-icon app-tab-icon--tool">✨</span>
-              <span className="app-tab-name">Quoi de neuf</span>
+              <span className="app-tab-name">{t('tabs.whatsNew')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); setWhatsNew(null); setWhatsNewActive(false) }}>×</button>
             </div>
