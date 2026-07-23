@@ -717,7 +717,7 @@ export class GitService {
       const before = (await this.git.revparse(['HEAD'])).trim()
       await this.git.raw(['reset', '--soft', 'HEAD@{1}'])
       this.redoStack.push(before)
-      return { success: true, action: 'Action annulée' }
+      return { success: true, action: 'Action undone' }
     } catch (e: any) {
       return { success: false, error: e.message }
     }
@@ -726,11 +726,11 @@ export class GitService {
   // Redo the last undone action: soft-reset forward to the saved HEAD.
   async redoLastAction(): Promise<{ success: boolean; error?: string; action?: string }> {
     const target = this.redoStack.pop()
-    if (!target) return { success: false, error: 'Rien à rétablir' }
+    if (!target) return { success: false, error: 'Nothing to redo' }
     try {
       await this.git.raw(['cat-file', '-e', `${target}^{commit}`])
       await this.git.raw(['reset', '--soft', target])
-      return { success: true, action: 'Action rétablie' }
+      return { success: true, action: 'Action redone' }
     } catch (e: any) {
       return { success: false, error: e.message }
     }
@@ -1014,7 +1014,7 @@ export class GitService {
       const status = await this.git.status()
       if (status.current === branch) {
         if (await this.isDirty()) {
-          return { success: false, error: 'Modifications non commitées — commit ou stash avant de déplacer la branche courante' }
+          return { success: false, error: 'Uncommitted changes — commit or stash before moving current branch' }
         }
         await this.git.raw(['reset', '--hard', hash])
       } else {
@@ -1036,7 +1036,7 @@ export class GitService {
       return { success: true }
     } catch (e: any) {
       if (this.rebaseInProgress()) {
-        return { success: false, conflict: true, error: 'Conflit de rebase — résolvez les conflits puis continuez' }
+        return { success: false, conflict: true, error: 'Rebase conflict — resolve conflicts then continue' }
       }
       return { success: false, error: e.message }
     }
@@ -1049,7 +1049,7 @@ export class GitService {
       await this.git.raw(['checkout', branch])
       await this.git.raw(['merge', hash])
       if (await this.hasUnmergedPaths()) {
-        return { success: false, error: 'Conflit de merge — résolvez les conflits pour continuer' }
+        return { success: false, error: 'Merge conflict — resolve conflicts to continue' }
       }
       return { success: true }
     } catch (e: any) {
@@ -1096,7 +1096,7 @@ export class GitService {
       const base = e.stderr ?? e.message
       return {
         success: false,
-        error: aborted ? 'Conflit de rebase — opération annulée, historique inchangé' : base
+        error: aborted ? 'Rebase conflict — operation aborted, history unchanged' : base
       }
     } finally {
       try { fs.unlinkSync(seqFile) } catch {}
@@ -1131,7 +1131,7 @@ export class GitService {
       if (idx === -1) return { success: false, error: 'Commit introuvable' }
       const swapWith = direction === 'up' ? idx + 1 : idx - 1
       if (swapWith < 0 || swapWith >= picks.length) {
-        return { success: false, error: 'Déplacement impossible' }
+        return { success: false, error: 'Move impossible' }
       }
       const reordered = [...picks]
       ;[reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]]
@@ -1220,11 +1220,11 @@ exit 0
   // them). Without this, squash groups fall back to git's raw concatenation
   // of all folded messages.
   async interactiveRebase(sequence: { action: string; hash: string }[], messages?: string[]): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
-    if (!sequence.length) return { success: false, error: 'Séquence vide' }
+    if (!sequence.length) return { success: false, error: 'Empty sequence' }
     // The first kept commit can't be squash/fixup (nothing earlier to fold into).
     const firstKept = sequence.find(s => s.action !== 'drop')
     if (firstKept && (firstKept.action === 'squash' || firstKept.action === 'fixup')) {
-      return { success: false, error: "Le premier commit conservé ne peut pas être « squash »/« fixup »." }
+      return { success: false, error: "The first kept commit cannot be 'squash'/'fixup'." }
     }
     const fs = await import('fs')
     const path = await import('path')
@@ -1255,7 +1255,7 @@ exit 0
       // abort. Leave it so the user can resolve the conflicts and continue via
       // the conflict UI (the banner detects conflictMode='rebase').
       if (this.rebaseInProgress()) {
-        return { success: false, conflict: true, error: 'Conflit de rebase — résolvez les conflits puis cliquez sur Continuer' }
+        return { success: false, conflict: true, error: 'Rebase conflict — resolve conflicts then click Continue' }
       }
       return { success: false, error: e.stderr ?? e.message }
     } finally {
@@ -1341,14 +1341,14 @@ exit 0
       if (!this.rebaseInProgress()) return { success: false, error: e.stderr ?? e.message }
       // Real conflicts remain → the user must resolve them first.
       if (await this.hasUnmergedPaths()) {
-        return { success: false, conflict: true, error: 'Conflits restants — résolvez-les puis continuez' }
+        return { success: false, conflict: true, error: 'Remaining conflicts — resolve them then continue' }
       }
       // Clean tree but `--continue` couldn't advance → the current commit is
       // empty / already applied. Skip it so the rebase moves on (no changes lost).
       try {
         await this.gitExec(['rebase', '--skip'])
         if (this.rebaseInProgress() && await this.hasUnmergedPaths()) {
-          return { success: false, conflict: true, error: 'Conflits restants — résolvez-les puis continuez' }
+          return { success: false, conflict: true, error: 'Remaining conflicts — resolve them then continue' }
         }
         return { success: true }
       } catch (e2: any) {
@@ -1363,14 +1363,14 @@ exit 0
     try {
       await this.gitExec(['rebase', '--skip'])
       if (this.rebaseInProgress() && await this.hasUnmergedPaths()) {
-        return { success: false, conflict: true, error: 'Conflits sur l\'étape suivante — résolvez-les puis continuez' }
+        return { success: false, conflict: true, error: 'Conflicts on the next step — resolve them then continue' }
       }
       return { success: true }
     } catch (e: any) {
       // The skip itself worked but the next step conflicts: keep the rebase
       // paused and let the UI refresh on the new conflict set.
       if (this.rebaseInProgress() && await this.hasUnmergedPaths()) {
-        return { success: false, conflict: true, error: 'Conflits sur l\'étape suivante — résolvez-les puis continuez' }
+        return { success: false, conflict: true, error: 'Conflicts on the next step — resolve them then continue' }
       }
       return { success: false, error: e.stderr ?? e.message }
     }
@@ -1460,7 +1460,7 @@ exit 0
     try { await this.git.raw(['rebase', '--autostash', branch]); return { success: true } }
     catch (e: any) {
       if (this.rebaseInProgress()) {
-        return { success: false, conflict: true, error: 'Conflit de rebase — résolvez les conflits puis cliquez sur Continuer' }
+        return { success: false, conflict: true, error: 'Rebase conflict — resolve conflicts then click Continue' }
       }
       return { success: false, error: e.message }
     }
@@ -1529,7 +1529,7 @@ exit 0
       let target = upstream
       if (!target) {
         const remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
-        if (remotes.length === 0) return { success: false, error: 'Aucun remote configuré' }
+        if (remotes.length === 0) return { success: false, error: 'No remote configured' }
         const preferred = remotes.includes('origin') ? 'origin' : remotes[0]
         target = `${preferred}/${branch}`
       }

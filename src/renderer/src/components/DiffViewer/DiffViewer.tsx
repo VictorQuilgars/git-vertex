@@ -292,7 +292,7 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel }
           <FileList files={files} />
 
           {parsedDiff.length === 0 && !loading && (
-            <div className="diff-empty-inner">Aucun changement détecté</div>
+            <div className="diff-empty-inner">{t('diff.empty')}</div>
           )}
 
           <div className="diff-scroll">

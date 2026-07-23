@@ -1,6 +1,7 @@
 // CompactToolbar.tsx — GitLens-style single-row icon toolbar for the panel.
 // Logo + repo name + branch selector on the left; compact icon actions on the right.
 import React, { useState, useRef, useEffect } from 'react'
+import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import type { BranchInfo } from '../../../src/renderer/src/types'
 
 interface Props {
@@ -64,16 +65,17 @@ function TextBtn({ title, label, onClick, disabled, count, children }: {
   )
 }
 
-function relTime(d: Date | null): string {
+function relTime(d: Date | null, lang: string, t: (k: string) => string): string {
   if (!d) return ''
   const s = Math.floor((Date.now() - d.getTime()) / 1000)
-  if (s < 60) return "à l'instant"
-  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`
-  if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`
-  return `il y a ${Math.floor(s / 86400)} j`
+  if (s < 60) return t('github.justNow')
+  if (s < 3600) return lang === 'fr' ? `il y a ${Math.floor(s / 60)} min` : `${Math.floor(s / 60)}m ago`
+  if (s < 86400) return lang === 'fr' ? `il y a ${Math.floor(s / 3600)} h` : `${Math.floor(s / 3600)}h ago`
+  return lang === 'fr' ? `il y a ${Math.floor(s / 86400)} j` : `${Math.floor(s / 86400)}d ago`
 }
 
 export default function CompactToolbar(p: Props) {
+  const { t, lang } = useLang()
   const [branchOpen, setBranchOpen] = useState(false)
   const branchRef = useRef<HTMLDivElement>(null)
 
@@ -128,16 +130,16 @@ export default function CompactToolbar(p: Props) {
       <span className="gvt-spring" />
 
       {/* Sync actions — labelled, all identical style */}
-      <TextBtn title={p.lastFetch ? `Fetch · ${relTime(p.lastFetch)}` : 'Fetch'} label="Fetch" onClick={p.onFetch} disabled={p.loading}>
+      <TextBtn title={p.lastFetch ? `Fetch · ${relTime(p.lastFetch, lang, t)}` : 'Fetch'} label="Fetch" onClick={p.onFetch} disabled={p.loading}>
         <svg className={p.loading ? 'gvt-spin' : ''} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
       </TextBtn>
       <TextBtn
-        title={p.behind ? `Pull — ${p.behind} commit(s) en retard` : 'Pull'}
+        title={p.behind ? lang === 'fr' ? `Pull — ${p.behind} commit(s) en retard` : `Pull — ${p.behind} commit(s) behind` : 'Pull'}
         label="Pull" onClick={p.onPull} disabled={p.loading} count={p.behind}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/><polyline points="3 21 21 21"/></svg>
       </TextBtn>
       <TextBtn
-        title={p.ahead ? `Push — ${p.ahead} commit(s) en avance` : 'Push'}
+        title={p.ahead ? lang === 'fr' ? `Push — ${p.ahead} commit(s) en avance` : `Push — ${p.ahead} commit(s) ahead` : 'Push'}
         label="Push" onClick={p.onPush} disabled={p.loading} count={p.ahead}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="21" x2="12" y2="9"/><polyline points="7 14 12 9 17 14"/><polyline points="3 3 21 3"/></svg>
       </TextBtn>

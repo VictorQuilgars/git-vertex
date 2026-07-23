@@ -42,7 +42,7 @@ export function PromptDialog({ message, defaultValue = '', multiline = false, on
               }}
               spellCheck={false}
             />
-            <div className="dlg-hint">⌘/Ctrl + Entrée pour valider — 1ʳᵉ ligne : titre, puis ligne vide, puis description</div>
+            <div className="dlg-hint">{t('dlg.hint')}</div>
           </>
         ) : (
           <input

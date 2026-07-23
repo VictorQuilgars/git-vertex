@@ -5,7 +5,8 @@
 // language (and CSS) of RebaseProgress — the "Rebase en cours" tab that
 // auto-opens for the very same rebase and can be visible side by side.
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React
+import { useLang } from '../../../src/renderer/src/i18n/LanguageContext', { useState, useEffect, useRef, useCallback } from 'react'
 import '../../../src/renderer/src/components/RebaseProgress/RebaseProgress.css'
 
 declare global { interface Window { gitAPI: any } }
@@ -72,6 +73,8 @@ function serializeTodo(entries: TodoEntry[]): string {
 }
 
 export default function RebaseTodoApp() {
+  const { t } = useLang();
+
   const [entries, setEntries] = useState<TodoEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -135,7 +138,7 @@ export default function RebaseTodoApp() {
   const handleLaunch = useCallback(async () => {
     const firstKept = entries.find(e => e.kind === 'commit' && e.action !== 'drop')
     if (firstKept && (firstKept.action === 'squash' || firstKept.action === 'fixup')) {
-      setError('Le premier commit conservé ne peut pas être « squash »/« fixup ».')
+      setError(t('ir.firstKept'))
       return
     }
     setError(null)
@@ -173,7 +176,7 @@ export default function RebaseTodoApp() {
 
       <div className="rp-steps">
         {loading && <div className="rp-empty">Chargement…</div>}
-        {!loading && entries.length === 0 && <div className="rp-empty">Aucune étape dans ce rebase</div>}
+        {!loading && entries.length === 0 && <div className="rp-empty">{t('ext.rebase.empty')}</div>}
         {entries.map((entry, i) => (
           <div
             key={entry.id}
@@ -186,7 +189,7 @@ export default function RebaseTodoApp() {
             onDragEnd={() => setDragOver(null)}
             onKeyDown={e => handleRowKeyDown(e, i)}
           >
-            <span className="rp-step-drag" title="Glisser pour réordonner (ou Alt+↑/↓)">⠿</span>
+            <span className="rp-step-drag" title=t('ext.rebase.drag')>⠿</span>
             {entry.kind === 'commit' ? (
               <>
                 <select
@@ -214,7 +217,7 @@ export default function RebaseTodoApp() {
       </div>
 
       <div className="rp-legend">
-        <kbd>p</kbd>ick · <kbd>r</kbd>eword · <kbd>e</kbd>dit · <kbd>s</kbd>quash · <kbd>f</kbd>ixup · <kbd>d</kbd>rop · <kbd>alt</kbd>+<kbd>↑↓</kbd> déplacer · le rebase démarre à la fermeture
+        {t('ext.rebase.help')}
       </div>
 
       <div className="rp-footer">

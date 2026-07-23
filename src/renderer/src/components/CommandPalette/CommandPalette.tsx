@@ -65,7 +65,7 @@ export default function CommandPalette({ commands, onClose }: CommandPaletteProp
           <input
             ref={inputRef}
             className="cp-input"
-            placeholder="Rechercher une commande…"
+            placeholder={title || t('cp.search')}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -74,7 +74,7 @@ export default function CommandPalette({ commands, onClose }: CommandPaletteProp
         </div>
         <div className="cp-list" ref={listRef}>
           {filtered.length === 0 && (
-            <div className="cp-empty">Aucune commande trouvée</div>
+            <div className="cp-empty">{t('cp.empty')}</div>
           )}
           {filtered.map((cmd, i) => (
             <div
