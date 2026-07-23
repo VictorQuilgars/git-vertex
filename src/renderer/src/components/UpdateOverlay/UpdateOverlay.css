@@ -1,0 +1,122 @@
+.upd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(1, 4, 9, 0.72);
+  backdrop-filter: blur(3px);
+  animation: upd-fade 0.18s ease;
+}
+
+@keyframes upd-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.upd-card {
+  width: 340px;
+  padding: 32px 28px 30px;
+  border-radius: 16px;
+  border: 1px solid rgba(240, 246, 252, 0.08);
+  background: radial-gradient(80% 70% at 50% 30%, #161b22 0%, #0d1117 78%);
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.upd-mark { width: 78px; height: 78px; display: block; margin-bottom: 2px; }
+
+.upd-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: #f0f6fc;
+}
+
+.upd-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #8b98a5;
+  max-width: 30ch;
+  font-variant-numeric: tabular-nums;
+}
+
+.upd-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.upd-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.upd-btn--primary {
+  background: linear-gradient(90deg, #3fb950, #2ea043);
+  color: #06140a;
+}
+.upd-btn--primary:hover { filter: brightness(1.08); }
+
+.upd-btn--ghost {
+  background: transparent;
+  border-color: rgba(240, 246, 252, 0.1);
+  color: #9aa7b4;
+}
+.upd-btn--ghost:hover { border-color: rgba(88, 166, 255, 0.5); color: #e6edf3; }
+
+.upd-btn:focus-visible { outline: 2px solid #58a6ff; outline-offset: 2px; }
+
+/* ── Progress ─────────────────────────────────────────────── */
+.upd-track {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 6px;
+  background: rgba(240, 246, 252, 0.07);
+  overflow: hidden;
+}
+
+/* determinate: fill grows with the download percentage */
+.upd-track-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #3fb950, #58a6ff);
+  transition: width 0.25s ease;
+}
+
+/* indeterminate: a green→blue sweep for the install phase */
+.upd-track--indeterminate .upd-track-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, transparent, #3fb950, #58a6ff, transparent);
+  animation: upd-sweep 1.4s cubic-bezier(0.5, 0.05, 0.5, 0.95) infinite;
+}
+
+@keyframes upd-sweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(320%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upd-backdrop { animation: none; }
+  .upd-track--indeterminate .upd-track-sweep { animation: none; transform: translateX(90%); }
+}

@@ -9,11 +9,46 @@ import { GitService } from './git-service'
 import { RELEASE_NOTES } from './release-notes'
 import { getRecentRepos, addRecentRepo, removeRecentRepo } from './recent-repos'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
+import { splashHtml } from './splash'
 import iconPng from '../../resources/icon.png?asset'
 import iconIco from '../../resources/icon.ico?asset'
 
 let mainWindow: BrowserWindow
+let splashWindow: BrowserWindow | null = null
+let splashShownAt = 0
 let gitService: GitService | null = null
+
+// Small branded splash shown while the main window boots (and right after an
+// update relaunches the app). Frameless + transparent so only the rounded card
+// shows. Self-contained HTML, so nothing extra needs packaging.
+function createSplash(): void {
+  splashWindow = new BrowserWindow({
+    width: 360,
+    height: 420,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    center: true,
+    focusable: false,
+    show: false,
+    backgroundColor: '#00000000',
+    webPreferences: { sandbox: true }
+  })
+  splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml(app.getVersion())))
+  splashWindow.once('ready-to-show', () => { splashShownAt = Date.now(); splashWindow?.show() })
+}
+
+function closeSplash(): void {
+  if (!splashWindow) return
+  // Keep it up for a beat so it never just flashes on a fast boot.
+  const wait = Math.max(0, 800 - (Date.now() - splashShownAt))
+  const win = splashWindow
+  splashWindow = null
+  setTimeout(() => { if (!win.isDestroyed()) win.close() }, wait)
+}
 
 // ── Repo file watcher ─────────────────────────────────────────
 // Watches .git (git state) and the working tree root (unstaged changes).
@@ -77,6 +112,7 @@ function notify(title: string, body: string, settingKey?: string, defaultEnabled
 }
 
 function createWindow(): void {
+  createSplash()
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -100,7 +136,10 @@ function createWindow(): void {
     show: false
   })
 
-  mainWindow.on('ready-to-show', () => mainWindow.show())
+  mainWindow.on('ready-to-show', () => {
+    mainWindow.show()
+    closeSplash()
+  })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -255,7 +294,10 @@ app.whenReady().then(() => {
 
   // Auto-updater (only in production)
   if (!is.dev) {
-    autoUpdater.autoDownload = true
+    // Don't download in the background: the renderer starts the download when
+    // the user chooses to update, so the progress bar is actually visible to
+    // them (an already-downloaded update would jump straight to "installing").
+    autoUpdater.autoDownload = false
     autoUpdater.on('update-available', (info) => {
       console.log('[updater] update available:', info.version)
       mainWindow?.webContents.send('updater:update-available', info.version)
@@ -278,7 +320,8 @@ app.whenReady().then(() => {
       console.error('[updater] error:', err.message)
       mainWindow?.webContents.send('updater:error', err.message)
     })
-    autoUpdater.checkForUpdatesAndNotify().catch(err => {
+    // Plain check (no auto-download): surfaces update-available to the renderer.
+    autoUpdater.checkForUpdates().catch(err => {
       console.error('[updater] checkForUpdates failed:', err.message)
     })
   }
@@ -1584,6 +1627,16 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
   const url = githubIdenticonUrl(key)
   avatarCache.set(key, url)
   return url
+})
+
+ipcMain.handle('updater:download', async () => {
+  if (is.dev) return { dev: true }
+  try {
+    await autoUpdater.downloadUpdate()
+    return { success: true }
+  } catch (e: any) {
+    return { error: e?.message ?? String(e) }
+  }
 })
 
 ipcMain.handle('updater:install', () => {

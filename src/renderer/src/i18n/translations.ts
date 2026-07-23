@@ -56,6 +56,13 @@ const fr = {
   'update.banner': '🚀 Une nouvelle version est disponible et prête à être installée.',
   'update.install': 'Redémarrer et installer',
   'update.later': 'Plus tard',
+  // Update overlay
+  'update.available.title': 'Mise à jour disponible',
+  'update.available.desc': (v: string) => `La version ${v} est prête à être téléchargée.`,
+  'update.download': 'Télécharger et installer',
+  'update.downloading': (pct: number) => `Téléchargement… ${pct} %`,
+  'update.installing.title': 'Presque terminé',
+  'update.installing.desc': "Installation en cours — l'application redémarre automatiquement dans quelques instants.",
 
   // CommitGraph
   'graph.empty': 'Aucun commit à afficher',
@@ -504,6 +511,12 @@ const en: typeof fr = {
   'update.banner': '🚀 A new version is available and ready to install.',
   'update.install': 'Restart and install',
   'update.later': 'Later',
+  'update.available.title': 'Update available',
+  'update.available.desc': (v: string) => `Version ${v} is ready to download.`,
+  'update.download': 'Download and install',
+  'update.downloading': (pct: number) => `Downloading… ${pct}%`,
+  'update.installing.title': 'Almost done',
+  'update.installing.desc': 'Installing — the app will restart automatically in a moment.',
 
   // CommitGraph
   'graph.empty': 'No commits to display',

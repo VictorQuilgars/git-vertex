@@ -10,6 +10,7 @@ import { PromptDialog, ConfirmDialog } from './components/Dialog/Dialog'
 import CommandPalette, { PaletteCommand } from './components/CommandPalette/CommandPalette'
 import { ToastProvider, useToast } from './components/Toast/Toast'
 import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
+import UpdateOverlay from './components/UpdateOverlay/UpdateOverlay'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
@@ -295,8 +296,11 @@ export default function App() {
   const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
   const [githubOwnerRepo, setGithubOwnerRepo] = useState<{ owner: string; repo: string } | null>(null)
   const [prModalOpen, setPrModalOpen] = useState(false)
-  const [updateReady, setUpdateReady] = useState(false)
-  const [updateBannerOpen, setUpdateBannerOpen] = useState(false)
+  // Update overlay state machine: available → downloading → installing.
+  const [updatePhase, setUpdatePhase] = useState<'idle' | 'available' | 'downloading' | 'installing'>('idle')
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null)
+  const [updatePct, setUpdatePct] = useState(0)
+  const [updateOverlayOpen, setUpdateOverlayOpen] = useState(false)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [conflictResolverFile, setConflictResolverFile] = useState<string | null>(null)
@@ -499,13 +503,37 @@ export default function App() {
     return s
   }, [extendedSearch, searchQuery, extendedSearchHashes, aiSearchHashes])
 
-  // ── Auto-updater ───────────────────────────────────────────
+  // ── Auto-updater (available → downloading → installing) ─────
+  // autoDownload is off in main, so a download only ever starts from the
+  // overlay's "Télécharger et installer" — which is why reaching "downloaded"
+  // always means the user opted in, and we can go straight to installing.
   useEffect(() => {
     const api = window.gitAPI as any
-    return api.onUpdateDownloaded?.(() => {
-      setUpdateReady(true)
-      setUpdateBannerOpen(true)
+    const offAvail = api.onUpdateAvailable?.((v: string) => {
+      setUpdateVersion(v)
+      setUpdatePhase('available')
     })
+    const offProg = api.onDownloadProgress?.((pct: number) => {
+      setUpdatePct(pct)
+      setUpdatePhase(p => (p === 'installing' ? p : 'downloading'))
+    })
+    const offDone = api.onUpdateDownloaded?.((v: string) => {
+      setUpdateVersion(v)
+      setUpdatePhase('installing')
+      setUpdateOverlayOpen(true)
+      // Let the "installing" message paint before the window vanishes.
+      setTimeout(async () => {
+        const r = await api.installManual?.()
+        if (r?.error) api.installUpdate?.()
+      }, 1400)
+    })
+    return () => { offAvail?.(); offProg?.(); offDone?.() }
+  }, [])
+
+  const startUpdateDownload = useCallback(() => {
+    setUpdatePct(0)
+    setUpdatePhase('downloading')
+    ;(window.gitAPI as any).downloadUpdate?.()
   }, [])
 
   // ── GitHub connection state ────────────────────────────────
@@ -1530,36 +1558,30 @@ export default function App() {
         onAiSearchSubmit={runAiSearch}
         onSettings={() => setSettingsOpen(v => !v)}
         settingsOpen={settingsOpen}
-        updateReady={updateReady}
-        onInstallUpdate={() => setUpdateBannerOpen(true)}
+        updateReady={updatePhase !== 'idle'}
+        onInstallUpdate={() => setUpdateOverlayOpen(true)}
         githubRepoUrl={githubRepoUrl}
         onCreatePR={githubOwnerRepo ? () => setPrModalOpen(true) : undefined}
         onGitflow={repoPath ? () => setGitflowOpen(true) : undefined}
       />
       )}
 
-      {/* ── Update banner ── */}
-      {updateBannerOpen && updateReady && (
-        <div className="update-banner">
-          <span>{t('update.banner')}</span>
-          <div className="update-banner-actions">
-            <button className="update-btn-install" onClick={async () => {
-              const r = await (window.gitAPI as any).installManual?.()
-              if (r?.error) (window.gitAPI as any).installUpdate?.()
-            }}>
-              {t('update.install')}
-            </button>
-            <button className="update-btn-later" onClick={() => setUpdateBannerOpen(false)}>
-              {t('update.later')}
-            </button>
-          </div>
-        </div>
+      {/* ── Update overlay (available → downloading → installing) ── */}
+      {updateOverlayOpen && updatePhase !== 'idle' && (
+        <UpdateOverlay
+          phase={updatePhase}
+          version={updateVersion}
+          progress={updatePct}
+          onStart={startUpdateDownload}
+          onDismiss={() => setUpdateOverlayOpen(false)}
+        />
       )}
 
       {settingsOpen && (
         <SettingsModal
           onClose={() => setSettingsOpen(false)}
           showToast={showToast}
+          onUpdateFound={(v) => { setUpdateVersion(v); setUpdatePhase('available'); setUpdateOverlayOpen(true) }}
         />
       )}
 
