@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.15.3
+
+### Fixed
+- **Repos récents sur Windows** — l'accueil affiche désormais le nom du dossier en haut et le chemin parent en dessous, comme sur macOS. Auparavant, sur Windows (chemins avec `\`), seul le chemin complet apparaissait, sans le nom du dossier.
+
 ## 1.15.2
 
 ### Changed

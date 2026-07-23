@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.15.3': `## Quoi de neuf dans la 1.15.3
+
+### 🪟 Repos récents lisibles sur Windows
+- Sur l'accueil, les **repos récents** affichent maintenant le **nom du dossier** en haut et le **chemin parent** en dessous, comme sur macOS. Avant, sur Windows, seul le chemin complet s'affichait.
+`,
   '1.15.2': `## Quoi de neuf dans la 1.15.2
 
 ### 🔔 Mise à jour plus discrète et plus fiable
