@@ -11,6 +11,7 @@ import CommandPalette, { PaletteCommand } from './components/CommandPalette/Comm
 import { ToastProvider, useToast } from './components/Toast/Toast'
 import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import UpdateOverlay from './components/UpdateOverlay/UpdateOverlay'
+import NotificationCenter, { AppNotification } from './components/NotificationCenter/NotificationCenter'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
@@ -301,6 +302,30 @@ export default function App() {
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
   const [updatePct, setUpdatePct] = useState(0)
   const [updateOverlayOpen, setUpdateOverlayOpen] = useState(false)
+
+  // Notification center (bell in the top bar). Persisted in localStorage so
+  // notifications survive restarts.
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    try { return JSON.parse(localStorage.getItem('notifications') ?? '[]') } catch { return [] }
+  })
+  const [notifsOpen, setNotifsOpen] = useState(false)
+  useEffect(() => {
+    localStorage.setItem('notifications', JSON.stringify(notifications.slice(0, 50)))
+  }, [notifications])
+  const unreadCount = notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0)
+
+  // Add a notification, de-duplicated by kind+version so re-checks don't stack.
+  const addUpdateNotification = useCallback((version: string) => {
+    setNotifications(prev => {
+      if (prev.some(n => n.kind === 'update' && n.data?.version === version)) return prev
+      const next: AppNotification = {
+        id: `update-${version}-${Date.now()}`,
+        kind: 'update', data: { version }, ts: Date.now(), read: false,
+      }
+      return [next, ...prev]
+    })
+  }, [])
+
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [conflictResolverFile, setConflictResolverFile] = useState<string | null>(null)
@@ -512,6 +537,7 @@ export default function App() {
     const offAvail = api.onUpdateAvailable?.((v: string) => {
       setUpdateVersion(v)
       setUpdatePhase('available')
+      addUpdateNotification(v)
     })
     const offProg = api.onDownloadProgress?.((pct: number) => {
       setUpdatePct(pct)
@@ -528,7 +554,7 @@ export default function App() {
       }, 1400)
     })
     return () => { offAvail?.(); offProg?.(); offDone?.() }
-  }, [])
+  }, [addUpdateNotification])
 
   const startUpdateDownload = useCallback(() => {
     setUpdatePct(0)
@@ -1507,10 +1533,14 @@ export default function App() {
                 <span className="app-tb-update-btn-label">{t('toolbar.update.label')}</span>
               </button>
             )}
-            <button className="app-tb-icon" title={t('settings.notifications')} disabled>
+            <button className={`app-tb-icon app-tb-bell ${notifsOpen ? 'active' : ''}`}
+              title={t('notifs.title')} onClick={() => setNotifsOpen(v => !v)}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 16a2 2 0 0 0 1.985-1.75c.017-.137-.097-.25-.235-.25h-3.5c-.138 0-.252.113-.235.25A2 2 0 0 0 8 16zm.535-13.518C10.456 2.787 12 4.482 12 6.5c0 1.5.286 2.658.66 3.516.187.43.39.764.578 1.011.094.124.18.225.249.302a3.86 3.86 0 0 0 .153.163l.013.013.004.004.001.001H14a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1h.342l.001-.001.004-.004.013-.013a3.86 3.86 0 0 0 .153-.163c.069-.077.155-.178.249-.302.188-.247.391-.581.578-1.011C4.714 9.158 5 8 5 6.5c0-2.018 1.544-3.713 3.465-4.018A1.5 1.5 0 0 1 8 1.5a1.5 1.5 0 0 1 .535.982z"/>
               </svg>
+              {unreadCount > 0 && (
+                <span className="app-tb-bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
             </button>
             <button className={`app-tb-icon ${settingsOpen ? 'active' : ''}`}
               title={t('settings.title')} onClick={() => setSettingsOpen(v => !v)}>
@@ -1573,6 +1603,22 @@ export default function App() {
       />
       )}
 
+      {/* ── Notification center (bell dropdown) ── */}
+      {notifsOpen && (
+        <NotificationCenter
+          notifications={notifications}
+          onClose={() => setNotifsOpen(false)}
+          onToggleRead={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n))}
+          onDelete={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
+          onMarkAllRead={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+          onClearAll={() => setNotifications([])}
+          onActivate={(n) => {
+            setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
+            if (n.kind === 'update' && updatePhase !== 'idle') { setNotifsOpen(false); setUpdateOverlayOpen(true) }
+          }}
+        />
+      )}
+
       {/* ── Update overlay (available → downloading → installing) ── */}
       {updateOverlayOpen && updatePhase !== 'idle' && (
         <UpdateOverlay
@@ -1588,7 +1634,7 @@ export default function App() {
         <SettingsModal
           onClose={() => setSettingsOpen(false)}
           showToast={showToast}
-          onUpdateFound={(v) => { setUpdateVersion(v); setUpdatePhase('available'); setUpdateOverlayOpen(true) }}
+          onUpdateFound={(v) => { setUpdateVersion(v); setUpdatePhase('available'); setUpdateOverlayOpen(true); addUpdateNotification(v) }}
         />
       )}
 

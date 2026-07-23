@@ -64,6 +64,22 @@ const fr = {
   'update.installing.title': 'Presque terminé',
   'update.installing.desc': "Installation en cours — l'application redémarre automatiquement dans quelques instants.",
 
+  // Notification center
+  'notifs.title': 'Notifications',
+  'notifs.empty': 'Aucune notification',
+  'notifs.markAllRead': 'Tout marquer comme lu',
+  'notifs.clearAll': 'Tout effacer',
+  'notifs.markRead': 'Marquer comme lu',
+  'notifs.markUnread': 'Marquer comme non lu',
+  'notifs.delete': 'Supprimer',
+  'notifs.appName': 'Git Vertex',
+  'notifs.update.title': (v: string) => `La version ${v} de Git Vertex est disponible.`,
+  'notifs.update.body': 'Cliquez pour ouvrir l\'écran de mise à jour.',
+  'notifs.time.now': 'à l\'instant',
+  'notifs.time.minutes': (n: number) => `il y a ${n} min`,
+  'notifs.time.hours': (n: number) => `il y a ${n} h`,
+  'notifs.time.days': (n: number) => `il y a ${n} j`,
+
   // CommitGraph
   'graph.empty': 'Aucun commit à afficher',
   'graph.menu.checkout': '↷ Basculer sur ce commit…',
@@ -517,6 +533,22 @@ const en: typeof fr = {
   'update.downloading': (pct: number) => `Downloading… ${pct}%`,
   'update.installing.title': 'Almost done',
   'update.installing.desc': 'Installing — the app will restart automatically in a moment.',
+
+  // Notification center
+  'notifs.title': 'Notifications',
+  'notifs.empty': 'No notifications',
+  'notifs.markAllRead': 'Mark all as read',
+  'notifs.clearAll': 'Clear all',
+  'notifs.markRead': 'Mark as read',
+  'notifs.markUnread': 'Mark as unread',
+  'notifs.delete': 'Delete',
+  'notifs.appName': 'Git Vertex',
+  'notifs.update.title': (v: string) => `Version ${v} of Git Vertex is now available.`,
+  'notifs.update.body': 'Click to open the update screen.',
+  'notifs.time.now': 'just now',
+  'notifs.time.minutes': (n: number) => `${n} min ago`,
+  'notifs.time.hours': (n: number) => `${n} h ago`,
+  'notifs.time.days': (n: number) => `${n} d ago`,
 
   // CommitGraph
   'graph.empty': 'No commits to display',
