@@ -2,6 +2,13 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.15.2': `## Quoi de neuf dans la 1.15.2
+
+### 🔔 Mise à jour plus discrète et plus fiable
+- Une **pastille discrète** (petit point vert) apparaît à côté de la **cloche de notifications** quand une mise à jour est disponible — un clic ouvre l'écran de mise à jour. Fini le gros bouton orange.
+- **Détection automatique** peu après le démarrage puis toutes les 30 minutes.
+- Depuis les Réglages, « Vérifier les mises à jour » ouvre l'écran par-dessus : **« Plus tard » revient aux Réglages** (au lieu de l'accueil).
+`,
   '1.15.0': `## Quoi de neuf dans la 1.15.0
 
 ### ✨ Écran de lancement animé
