@@ -2,6 +2,16 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.15.0': `## Quoi de neuf dans la 1.15.0
+
+### ✨ Écran de lancement animé
+- Au **démarrage** (et juste après une mise à jour), une petite fenêtre affiche le **graphe en V de Git Vertex qui se dessine**, puis laisse place à l'application. Le retour de l'app après une mise à jour paraît net.
+
+### ⬇️ Mise à jour par étapes
+- Un écran clair : **disponible → téléchargement (avec pourcentage réel) → installation**.
+- Le **téléchargement démarre à votre clic**, donc vous voyez vraiment sa progression ; l'installation vous indique que l'app **redémarre dans quelques instants**.
+- « Vérifier les mises à jour » dans les Réglages ouvre désormais le même écran.
+`,
   '1.14.2': `## Quoi de neuf dans la 1.14.2
 
 ### 🐛 Corrections
