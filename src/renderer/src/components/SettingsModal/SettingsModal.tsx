@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import './SettingsModal.css'
+// Bundled through Vite so the logo resolves in the packaged app — the old
+// relative "../../resources/icon.png" path only worked in dev and was silently
+// hidden by onError in production.
+import iconUrl from '../../../../../resources/icon.png'
 import { useLang } from '../../i18n/LanguageContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { Lang } from '../../i18n/translations'
@@ -752,7 +756,7 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
             {section === 'about' && (
               <div className="stg-section">
                 <div className="stg-about-hero">
-                  <img src="../../resources/icon.png" className="stg-about-icon" alt="Git Vertex" onError={e => (e.currentTarget.style.display = 'none')} />
+                  <img src={iconUrl} className="stg-about-icon" alt="Git Vertex" onError={e => (e.currentTarget.style.display = 'none')} />
                   <div>
                     <h1 className="stg-about-name">Git Vertex</h1>
                     <span className="stg-about-version">v{appInfo?.version ?? '—'}</span>

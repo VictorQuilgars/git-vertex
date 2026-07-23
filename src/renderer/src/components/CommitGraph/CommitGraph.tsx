@@ -484,12 +484,26 @@ export default function CommitGraph({
 
   // Auto-hide secondary columns when the container is narrow (VS Code panel,
   // small windows) — the message column always keeps room to breathe.
+  // Measure the *body* rather than the container: the body's client width
+  // already excludes a classic vertical scrollbar (Windows/Linux, ~17px). The
+  // rows live inside the body, so budgeting columns against this width is what
+  // keeps every column — the trailing +/− stats especially — inside the window
+  // instead of being clipped by the scrollbar on the right. `scrollbarW` is the
+  // gutter we then reserve on the (non-scrolling) header so it stays aligned.
   const [containerW, setContainerW] = useState(0)
+  const [scrollbarW, setScrollbarW] = useState(0)
   useEffect(() => {
-    const el = containerRef.current
+    const el = bodyRef.current
     if (!el) return
-    const ro = new ResizeObserver(entries => setContainerW(entries[0].contentRect.width))
+    const measure = () => {
+      const body = bodyRef.current
+      if (!body) return
+      setContainerW(body.clientWidth)
+      setScrollbarW(body.offsetWidth - body.clientWidth)
+    }
+    const ro = new ResizeObserver(measure)
     ro.observe(el)
+    measure()
     return () => ro.disconnect()
   }, [])
 
@@ -1082,6 +1096,7 @@ export default function CommitGraph({
       {/* ── Header ── */}
       <div
         className="cg-header"
+        style={{ paddingRight: scrollbarW }}
         onContextMenu={e => { e.preventDefault(); setHeaderCtx({ x: e.clientX, y: e.clientY }) }}
         title="Clic droit : choisir les colonnes"
       >
