@@ -219,7 +219,7 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
     })
 
     // Listen for OAuth callback result from main process
-    ;(window.gitAPI as any).onGithubAuthComplete(async (result: { token?: string; error?: string }) => {
+    const offAuth = (window.gitAPI as any).onGithubAuthComplete(async (result: { token?: string; error?: string }) => {
       setGithubLoading(false)
       if (result.token) {
         setGithubToken(result.token)
@@ -240,18 +240,18 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
         setUpdateStatus('available')
       }
     })
-    api.onUpdateDownloaded?.((version: string) => {
+    const offDownloaded = api.onUpdateDownloaded?.((version: string) => {
       console.log('[updater] update-downloaded:', version)
       setUpdateReady(true)
       setUpdateVersion(version)
       setUpdateStatus('available')
       setDownloadProgress(null)
     })
-    api.onDownloadProgress?.((pct: number) => {
+    const offProgress = api.onDownloadProgress?.((pct: number) => {
       console.log('[updater] download-progress:', pct + '%')
       setDownloadProgress(pct)
     })
-    api.onUpdateError?.((err: string) => {
+    const offError = api.onUpdateError?.((err: string) => {
       console.log('[updater] error:', err)
       checkHadError.current = true
       if (err.includes('Cannot find latest') || err.includes('latest-mac.yml') || err.includes('latest.yml')) {
@@ -262,6 +262,7 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
       }
       setDownloadProgress(null)
     })
+    return () => { offAuth?.(); offDownloaded?.(); offProgress?.(); offError?.() }
   }, [])
 
   const handleGithubLogin = async () => {

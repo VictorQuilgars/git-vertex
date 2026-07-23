@@ -829,25 +829,12 @@ export default function CommitGraph({
       )
     }
 
-    if (isWip) {
-      // The WIP node is at row 0. We want the curve to happen immediately
-      // below it, and then go straight down to the target node.
-      const r = LANE_WIDTH * 0.6
-      const dx = x2 > x1 ? r : -r
-      const d = [
-        `M${x1} ${y1}`,
-        `Q${x1} ${y1 + r} ${x1 + dx} ${y1 + r}`,
-        `L${x2 - dx} ${y1 + r}`,
-        `Q${x2} ${y1 + r} ${x2} ${y1 + 2 * r}`,
-        `L${x2} ${y2}`,
-      ].join(' ')
-      return (
-        <path key={key}
-          d={d}
-          fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
-          strokeDasharray={dashArray} />
-      )
-    }
+    // The WIP node's fork edge is drawn by the shared fork/merge logic below
+    // (just dashed): its vertical must stay in the WIP's own lane and only elbow
+    // into the target at the BOTTOM. Curving onto the target lane right away —
+    // as it used to — made the dashed line run straight down that lane and cut
+    // through any commit sitting on it between the WIP and its parent (e.g. the
+    // master tip when HEAD is a branch one commit behind master).
 
     // The elbow sits at the connection point, not the midpoint:
     //  - fork (a branch diverging from its base): the vertical stays in the
