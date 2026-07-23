@@ -1,8 +1,11 @@
 # Changelog — Git Vertex (desktop)
 
-## 1.16.1
+## 1.16.2
 
 ### Changed
+- **Internationalization (i18n) cleanup** — Removed all remaining hardcoded French strings from the entire project (including the VS Code extension) and fully adopted the application's i18n system (`useLang`), ensuring a clean English-only default experience.
+
+## 1.16.1
 - **English-only, fully applied** — the remaining French text that was still hardcoded across the app (Settings, sidebar, commit graph menus, conflict resolver, rebase screens, commit panel, diff viewer, and native error/notification messages) now goes through the same English-only translation layer introduced in 1.16.0. French is still only disconnected, not removed, and can be re-enabled with a one-line change.
 
 ### Fixed

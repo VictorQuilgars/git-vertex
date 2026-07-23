@@ -1,8 +1,11 @@
 # Changelog
 
-## 1.18.0
+## 1.18.1
 
 ### Changed
+- **Internationalization (i18n) cleanup** — Removed all hardcoded French strings from the extension and fully adopted the English translation system.
+
+## 1.18.0
 - **Unified graph context menu** — right-clicking a local branch opens the same menu as its tip commit (branch actions + commit actions); Reset/Copy/Move are now hover submenus for a shorter menu.
 - **Clearer branch drag-drop** — "Merge A into B" / "Rebase A onto B" with real branch names, correct direction; no menu when dragging the checked-out branch.
 
