@@ -867,10 +867,6 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
                     </span>
                   )}
                 </div>
-
-                <div className="stg-about-license">
-                  {t('settings.about.license')}
-                </div>
               </div>
             )}
 

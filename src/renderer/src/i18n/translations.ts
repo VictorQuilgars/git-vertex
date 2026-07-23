@@ -278,7 +278,6 @@ const fr = {
   'settings.about.reportBug': 'Signaler un bug',
   'settings.about.createdBy': 'Créé par',
   'settings.about.env': 'Environnement',
-  'settings.about.license': 'Distribué sous licence MIT',
   'settings.about.language': 'Langue',
 
   // Settings — Language
@@ -726,7 +725,6 @@ const en: typeof fr = {
   'settings.about.reportBug': 'Report a bug',
   'settings.about.createdBy': 'Created by',
   'settings.about.env': 'Environment',
-  'settings.about.license': 'Distributed under MIT license',
   'settings.about.language': 'Language',
 
   // Settings — Language
