@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.16.2': `## What's new in 1.16.2
+
+### 🌍 Internationalization cleanup
+- Removed all remaining hardcoded French strings from the entire project (including the VS Code extension) and fully adopted the application's i18n system (\`useLang\`), ensuring a clean English-only default experience.
+`,
   '1.16.1': `## What's new in 1.16.1
 
 ### 🇬🇧 English-only, fully applied
