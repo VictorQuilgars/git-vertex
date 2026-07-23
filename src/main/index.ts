@@ -9,6 +9,8 @@ import { GitService } from './git-service'
 import { RELEASE_NOTES } from './release-notes'
 import { getRecentRepos, addRecentRepo, removeRecentRepo } from './recent-repos'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
+import iconPng from '../../resources/icon.png?asset'
+import iconIco from '../../resources/icon.ico?asset'
 
 let mainWindow: BrowserWindow
 let gitService: GitService | null = null
@@ -82,7 +84,10 @@ function createWindow(): void {
     minHeight: 600,
     backgroundColor: '#0d1117',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    icon: join(__dirname, '../../resources/icon.icns'),
+    // Windows needs a .ico (an .icns is not a valid window icon there and left
+    // the taskbar/title-bar showing the default Electron logo); Linux uses the
+    // PNG. macOS ignores this and takes the icon from the app bundle.
+    icon: process.platform === 'win32' ? iconIco : iconPng,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -1579,8 +1584,17 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
 })
 
 ipcMain.handle('updater:install', () => {
-  autoUpdater.quitAndInstall()
+  installDownloadedUpdate()
 })
+
+// On Windows the assisted NSIS installer would replay the full setup wizard on
+// every update unless we run it silently. quitAndInstall(isSilent=true,
+// isForceRunAfter=true) applies the update in the background and relaunches the
+// app. Other platforms keep the default behavior.
+function installDownloadedUpdate() {
+  if (process.platform === 'win32') autoUpdater.quitAndInstall(true, true)
+  else autoUpdater.quitAndInstall()
+}
 
 ipcMain.handle('updater:get-state', () => {
   return { downloadedVersion: downloadedUpdateVersion, downloadedFile: downloadedUpdateFile }
@@ -1593,9 +1607,10 @@ ipcMain.handle('updater:open-downloaded', () => {
 })
 
 ipcMain.handle('updater:install-manual', async () => {
-  // Windows & Linux: quitAndInstall() works natively (no Gatekeeper)
+  // Windows & Linux: quitAndInstall() works natively (no Gatekeeper).
+  // Windows runs silently so the NSIS setup wizard doesn't reappear.
   if (process.platform !== 'darwin') {
-    autoUpdater.quitAndInstall()
+    installDownloadedUpdate()
     return { success: true }
   }
 

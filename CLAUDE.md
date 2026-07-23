@@ -106,6 +106,22 @@ cp resources/icon.iconset/icon_512x512.png resources/icon.iconset/icon_256x256@2
 cp resources/icon.iconset/icon_1024x1024.png resources/icon.iconset/icon_512x512@2x.png
 iconutil -c icns resources/icon.iconset -o resources/icon.icns
 ```
+Windows needs `resources/icon.ico` (multi-res). Without it the packaged `.exe`
+falls back to the default Electron logo in the taskbar/window. Regenerate with:
+```bash
+TMP=$(mktemp -d)
+for s in 16 24 32 48 64 128 256; do rsvg-convert -w $s -h $s resources/icon.svg -o "$TMP/icon_$s.png"; done
+/opt/anaconda3/bin/python - "$TMP" <<'PY'
+import sys, os
+from PIL import Image
+tmp = sys.argv[1]; sizes = [16,24,32,48,64,128,256]
+Image.open(os.path.join(tmp, "icon_256.png")).convert("RGBA").save(
+    "resources/icon.ico", format="ICO", sizes=[(s,s) for s in sizes])
+PY
+```
+`resources/icon.png` + `resources/icon.ico` are also whitelisted in the
+electron-builder `files` array so the runtime `BrowserWindow` icon resolves
+inside the packaged asar (macOS takes its icon from the app bundle instead).
 
 ## Style conventions
 - Dark theme: background `#0d1117`, surface `#161b22`, border `#21262d` / `#30363d`
