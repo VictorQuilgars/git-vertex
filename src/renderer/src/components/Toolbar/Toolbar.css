@@ -233,9 +233,4 @@
   margin-right: 2px;
 }
 
-/* Update button */
-.tb-update-btn { color: #f0883e; animation: tb-update-pulse 2s ease-in-out infinite; }
-.tb-update-btn:hover:not(:disabled) { color: #f0883e !important; border-color: #f0883e44 !important; background: #f0883e10 !important; }
-@keyframes tb-update-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-
 @keyframes tb-spin { to { transform: rotate(360deg); } }
