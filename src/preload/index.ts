@@ -1,5 +1,14 @@
 import { contextBridge, ipcRenderer, webFrame } from 'electron'
 
+// Register an IPC event listener and hand back an unsubscribe function. Callers
+// (React effects) must call it on cleanup — otherwise the wrapper listeners pile
+// up on ipcRenderer (MaxListenersExceededWarning) and leak across re-renders.
+function subscribe(channel: string, cb: (...args: any[]) => void): () => void {
+  const listener = (_e: unknown, ...args: any[]) => cb(...args)
+  ipcRenderer.on(channel, listener)
+  return () => ipcRenderer.removeListener(channel, listener)
+}
+
 const gitAPI = {
   // Zoom (renderer webFrame)
   zoomGet: () => webFrame.getZoomFactor(),
@@ -13,7 +22,7 @@ const gitAPI = {
   // Deep links (gitgui://open — e.g. from the MCP server's open_in_git_vertex)
   getPendingDeepLink: () => ipcRenderer.invoke('app:get-pending-deeplink'),
   onDeepLink: (cb: (link: { repo: string; view: string; file?: string; hash?: string }) => void) =>
-    ipcRenderer.on('deeplink:open', (_e, link) => cb(link)),
+    subscribe('deeplink:open', (link) => cb(link)),
   // Read
   getLog: (options?: { maxCount?: number; all?: boolean; refs?: string[] }) => ipcRenderer.invoke('git:get-log', options),
   getBranches: () => ipcRenderer.invoke('git:get-branches'),
@@ -177,18 +186,17 @@ const gitAPI = {
   githubGetToken: () => ipcRenderer.invoke('github:get-token'),
   githubGetUser: () => ipcRenderer.invoke('github:get-user'),
   avatarResolve: (email: string, sha?: string) => ipcRenderer.invoke('avatar:resolve', email, sha),
-  onGithubAuthComplete: (cb: (result: { token?: string; error?: string }) => void) => {
-    ipcRenderer.on('github:auth-complete', (_e, result) => cb(result))
-  },
+  onGithubAuthComplete: (cb: (result: { token?: string; error?: string }) => void) =>
+    subscribe('github:auth-complete', (result) => cb(result)),
   // Auto-updater
   onRepoChanged: (cb: () => void) => ipcRenderer.on('git:repo-changed', cb),
   onWorkingChanged: (cb: () => void) => ipcRenderer.on('git:working-changed', cb),
   offRepoChanged: (cb: () => void) => ipcRenderer.removeListener('git:repo-changed', cb),
   offWorkingChanged: (cb: () => void) => ipcRenderer.removeListener('git:working-changed', cb),
-  onUpdateAvailable: (cb: (version: string) => void) => ipcRenderer.on('updater:update-available', (_e, v) => cb(v)),
-  onUpdateDownloaded: (cb: (version: string) => void) => ipcRenderer.on('updater:update-downloaded', (_e, v) => cb(v)),
-  onUpdateError: (cb: (err: string) => void) => ipcRenderer.on('updater:error', (_e, err) => cb(err)),
-  onDownloadProgress: (cb: (pct: number) => void) => ipcRenderer.on('updater:download-progress', (_e, pct) => cb(pct)),
+  onUpdateAvailable: (cb: (version: string) => void) => subscribe('updater:update-available', (v) => cb(v)),
+  onUpdateDownloaded: (cb: (version: string) => void) => subscribe('updater:update-downloaded', (v) => cb(v)),
+  onUpdateError: (cb: (err: string) => void) => subscribe('updater:error', (err) => cb(err)),
+  onDownloadProgress: (cb: (pct: number) => void) => subscribe('updater:download-progress', (pct) => cb(pct)),
   installUpdate: () => ipcRenderer.invoke('updater:install'),
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),

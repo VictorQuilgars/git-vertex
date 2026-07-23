@@ -82,6 +82,9 @@ function createWindow(): void {
     height: 900,
     minWidth: 900,
     minHeight: 600,
+    // Shown in the Windows title bar / taskbar tooltip / Alt-Tab before the
+    // renderer's <title> takes over — keep it the product name, not "git-gui".
+    title: 'Git Vertex',
     backgroundColor: '#0d1117',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     // Windows needs a .ico (an .icns is not a valid window icon there and left

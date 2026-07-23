@@ -394,7 +394,8 @@ export default function App() {
       } catch { setGithubUser(null) }
     }
     load()
-    ;(window.gitAPI as any).onGithubAuthComplete?.(() => load())
+    const off = (window.gitAPI as any).onGithubAuthComplete?.(() => load())
+    return off
   }, [])
 
   // ── Auto-refresh via file watcher events from main process ────
@@ -501,7 +502,7 @@ export default function App() {
   // ── Auto-updater ───────────────────────────────────────────
   useEffect(() => {
     const api = window.gitAPI as any
-    api.onUpdateDownloaded?.(() => {
+    return api.onUpdateDownloaded?.(() => {
       setUpdateReady(true)
       setUpdateBannerOpen(true)
     })
@@ -513,7 +514,7 @@ export default function App() {
       setGithubConnected(!!r?.token)
     })
     const api = window.gitAPI as any
-    api.onGithubAuthComplete?.((result: any) => {
+    return api.onGithubAuthComplete?.((result: any) => {
       setGithubConnected(!!result?.token)
     })
   }, [])
@@ -653,7 +654,8 @@ export default function App() {
 
   useEffect(() => {
     ;(window.gitAPI as any).getPendingDeepLink?.().then(applyDeepLink).catch(() => {})
-    ;(window.gitAPI as any).onDeepLink?.(applyDeepLink)
+    const off = (window.gitAPI as any).onDeepLink?.(applyDeepLink)
+    return off
   }, [applyDeepLink])
 
   useEffect(() => {
