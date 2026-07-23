@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.15.4': `## Quoi de neuf dans la 1.15.4
+
+### 🟢 Bouton « Mise à jour » plus clair
+- Quand une mise à jour est disponible, un petit **bouton « Mise à jour »** (avec libellé) s'affiche en haut à droite, à la place de la simple icône avec un point vert. Un clic ouvre l'écran de mise à jour.
+`,
   '1.15.3': `## Quoi de neuf dans la 1.15.3
 
 ### 🪟 Repos récents lisibles sur Windows

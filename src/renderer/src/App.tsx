@@ -1499,12 +1499,12 @@ export default function App() {
           {/* Right cluster: update · notifications · settings · profile */}
           <div className="app-tabs-right">
             {updatePhase !== 'idle' && (
-              <button className="app-tb-icon app-tb-update" title={t('toolbar.update.tooltip')}
+              <button className="app-tb-update-btn" title={t('toolbar.update.tooltip')}
                 onClick={() => setUpdateOverlayOpen(true)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                <span className="app-tb-update-dot" />
+                <span className="app-tb-update-btn-label">{t('toolbar.update.label')}</span>
               </button>
             )}
             <button className="app-tb-icon" title={t('settings.notifications')} disabled>
