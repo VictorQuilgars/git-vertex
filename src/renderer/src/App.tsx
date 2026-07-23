@@ -98,6 +98,7 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
 function CompareWorkingModal({ hash, onClose }: { hash: string; onClose: () => void }) {
   const [diff, setDiff] = useState<string>('')
   const [loading, setLoading] = useState(true)
+  const { t } = useLang()
 
   React.useEffect(() => {
     window.gitAPI.diffCommitToWorking(hash).then(r => {
@@ -110,15 +111,15 @@ function CompareWorkingModal({ hash, onClose }: { hash: string; onClose: () => v
     <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bc-modal" style={{ width: '80vw', maxWidth: 1100, height: '80vh' }}>
         <div className="bc-header">
-          <span className="bc-title">Comparaison : <code>{hash.slice(0, 7)}</code> ↔ répertoire de travail</span>
+          <span className="bc-title">{t('compare.titlePre')}<code>{hash.slice(0, 7)}</code>{t('compare.vsWorking')}</span>
           <button className="bc-close" onClick={onClose}>×</button>
         </div>
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {loading
-            ? <div className="bc-loading">Chargement…</div>
+            ? <div className="bc-loading">{t('common.loading')}</div>
             : diff.trim() === ''
-              ? <div className="bc-empty" style={{ padding: 24 }}>Aucune différence</div>
-              : <DiffViewer commit={syntheticCommit(hash.slice(0, 7), 'Répertoire de travail')} diff={diff} files={[]} loading={false} />}
+              ? <div className="bc-empty" style={{ padding: 24 }}>{t('compare.noDiff')}</div>
+              : <DiffViewer commit={syntheticCommit(hash.slice(0, 7), t('compare.workingTree'))} diff={diff} files={[]} loading={false} />}
         </div>
       </div>
     </div>
@@ -129,6 +130,7 @@ function CompareWorkingModal({ hash, onClose }: { hash: string; onClose: () => v
 function StashPreviewModal({ index, message, onClose }: { index: number; message: string; onClose: () => void }) {
   const [diff, setDiff] = useState<string>('')
   const [loading, setLoading] = useState(true)
+  const { t } = useLang()
 
   React.useEffect(() => {
     ;(window.gitAPI as any).stashDiff(index).then((r: any) => {
@@ -146,9 +148,9 @@ function StashPreviewModal({ index, message, onClose }: { index: number; message
         </div>
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {loading
-            ? <div className="bc-loading">Chargement…</div>
+            ? <div className="bc-loading">{t('common.loading')}</div>
             : diff.trim() === ''
-              ? <div className="bc-empty" style={{ padding: 24 }}>Stash vide</div>
+              ? <div className="bc-empty" style={{ padding: 24 }}>{t('stash.empty')}</div>
               : <DiffViewer commit={syntheticCommit(`stash@{${index}}`, message)} diff={diff} files={[]} loading={false} />}
         </div>
       </div>
@@ -170,6 +172,7 @@ function CompareCommitsModal({ from, to, onClose }: { from: string; to: string; 
   const [files, setFiles] = useState<FileChange[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useLang()
 
   React.useEffect(() => {
     let cancelled = false
@@ -192,17 +195,17 @@ function CompareCommitsModal({ from, to, onClose }: { from: string; to: string; 
       <div className="bc-modal" style={{ width: '85vw', maxWidth: 1200, height: '82vh' }}>
         <div className="bc-header">
           <span className="bc-title">
-            Comparaison : <code>{from.slice(0, 7)}</code> → <code>{to.slice(0, 7)}</code>
+            {t('compare.titlePre')}<code>{from.slice(0, 7)}</code> → <code>{to.slice(0, 7)}</code>
           </span>
           <button className="bc-close" onClick={onClose}>×</button>
         </div>
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {loading
-            ? <div className="bc-loading">Chargement…</div>
+            ? <div className="bc-loading">{t('common.loading')}</div>
             : error
               ? <div className="bc-empty" style={{ padding: 24, color: '#f85149' }}>{error}</div>
               : diff.trim() === ''
-                ? <div className="bc-empty" style={{ padding: 24 }}>Aucune différence entre ces deux commits</div>
+                ? <div className="bc-empty" style={{ padding: 24 }}>{t('compare.noDiffCommits')}</div>
                 : <DiffViewer
                     commit={syntheticCommit(to.slice(0, 7), `${from.slice(0, 7)} → ${to.slice(0, 7)}`)}
                     diff={diff} files={files} loading={false} />}
@@ -457,10 +460,10 @@ export default function App() {
     setConflictResolverProposal(null)
     if (conflictFiles.length > 0) {
       setConflictResolverFile(conflictFiles[0])
-      showToast(`Fichier résolu en dehors de l'app — ${conflictFiles.length} conflit(s) restant(s)`)
+      showToast(t('toast.resolvedExternalRemaining', conflictFiles.length))
     } else {
       setConflictResolverFile(null)
-      showToast('Conflit résolu en dehors de l\'app')
+      showToast(t('toast.conflictResolvedExternal'))
     }
   }, [conflictFiles, conflictResolverFile, showToast])
 
@@ -501,7 +504,7 @@ export default function App() {
     try {
       const r = await (window.gitAPI as any).aiSearchCommits(searchQuery.trim())
       if (r.error) {
-        showToast(r.error === 'NO_API_KEY' ? 'Aucune clé API IA configurée — voir Réglages → IA' : r.error, 'err')
+        showToast(r.error === 'NO_API_KEY' ? t('toast.noAiKey') : r.error, 'err')
         return
       }
       setAiSearchHashes(new Set(r.hashes ?? []))
@@ -658,11 +661,11 @@ export default function App() {
     // not. Every failure below is surfaced instead of swallowed.
     const proposalMissing = (what: string) => {
       console.error('[deeplink] missing proposal payload', link)
-      showToast(`Git Vertex a été ouvert sans ${what} — la proposition de l'agent n'est pas arrivée`, 'err')
+      showToast(t('deeplink.missing', what), 'err')
     }
     const proposalUnreadable = (what: string, e: unknown) => {
       console.error('[deeplink] malformed proposal payload', link, e)
-      showToast(`${what} de l'agent est illisible — proposition ignorée`, 'err')
+      showToast(t('deeplink.unreadable', what), 'err')
     }
 
     if (link.view === 'resolve' && link.file) {
@@ -675,7 +678,7 @@ export default function App() {
     } else if (link.view === 'propose-commit') {
       // MCP propose_commit: preload the message (and proposed file list) into
       // the staging form — the user stages and commits themselves.
-      if (!link.proposalContent) { proposalMissing('le message proposé'); return }
+      if (!link.proposalContent) { proposalMissing(t('deeplink.what.commitMsg')); return }
       try {
         const p = JSON.parse(link.proposalContent)
         setCommitProposal({
@@ -686,23 +689,23 @@ export default function App() {
           hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
           author: '', authorEmail: '', date: '', parents: [], refs: []
         })
-      } catch (e) { proposalUnreadable('Le message de commit', e) }
+      } catch (e) { proposalUnreadable(t('deeplink.what.commitMsgCap'), e) }
     } else if (link.view === 'propose-rebase') {
       // MCP propose_rebase_plan: open the visual rebase editor with the
       // agent's plan preloaded — the user reviews and launches it themselves.
-      if (!link.hash) { proposalUnreadable('Le plan de rebase', 'missing base hash'); return }
-      if (!link.proposalContent) { proposalMissing('le plan de rebase'); return }
+      if (!link.hash) { proposalUnreadable(t('deeplink.what.rebasePlanCap'), 'missing base hash'); return }
+      if (!link.proposalContent) { proposalMissing(t('deeplink.what.rebasePlan')); return }
       try {
         const p = JSON.parse(link.proposalContent)
         if (!Array.isArray(p.steps)) throw new Error('proposal has no steps array')
         setRebasePlanProposal(p.steps)
         setRebaseHash(link.hash)
-      } catch (e) { proposalUnreadable('Le plan de rebase', e) }
+      } catch (e) { proposalUnreadable(t('deeplink.what.rebasePlanCap'), e) }
     } else if (link.view !== 'graph') {
       // "graph" is just "open this repo" and needs nothing more; anything else
       // reaching here is a view we know but whose required parameter is absent.
       console.error('[deeplink] nothing to do for this link', link)
-      showToast(`Lien Git Vertex incomplet (vue "${link.view}") — rien à afficher`, 'err')
+      showToast(t('deeplink.incomplete', link.view), 'err')
     }
   }, [showToast])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -794,16 +797,16 @@ export default function App() {
   const handleUndo = async () => {
     setLoading(true)
     const r = await window.gitAPI.undoLastAction()
-    if (r.success) { showToast(`↩ ${r.action ?? 'Action annulée'}`); await loadRepoData() }
-    else showToast(r.error ?? 'Impossible d\'annuler', 'err')
+    if (r.success) { showToast(`↩ ${r.action ?? t('toast.undoFallback')}`); await loadRepoData() }
+    else showToast(r.error ?? t('toast.cannotUndo'), 'err')
     setLoading(false)
   }
 
   const handleRedo = async () => {
     setLoading(true)
     const r = await window.gitAPI.redoLastAction()
-    if (r.success) { showToast(`↪ ${r.action ?? 'Action rétablie'}`); await loadRepoData() }
-    else showToast(r.error ?? 'Rien à rétablir', 'err')
+    if (r.success) { showToast(`↪ ${r.action ?? t('toast.redoFallback')}`); await loadRepoData() }
+    else showToast(r.error ?? t('toast.nothingToRedo'), 'err')
     setLoading(false)
   }
 
@@ -917,15 +920,15 @@ export default function App() {
       const hasChanges = (changes.staged?.length ?? 0) + (changes.unstaged?.length ?? 0) + (changes.untracked?.length ?? 0) > 0
       if (hasChanges) {
         const sr = await window.gitAPI.createStash('Auto-stash before checkout')
-        if (sr.success) { stashed = true; showToast('Modifications stashées automatiquement') }
+        if (sr.success) { stashed = true; showToast(t('toast.autoStashed')) }
       }
     }
     const r = await window.gitAPI.checkout(name)
     if (r.success) {
       if (stashed) {
         const pr = await window.gitAPI.popStash(0)
-        if (pr.success) showToast(`${t('toast.checkoutOk', name)} — stash restauré`)
-        else showToast(`${t('toast.checkoutOk', name)} — échec restauration stash`, 'err')
+        if (pr.success) showToast(`${t('toast.checkoutOk', name)}${t('toast.stashRestoredSuffix')}`)
+        else showToast(`${t('toast.checkoutOk', name)}${t('toast.stashRestoreFailSuffix')}`, 'err')
       } else {
         showToast(t('toast.checkoutOk', name))
       }
@@ -1134,7 +1137,7 @@ export default function App() {
     }
 
     if (current.parents.length === 0) {
-      showToast(t('toast.err', 'Impossible de reformuler le tout premier commit du dépôt (utilisez amend depuis HEAD).'), 'err')
+      showToast(t('toast.err', t('toast.cannotRewordFirst')), 'err')
       return
     }
     const newMsg = await showPrompt(t('prompt.editMessage'), presetMsg ?? current.message, true)
@@ -1145,7 +1148,7 @@ export default function App() {
     const r = await window.gitAPI.interactiveRebase(sequence, [newMsg])
     setLoading(false)
     if (r.success) { showToast(t('toast.messageEdited')); await loadRepoData() }
-    else if ((r as { conflict?: boolean }).conflict) { showToast(r.error ?? 'Conflit de rebase', 'err'); await loadRepoData() }
+    else if ((r as { conflict?: boolean }).conflict) { showToast(r.error ?? t('toast.rebaseConflict'), 'err'); await loadRepoData() }
     else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
@@ -1165,7 +1168,7 @@ export default function App() {
       async () => {
         setLoading(true)
         const r = await window.gitAPI.rebaseOnto(hash)
-        if (r.success) showToast(`✓ Rebasé sur ${hash.slice(0, 7)}`)
+        if (r.success) showToast(t('toast.rebasedOn', hash.slice(0, 7)))
         else showToast(t('toast.err', r.error ?? ''), 'err')
         // Refresh even on a conflict — the rebase is left paused (not aborted),
         // so the conflict banner/resolver needs the reloaded state to show up.
@@ -1178,7 +1181,7 @@ export default function App() {
   const handlePushToCommit = async (hash: string) => {
     setLoading(true)
     const r = await window.gitAPI.pushToCommit(hash)
-    if (r.success) showToast(`✓ Poussé jusqu'à ${hash.slice(0, 7)}`)
+    if (r.success) showToast(t('toast.pushedTo', hash.slice(0, 7)))
     else showToast(t('toast.err', r.error ?? ''), 'err')
     setLoading(false)
   }
@@ -1187,7 +1190,7 @@ export default function App() {
     const res = await window.gitAPI.createPatch(hash)
     if (res.error) { showToast(t('toast.err', res.error), 'err'); return }
     const r = await window.gitAPI.savePatchFile(res.patch, `${hash.slice(0, 7)}.patch`)
-    if (r.success) showToast(`✓ Patch enregistré : ${r.path?.split('/').pop()}`)
+    if (r.success) showToast(t('toast.patchSaved', r.path?.split('/').pop() ?? ''))
     else if (!r.canceled) showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
@@ -1195,21 +1198,21 @@ export default function App() {
     const res = await window.gitAPI.createPatch(hash)
     if (res.error) { showToast(t('toast.err', res.error), 'err'); return }
     navigator.clipboard.writeText(res.patch)
-    showToast('✓ Patch copié dans le presse-papiers')
+    showToast(t('toast.patchCopied'))
   }
 
   const handleCreateWorktreeAt = async (hash: string) => {
-    const dir = await window.gitAPI.selectDirectory('Emplacement du nouveau worktree')
+    const dir = await window.gitAPI.selectDirectory(t('worktree.selectDir'))
     if (!dir.path) return
-    const branch = await showPrompt('Nom de la nouvelle branche (laisser vide = detached) :', '')
+    const branch = await showPrompt(t('worktree.branchPrompt'), '')
     if (branch === null) return
     const r = await window.gitAPI.addWorktree(dir.path, hash, branch || undefined)
-    if (r.success) showToast(`✓ Worktree créé : ${dir.path.split('/').pop()}`)
+    if (r.success) showToast(t('toast.worktreeCreated', dir.path.split('/').pop() ?? ''))
     else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
   const handleOpenCommitOnRemote = (hash: string) => {
-    if (!githubOwnerRepo) { showToast('Aucun dépôt GitHub détecté', 'err'); return }
+    if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
     window.gitAPI.openExternal(`https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/commit/${hash}`)
   }
 
@@ -1748,7 +1751,7 @@ export default function App() {
                 if (remaining.length > 0) {
                   setConflictFiles(remaining)
                   setConflictResolverFile(remaining[0])
-                  showToast(`Fichier résolu — ${remaining.length} conflit(s) restant(s)`)
+                  showToast(t('toast.fileResolvedRemaining', remaining.length))
                 } else {
                   setConflictFiles([])
                   setConflictResolverFile(null)
@@ -1906,7 +1909,7 @@ export default function App() {
               onRewordCommit={handleRewordCommit}
               onCompareWorking={(hash) => setCompareWorkingHash(hash)}
               compareBaseHash={compareBaseHash}
-              onSelectForCompare={(hash) => { setCompareBaseHash(hash); showToast('◎ Commit sélectionné pour comparaison') }}
+              onSelectForCompare={(hash) => { setCompareBaseHash(hash); showToast(t('toast.commitSelectedForCompare')) }}
               onCompareWithSelected={(hash) => { if (compareBaseHash) setComparePair({ from: compareBaseHash, to: hash }) }}
               onDropCommit={handleDropCommit}
               onMoveCommit={handleMoveCommit}

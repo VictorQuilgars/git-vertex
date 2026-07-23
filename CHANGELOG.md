@@ -3,35 +3,38 @@
 ## 1.16.0
 
 ### Added
-- **Centre de notifications** — la cloche en haut à droite est désormais fonctionnelle : un clic ouvre un panneau listant les notifications. Chaque entrée peut être marquée comme lue/non lue ou supprimée, avec « Tout marquer comme lu » et « Tout effacer ». Une pastille bleue affiche le nombre de notifications non lues. Les mises à jour disponibles créent automatiquement une notification (persistée entre les sessions).
+- **Notification center** — the top-right bell is now functional: clicking it opens a panel listing notifications. Each entry can be marked read/unread or deleted, with "Mark all as read" and "Clear all". A blue badge shows the number of unread notifications. Available updates automatically create a notification (persisted across sessions).
+
+### Changed
+- **English-only app** — the app now ships in English only. French is disconnected, not removed: the full French translations stay in the code and can be re-enabled with a one-line change.
 
 ## 1.15.4
 
 ### Changed
-- **Bouton « Mise à jour » explicite** — quand une mise à jour est disponible, un petit bouton vert « Mise à jour » (avec libellé) apparaît en haut à droite, à la place de la simple icône avec un point vert. Un clic ouvre l'écran de mise à jour, comme avant.
+- **Explicit "Update" button** — when an update is available, a small green "Update" button (with a label) appears in the top-right, replacing the plain icon with a green dot. Clicking it opens the update screen, as before.
 
 ## 1.15.3
 
 ### Fixed
-- **Repos récents sur Windows** — l'accueil affiche désormais le nom du dossier en haut et le chemin parent en dessous, comme sur macOS. Auparavant, sur Windows (chemins avec `\`), seul le chemin complet apparaissait, sans le nom du dossier.
+- **Recent repos on Windows** — the home screen now shows the folder name on top and the parent path below, like on macOS. Previously, on Windows (paths using `\`), only the full path was shown, without the folder name.
 
 ## 1.15.2
 
 ### Changed
-- **Pastille de mise à jour discrète** — quand une mise à jour est disponible, une petite pastille (avec un point vert) apparaît à côté de la cloche de notifications, en haut à droite. Un clic ouvre l'écran de mise à jour. Fini le gros bouton orange dans la barre d'outils.
-- **Détection automatique plus fiable** — l'app vérifie les mises à jour peu après le démarrage puis toutes les 30 minutes, donc une version publiée pendant que l'app est ouverte est repérée sans redémarrer.
+- **Discreet update badge** — when an update is available, a small badge (with a green dot) appears next to the notification bell, top-right. Clicking it opens the update screen. No more big orange button in the toolbar.
+- **More reliable auto-detection** — the app checks for updates shortly after startup and then every 30 minutes, so a version published while the app is open is picked up without restarting.
 
 ### Fixed
-- Depuis les Réglages, « Vérifier les mises à jour » n'éjecte plus vers l'accueil : l'écran de mise à jour s'ouvre par-dessus, et « Plus tard » revient aux Réglages.
+- From Settings, "Check for updates" no longer ejects to the home screen: the update screen opens on top, and "Later" returns to Settings.
 
 ## 1.15.0
 
 ### Added
-- **Écran de lancement animé** — au démarrage (et juste après une mise à jour), une petite fenêtre affiche le graphe en V de Git Vertex qui se dessine, avant de laisser place à l'application. Le retour de l'app après une mise à jour paraît net plutôt que « vide ».
-- **Mise à jour par étapes, avec vraie barre de progression** — le flux passe désormais par un écran clair : *disponible → téléchargement (avec pourcentage réel) → installation*. Le téléchargement démarre à votre clic (donc sa progression est visible), et la phase d'installation indique honnêtement que l'app va redémarrer dans un instant.
+- **Animated launch splash** — at startup (and right after an update), a small window shows the Git Vertex V-graph drawing itself before handing off to the application. The app returning after an update feels crisp rather than "empty".
+- **Staged update with a real progress bar** — the flow now goes through a clear screen: *available → downloading (with real percentage) → installing*. The download starts on your click (so its progress is visible), and the installing phase honestly indicates the app will restart in a moment.
 
 ### Changed
-- Un seul et même flux de mise à jour : « Vérifier les mises à jour » dans les Réglages ouvre le même écran que le bandeau, au lieu d'une progression séparée.
+- One single update flow: "Check for updates" in Settings opens the same screen as the banner, instead of a separate progress display.
 
 ## 1.14.2
 
@@ -80,4 +83,4 @@
 ## 1.11.0
 
 ### Added
-- **Conflict warning before an operation** — before a merge, rebase, cherry-pick, revert or pull (and the graph's drag-drop merge/rebase), Git Vertex predicts whether the operation will conflict (a dry run via `git merge-tree`, nothing written to disk) and warns you, with the choice to continue or cancel. Rebase prediction simulates the replay commit by commit, so it catches conflicts a naive tip-merge would miss. A **"Prévenir avant un conflit"** toggle in Settings › Comportement (on by default) controls it, with a "don't ask again" shortcut on the warning.
+- **Conflict warning before an operation** — before a merge, rebase, cherry-pick, revert or pull (and the graph's drag-drop merge/rebase), Git Vertex predicts whether the operation will conflict (a dry run via `git merge-tree`, nothing written to disk) and warns you, with the choice to continue or cancel. Rebase prediction simulates the replay commit by commit, so it catches conflicts a naive tip-merge would miss. A **"Warn before a conflict"** toggle in Settings › Behavior (on by default) controls it, with a "don't ask again" shortcut on the warning.

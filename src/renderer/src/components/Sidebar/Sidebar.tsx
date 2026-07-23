@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { BranchInfo } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import { useLang } from '../../i18n/LanguageContext'
 import './Sidebar.css'
 
 interface StashEntry { index: number; message: string }
@@ -67,6 +68,7 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }
   addLabel?: string
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  const { t } = useLang()
   return (
     <div className="sb-section">
       <div className="sb-section-header" onClick={() => setOpen(o => !o)}>
@@ -76,7 +78,7 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }
         <span className="sb-section-title">{title}</span>
         {count !== undefined && <span className="sb-section-count">{count}</span>}
         {onAdd && (
-          <button className="sb-add-btn" title={addLabel ?? 'Ajouter'}
+          <button className="sb-add-btn" title={addLabel ?? t('sb.add')}
             onClick={e => { e.stopPropagation(); onAdd() }}>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
@@ -117,27 +119,28 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
+  const { t } = useLang()
   const display = remote ? name.replace(/^remotes\/[^/]+\//, '') : name
 
   const menuItems: MenuItemDef[] = [
     ...(!current ? [{ label: '✓ Checkout', action: onCheckout }] : []),
-    ...(!current && onMerge ? [{ label: `⇒ Merger dans "${currentBranch}"`, action: onMerge }] : []),
-    ...(!current && onRebaseOnto ? [{ label: `⤵ Rebaser "${currentBranch}" dessus`, action: onRebaseOnto }] : []),
-    ...(!current && onCompare ? [{ label: `⇄ Comparer avec "${currentBranch}"`, action: onCompare }] : []),
+    ...(!current && onMerge ? [{ label: t('sb.branch.mergeInto', currentBranch), action: onMerge }] : []),
+    ...(!current && onRebaseOnto ? [{ label: t('sb.branch.rebaseOnto', currentBranch), action: onRebaseOnto }] : []),
+    ...(!current && onCompare ? [{ label: t('sb.branch.compareWith', currentBranch), action: onCompare }] : []),
     { separator: true as const },
     ...(!remote && onPush ? [{ label: '⬆ Push', action: onPush }] : []),
-    ...(!remote && onSetUpstream ? [{ label: '🔗 Définir l\'upstream (origin)', action: onSetUpstream }] : []),
-    { label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(display) },
-    ...(onToggleSolo ? [{ label: soloed ? '👁 Annuler le solo' : '👁 Solo (afficher seule)', action: onToggleSolo }] : []),
-    ...(onToggleMute ? [{ label: muted ? '🔊 Réafficher' : '🔇 Masquer du graphe', action: onToggleMute }] : []),
-    ...(!remote && onRename ? [{ label: '✏️ Renommer', action: onRename }] : []),
+    ...(!remote && onSetUpstream ? [{ label: t('sb.branch.setUpstream'), action: onSetUpstream }] : []),
+    { label: t('sb.copyName'), action: () => navigator.clipboard.writeText(display) },
+    ...(onToggleSolo ? [{ label: soloed ? t('sb.branch.unsolo') : t('sb.branch.solo'), action: onToggleSolo }] : []),
+    ...(onToggleMute ? [{ label: muted ? t('sb.branch.unmute') : t('sb.branch.mute'), action: onToggleMute }] : []),
+    ...(!remote && onRename ? [{ label: t('sb.rename'), action: onRename }] : []),
     ...((!current && !remote && onDelete) ? [
       { separator: true as const },
-      { label: '🗑 Supprimer', action: onDelete, danger: true },
+      { label: t('sb.delete'), action: onDelete, danger: true },
     ] : []),
     ...((remote && onDeleteRemote) ? [
       { separator: true as const },
-      { label: '🗑 Supprimer la branche distante', action: onDeleteRemote, danger: true },
+      { label: t('sb.branch.deleteRemote'), action: onDeleteRemote, danger: true },
     ] : []),
   ]
 
@@ -162,28 +165,28 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        title={current ? `${name} (branche courante)` : `Double-clic: checkout • Clic droit: options`}
+        title={current ? t('sb.branch.currentTitle', name) : t('sb.branch.hint')}
       >
         <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="branch-icon">
           <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
         </svg>
         <span className="sb-branch-name">{display}</span>
         {(ahead > 0 || behind > 0) && (
-          <span className="sb-track" title={`${ahead} commit${ahead > 1 ? 's' : ''} en avance, ${behind} en retard sur l'upstream`}>
+          <span className="sb-track" title={t('sb.branch.trackTitle', ahead, behind)}>
             {ahead > 0 && <span className="sb-track-ahead">↑{ahead}</span>}
             {behind > 0 && <span className="sb-track-behind">↓{behind}</span>}
           </span>
         )}
-        {gone && <span className="sb-track sb-track-gone" title="Upstream supprimé sur le remote">✂</span>}
-        {soloed && <span className="sb-branch-flag" title="Solo">👁</span>}
-        {muted && <span className="sb-branch-flag" title="Masquée">🔇</span>}
+        {gone && <span className="sb-track sb-track-gone" title={t('sb.branch.goneTitle')}>✂</span>}
+        {soloed && <span className="sb-branch-flag" title={t('sb.branch.soloFlag')}>👁</span>}
+        {muted && <span className="sb-branch-flag" title={t('sb.branch.mutedFlag')}>🔇</span>}
         {current && (
           <svg width="11" height="11" viewBox="0 0 16 16" fill="#3fb950" className="current-check">
             <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
           </svg>
         )}
         {hover && !current && onDelete && (
-          <button className="sb-delete-btn" title="Supprimer"
+          <button className="sb-delete-btn" title={t('sb.deleteTitle')}
             onClick={e => { e.stopPropagation(); onDelete() }}>
             <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
               <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/>
@@ -207,14 +210,15 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview }: {
   onPreview?: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
   const label = stash.message.replace(/^stash@\{\d+\}: /, '')
 
   const menuItems: MenuItemDef[] = [
-    ...(onPreview ? [{ label: '👁 Aperçu du contenu', action: onPreview }] : []),
-    { label: '▶ Appliquer (garder)', action: onApply },
-    { label: '▶ Appliquer (pop)', action: onPop },
+    ...(onPreview ? [{ label: t('sb.stash.preview'), action: onPreview }] : []),
+    { label: t('sb.stash.applyKeep'), action: onApply },
+    { label: t('sb.stash.applyPop'), action: onPop },
     { separator: true },
-    { label: '🗑 Supprimer', action: onDrop, danger: true },
+    { label: t('sb.delete'), action: onDrop, danger: true },
   ]
 
   return (
@@ -223,7 +227,7 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview }: {
         className="sb-stash-item"
         onClick={onPreview}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
-        title={onPreview ? `${stash.message} — clic : aperçu` : stash.message}
+        title={onPreview ? t('sb.stash.title', stash.message) : stash.message}
       >
         <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="stash-icon">
           <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h8.75a.75.75 0 0 1 0 1.5H2.5a.5.5 0 0 0 0 1H8a1 1 0 0 1 1 1v3.75a.75.75 0 0 1-1.5 0V6H2.5A1.5 1.5 0 0 1 1 4.5v-1Zm3 9A1.5 1.5 0 0 1 2.5 11h1.25a.75.75 0 0 0 0-1.5H2.5A1.5 1.5 0 0 1 1 8v-.5a.75.75 0 0 1 1.5 0V8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-.5a.75.75 0 0 1 1.5 0V8a1.5 1.5 0 0 1-1.5 1.5H4.5v1H14a.75.75 0 0 1 0 1.5H4.5v.5a.75.75 0 0 1-1.5 0v-.5Z"/>
@@ -243,12 +247,13 @@ function TagItem({ tag, onDelete, onPush, onDeleteRemote }: {
   tag: TagEntry; onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
   const menuItems: MenuItemDef[] = [
-    { label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(tag.name) },
-    { label: '⬆ Pousser le tag', action: onPush },
+    { label: t('sb.copyName'), action: () => navigator.clipboard.writeText(tag.name) },
+    { label: t('sb.tag.push'), action: onPush },
     { separator: true },
-    { label: '🗑 Supprimer (local)', action: onDelete, danger: true },
-    { label: '🗑 Supprimer (distant)', action: onDeleteRemote, danger: true },
+    { label: t('sb.tag.deleteLocal'), action: onDelete, danger: true },
+    { label: t('sb.tag.deleteRemote'), action: onDeleteRemote, danger: true },
   ]
 
   return (
@@ -294,12 +299,13 @@ function RemoteItem({
   onCopyUrl: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
   const menuItems: MenuItemDef[] = [
-    { label: '⬇ Fetch ce remote', action: onFetch },
-    { label: '📋 Copier l\'URL', action: onCopyUrl },
-    { label: '✏️ Renommer', action: onRename },
+    { label: t('sb.remote.fetch'), action: onFetch },
+    { label: t('sb.remote.copyUrl'), action: onCopyUrl },
+    { label: t('sb.rename'), action: onRename },
     { separator: true },
-    { label: '🗑 Supprimer', action: onRemove, danger: true },
+    { label: t('sb.delete'), action: onRemove, danger: true },
   ]
 
   return (
@@ -333,12 +339,13 @@ function SubmoduleItem({
   onUpdate: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
   const statusColor = sub.status === 'ok' ? '#3fb950' : sub.status === 'dirty' ? '#ffa657' : '#484f58'
   const statusLabel = sub.status === 'ok' ? '✓' : sub.status === 'dirty' ? '~' : '○'
 
   const menuItems: MenuItemDef[] = [
-    ...(sub.status === 'uninitialized' ? [{ label: '⬇ Initialiser', action: onInit }] : []),
-    { label: '↺ Mettre à jour', action: onUpdate },
+    ...(sub.status === 'uninitialized' ? [{ label: t('sb.sub.init'), action: onInit }] : []),
+    { label: t('sb.sub.update'), action: onUpdate },
   ]
 
   return (
@@ -370,13 +377,14 @@ function WorktreeItem({ wt, agents = [], onOpen, onRemove }: {
   onRemove: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
   const name = wt.path.split('/').pop() || wt.path
   const menuItems: MenuItemDef[] = [
-    { label: '📂 Ouvrir', action: onOpen },
-    { label: '📋 Copier le chemin', action: () => navigator.clipboard.writeText(wt.path) },
+    { label: t('sb.wt.open'), action: onOpen },
+    { label: t('sb.wt.copyPath'), action: () => navigator.clipboard.writeText(wt.path) },
     ...(!wt.isMain ? [
       { separator: true as const },
-      { label: '🗑 Supprimer le worktree', action: onRemove, danger: true },
+      { label: t('sb.wt.remove'), action: onRemove, danger: true },
     ] : []),
   ]
   // De-duplicate agent names ("2× Claude Code" reads better than twice the badge)
@@ -433,6 +441,7 @@ export default function Sidebar({
   // Running AI agents (Claude Code, aider…) keyed by their cwd — matched
   // against worktree paths to badge "an agent is working here".
   const [agents, setAgents] = useState<AgentEntry[]>([])
+  const { t } = useLang()
 
   const loadWorktrees = useCallback(() => {
     window.gitAPI.listWorktrees().then(r => setWorktrees(r.worktrees ?? []))
@@ -457,94 +466,94 @@ export default function Sidebar({
   [agents])
 
   const handleAddWorktree = async () => {
-    const dir = await window.gitAPI.selectDirectory('Emplacement du nouveau worktree')
+    const dir = await window.gitAPI.selectDirectory(t('worktree.selectDir'))
     if (!dir.path) return
-    const ref = await showPrompt('Branche ou commit à extraire (laisser vide = nouvelle branche) :', currentBranch)
+    const ref = await showPrompt(t('sb.wt.checkoutPrompt'), currentBranch)
     if (ref === null) return
     const r = await window.gitAPI.addWorktree(dir.path, ref || '')
-    if (r.success) { showToast(`✓ Worktree créé : ${dir.path.split('/').pop()}`); loadWorktrees() }
-    else showToast(`Erreur : ${r.error}`, 'err')
+    if (r.success) { showToast(t('toast.worktreeCreated', dir.path.split('/').pop() ?? '')); loadWorktrees() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
   const handleRemoveWorktree = async (path: string) => {
-    const ok = await showConfirm(`Supprimer le worktree "${path}" ?`, true)
+    const ok = await showConfirm(t('sb.wt.removeConfirm', path), true)
     if (!ok) return
     let r = await window.gitAPI.removeWorktree(path)
     if (!r.success && r.error && /contains modified|untracked|use --force|locked/i.test(r.error)) {
-      const force = await showConfirm('Le worktree contient des modifications. Forcer la suppression ?', true)
+      const force = await showConfirm(t('sb.wt.forceConfirm'), true)
       if (force) r = await window.gitAPI.removeWorktree(path, true)
     }
-    if (r.success) { showToast(`Worktree supprimé`); loadWorktrees() }
-    else showToast(`Erreur : ${r.error}`, 'err')
+    if (r.success) { showToast(t('sb.wt.removed')); loadWorktrees() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
   const handleInitSubmodule = async (path: string) => {
     const r = await window.gitAPI.initSubmodule(path)
     if (r.success) {
-      showToast(`✓ Submodule "${path}" initialisé`)
+      showToast(t('sb.sub.initialized', path))
       const updated = await window.gitAPI.getSubmodules()
       setSubmodules(updated.submodules ?? [])
     } else {
-      showToast(`Erreur : ${r.error}`, 'err')
+      showToast(t('toast.err', r.error ?? ''), 'err')
     }
   }
 
   const handleUpdateSubmodule = async (path: string) => {
     const r = await window.gitAPI.updateSubmodule(path)
     if (r.success) {
-      showToast(`✓ Submodule "${path}" mis à jour`)
+      showToast(t('sb.sub.updated', path))
       const updated = await window.gitAPI.getSubmodules()
       setSubmodules(updated.submodules ?? [])
     } else {
-      showToast(`Erreur : ${r.error}`, 'err')
+      showToast(t('toast.err', r.error ?? ''), 'err')
     }
   }
 
   const handleAddRemote = async () => {
-    const name = await showPrompt('Nom du remote :')
+    const name = await showPrompt(t('sb.remote.namePrompt'))
     if (!name) return
-    const url = await showPrompt('URL du remote :')
+    const url = await showPrompt(t('sb.remote.urlPrompt'))
     if (!url) return
     const r = await window.gitAPI.addRemote(name, url)
     if (r.success) {
-      showToast(`✓ Remote "${name}" ajouté`)
+      showToast(t('sb.remote.added', name))
       const updated = await window.gitAPI.getRemotes()
       setRemotes(updated.remotes ?? [])
     } else {
-      showToast(`Erreur : ${r.error}`, 'err')
+      showToast(t('toast.err', r.error ?? ''), 'err')
     }
   }
 
   const handleRemoveRemote = async (name: string) => {
-    const ok = await showConfirm(`Supprimer le remote "${name}" ?`, true)
+    const ok = await showConfirm(t('sb.remote.removeConfirm', name), true)
     if (!ok) return
     const r = await window.gitAPI.removeRemote(name)
     if (r.success) {
-      showToast(`Remote "${name}" supprimé`)
+      showToast(t('sb.remote.removed', name))
       const updated = await window.gitAPI.getRemotes()
       setRemotes(updated.remotes ?? [])
     } else {
-      showToast(`Erreur : ${r.error}`, 'err')
+      showToast(t('toast.err', r.error ?? ''), 'err')
     }
   }
 
   const handleRenameRemote = async (name: string) => {
-    const newName = await showPrompt(`Renommer "${name}" en :`, name)
+    const newName = await showPrompt(t('sb.remote.renamePrompt', name), name)
     if (!newName || newName === name) return
     const r = await window.gitAPI.renameRemote(name, newName)
     if (r.success) {
-      showToast(`✓ Remote renommé en "${newName}"`)
+      showToast(t('sb.remote.renamed', newName))
       const updated = await window.gitAPI.getRemotes()
       setRemotes(updated.remotes ?? [])
     } else {
-      showToast(`Erreur : ${r.error}`, 'err')
+      showToast(t('toast.err', r.error ?? ''), 'err')
     }
   }
 
   const handleFetchRemote = async (name: string) => {
     const r = await window.gitAPI.fetchRemote(name)
-    if (r.success) showToast(`✓ Fetch "${name}" réussi`)
-    else showToast(`Fetch échoué : ${r.error}`, 'err')
+    if (r.success) showToast(t('sb.remote.fetchOk', name))
+    else showToast(t('toast.fetchErr', r.error ?? ''), 'err')
   }
   const [repoMenuOpen, setRepoMenuOpen] = useState(false)
   const [branchFilter, setBranchFilter] = useState('')
@@ -579,7 +588,7 @@ export default function Sidebar({
           <svg width="14" height="14" viewBox="0 0 16 16" fill="#3fb950">
             <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
           </svg>
-          <span className="sb-repo-name">{repoName || 'Ouvrir un dépôt'}</span>
+          <span className="sb-repo-name">{repoName || t('sb.openRepo')}</span>
           <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
             <path d="M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z"/>
           </svg>
@@ -592,19 +601,19 @@ export default function Sidebar({
               <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M.75 9.75a.75.75 0 0 0 0 1.5h14.5a.75.75 0 0 0 0-1.5H.75ZM0 2.75C0 2.336.336 2 .75 2h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 2.75ZM0 6.25C0 5.836.336 5.5.75 5.5h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 6.25Z"/>
               </svg>
-              Ouvrir un dépôt…
+              {t('sb.openRepoDots')}
             </button>
             <button className="sb-dropdown-item sb-open-item"
               onClick={() => { onClone(); setRepoMenuOpen(false) }}>
               <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
               </svg>
-              Cloner depuis GitHub…
+              {t('sb.cloneDots')}
             </button>
             {otherRecents.length > 0 && (
               <>
                 <div className="sb-dropdown-sep" />
-                <div className="sb-dropdown-label">RÉCENTS</div>
+                <div className="sb-dropdown-label">{t('sb.recents')}</div>
                 {otherRecents.map(path => (
                   <div key={path} className="sb-dropdown-item sb-recent-item">
                     <button className="sb-recent-path"
@@ -615,7 +624,7 @@ export default function Sidebar({
                       <span>{path.split('/').pop()}</span>
                       <span className="sb-recent-full">{path}</span>
                     </button>
-                    <button className="sb-recent-remove" title="Retirer"
+                    <button className="sb-recent-remove" title={t('sb.removeRecent')}
                       onClick={() => onRemoveRecent(path)}>×</button>
                   </div>
                 ))}
@@ -632,7 +641,7 @@ export default function Sidebar({
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
             <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
           </svg>
-          <input type="text" placeholder="Filtrer les branches…"
+          <input type="text" placeholder={t('sb.filterBranches')}
             value={branchFilter} onChange={e => setBranchFilter(e.target.value)} />
           {branchFilter && <button className="sb-filter-clear" onClick={() => setBranchFilter('')}>×</button>}
         </div>
@@ -643,8 +652,8 @@ export default function Sidebar({
         <div className="sb-sections">
 
           {/* LOCAL */}
-          <Section title="LOCAL" count={localBranches.length} onAdd={onCreateBranch} addLabel="Nouvelle branche">
-            {localBranches.length === 0 && <div className="sb-empty">Aucune branche locale</div>}
+          <Section title="LOCAL" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}>
+            {localBranches.length === 0 && <div className="sb-empty">{t('sb.noLocalBranch')}</div>}
             {localBranches.map(b => (
               <BranchItem
                 key={b.name}
@@ -696,9 +705,9 @@ export default function Sidebar({
 
           {/* TAGS */}
           <Section title="TAGS" count={tags.length} defaultOpen={false}
-            onAdd={onCreateTag} addLabel="Nouveau tag">
+            onAdd={onCreateTag} addLabel={t('sb.newTag')}>
             {tags.length === 0
-              ? <div className="sb-empty">Aucun tag</div>
+              ? <div className="sb-empty">{t('sb.noTag')}</div>
               : tags.map(t => (
                   <TagItem key={t.name} tag={t} onDelete={() => onDeleteTag(t.name)}
                     onPush={() => onPushTag(t.name)} onDeleteRemote={() => onDeleteRemoteTag(t.name)} />
@@ -708,9 +717,9 @@ export default function Sidebar({
 
           {/* REMOTES */}
           <Section title="REMOTES" count={remotes.length} defaultOpen={false}
-            onAdd={handleAddRemote} addLabel="Ajouter un remote">
+            onAdd={handleAddRemote} addLabel={t('sb.addRemote')}>
             {remotes.length === 0
-              ? <div className="sb-empty">Aucun remote</div>
+              ? <div className="sb-empty">{t('sb.noRemote')}</div>
               : remotes.map(r => (
                   <RemoteItem
                     key={r.name}
@@ -740,9 +749,9 @@ export default function Sidebar({
 
           {/* WORKTREES */}
           <Section title="WORKTREES" count={worktrees.length} defaultOpen={false}
-            onAdd={handleAddWorktree} addLabel="Ajouter un worktree">
+            onAdd={handleAddWorktree} addLabel={t('sb.addWorktree')}>
             {worktrees.length === 0
-              ? <div className="sb-empty">Aucun worktree</div>
+              ? <div className="sb-empty">{t('sb.noWorktree')}</div>
               : worktrees.map(wt => (
                   <WorktreeItem
                     key={wt.path}
@@ -758,7 +767,7 @@ export default function Sidebar({
           {/* REFLOG */}
           <Section title="REFLOG" count={reflog.length} defaultOpen={false}>
             {reflog.length === 0
-              ? <div className="sb-empty">Reflog vide</div>
+              ? <div className="sb-empty">{t('sb.reflogEmpty')}</div>
               : reflog.map((entry, i) => (
                   <ReflogItem
                     key={i}
@@ -775,10 +784,10 @@ export default function Sidebar({
             count={stashes.length}
             defaultOpen={false}
             onAdd={onCreateStash}
-            addLabel="Créer un stash"
+            addLabel={t('sb.stash.create')}
           >
             {stashes.length === 0
-              ? <div className="sb-empty">Aucun stash</div>
+              ? <div className="sb-empty">{t('sb.noStash')}</div>
               : stashes.map(s => (
                   <StashItem
                     key={s.index}
@@ -798,16 +807,16 @@ export default function Sidebar({
       {/* ── Empty state ── */}
       {!repoPath && (
         <div className="sb-no-repo">
-          <button className="sb-open-btn" onClick={onOpenRepo}>Ouvrir un dépôt</button>
+          <button className="sb-open-btn" onClick={onOpenRepo}>{t('sb.openRepo')}</button>
           <button className="sb-open-btn sb-clone-btn" onClick={onClone}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
             </svg>
-            Cloner depuis GitHub
+            {t('sb.clone')}
           </button>
           {recentRepos.length > 0 && (
             <>
-              <div className="sb-recents-title">RÉCENTS</div>
+              <div className="sb-recents-title">{t('sb.recents')}</div>
               {recentRepos.map(path => (
                 <button key={path} className="sb-recent-btn" onClick={() => onSetRepo(path)} title={path}>
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">

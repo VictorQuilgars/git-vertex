@@ -824,7 +824,7 @@ export class GitService {
       if (idx === -1) return { success: false, error: 'Commit introuvable' }
       const swapWith = direction === 'up' ? idx + 1 : idx - 1
       if (swapWith < 0 || swapWith >= picks.length) {
-        return { success: false, error: 'Déplacement impossible' }
+        return { success: false, error: 'Move not possible' }
       }
       const reordered = [...picks]
       ;[reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]]
@@ -1002,7 +1002,7 @@ export class GitService {
       return { success: true }
     } catch (e: any) {
       if (this.rebaseInProgress()) {
-        return { success: false, conflict: true, error: 'Conflit de rebase — résolvez les conflits puis continuez' }
+        return { success: false, conflict: true, error: 'Rebase conflict — resolve the conflicts then continue' }
       }
       return { success: false, error: e.message }
     }
@@ -1103,7 +1103,7 @@ export class GitService {
       return { success: true }
     } catch (e: any) {
       if (this.rebaseInProgress()) {
-        return { success: false, conflict: true, error: 'Conflit de rebase — résolvez les conflits puis continuez' }
+        return { success: false, conflict: true, error: 'Rebase conflict — resolve the conflicts then continue' }
       }
       return { success: false, error: e.message }
     }
@@ -1134,7 +1134,7 @@ export class GitService {
       let target = upstream
       if (!target) {
         const remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
-        if (remotes.length === 0) return { success: false, error: 'Aucun remote configuré' }
+        if (remotes.length === 0) return { success: false, error: 'No remote configured' }
         const preferred = remotes.includes('origin') ? 'origin' : remotes[0]
         target = `${preferred}/${branch}`
       }
@@ -1402,7 +1402,7 @@ exit 0
       // Stopped on a conflict → leave the rebase in progress so the user can
       // resolve via the conflict UI and continue (don't treat it as a failure).
       if (this.rebaseInProgress()) {
-        return { success: false, conflict: true, error: 'Conflit de rebase — résolvez les conflits puis cliquez sur Continuer' }
+        return { success: false, conflict: true, error: 'Rebase conflict — resolve the conflicts then click Continue' }
       }
       return { success: false, error: e.stderr ?? e.message }
     } finally {
@@ -1545,14 +1545,14 @@ exit 0
       if (!this.rebaseInProgress()) return { success: false, error: e.stderr ?? e.message }
       // Real conflicts remain → the user must resolve them first.
       if (await this.hasUnmergedPaths()) {
-        return { success: false, conflict: true, error: 'Conflits restants — résolvez-les puis continuez' }
+        return { success: false, conflict: true, error: 'Remaining conflicts — resolve them then continue' }
       }
       // Clean tree but `--continue` couldn't advance → the current commit is
       // empty / already applied. Skip it so the rebase moves on (no changes lost).
       try {
         await this.gitExec(['rebase', '--skip'])
         if (this.rebaseInProgress() && await this.hasUnmergedPaths()) {
-          return { success: false, conflict: true, error: 'Conflits restants — résolvez-les puis continuez' }
+          return { success: false, conflict: true, error: 'Remaining conflicts — resolve them then continue' }
         }
         return { success: true }
       } catch (e2: any) {
@@ -1618,19 +1618,19 @@ exit 0
       if (fs.existsSync(origHead)) {
         await this.git.raw(['reset', '--soft', 'ORIG_HEAD'])
         this.redoStack.push(before)
-        return { success: true, action: 'merge/rebase/reset annulé' }
+        return { success: true, action: 'merge/rebase/reset aborted' }
       }
 
       // Check we have at least one parent to reset to
       const count = (await this.git.raw(['rev-list', '--count', '--max-count=2', 'HEAD'])).trim()
       if (parseInt(count) < 2) {
-        return { success: false, error: 'Aucun commit précédent — impossible d\'annuler' }
+        return { success: false, error: 'No previous commit — cannot undo' }
       }
 
       const msg = (await this.git.raw(['log', '-1', '--pretty=format:%s', 'HEAD'])).trim()
       await this.git.raw(['reset', '--soft', 'HEAD~1'])
       this.redoStack.push(before)
-      return { success: true, action: `commit annulé : "${msg}"` }
+      return { success: true, action: `commit undone: ""` }
     } catch (e: any) {
       return { success: false, error: e.message }
     }
@@ -1640,13 +1640,13 @@ exit 0
   // the matching undo. Non-destructive (soft reset preserves the working tree).
   async redoLastAction(): Promise<{ success: boolean; action?: string; error?: string }> {
     const target = this.redoStack.pop()
-    if (!target) return { success: false, error: 'Rien à rétablir' }
+    if (!target) return { success: false, error: 'Nothing to redo' }
     try {
       // Make sure the saved commit still exists before resetting to it.
       await this.git.raw(['cat-file', '-e', `${target}^{commit}`])
       const msg = (await this.git.raw(['log', '-1', '--pretty=format:%s', target])).trim()
       await this.git.raw(['reset', '--soft', target])
-      return { success: true, action: `action rétablie : "${msg}"` }
+      return { success: true, action: `action redone: ""` }
     } catch (e: any) {
       return { success: false, error: e.message }
     }
@@ -2068,7 +2068,7 @@ exit 0
       const mainBranch = await this.detectMainBranch(names)
       const base = type === 'hotfix' ? mainBranch : 'develop'
       if (type !== 'hotfix' && !names.includes('develop')) {
-        return { success: false, error: 'Gitflow non initialisé (branche "develop" manquante)' }
+        return { success: false, error: 'Gitflow not initialized (missing "develop" branch)' }
       }
       await this.git.raw(['checkout', '-b', `${type}/${name}`, base])
       return { success: true }
@@ -2084,7 +2084,7 @@ exit 0
     await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
     if (await this.hasUnmergedPaths()) {
       await this.abortMerge()
-      return `Conflit en mergeant ${branch} — opération annulée, dépôt inchangé`
+      return `Conflict while merging  — operation aborted, repository unchanged`
     }
     return null
   }
