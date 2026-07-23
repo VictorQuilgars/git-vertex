@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { CommitNode, FileChange } from '../../types'
+import { useLang } from '../../i18n/LanguageContext'
 import './DiffViewer.css'
 
 interface DiffViewerProps {
@@ -224,6 +225,7 @@ function SplitHunk({ hunk, lang }: { hunk: DiffHunk; lang?: string }) {
 }
 
 export default function DiffViewer({ commit, diff, files, loading, headerLabel }: DiffViewerProps) {
+  const { t } = useLang()
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified')
   const parsedDiff = useMemo(() => parseDiff(diff), [diff])
 
@@ -233,7 +235,7 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel }
         <svg width="48" height="48" viewBox="0 0 16 16" fill="#484f58">
           <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
         </svg>
-        <p>Sélectionnez un commit pour voir son contenu</p>
+        <p>{t('dv.selectCommit')}</p>
       </div>
     )
   }
@@ -266,14 +268,14 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel }
           <button
             className={`toggle-btn ${viewMode === 'unified' ? 'active' : ''}`}
             onClick={() => setViewMode('unified')}
-            title="Vue unifiée"
+            title={t('dv.unifiedTitle')}
           >
             Unified
           </button>
           <button
             className={`toggle-btn ${viewMode === 'split' ? 'active' : ''}`}
             onClick={() => setViewMode('split')}
-            title="Vue côte à côte"
+            title={t('dv.splitTitle')}
           >
             Split
           </button>

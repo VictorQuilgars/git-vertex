@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useLang } from '../../i18n/LanguageContext'
 import './CommitPanel.css'
 
 interface WorkingFile {
@@ -38,6 +39,7 @@ function FileRow({
   onUnstage?: () => void
   onDiscard?: () => void
 }) {
+  const { t } = useLang()
   const meta = STATUS_LABELS[status] ?? STATUS_LABELS['?']
   return (
     <div className={`file-row ${selected ? 'selected' : ''}`} onClick={onToggleSelect}>
@@ -52,17 +54,17 @@ function FileRow({
       <span className="file-row-path" title={file}>{file}</span>
       <div className="file-row-actions">
         {!staged && onStage && (
-          <button className="icon-btn stage-btn" title="Stager ce fichier" onClick={e => { e.stopPropagation(); onStage() }}>
+          <button className="icon-btn stage-btn" title={t('cp.fileStage')} onClick={e => { e.stopPropagation(); onStage() }}>
             +
           </button>
         )}
         {staged && onUnstage && (
-          <button className="icon-btn unstage-btn" title="Désindexer ce fichier" onClick={e => { e.stopPropagation(); onUnstage() }}>
+          <button className="icon-btn unstage-btn" title={t('cp.fileUnstage')} onClick={e => { e.stopPropagation(); onUnstage() }}>
             −
           </button>
         )}
         {!staged && onDiscard && (
-          <button className="icon-btn discard-btn" title="Annuler les modifications" onClick={e => { e.stopPropagation(); onDiscard() }}>
+          <button className="icon-btn discard-btn" title={t('cp.fileDiscard')} onClick={e => { e.stopPropagation(); onDiscard() }}>
             ↺
           </button>
         )}
@@ -72,6 +74,7 @@ function FileRow({
 }
 
 export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelProps) {
+  const { t } = useLang()
   const [changes, setChanges] = useState<WorkingChanges>({ staged: [], unstaged: [], untracked: [] })
   const [selectedStaged, setSelectedStaged] = useState<Set<string>>(new Set())
   const [selectedUnstaged, setSelectedUnstaged] = useState<Set<string>>(new Set())
@@ -146,7 +149,7 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
   }
 
   const handleDiscard = async (path: string) => {
-    if (!window.confirm(`Annuler les modifications de "${path}" ? Cette action est irréversible.`)) return
+    if (!window.confirm(t('cp.discardConfirm', path))) return
     const result = await window.gitAPI.discardFile(path)
     if (result.success) await load()
     else showToast(`Erreur : ${result.error}`, 'err')
@@ -154,17 +157,17 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
 
   const handleCommit = async () => {
     if (!commitMessage.trim()) { showToast('Le message de commit est requis', 'err'); return }
-    if (changes.staged.length === 0 && !amend) { showToast('Aucun fichier indexé', 'err'); return }
+    if (changes.staged.length === 0 && !amend) { showToast(t('cp.noStaged'), 'err'); return }
     setCommitting(true)
     const result = await window.gitAPI.commit(commitMessage.trim(), amend)
     if (result.success) {
-      showToast('Commit créé ✓')
+      showToast(t('cp.commitOk'))
       setCommitMessage('')
       setAmend(false)
       await load()
       onCommitSuccess()
     } else {
-      showToast(`Commit échoué : ${result.error}`, 'err')
+      showToast(t('cp.commitErr', result.error), 'err')
     }
     setCommitting(false)
   }
@@ -179,25 +182,25 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
         <div className="section-header">
           <span className="section-title">
             <span className="section-dot staged-dot" />
-            Indexé · <strong>{changes.staged.length}</strong>
+            {t('cp.stagedLabel')} · <strong>{changes.staged.length}</strong>
           </span>
           <div className="section-actions">
             {selectedStaged.size > 0 && (
               <button className="action-link" onClick={handleUnstageSelected}>
-                Désindexer la sélection ({selectedStaged.size})
+                {t('cp.unstageSelected', selectedStaged.size)}
               </button>
             )}
             {changes.staged.length > 0 && (
-              <button className="action-link" onClick={handleUnstageAll}>Tout désindexer</button>
+              <button className="action-link" onClick={handleUnstageAll}>{t('cp.unstageAll')}</button>
             )}
-            <button className="refresh-btn" onClick={load} title="Rafraîchir">
+            <button className="refresh-btn" onClick={load} title={t('cp.refresh')}>
               {loading ? '⟳' : '↺'}
             </button>
           </div>
         </div>
         <div className="file-list">
           {changes.staged.length === 0 ? (
-            <div className="empty-hint">Aucun fichier indexé</div>
+            <div className="empty-hint">{t('cp.noStaged')}</div>
           ) : (
             changes.staged.map(f => (
               <FileRow
@@ -219,22 +222,22 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
         <div className="section-header">
           <span className="section-title">
             <span className="section-dot unstaged-dot" />
-            Non indexé · <strong>{totalUnstaged}</strong>
+            {t('cp.unstagedLabel')} · <strong>{totalUnstaged}</strong>
           </span>
           <div className="section-actions">
             {selectedUnstaged.size > 0 && (
               <button className="action-link" onClick={handleStageSelected}>
-                Indexer la sélection ({selectedUnstaged.size})
+                {t('cp.stageSelected', selectedUnstaged.size)}
               </button>
             )}
             {totalUnstaged > 0 && (
-              <button className="action-link stage-all-btn" onClick={handleStageAll}>Tout indexer</button>
+              <button className="action-link stage-all-btn" onClick={handleStageAll}>{t('cp.stageAll')}</button>
             )}
           </div>
         </div>
         <div className="file-list">
           {totalUnstaged === 0 ? (
-            <div className="empty-hint">Répertoire de travail propre</div>
+            <div className="empty-hint">{t('cp.cleanTree')}</div>
           ) : (
             <>
               {changes.unstaged.map(f => (
@@ -269,7 +272,7 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
       <div className="commit-form">
         <textarea
           className="commit-message-input"
-          placeholder="Message de commit (obligatoire)&#10;&#10;Description optionnelle…"
+          placeholder={t('cp.msgPlaceholder')}
           value={commitMessage}
           onChange={e => setCommitMessage(e.target.value)}
           onKeyDown={e => {
@@ -284,15 +287,15 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
               checked={amend}
               onChange={e => setAmend(e.target.checked)}
             />
-            <span>Amend le dernier commit</span>
+            <span>{t('cp.amend')}</span>
           </label>
           <button
             className={`commit-btn ${canCommit && commitMessage.trim() ? 'ready' : ''}`}
             onClick={handleCommit}
             disabled={!commitMessage.trim() || committing}
-            title="Créer le commit (⌘↵)"
+            title={t('cp.createCommitTitle')}
           >
-            {committing ? 'Commit…' : `Commit${canCommit ? ` (${changes.staged.length})` : ''}`}
+            {committing ? t('cp.committing') : `Commit${canCommit ? ` (${changes.staged.length})` : ''}`}
           </button>
         </div>
       </div>

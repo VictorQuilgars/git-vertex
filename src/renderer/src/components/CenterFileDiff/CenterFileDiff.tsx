@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import hljs from 'highlight.js'
+import { useLang } from '../../i18n/LanguageContext'
 import './CenterFileDiff.css'
 
 export type CenterDiffTarget =
@@ -105,6 +106,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
   // Non-indexé/Indexé toggle in the header for working files.
   onChangeArea?: (area: 'staged' | 'unstaged') => void
 }) {
+  const { t } = useLang()
   const [hunks, setHunks] = useState<DiffHunk[]>([])
   const [loading, setLoading] = useState(true)
   const [showFullFile, setShowFullFile] = useState(false)
@@ -192,7 +194,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
       setHunks(all.flatMap(f => f.hunks))
       setSelectedLines(new Set())
     } else {
-      setApplyError(result.error ?? 'Erreur inconnue')
+      setApplyError(result.error ?? t('cfd.unknownError'))
     }
   }, [filePath, isStaged, onStaged, wholeFile])
 
@@ -213,7 +215,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
     for (const patch of patches) {
       const result = await window.gitAPI.applyPatch(patch, isStaged)
       if (!result.success) {
-        setApplyError(result.error ?? 'Erreur inconnue')
+        setApplyError(result.error ?? t('cfd.unknownError'))
         return
       }
     }
@@ -226,7 +228,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
 
   const areaLabel =
     target.type === 'working'
-      ? (target.area === 'staged' ? 'Indexé' : 'Non-indexé')
+      ? (target.area === 'staged' ? t('cfd.staged') : t('cfd.unstaged'))
       : target.commitHash.slice(0, 7)
 
   const badgeCls =
@@ -234,7 +236,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
       ? (target.area === 'staged' ? 'cfd-staged' : 'cfd-unstaged')
       : 'cfd-commit'
 
-  const actionLabel = isStaged ? 'Désindexer' : 'Indexer'
+  const actionLabel = isStaged ? t('cfd.unstage') : t('cfd.stage')
 
   return (
     <div className={`cfd-container ${isStaged ? 'cfd-staged-mode' : ''}`}>
@@ -246,8 +248,8 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
         )}
         {onChangeArea && isWorking ? (
           <div className="cfd-area-toggle">
-            <button className={!isStaged ? 'active' : ''} onClick={() => onChangeArea('unstaged')}>Non-indexé</button>
-            <button className={isStaged ? 'active' : ''} onClick={() => onChangeArea('staged')}>Indexé</button>
+            <button className={!isStaged ? 'active' : ''} onClick={() => onChangeArea('unstaged')}>{t('cfd.unstaged')}</button>
+            <button className={isStaged ? 'active' : ''} onClick={() => onChangeArea('staged')}>{t('cfd.staged')}</button>
           </div>
         ) : (
           <span className={`cfd-area-badge ${badgeCls}`}>{areaLabel}</span>
@@ -262,18 +264,18 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
           <button
             className={`cfd-toggle ${wholeFile ? 'active' : ''}`}
             onClick={() => setWholeFile(v => !v)}
-            title={wholeFile ? 'Afficher seulement les modifications' : 'Afficher tout le fichier'}
+            title={wholeFile ? t('cfd.showChangesOnly') : t('cfd.showWholeFile')}
           >
-            {wholeFile ? '◆ Fichier entier' : '◇ Modifications'}
+            {wholeFile ? t('cfd.wholeFileBtn') : t('cfd.changesBtn')}
           </button>
         )}
         {target.type === 'commit' && (
           <button
             className={`cfd-toggle ${showFullFile ? 'active' : ''}`}
             onClick={() => setShowFullFile(v => !v)}
-            title={showFullFile ? 'Afficher seulement les modifications' : 'Afficher le fichier complet'}
+            title={showFullFile ? t('cfd.showChangesOnly') : t('cfd.showFullFile')}
           >
-            {showFullFile ? '◆ Fichier' : '◇ Diff'}
+            {showFullFile ? t('cfd.fileBtn') : '◇ Diff'}
           </button>
         )}
       </div>
@@ -283,7 +285,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
       <div className="cfd-body">
         {showFullFile ? (
           <>
-            {fullLoading && <div className="cfd-loading">Chargement…</div>}
+            {fullLoading && <div className="cfd-loading">{t('common.loading')}</div>}
             {!fullLoading && fullContent && (
               <table className="cfd-full-table"><tbody>
                 {fullContent.split('\n').map((line, i) => (
@@ -300,9 +302,9 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
           </>
         ) : (
           <>
-            {loading && <div className="cfd-loading">Chargement…</div>}
+            {loading && <div className="cfd-loading">{t('common.loading')}</div>}
             {!loading && hunks.length === 0 && (
-              <div className="cfd-loading">Aucune différence</div>
+              <div className="cfd-loading">{t('compare.noDiff')}</div>
             )}
             {!loading && hunks.map((hunk, hi) => {
               const changeableKeys = hunk.lines.filter(l => l.type !== 'context').map(lineKey)
@@ -316,7 +318,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
                         <button
                           className={`cfd-hunk-select ${allHunkSelected ? 'active' : ''}`}
                           onClick={() => toggleHunk(hunk)}
-                          title={allHunkSelected ? 'Désélectionner ce bloc' : 'Sélectionner ce bloc'}
+                          title={allHunkSelected ? t('cfd.deselectHunk') : t('cfd.selectHunk')}
                         >
                           {allHunkSelected ? '☑' : '☐'} Bloc
                         </button>

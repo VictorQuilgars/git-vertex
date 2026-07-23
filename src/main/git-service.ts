@@ -1630,7 +1630,7 @@ exit 0
       const msg = (await this.git.raw(['log', '-1', '--pretty=format:%s', 'HEAD'])).trim()
       await this.git.raw(['reset', '--soft', 'HEAD~1'])
       this.redoStack.push(before)
-      return { success: true, action: `commit undone: ""` }
+      return { success: true, action: `commit undone: "${msg}"` }
     } catch (e: any) {
       return { success: false, error: e.message }
     }
@@ -1646,7 +1646,7 @@ exit 0
       await this.git.raw(['cat-file', '-e', `${target}^{commit}`])
       const msg = (await this.git.raw(['log', '-1', '--pretty=format:%s', target])).trim()
       await this.git.raw(['reset', '--soft', target])
-      return { success: true, action: `action redone: ""` }
+      return { success: true, action: `action redone: "${msg}"` }
     } catch (e: any) {
       return { success: false, error: e.message }
     }
@@ -2084,7 +2084,7 @@ exit 0
     await this.git.raw(['merge', '--no-ff', branch, '-m', `Merge ${branch}`])
     if (await this.hasUnmergedPaths()) {
       await this.abortMerge()
-      return `Conflict while merging  — operation aborted, repository unchanged`
+      return `Conflict while merging ${branch} — operation aborted, repository unchanged`
     }
     return null
   }

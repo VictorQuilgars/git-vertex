@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import DiffViewer from '../DiffViewer/DiffViewer'
 import type { FileChange } from '../../types'
+import { useLang } from '../../i18n/LanguageContext'
 import './CompareView.css'
 
 interface CompareCommit {
@@ -17,6 +18,7 @@ interface CompareCommit {
 const api: any = new Proxy({}, { get: (_t, p) => (window as any).gitAPI?.[p as string] })
 
 export default function CompareView({ initialA, initialB }: { initialA?: string; initialB?: string }) {
+  const { t } = useLang()
   const [refs, setRefs] = useState<string[]>([])
   const [refA, setRefA] = useState(initialA ?? '')
   const [refB, setRefB] = useState(initialB ?? '')
@@ -61,7 +63,7 @@ export default function CompareView({ initialA, initialB }: { initialA?: string;
 
   const renderRefSelect = (value: string, onChange: (v: string) => void) => (
     <select className="cv-ref-select" value={value} onChange={e => onChange(e.target.value)}>
-      <option value="">— choisir une référence —</option>
+      <option value="">{t('cv.chooseRef')}</option>
       {refs.map(r => <option key={r} value={r}>{r}</option>)}
     </select>
   )
@@ -71,7 +73,7 @@ export default function CompareView({ initialA, initialB }: { initialA?: string;
       <div className="cv-commits-title" style={{ color: accent }}>
         {title} <span className="cv-commits-count">({list.length})</span>
       </div>
-      {list.length === 0 && <div className="cv-commits-empty">Aucun commit</div>}
+      {list.length === 0 && <div className="cv-commits-empty">{t('cv.noCommit')}</div>}
       {list.map(c => (
         <div key={c.hash} className="cv-commit">
           <code className="cv-commit-hash">{c.shortHash}</code>
@@ -86,9 +88,9 @@ export default function CompareView({ initialA, initialB }: { initialA?: string;
   return (
     <div className="cv-page">
       <div className="cv-header">
-        <span className="cv-title">⇄ Comparer</span>
+        <span className="cv-title">{t('cv.title')}</span>
         {renderRefSelect(refA, setRefA)}
-        <button className="cv-swap" onClick={swap} title="Inverser les références">⇄</button>
+        <button className="cv-swap" onClick={swap} title={t('cv.swapTitle')}>⇄</button>
         {renderRefSelect(refB, setRefB)}
         {ready && (
           <span className="cv-summary">
@@ -98,12 +100,12 @@ export default function CompareView({ initialA, initialB }: { initialA?: string;
       </div>
 
       {!ready ? (
-        <div className="cv-empty">Choisissez deux références à comparer</div>
+        <div className="cv-empty">{t('cv.chooseTwo')}</div>
       ) : (
         <div className="cv-body">
           <div className="cv-left">
-            {renderCommitList(`Dans ${refB} seulement`, ahead, '#3fb950')}
-            {renderCommitList(`Dans ${refA} seulement`, behind, '#f85149')}
+            {renderCommitList(t('cv.inOnly', refB), ahead, '#3fb950')}
+            {renderCommitList(t('cv.inOnly', refA), behind, '#f85149')}
           </div>
           <div className="cv-right">
             <DiffViewer

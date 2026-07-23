@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { computeMessageGroups, MessageGroup } from '../../utils/rebaseMessageGroups'
+import { useLang } from '../../i18n/LanguageContext'
 import './InteractiveRebase.css'
 
 type RebaseAction = 'pick' | 'reword' | 'squash' | 'fixup' | 'drop'
@@ -43,6 +44,7 @@ const ACTION_COLORS: Record<RebaseAction, string> = {
 const groupKey = (g: MessageGroup): string => `${g.leaderIndex}:${g.memberIndexes.join(',')}`
 
 export default function InteractiveRebase({ baseHash, onClose, onSuccess, showToast, embedded, initialPlan }: InteractiveRebaseProps) {
+  const { t } = useLang()
   const [entries, setEntries] = useState<RebaseEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
@@ -124,14 +126,14 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
     // previous commit"). Guard before launching to avoid a broken rebase todo.
     const firstKept = entries.find(e => e.action !== 'drop')
     if (firstKept && (firstKept.action === 'squash' || firstKept.action === 'fixup')) {
-      showToast("Le premier commit conservé ne peut pas être « squash »/« fixup » — choisissez « pick » ou incluez un commit plus ancien.", 'err')
+      showToast(t('ir.firstKept'), 'err')
       return
     }
     const needsMessageGroups = groups.filter(g => g.needsMessage)
     for (const g of needsMessageGroups) {
       const msg = groupMessages[groupKey(g)] ?? g.defaultMessage
       if (!msg.trim()) {
-        showToast('Le message de commit ne peut pas être vide pour un squash/reword.', 'err')
+        showToast(t('rebase.emptyMsg'), 'err')
         return
       }
     }
@@ -141,17 +143,17 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
     const r = await window.gitAPI.interactiveRebase(sequence, messages)
     setRunning(false)
     if (r.success) {
-      showToast('✓ Rebase interactif réussi')
+      showToast(t('ir.success'))
       onSuccess()
       onClose()
     } else if ((r as { conflict?: boolean }).conflict) {
       // Rebase stopped on a conflict and is still in progress. Close the modal
       // and refresh so the conflict banner / resolver becomes visible.
-      showToast(r.error ?? 'Conflit de rebase — résolvez puis continuez', 'err')
+      showToast(r.error ?? t('ir.conflict'), 'err')
       onSuccess()
       onClose()
     } else {
-      showToast(`Rebase échoué : ${r.error}`, 'err')
+      showToast(t('ir.failed', r.error), 'err')
     }
   }
 
@@ -168,19 +170,19 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
         </div>
 
         <div className="ir-hint">
-          Glissez pour réordonner · Changez l'action avec le menu déroulant · Choisissez le message final pour un squash/reword
+          {t('ir.hint')}
         </div>
 
         {fromPlan && (
           <div className="ir-plan-banner">
-            🤖 Plan proposé par un agent — vérifiez chaque action et message avant de lancer le rebase.
+            {t('ir.planBanner')}
           </div>
         )}
 
         <div className="ir-list">
-          {loading && <div className="ir-empty">Chargement…</div>}
+          {loading && <div className="ir-empty">{t('common.loading')}</div>}
           {!loading && entries.length === 0 && (
-            <div className="ir-empty">Aucun commit à rebaser</div>
+            <div className="ir-empty">{t('ir.noCommits')}</div>
           )}
           {(() => { const firstKeptIndex = entries.findIndex(e => e.action !== 'drop'); return entries.map((entry, i) => {
             const msgGroup = messageGroupByLastIndex.get(i)
@@ -195,7 +197,7 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
                 onDrop={() => handleDrop(i)}
                 onDragEnd={() => setDragOver(null)}
               >
-                <span className="ir-drag-handle" title="Glisser pour réordonner">⠿</span>
+                <span className="ir-drag-handle" title={t('ir.dragHandle')}>⠿</span>
                 <select
                   className="ir-action-select"
                   value={entry.action}

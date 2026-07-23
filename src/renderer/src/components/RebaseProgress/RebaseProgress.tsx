@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useToast } from '../Toast/Toast'
+import { useLang } from '../../i18n/LanguageContext'
 import { computeMessageGroups, MessageGroup } from '../../utils/rebaseMessageGroups'
 import './RebaseProgress.css'
 
@@ -62,6 +63,7 @@ const groupKey = (g: MessageGroup): string => `${g.leaderIndex}:${g.memberIndexe
 
 export default function RebaseProgress() {
   const toast = useToast()
+  const { t } = useLang()
   const [state, setState] = useState<RebaseState | null>(null)
   const [busy, setBusy] = useState(false)
   // Editable plan for the REMAINING steps only — already-applied ones (`done`)
@@ -124,7 +126,7 @@ export default function RebaseProgress() {
     setBusy(true)
     try {
       const r = await op()
-      if (r && r.success === false) toast.error(r.error ?? `${label} a échoué`)
+      if (r && r.success === false) toast.error(r.error ?? t('rp.opFailed', label))
       else toast.success(`✓ ${label}`)
     } finally {
       setBusy(false)
@@ -132,12 +134,12 @@ export default function RebaseProgress() {
     }
   }, [toast, load])
 
-  const handleContinue = useCallback(() => run('Rebase continué', async () => {
+  const handleContinue = useCallback(() => run(t('rp.continued'), async () => {
     const needsMessageGroups = groups.filter(g => g.needsMessage)
     for (const g of needsMessageGroups) {
       const msg = groupMessages[groupKey(g)] ?? g.defaultMessage
       if (!msg.trim()) {
-        return { success: false, error: 'Le message de commit ne peut pas être vide pour un squash/reword.' }
+        return { success: false, error: t('rebase.emptyMsg') }
       }
     }
     // Persist any replanning of the remaining steps before resuming.
@@ -149,11 +151,11 @@ export default function RebaseProgress() {
     return api.continueRebase(messages)
   }), [run, todoEdits, groups, groupMessages])
   const handleSkip = useCallback(() =>
-    run('Étape passée', () => api.skipRebase()), [run])
+    run(t('rp.stepSkipped'), () => api.skipRebase()), [run])
   const handleAbort = useCallback(async () => {
     const confirmFn = api.uiConfirm ?? (async (m: string) => window.confirm(m))
-    if (!(await confirmFn('Abandonner le rebase ? La branche reviendra à son état initial.'))) return
-    await run('Rebase abandonné', () => api.abortRebase())
+    if (!(await confirmFn(t('rp.abortConfirm')))) return
+    await run(t('rp.aborted'), () => api.abortRebase())
   }, [run])
 
   // Ctrl/Cmd+Enter → Continue, matching the footer button's hint.
@@ -213,7 +215,7 @@ export default function RebaseProgress() {
     setDragOver(null)
   }
 
-  if (!state) return <div className="rp-page"><div className="rp-empty">Chargement…</div></div>
+  if (!state) return <div className="rp-page"><div className="rp-empty">{t('common.loading')}</div></div>
 
   if (!state.inProgress) {
     return (
@@ -222,15 +224,15 @@ export default function RebaseProgress() {
           {sawRebase.current ? (
             <>
               <div className="rp-finished-icon rp-ok">✓</div>
-              <div className="rp-finished-title">Rebase terminé</div>
-              <div className="rp-finished-sub">L'historique a été réécrit. Vous pouvez fermer cet onglet.</div>
+              <div className="rp-finished-title">{t('rp.finishedTitle')}</div>
+              <div className="rp-finished-sub">{t('rp.finishedSub')}</div>
             </>
           ) : (
             <>
               <div className="rp-finished-icon">⚡</div>
-              <div className="rp-finished-title">Aucun rebase en cours</div>
+              <div className="rp-finished-title">{t('rp.noneTitle')}</div>
               <div className="rp-finished-sub">
-                Cet onglet s'ouvre automatiquement quand un rebase démarre — depuis Git Vertex, le terminal ou n'importe quel outil.
+                {t('rp.noneSub')}
               </div>
             </>
           )}
@@ -243,9 +245,9 @@ export default function RebaseProgress() {
   const doneSettled = state.done.slice(0, -1)
   const current = state.done[state.done.length - 1] ?? null
   const hasConflicts = state.conflicts.length > 0
-  const pauseReason = current?.action === 'edit' ? 'pause « edit » — amendez puis continuez'
-    : current?.action === 'break' ? 'pause « break »'
-    : 'en attente'
+  const pauseReason = current?.action === 'edit' ? t('rp.pauseEdit')
+    : current?.action === 'break' ? t('rp.pauseBreak')
+    : t('rp.waiting')
   const filteredConflicts = state.conflicts.filter(f => f.toLowerCase().includes(conflictFilter.toLowerCase()))
 
   const renderReadOnlyStep = (s: RebaseStep, key: string, status: 'done' | 'current') => {
@@ -271,11 +273,11 @@ export default function RebaseProgress() {
     <div className="rp-page">
       <div className="rp-header">
         <div className="rp-header-top">
-          <span className="rp-title">⚡ Rebase interactif</span>
+          <span className="rp-title">{t('rp.title')}</span>
         </div>
         <div className="rp-header-refs">
           <span className="rp-ref-chip">
-            <span className="rp-ref-icon">⑂</span>{state.headName || 'HEAD détachée'}
+            <span className="rp-ref-icon">⑂</span>{state.headName || t('rp.detachedHead')}
           </span>
           <span className="rp-ref-onto">onto</span>
           <span className="rp-ref-chip rp-ref-chip--commit">
@@ -298,15 +300,15 @@ export default function RebaseProgress() {
           <span className="rp-banner-icon">{hasConflicts ? '⚠️' : '⏸'}</span>
           <span className="rp-banner-text">
             {hasConflicts
-              ? <>Rebase en pause à cause d'un conflit sur <code>{current.shortHash || state.stoppedSha?.slice(0, 7)}</code></>
-              : <>Arrêté sur <code>{current.shortHash || state.stoppedSha?.slice(0, 7)}</code> — {pauseReason}</>}
+              ? <>{t('rp.bannerConflictPre')}<code>{current.shortHash || state.stoppedSha?.slice(0, 7)}</code></>
+              : <>{t('rp.bannerStoppedPre')}<code>{current.shortHash || state.stoppedSha?.slice(0, 7)}</code> — {pauseReason}</>}
           </span>
           {hasConflicts && (
-            <button className="rp-banner-link" onClick={scrollToConflicts}>Afficher les conflits</button>
+            <button className="rp-banner-link" onClick={scrollToConflicts}>{t('rp.showConflicts')}</button>
           )}
           <span className="rp-banner-spring" />
           <span className="rp-banner-count">
-            ({state.stepCurrent}/{state.stepTotal}) {state.conflicts.length} restant{state.conflicts.length > 1 ? 's' : ''}
+            ({state.stepCurrent}/{state.stepTotal}) {t('rp.remaining', state.conflicts.length)}
           </span>
         </div>
       )}
@@ -329,7 +331,7 @@ export default function RebaseProgress() {
               onDragEnd={() => setDragOver(null)}
               onKeyDown={e => handleRowKeyDown(e, i)}
             >
-              <span className="rp-step-drag" title="Glisser pour réordonner (ou Alt+↑/↓)">⠿</span>
+              <span className="rp-step-drag" title={t('rp.dragTitle')}>⠿</span>
               {s.hash ? (
                 <>
                   <select
@@ -352,7 +354,7 @@ export default function RebaseProgress() {
             {msgGroup && (
               <div className="rp-msg-editor">
                 <span className="rp-msg-editor-label">
-                  Message final ({msgGroup.memberIndexes.length} commit{msgGroup.memberIndexes.length > 1 ? 's' : ''})
+                  {t('rp.finalMessage', msgGroup.memberIndexes.length)}
                 </span>
                 <textarea
                   className="rp-msg-textarea"
@@ -367,7 +369,7 @@ export default function RebaseProgress() {
           )
         })}
         {state.done.length === 0 && state.todo.length === 0 && (
-          <div className="rp-empty">Rebase non interactif — étape {state.stepCurrent}/{state.stepTotal}</div>
+          <div className="rp-empty">{t('rp.nonInteractive', state.stepCurrent, state.stepTotal)}</div>
         )}
       </div>
 
@@ -375,18 +377,18 @@ export default function RebaseProgress() {
         <div className="rp-conflicts-section" ref={conflictsRef}>
           <div className="rp-conflicts-header">
             <span className="rp-conflicts-title">
-              ⚠ {state.conflicts.length} fichier{state.conflicts.length > 1 ? 's' : ''} en conflit
+              {t('rp.conflictCount', state.conflicts.length)}
             </span>
           </div>
           <input
             className="rp-conflicts-filter"
-            placeholder="Filtrer les fichiers en conflit…"
+            placeholder={t('rp.filterConflicts')}
             value={conflictFilter}
             onChange={e => setConflictFilter(e.target.value)}
           />
           <div className="rp-conflicts-list">
             {filteredConflicts.map(f => (
-              <button key={f} className="rp-conflict-file" title="Ouvrir pour résoudre" onClick={() => handleOpenConflict(f)}>
+              <button key={f} className="rp-conflict-file" title={t('rp.openToResolve')} onClick={() => handleOpenConflict(f)}>
                 <span className="rp-conflict-badge">!</span>
                 <span className="rp-conflict-path">{f}</span>
                 <span className="rp-conflict-spring" />
@@ -394,7 +396,7 @@ export default function RebaseProgress() {
               </button>
             ))}
             {filteredConflicts.length === 0 && (
-              <div className="rp-empty" style={{ padding: '12px 18px' }}>Aucun fichier ne correspond</div>
+              <div className="rp-empty" style={{ padding: '12px 18px' }}>{t('rp.noMatch')}</div>
             )}
           </div>
         </div>
@@ -402,25 +404,25 @@ export default function RebaseProgress() {
 
       {todoEdits.some(s => s.hash) && (
         <div className="rp-legend">
-          <kbd>p</kbd>ick · <kbd>r</kbd>eword · <kbd>e</kbd>dit · <kbd>s</kbd>quash · <kbd>f</kbd>ixup · <kbd>d</kbd>rop · <kbd>alt</kbd>+<kbd>↑↓</kbd> déplacer
+          <kbd>p</kbd>ick · <kbd>r</kbd>eword · <kbd>e</kbd>dit · <kbd>s</kbd>quash · <kbd>f</kbd>ixup · <kbd>d</kbd>rop · <kbd>alt</kbd>+<kbd>↑↓</kbd> {t('rp.legendMove')}
         </div>
       )}
 
       <div className="rp-footer">
         <button className="rp-btn rp-btn--abort" disabled={busy} onClick={handleAbort}>
-          Abandonner
+          {t('rp.abort')}
         </button>
         <span className="rp-footer-spring" />
-        <button className="rp-btn" disabled={busy} onClick={handleSkip} title="Passer le commit courant (git rebase --skip)">
-          Passer l'étape
+        <button className="rp-btn" disabled={busy} onClick={handleSkip} title={t('rp.skipTitle')}>
+          {t('rp.skip')}
         </button>
         <button
           className="rp-btn rp-btn--continue"
           disabled={busy || hasConflicts}
-          title={hasConflicts ? "Résolvez et indexez tous les conflits d'abord" : 'git rebase --continue (Ctrl+Enter)'}
+          title={hasConflicts ? t('rp.continueTitleConflict') : 'git rebase --continue (Ctrl+Enter)'}
           onClick={handleContinue}
         >
-          {busy ? '…' : 'Continuer'}
+          {busy ? '…' : t('rp.continue')}
         </button>
       </div>
     </div>

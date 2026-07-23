@@ -104,17 +104,18 @@ function initials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 // GPG signature badge from `%G?` status code. Returns null for unsigned commits.
-function sigBadge(sig?: string) {
+type TFn = (key: any, ...args: any[]) => string
+function sigBadge(sig: string | undefined, t: TFn) {
   if (!sig || sig === 'N') return null
   const good = sig === 'G' || sig === 'U'
   const bad = sig === 'B' || sig === 'E'
   const cls = good ? 'cg-sig--good' : bad ? 'cg-sig--bad' : 'cg-sig--warn'
   const titles: Record<string, string> = {
-    G: 'Signature valide', U: 'Signature valide (validité inconnue)',
-    X: 'Signature expirée', Y: 'Clé expirée', R: 'Clé révoquée',
-    B: 'Signature invalide', E: 'Signature non vérifiable',
+    G: t('graph.sig.valid'), U: t('graph.sig.validUnknown'),
+    X: t('graph.sig.expired'), Y: t('graph.sig.keyExpired'), R: t('graph.sig.revoked'),
+    B: t('graph.sig.invalid'), E: t('graph.sig.unverifiable'),
   }
-  return <span className={`cg-sig ${cls}`} title={titles[sig] ?? 'Signé'}>🔏</span>
+  return <span className={`cg-sig ${cls}`} title={titles[sig] ?? t('graph.sig.signed')}>🔏</span>
 }
 // Resolves an author's avatar (AI-bot logo, else GitHub/Gravatar via the main
 // process), shared by the SVG graph node and the compact-layout HTML bullet.
@@ -186,26 +187,26 @@ function AuthorBullet({ email, name, sha, color }: { email: string; name: string
     </span>
   )
 }
-function fmtDate(s: string, format: string = 'absolute') {
+function fmtDate(s: string, format: string, t: TFn) {
   try {
     const d = new Date(s)
-    if (format === 'relative') return fmtRelative(d)
-    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+    if (format === 'relative') return fmtRelative(d, t)
+    return d.toLocaleDateString(t('graph.dateLocale'), { day: '2-digit', month: 'short', year: 'numeric' })
   } catch { return s }
 }
-// Relative date ("il y a 3 j", "il y a 2 mois").
-function fmtRelative(d: Date): string {
+// Relative date ("3 d ago", "2 mo ago").
+function fmtRelative(d: Date, t: TFn): string {
   const sec = Math.floor((Date.now() - d.getTime()) / 1000)
-  if (sec < 60) return "à l'instant"
+  if (sec < 60) return t('graph.time.now')
   const min = Math.floor(sec / 60)
-  if (min < 60) return `il y a ${min} min`
+  if (min < 60) return t('graph.time.min', min)
   const h = Math.floor(min / 60)
-  if (h < 24) return `il y a ${h} h`
+  if (h < 24) return t('graph.time.hours', h)
   const j = Math.floor(h / 24)
-  if (j < 30) return `il y a ${j} j`
+  if (j < 30) return t('graph.time.days', j)
   const mo = Math.floor(j / 30)
-  if (mo < 12) return `il y a ${mo} mois`
-  return `il y a ${Math.floor(mo / 12)} an${mo >= 24 ? 's' : ''}`
+  if (mo < 12) return t('graph.time.months', mo)
+  return t('graph.time.years', Math.floor(mo / 12))
 }
 
 interface ProcessedRef {
@@ -521,7 +522,7 @@ export default function CommitGraph({
     if (!hasWipNode) return computeGraphLayout(commits)
     const wipMessage = conflictMode
       ? `⚠️ A file conflict was found when attempting to ${conflictMode}`
-      : `//WIP  ✏ ${wipCount} fichier${wipCount !== 1 ? 's' : ''} modifié${wipCount !== 1 ? 's' : ''}`
+      : t('graph.wip', wipCount)
     // No headHash = empty repo (no commit yet): the WIP node stands alone as
     // a root so the user can stage files and create the very first commit.
     const wip: CommitNode = {
@@ -873,13 +874,13 @@ export default function CommitGraph({
   const branchActionItems = useCallback((name: string, isHead: boolean, display: string): MenuItemDef[] => {
     const items: MenuItemDef[] = []
     if (!isHead && onCheckoutBranch) items.push({ label: `✓ Checkout "${display}"`, action: () => onCheckoutBranch(name) })
-    if (!isHead && onMergeBranch && currentBranch) items.push({ label: `⛙ Merger "${display}" dans "${currentBranch}"`, action: () => onMergeBranch(name) })
-    if (!isHead && onRebaseCurrentOnto && currentBranch) items.push({ label: `⤵ Rebaser "${currentBranch}" sur "${display}"`, action: () => onRebaseCurrentOnto(name) })
-    if (onRenameBranch) items.push({ label: `✏️ Renommer "${display}"`, action: () => onRenameBranch(name) })
-    if (!isHead && onDeleteBranch) items.push({ label: `🗑 Supprimer "${display}"`, action: () => onDeleteBranch(name), danger: true })
-    if (onPushBranch) items.push({ label: '⬆ Push la branche', action: () => onPushBranch(name) })
-    if (onSetUpstream) items.push({ label: '🔗 Définir l\'upstream', action: () => onSetUpstream(name) })
-    items.push({ label: '📋 Copier le nom de la branche', action: () => navigator.clipboard.writeText(name) })
+    if (!isHead && onMergeBranch && currentBranch) items.push({ label: t('graph.menu.mergeBranchInto', display, currentBranch), action: () => onMergeBranch(name) })
+    if (!isHead && onRebaseCurrentOnto && currentBranch) items.push({ label: t('graph.menu.rebaseCurrentOnDisplay', currentBranch, display), action: () => onRebaseCurrentOnto(name) })
+    if (onRenameBranch) items.push({ label: t('graph.menu.renameBranchNamed', display), action: () => onRenameBranch(name) })
+    if (!isHead && onDeleteBranch) items.push({ label: t('graph.menu.deleteBranchNamed', display), action: () => onDeleteBranch(name), danger: true })
+    if (onPushBranch) items.push({ label: t('graph.menu.pushBranch'), action: () => onPushBranch(name) })
+    if (onSetUpstream) items.push({ label: t('graph.menu.setUpstream'), action: () => onSetUpstream(name) })
+    items.push({ label: t('graph.menu.copyBranchName'), action: () => navigator.clipboard.writeText(name) })
     return items
   }, [onCheckoutBranch, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, currentBranch])
 
@@ -1024,34 +1025,34 @@ export default function CommitGraph({
 
     if (pref.cls === 'rc-tag') {
       const tag = pref.display
-      items.push({ label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(tag) })
-      if (onPushTag) items.push({ label: '⬆ Pousser le tag', action: () => onPushTag(tag) })
+      items.push({ label: t('graph.menu.copyName'), action: () => navigator.clipboard.writeText(tag) })
+      if (onPushTag) items.push({ label: t('graph.menu.pushTag'), action: () => onPushTag(tag) })
       if (onDeleteTag || onDeleteRemoteTag) items.push({ separator: true })
-      if (onDeleteTag) items.push({ label: '🗑 Supprimer (local)', action: () => onDeleteTag(tag), danger: true })
-      if (onDeleteRemoteTag) items.push({ label: '🗑 Supprimer (distant)', action: () => onDeleteRemoteTag(tag), danger: true })
+      if (onDeleteTag) items.push({ label: t('graph.menu.deleteTagLocal'), action: () => onDeleteTag(tag), danger: true })
+      if (onDeleteRemoteTag) items.push({ label: t('graph.menu.deleteTagRemote'), action: () => onDeleteRemoteTag(tag), danger: true })
       return items
     }
 
     if (pref.cls === 'rc-remote' && name) {
       if (onCheckoutBranch) items.push({ label: '✓ Checkout', action: () => onCheckoutBranch(name) })
-      if (onDeleteRemoteBranch) items.push({ label: '🗑 Supprimer la branche distante', action: () => onDeleteRemoteBranch(name), danger: true })
-      items.push({ label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(pref.display) })
+      if (onDeleteRemoteBranch) items.push({ label: t('graph.menu.deleteRemoteBranch'), action: () => onDeleteRemoteBranch(name), danger: true })
+      items.push({ label: t('graph.menu.copyName'), action: () => navigator.clipboard.writeText(pref.display) })
       return items
     }
 
     // Local or current (head) branch
     if (!name) return items
     if (!pref.isHead && onCheckoutBranch) items.push({ label: '✓ Checkout', action: () => onCheckoutBranch(name) })
-    if (!pref.isHead && onMergeBranch && currentBranch) items.push({ label: `⛙ Merger dans ${currentBranch}`, action: () => onMergeBranch(name) })
-    if (!pref.isHead && onRebaseCurrentOnto && currentBranch) items.push({ label: `⤵ Rebaser ${currentBranch} sur ${pref.display}`, action: () => onRebaseCurrentOnto(name) })
+    if (!pref.isHead && onMergeBranch && currentBranch) items.push({ label: t('graph.menu.mergeIntoSimple', currentBranch), action: () => onMergeBranch(name) })
+    if (!pref.isHead && onRebaseCurrentOnto && currentBranch) items.push({ label: t('graph.menu.rebaseCurrentOntoSimple', currentBranch, pref.display), action: () => onRebaseCurrentOnto(name) })
     if (items.length) items.push({ separator: true })
     if (onPushBranch) items.push({ label: '⬆ Push', action: () => onPushBranch(name) })
-    if (onSetUpstream) items.push({ label: '🔗 Définir l\'upstream', action: () => onSetUpstream(name) })
-    if (onRenameBranch) items.push({ label: '✏️ Renommer', action: () => onRenameBranch(name) })
-    items.push({ label: '📋 Copier le nom', action: () => navigator.clipboard.writeText(name) })
+    if (onSetUpstream) items.push({ label: t('graph.menu.setUpstream'), action: () => onSetUpstream(name) })
+    if (onRenameBranch) items.push({ label: t('graph.menu.rename'), action: () => onRenameBranch(name) })
+    items.push({ label: t('graph.menu.copyName'), action: () => navigator.clipboard.writeText(name) })
     if (!pref.isHead && onDeleteBranch) {
       items.push({ separator: true })
-      items.push({ label: '🗑 Supprimer', action: () => onDeleteBranch(name), danger: true })
+      items.push({ label: t('graph.menu.delete'), action: () => onDeleteBranch(name), danger: true })
     }
     return items
   }, [currentBranch, onCheckoutBranch, onMergeBranch, onRebaseCurrentOnto, onPushBranch,
@@ -1066,9 +1067,9 @@ export default function CommitGraph({
     { label: 'SHA', checked: showSha, action: () => set('graphShowSha', showSha ? 'false' : 'true') },
     { label: 'Ajouts / suppressions', checked: showStats, action: () => set('graphShowStats', showStats ? 'false' : 'true') },
     { separator: true },
-    { label: 'Colonnes compactes (icônes)', checked: compactColumns, action: () => set('graphCompactColumns', compactColumns ? 'false' : 'true') },
+    { label: t('graph.menu.compactCols'), checked: compactColumns, action: () => set('graphCompactColumns', compactColumns ? 'false' : 'true') },
     { separator: true },
-    { label: 'Réinitialiser les colonnes', action: () => {
+    { label: t('graph.menu.resetCols'), action: () => {
       set('graphShowAvatars', 'true')
       set('graphShowAuthor', 'true')
       set('graphShowDate', 'true')
@@ -1085,7 +1086,7 @@ export default function CommitGraph({
         className="cg-header"
         style={{ paddingRight: scrollbarW }}
         onContextMenu={e => { e.preventDefault(); setHeaderCtx({ x: e.clientX, y: e.clientY }) }}
-        title="Clic droit : choisir les colonnes"
+        title={t('graph.header.title')}
       >
         <div className="cg-h-refs" style={{ width: refsColW }}>{compactColumns ? 'B/T' : 'BRANCH / TAG'}</div>
         <div className="cg-col-handle" onMouseDown={onDragRefs} />
@@ -1330,7 +1331,7 @@ export default function CommitGraph({
 
                 {/* Message */}
                 <div className="cg-col-msg">
-                  {!isWip && sigBadge(commit.signature)}
+                  {!isWip && sigBadge(commit.signature, t)}
                   <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo)}</span>
                 </div>
 
@@ -1348,7 +1349,7 @@ export default function CommitGraph({
                 {effShowAuthor && isWip && <div className="cg-col-author" style={{ width: authorColW }} />}
 
                 {effShowDate && (
-                  <div className="cg-col-date" style={{ width: dateColW }}>{!isWip ? fmtDate(commit.date, dateFormat) : ''}</div>
+                  <div className="cg-col-date" style={{ width: dateColW }}>{!isWip ? fmtDate(commit.date, dateFormat, t) : ''}</div>
                 )}
                 {effShowSha && (
                   <div className="cg-col-sha" style={{ width: shaColW }}>

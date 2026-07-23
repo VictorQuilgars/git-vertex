@@ -489,7 +489,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
       {/* ── WIP banner ── */}
       {wipCount != null && wipCount > 0 && (
         <div className="cd-wip-banner">
-          <span>{wipCount} fichier{wipCount !== 1 ? 's' : ''} modifié{wipCount !== 1 ? 's' : ''} en cours</span>
+          <span>{t('rp2.wipCount', wipCount)}</span>
           <button className="cd-view-change-btn" onClick={onViewWip}>Voir les changements</button>
         </div>
       )}
@@ -1400,13 +1400,13 @@ function ConflictPanel({
   // "Continue". Refresh afterwards so the conflict list updates.
   const takeSide = async (file: string, side: 'ours' | 'theirs') => {
     const r = await (window.gitAPI as any).resolveConflictSide(file, side)
-    if (r && r.success === false) showToast(r.error ?? 'Échec de la résolution', 'err')
+    if (r && r.success === false) showToast(r.error ?? t('rp2.resolveFailed'), 'err')
     else { showToast(`✓ ${file} — ${side === 'ours' ? 'Current' : 'Incoming'}`); onCommitSuccess() }
   }
   const markResolved = async (file: string) => {
     const r = await window.gitAPI.markResolved(file)
     if (r && r.success === false) showToast(r.error ?? 'Échec', 'err')
-    else { showToast(`✓ ${file} marqué résolu`); onCommitSuccess() }
+    else { showToast(t('rp2.markedResolved', file)); onCommitSuccess() }
   }
 
   async function doCommit() {
@@ -1436,13 +1436,13 @@ function ConflictPanel({
             <div key={f} className="rp-file-row rp-file-conflicted">
               <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>
               <span className="rp-file-path" style={{ flex: 1, cursor: 'pointer' }}
-                title="Ouvrir dans l'éditeur" onClick={() => onOpenResolver(f)}>{f}</span>
+                title={t('rp2.openInEditor')} onClick={() => onOpenResolver(f)}>{f}</span>
               <div className="rp-conflict-actions">
-                <button className="rp-cf-btn" title="Garder la version courante (ours)"
+                <button className="rp-cf-btn" title={t('rp2.keepOurs')}
                   onClick={e => { e.stopPropagation(); takeSide(f, 'ours') }}>Current</button>
-                <button className="rp-cf-btn" title="Garder la version entrante (theirs)"
+                <button className="rp-cf-btn" title={t('rp2.keepTheirs')}
                   onClick={e => { e.stopPropagation(); takeSide(f, 'theirs') }}>Incoming</button>
-                <button className="rp-cf-btn rp-cf-btn--ok" title="Marquer résolu (indexer le fichier édité)"
+                <button className="rp-cf-btn rp-cf-btn--ok" title={t('rp2.markResolvedTitle')}
                   onClick={e => { e.stopPropagation(); markResolved(f) }}>✓</button>
               </div>
             </div>
