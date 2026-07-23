@@ -98,6 +98,9 @@ const API_KEY_TUTORIALS: Record<AIProvider, { steps: string[]; url: string; urlL
 interface SettingsModalProps {
   onClose: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
+  // Called when "check for updates" finds a newer version — the host (App)
+  // opens the update overlay, which owns the single download+install flow.
+  onUpdateFound?: (version: string) => void
   // VS Code panel host: hides the desktop-only About section (and the OS
   // notification toggles inside Comportement) and swaps the GitHub OAuth flow
   // for a manual token field. Behaviour toggles (auto-stash, conflict warning,
@@ -105,7 +108,7 @@ interface SettingsModalProps {
   embedded?: boolean
 }
 
-export default function SettingsModal({ onClose, showToast, embedded = false }: SettingsModalProps) {
+export default function SettingsModal({ onClose, showToast, onUpdateFound, embedded = false }: SettingsModalProps) {
   const { t, lang, setLang } = useLang()
   const { get, getBool, set } = useSettings()
   const [section, setSection] = useState<Section>('git')
@@ -851,8 +854,12 @@ export default function SettingsModal({ onClose, showToast, embedded = false }: 
                           return
                         }
                         console.log('[updater] remote version:', r?.version, '— will update:', !!r?.version)
-                        if (r?.version) { setUpdateVersion(r.version); setUpdateStatus('available') }
-                        else setUpdateStatus('up-to-date')
+                        if (r?.version) {
+                          // Hand off to the app-level overlay (single download+install flow).
+                          setUpdateStatus('idle')
+                          onUpdateFound?.(r.version)
+                          onClose()
+                        } else setUpdateStatus('up-to-date')
                       }}
                     >
                       {updateStatus === 'checking' ? '⟳ Vérification…' : '↺ Vérifier les mises à jour'}

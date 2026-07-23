@@ -197,6 +197,7 @@ const gitAPI = {
   onUpdateDownloaded: (cb: (version: string) => void) => subscribe('updater:update-downloaded', (v) => cb(v)),
   onUpdateError: (cb: (err: string) => void) => subscribe('updater:error', (err) => cb(err)),
   onDownloadProgress: (cb: (pct: number) => void) => subscribe('updater:download-progress', (pct) => cb(pct)),
+  downloadUpdate: () => ipcRenderer.invoke('updater:download'),
   installUpdate: () => ipcRenderer.invoke('updater:install'),
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
