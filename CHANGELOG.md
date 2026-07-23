@@ -1,5 +1,14 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.15.2
+
+### Changed
+- **Pastille de mise à jour discrète** — quand une mise à jour est disponible, une petite pastille (avec un point vert) apparaît à côté de la cloche de notifications, en haut à droite. Un clic ouvre l'écran de mise à jour. Fini le gros bouton orange dans la barre d'outils.
+- **Détection automatique plus fiable** — l'app vérifie les mises à jour peu après le démarrage puis toutes les 30 minutes, donc une version publiée pendant que l'app est ouverte est repérée sans redémarrer.
+
+### Fixed
+- Depuis les Réglages, « Vérifier les mises à jour » n'éjecte plus vers l'accueil : l'écran de mise à jour s'ouvre par-dessus, et « Plus tard » revient aux Réglages.
+
 ## 1.15.0
 
 ### Added
