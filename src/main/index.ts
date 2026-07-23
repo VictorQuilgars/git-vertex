@@ -314,7 +314,7 @@ app.whenReady().then(() => {
       downloadedUpdateVersion = info.version
       downloadedUpdateFile = info.downloadedFile ?? null
       mainWindow?.webContents.send('updater:update-downloaded', info.version)
-      notify('Mise à jour disponible', `La version ${info.version} est prête à être installée.`, 'notifyUpdate')
+      notify('Update available', `Version ${info.version} is ready to install.`, 'notifyUpdate')
     })
     autoUpdater.on('error', (err) => {
       console.error('[updater] error:', err.message)
@@ -365,7 +365,7 @@ ipcMain.handle('app:remove-recent-repo', (_event, path: string) => removeRecentR
 ipcMain.handle('git:open-repo', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
-    title: 'Ouvrir un dépôt Git'
+    title: 'Open a Git repository'
   })
   if (result.canceled || result.filePaths.length === 0) return { error: 'cancelled' }
   return openRepoAt(result.filePaths[0])
@@ -479,10 +479,10 @@ ipcMain.handle('git:fetch', async () => {
     }
     if (changed > 0) {
       notify(
-        'Nouveaux commits disponibles',
+        'New commits available',
         changed === 1
-          ? '1 branche distante a été mise à jour.'
-          : `${changed} branches distantes ont été mises à jour.`,
+          ? '1 remote branch was updated.'
+          : `${changed} remote branches were updated.`,
         'notifyFetch'
       )
     }
@@ -532,7 +532,7 @@ ipcMain.handle('git:commit', async (_event, message: string, amend = false) => {
   const result = await gitService.commit(message, amend, sign)
   if (result.success) {
     const firstLine = message.split('\n')[0]
-    notify('Commit créé', firstLine, 'notifyCommit', false)
+    notify('Commit created', firstLine, 'notifyCommit', false)
   }
   return result
 })
@@ -1160,24 +1160,24 @@ async function runAIPrompt(prompt: string, maxTokens = 512): Promise<{ text?: st
       if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt))
     } catch (e: any) {
       console.error(`[ai] attempt=${attempt} error:`, e.message)
-      if (attempt === 3) return { error: e.message ?? 'Erreur API' }
+      if (attempt === 3) return { error: e.message ?? 'API error' }
       await new Promise(r => setTimeout(r, 500 * attempt))
     }
   }
-  return { error: 'Le modèle a retourné une réponse vide après 3 tentatives' }
+  return { error: 'The model returned an empty response after 3 attempts' }
 }
 
 const truncateDiff = (diff: string, max = 6000) =>
-  diff.length > max ? diff.slice(0, max) + '\n... [diff tronqué]' : diff
+  diff.length > max ? diff.slice(0, max) + '\n... [diff truncated]' : diff
 
 ipcMain.handle('ai:generate-commit-message', async () => {
-  if (!gitService) { console.log('[ai] no gitService'); return { error: 'Aucun dépôt ouvert' } }
+  if (!gitService) { console.log('[ai] no gitService'); return { error: 'No repository open' } }
   let stagedDiff = ''
   try {
     const git = (gitService as any).git
     stagedDiff = await git.raw(['diff', '--cached'])
-  } catch { return { error: 'Impossible de récupérer le diff' } }
-  if (!stagedDiff.trim()) { console.log('[ai] no staged diff'); return { error: 'Aucun changement indexé à analyser' } }
+  } catch { return { error: 'Failed to get the diff' } }
+  if (!stagedDiff.trim()) { console.log('[ai] no staged diff'); return { error: 'No staged changes to analyze' } }
 
   const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${truncateDiff(stagedDiff)}\n\`\`\``
   const r = await runAIPrompt(prompt)
@@ -1188,15 +1188,15 @@ ipcMain.handle('ai:generate-commit-message', async () => {
 // The renderer applies the result through the normal amend/reword flow, so
 // the user always reviews the proposal before anything is rewritten.
 ipcMain.handle('ai:recompose-commit', async (_e, hash: string) => {
-  if (!gitService) return { error: 'Aucun dépôt ouvert' }
+  if (!gitService) return { error: 'No repository open' }
   let diff = ''
   let currentMsg = ''
   try {
     const git = (gitService as any).git
     diff = await git.raw(['diff-tree', '--no-commit-id', '-p', '--root', hash])
     currentMsg = (await git.raw(['log', '-1', '--pretty=format:%B', hash])).trim()
-  } catch { return { error: 'Impossible de récupérer le diff du commit' } }
-  if (!diff.trim()) return { error: 'Ce commit ne contient aucun changement à analyser (commit de merge ?)' }
+  } catch { return { error: 'Failed to get the commit diff' } }
+  if (!diff.trim()) return { error: 'This commit has no changes to analyze (merge commit?)' }
 
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
   const r = await runAIPrompt(prompt)
@@ -1209,13 +1209,13 @@ ipcMain.handle('ai:recompose-commit', async (_e, hash: string) => {
 // the resolver's manual-edit output, so the user always reviews before saving.
 const AI_CONFLICT_MAX_CHARS = 24000
 ipcMain.handle('ai:resolve-conflict', async (_e, filepath: string, instruction?: string) => {
-  if (!gitService) return { error: 'Aucun dépôt ouvert' }
+  if (!gitService) return { error: 'No repository open' }
   const fileRes = await gitService.getFileContent(filepath)
   if (fileRes.error) return { error: fileRes.error }
   const content = fileRes.content ?? ''
-  if (!/^<{7}/m.test(content)) return { error: 'Aucun marqueur de conflit trouvé dans ce fichier' }
+  if (!/^<{7}/m.test(content)) return { error: 'No conflict markers found in this file' }
   if (content.length > AI_CONFLICT_MAX_CHARS) {
-    return { error: `Fichier trop long pour la résolution IA (${content.length} caractères, max ${AI_CONFLICT_MAX_CHARS})` }
+    return { error: `File too long for AI resolution (${content.length} characters, max ${AI_CONFLICT_MAX_CHARS})` }
   }
 
   const extra = instruction?.trim()
@@ -1228,7 +1228,7 @@ CRITICAL formatting rules:
 - No conflict markers, no code fences, no commentary inside the file.
 
 Reply in EXACTLY this format:
-EXPLANATION: <1 à 3 phrases en français expliquant quels côtés tu as choisis et pourquoi>
+EXPLANATION: <1 to 3 sentences in English explaining which sides you chose and why>
 ===FILE===
 <the complete resolved file content, every line>
 
@@ -1249,7 +1249,7 @@ ${content}`
   // Some models still wrap output in fences despite instructions — strip them.
   const fenced = resolution.match(/^```[a-zA-Z]*\n([\s\S]*?)\n?```\s*$/)
   if (fenced) resolution = fenced[1]
-  if (/^[<=>]{7}/m.test(resolution)) return { error: "La proposition de l'IA contient encore des marqueurs de conflit — réessayez, éventuellement avec une instruction plus précise" }
+  if (/^[<=>]{7}/m.test(resolution)) return { error: "The AI proposal still contains conflict markers — try again, possibly with a more precise instruction" }
   return { resolution, explanation }
 })
 
@@ -1257,7 +1257,7 @@ ${content}`
 // (hash, author, date, subject) and asks the model which commits match the
 // user's free-form query. Returns { hashes } of full hashes.
 ipcMain.handle('ai:search-commits', async (_e, query: string) => {
-  if (!gitService) return { error: 'Aucun dépôt ouvert' }
+  if (!gitService) return { error: 'No repository open' }
   if (!query?.trim()) return { hashes: [] }
   let index = ''
   try {
@@ -1326,7 +1326,7 @@ ipcMain.handle('ai:get-explanations', () => {
 })
 
 ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false) => {
-  if (!gitService) return { error: 'Aucun dépôt ouvert' }
+  if (!gitService) return { error: 'No repository open' }
   if (!force) {
     const cached = readExplCache()[gitService.repoPath]?.[hash]
     if (cached) return { explanation: cached, cached: true }
@@ -1337,10 +1337,10 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false) => {
     const git = (gitService as any).git
     diff = await git.raw(['diff-tree', '--no-commit-id', '-p', '--root', hash])
     currentMsg = (await git.raw(['log', '-1', '--pretty=format:%s', hash])).trim()
-  } catch { return { error: 'Impossible de récupérer le diff du commit' } }
-  if (!diff.trim()) return { error: 'Ce commit ne contient aucun changement à analyser (commit de merge ?)' }
+  } catch { return { error: 'Failed to get the commit diff' } }
+  if (!diff.trim()) return { error: 'This commit has no changes to analyze (merge commit?)' }
 
-  const prompt = `Tu es un expert Git. Explique en français, simplement et concrètement, ce que fait ce commit : quels fichiers/comportements changent et pourquoi c'est probablement fait. 3 à 6 phrases maximum, pas de liste à puces, pas de préambule.\n\nMessage du commit : ${currentMsg}\n\nDiff :\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
+  const prompt = `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files/behaviors change and why it was probably done. 3 to 6 sentences maximum, no bullet lists, no preamble.\n\nCommit message: ${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
   const r = await runAIPrompt(prompt, 768)
   if (r.error) return { error: r.error }
   saveExplanation(gitService.repoPath, hash, r.text ?? '')
@@ -1676,7 +1676,7 @@ ipcMain.handle('updater:install-manual', async () => {
   }
 
   // macOS: manual unzip + replace because unsigned apps are blocked by Gatekeeper
-  if (!downloadedUpdateFile) return { error: 'Aucun fichier téléchargé' }
+  if (!downloadedUpdateFile) return { error: 'No file downloaded' }
   try {
     const { execFile, spawn } = await import('child_process')
     const { promisify } = await import('util')
@@ -1906,7 +1906,7 @@ ipcMain.handle('github:list-repos', async () => {
 ipcMain.handle('github:clone', async (_e, cloneUrl: string, repoName: string) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory', 'createDirectory'],
-    title: `Choisir où cloner "${repoName}"`
+    title: `Choose where to clone "${repoName}"`
   })
   if (result.canceled || result.filePaths.length === 0) return { cancelled: true }
   const parentDir = result.filePaths[0]

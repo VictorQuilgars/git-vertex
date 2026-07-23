@@ -10,31 +10,33 @@ import { useSettings } from '../../contexts/SettingsContext'
 type Section = 'git' | 'appearance' | 'graph' | 'github' | 'ai' | 'notifications' | 'about'
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
 
-// Grouped navigation with icons.
+// Grouped navigation with icons. `group`/`label` hold i18n keys, resolved
+// with t() at render.
 const NAV_GROUPS: { group: string; items: { id: Section; icon: string; label: string }[] }[] = [
-  { group: 'Général', items: [
-    { id: 'git',        icon: '👤', label: 'Identité & profils' },
-    { id: 'appearance', icon: '🎨', label: 'Apparence' },
-    { id: 'graph',      icon: '🌳', label: 'Graphe de commits' },
+  { group: 'settings.grp.general', items: [
+    { id: 'git',        icon: '👤', label: 'settings.sec.identity' },
+    { id: 'appearance', icon: '🎨', label: 'settings.sec.appearance' },
+    { id: 'graph',      icon: '🌳', label: 'settings.sec.graph' },
   ]},
-  { group: 'Intégrations', items: [
-    { id: 'github', icon: '🐙', label: 'GitHub' },
-    { id: 'ai',     icon: '✨', label: 'Assistant IA' },
+  { group: 'settings.grp.integrations', items: [
+    { id: 'github', icon: '🐙', label: 'settings.sec.github' },
+    { id: 'ai',     icon: '✨', label: 'settings.sec.ai' },
   ]},
-  { group: 'Système', items: [
-    { id: 'notifications', icon: '⚙️', label: 'Comportement' },
-    { id: 'about',         icon: 'ℹ️', label: 'À propos' },
+  { group: 'settings.grp.system', items: [
+    { id: 'notifications', icon: '⚙️', label: 'settings.sec.behavior' },
+    { id: 'about',         icon: 'ℹ️', label: 'settings.sec.about' },
   ]},
 ]
 
+// `key` holds an i18n key resolved at render for the swatch tooltip.
 const ACCENT_PRESETS = [
-  { name: 'Bleu',    value: '#58a6ff' },
-  { name: 'Violet',  value: '#bc8cff' },
-  { name: 'Vert',    value: '#3fb950' },
-  { name: 'Orange',  value: '#ffa657' },
-  { name: 'Rouge',   value: '#f85149' },
-  { name: 'Rose',    value: '#f778ba' },
-  { name: 'Cyan',    value: '#56d4dd' },
+  { key: 'settings.color.blue',   value: '#58a6ff' },
+  { key: 'settings.color.purple', value: '#bc8cff' },
+  { key: 'settings.color.green',  value: '#3fb950' },
+  { key: 'settings.color.orange', value: '#ffa657' },
+  { key: 'settings.color.red',    value: '#f85149' },
+  { key: 'settings.color.pink',   value: '#f778ba' },
+  { key: 'settings.color.cyan',   value: '#56d4dd' },
 ]
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
@@ -49,49 +51,6 @@ const MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
   google:    ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
   groq:      ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-}
-
-const API_KEY_TUTORIALS: Record<AIProvider, { steps: string[]; url: string; urlLabel: string }> = {
-  anthropic: {
-    steps: [
-      '1. Créer un compte sur console.anthropic.com',
-      '2. Aller dans Settings → API Keys',
-      '3. Cliquer sur "Create Key"',
-      '4. Copier la clé (elle ne sera plus visible ensuite)',
-    ],
-    url: 'https://console.anthropic.com/settings/keys',
-    urlLabel: 'Ouvrir console.anthropic.com',
-  },
-  google: {
-    steps: [
-      '1. Aller sur aistudio.google.com',
-      '2. Cliquer sur "Get API key" en haut à gauche',
-      '3. Créer une clé dans un projet Google Cloud',
-      '4. Copier la clé générée',
-    ],
-    url: 'https://aistudio.google.com/app/apikey',
-    urlLabel: 'Ouvrir Google AI Studio',
-  },
-  groq: {
-    steps: [
-      '1. Créer un compte sur console.groq.com',
-      '2. Aller dans "API Keys" dans le menu gauche',
-      '3. Cliquer sur "Create API Key"',
-      '4. Copier la clé (elle ne sera plus visible ensuite)',
-    ],
-    url: 'https://console.groq.com/keys',
-    urlLabel: 'Ouvrir console.groq.com',
-  },
-  openai: {
-    steps: [
-      '1. Créer un compte sur platform.openai.com',
-      '2. Aller dans "API keys" dans le menu gauche',
-      '3. Cliquer sur "Create new secret key"',
-      '4. Copier la clé (elle ne sera plus visible ensuite)',
-    ],
-    url: 'https://platform.openai.com/api-keys',
-    urlLabel: 'Ouvrir platform.openai.com',
-  },
 }
 
 interface SettingsModalProps {
@@ -292,16 +251,16 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
   const saveCurrentAsProfile = async () => {
     const name = gitUserName.trim(), email = gitUserEmail.trim()
-    if (!name || !email) { showToast('Renseignez nom et email d\'abord', 'err'); return }
-    if (profiles.some(p => p.name === name && p.email === email)) { showToast('Profil déjà enregistré'); return }
+    if (!name || !email) { showToast(t('settings.profiles.needBoth'), 'err'); return }
+    if (profiles.some(p => p.name === name && p.email === email)) { showToast(t('settings.profiles.already')); return }
     await persistProfiles([...profiles, { name, email }])
-    showToast('Profil enregistré ✓')
+    showToast(t('settings.profiles.saved'))
   }
 
   const applyProfile = async (p: { name: string; email: string }) => {
     setGitUserName(p.name); setGitUserEmail(p.email)
     const r = await window.gitAPI.gitSetGlobalConfig(p.name, p.email)
-    if (r.success) showToast(`Identité : ${p.name} ✓`)
+    if (r.success) showToast(t('settings.profiles.applied', p.name))
     else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
@@ -311,7 +270,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
   const saveGithub = async () => {
     await window.gitAPI.settingsSet('githubToken', githubToken.trim())
-    showToast('Token GitHub sauvegardé ✓')
+    showToast(t('settings.github.tokenSaved'))
   }
 
   const saveAI = async () => {
@@ -322,8 +281,6 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
     if (aiProvider === 'groq') await window.gitAPI.settingsSet('groqApiKey', aiKeys.groq)
     showToast(t('toast.aiSaved'))
   }
-
-  const tuto = API_KEY_TUTORIALS[aiProvider]
 
   return (
     <div className="stg-page">
@@ -343,7 +300,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
         <nav className="stg-nav">
           {navGroups.map(grp => (
             <div key={grp.group} className="stg-nav-group">
-              <div className="stg-nav-group-label">{grp.group}</div>
+              <div className="stg-nav-group-label">{t(grp.group as any)}</div>
               {grp.items.map(item => (
                 <button
                   key={item.id}
@@ -351,7 +308,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                   onClick={() => setSection(item.id)}
                 >
                   <span className="stg-nav-icon">{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span>{t(item.label as any)}</span>
                 </button>
               ))}
             </div>
@@ -398,8 +355,8 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 {/* Profils / identités */}
                 {profiles.length > 0 && (
                   <>
-                    <h2 className="stg-section-title" style={{ marginTop: 20 }}>Profils enregistrés</h2>
-                    <p className="stg-desc">Basculez rapidement entre vos identités (pro / perso).</p>
+                    <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.profiles.title')}</h2>
+                    <p className="stg-desc">{t('settings.profiles.desc')}</p>
                     <div className="stg-profiles">
                       {profiles.map((p, i) => {
                         const active = p.name === gitUserName.trim() && p.email === gitUserEmail.trim()
@@ -410,9 +367,9 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                               <span className="stg-profile-email">{p.email}</span>
                             </div>
                             {active
-                              ? <span className="stg-profile-badge">Actif</span>
-                              : <button className="stg-profile-apply" onClick={() => applyProfile(p)}>Utiliser</button>}
-                            <button className="stg-profile-del" onClick={() => deleteProfile(i)} title="Supprimer">✕</button>
+                              ? <span className="stg-profile-badge">{t('settings.profiles.active')}</span>
+                              : <button className="stg-profile-apply" onClick={() => applyProfile(p)}>{t('settings.profiles.use')}</button>}
+                            <button className="stg-profile-del" onClick={() => deleteProfile(i)} title={t('settings.profiles.delete')}>✕</button>
                           </div>
                         )
                       })}
@@ -421,14 +378,14 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 )}
 
                 {/* Signature GPG */}
-                <h2 className="stg-section-title" style={{ marginTop: 20 }}>Signature GPG</h2>
+                <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.gpg.title')}</h2>
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" checked={gpgSign}
                     onChange={async e => {
                       setGpgSign(e.target.checked)
                       await window.gitAPI.settingsSet('gpgSign', String(e.target.checked))
                     }} />
-                  <span>Signer les commits (GPG) <span style={{ color: '#8b949e', fontSize: 12 }}>(ajoute -S à chaque commit ; nécessite une clé GPG configurée)</span></span>
+                  <span>{t('settings.gpg.label')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.gpg.hint')}</span></span>
                 </label>
               </div>
             )}
@@ -436,11 +393,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
             {/* ── Apparence ── */}
             {section === 'appearance' && (
               <div className="stg-section">
-                <h2 className="stg-section-title">Apparence</h2>
-                <p className="stg-desc">Personnalisez les couleurs et l'affichage de l'application.</p>
+                <h2 className="stg-section-title">{t('settings.appearance.title')}</h2>
+                <p className="stg-desc">{t('settings.appearance.desc')}</p>
 
-                <h2 className="stg-section-title" style={{ marginTop: 8 }}>Couleur d'accent</h2>
-                <p className="stg-desc">Couleur principale utilisée pour les sélections, boutons et liens.</p>
+                <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.accent.title')}</h2>
+                <p className="stg-desc">{t('settings.accent.desc')}</p>
                 <div className="stg-swatches">
                   {ACCENT_PRESETS.map(c => {
                     const active = get('accentColor', '#58a6ff').toLowerCase() === c.value.toLowerCase()
@@ -449,14 +406,14 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         key={c.value}
                         className={`stg-swatch ${active ? 'active' : ''}`}
                         style={{ background: c.value }}
-                        title={c.name}
+                        title={t(c.key as any)}
                         onClick={() => set('accentColor', c.value)}
                       >
                         {active && <span className="stg-swatch-check">✓</span>}
                       </button>
                     )
                   })}
-                  <label className="stg-swatch-custom" title="Couleur personnalisée">
+                  <label className="stg-swatch-custom" title={t('settings.color.custom')}>
                     <input
                       type="color"
                       value={get('accentColor', '#58a6ff')}
@@ -465,17 +422,17 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                   </label>
                 </div>
 
-                <h2 className="stg-section-title" style={{ marginTop: 20 }}>Format des dates</h2>
-                <p className="stg-desc">Comment afficher les dates dans le graphe de commits.</p>
+                <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.date.title')}</h2>
+                <p className="stg-desc">{t('settings.date.desc')}</p>
                 <div className="stg-segment">
                   <button
                     className={`stg-segment-btn ${get('dateFormat', 'relative') === 'relative' ? 'active' : ''}`}
                     onClick={() => set('dateFormat', 'relative')}
-                  >Relatif <span className="stg-segment-hint">(il y a 3 j)</span></button>
+                  >{t('settings.date.relative')} <span className="stg-segment-hint">{t('settings.date.relativeHint')}</span></button>
                   <button
                     className={`stg-segment-btn ${get('dateFormat', 'relative') === 'absolute' ? 'active' : ''}`}
                     onClick={() => set('dateFormat', 'absolute')}
-                  >Absolu <span className="stg-segment-hint">(12 sept. 2024)</span></button>
+                  >{t('settings.date.absolute')} <span className="stg-segment-hint">{t('settings.date.absoluteHint')}</span></button>
                 </div>
               </div>
             )}
@@ -483,23 +440,23 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
             {/* ── Graphe de commits ── */}
             {section === 'graph' && (
               <div className="stg-section">
-                <h2 className="stg-section-title">Graphe de commits</h2>
-                <p className="stg-desc">Choisissez les colonnes et éléments affichés dans le graphe.</p>
+                <h2 className="stg-section-title">{t('settings.graph.title')}</h2>
+                <p className="stg-desc">{t('settings.graph.desc')}</p>
 
                 {([
-                  ['graphShowAvatars', 'Avatars des auteurs', 'Affiche l\'image Gravatar (ou les initiales) dans la colonne auteur'],
-                  ['graphShowAuthor',  'Colonne Auteur',       'Affiche le nom de l\'auteur de chaque commit'],
-                  ['graphShowDate',    'Colonne Date',         'Affiche la date de chaque commit'],
-                  ['graphShowSha',     'Colonne SHA',          'Affiche le hash court de chaque commit'],
-                  ['graphShowStats',   'Ajouts / suppressions', 'Affiche la barre verte/rouge du ratio de lignes modifiées par commit'],
-                ] as [string, string, string][]).map(([key, label, desc]) => (
+                  ['graphShowAvatars', 'settings.graph.avatars', 'settings.graph.avatarsHint'],
+                  ['graphShowAuthor',  'settings.graph.author',  'settings.graph.authorHint'],
+                  ['graphShowDate',    'settings.graph.date',    'settings.graph.dateHint'],
+                  ['graphShowSha',     'settings.graph.sha',     'settings.graph.shaHint'],
+                  ['graphShowStats',   'settings.graph.stats',   'settings.graph.statsHint'],
+                ] as [string, string, string][]).map(([key, labelKey, descKey]) => (
                   <label key={key} className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
                     <input
                       type="checkbox"
                       checked={getBool(key, true)}
                       onChange={e => set(key, String(e.target.checked))}
                     />
-                    <span>{label} <span style={{ color: '#8b949e', fontSize: 12 }}>— {desc}</span></span>
+                    <span>{t(labelKey as any)} <span style={{ color: '#8b949e', fontSize: 12 }}>— {t(descKey as any)}</span></span>
                   </label>
                 ))}
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
@@ -508,9 +465,9 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     checked={getBool('graphCompactColumns', false)}
                     onChange={e => set('graphCompactColumns', String(e.target.checked))}
                   />
-                  <span>Colonnes compactes <span style={{ color: '#8b949e', fontSize: 12 }}>— remplace les en-têtes Auteur/Date par des icônes pour gagner de la place</span></span>
+                  <span>{t('settings.graph.compact')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.graph.compactHint')}</span></span>
                 </label>
-                <p className="stg-desc" style={{ marginTop: 12 }}>Astuce : un clic droit sur le bandeau d'en-tête du graphe donne un accès rapide à ces mêmes réglages.</p>
+                <p className="stg-desc" style={{ marginTop: 12 }}>{t('settings.graph.tip')}</p>
               </div>
             )}
 
@@ -685,7 +642,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
             {/* ── Notifications ── */}
             {section === 'notifications' && (
               <div className="stg-section">
-                <h2 className="stg-section-title">Comportement</h2>
+                <h2 className="stg-section-title">{t('settings.behavior.title')}</h2>
 
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" checked={autoStash}
@@ -693,7 +650,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       setAutoStash(e.target.checked)
                       await window.gitAPI.settingsSet('autoStash', String(e.target.checked))
                     }} />
-                  <span>Auto-stash au checkout <span style={{ color: '#8b949e', fontSize: 12 }}>(stashe les modifications locales avant de changer de branche, les restaure après)</span></span>
+                  <span>{t('settings.behavior.autostash')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.behavior.autostashHint')}</span></span>
                 </label>
 
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
@@ -702,11 +659,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       setWarnBeforeConflict(e.target.checked)
                       await window.gitAPI.settingsSet('warnBeforeConflict', String(e.target.checked))
                     }} />
-                  <span>Prévenir avant un conflit <span style={{ color: '#8b949e', fontSize: 12 }}>(merge, rebase, cherry-pick, revert, pull : affiche un avertissement si l'opération va créer un conflit, avec le choix de continuer ou non)</span></span>
+                  <span>{t('settings.behavior.warnConflict')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.behavior.warnConflictHint')}</span></span>
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12 }}>
-                  <span>Éditeur externe <span style={{ color: '#8b949e', fontSize: 12 }}>(commande pour ouvrir les fichiers/conflits, ex : <code>code</code>, <code>code --wait</code>, <code>subl</code>, <code>meld</code>. Vide = app par défaut)</span></span>
+                  <span>{t('settings.behavior.externalEditor')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.behavior.externalEditorHintPre')}<code>code</code>, <code>code --wait</code>, <code>subl</code>, <code>meld</code>{t('settings.behavior.externalEditorHintPost')}</span></span>
                   <input
                     className="stg-input"
                     value={externalEditor}
@@ -864,20 +821,20 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         } else setUpdateStatus('up-to-date')
                       }}
                     >
-                      {updateStatus === 'checking' ? '⟳ Vérification…' : '↺ Vérifier les mises à jour'}
+                      {updateStatus === 'checking' ? t('settings.update.checking') : t('settings.update.check')}
                     </button>
                   )}
-                  {!updateReady && updateStatus === 'up-to-date' && <span className="stg-about-update-ok">✓ Application à jour</span>}
+                  {!updateReady && updateStatus === 'up-to-date' && <span className="stg-about-update-ok">{t('settings.update.upToDate')}</span>}
                   {!updateReady && updateStatus === 'available' && (
                     <span className="stg-about-update-new">
                       {downloadProgress !== null
-                        ? `⬇ Téléchargement… ${downloadProgress}%`
-                        : `⬇ Démarrage du téléchargement de v${updateVersion}…`}
+                        ? t('settings.update.downloading', downloadProgress)
+                        : t('settings.update.starting', updateVersion ?? '')}
                     </span>
                   )}
                   {updateStatus === 'error' && (
                     <span className="stg-about-update-err" title={updateError ?? ''}>
-                      ✗ {updateError ?? 'Erreur inconnue'}
+                      ✗ {updateError ?? t('settings.update.unknownErr')}
                     </span>
                   )}
                 </div>

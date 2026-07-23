@@ -41,5 +41,5 @@ export async function handleOAuthCallback(
 
   const data = await res.json() as Record<string, string>
   if (data.access_token) return { token: data.access_token }
-  return { error: data.error_description ?? data.error ?? 'Échec de récupération du token' }
+  return { error: data.error_description ?? data.error ?? 'Failed to retrieve the token' }
 }
