@@ -5,8 +5,8 @@
 // language (and CSS) of RebaseProgress — the "Rebase en cours" tab that
 // auto-opens for the very same rebase and can be visible side by side.
 
-import React
-import { useLang } from '../../../src/renderer/src/i18n/LanguageContext', { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import '../../../src/renderer/src/components/RebaseProgress/RebaseProgress.css'
 
 declare global { interface Window { gitAPI: any } }
@@ -189,7 +189,7 @@ export default function RebaseTodoApp() {
             onDragEnd={() => setDragOver(null)}
             onKeyDown={e => handleRowKeyDown(e, i)}
           >
-            <span className="rp-step-drag" title=t('ext.rebase.drag')>⠿</span>
+            <span className="rp-step-drag" title={t('ext.rebase.drag')}>⠿</span>
             {entry.kind === 'commit' ? (
               <>
                 <select

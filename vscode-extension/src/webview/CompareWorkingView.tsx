@@ -2,8 +2,8 @@
 // Mirrors the desktop CompareWorkingModal (App.tsx) but as a full-page tab
 // instead of a modal, matching every other VS Code tool tab in this extension.
 
-import React
-import { useLang } from '../../../src/renderer/src/i18n/LanguageContext', { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import DiffViewer from '../../../src/renderer/src/components/DiffViewer/DiffViewer'
 import type { CommitNode } from '../../../src/renderer/src/types'
 
