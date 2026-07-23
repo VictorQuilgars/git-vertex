@@ -546,3 +546,24 @@ body {
 }
 .app-tb-update-btn:hover { background: #3fb95030; border-color: #3fb95099; }
 .app-tb-update-btn-label { line-height: 1; }
+
+/* ── Notification bell unread badge ─────────────────────────── */
+.app-tb-bell { position: relative; }
+.app-tb-bell-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #1f6feb;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px #0d1117;
+}
