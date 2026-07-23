@@ -2,6 +2,15 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.14.1': `## Quoi de neuf dans la 1.14.1
+
+### 🐛 Corrections Windows
+- Fini l'**assistant d'installation** qui réapparaissait à chaque mise à jour : la mise à jour s'applique désormais **en silence** puis relance l'application.
+- L'**icône Git Vertex** s'affiche à nouveau dans la barre des tâches et la barre de titre.
+
+### 🧭 Graphe des commits
+- La colonne **+/−** n'est plus **coupée** par le bord droit de la fenêtre : toutes les colonnes tiennent par défaut, barre de défilement comprise.
+`,
   '1.14.0': `## Quoi de neuf dans la 1.14.0
 
 ### 🚀 Nouvel écran d'accueil
