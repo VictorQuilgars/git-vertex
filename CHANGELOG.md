@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.16.0
+
+### Added
+- **Centre de notifications** — la cloche en haut à droite est désormais fonctionnelle : un clic ouvre un panneau listant les notifications. Chaque entrée peut être marquée comme lue/non lue ou supprimée, avec « Tout marquer comme lu » et « Tout effacer ». Une pastille bleue affiche le nombre de notifications non lues. Les mises à jour disponibles créent automatiquement une notification (persistée entre les sessions).
+
 ## 1.15.4
 
 ### Changed

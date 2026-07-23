@@ -1,6 +1,6 @@
 {
   "name": "git-gui",
-  "version": "1.15.4",
+  "version": "1.16.0",
   "description": "A modern, local-first Git client built with Electron + React",
   "license": "FSL-1.1-MIT",
   "author": {
