@@ -725,10 +725,6 @@
   font-size: 12px;
   color: #f85149;
 }
-.stg-about-license {
-  font-size: 12px;
-  color: #6e7681;
-}
 .stg-about-lang {
   display: flex;
   align-items: center;
@@ -6624,6 +6620,11 @@ body {
   overflow: hidden;
   min-height: 0;
 }
+.app-fullpage-view {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 .app-tabs {
   display: flex;
   align-items: stretch;
@@ -6870,12 +6871,13 @@ body {
 .app-welcome {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: row;
+  align-items: stretch;
   justify-content: center;
-  gap: 32px;
-  padding: 48px 32px;
+  gap: 40px;
+  padding: 56px 40px;
   background: #0d1117;
+  overflow-y: auto;
   animation: welcome-in 0.3s ease both;
 }
 @keyframes welcome-in {
@@ -6891,9 +6893,11 @@ body {
 .welcome-hero {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 28px;
-  text-align: center;
+  align-items: stretch;
+  gap: 20px;
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
 }
 .welcome-brand {
   display: flex;
@@ -6959,7 +6963,6 @@ body {
 }
 .welcome-recents {
   width: 100%;
-  max-width: 480px;
   animation: welcome-in 0.4s 0.08s ease both;
 }
 .welcome-recents-title {
@@ -6978,6 +6981,79 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+.welcome-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #6e7681;
+}
+.welcome-search:focus-within {
+  border-color: var(--accent, #58a6ff);
+}
+.welcome-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #e6edf3;
+  font-size: 13px;
+}
+.welcome-search-input::placeholder {
+  color: #6e7681;
+}
+.welcome-recents-empty {
+  padding: 16px 12px;
+  color: #6e7681;
+  font-size: 13px;
+  text-align: center;
+}
+.welcome-resources {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 0 40px;
+  border-left: 1px solid #21262d;
+}
+.welcome-res-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #484f58;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+.welcome-res-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #58a6ff;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.welcome-res-link:hover {
+  background: #161b22;
+}
+.welcome-res-icon {
+  width: 18px;
+  flex-shrink: 0;
+  color: #8b949e;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  text-align: center;
 }
 .welcome-recent-item {
   display: flex;
@@ -7221,50 +7297,49 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.update-banner {
-  display: flex;
+.app-tb-update-btn {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 16px;
-  background: #1c2128;
-  border-bottom: 1px solid #f0883e55;
-  font-size: 13px;
-  color: #e6edf3;
-  flex-shrink: 0;
-}
-.update-banner-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.update-btn-install {
-  padding: 5px 14px;
-  background: #f0883e;
-  border: none;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #3fb95055;
   border-radius: 6px;
-  color: #0d1117;
+  background: #3fb95018;
+  color: #3fb950;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.12s;
+  transition: background 0.12s, border-color 0.12s;
 }
-.update-btn-install:hover {
-  opacity: 0.85;
+.app-tb-update-btn:hover {
+  background: #3fb95030;
+  border-color: #3fb95099;
 }
-.update-btn-later {
-  padding: 5px 12px;
-  background: transparent;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  color: #8b949e;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.12s;
+.app-tb-update-btn-label {
+  line-height: 1;
 }
-.update-btn-later:hover {
-  border-color: #8b949e;
-  color: #e6edf3;
+.app-tb-bell {
+  position: relative;
+}
+.app-tb-bell-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #1f6feb;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px #0d1117;
 }
 
 /* src/webview/vertex-vscode.css */

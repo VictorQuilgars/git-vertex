@@ -4,8 +4,8 @@
 // commit, `git tag -a`, etc. Saving writes the message and closes the tab,
 // which is what `code --wait` (core.editor) is blocked on; git applies its
 // own cleanup (stripping '#' comment lines, trimming blank lines) on top.
-import React
-import { useLang } from '../../../src/renderer/src/i18n/LanguageContext', { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
+import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import '../../../src/renderer/src/components/RebaseProgress/RebaseProgress.css'
 
 declare global { interface Window { gitAPI: any } }
@@ -87,7 +87,7 @@ export default function CommitMsgEditorView({ boot }: { boot: CommitMsgBoot }) {
           className="rp-btn rp-btn--continue"
           disabled={saving || !text.trim()}
           onClick={handleSave}
-          title=t('ext.commit.save')
+          title={t('ext.commit.save')}
         >
           {saving ? '…' : 'Enregistrer'}
         </button>
