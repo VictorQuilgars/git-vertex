@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useLang } from '../../i18n/LanguageContext'
 import './ConflictResolver.css'
 
 interface ConflictResolverProps {
@@ -100,6 +101,7 @@ function reconcileProposalToSelections(chunks: Chunk[], proposalText: string): S
 }
 
 export default function ConflictResolver({ file, initialProposal, onFinish, onAbort, showToast }: ConflictResolverProps) {
+  const { t } = useLang()
   const [chunks, setChunks] = useState<Chunk[]>([])
   const [selections, setSelections] = useState<Selections>({})
   const [manualOutput, setManualOutput] = useState<string | null>(null)
@@ -124,14 +126,14 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
     try {
       const r = await (window.gitAPI as any).aiResolveConflict(file, aiInstruction)
       if (r.error) {
-        showToast(r.error === 'NO_API_KEY' ? 'Aucune clé API IA configurée — voir Réglages → IA' : r.error, 'err')
+        showToast(r.error === 'NO_API_KEY' ? t('toast.noAiKey') : r.error, 'err')
         return
       }
       setManualOutput(r.resolution)
       setAiExplanation(r.explanation || null)
-      showToast('Proposition IA chargée dans l\'output — vérifiez puis enregistrez')
+      showToast(t('cr.aiLoaded'))
     } catch (e: any) {
-      showToast(e?.message ?? 'Erreur IA', 'err')
+      showToast(e?.message ?? t('toast.aiError'), 'err')
     } finally {
       setAiBusy(false)
     }
@@ -232,12 +234,12 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
           // the checkboxes so clicking a line adjusts it, exactly like a
           // manual resolution, instead of wiping a disconnected text blob.
           initialSel = { ...initialSel, ...reconciled }
-          showToast('Proposition de l\'agent chargée — ajustez en cliquant sur les lignes si besoin, puis Enregistrer & Résoudre')
+          showToast(t('cr.agentLoaded'))
         } else {
           // Doesn't decompose into whole lines from either side (the agent
           // rewrote/merged wording) — free-text edit is the only option.
           setManualOutput(initialProposal)
-          showToast('Proposition de l\'agent chargée en édition libre (le texte ne correspond pas exactement à un des deux côtés ligne par ligne)')
+          showToast(t('cr.agentLoadedFree'))
         }
       }
       setSelections(initialSel)
@@ -272,14 +274,14 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
         // so leave the view alone and let them decide.
         loadedRawRef.current = raw
         showToast(
-          `${file} a été modifié en dehors de l'app — vos sélections sont conservées`,
+          t('cr.fileChangedKept', file),
           'err',
-          { label: 'Recharger', onClick: () => { userEditedRef.current = false; load(false) } },
+          { label: t('cr.reload'), onClick: () => { userEditedRef.current = false; load(false) } },
         )
         return
       }
       load(false)
-      showToast(`${file} a été modifié en dehors de l'app — vue rechargée`)
+      showToast(t('cr.fileChangedReloaded', file))
     }
     window.gitAPI.onWorkingChanged(handler)
     window.gitAPI.onRepoChanged(handler)
@@ -394,17 +396,17 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
         c => (selections[c.id] ?? []).length === 0 && c.base.length === 0
       )
       if (hasUnresolved) {
-        showToast('Veuillez faire un choix pour tous les conflits avant d\'enregistrer', 'err')
+        showToast(t('cr.chooseAll'), 'err')
         return
       }
     } else {
       if (/^[<=>]{7}/m.test(manualOutput)) {
-        showToast('L\'output contient encore des marqueurs de conflit (<<<<<<<, =======, >>>>>>>)', 'err')
+        showToast(t('cr.stillMarkers'), 'err')
         return
       }
     }
     const r = await window.gitAPI.resolveConflict(file, currentOutput)
-    if (r.success) { showToast(`✓ ${file} résolu`); onFinish() }
+    if (r.success) { showToast(t('cr.fileResolved', file)); onFinish() }
     else showToast(`Erreur: ${r.error}`, 'err')
   }
 
@@ -434,7 +436,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
             {startNum + i}
             <button
               className={`mt-line-action ${isIn ? 'mt-line-action-remove' : 'mt-line-action-add'}`}
-              title={isIn ? 'Retirer de l\'output' : 'Ajouter à l\'output'}
+              title={isIn ? t('cr.removeFromOutput') : t('cr.addToOutput')}
               onClick={e => { e.stopPropagation(); toggleLine(chunkId, side, i) }}
             >
               {isIn ? '−' : '+'}
@@ -462,8 +464,8 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
           <div className={`mt-badge ${isOurs ? 'mt-badge-ours' : 'mt-badge-theirs'}`}>{isOurs ? 'A' : 'B'}</div>
           <span className="mt-pane-title" title={isOurs ? (sides?.ours || oursGlobalName) : (sides?.theirs || theirsGlobalName)}>
             {isOurs
-              ? (sides?.ours || `Nôtre (${oursGlobalName})`)
-              : (sides?.theirs || `Leur (${theirsGlobalName})`)}
+              ? (sides?.ours || t('cr.ours', oursGlobalName))
+              : (sides?.theirs || t('cr.theirs', theirsGlobalName))}
           </span>
         </div>
         <div className="mt-pane-content" ref={ref} onScroll={() => handleScroll(side)}>
@@ -495,10 +497,10 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
                 >
                   <span className="mt-conflict-num">#{conflictIndexMap[c.id]}</span>
                   {sel.some(r => r.side === thisSide)
-                    ? <span className="mt-selected-badge">✓ {sel.filter(r => r.side === thisSide).length} / {conflictLines.length} ligne(s)</span>
+                    ? <span className="mt-selected-badge">{t('cr.linesBadge', sel.filter(r => r.side === thisSide).length, conflictLines.length)}</span>
                     : noneSelected && c.base.length > 0
-                      ? <span className="mt-base-hint">Base active</span>
-                      : <span className="mt-click-hint">Cliquer le header pour tout sélectionner</span>
+                      ? <span className="mt-base-hint">{t('cr.baseActive')}</span>
+                      : <span className="mt-click-hint">{t('cr.clickHeader')}</span>
                   }
                 </div>
                 <div className="mt-block-text">
@@ -521,14 +523,14 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
           <span className="mt-count">({totalConflicts} conflict{totalConflicts > 1 ? 's' : ''})</span>
         </div>
         <div className="mt-header-right">
-          <button className="mt-btn mt-btn-all-a" onClick={() => selectAll('ours')} title="Sélectionner toutes les lignes A">Tout A</button>
-          <button className="mt-btn mt-btn-all-b" onClick={() => selectAll('theirs')} title="Sélectionner toutes les lignes B">Tout B</button>
+          <button className="mt-btn mt-btn-all-a" onClick={() => selectAll('ours')} title={t('cr.selectAllA')}>{t('cr.allA')}</button>
+          <button className="mt-btn mt-btn-all-b" onClick={() => selectAll('theirs')} title={t('cr.selectAllB')}>{t('cr.allB')}</button>
           <button className="mt-btn" onClick={async () => {
             const r = await (window.gitAPI as any).openInEditor(file)
-            if (!r.success) showToast(`Erreur : ${r.error ?? 'éditeur introuvable'}`, 'err')
-          }} title="Ouvrir dans l'éditeur externe configuré">↗ Éditeur externe</button>
-          <button className="mt-btn mt-btn-abort" onClick={onAbort}>✕ Fermer</button>
-          <button className="mt-btn mt-btn-save" onClick={handleSave}>Enregistrer & Résoudre</button>
+            if (!r.success) showToast(t('toast.err', r.error ?? t('cr.editorNotFound')), 'err')
+          }} title={t('cr.openExternalTitle')}>{t('cr.externalEditor')}</button>
+          <button className="mt-btn mt-btn-abort" onClick={onAbort}>{t('cr.close')}</button>
+          <button className="mt-btn mt-btn-save" onClick={handleSave}>{t('cr.saveResolve')}</button>
         </div>
       </div>
 
@@ -538,14 +540,14 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
         <input
           className="mt-ai-input"
           type="text"
-          placeholder="Qu'est-ce qui cloche ? ex : « garde le nouvel import, retire l'ancien » (optionnel)"
+          placeholder={t('cr.aiPlaceholder')}
           value={aiInstruction}
           onChange={e => setAiInstruction(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !aiBusy) runAiResolve() }}
           disabled={aiBusy}
         />
         <button className="mt-btn mt-btn-ai" onClick={runAiResolve} disabled={aiBusy}>
-          {aiBusy ? 'IA en cours…' : manualOutput !== null ? '↻ Réessayer avec l\'IA' : '✨ Résoudre avec l\'IA'}
+          {aiBusy ? t('cr.aiBusy') : manualOutput !== null ? t('cr.aiRetry') : t('cr.aiResolve')}
         </button>
       </div>
 
@@ -565,13 +567,13 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
 
         <div className="mt-bottom">
           <div className="mt-pane-header">
-            <span className="mt-pane-title">Output ({resolvedCount} / {totalConflicts} résolus)</span>
+            <span className="mt-pane-title">{t('cr.outputTitle', resolvedCount, totalConflicts)}</span>
             {manualOutput !== null
-              ? <span className="mt-manual-badge">Édition manuelle active</span>
-              : <button className="mt-btn mt-btn-edit" onClick={() => setManualOutput(outputString)}>Éditer</button>
+              ? <span className="mt-manual-badge">{t('cr.manualActive')}</span>
+              : <button className="mt-btn mt-btn-edit" onClick={() => setManualOutput(outputString)}>{t('cr.edit')}</button>
             }
             {manualOutput !== null && (
-              <button className="mt-btn mt-btn-edit" onClick={() => setManualOutput(null)}>Annuler l'édition</button>
+              <button className="mt-btn mt-btn-edit" onClick={() => setManualOutput(null)}>{t('cr.cancelEdit')}</button>
             )}
           </div>
           <div className="mt-output-wrapper">

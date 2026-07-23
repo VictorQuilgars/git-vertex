@@ -509,7 +509,7 @@ export default function App() {
       }
       setAiSearchHashes(new Set(r.hashes ?? []))
     } catch (e: any) {
-      showToast(e?.message ?? 'Erreur IA', 'err')
+      showToast(e?.message ?? t('toast.aiError'), 'err')
     } finally {
       setAiSearchLoading(false)
     }
@@ -640,7 +640,7 @@ export default function App() {
   const openReleaseNotes = async () => {
     const w = await (window.gitAPI as any).getReleaseNotes?.().catch(() => null)
     if (w) { setWhatsNew(w); setWhatsNewActive(true); setSettingsOpen(false) }
-    else showToast('Aucune note de version disponible', 'err')
+    else showToast(t('toast.noReleaseNotes'), 'err')
   }
   const handleRemoveRecent = async (path: string) => {
     const updated = await window.gitAPI.removeRecentRepo(path)
@@ -892,7 +892,7 @@ export default function App() {
   const handleTerminal = async () => {
     if (!repoPath) return
     const r = await (window.gitAPI as any).openTerminal?.()
-    if (r?.success === false) showToast(r.error ?? 'Erreur terminal', 'err')
+    if (r?.success === false) showToast(r.error ?? t('toast.terminalError'), 'err')
   }
 
   const handlePull = async () => {
