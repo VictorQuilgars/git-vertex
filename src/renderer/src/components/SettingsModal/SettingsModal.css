@@ -521,11 +521,6 @@
 .stg-about-update-new { font-size: 12px; color: var(--accent,#58a6ff); font-weight: 600; }
 .stg-about-update-err { font-size: 12px; color: #f85149; }
 
-.stg-about-license {
-  font-size: 12px;
-  color: #6e7681;
-}
-
 .stg-about-lang {
   display: flex;
   align-items: center;
