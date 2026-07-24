@@ -251,7 +251,7 @@ function FileHistoryModal({ filepath, onClose, onSelectCommit }: {
       <div className="fh-modal">
         <div className="fh-header">
           <span className="fh-title">{t('panel.fileHistory', filepath.split('/').pop() ?? '')}</span>
-          <button className="fh-close" onClick={onClose}>×</button>
+          <button className="fh-close" title={t('common.close')} onClick={onClose}>×</button>
         </div>
         <div className="fh-path">{filepath}</div>
         <div className="fh-list">

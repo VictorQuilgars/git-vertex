@@ -165,7 +165,7 @@ export default function Toolbar({
               {searchMatches}
             </span>
           )}
-          {searchQuery && <button className="tb-clear" onClick={() => onSearch('')}>×</button>}
+          {searchQuery && <button className="tb-clear" title={t('common.clearSearch')} onClick={() => onSearch('')}>×</button>}
           {onToggleExtendedSearch && (
             <button className={`tb-ext-search ${extendedSearch ? 'active' : ''}`}
               onClick={onToggleExtendedSearch} title={t('toolbar.extSearch.tooltip')}>

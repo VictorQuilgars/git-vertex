@@ -69,7 +69,7 @@ export default function PushModal({ currentBranch, branches, onClose, onSuccess,
       <div className="pm-panel">
         <div className="pm-header">
           <span className="pm-title">{t('push.title')}</span>
-          <button className="pm-close" onClick={onClose}>×</button>
+          <button className="pm-close" title={t('common.close')} onClick={onClose}>×</button>
         </div>
 
         <div className="pm-body">

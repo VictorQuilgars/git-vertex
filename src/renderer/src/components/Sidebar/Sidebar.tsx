@@ -696,7 +696,7 @@ export default function Sidebar({
           </svg>
           <input type="text" placeholder={t('sb.filterBranches')}
             value={branchFilter} onChange={e => setBranchFilter(e.target.value)} />
-          {branchFilter && <button className="sb-filter-clear" onClick={() => setBranchFilter('')}>×</button>}
+          {branchFilter && <button className="sb-filter-clear" title={t('common.clearFilter')} onClick={() => setBranchFilter('')}>×</button>}
         </div>
       )}
 

@@ -91,7 +91,7 @@ export default function CloneModal({ onClose, onCloned }: Props) {
       <div className="cm-modal">
         <div className="cm-header">
           <span className="cm-title">{t('clone.title')}</span>
-          <button className="cm-close" onClick={onClose}>×</button>
+          <button className="cm-close" title={t('common.close')} onClick={onClose}>×</button>
         </div>
 
         <div className="cm-body">
@@ -127,7 +127,7 @@ export default function CloneModal({ onClose, onCloned }: Props) {
                   <div className="cm-search-row">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input className="cm-search" placeholder={t('clone.search')} value={search} onChange={e => setSearch(e.target.value)} autoFocus />
-                    {search && <button className="cm-clear" onClick={() => setSearch('')}>×</button>}
+                    {search && <button className="cm-clear" title={t('common.clearSearch')} onClick={() => setSearch('')}>×</button>}
                   </div>
                   <div className="cm-list">
                     {loading && <div className="cm-state">{t('clone.loading')}</div>}

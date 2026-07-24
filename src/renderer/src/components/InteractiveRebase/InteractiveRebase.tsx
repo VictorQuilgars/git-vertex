@@ -166,7 +166,7 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
         <div className="ir-header">
           <span className="ir-title">⚡ Interactive Rebase</span>
           <span className="ir-base">depuis <code>{baseHash.slice(0, 7)}</code></span>
-          <button className="ir-close" onClick={onClose}>×</button>
+          <button className="ir-close" title={t('common.close')} onClick={onClose}>×</button>
         </div>
 
         <div className="ir-hint">
