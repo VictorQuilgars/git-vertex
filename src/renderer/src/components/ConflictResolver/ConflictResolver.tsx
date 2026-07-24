@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useLang } from '../../i18n/LanguageContext'
+import { useSettings } from '../../contexts/SettingsContext'
 import './ConflictResolver.css'
 
 interface ConflictResolverProps {
@@ -102,10 +103,16 @@ function reconcileProposalToSelections(chunks: Chunk[], proposalText: string): S
 
 export default function ConflictResolver({ file, initialProposal, onFinish, onAbort, showToast }: ConflictResolverProps) {
   const { t } = useLang()
+  const { get } = useSettings()
+  const externalMergeTool = get('externalMergeTool', '')
   const [chunks, setChunks] = useState<Chunk[]>([])
   const [selections, setSelections] = useState<Selections>({})
   const [manualOutput, setManualOutput] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  // External merge tool (v1.20.0): path of the temp "merged" file the tool
+  // was spawned with, so "Load result" knows what to read back.
+  const [externalMergePath, setExternalMergePath] = useState<string | null>(null)
+  const [externalMergeBusy, setExternalMergeBusy] = useState(false)
   // AI-assisted resolution: optional guidance + busy flag. The proposal lands
   // in the manual-edit output so the user reviews it before saving; the
   // model's explanation of its choices is shown under the AI bar.
@@ -136,6 +143,34 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
       showToast(e?.message ?? t('toast.aiError'), 'err')
     } finally {
       setAiBusy(false)
+    }
+  }
+
+  // External merge tool (v1.20.0): spawn the configured tool with ours/
+  // theirs/merged temp files, then let the user pull the result back once
+  // they've saved & closed it — same review-before-save pattern as AI.
+  const openExternalMergeTool = async () => {
+    setExternalMergeBusy(true)
+    try {
+      const r = await (window.gitAPI as any).openExternalMerge(file)
+      if (!r.success) { showToast(r.error ?? t('cr.editorNotFound'), 'err'); return }
+      setExternalMergePath(r.mergedPath)
+      showToast(t('cr.externalMergeOpened'))
+    } finally {
+      setExternalMergeBusy(false)
+    }
+  }
+
+  const loadExternalMergeResult = async () => {
+    if (!externalMergePath) return
+    setExternalMergeBusy(true)
+    try {
+      const r = await (window.gitAPI as any).readTempFile(externalMergePath)
+      if (r.error) { showToast(r.error, 'err'); return }
+      setManualOutput(r.content ?? '')
+      showToast(t('cr.externalMergeLoaded'))
+    } finally {
+      setExternalMergeBusy(false)
     }
   }
 
@@ -529,6 +564,17 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
             const r = await (window.gitAPI as any).openInEditor(file)
             if (!r.success) showToast(t('toast.err', r.error ?? t('cr.editorNotFound')), 'err')
           }} title={t('cr.openExternalTitle')}>{t('cr.externalEditor')}</button>
+          {externalMergeTool && (
+            externalMergePath ? (
+              <button className="mt-btn" disabled={externalMergeBusy} onClick={loadExternalMergeResult} title={t('cr.externalMergeLoadTitle')}>
+                {t('cr.externalMergeLoad')}
+              </button>
+            ) : (
+              <button className="mt-btn" disabled={externalMergeBusy} onClick={openExternalMergeTool} title={t('cr.externalMergeOpenTitle')}>
+                {t('cr.externalMergeOpen')}
+              </button>
+            )
+          )}
           <button className="mt-btn mt-btn-abort" onClick={onAbort}>{t('cr.close')}</button>
           <button className="mt-btn mt-btn-save" onClick={handleSave}>{t('cr.saveResolve')}</button>
         </div>

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './InitModal.css'
 import { useLang } from '../../i18n/LanguageContext'
+import { useSettings } from '../../contexts/SettingsContext'
 
 interface Props {
   onClose: () => void
@@ -10,10 +11,20 @@ interface Props {
 
 export default function InitModal({ onClose, onCreated, showToast }: Props) {
   const { t } = useLang()
+  const { get, ready } = useSettings()
   const [tab, setTab] = useState<'local' | 'github'>('local')
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
+  // Settings load asynchronously (SettingsProvider fetches them on app mount),
+  // so a plain useState(() => get(...)) lazy initializer would only ever see
+  // the pre-load default if this modal happened to mount before that fetch
+  // resolves. Sync once `ready` flips true instead — but never after the user
+  // has actually typed a branch name themselves.
   const [branch, setBranch] = useState('main')
+  const branchTouched = useRef(false)
+  useEffect(() => {
+    if (ready && !branchTouched.current) setBranch(get('defaultBranchName', '') || 'main')
+  }, [ready])
   const [gitignore, setGitignore] = useState('')
   const [license, setLicense] = useState('')
   const [lfs, setLfs] = useState(false)
@@ -141,7 +152,7 @@ export default function InitModal({ onClose, onCreated, showToast }: Props) {
 
             <div className="init-field">
               <label>{t('init.defaultBranch')}</label>
-              <input className="init-input" value={branch} onChange={e => setBranch(e.target.value)} placeholder="main" />
+              <input className="init-input" value={branch} onChange={e => { branchTouched.current = true; setBranch(e.target.value) }} placeholder="main" />
             </div>
 
             <div className="init-field">

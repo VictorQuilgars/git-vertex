@@ -7,24 +7,82 @@ import iconUrl from '../../../../../resources/icon.png'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
 import { useSettings } from '../../contexts/SettingsContext'
 
-type Section = 'git' | 'appearance' | 'graph' | 'github' | 'ai' | 'notifications' | 'about'
+type Section = 'git' | 'appearance' | 'graph' | 'github' | 'ai' | 'notifications' | 'externalTools' | 'ssh' | 'about'
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
 
-// Grouped navigation with icons. `group`/`label` hold i18n keys, resolved
-// with t() at render.
-const NAV_GROUPS: { group: string; items: { id: Section; icon: string; label: string }[] }[] = [
+// Sections hidden in the VS Code panel (`embedded`) — desktop-only concerns
+// already handled by VS Code itself (SSH, external tools/terminal) or not
+// reachable there (Init isn't wired into the extension).
+const DESKTOP_ONLY_SECTIONS: Section[] = ['externalTools', 'ssh', 'about']
+
+// ── Nav icons ─────────────────────────────────────────────────
+// Monochrome line icons (stroke = currentColor) so they follow the same
+// hover/active color as the nav label, instead of colored emoji.
+function NavIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  )
+}
+const IconIdentity = () => (
+  <NavIcon><circle cx="12" cy="8" r="3.3"/><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></NavIcon>
+)
+const IconAppearance = () => (
+  <NavIcon>
+    <line x1="4" y1="20" x2="4" y2="14"/><circle cx="4" cy="11" r="2"/><line x1="4" y1="8" x2="4" y2="4"/>
+    <line x1="12" y1="20" x2="12" y2="12"/><circle cx="12" cy="9" r="2"/><line x1="12" y1="6" x2="12" y2="4"/>
+    <line x1="20" y1="20" x2="20" y2="16"/><circle cx="20" cy="13" r="2"/><line x1="20" y1="10" x2="20" y2="4"/>
+  </NavIcon>
+)
+const IconGraph = () => (
+  <NavIcon><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/></NavIcon>
+)
+const IconShield = () => (
+  <NavIcon><path d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z"/></NavIcon>
+)
+const IconGithubMark = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+)
+// Same sparkle glyph already used for the AI actions in ConflictResolver —
+// reused here instead of a new one, so "AI" reads the same everywhere.
+const IconSparkle = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+    <path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/>
+  </svg>
+)
+const IconActivity = () => (
+  <NavIcon><polyline points="3 12 8 12 10 6 14 18 16 12 21 12"/></NavIcon>
+)
+const IconTool = () => (
+  <NavIcon><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></NavIcon>
+)
+const IconInfo = () => (
+  <NavIcon><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></NavIcon>
+)
+
+// Grouped navigation with icons. `label` holds an i18n key, resolved with
+// t() at render.
+// SSH sits next to Identity & profiles (which already hosts GPG signing) —
+// both are "credentials used for git operations", not a "system" concern.
+const NAV_GROUPS: { group: string; items: { id: Section; icon: React.ReactNode; label: string }[] }[] = [
   { group: 'settings.grp.general', items: [
-    { id: 'git',        icon: '👤', label: 'settings.sec.identity' },
-    { id: 'appearance', icon: '🎨', label: 'settings.sec.appearance' },
-    { id: 'graph',      icon: '🌳', label: 'settings.sec.graph' },
+    { id: 'git',        icon: <IconIdentity/>,   label: 'settings.sec.identity' },
+    { id: 'appearance', icon: <IconAppearance/>, label: 'settings.sec.appearance' },
+    { id: 'graph',      icon: <IconGraph/>,      label: 'settings.sec.graph' },
+    { id: 'ssh',        icon: <IconShield/>,     label: 'settings.sec.ssh' },
   ]},
   { group: 'settings.grp.integrations', items: [
-    { id: 'github', icon: '🐙', label: 'settings.sec.github' },
-    { id: 'ai',     icon: '✨', label: 'settings.sec.ai' },
+    { id: 'github', icon: <IconGithubMark/>, label: 'settings.sec.github' },
+    { id: 'ai',     icon: <IconSparkle/>,    label: 'settings.sec.ai' },
   ]},
   { group: 'settings.grp.system', items: [
-    { id: 'notifications', icon: '⚙️', label: 'settings.sec.behavior' },
-    { id: 'about',         icon: 'ℹ️', label: 'settings.sec.about' },
+    { id: 'notifications',  icon: <IconActivity/>, label: 'settings.sec.behavior' },
+    { id: 'externalTools',  icon: <IconTool/>,     label: 'settings.sec.externalTools' },
+    { id: 'about',          icon: <IconInfo/>,     label: 'settings.sec.about' },
   ]},
 ]
 
@@ -73,7 +131,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
   const navGroups = embedded
     ? NAV_GROUPS
-        .map(g => ({ ...g, items: g.items.filter(i => i.id !== 'about') }))
+        .map(g => ({ ...g, items: g.items.filter(i => !DESKTOP_ONLY_SECTIONS.includes(i.id)) }))
         .filter(g => g.items.length > 0)
     : NAV_GROUPS
 
@@ -123,6 +181,23 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const [profiles, setProfiles] = useState<{ name: string; email: string }[]>([])
   const [externalEditor, setExternalEditor] = useState('')
 
+  // ── Général (v1.20.0) ──
+  const [defaultBranchName, setDefaultBranchName] = useState('')
+  const [autoFetchInterval, setAutoFetchInterval] = useState('0')
+  const [autoUpdateSubmodules, setAutoUpdateSubmodules] = useState(false)
+
+  // ── Outils externes (v1.20.0) ──
+  const [externalDiffTool, setExternalDiffTool] = useState('')
+  const [externalMergeTool, setExternalMergeTool] = useState('')
+  const [externalTerminal, setExternalTerminal] = useState('')
+
+  // ── SSH (v1.20.0) ──
+  const [sshUseAgent, setSshUseAgent] = useState(false)
+  const [sshPrivateKey, setSshPrivateKey] = useState('')
+  const [sshPublicKey, setSshPublicKey] = useState('')
+  const [sshGenerating, setSshGenerating] = useState(false)
+  const [sshPassphrase, setSshPassphrase] = useState('')
+
   const fetchModels = async (provider: AIProvider, key: string) => {
     if (!key) return
     setLoadingModels(true)
@@ -168,6 +243,15 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       setGpgSign(s.gpgSign === 'true')
       setExternalEditor(s.externalEditor ?? '')
       try { setProfiles(s.gitProfiles ? JSON.parse(s.gitProfiles) : []) } catch { setProfiles([]) }
+      setDefaultBranchName(s.defaultBranchName ?? '')
+      setAutoFetchInterval(s.autoFetchInterval ?? '0')
+      setAutoUpdateSubmodules(s.autoUpdateSubmodules === 'true')
+      setExternalDiffTool(s.externalDiffTool ?? '')
+      setExternalMergeTool(s.externalMergeTool ?? '')
+      setExternalTerminal(s.externalTerminal ?? '')
+      setSshUseAgent(s.sshUseAgent === 'true')
+      setSshPrivateKey(s.sshPrivateKey ?? '')
+      setSshPublicKey(s.sshPublicKey ?? '')
       setAiProvider(provider)
       setAiKeys(keys)
       setAiModels(m => ({
@@ -665,16 +749,42 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12 }}>
-                  <span>{t('settings.behavior.externalEditor')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.behavior.externalEditorHintPre')}<code>code</code>, <code>code --wait</code>, <code>subl</code>, <code>meld</code>{t('settings.behavior.externalEditorHintPost')}</span></span>
+                  <span>{t('settings.general.defaultBranch')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.general.defaultBranchHint')}</span></span>
                   <input
                     className="stg-input"
-                    value={externalEditor}
+                    value={defaultBranchName}
                     onChange={async e => {
-                      setExternalEditor(e.target.value)
-                      await window.gitAPI.settingsSet('externalEditor', e.target.value)
+                      setDefaultBranchName(e.target.value)
+                      await window.gitAPI.settingsSet('defaultBranchName', e.target.value)
                     }}
-                    placeholder="code"
+                    placeholder="main"
                   />
+                </label>
+
+                <label className="stg-field" style={{ marginTop: 12 }}>
+                  <span>{t('settings.general.autoFetch')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.general.autoFetchHint')}</span></span>
+                  <input
+                    className="stg-input"
+                    type="number"
+                    min={0}
+                    max={60}
+                    value={autoFetchInterval}
+                    onChange={async e => {
+                      const v = e.target.value
+                      setAutoFetchInterval(v)
+                      await window.gitAPI.settingsSet('autoFetchInterval', v)
+                    }}
+                    placeholder="0"
+                  />
+                </label>
+
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
+                  <input type="checkbox" checked={autoUpdateSubmodules}
+                    onChange={async e => {
+                      setAutoUpdateSubmodules(e.target.checked)
+                      await window.gitAPI.settingsSet('autoUpdateSubmodules', String(e.target.checked))
+                    }} />
+                  <span>{t('settings.general.autoSubmodules')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.general.autoSubmodulesHint')}</span></span>
                 </label>
 
                 {/* OS notifications — desktop only (no-op in the VS Code host) */}
@@ -711,6 +821,150 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     </label>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* ── Outils externes (v1.20.0) ── */}
+            {section === 'externalTools' && (
+              <div className="stg-section">
+                <h2 className="stg-section-title">{t('settings.externalTools.title')}</h2>
+                <p className="stg-desc">{t('settings.externalTools.desc')}</p>
+
+                <label className="stg-field">
+                  <span>{t('settings.behavior.externalEditor')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.behavior.externalEditorHintPre')}<code>code</code>, <code>code --wait</code>, <code>subl</code>, <code>meld</code>{t('settings.behavior.externalEditorHintPost')}</span></span>
+                  <input
+                    className="stg-input"
+                    value={externalEditor}
+                    onChange={async e => {
+                      setExternalEditor(e.target.value)
+                      await window.gitAPI.settingsSet('externalEditor', e.target.value)
+                    }}
+                    placeholder="code"
+                  />
+                </label>
+
+                <label className="stg-field" style={{ marginTop: 12 }}>
+                  <span>{t('settings.externalTools.diffTool')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.externalTools.diffToolHint')}</span></span>
+                  <input
+                    className="stg-input"
+                    value={externalDiffTool}
+                    onChange={async e => {
+                      setExternalDiffTool(e.target.value)
+                      await window.gitAPI.settingsSet('externalDiffTool', e.target.value)
+                    }}
+                    placeholder="opendiff"
+                  />
+                </label>
+
+                <label className="stg-field" style={{ marginTop: 12 }}>
+                  <span>{t('settings.externalTools.mergeTool')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.externalTools.mergeToolHint')}</span></span>
+                  <input
+                    className="stg-input"
+                    value={externalMergeTool}
+                    onChange={async e => {
+                      setExternalMergeTool(e.target.value)
+                      await window.gitAPI.settingsSet('externalMergeTool', e.target.value)
+                    }}
+                    placeholder="opendiff -merge"
+                  />
+                </label>
+
+                <label className="stg-field" style={{ marginTop: 12 }}>
+                  <span>{t('settings.externalTools.terminal')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.externalTools.terminalHint')}</span></span>
+                  <input
+                    className="stg-input"
+                    value={externalTerminal}
+                    onChange={async e => {
+                      setExternalTerminal(e.target.value)
+                      await window.gitAPI.settingsSet('externalTerminal', e.target.value)
+                    }}
+                    placeholder="iTerm"
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* ── SSH (v1.20.0) ── */}
+            {section === 'ssh' && (
+              <div className="stg-section">
+                <h2 className="stg-section-title">{t('settings.ssh.title')}</h2>
+                <p className="stg-desc">{t('settings.ssh.desc')}</p>
+
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" checked={sshUseAgent}
+                    onChange={async e => {
+                      setSshUseAgent(e.target.checked)
+                      await window.gitAPI.settingsSet('sshUseAgent', String(e.target.checked))
+                    }} />
+                  <span>{t('settings.ssh.useAgent')}</span>
+                </label>
+
+                <label className="stg-field" style={{ marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 }}>
+                  <span>{t('settings.ssh.privateKey')}</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      className="stg-input"
+                      value={sshPrivateKey}
+                      disabled={sshUseAgent}
+                      onChange={async e => {
+                        setSshPrivateKey(e.target.value)
+                        await window.gitAPI.settingsSet('sshPrivateKey', e.target.value)
+                      }}
+                      placeholder="~/.ssh/id_ed25519"
+                    />
+                    <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} disabled={sshUseAgent}
+                      onClick={async () => {
+                        const r = await (window.gitAPI as any).sshBrowseKey('private')
+                        if (r?.path) { setSshPrivateKey(r.path); await window.gitAPI.settingsSet('sshPrivateKey', r.path) }
+                      }}>{t('settings.ssh.browse')}</button>
+                  </div>
+                </label>
+
+                <label className="stg-field" style={{ marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 }}>
+                  <span>{t('settings.ssh.publicKey')}</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      className="stg-input"
+                      value={sshPublicKey}
+                      disabled={sshUseAgent}
+                      onChange={async e => {
+                        setSshPublicKey(e.target.value)
+                        await window.gitAPI.settingsSet('sshPublicKey', e.target.value)
+                      }}
+                      placeholder="~/.ssh/id_ed25519.pub"
+                    />
+                    <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} disabled={sshUseAgent}
+                      onClick={async () => {
+                        const r = await (window.gitAPI as any).sshBrowseKey('public')
+                        if (r?.path) { setSshPublicKey(r.path); await window.gitAPI.settingsSet('sshPublicKey', r.path) }
+                      }}>{t('settings.ssh.browse')}</button>
+                  </div>
+                </label>
+
+                <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.ssh.generate.title')}</h2>
+                <p className="stg-desc">{t('settings.ssh.generate.desc')}</p>
+                <div className="stg-field">
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      className="stg-input"
+                      type="password"
+                      value={sshPassphrase}
+                      onChange={e => setSshPassphrase(e.target.value)}
+                      placeholder={t('settings.ssh.generate.passphrase')}
+                    />
+                    <button className="stg-save" disabled={sshGenerating}
+                      onClick={async () => {
+                        setSshGenerating(true)
+                        const r = await (window.gitAPI as any).sshGenerateKey(sshPassphrase)
+                        setSshGenerating(false)
+                        if (r?.error) { showToast(t('toast.err', r.error), 'err'); return }
+                        setSshPrivateKey(r.privateKey); setSshPublicKey(r.publicKey)
+                        await window.gitAPI.settingsSet('sshPrivateKey', r.privateKey)
+                        await window.gitAPI.settingsSet('sshPublicKey', r.publicKey)
+                        showToast(t('settings.ssh.generate.done'))
+                      }}>{sshGenerating ? t('settings.ssh.generate.busy') : t('settings.ssh.generate.button')}</button>
+                  </div>
+                </div>
               </div>
             )}
 

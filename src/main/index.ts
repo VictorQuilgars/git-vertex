@@ -8,6 +8,10 @@ import simpleGit from 'simple-git'
 
 import { GitService } from './git-service'
 import { RELEASE_NOTES } from './release-notes'
+import {
+  parseAutoFetchMinutes, shouldUseSshCommand, buildSshCommand, buildToolInvocation,
+  resolveTerminalLaunch, findAvailableKeyPath, safeTempFileName, updateSubmodulesIfEnabled,
+} from './settings-helpers'
 import { getRecentRepos, addRecentRepo, removeRecentRepo, getWorkspaces, setRepoWorkspace } from './recent-repos'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 import { splashHtml } from './splash'
@@ -18,6 +22,45 @@ let mainWindow: BrowserWindow
 let splashWindow: BrowserWindow | null = null
 let splashShownAt = 0
 let gitService: GitService | null = null
+
+// ── Auto-fetch timer ────────────────────────────────────────────
+// Re-armed whenever the active repo changes (openRepoAt) or the interval
+// setting changes (settings:set). 0/unset = disabled, matching another tool's
+// "Auto-Fetch Interval" (0 disables auto-fetch).
+let autoFetchTimer: ReturnType<typeof setInterval> | null = null
+function scheduleAutoFetch(): void {
+  if (autoFetchTimer) { clearInterval(autoFetchTimer); autoFetchTimer = null }
+  const minutes = parseAutoFetchMinutes(readSettings().autoFetchInterval)
+  if (!gitService || !minutes) return
+  autoFetchTimer = setInterval(() => { gitService?.fetch().catch(() => {}) }, minutes * 60 * 1000)
+}
+
+// ── Auto-update submodules ──────────────────────────────────────
+// Called after a successful checkout/pull/merge/rebase when the
+// "Keep submodules up to date" setting is on.
+async function maybeUpdateSubmodules(): Promise<void> {
+  if (!gitService) return
+  try {
+    await updateSubmodulesIfEnabled(gitService, readSettings().autoUpdateSubmodules)
+  } catch { /* best-effort */ }
+}
+
+// ── SSH key wiring ───────────────────────────────────────────────
+// Writes/clears `core.sshCommand` in the *global* gitconfig so every repo
+// picks it up, instead of intercepting each simple-git call individually.
+async function applySshConfig(): Promise<void> {
+  const s = readSettings()
+  const { execFile } = await import('child_process')
+  const { promisify } = await import('util')
+  const exec = promisify(execFile)
+  try {
+    if (shouldUseSshCommand(s)) {
+      await exec('git', ['config', '--global', 'core.sshCommand', buildSshCommand(s.sshPrivateKey!)])
+    } else {
+      await exec('git', ['config', '--global', '--unset', 'core.sshCommand']).catch(() => {})
+    }
+  } catch { /* best-effort */ }
+}
 
 // Small branded splash shown while the main window boots (and right after an
 // update relaunches the app). Frameless + transparent so only the rounded card
@@ -357,6 +400,7 @@ async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; name?: 
     gitService = svc
     addRecentRepo(repoPath)
     startWatching(repoPath)
+    scheduleAutoFetch()
     const name = repoPath.split('/').pop()!
     return { path: repoPath, name }
   } catch (e: any) {
@@ -393,7 +437,7 @@ ipcMain.handle('git:set-repo', async (_event, repoPath: string) => {
 // then open it. Idempotent if the directory is already a repo.
 ipcMain.handle('git:init-repo', async (_event, dir: string) => {
   try {
-    await simpleGit(dir).init(['-b', 'main'])
+    await simpleGit(dir).init(['-b', readSettings().defaultBranchName?.trim() || 'main'])
     return openRepoAt(dir)
   } catch (e: any) {
     return { error: e.message }
@@ -553,7 +597,9 @@ ipcMain.handle('git:get-tracking', async () => {
 // ── IPC: Git write operations ──────────────────────────────────
 ipcMain.handle('git:checkout', async (_event, ref: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.checkout(ref)
+  const r = await gitService.checkout(ref)
+  if (r.success) await maybeUpdateSubmodules()
+  return r
 })
 
 ipcMain.handle('git:create-branch', async (_event, name: string) => {
@@ -606,7 +652,9 @@ ipcMain.handle('git:push-to', async (_e, remote: string, branch: string, setUpst
 
 ipcMain.handle('git:pull', async () => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.pull()
+  const r = await gitService.pull()
+  if (r.success) await maybeUpdateSubmodules()
+  return r
 })
 
 // ── IPC: Staging & commit ─────────────────────────────────────
@@ -705,7 +753,9 @@ ipcMain.handle('git:rename-branch', async (_event, oldName: string, newName: str
 
 ipcMain.handle('git:merge', async (_event, branch: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.merge(branch)
+  const r = await gitService.merge(branch)
+  if (r.success) await maybeUpdateSubmodules()
+  return r
 })
 
 ipcMain.handle('git:predict-conflicts', async (_event, theirs: string, ours?: string, mergeBase?: string) => {
@@ -720,7 +770,9 @@ ipcMain.handle('git:predict-rebase-conflicts', async (_event, upstream: string, 
 
 ipcMain.handle('git:rebase-onto', async (_event, branch: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.rebaseOnto(branch)
+  const r = await gitService.rebaseOnto(branch)
+  if (r.success) await maybeUpdateSubmodules()
+  return r
 })
 
 ipcMain.handle('git:push-branch', async (_event, branch: string) => {
@@ -773,12 +825,16 @@ ipcMain.handle('git:move-branch-to', async (_event, branch: string, hash: string
 
 ipcMain.handle('git:rebase-branch-onto', async (_event, branch: string, hash: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.rebaseBranchOnto(branch, hash)
+  const r = await gitService.rebaseBranchOnto(branch, hash)
+  if (r.success) await maybeUpdateSubmodules()
+  return r
 })
 
 ipcMain.handle('git:merge-commit-into', async (_event, branch: string, hash: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.mergeCommitInto(branch, hash)
+  const r = await gitService.mergeCommitInto(branch, hash)
+  if (r.success) await maybeUpdateSubmodules()
+  return r
 })
 
 // ── IPC: Tag operations ────────────────────────────────────
@@ -1458,7 +1514,98 @@ ipcMain.handle('settings:get-all', () => {
 
 ipcMain.handle('settings:set', (_e, key: string, value: string) => {
   const s = readSettings(); s[key] = value; writeSettings(s)
+  if (key === 'autoFetchInterval') scheduleAutoFetch()
+  if (key === 'sshUseAgent' || key === 'sshPrivateKey') applySshConfig()
   return { success: true }
+})
+
+// ── SSH keys ─────────────────────────────────────────────────────
+ipcMain.handle('app:ssh-browse-key', async (_e, kind: 'private' | 'public') => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    title: kind === 'private' ? 'Choisir la clé privée SSH' : 'Choisir la clé publique SSH',
+    defaultPath: join(os.homedir(), '.ssh'),
+  })
+  if (result.canceled || result.filePaths.length === 0) return { path: null }
+  return { path: result.filePaths[0] }
+})
+
+ipcMain.handle('app:ssh-generate-key', async (_e, passphrase?: string) => {
+  try {
+    const sshDir = join(os.homedir(), '.ssh')
+    mkdirSync(sshDir, { recursive: true })
+    const base = findAvailableKeyPath(sshDir)
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    await promisify(execFile)('ssh-keygen', ['-t', 'ed25519', '-f', base, '-N', passphrase ?? ''])
+    return { privateKey: base, publicKey: base + '.pub' }
+  } catch (e: any) {
+    return { error: e.message }
+  }
+})
+
+// ── External diff / merge tools ───────────────────────────────────
+// Generic content-in/spawn-out handler: the renderer already has both
+// revisions' content (via getFileAtCommit/getFileContent), so this stays
+// reusable across any diff surface (commit detail, file history, compare).
+ipcMain.handle('app:open-external-diff', async (_e, leftContent: string, rightContent: string, filename: string) => {
+  const tool = (readSettings().externalDiffTool ?? '').trim()
+  if (!tool) return { success: false, error: 'No external diff tool configured' }
+  try {
+    const safeName = safeTempFileName(filename)
+    const tmp = join(os.tmpdir(), `git-vertex-diff-${Date.now()}`)
+    mkdirSync(tmp, { recursive: true })
+    const leftPath = join(tmp, `left-${safeName}`)
+    const rightPath = join(tmp, `right-${safeName}`)
+    writeFileSync(leftPath, leftContent ?? '')
+    writeFileSync(rightPath, rightContent ?? '')
+    const inv = buildToolInvocation(tool, leftPath, rightPath)
+    if (!inv) return { success: false, error: 'No external diff tool configured' }
+    const { spawn } = await import('child_process')
+    const child = spawn(inv.cmd, inv.args, { detached: true, stdio: 'ignore' })
+    child.on('error', () => {})
+    child.unref()
+    return { success: true }
+  } catch (e: any) {
+    return { success: false, error: e.message }
+  }
+})
+
+// External merge tool: writes ours/theirs + a merged file seeded with the
+// conflicted working copy, spawns the tool, and hands back the merged file's
+// path so the renderer can reload it once the user has resolved & saved.
+ipcMain.handle('app:open-external-merge', async (_e, filepath: string) => {
+  const tool = (readSettings().externalMergeTool ?? '').trim()
+  if (!tool) return { success: false, error: 'No external merge tool configured' }
+  if (!gitService) return { success: false, error: 'No repo open' }
+  try {
+    const versions = await gitService.getConflictVersions(filepath)
+    const safeName = safeTempFileName(filepath)
+    const tmp = join(os.tmpdir(), `git-vertex-merge-${Date.now()}`)
+    mkdirSync(tmp, { recursive: true })
+    const oursPath = join(tmp, `ours-${safeName}`)
+    const theirsPath = join(tmp, `theirs-${safeName}`)
+    const mergedPath = join(tmp, `merged-${safeName}`)
+    writeFileSync(oursPath, versions.ours ?? '')
+    writeFileSync(theirsPath, versions.theirs ?? '')
+    const abs = path.isAbsolute(filepath) ? filepath : path.join(gitService.repoPath, filepath)
+    try { fs.copyFileSync(abs, mergedPath) } catch { writeFileSync(mergedPath, '') }
+    const inv = buildToolInvocation(tool, oursPath, theirsPath, mergedPath)
+    if (!inv) return { success: false, error: 'No external merge tool configured' }
+    const { spawn } = await import('child_process')
+    const child = spawn(inv.cmd, inv.args, { detached: true, stdio: 'ignore' })
+    child.on('error', () => {})
+    child.unref()
+    return { success: true, mergedPath }
+  } catch (e: any) {
+    return { success: false, error: e.message }
+  }
+})
+
+// Reads back a temp file written by app:open-external-merge, once the user
+// closes/saves from the external tool.
+ipcMain.handle('app:read-temp-file', async (_e, absPath: string) => {
+  try { return { content: readFileSync(absPath, 'utf-8') } } catch (e: any) { return { error: e.message } }
 })
 
 // ── Git global config ──────────────────────────────────────────
@@ -1546,20 +1693,16 @@ ipcMain.handle('git:read-readme', async (_e, dir: string) => {
   } catch (e: any) { return { error: e.message } }
 })
 
-// Open the system terminal at the repository root.
+// Open the system terminal at the repository root. Uses the configured
+// `externalTerminal` app (e.g. "iTerm", "Warp") if set, otherwise falls back
+// to the OS default terminal.
 ipcMain.handle('app:open-terminal', async () => {
   if (!gitService) return { success: false, error: 'No repo open' }
   const cwd = gitService.repoPath
   try {
     const { spawn } = await import('child_process')
-    let cmd: string, args: string[]
-    if (process.platform === 'darwin') {
-      cmd = 'open'; args = ['-a', 'Terminal', cwd]
-    } else if (process.platform === 'win32') {
-      cmd = 'cmd'; args = ['/c', 'start', 'cmd', '/k', `cd /d ${cwd}`]
-    } else {
-      cmd = 'x-terminal-emulator'; args = [`--working-directory=${cwd}`]
-    }
+    const customTerminal = (readSettings().externalTerminal ?? '').trim()
+    const { cmd, args } = resolveTerminalLaunch({ customTerminal, platform: process.platform, cwd })
     const child = spawn(cmd, args, { cwd, detached: true, stdio: 'ignore' })
     child.on('error', () => {})
     child.unref()
