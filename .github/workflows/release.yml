@@ -25,13 +25,31 @@ jobs:
             exit 1
           fi
           echo "✓ tag v$TAG matches package.json $PKG"
+      # Release notes come from CHANGELOG.md, never a generic placeholder — a
+      # tag with no matching entry fails the release instead of shipping with
+      # "Release vX.Y.Z" as its only description.
+      - name: Extract changelog section for this version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="## $VERSION" '
+            $0 == ver { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > /tmp/release-notes.md
+          sed -i -e '/./,$!d' /tmp/release-notes.md
+          if [ ! -s /tmp/release-notes.md ]; then
+            echo "::error::No changelog entry found for version $VERSION in CHANGELOG.md (expected a '## $VERSION' heading with content under it). Add one before releasing."
+            exit 1
+          fi
+          echo "Release notes for $VERSION:"
+          cat /tmp/release-notes.md
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
-            --notes "Release $GITHUB_REF_NAME" \
+            --notes-file /tmp/release-notes.md \
             --latest
 
   build-mac:

@@ -43,6 +43,24 @@ jobs:
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Fail before any build/publish work if the version being shipped has no
+      # matching changelog entry — otherwise the release goes out with a
+      # generic placeholder note instead of real release notes.
+      - name: Verify changelog entry exists
+        if: steps.check.outputs.should_publish == 'true'
+        run: |
+          VERSION="${{ steps.check.outputs.version }}"
+          NOTES=$(awk -v ver="## $VERSION" '
+            $0 == ver { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' vscode-extension/CHANGELOG.md)
+          if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "::error::No changelog entry found for version $VERSION in vscode-extension/CHANGELOG.md (expected a '## $VERSION' heading with content under it). Add one before releasing."
+            exit 1
+          fi
+          echo "✓ changelog entry found for $VERSION"
+
   publish:
     name: Build & publish
     needs: check-version
@@ -111,6 +129,36 @@ jobs:
           git tag "ext-v${{ env.VERSION }}"
           git push origin "ext-v${{ env.VERSION }}"
 
+      - name: Build release notes from CHANGELOG.md
+        run: |
+          awk -v ver="## $VERSION" '
+            $0 == ver { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' vscode-extension/CHANGELOG.md > /tmp/changelog-section.md
+          sed -i -e '/./,$!d' /tmp/changelog-section.md
+          if [ ! -s /tmp/changelog-section.md ]; then
+            echo "::error::No changelog entry found for version $VERSION in vscode-extension/CHANGELOG.md — this should have been caught by check-version already."
+            exit 1
+          fi
+          {
+            echo "## Git Vertex VS Code Extension v${VERSION}"
+            echo
+            cat /tmp/changelog-section.md
+            echo
+            echo "---"
+            echo
+            echo "Installe le VSIX directement :"
+            echo '```'
+            echo "code --install-extension git-vertex-${VERSION}.vsix"
+            echo '```'
+            echo
+            echo "Ou cherche **Git Vertex** dans le Marketplace VS Code."
+            echo
+            echo "🔗 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=VictorQuilgars.git-vertex)"
+            echo "🔗 [Open VSX](https://open-vsx.org/extension/VictorQuilgars/git-vertex)"
+          } > /tmp/release-notes.md
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -118,14 +166,4 @@ jobs:
           gh release create "ext-v${{ env.VERSION }}" \
             "vscode-extension/git-vertex-${{ env.VERSION }}.vsix" \
             --title "Git Vertex VS Code Extension v${{ env.VERSION }}" \
-            --notes "## Git Vertex VS Code Extension v${{ env.VERSION }}
-
-          Installe le VSIX directement :
-          \`\`\`
-          code --install-extension git-vertex-${{ env.VERSION }}.vsix
-          \`\`\`
-
-          Ou cherche **Git Vertex** dans le Marketplace VS Code.
-
-          🔗 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=VictorQuilgars.git-vertex)
-          🔗 [Open VSX](https://open-vsx.org/extension/VictorQuilgars/git-vertex)"
+            --notes-file /tmp/release-notes.md
