@@ -912,7 +912,36 @@ function InteractiveRebaseTab({ baseHash }: { baseHash: string }) {
   return <InteractiveRebase embedded baseHash={baseHash} onClose={close} onSuccess={() => {}} showToast={showToast} />
 }
 
+
+// Without this, any render error unmounts the whole tree and the panel goes
+// black with no clue why — which is exactly what happened while building
+// v1.22.0. Show the error instead, and keep it copyable for a bug report.
+class PanelErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[GitVertex] panel render failed:', error, info.componentStack)
+  }
+  render() {
+    if (!this.state.error) return this.props.children
+    return (
+      <div style={{ padding: 16, font: '12px var(--vscode-editor-font-family, monospace)', color: '#f85149' }}>
+        <div style={{ fontWeight: 600, marginBottom: 8 }}>Git Vertex — erreur de rendu</div>
+        <pre style={{ whiteSpace: 'pre-wrap', color: '#c9d1d9', margin: 0 }}>
+          {this.state.error.message}
+          {'\n\n'}
+          {this.state.error.stack}
+        </pre>
+      </div>
+    )
+  }
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
+  <PanelErrorBoundary>
   <SettingsProvider>
     <LanguageProvider>
       <ToastProvider>
@@ -940,4 +969,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       </ToastProvider>
     </LanguageProvider>
   </SettingsProvider>
+  </PanelErrorBoundary>
 )

@@ -46,6 +46,10 @@ export interface FileChange {
 export interface WorkingFile {
   path: string
   status: string
+  // From `git diff --numstat` (v1.22.0). Absent for untracked files and for
+  // binaries, where git reports no line counts.
+  additions?: number
+  deletions?: number
 }
 
 export interface WorkingChanges {
