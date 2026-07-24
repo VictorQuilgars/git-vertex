@@ -184,6 +184,8 @@ const gitAPI = {
   githubCloseIssue: (owner: string, repo: string, number: number) => ipcRenderer.invoke('github:close-issue', owner, repo, number),
   githubShareWipPatch: (repoPath: string) => ipcRenderer.invoke('github:share-wip-patch', repoPath),
   scanLocalRepos: (force?: boolean) => ipcRenderer.invoke('git:scan-local-repos', force),
+  openPathInEditor: (dir: string) => ipcRenderer.invoke('app:open-path-in-editor', dir),
+  readReadme: (dir: string) => ipcRenderer.invoke('git:read-readme', dir),
   githubGetIssue: (owner: string, repo: string, number: number) =>
     ipcRenderer.invoke('github:get-issue', owner, repo, number),
   githubListRepos: () => ipcRenderer.invoke('github:list-repos'),

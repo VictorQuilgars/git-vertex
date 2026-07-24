@@ -19,6 +19,7 @@ import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import Launchpad from './components/Launchpad/Launchpad'
+import RepoManager from './components/RepoManager/RepoManager'
 import PRModal from './components/PRModal/PRModal'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
@@ -225,7 +226,7 @@ type DialogState =
 // Tabs are heterogeneous: the classic repo tab, the "home" welcome screen
 // (multiple allowed — every "+" opens a fresh one) and the full-page
 // Launchpad (opened by the 🚀 button). `path`/`name` are only set on repo tabs.
-type TabKind = 'home' | 'repo' | 'launchpad'
+type TabKind = 'home' | 'repo' | 'launchpad' | 'repomgmt'
 interface AppTab { id: string; kind: TabKind; path?: string; name?: string }
 let tabSeq = 0
 const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
@@ -775,6 +776,22 @@ export default function App() {
       const id = newTabId('launchpad')
       setActiveTabId(id)
       return [...prev, { id, kind: 'launchpad' }]
+    })
+    clearRepoView()
+  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
+
+  // 📁 → focus the Repository Management tab if open, otherwise open one.
+  const openRepoManagerTab = useCallback(() => {
+    if (conflictResolverFile || rebaseHash) return
+    setWhatsNewActive(false)
+    setSettingsOpen(false)
+    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
+    setTabs(prev => {
+      const existing = prev.find(tb => tb.kind === 'repomgmt')
+      if (existing) { setActiveTabId(existing.id); return prev }
+      const id = newTabId('repomgmt')
+      setActiveTabId(id)
+      return [...prev, { id, kind: 'repomgmt' }]
     })
     clearRepoView()
   }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
@@ -1541,6 +1558,7 @@ export default function App() {
   }, [])
   const activeTab = tabs.find(tb => tb.id === activeTabId)
   const launchpadActive = activeTab?.kind === 'launchpad'
+  const repomgmtActive = activeTab?.kind === 'repomgmt'
 
   return (
     <div className="app">
@@ -1553,6 +1571,9 @@ export default function App() {
       {(
         <div className="app-tabs">
           {isMac && !isFullscreen && <div className="app-tabs-mac-spacer" />}
+          {/* 📁 Repository Management launcher — fixed, GitKraken-style. */}
+          <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'repomgmt' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
+            title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); openRepoManagerTab() }}>📁</button>
           {/* 🚀 Launchpad launcher — always reachable, GitKraken-style. */}
           <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
             title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}>🚀</button>
@@ -1570,9 +1591,9 @@ export default function App() {
                   <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
                 </svg>
               ) : (
-                <span className="app-tab-icon app-tab-icon--tool">{tab.kind === 'launchpad' ? '🚀' : '🏠'}</span>
+                <span className="app-tab-icon app-tab-icon--tool">{tab.kind === 'launchpad' ? '🚀' : tab.kind === 'repomgmt' ? '📁' : '🏠'}</span>
               )}
-              <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : t('tabs.home')}</span>
+              <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : tab.kind === 'repomgmt' ? t('repomgmt.title') : t('tabs.home')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
             </div>
@@ -1840,6 +1861,22 @@ export default function App() {
               initialPlan={rebasePlanProposal ?? undefined}
               onClose={() => { setRebaseHash(null); setRebasePlanProposal(null) }}
               onSuccess={loadRepoData}
+              showToast={showToast}
+            />
+          ) : repomgmtActive ? (
+            <RepoManager
+              recentRepos={recentRepos}
+              openRepoPaths={tabs.filter(tb => tb.kind === 'repo').map(tb => tb.path!)}
+              workspaces={workspaces}
+              onSetWorkspace={async (path, name) => {
+                const updated = await (window.gitAPI as any).setRepoWorkspace(path, name)
+                setWorkspaces(updated ?? {})
+              }}
+              onOpenRepo={handleSetRepo}
+              onRemoveRecent={handleRemoveRecent}
+              onClone={() => setCloneOpen(true)}
+              onBrowse={handleOpenRepo}
+              onInit={handleCreateRepo}
               showToast={showToast}
             />
           ) : launchpadActive ? (
