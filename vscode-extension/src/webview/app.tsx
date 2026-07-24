@@ -147,6 +147,8 @@ function VertexApp() {
         if (v && RAIL_VIEWS.includes(v)) { setActiveView(v); lastViewRef.current = v }
         const w = parseInt(s?.sidebarWidth ?? '', 10)
         if (!isNaN(w)) setSideW(Math.max(180, Math.min(500, w)))
+        const rw = parseInt(s?.rightWidth ?? '', 10)
+        if (!isNaN(rw)) setRightW(Math.max(320, Math.min(900, rw)))
       })
       .catch(() => { /* first run: keep default (collapsed) */ })
   }, [])
@@ -537,12 +539,13 @@ function VertexApp() {
     const startX = e.clientX
     const startW = rightW
     const onMove = (ev: MouseEvent) => {
-      const w = Math.max(320, Math.min(720, startW + (startX - ev.clientX)))
+      const w = Math.max(320, Math.min(900, startW + (startX - ev.clientX)))
       setRightW(w)
     }
     const onUp = () => {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
+      setRightW(w => { void window.gitAPI.settingsSet('rightWidth', String(w)); return w })
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
@@ -575,29 +578,13 @@ function VertexApp() {
   }, [])
   const stacked = viewportW < 640
 
-  // Measure the body (graph + right panel) height — it equals the right panel's
-  // own height, so the widening decision below aligns exactly with RightPanel's
-  // compact threshold (no toolbar-offset guesswork, no widened-but-classic band).
   const appBodyRef = useRef<HTMLDivElement>(null)
-  const [bodyH, setBodyH] = useState(0)
-  useEffect(() => {
-    const el = appBodyRef.current
-    if (!el) return
-    const ro = new ResizeObserver(entries => setBodyH(entries[0].contentRect.height))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
 
-  // Short + wide panel (docked under a terminal): the staging UX needs width
-  // more than the graph does, so widen the right panel — the graph drops its
-  // Author/Date/SHA columns on its own, and the right panel can lay out
-  // files | commit-form side by side. Transient: the user's saved rightW is
-  // restored as soon as the panel is tall again. The < 300 here is the same
-  // threshold RightPanel uses to switch to its compact layout.
-  const shortPanel = bodyH > 0 && bodyH < 300 && !stacked
-  const effRightW = shortPanel
-    ? Math.min(Math.max(rightW, 700), viewportW - 340)
-    : rightW
+  // The right panel is always freely resizable (drag its handle). We no longer
+  // auto-widen it when the terminal is short — that fought the user's own sizing;
+  // the compact staging layout now handles small heights. Just clamp so the
+  // panel can't push the graph below a usable minimum.
+  const effRightW = Math.min(rightW, Math.max(320, viewportW - 340))
 
   const showRight = !!selectedCommit || !!conflictMode
 
@@ -764,7 +751,7 @@ function VertexApp() {
 
         {showRight && (
           <>
-            {!stacked && !shortPanel && <div className="resize-handle" onMouseDown={startResizeRight} />}
+            {!stacked && <div className="resize-handle" onMouseDown={startResizeRight} />}
             <div className={stacked ? 'app-right gv-right-stacked' : 'app-right'} style={stacked ? undefined : { width: effRightW }}>
               {stacked && !conflictMode && (
                 <div className="gv-stacked-bar">
@@ -777,6 +764,7 @@ function VertexApp() {
                 </div>
               )}
               <RightPanel
+                embedded
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
                 showToast={showToast}

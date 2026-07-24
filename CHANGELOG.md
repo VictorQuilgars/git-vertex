@@ -1,5 +1,12 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.18.1
+
+### Changed
+- **Commit message is a single free-form field** — no more separate summary/description inputs; write your message with your own line breaks, same as `git commit` itself. The conventional-commit type picker and character counter were removed to give the field more room.
+- **Amend previous commit** now shares its row with **Generate with AI**.
+- The commit-form resize handle is no longer capped by short window sizes.
+
 ## 1.18.0
 
 ### Added
