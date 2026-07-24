@@ -211,6 +211,8 @@ const gitAPI = {
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
   openDownloadedUpdate: () => ipcRenderer.invoke('updater:open-downloaded'),
   installManual: () => ipcRenderer.invoke('updater:install-manual'),
+  isFullscreen: () => ipcRenderer.invoke('app:is-fullscreen'),
+  onFullscreenChanged: (cb: (fs: boolean) => void) => subscribe('app:fullscreen-changed', (fs) => cb(fs)),
 }
 
 contextBridge.exposeInMainWorld('gitAPI', gitAPI)

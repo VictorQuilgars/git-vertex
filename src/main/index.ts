@@ -142,6 +142,12 @@ function createWindow(): void {
     closeSplash()
   })
 
+  // In macOS fullscreen the traffic-light buttons are hidden, so the renderer
+  // must drop the 72px spacer that reserves room for them.
+  const sendFullscreen = () => mainWindow?.webContents.send('app:fullscreen-changed', mainWindow.isFullScreen())
+  mainWindow.on('enter-full-screen', sendFullscreen)
+  mainWindow.on('leave-full-screen', sendFullscreen)
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -359,6 +365,8 @@ async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; name?: 
 }
 
 // ── IPC: Repo management ──────────────────────────────────────
+ipcMain.handle('app:is-fullscreen', () => mainWindow?.isFullScreen() ?? false)
+
 ipcMain.handle('app:get-recent-repos', () => getRecentRepos())
 
 ipcMain.handle('app:remove-recent-repo', (_event, path: string) => removeRecentRepo(path))
