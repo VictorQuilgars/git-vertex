@@ -32,7 +32,10 @@ interface Props {
   onOpenRepo: (path: string) => void
   showToast: (msg: string, type?: 'ok' | 'err', action?: { label: string; onClick: () => void }) => void
 }
-type Tab = 'prs' | 'issues' | 'wips' | 'all'
+type Tab = 'prs' | 'issues' | 'wips' | 'all' | 'snoozed'
+
+const itemKey = (r: Row) => `${r.repo}#${r.number}`
+const loadSet = (k: string): Set<string> => { try { return new Set(JSON.parse(localStorage.getItem(k) || '[]')) } catch { return new Set() } }
 
 function timeAgo(dateStr: string, lang: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
@@ -60,6 +63,17 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
   const [error, setError] = useState<{ msg: string; retryIn?: number } | null>(null)
   const [manageOpen, setManageOpen] = useState(false)
   const [menuKey, setMenuKey] = useState<string | null>(null)
+  // Local, free pin/snooze state (another tool gates these behind a paid license).
+  const [pinned, setPinned] = useState<Set<string>>(() => loadSet('lp-pinned'))
+  const [snoozed, setSnoozed] = useState<Set<string>>(() => loadSet('lp-snoozed'))
+  const togglePin = (k: string) => setPinned(prev => {
+    const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k)
+    localStorage.setItem('lp-pinned', JSON.stringify([...n])); return n
+  })
+  const toggleSnooze = (k: string) => setSnoozed(prev => {
+    const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k)
+    localStorage.setItem('lp-snoozed', JSON.stringify([...n])); return n
+  })
 
   const workspaceNames = useMemo(
     () => [...new Set(Object.values(workspaces).filter(Boolean))].sort(),
@@ -121,14 +135,29 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
 
   const prShown = useMemo(() => allowedRepos ? prItems.filter(r => allowedRepos.has(r.repo)) : prItems, [prItems, allowedRepos])
   const issShown = useMemo(() => allowedRepos ? issueItems.filter(r => allowedRepos.has(r.repo)) : issueItems, [issueItems, allowedRepos])
-  const prCount = allowedRepos ? prShown.length : prTotal
-  const issueCount = allowedRepos ? issShown.length : issueTotal
+  // Visible = not snoozed. Counts reflect what's shown.
+  const prVisible = useMemo(() => prShown.filter(r => !snoozed.has(itemKey(r))), [prShown, snoozed])
+  const issVisible = useMemo(() => issShown.filter(r => !snoozed.has(itemKey(r))), [issShown, snoozed])
+  const snoozedItems = useMemo(
+    () => [...prShown, ...issShown].filter(r => snoozed.has(itemKey(r))),
+    [prShown, issShown, snoozed],
+  )
+  const prCount = prVisible.length
+  const issueCount = issVisible.length
+
+  // pinned first, then most-recently-updated.
+  const sortItems = useCallback((arr: Row[]) => [...arr].sort((a, b) => {
+    const pa = pinned.has(itemKey(a)) ? 1 : 0, pb = pinned.has(itemKey(b)) ? 1 : 0
+    if (pa !== pb) return pb - pa
+    return new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime()
+  }), [pinned])
 
   // Unified entries for the active tab (ALL mixes WIPs + items).
   const entries = useMemo(() => {
-    let items = tab === 'prs' ? prShown : tab === 'issues' ? issShown : tab === 'all' ? [...prShown, ...issShown] : []
+    let items = tab === 'prs' ? prVisible : tab === 'issues' ? issVisible
+      : tab === 'all' ? [...prVisible, ...issVisible] : tab === 'snoozed' ? snoozedItems : []
     if (labelFilter) items = items.filter(r => r.labels?.some(l => l.name === labelFilter))
-    items = [...items].sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
+    items = sortItems(items)
     const wipList = tab === 'wips' || tab === 'all' ? wips : []
     let e: Entry[] = [
       ...wipList.map(w => ({ kind: 'wip', wip: w } as Entry)),
@@ -139,7 +168,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
       ? en.wip.name.toLowerCase().includes(q)
       : (en.row.title.toLowerCase().includes(q) || en.row.repo.toLowerCase().includes(q)))
     return e
-  }, [tab, prShown, issShown, wips, labelFilter, search])
+  }, [tab, prVisible, issVisible, snoozedItems, wips, labelFilter, search, sortItems])
 
   const openExt = (url?: string) => { if (url) window.gitAPI.openExternal(url) }
   const copy = (url: string) => { navigator.clipboard.writeText(url); setMenuKey(null); showToast(t('launchpad.linkCopied')) }
@@ -173,10 +202,11 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
   }
 
   const TABS: { id: Tab; label: string; count: number }[] = [
-    { id: 'prs',    label: t('launchpad.tab.prs'),    count: prCount },
-    { id: 'issues', label: t('launchpad.tab.issues'), count: issueCount },
-    { id: 'wips',   label: t('launchpad.tab.wips'),   count: wips.length },
-    { id: 'all',    label: t('launchpad.tab.all'),    count: prCount + issueCount + wips.length },
+    { id: 'prs',     label: t('launchpad.tab.prs'),     count: prCount },
+    { id: 'issues',  label: t('launchpad.tab.issues'),  count: issueCount },
+    { id: 'wips',    label: t('launchpad.tab.wips'),    count: wips.length },
+    { id: 'all',     label: t('launchpad.tab.all'),     count: prCount + issueCount + wips.length },
+    { id: 'snoozed', label: t('launchpad.tab.snoozed'), count: snoozedItems.length },
   ]
 
   const showError = error && tab !== 'wips'
@@ -259,15 +289,18 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
         ) : entries.length === 0 ? (
           <div className="lp-empty">
             <div className="lp-empty-title">
-              {tab === 'prs' ? t('launchpad.empty.prs') : tab === 'issues' ? t('launchpad.empty.issues') : tab === 'wips' ? t('launchpad.empty.wips') : t('launchpad.empty.all')}
+              {tab === 'prs' ? t('launchpad.empty.prs') : tab === 'issues' ? t('launchpad.empty.issues')
+                : tab === 'wips' ? t('launchpad.empty.wips') : tab === 'snoozed' ? t('launchpad.empty.snoozed') : t('launchpad.empty.all')}
             </div>
             <div className="lp-empty-hint">
-              {tab === 'wips' ? t('launchpad.emptyWipsHint') : (wsFilter || labelFilter || search) ? t('launchpad.emptyFiltered') : t('launchpad.emptyHint')}
+              {tab === 'wips' ? t('launchpad.emptyWipsHint') : tab === 'snoozed' ? t('launchpad.emptySnoozedHint')
+                : (wsFilter || labelFilter || search) ? t('launchpad.emptyFiltered') : t('launchpad.emptyHint')}
             </div>
           </div>
         ) : (
           <table className="lp-table">
             <thead><tr>
+              <th className="lp-col-pin" />
               <th className="lp-col-status">{t('launchpad.col.status')}</th>
               <th className="lp-col-item">{t('launchpad.col.item')}</th>
               <th className="lp-col-author">{t('launchpad.col.author')}</th>
@@ -277,6 +310,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
             <tbody>
               {entries.map(en => en.kind === 'wip' ? (
                 <tr key={`wip-${en.wip.path}`} className="lp-row" onClick={() => onOpenRepo(en.wip.path)} title={t('launchpad.openRepo')}>
+                  <td className="lp-col-pin" />
                   <td className="lp-col-status" />
                   <td className="lp-col-item">
                     <div className="lp-item-top">
@@ -310,9 +344,18 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
               ) : (() => {
                 const r = en.row
                 const key = `${r.type}-${r.repo}-${r.number}`
+                const ik = itemKey(r)
                 const isLocal = !!repoMap[r.repo]
+                const isPinned = pinned.has(ik)
+                const isSnoozed = snoozed.has(ik)
                 return (
-                  <tr key={key} className="lp-row" onClick={() => openExt(r.url)} title={t('launchpad.openIn')}>
+                  <tr key={key} className={`lp-row ${isPinned ? 'pinned' : ''}`} onClick={() => openExt(r.url)} title={t('launchpad.openIn')}>
+                    <td className="lp-col-pin" onClick={e => e.stopPropagation()}>
+                      <button className={`lp-pin-btn ${isPinned ? 'on' : ''}`} title={isPinned ? t('launchpad.unpin') : t('launchpad.pin')}
+                        onClick={() => togglePin(ik)}>📌</button>
+                      <button className={`lp-pin-btn ${isSnoozed ? 'on' : ''}`} title={isSnoozed ? t('launchpad.unsnooze') : t('launchpad.snooze')}
+                        onClick={() => toggleSnooze(ik)}>💤</button>
+                    </td>
                     <td className="lp-col-status">
                       <span className={`lp-dot ${r.draft ? 'draft' : r.type}`} />
                       <span className="lp-age">{timeAgo(r.updatedAt ?? r.createdAt, lang)}</span>

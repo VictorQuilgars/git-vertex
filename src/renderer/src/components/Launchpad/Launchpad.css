@@ -110,6 +110,7 @@
   text-transform: uppercase; color: #6e7681; padding: 10px 14px;
   border-bottom: 1px solid #21262d; position: sticky; top: 0; background: #0d1117; z-index: 1;
 }
+.lp-col-pin { width: 46px; padding-right: 0 !important; white-space: nowrap; }
 .lp-col-status { width: 88px; }
 .lp-col-author { width: 60px; text-align: center !important; }
 .lp-col-repo { width: 190px; }
@@ -118,6 +119,17 @@
 .lp-row { cursor: pointer; border-bottom: 1px solid #161b22; }
 .lp-row:hover { background: #161b22; }
 .lp-row td { padding: 12px 14px; vertical-align: middle; }
+.lp-row.pinned { background: #1f6feb0d; }
+
+/* Pin / snooze — hidden until row hover (or when active). */
+.lp-pin-btn {
+  background: transparent; border: none; cursor: pointer; padding: 2px;
+  font-size: 12px; opacity: 0; filter: grayscale(1); transition: opacity 0.1s;
+  line-height: 1;
+}
+.lp-row:hover .lp-pin-btn { opacity: 0.55; }
+.lp-pin-btn:hover { opacity: 1 !important; filter: none; }
+.lp-pin-btn.on { opacity: 1; filter: none; }
 
 .lp-col-status { white-space: nowrap; }
 .lp-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #6e7681; vertical-align: middle; }
