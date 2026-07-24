@@ -2,6 +2,23 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.18.0': `## What's new in 1.18.0
+
+### 🗂️ Repository Management
+- A new **folder button** in the tab bar opens a full-page **Repository Management** hub (an overlay, not a tab).
+- **Open / Favorites / Recent** sections (collapsible, searchable) with a **WIP summary** toggle showing branch + ✎/+/− per repo.
+- Per-row actions: open, **favorite** (★), **open in external editor**, **repository details** (README rendered in a slide-in), remove.
+- **New Workspace** modal to name a workspace and assign repos to it.
+
+### ⬇️ GitKraken-style Clone
+- Provider nav (**Clone with URL** / **GitHub.com**), a **Where to clone to** field with Browse, a searchable list of your remote repos, and **Shallow Clone** / **Sparse Checkout** options.
+
+### ＋ GitKraken-style Init
+- **Initialize a Repository** modal — **Local Only** (name, location, default branch, optional .gitignore + license, LFS) and **GitHub.com** (create the remote repo and clone it).
+
+### 🐛 Fixed
+- Tabs now stick to the left in macOS **fullscreen** (the traffic-light spacer is dropped).
+`,
   '1.17.0': `## What's new in 1.17.0
 
 ### 🚀 Launchpad

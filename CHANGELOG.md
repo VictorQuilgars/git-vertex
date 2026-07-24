@@ -1,5 +1,15 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.18.0
+
+### Added
+- **Repository Management** hub (folder button → full-page overlay): Open / Favorites / Recent sections with search and a WIP-summary toggle; per-row open, favorite, open-in-external-editor, repository details (README slide-in) and remove; a New Workspace modal.
+- **GitKraken-style Clone modal**: provider nav (Clone with URL / GitHub.com), Where-to-clone field with Browse, searchable remote-repo list, Shallow Clone and Sparse Checkout options (clones to the chosen location).
+- **GitKraken-style Init modal**: Local Only (name, location, branch, optional .gitignore + license, LFS) and GitHub.com (create the remote repo + clone).
+
+### Fixed
+- Tabs stick to the left in macOS fullscreen (the traffic-light spacer is dropped when fullscreen).
+
 ## 1.17.0
 
 ### Added
