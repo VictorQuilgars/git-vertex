@@ -2,6 +2,26 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.17.0': `## What's new in 1.17.0
+
+### 🚀 Launchpad
+- A brand-new **full-page Launchpad**, opened by the **rocket button** in the tab bar.
+- **My Pull Requests**, **My Issues**, **WIPs**, **All** and **Snoozed** tabs, with a search box, workspace and label filters, and always-visible counts.
+- User-centric feed: your open PRs and issues across **all** your GitHub repos.
+- **WIPs**: scans your local repos for uncommitted work (✎ files · + / − lines) and lets you jump straight into one.
+- Row actions: **View Repo** (opens the local tab when cloned), **Open on GitHub**, **Copy link**, **Mark as closed**, and **Create cloud patch** on WIPs.
+- **Pin** and **snooze** any item — free (no paid license needed).
+
+### 🗂️ Multiple home tabs
+- Every **+** opens a fresh **Home** tab, so you can keep several open at once.
+
+### 🔗 Recovered features
+- **Named workspaces** over your recent repos, managed from the Launchpad.
+- **Share a commit's patch** as a secret-gist link.
+
+### 🐛 Fixed
+- Sharing a patch now requests the **gist** scope (reconnect GitHub to grant it).
+`,
   '1.16.2': `## What's new in 1.16.2
 
 ### 🌍 Internationalization cleanup
