@@ -56,16 +56,13 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
   const [localRepos, setLocalRepos] = useState<LocalRepo[]>([])
   const [loading, setLoading] = useState(false)
   const [noAuth, setNoAuth] = useState(false)
+  const [error, setError] = useState<{ msg: string; retryIn?: number } | null>(null)
   const [manageOpen, setManageOpen] = useState(false)
   const [menuKey, setMenuKey] = useState<string | null>(null)
 
   const workspaceNames = useMemo(
     () => [...new Set(Object.values(workspaces).filter(Boolean))].sort(),
     [workspaces],
-  )
-  const scopedPaths = useMemo(
-    () => (wsFilter ? recentRepos.filter(p => (workspaces[p] ?? '') === wsFilter) : recentRepos),
-    [recentRepos, workspaces, wsFilter],
   )
   // owner/repo → local path, for "View Repo".
   const repoMap = useMemo(() => {
@@ -74,38 +71,46 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
     return m
   }, [localRepos])
 
-  const load = useCallback(async () => {
+  // The GitHub feed is fetched once (not per workspace) — the search API is
+  // rate-limited, so workspace scoping happens client-side below.
+  const load = useCallback(async (force = false) => {
     setLoading(true)
     setNoAuth(false)
+    setError(null)
     try {
       const [pr, iss, local] = await Promise.all([
-        (window.gitAPI as any).githubSearchIssues('is:open is:pr author:@me'),
-        (window.gitAPI as any).githubSearchIssues('is:open is:issue author:@me'),
-        (window.gitAPI as any).scanLocalRepos().catch(() => ({ repos: [] })),
+        (window.gitAPI as any).githubSearchIssues('is:open is:pr author:@me', force),
+        (window.gitAPI as any).githubSearchIssues('is:open is:issue author:@me', force),
+        (window.gitAPI as any).scanLocalRepos(force).catch(() => ({ repos: [] })),
       ])
       setLocalRepos(local.repos ?? [])
-      if (pr.error === 'not_authenticated' || iss.error === 'not_authenticated') {
-        setNoAuth(true); setPrItems([]); setIssueItems([]); return
+      const err = pr.error || iss.error
+      if (err === 'not_authenticated') { setNoAuth(true); setPrItems([]); setIssueItems([]); return }
+      if (err === 'rate_limited') {
+        setError({ msg: 'rate_limited', retryIn: pr.retryIn ?? iss.retryIn })
+        // keep whatever we already had rather than blanking to 0
+        return
       }
-      let allowed: Set<string> | null = null
-      if (wsFilter) {
-        const detected = await Promise.all(scopedPaths.map(p =>
-          (window.gitAPI as any).githubDetectRepoAt(p).catch(() => ({ owner: null }))
-        ))
-        allowed = new Set(detected.filter(d => d?.owner).map(d => `${d.owner}/${d.repo}`))
-      }
-      const scope = (arr: Row[]) => (allowed ? arr.filter(r => allowed!.has(r.repo)) : arr)
-      const prRows = scope(pr.items ?? [])
-      const issRows = scope(iss.items ?? [])
-      setPrItems(prRows); setIssueItems(issRows)
-      setPrTotal(allowed ? prRows.length : (pr.total ?? prRows.length))
-      setIssueTotal(allowed ? issRows.length : (iss.total ?? issRows.length))
+      if (err) { setError({ msg: err }); return }
+      setPrItems(pr.items ?? [])
+      setIssueItems(iss.items ?? [])
+      setPrTotal(pr.total ?? (pr.items?.length ?? 0))
+      setIssueTotal(iss.total ?? (iss.items?.length ?? 0))
     } finally {
       setLoading(false)
     }
-  }, [wsFilter, scopedPaths])
+  }, [])
 
   useEffect(() => { load() }, [load])
+
+  // Client-side workspace scope: the set of GitHub full names assigned to the
+  // selected workspace (resolved from the local scan — no extra API calls).
+  const allowedRepos = useMemo(() => {
+    if (!wsFilter) return null
+    const s = new Set<string>()
+    for (const r of localRepos) if (r.fullname && (workspaces[r.path] ?? '') === wsFilter) s.add(r.fullname)
+    return s
+  }, [wsFilter, localRepos, workspaces])
 
   const wips = useMemo(() => {
     let w = localRepos.filter(r => r.changed > 0)
@@ -120,13 +125,19 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
     return [...s].sort()
   }, [prItems, issueItems])
 
+  // Workspace-scoped item pools + their counts (client-side).
+  const prShown = useMemo(() => allowedRepos ? prItems.filter(r => allowedRepos.has(r.repo)) : prItems, [prItems, allowedRepos])
+  const issShown = useMemo(() => allowedRepos ? issueItems.filter(r => allowedRepos.has(r.repo)) : issueItems, [issueItems, allowedRepos])
+  const prCount = allowedRepos ? prShown.length : prTotal
+  const issueCount = allowedRepos ? issShown.length : issueTotal
+
   const rows = useMemo(() => {
-    let base = tab === 'prs' ? prItems : tab === 'issues' ? issueItems : [...prItems, ...issueItems]
+    let base = tab === 'prs' ? prShown : tab === 'issues' ? issShown : [...prShown, ...issShown]
     if (labelFilter) base = base.filter(r => r.labels?.some(l => l.name === labelFilter))
     const q = search.trim().toLowerCase()
     if (q) base = base.filter(r => r.title.toLowerCase().includes(q) || r.repo.toLowerCase().includes(q))
     return [...base].sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
-  }, [tab, prItems, issueItems, labelFilter, search])
+  }, [tab, prShown, issShown, labelFilter, search])
 
   const wipRows = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -142,10 +153,10 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
   }
 
   const TABS: { id: Tab; label: string; count: number }[] = [
-    { id: 'prs',    label: t('launchpad.tab.prs'),    count: prTotal },
-    { id: 'issues', label: t('launchpad.tab.issues'), count: issueTotal },
+    { id: 'prs',    label: t('launchpad.tab.prs'),    count: prCount },
+    { id: 'issues', label: t('launchpad.tab.issues'), count: issueCount },
     { id: 'wips',   label: t('launchpad.tab.wips'),   count: wips.length },
-    { id: 'all',    label: t('launchpad.tab.all'),    count: prTotal + issueTotal },
+    { id: 'all',    label: t('launchpad.tab.all'),    count: prCount + issueCount },
   ]
 
   return (
@@ -156,7 +167,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
         <div style={{ flex: 1 }} />
         <button className={`lp-manage ${manageOpen ? 'active' : ''}`} onClick={() => setManageOpen(o => !o)}
           title={t('launchpad.manage')}>⚙</button>
-        <button className="lp-refresh" onClick={() => { (window.gitAPI as any).scanLocalRepos(true).then((r: any) => setLocalRepos(r.repos ?? [])); load() }} title={t('launchpad.refresh')}>
+        <button className="lp-refresh" onClick={() => load(true)} title={t('launchpad.refresh')}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
             style={{ animation: loading ? 'lp-spin 0.8s linear infinite' : 'none' }}>
             <polyline points="23 4 23 10 17 10"/>
@@ -210,7 +221,19 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
       )}
 
       <div className="lp-body">
-        {noAuth && tab !== 'wips' ? (
+        {error && tab !== 'wips' ? (
+          <div className="lp-empty">
+            <div className="lp-empty-title">
+              {error.msg === 'rate_limited' ? t('launchpad.rateTitle') : t('launchpad.errorTitle')}
+            </div>
+            <div className="lp-empty-hint">
+              {error.msg === 'rate_limited'
+                ? t('launchpad.rateHint', error.retryIn ?? 60)
+                : t('launchpad.errorHint', error.msg)}
+            </div>
+            <button className="lp-retry" onClick={() => load(true)}>{t('launchpad.retry')}</button>
+          </div>
+        ) : noAuth && tab !== 'wips' ? (
           <div className="lp-empty">
             <div className="lp-empty-title">{t('launchpad.noAuthTitle')}</div>
             <div className="lp-empty-hint">{t('launchpad.noAuth')}</div>
