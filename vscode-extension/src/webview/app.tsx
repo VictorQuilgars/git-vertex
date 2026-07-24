@@ -14,7 +14,8 @@ import CompactToolbar from './CompactToolbar'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
-import Sidebar from '../../../src/renderer/src/components/Sidebar/Sidebar'
+import Sidebar, { SidebarView } from '../../../src/renderer/src/components/Sidebar/Sidebar'
+import ActivityRail from './ActivityRail'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import StagingEditor from '../../../src/renderer/src/components/StagingEditor/StagingEditor'
 import RebaseProgress from '../../../src/renderer/src/components/RebaseProgress/RebaseProgress'
@@ -32,6 +33,8 @@ import '../../../src/renderer/src/App.css'
 import './vertex-vscode.css'
 
 declare global { interface Window { gitAPI: any; appInfo: any } }
+
+const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags']
 
 function VertexApp() {
   const { t } = useLang();
@@ -58,9 +61,13 @@ function VertexApp() {
   const [tags, setTags] = useState<{ name: string; hash: string }[]>([])
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
   const [mutedBranches, setMutedBranches] = useState<Set<string>>(new Set())
-  // Closed by default so the first thing a new user sees is the commit graph,
-  // not the branches list. The user's toggle choice is persisted host-side.
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  // The activity rail is always visible; `activeView` is the section its
+  // resizable side-panel shows, or null when collapsed (only the rail). Closed
+  // by default so the first thing a new user sees is the commit graph. The
+  // choice + panel width are persisted host-side.
+  const [activeView, setActiveView] = useState<SidebarView | null>(null)
+  const [sideW, setSideW] = useState(240)
+  const lastViewRef = useRef<SidebarView>('overview')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
@@ -135,14 +142,30 @@ function VertexApp() {
   // Restore the persisted sidebar preference (host Memento via settingsGetAll)
   useEffect(() => {
     window.gitAPI.settingsGetAll()
-      .then((s: Record<string, string>) => { if (s?.sidebarOpen === '1') setSidebarOpen(true) })
-      .catch(() => { /* first run: keep default (closed) */ })
+      .then((s: Record<string, string>) => {
+        const v = s?.sidebarView as SidebarView | undefined
+        if (v && RAIL_VIEWS.includes(v)) { setActiveView(v); lastViewRef.current = v }
+        const w = parseInt(s?.sidebarWidth ?? '', 10)
+        if (!isNaN(w)) setSideW(Math.max(180, Math.min(500, w)))
+      })
+      .catch(() => { /* first run: keep default (collapsed) */ })
   }, [])
 
+  // Rail click: toggle the panel for that view (click active icon → collapse).
+  const handleSelectView = useCallback((v: SidebarView) => {
+    setActiveView(cur => {
+      const next = cur === v ? null : v
+      if (next) lastViewRef.current = next
+      void window.gitAPI.settingsSet('sidebarView', next ?? '')
+      return next
+    })
+  }, [])
+
+  // Toolbar toggle: collapse if open, else reopen the last-used view.
   const handleToggleSidebar = useCallback(() => {
-    setSidebarOpen(o => {
-      const next = !o
-      void window.gitAPI.settingsSet('sidebarOpen', next ? '1' : '0')
+    setActiveView(cur => {
+      const next = cur ? null : lastViewRef.current
+      void window.gitAPI.settingsSet('sidebarView', next ?? '')
       return next
     })
   }, [])
@@ -525,6 +548,23 @@ function VertexApp() {
     window.addEventListener('mouseup', onUp)
   }, [rightW])
 
+  // ── Side-panel resize (drag the handle on its right edge) ────
+  const startResizeSide = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = sideW
+    const onMove = (ev: MouseEvent) => {
+      setSideW(Math.max(180, Math.min(500, startW + (ev.clientX - startX))))
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      setSideW(w => { void window.gitAPI.settingsSet('sidebarWidth', String(w)); return w })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [sideW])
+
   // Stacked mode — below this width the right panel replaces the graph
   // entirely instead of squeezing it (typical narrow VS Code side panels).
   const [viewportW, setViewportW] = useState(window.innerWidth)
@@ -589,7 +629,7 @@ function VertexApp() {
         onTerminal={handleTerminal}
         onOpenDesktop={handleOpenDesktop}
         onRefresh={loadRepoData}
-        sidebarOpen={sidebarOpen}
+        sidebarOpen={activeView !== null}
         onToggleSidebar={handleToggleSidebar}
         onSettings={() => setSettingsOpen(true)}
       />
@@ -622,8 +662,14 @@ function VertexApp() {
         </div>
       )}
       <div className="app-body" ref={appBodyRef}>
-        {sidebarOpen && !stacked && (
+        {!stacked && (
+          <ActivityRail active={activeView} onSelect={handleSelectView} />
+        )}
+        {activeView && !stacked && (
+          <>
+          <div className="gv-sidepanel" style={{ width: sideW }}>
           <Sidebar
+            view={activeView}
             repoPath={repoName || 'repo'}
             repoName={repoName}
             currentBranch={currentBranch}
@@ -664,6 +710,9 @@ function VertexApp() {
             showConfirm={showConfirm}
             embedded
           />
+          </div>
+          <div className="resize-handle" onMouseDown={startResizeSide} />
+          </>
         )}
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph

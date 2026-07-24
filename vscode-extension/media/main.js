@@ -26,9 +26,9 @@
     mod
   ));
 
-  // ../node_modules/react/cjs/react.production.min.js
+  // node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "../node_modules/react/cjs/react.production.min.js"(exports) {
+    "node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -84,7 +84,7 @@
       H.constructor = G;
       C(H, E.prototype);
       H.isPureReactComponent = true;
-      var I = Array.isArray;
+      var I2 = Array.isArray;
       var J = Object.prototype.hasOwnProperty;
       var K = { current: null };
       var L = { key: true, ref: true, __self: true, __source: true };
@@ -143,12 +143,12 @@
               }
           }
         if (h)
-          return h = a, c = c(h), a = "" === d ? "." + Q(h, 0) : d, I(c) ? (e = "", null != a && (e = a.replace(P, "$&/") + "/"), R(c, b, e, "", function(a2) {
+          return h = a, c = c(h), a = "" === d ? "." + Q(h, 0) : d, I2(c) ? (e = "", null != a && (e = a.replace(P, "$&/") + "/"), R(c, b, e, "", function(a2) {
             return a2;
           })) : null != c && (O(c) && (c = N(c, e + (!c.key || h && h.key === c.key ? "" : ("" + c.key).replace(P, "$&/") + "/") + a)), b.push(c)), 1;
         h = 0;
         d = "" === d ? "." : d + ":";
-        if (I(a))
+        if (I2(a))
           for (var g = 0; g < a.length; g++) {
             k = a[g];
             var f = d + Q(k, g);
@@ -325,9 +325,9 @@
     }
   });
 
-  // ../node_modules/react/index.js
+  // node_modules/react/index.js
   var require_react = __commonJS({
-    "../node_modules/react/index.js"(exports, module) {
+    "node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -337,9 +337,9 @@
     }
   });
 
-  // ../node_modules/scheduler/cjs/scheduler.production.min.js
+  // node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -421,7 +421,7 @@
         G(a);
         if (!A)
           if (null !== h(r))
-            A = true, I(J);
+            A = true, I2(J);
           else {
             var b = h(t2);
             null !== b && K(H, b.startTime - a);
@@ -497,7 +497,7 @@
         };
       var T;
       var U;
-      function I(a) {
+      function I2(a) {
         O = a;
         N || (N = true, S());
       }
@@ -516,7 +516,7 @@
         a.callback = null;
       };
       exports.unstable_continueExecution = function() {
-        A || z || (A = true, I(J));
+        A || z || (A = true, I2(J));
       };
       exports.unstable_forceFrameRate = function(a) {
         0 > a || 125 < a ? console.error("forceFrameRate takes a positive int between 0 and 125, forcing frame rates higher than 125 fps is not supported") : P = 0 < a ? Math.floor(1e3 / a) : 5;
@@ -589,7 +589,7 @@
         }
         e = c + e;
         a = { id: u++, callback: b, priorityLevel: a, startTime: c, expirationTime: e, sortIndex: -1 };
-        c > d ? (a.sortIndex = c, f(t2, a), null === h(r) && a === h(t2) && (B ? (E(L), L = -1) : B = true, K(H, c - d))) : (a.sortIndex = e, f(r, a), A || z || (A = true, I(J)));
+        c > d ? (a.sortIndex = c, f(t2, a), null === h(r) && a === h(t2) && (B ? (E(L), L = -1) : B = true, K(H, c - d))) : (a.sortIndex = e, f(r, a), A || z || (A = true, I2(J)));
         return a;
       };
       exports.unstable_shouldYield = M;
@@ -608,9 +608,9 @@
     }
   });
 
-  // ../node_modules/scheduler/index.js
+  // node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../node_modules/scheduler/index.js"(exports, module) {
+    "node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -620,9 +620,9 @@
     }
   });
 
-  // ../node_modules/react-dom/cjs/react-dom.production.min.js
+  // node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -3118,7 +3118,7 @@
       }
       var xg = null;
       var yg = null;
-      var I = false;
+      var I2 = false;
       var zg = null;
       function Ag(a, b) {
         var c = Bg(5, null, null, 0);
@@ -3146,7 +3146,7 @@
         return 0 !== (a.mode & 1) && 0 === (a.flags & 128);
       }
       function Eg(a) {
-        if (I) {
+        if (I2) {
           var b = yg;
           if (b) {
             var c = b;
@@ -3155,13 +3155,13 @@
                 throw Error(p(418));
               b = Lf(c.nextSibling);
               var d = xg;
-              b && Cg(a, b) ? Ag(d, c) : (a.flags = a.flags & -4097 | 2, I = false, xg = a);
+              b && Cg(a, b) ? Ag(d, c) : (a.flags = a.flags & -4097 | 2, I2 = false, xg = a);
             }
           } else {
             if (Dg(a))
               throw Error(p(418));
             a.flags = a.flags & -4097 | 2;
-            I = false;
+            I2 = false;
             xg = a;
           }
         }
@@ -3174,8 +3174,8 @@
       function Gg(a) {
         if (a !== xg)
           return false;
-        if (!I)
-          return Fg(a), I = true, false;
+        if (!I2)
+          return Fg(a), I2 = true, false;
         var b;
         (b = 3 !== a.tag) && !(b = 5 !== a.tag) && (b = a.type, b = "head" !== b && "body" !== b && !Ef(a.type, a.memoizedProps));
         if (b && (b = yg)) {
@@ -3218,7 +3218,7 @@
       }
       function Ig() {
         yg = xg = null;
-        I = false;
+        I2 = false;
       }
       function Jg(a) {
         null === zg ? zg = [a] : zg.push(a);
@@ -3409,11 +3409,11 @@
             u = x;
           }
           if (w === h2.length)
-            return c(e2, u), I && tg(e2, w), l2;
+            return c(e2, u), I2 && tg(e2, w), l2;
           if (null === u) {
             for (; w < h2.length; w++)
               u = q(e2, h2[w], k2), null !== u && (g2 = f(u, g2, w), null === m2 ? l2 = u : m2.sibling = u, m2 = u);
-            I && tg(e2, w);
+            I2 && tg(e2, w);
             return l2;
           }
           for (u = d(e2, u); w < h2.length; w++)
@@ -3421,7 +3421,7 @@
           a && u.forEach(function(a2) {
             return b(e2, a2);
           });
-          I && tg(e2, w);
+          I2 && tg(e2, w);
           return l2;
         }
         function t2(e2, g2, h2, k2) {
@@ -3448,11 +3448,11 @@
             return c(
               e2,
               m2
-            ), I && tg(e2, w), l2;
+            ), I2 && tg(e2, w), l2;
           if (null === m2) {
             for (; !n2.done; w++, n2 = h2.next())
               n2 = q(e2, n2.value, k2), null !== n2 && (g2 = f(n2, g2, w), null === u ? l2 = n2 : u.sibling = n2, u = n2);
-            I && tg(e2, w);
+            I2 && tg(e2, w);
             return l2;
           }
           for (m2 = d(e2, m2); !n2.done; w++, n2 = h2.next())
@@ -3460,7 +3460,7 @@
           a && m2.forEach(function(a2) {
             return b(e2, a2);
           });
-          I && tg(e2, w);
+          I2 && tg(e2, w);
           return l2;
         }
         function J(a2, d2, f2, h2) {
@@ -4227,7 +4227,7 @@
       }, useMutableSource: function() {
       }, useSyncExternalStore: function(a, b, c) {
         var d = M, e = Th();
-        if (I) {
+        if (I2) {
           if (void 0 === c)
             throw Error(p(407));
           c = c();
@@ -4251,7 +4251,7 @@
         return c;
       }, useId: function() {
         var a = Th(), b = Q.identifierPrefix;
-        if (I) {
+        if (I2) {
           var c = sg;
           var d = rg;
           c = (d & ~(1 << 32 - oc(d) - 1)).toString(32) + c;
@@ -4477,7 +4477,7 @@
         c = Sh();
         if (null !== a && !dh)
           return b.updateQueue = a.updateQueue, b.flags &= -2053, a.lanes &= ~e, Zi(a, b, e);
-        I && c && vg(b);
+        I2 && c && vg(b);
         b.flags |= 1;
         Xi(a, b, d, e);
         return b.child;
@@ -4548,7 +4548,7 @@
         d = Sh();
         if (null !== a && !dh)
           return b.updateQueue = a.updateQueue, b.flags &= -2053, a.lanes &= ~e, Zi(a, b, e);
-        I && d && vg(b);
+        I2 && d && vg(b);
         b.flags |= 1;
         Xi(a, b, c, e);
         return b.child;
@@ -4774,7 +4774,7 @@
         a = f.treeContext;
         yg = Lf(e.nextSibling);
         xg = b;
-        I = true;
+        I2 = true;
         zg = null;
         null !== a && (og[pg++] = rg, og[pg++] = sg, og[pg++] = qg, rg = a.id, sg = a.overflow, qg = b);
         b = qj(b, d.children);
@@ -5022,7 +5022,7 @@
         c !== d && (b.flags |= 4);
       };
       function Dj(a, b) {
-        if (!I)
+        if (!I2)
           switch (a.tailMode) {
             case "hidden":
               b = a.tail;
@@ -5320,7 +5320,7 @@
             E(L);
             d = b.memoizedState;
             if (null === a || null !== a.memoizedState && null !== a.memoizedState.dehydrated) {
-              if (I && null !== yg && 0 !== (b.mode & 1) && 0 === (b.flags & 128))
+              if (I2 && null !== yg && 0 !== (b.mode & 1) && 0 === (b.flags & 128))
                 Hg(), Ig(), b.flags |= 98560, f = false;
               else if (f = Gg(b), null !== d && null !== d.dehydrated) {
                 if (null === a) {
@@ -5386,7 +5386,7 @@
             else {
               if (!d)
                 if (a = Ch(g), null !== a) {
-                  if (b.flags |= 128, d = true, c = a.updateQueue, null !== c && (b.updateQueue = c, b.flags |= 4), Dj(f, true), null === f.tail && "hidden" === f.tailMode && !g.alternate && !I)
+                  if (b.flags |= 128, d = true, c = a.updateQueue, null !== c && (b.updateQueue = c, b.flags |= 4), Dj(f, true), null === f.tail && "hidden" === f.tailMode && !g.alternate && !I2)
                     return S(b), null;
                 } else
                   2 * B() - f.renderingStartTime > Gj && 1073741824 !== c && (b.flags |= 128, d = true, Dj(f, false), b.lanes = 4194304);
@@ -6642,7 +6642,7 @@
                   }
                   k = Error(p(426));
                 }
-              } else if (I && h.mode & 1) {
+              } else if (I2 && h.mode & 1) {
                 var J = Ui(g);
                 if (null !== J) {
                   0 === (J.flags & 65536) && (J.flags |= 256);
@@ -7054,7 +7054,7 @@
             dh = 0 !== (a.flags & 131072) ? true : false;
           }
         else
-          dh = false, I && 0 !== (b.flags & 1048576) && ug(b, ng, b.index);
+          dh = false, I2 && 0 !== (b.flags & 1048576) && ug(b, ng, b.index);
         b.lanes = 0;
         switch (b.tag) {
           case 2:
@@ -7066,7 +7066,7 @@
             e = Nh(null, b, d, a, e, c);
             var f = Sh();
             b.flags |= 1;
-            "object" === typeof e && null !== e && "function" === typeof e.render && void 0 === e.$$typeof ? (b.tag = 1, b.memoizedState = null, b.updateQueue = null, Zf(d) ? (f = true, cg(b)) : f = false, b.memoizedState = null !== e.state && void 0 !== e.state ? e.state : null, kh(b), e.updater = Ei, b.stateNode = e, e._reactInternals = b, Ii(b, d, a, c), b = jj(null, b, d, true, f, c)) : (b.tag = 0, I && f && vg(b), Xi(null, b, e, c), b = b.child);
+            "object" === typeof e && null !== e && "function" === typeof e.render && void 0 === e.$$typeof ? (b.tag = 1, b.memoizedState = null, b.updateQueue = null, Zf(d) ? (f = true, cg(b)) : f = false, b.memoizedState = null !== e.state && void 0 !== e.state ? e.state : null, kh(b), e.updater = Ei, b.stateNode = e, e._reactInternals = b, Ii(b, d, a, c), b = jj(null, b, d, true, f, c)) : (b.tag = 0, I2 && f && vg(b), Xi(null, b, e, c), b = b.child);
             return b;
           case 16:
             d = b.elementType;
@@ -7125,7 +7125,7 @@
                   b = lj(a, b, d, c, e);
                   break a;
                 } else
-                  for (yg = Lf(b.stateNode.containerInfo.firstChild), xg = b, I = true, zg = null, c = Vg(b, null, d, c), b.child = c; c; )
+                  for (yg = Lf(b.stateNode.containerInfo.firstChild), xg = b, I2 = true, zg = null, c = Vg(b, null, d, c), b.child = c; c; )
                     c.flags = c.flags & -3 | 4096, c = c.sibling;
               else {
                 Ig();
@@ -7760,9 +7760,9 @@
     }
   });
 
-  // ../node_modules/react-dom/index.js
+  // node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../node_modules/react-dom/index.js"(exports, module) {
+    "node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7786,9 +7786,9 @@
     }
   });
 
-  // ../node_modules/react-dom/client.js
+  // node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../node_modules/react-dom/client.js"(exports) {
+    "node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7817,9 +7817,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/core.js
+  // node_modules/highlight.js/lib/core.js
   var require_core = __commonJS({
-    "../node_modules/highlight.js/lib/core.js"(exports, module) {
+    "node_modules/highlight.js/lib/core.js"(exports, module) {
       function deepFreeze(obj) {
         if (obj instanceof Map) {
           obj.clear = obj.delete = obj.set = function() {
@@ -9399,9 +9399,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/1c.js
+  // node_modules/highlight.js/lib/languages/1c.js
   var require_c = __commonJS({
-    "../node_modules/highlight.js/lib/languages/1c.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/1c.js"(exports, module) {
       function _1c(hljs) {
         const UNDERSCORE_IDENT_RE = "[A-Za-z\u0410-\u042F\u0430-\u044F\u0451\u0401_][A-Za-z\u0410-\u042F\u0430-\u044F\u0451\u0401_0-9]+";
         const v7_keywords = "\u0434\u0430\u043B\u0435\u0435 ";
@@ -9552,9 +9552,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/abnf.js
+  // node_modules/highlight.js/lib/languages/abnf.js
   var require_abnf = __commonJS({
-    "../node_modules/highlight.js/lib/languages/abnf.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/abnf.js"(exports, module) {
       function abnf(hljs) {
         const regex = hljs.regex;
         const IDENT = /^[a-zA-Z][a-zA-Z0-9-]*/;
@@ -9622,9 +9622,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/accesslog.js
+  // node_modules/highlight.js/lib/languages/accesslog.js
   var require_accesslog = __commonJS({
-    "../node_modules/highlight.js/lib/languages/accesslog.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/accesslog.js"(exports, module) {
       function accesslog(hljs) {
         const regex = hljs.regex;
         const HTTP_VERBS = [
@@ -9708,9 +9708,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/actionscript.js
+  // node_modules/highlight.js/lib/languages/actionscript.js
   var require_actionscript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/actionscript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/actionscript.js"(exports, module) {
       function actionscript(hljs) {
         const regex = hljs.regex;
         const IDENT_RE = /[a-zA-Z_$][a-zA-Z0-9_$]*/;
@@ -9855,9 +9855,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/ada.js
+  // node_modules/highlight.js/lib/languages/ada.js
   var require_ada = __commonJS({
-    "../node_modules/highlight.js/lib/languages/ada.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/ada.js"(exports, module) {
       function ada(hljs) {
         const INTEGER_RE = "\\d(_|\\d)*";
         const EXPONENT_RE = "[eE][-+]?" + INTEGER_RE;
@@ -10082,9 +10082,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/angelscript.js
+  // node_modules/highlight.js/lib/languages/angelscript.js
   var require_angelscript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/angelscript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/angelscript.js"(exports, module) {
       function angelscript(hljs) {
         const builtInTypeMode = {
           className: "built_in",
@@ -10253,9 +10253,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/apache.js
+  // node_modules/highlight.js/lib/languages/apache.js
   var require_apache = __commonJS({
-    "../node_modules/highlight.js/lib/languages/apache.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/apache.js"(exports, module) {
       function apache(hljs) {
         const NUMBER_REF = {
           className: "number",
@@ -10352,9 +10352,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/applescript.js
+  // node_modules/highlight.js/lib/languages/applescript.js
   var require_applescript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/applescript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/applescript.js"(exports, module) {
       function applescript(hljs) {
         const regex = hljs.regex;
         const STRING = hljs.inherit(
@@ -10478,9 +10478,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/arcade.js
+  // node_modules/highlight.js/lib/languages/arcade.js
   var require_arcade = __commonJS({
-    "../node_modules/highlight.js/lib/languages/arcade.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/arcade.js"(exports, module) {
       function arcade(hljs) {
         const regex = hljs.regex;
         const IDENT_RE = "[A-Za-z_][0-9A-Za-z_]*";
@@ -10905,9 +10905,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/arduino.js
+  // node_modules/highlight.js/lib/languages/arduino.js
   var require_arduino = __commonJS({
-    "../node_modules/highlight.js/lib/languages/arduino.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/arduino.js"(exports, module) {
       function cPlusPlus(hljs) {
         const regex = hljs.regex;
         const C_LINE_COMMENT_MODE = hljs.COMMENT("//", "$", { contains: [{ begin: /\\\n/ }] });
@@ -11843,9 +11843,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/armasm.js
+  // node_modules/highlight.js/lib/languages/armasm.js
   var require_armasm = __commonJS({
-    "../node_modules/highlight.js/lib/languages/armasm.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/armasm.js"(exports, module) {
       function armasm(hljs) {
         const COMMENT = { variants: [
           hljs.COMMENT("^[ \\t]*(?=#)", "$", {
@@ -11936,9 +11936,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/xml.js
+  // node_modules/highlight.js/lib/languages/xml.js
   var require_xml = __commonJS({
-    "../node_modules/highlight.js/lib/languages/xml.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/xml.js"(exports, module) {
       function xml(hljs) {
         const regex = hljs.regex;
         const TAG_NAME_RE = regex.concat(/[\p{L}_]/u, regex.optional(/[\p{L}0-9_.-]*:/u), /[\p{L}0-9_.-]*/u);
@@ -12167,9 +12167,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/asciidoc.js
+  // node_modules/highlight.js/lib/languages/asciidoc.js
   var require_asciidoc = __commonJS({
-    "../node_modules/highlight.js/lib/languages/asciidoc.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/asciidoc.js"(exports, module) {
       function asciidoc(hljs) {
         const regex = hljs.regex;
         const HORIZONTAL_RULE = {
@@ -12420,9 +12420,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/aspectj.js
+  // node_modules/highlight.js/lib/languages/aspectj.js
   var require_aspectj = __commonJS({
-    "../node_modules/highlight.js/lib/languages/aspectj.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/aspectj.js"(exports, module) {
       function aspectj(hljs) {
         const regex = hljs.regex;
         const KEYWORDS = [
@@ -12645,9 +12645,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/autohotkey.js
+  // node_modules/highlight.js/lib/languages/autohotkey.js
   var require_autohotkey = __commonJS({
-    "../node_modules/highlight.js/lib/languages/autohotkey.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/autohotkey.js"(exports, module) {
       function autohotkey(hljs) {
         const BACKTICK_ESCAPE = { begin: "`[\\s\\S]" };
         return {
@@ -12717,9 +12717,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/autoit.js
+  // node_modules/highlight.js/lib/languages/autoit.js
   var require_autoit = __commonJS({
-    "../node_modules/highlight.js/lib/languages/autoit.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/autoit.js"(exports, module) {
       function autoit(hljs) {
         const KEYWORDS = "ByRef Case Const ContinueCase ContinueLoop Dim Do Else ElseIf EndFunc EndIf EndSelect EndSwitch EndWith Enum Exit ExitLoop For Func Global If In Local Next ReDim Return Select Static Step Switch Then To Until Volatile WEnd While With";
         const DIRECTIVES = [
@@ -12876,9 +12876,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/avrasm.js
+  // node_modules/highlight.js/lib/languages/avrasm.js
   var require_avrasm = __commonJS({
-    "../node_modules/highlight.js/lib/languages/avrasm.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/avrasm.js"(exports, module) {
       function avrasm(hljs) {
         return {
           name: "AVR Assembly",
@@ -12939,9 +12939,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/awk.js
+  // node_modules/highlight.js/lib/languages/awk.js
   var require_awk = __commonJS({
-    "../node_modules/highlight.js/lib/languages/awk.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/awk.js"(exports, module) {
       function awk(hljs) {
         const VARIABLE = {
           className: "variable",
@@ -13003,9 +13003,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/axapta.js
+  // node_modules/highlight.js/lib/languages/axapta.js
   var require_axapta = __commonJS({
-    "../node_modules/highlight.js/lib/languages/axapta.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/axapta.js"(exports, module) {
       function axapta(hljs) {
         const IDENT_RE = hljs.UNDERSCORE_IDENT_RE;
         const BUILT_IN_KEYWORDS = [
@@ -13182,9 +13182,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/bash.js
+  // node_modules/highlight.js/lib/languages/bash.js
   var require_bash = __commonJS({
-    "../node_modules/highlight.js/lib/languages/bash.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/bash.js"(exports, module) {
       function bash(hljs) {
         const regex = hljs.regex;
         const VAR = {};
@@ -13581,9 +13581,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/basic.js
+  // node_modules/highlight.js/lib/languages/basic.js
   var require_basic = __commonJS({
-    "../node_modules/highlight.js/lib/languages/basic.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/basic.js"(exports, module) {
       function basic(hljs) {
         const KEYWORDS = [
           "ABS",
@@ -13812,9 +13812,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/bnf.js
+  // node_modules/highlight.js/lib/languages/bnf.js
   var require_bnf = __commonJS({
-    "../node_modules/highlight.js/lib/languages/bnf.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/bnf.js"(exports, module) {
       function bnf(hljs) {
         return {
           name: "Backus\u2013Naur Form",
@@ -13848,9 +13848,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/brainfuck.js
+  // node_modules/highlight.js/lib/languages/brainfuck.js
   var require_brainfuck = __commonJS({
-    "../node_modules/highlight.js/lib/languages/brainfuck.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/brainfuck.js"(exports, module) {
       function brainfuck(hljs) {
         const LITERAL = {
           className: "literal",
@@ -13900,9 +13900,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/c.js
+  // node_modules/highlight.js/lib/languages/c.js
   var require_c2 = __commonJS({
-    "../node_modules/highlight.js/lib/languages/c.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/c.js"(exports, module) {
       function c(hljs) {
         const regex = hljs.regex;
         const C_LINE_COMMENT_MODE = hljs.COMMENT("//", "$", { contains: [{ begin: /\\\n/ }] });
@@ -14199,9 +14199,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/cal.js
+  // node_modules/highlight.js/lib/languages/cal.js
   var require_cal = __commonJS({
-    "../node_modules/highlight.js/lib/languages/cal.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/cal.js"(exports, module) {
       function cal(hljs) {
         const regex = hljs.regex;
         const KEYWORDS = [
@@ -14352,9 +14352,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/capnproto.js
+  // node_modules/highlight.js/lib/languages/capnproto.js
   var require_capnproto = __commonJS({
-    "../node_modules/highlight.js/lib/languages/capnproto.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/capnproto.js"(exports, module) {
       function capnproto(hljs) {
         const KEYWORDS = [
           "struct",
@@ -14447,9 +14447,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/ceylon.js
+  // node_modules/highlight.js/lib/languages/ceylon.js
   var require_ceylon = __commonJS({
-    "../node_modules/highlight.js/lib/languages/ceylon.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/ceylon.js"(exports, module) {
       function ceylon(hljs) {
         const KEYWORDS = [
           "assembly",
@@ -14580,9 +14580,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/clean.js
+  // node_modules/highlight.js/lib/languages/clean.js
   var require_clean = __commonJS({
-    "../node_modules/highlight.js/lib/languages/clean.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/clean.js"(exports, module) {
       function clean(hljs) {
         const KEYWORDS = [
           "if",
@@ -14644,9 +14644,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/clojure.js
+  // node_modules/highlight.js/lib/languages/clojure.js
   var require_clojure = __commonJS({
-    "../node_modules/highlight.js/lib/languages/clojure.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/clojure.js"(exports, module) {
       function clojure(hljs) {
         const SYMBOLSTART = "a-zA-Z_\\-!.?+*=<>&'";
         const SYMBOL_RE = "[#]?[" + SYMBOLSTART + "][" + SYMBOLSTART + "0-9/;:$#]*";
@@ -14804,9 +14804,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/clojure-repl.js
+  // node_modules/highlight.js/lib/languages/clojure-repl.js
   var require_clojure_repl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/clojure-repl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/clojure-repl.js"(exports, module) {
       function clojureRepl(hljs) {
         return {
           name: "Clojure REPL",
@@ -14826,9 +14826,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/cmake.js
+  // node_modules/highlight.js/lib/languages/cmake.js
   var require_cmake = __commonJS({
-    "../node_modules/highlight.js/lib/languages/cmake.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/cmake.js"(exports, module) {
       function cmake(hljs) {
         return {
           name: "CMake",
@@ -14855,9 +14855,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/coffeescript.js
+  // node_modules/highlight.js/lib/languages/coffeescript.js
   var require_coffeescript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/coffeescript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/coffeescript.js"(exports, module) {
       var KEYWORDS = [
         "as",
         // for exports
@@ -15210,9 +15210,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/coq.js
+  // node_modules/highlight.js/lib/languages/coq.js
   var require_coq = __commonJS({
-    "../node_modules/highlight.js/lib/languages/coq.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/coq.js"(exports, module) {
       function coq(hljs) {
         const KEYWORDS = [
           "_|0",
@@ -15654,9 +15654,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/cos.js
+  // node_modules/highlight.js/lib/languages/cos.js
   var require_cos = __commonJS({
-    "../node_modules/highlight.js/lib/languages/cos.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/cos.js"(exports, module) {
       function cos(hljs) {
         const STRINGS = {
           className: "string",
@@ -15750,9 +15750,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/cpp.js
+  // node_modules/highlight.js/lib/languages/cpp.js
   var require_cpp = __commonJS({
-    "../node_modules/highlight.js/lib/languages/cpp.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/cpp.js"(exports, module) {
       function cpp(hljs) {
         const regex = hljs.regex;
         const C_LINE_COMMENT_MODE = hljs.COMMENT("//", "$", { contains: [{ begin: /\\\n/ }] });
@@ -16298,9 +16298,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/crmsh.js
+  // node_modules/highlight.js/lib/languages/crmsh.js
   var require_crmsh = __commonJS({
-    "../node_modules/highlight.js/lib/languages/crmsh.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/crmsh.js"(exports, module) {
       function crmsh(hljs) {
         const RESOURCES = "primitive rsc_template";
         const COMMANDS = "group clone ms master location colocation order fencing_topology rsc_ticket acl_target acl_group user role tag xml";
@@ -16389,9 +16389,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/crystal.js
+  // node_modules/highlight.js/lib/languages/crystal.js
   var require_crystal = __commonJS({
-    "../node_modules/highlight.js/lib/languages/crystal.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/crystal.js"(exports, module) {
       function crystal(hljs) {
         const INT_SUFFIX = "(_?[ui](8|16|32|64|128))?";
         const FLOAT_SUFFIX = "(_?f(32|64))?";
@@ -16692,9 +16692,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/csharp.js
+  // node_modules/highlight.js/lib/languages/csharp.js
   var require_csharp = __commonJS({
-    "../node_modules/highlight.js/lib/languages/csharp.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/csharp.js"(exports, module) {
       function csharp(hljs) {
         const BUILT_IN_KEYWORDS = [
           "bool",
@@ -17097,9 +17097,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/csp.js
+  // node_modules/highlight.js/lib/languages/csp.js
   var require_csp = __commonJS({
-    "../node_modules/highlight.js/lib/languages/csp.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/csp.js"(exports, module) {
       function csp(hljs) {
         const KEYWORDS = [
           "base-uri",
@@ -17149,9 +17149,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/css.js
+  // node_modules/highlight.js/lib/languages/css.js
   var require_css = __commonJS({
-    "../node_modules/highlight.js/lib/languages/css.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/css.js"(exports, module) {
       var MODES = (hljs) => {
         return {
           IMPORTANT: {
@@ -18091,9 +18091,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/d.js
+  // node_modules/highlight.js/lib/languages/d.js
   var require_d = __commonJS({
-    "../node_modules/highlight.js/lib/languages/d.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/d.js"(exports, module) {
       function d(hljs) {
         const D_KEYWORDS = {
           $pattern: hljs.UNDERSCORE_IDENT_RE,
@@ -18208,9 +18208,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/markdown.js
+  // node_modules/highlight.js/lib/languages/markdown.js
   var require_markdown = __commonJS({
-    "../node_modules/highlight.js/lib/languages/markdown.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/markdown.js"(exports, module) {
       function markdown(hljs) {
         const regex = hljs.regex;
         const INLINE_HTML = {
@@ -18445,9 +18445,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/dart.js
+  // node_modules/highlight.js/lib/languages/dart.js
   var require_dart = __commonJS({
-    "../node_modules/highlight.js/lib/languages/dart.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/dart.js"(exports, module) {
       function dart(hljs) {
         const SUBST = {
           className: "subst",
@@ -18704,9 +18704,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/delphi.js
+  // node_modules/highlight.js/lib/languages/delphi.js
   var require_delphi = __commonJS({
-    "../node_modules/highlight.js/lib/languages/delphi.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/delphi.js"(exports, module) {
       function delphi(hljs) {
         const KEYWORDS = [
           "exports",
@@ -18954,9 +18954,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/diff.js
+  // node_modules/highlight.js/lib/languages/diff.js
   var require_diff = __commonJS({
-    "../node_modules/highlight.js/lib/languages/diff.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/diff.js"(exports, module) {
       function diff(hljs) {
         const regex = hljs.regex;
         return {
@@ -19012,9 +19012,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/django.js
+  // node_modules/highlight.js/lib/languages/django.js
   var require_django = __commonJS({
-    "../node_modules/highlight.js/lib/languages/django.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/django.js"(exports, module) {
       function django(hljs) {
         const FILTER = {
           begin: /\|[A-Za-z]+:?/,
@@ -19063,9 +19063,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/dns.js
+  // node_modules/highlight.js/lib/languages/dns.js
   var require_dns = __commonJS({
-    "../node_modules/highlight.js/lib/languages/dns.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/dns.js"(exports, module) {
       function dns(hljs) {
         const KEYWORDS = [
           "IN",
@@ -19138,9 +19138,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/dockerfile.js
+  // node_modules/highlight.js/lib/languages/dockerfile.js
   var require_dockerfile = __commonJS({
-    "../node_modules/highlight.js/lib/languages/dockerfile.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/dockerfile.js"(exports, module) {
       function dockerfile(hljs) {
         const KEYWORDS = [
           "from",
@@ -19177,9 +19177,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/dos.js
+  // node_modules/highlight.js/lib/languages/dos.js
   var require_dos = __commonJS({
-    "../node_modules/highlight.js/lib/languages/dos.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/dos.js"(exports, module) {
       function dos(hljs) {
         const COMMENT = hljs.COMMENT(
           /^\s*@?rem\b/,
@@ -19341,9 +19341,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/dsconfig.js
+  // node_modules/highlight.js/lib/languages/dsconfig.js
   var require_dsconfig = __commonJS({
-    "../node_modules/highlight.js/lib/languages/dsconfig.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/dsconfig.js"(exports, module) {
       function dsconfig(hljs) {
         const QUOTED_PROPERTY = {
           className: "string",
@@ -19403,9 +19403,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/dts.js
+  // node_modules/highlight.js/lib/languages/dts.js
   var require_dts = __commonJS({
-    "../node_modules/highlight.js/lib/languages/dts.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/dts.js"(exports, module) {
       function dts(hljs) {
         const STRINGS = {
           className: "string",
@@ -19543,9 +19543,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/dust.js
+  // node_modules/highlight.js/lib/languages/dust.js
   var require_dust = __commonJS({
-    "../node_modules/highlight.js/lib/languages/dust.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/dust.js"(exports, module) {
       function dust(hljs) {
         const EXPRESSION_KEYWORDS = "if eq ne lt lte gt gte select default math sep";
         return {
@@ -19585,9 +19585,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/ebnf.js
+  // node_modules/highlight.js/lib/languages/ebnf.js
   var require_ebnf = __commonJS({
-    "../node_modules/highlight.js/lib/languages/ebnf.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/ebnf.js"(exports, module) {
       function ebnf(hljs) {
         const commentMode = hljs.COMMENT(/\(\*/, /\*\)/);
         const nonTerminalMode = {
@@ -19632,9 +19632,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/elixir.js
+  // node_modules/highlight.js/lib/languages/elixir.js
   var require_elixir = __commonJS({
-    "../node_modules/highlight.js/lib/languages/elixir.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/elixir.js"(exports, module) {
       function elixir(hljs) {
         const regex = hljs.regex;
         const ELIXIR_IDENT_RE = "[a-zA-Z_][a-zA-Z0-9_.]*(!|\\?)?";
@@ -19909,9 +19909,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/elm.js
+  // node_modules/highlight.js/lib/languages/elm.js
   var require_elm = __commonJS({
-    "../node_modules/highlight.js/lib/languages/elm.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/elm.js"(exports, module) {
       function elm(hljs) {
         const COMMENT = { variants: [
           hljs.COMMENT("--", "$"),
@@ -20042,9 +20042,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/ruby.js
+  // node_modules/highlight.js/lib/languages/ruby.js
   var require_ruby = __commonJS({
-    "../node_modules/highlight.js/lib/languages/ruby.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/ruby.js"(exports, module) {
       function ruby(hljs) {
         const regex = hljs.regex;
         const RUBY_METHOD_RE = "([a-zA-Z_]\\w*[!?=]?|[-+~]@|<<|>>|=~|===?|<=>|[<>]=?|\\*\\*|[-/+%^&*~`|]|\\[\\]=?)";
@@ -20460,9 +20460,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/erb.js
+  // node_modules/highlight.js/lib/languages/erb.js
   var require_erb = __commonJS({
-    "../node_modules/highlight.js/lib/languages/erb.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/erb.js"(exports, module) {
       function erb(hljs) {
         return {
           name: "ERB",
@@ -20483,9 +20483,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/erlang-repl.js
+  // node_modules/highlight.js/lib/languages/erlang-repl.js
   var require_erlang_repl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/erlang-repl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/erlang-repl.js"(exports, module) {
       function erlangRepl(hljs) {
         const regex = hljs.regex;
         return {
@@ -20533,9 +20533,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/erlang.js
+  // node_modules/highlight.js/lib/languages/erlang.js
   var require_erlang = __commonJS({
-    "../node_modules/highlight.js/lib/languages/erlang.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/erlang.js"(exports, module) {
       function erlang(hljs) {
         const BASIC_ATOM_RE = "[a-z'][a-zA-Z0-9_']*";
         const FUNCTION_NAME_RE = "(" + BASIC_ATOM_RE + ":" + BASIC_ATOM_RE + "|" + BASIC_ATOM_RE + ")";
@@ -20755,9 +20755,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/excel.js
+  // node_modules/highlight.js/lib/languages/excel.js
   var require_excel = __commonJS({
-    "../node_modules/highlight.js/lib/languages/excel.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/excel.js"(exports, module) {
       function excel(hljs) {
         const BUILT_INS = [
           "ABS",
@@ -21334,9 +21334,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/fix.js
+  // node_modules/highlight.js/lib/languages/fix.js
   var require_fix = __commonJS({
-    "../node_modules/highlight.js/lib/languages/fix.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/fix.js"(exports, module) {
       function fix(hljs) {
         return {
           name: "FIX",
@@ -21372,9 +21372,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/flix.js
+  // node_modules/highlight.js/lib/languages/flix.js
   var require_flix = __commonJS({
-    "../node_modules/highlight.js/lib/languages/flix.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/flix.js"(exports, module) {
       function flix(hljs) {
         const CHAR = {
           className: "string",
@@ -21444,9 +21444,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/fortran.js
+  // node_modules/highlight.js/lib/languages/fortran.js
   var require_fortran = __commonJS({
-    "../node_modules/highlight.js/lib/languages/fortran.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/fortran.js"(exports, module) {
       function fortran(hljs) {
         const regex = hljs.regex;
         const PARAMS = {
@@ -22009,9 +22009,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/fsharp.js
+  // node_modules/highlight.js/lib/languages/fsharp.js
   var require_fsharp = __commonJS({
-    "../node_modules/highlight.js/lib/languages/fsharp.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/fsharp.js"(exports, module) {
       function escape(value) {
         return new RegExp(value.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&"), "m");
       }
@@ -22582,9 +22582,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/gams.js
+  // node_modules/highlight.js/lib/languages/gams.js
   var require_gams = __commonJS({
-    "../node_modules/highlight.js/lib/languages/gams.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/gams.js"(exports, module) {
       function gams(hljs) {
         const regex = hljs.regex;
         const KEYWORDS = {
@@ -22740,9 +22740,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/gauss.js
+  // node_modules/highlight.js/lib/languages/gauss.js
   var require_gauss = __commonJS({
-    "../node_modules/highlight.js/lib/languages/gauss.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/gauss.js"(exports, module) {
       function gauss(hljs) {
         const KEYWORDS = {
           keyword: "bool break call callexe checkinterrupt clear clearg closeall cls comlog compile continue create debug declare delete disable dlibrary dllcall do dos ed edit else elseif enable end endfor endif endp endo errorlog errorlogat expr external fn for format goto gosub graph if keyword let lib library line load loadarray loadexe loadf loadk loadm loadp loads loadx local locate loopnextindex lprint lpwidth lshow matrix msym ndpclex new open output outwidth plot plotsym pop prcsn print printdos proc push retp return rndcon rndmod rndmult rndseed run save saveall screen scroll setarray show sparse stop string struct system trace trap threadfor threadendfor threadbegin threadjoin threadstat threadend until use while winprint ne ge le gt lt and xor or not eq eqv",
@@ -22932,9 +22932,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/gcode.js
+  // node_modules/highlight.js/lib/languages/gcode.js
   var require_gcode = __commonJS({
-    "../node_modules/highlight.js/lib/languages/gcode.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/gcode.js"(exports, module) {
       function gcode(hljs) {
         const regex = hljs.regex;
         const GCODE_KEYWORDS = {
@@ -23099,9 +23099,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/gherkin.js
+  // node_modules/highlight.js/lib/languages/gherkin.js
   var require_gherkin = __commonJS({
-    "../node_modules/highlight.js/lib/languages/gherkin.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/gherkin.js"(exports, module) {
       function gherkin(hljs) {
         return {
           name: "Gherkin",
@@ -23146,9 +23146,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/glsl.js
+  // node_modules/highlight.js/lib/languages/glsl.js
   var require_glsl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/glsl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/glsl.js"(exports, module) {
       function glsl(hljs) {
         return {
           name: "GLSL",
@@ -23181,9 +23181,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/gml.js
+  // node_modules/highlight.js/lib/languages/gml.js
   var require_gml = __commonJS({
-    "../node_modules/highlight.js/lib/languages/gml.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/gml.js"(exports, module) {
       function gml(hljs) {
         const KEYWORDS = [
           "#endregion",
@@ -26309,9 +26309,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/go.js
+  // node_modules/highlight.js/lib/languages/go.js
   var require_go = __commonJS({
-    "../node_modules/highlight.js/lib/languages/go.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/go.js"(exports, module) {
       function go(hljs) {
         const LITERALS = [
           "true",
@@ -26468,9 +26468,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/golo.js
+  // node_modules/highlight.js/lib/languages/golo.js
   var require_golo = __commonJS({
-    "../node_modules/highlight.js/lib/languages/golo.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/golo.js"(exports, module) {
       function golo(hljs) {
         const KEYWORDS = [
           "println",
@@ -26545,9 +26545,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/gradle.js
+  // node_modules/highlight.js/lib/languages/gradle.js
   var require_gradle = __commonJS({
-    "../node_modules/highlight.js/lib/languages/gradle.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/gradle.js"(exports, module) {
       function gradle(hljs) {
         const KEYWORDS = [
           "task",
@@ -26731,9 +26731,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/graphql.js
+  // node_modules/highlight.js/lib/languages/graphql.js
   var require_graphql = __commonJS({
-    "../node_modules/highlight.js/lib/languages/graphql.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/graphql.js"(exports, module) {
       function graphql(hljs) {
         const regex = hljs.regex;
         const GQL_NAME = /[_A-Za-z][_0-9A-Za-z]*/;
@@ -26806,9 +26806,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/groovy.js
+  // node_modules/highlight.js/lib/languages/groovy.js
   var require_groovy = __commonJS({
-    "../node_modules/highlight.js/lib/languages/groovy.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/groovy.js"(exports, module) {
       function variants(variants2, obj = {}) {
         obj.variants = variants2;
         return obj;
@@ -26991,9 +26991,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/haml.js
+  // node_modules/highlight.js/lib/languages/haml.js
   var require_haml = __commonJS({
-    "../node_modules/highlight.js/lib/languages/haml.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/haml.js"(exports, module) {
       function haml(hljs) {
         return {
           name: "HAML",
@@ -27100,9 +27100,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/handlebars.js
+  // node_modules/highlight.js/lib/languages/handlebars.js
   var require_handlebars = __commonJS({
-    "../node_modules/highlight.js/lib/languages/handlebars.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/handlebars.js"(exports, module) {
       function handlebars(hljs) {
         const regex = hljs.regex;
         const BUILT_INS = {
@@ -27335,9 +27335,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/haskell.js
+  // node_modules/highlight.js/lib/languages/haskell.js
   var require_haskell = __commonJS({
-    "../node_modules/highlight.js/lib/languages/haskell.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/haskell.js"(exports, module) {
       function haskell(hljs) {
         const decimalDigits = "([0-9]_*)+";
         const hexDigits = "([0-9a-fA-F]_*)+";
@@ -27530,9 +27530,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/haxe.js
+  // node_modules/highlight.js/lib/languages/haxe.js
   var require_haxe = __commonJS({
-    "../node_modules/highlight.js/lib/languages/haxe.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/haxe.js"(exports, module) {
       function haxe(hljs) {
         const IDENT_RE = "[a-zA-Z_$][a-zA-Z0-9_$]*";
         const HAXE_NUMBER_RE = /(-?)(\b0[xX][a-fA-F0-9_]+|(\b\d+(\.[\d_]*)?|\.[\d_]+)(([eE][-+]?\d+)|i32|u32|i64|f64)?)/;
@@ -27695,9 +27695,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/hsp.js
+  // node_modules/highlight.js/lib/languages/hsp.js
   var require_hsp = __commonJS({
-    "../node_modules/highlight.js/lib/languages/hsp.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/hsp.js"(exports, module) {
       function hsp(hljs) {
         return {
           name: "HSP",
@@ -27747,9 +27747,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/http.js
+  // node_modules/highlight.js/lib/languages/http.js
   var require_http = __commonJS({
-    "../node_modules/highlight.js/lib/languages/http.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/http.js"(exports, module) {
       function http(hljs) {
         const regex = hljs.regex;
         const VERSION = "HTTP/([32]|1\\.[01])";
@@ -27840,9 +27840,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/hy.js
+  // node_modules/highlight.js/lib/languages/hy.js
   var require_hy = __commonJS({
-    "../node_modules/highlight.js/lib/languages/hy.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/hy.js"(exports, module) {
       function hy(hljs) {
         const SYMBOLSTART = "a-zA-Z_\\-!.?+*=<>&#'";
         const SYMBOL_RE = "[" + SYMBOLSTART + "][" + SYMBOLSTART + "0-9/;:]*";
@@ -27943,9 +27943,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/inform7.js
+  // node_modules/highlight.js/lib/languages/inform7.js
   var require_inform7 = __commonJS({
-    "../node_modules/highlight.js/lib/languages/inform7.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/inform7.js"(exports, module) {
       function inform7(hljs) {
         const START_BRACKET = "\\[";
         const END_BRACKET = "\\]";
@@ -28005,9 +28005,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/ini.js
+  // node_modules/highlight.js/lib/languages/ini.js
   var require_ini = __commonJS({
-    "../node_modules/highlight.js/lib/languages/ini.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/ini.js"(exports, module) {
       function ini(hljs) {
         const regex = hljs.regex;
         const NUMBERS = {
@@ -28126,9 +28126,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/irpf90.js
+  // node_modules/highlight.js/lib/languages/irpf90.js
   var require_irpf90 = __commonJS({
-    "../node_modules/highlight.js/lib/languages/irpf90.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/irpf90.js"(exports, module) {
       function irpf90(hljs) {
         const regex = hljs.regex;
         const PARAMS = {
@@ -28185,9 +28185,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/isbl.js
+  // node_modules/highlight.js/lib/languages/isbl.js
   var require_isbl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/isbl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/isbl.js"(exports, module) {
       function isbl(hljs) {
         const UNDERSCORE_IDENT_RE = "[A-Za-z\u0410-\u042F\u0430-\u044F\u0451\u0401_!][A-Za-z\u0410-\u042F\u0430-\u044F\u0451\u0401_0-9]*";
         const FUNCTION_NAME_IDENT_RE = "[A-Za-z\u0410-\u042F\u0430-\u044F\u0451\u0401_][A-Za-z\u0410-\u042F\u0430-\u044F\u0451\u0401_0-9]*";
@@ -28447,9 +28447,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/java.js
+  // node_modules/highlight.js/lib/languages/java.js
   var require_java = __commonJS({
-    "../node_modules/highlight.js/lib/languages/java.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/java.js"(exports, module) {
       var decimalDigits = "[0-9](_*[0-9])*";
       var frac = `\\.(${decimalDigits})`;
       var hexDigits = "[0-9a-fA-F](_*[0-9a-fA-F])*";
@@ -28707,9 +28707,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/javascript.js
+  // node_modules/highlight.js/lib/languages/javascript.js
   var require_javascript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/javascript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/javascript.js"(exports, module) {
       var IDENT_RE = "[A-Za-z$_][0-9A-Za-z$_]*";
       var KEYWORDS = [
         "as",
@@ -29413,9 +29413,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/jboss-cli.js
+  // node_modules/highlight.js/lib/languages/jboss-cli.js
   var require_jboss_cli = __commonJS({
-    "../node_modules/highlight.js/lib/languages/jboss-cli.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/jboss-cli.js"(exports, module) {
       function jbossCli(hljs) {
         const PARAM = {
           begin: /[\w-]+ *=/,
@@ -29471,9 +29471,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/json.js
+  // node_modules/highlight.js/lib/languages/json.js
   var require_json = __commonJS({
-    "../node_modules/highlight.js/lib/languages/json.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/json.js"(exports, module) {
       function json(hljs) {
         const ATTRIBUTE = {
           className: "attr",
@@ -29516,9 +29516,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/julia.js
+  // node_modules/highlight.js/lib/languages/julia.js
   var require_julia = __commonJS({
-    "../node_modules/highlight.js/lib/languages/julia.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/julia.js"(exports, module) {
       function julia(hljs) {
         const VARIABLE_NAME_RE = "[A-Za-z_\\u00A1-\\uFFFF][A-Za-z_0-9\\u00A1-\\uFFFF]*";
         const KEYWORD_LIST = [
@@ -29890,9 +29890,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/julia-repl.js
+  // node_modules/highlight.js/lib/languages/julia-repl.js
   var require_julia_repl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/julia-repl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/julia-repl.js"(exports, module) {
       function juliaRepl(hljs) {
         return {
           name: "Julia REPL",
@@ -29921,9 +29921,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/kotlin.js
+  // node_modules/highlight.js/lib/languages/kotlin.js
   var require_kotlin = __commonJS({
-    "../node_modules/highlight.js/lib/languages/kotlin.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/kotlin.js"(exports, module) {
       var decimalDigits = "[0-9](_*[0-9])*";
       var frac = `\\.(${decimalDigits})`;
       var hexDigits = "[0-9a-fA-F](_*[0-9a-fA-F])*";
@@ -30181,9 +30181,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/lasso.js
+  // node_modules/highlight.js/lib/languages/lasso.js
   var require_lasso = __commonJS({
-    "../node_modules/highlight.js/lib/languages/lasso.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/lasso.js"(exports, module) {
       function lasso(hljs) {
         const LASSO_IDENT_RE = "[a-zA-Z_][\\w.]*";
         const LASSO_ANGLE_RE = "<\\?(lasso(script)?|=)";
@@ -30331,9 +30331,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/latex.js
+  // node_modules/highlight.js/lib/languages/latex.js
   var require_latex = __commonJS({
-    "../node_modules/highlight.js/lib/languages/latex.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/latex.js"(exports, module) {
       function latex(hljs) {
         const regex = hljs.regex;
         const KNOWN_CONTROL_WORDS = regex.either(...[
@@ -30607,9 +30607,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/ldif.js
+  // node_modules/highlight.js/lib/languages/ldif.js
   var require_ldif = __commonJS({
-    "../node_modules/highlight.js/lib/languages/ldif.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/ldif.js"(exports, module) {
       function ldif(hljs) {
         return {
           name: "LDIF",
@@ -30635,9 +30635,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/leaf.js
+  // node_modules/highlight.js/lib/languages/leaf.js
   var require_leaf = __commonJS({
-    "../node_modules/highlight.js/lib/languages/leaf.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/leaf.js"(exports, module) {
       function leaf(hljs) {
         const IDENT = /([A-Za-z_][A-Za-z_0-9]*)?/;
         const LITERALS = [
@@ -30730,9 +30730,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/less.js
+  // node_modules/highlight.js/lib/languages/less.js
   var require_less = __commonJS({
-    "../node_modules/highlight.js/lib/languages/less.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/less.js"(exports, module) {
       var MODES = (hljs) => {
         return {
           IMPORTANT: {
@@ -31753,9 +31753,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/lisp.js
+  // node_modules/highlight.js/lib/languages/lisp.js
   var require_lisp = __commonJS({
-    "../node_modules/highlight.js/lib/languages/lisp.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/lisp.js"(exports, module) {
       function lisp(hljs) {
         const LISP_IDENT_RE = "[a-zA-Z_\\-+\\*\\/<=>&#][a-zA-Z0-9_\\-+*\\/<=>&#!]*";
         const MEC_RE = "\\|[^]*?\\|";
@@ -31890,9 +31890,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/livecodeserver.js
+  // node_modules/highlight.js/lib/languages/livecodeserver.js
   var require_livecodeserver = __commonJS({
-    "../node_modules/highlight.js/lib/languages/livecodeserver.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/livecodeserver.js"(exports, module) {
       function livecodeserver(hljs) {
         const VARIABLE = {
           className: "variable",
@@ -31989,9 +31989,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/livescript.js
+  // node_modules/highlight.js/lib/languages/livescript.js
   var require_livescript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/livescript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/livescript.js"(exports, module) {
       var KEYWORDS = [
         "as",
         // for exports
@@ -32355,9 +32355,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/llvm.js
+  // node_modules/highlight.js/lib/languages/llvm.js
   var require_llvm = __commonJS({
-    "../node_modules/highlight.js/lib/languages/llvm.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/llvm.js"(exports, module) {
       function llvm(hljs) {
         const regex = hljs.regex;
         const IDENT_RE = /([-a-zA-Z$._][\w$.-]*)/;
@@ -32449,9 +32449,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/lsl.js
+  // node_modules/highlight.js/lib/languages/lsl.js
   var require_lsl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/lsl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/lsl.js"(exports, module) {
       function lsl(hljs) {
         const LSL_STRING_ESCAPE_CHARS = {
           className: "subst",
@@ -32517,9 +32517,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/lua.js
+  // node_modules/highlight.js/lib/languages/lua.js
   var require_lua = __commonJS({
-    "../node_modules/highlight.js/lib/languages/lua.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/lua.js"(exports, module) {
       function lua(hljs) {
         const OPENING_LONG_BRACKET = "\\[=*\\[";
         const CLOSING_LONG_BRACKET = "\\]=*\\]";
@@ -32583,9 +32583,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/makefile.js
+  // node_modules/highlight.js/lib/languages/makefile.js
   var require_makefile = __commonJS({
-    "../node_modules/highlight.js/lib/languages/makefile.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/makefile.js"(exports, module) {
       function makefile(hljs) {
         const VARIABLE = {
           className: "variable",
@@ -32659,9 +32659,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/mathematica.js
+  // node_modules/highlight.js/lib/languages/mathematica.js
   var require_mathematica = __commonJS({
-    "../node_modules/highlight.js/lib/languages/mathematica.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/mathematica.js"(exports, module) {
       var SYSTEM_SYMBOLS = [
         "AASTriangle",
         "AbelianGroup",
@@ -39997,9 +39997,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/matlab.js
+  // node_modules/highlight.js/lib/languages/matlab.js
   var require_matlab = __commonJS({
-    "../node_modules/highlight.js/lib/languages/matlab.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/matlab.js"(exports, module) {
       function matlab(hljs) {
         const TRANSPOSE_RE = "('|\\.')+";
         const TRANSPOSE = {
@@ -40078,9 +40078,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/maxima.js
+  // node_modules/highlight.js/lib/languages/maxima.js
   var require_maxima = __commonJS({
-    "../node_modules/highlight.js/lib/languages/maxima.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/maxima.js"(exports, module) {
       function maxima(hljs) {
         const KEYWORDS = "if then else elseif for thru do while unless step in and or not";
         const LITERALS = "true false unknown inf minf ind und %e %i %pi %phi %gamma";
@@ -40137,9 +40137,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/mel.js
+  // node_modules/highlight.js/lib/languages/mel.js
   var require_mel = __commonJS({
-    "../node_modules/highlight.js/lib/languages/mel.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/mel.js"(exports, module) {
       function mel(hljs) {
         return {
           name: "MEL",
@@ -40168,9 +40168,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/mercury.js
+  // node_modules/highlight.js/lib/languages/mercury.js
   var require_mercury = __commonJS({
-    "../node_modules/highlight.js/lib/languages/mercury.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/mercury.js"(exports, module) {
       function mercury(hljs) {
         const KEYWORDS = {
           keyword: "module use_module import_module include_module end_module initialise mutable initialize finalize finalise interface implementation pred mode func type inst solver any_pred any_func is semidet det nondet multi erroneous failure cc_nondet cc_multi typeclass instance where pragma promise external trace atomic or_else require_complete_switch require_det require_semidet require_multi require_nondet require_cc_multi require_cc_nondet require_erroneous require_failure",
@@ -40251,9 +40251,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/mipsasm.js
+  // node_modules/highlight.js/lib/languages/mipsasm.js
   var require_mipsasm = __commonJS({
-    "../node_modules/highlight.js/lib/languages/mipsasm.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/mipsasm.js"(exports, module) {
       function mipsasm(hljs) {
         return {
           name: "MIPS Assembly",
@@ -40332,9 +40332,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/mizar.js
+  // node_modules/highlight.js/lib/languages/mizar.js
   var require_mizar = __commonJS({
-    "../node_modules/highlight.js/lib/languages/mizar.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/mizar.js"(exports, module) {
       function mizar(hljs) {
         return {
           name: "Mizar",
@@ -40346,9 +40346,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/perl.js
+  // node_modules/highlight.js/lib/languages/perl.js
   var require_perl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/perl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/perl.js"(exports, module) {
       function perl(hljs) {
         const regex = hljs.regex;
         const KEYWORDS = [
@@ -40836,9 +40836,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/mojolicious.js
+  // node_modules/highlight.js/lib/languages/mojolicious.js
   var require_mojolicious = __commonJS({
-    "../node_modules/highlight.js/lib/languages/mojolicious.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/mojolicious.js"(exports, module) {
       function mojolicious(hljs) {
         return {
           name: "Mojolicious",
@@ -40869,9 +40869,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/monkey.js
+  // node_modules/highlight.js/lib/languages/monkey.js
   var require_monkey = __commonJS({
-    "../node_modules/highlight.js/lib/languages/monkey.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/monkey.js"(exports, module) {
       function monkey(hljs) {
         const NUMBER = {
           className: "number",
@@ -41049,9 +41049,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/moonscript.js
+  // node_modules/highlight.js/lib/languages/moonscript.js
   var require_moonscript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/moonscript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/moonscript.js"(exports, module) {
       function moonscript(hljs) {
         const KEYWORDS = {
           keyword: (
@@ -41189,9 +41189,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/n1ql.js
+  // node_modules/highlight.js/lib/languages/n1ql.js
   var require_n1ql = __commonJS({
-    "../node_modules/highlight.js/lib/languages/n1ql.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/n1ql.js"(exports, module) {
       function n1ql(hljs) {
         const KEYWORDS = [
           "all",
@@ -41545,9 +41545,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/nestedtext.js
+  // node_modules/highlight.js/lib/languages/nestedtext.js
   var require_nestedtext = __commonJS({
-    "../node_modules/highlight.js/lib/languages/nestedtext.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/nestedtext.js"(exports, module) {
       function nestedtext(hljs) {
         const NESTED = {
           match: [
@@ -41626,9 +41626,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/nginx.js
+  // node_modules/highlight.js/lib/languages/nginx.js
   var require_nginx = __commonJS({
-    "../node_modules/highlight.js/lib/languages/nginx.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/nginx.js"(exports, module) {
       function nginx(hljs) {
         const regex = hljs.regex;
         const VAR = {
@@ -41774,9 +41774,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/nim.js
+  // node_modules/highlight.js/lib/languages/nim.js
   var require_nim = __commonJS({
-    "../node_modules/highlight.js/lib/languages/nim.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/nim.js"(exports, module) {
       function nim(hljs) {
         const TYPES = [
           "int",
@@ -41960,9 +41960,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/nix.js
+  // node_modules/highlight.js/lib/languages/nix.js
   var require_nix = __commonJS({
-    "../node_modules/highlight.js/lib/languages/nix.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/nix.js"(exports, module) {
       function nix(hljs) {
         const regex = hljs.regex;
         const KEYWORDS = {
@@ -42312,9 +42312,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/node-repl.js
+  // node_modules/highlight.js/lib/languages/node-repl.js
   var require_node_repl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/node-repl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/node-repl.js"(exports, module) {
       function nodeRepl(hljs) {
         return {
           name: "Node REPL",
@@ -42342,9 +42342,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/nsis.js
+  // node_modules/highlight.js/lib/languages/nsis.js
   var require_nsis = __commonJS({
-    "../node_modules/highlight.js/lib/languages/nsis.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/nsis.js"(exports, module) {
       function nsis(hljs) {
         const regex = hljs.regex;
         const LANGUAGE_CONSTANTS = [
@@ -42877,9 +42877,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/objectivec.js
+  // node_modules/highlight.js/lib/languages/objectivec.js
   var require_objectivec = __commonJS({
-    "../node_modules/highlight.js/lib/languages/objectivec.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/objectivec.js"(exports, module) {
       function objectivec(hljs) {
         const API_CLASS = {
           className: "built_in",
@@ -43125,9 +43125,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/ocaml.js
+  // node_modules/highlight.js/lib/languages/ocaml.js
   var require_ocaml = __commonJS({
-    "../node_modules/highlight.js/lib/languages/ocaml.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/ocaml.js"(exports, module) {
       function ocaml(hljs) {
         return {
           name: "OCaml",
@@ -43196,9 +43196,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/openscad.js
+  // node_modules/highlight.js/lib/languages/openscad.js
   var require_openscad = __commonJS({
-    "../node_modules/highlight.js/lib/languages/openscad.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/openscad.js"(exports, module) {
       function openscad(hljs) {
         const SPECIAL_VARS = {
           className: "keyword",
@@ -43270,9 +43270,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/oxygene.js
+  // node_modules/highlight.js/lib/languages/oxygene.js
   var require_oxygene = __commonJS({
-    "../node_modules/highlight.js/lib/languages/oxygene.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/oxygene.js"(exports, module) {
       function oxygene(hljs) {
         const OXYGENE_KEYWORDS = {
           $pattern: /\.?\w+/,
@@ -43344,9 +43344,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/parser3.js
+  // node_modules/highlight.js/lib/languages/parser3.js
   var require_parser3 = __commonJS({
-    "../node_modules/highlight.js/lib/languages/parser3.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/parser3.js"(exports, module) {
       function parser3(hljs) {
         const CURLY_SUBCOMMENT = hljs.COMMENT(
           /\{/,
@@ -43396,9 +43396,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/pf.js
+  // node_modules/highlight.js/lib/languages/pf.js
   var require_pf = __commonJS({
-    "../node_modules/highlight.js/lib/languages/pf.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/pf.js"(exports, module) {
       function pf(hljs) {
         const MACRO = {
           className: "variable",
@@ -43437,9 +43437,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/pgsql.js
+  // node_modules/highlight.js/lib/languages/pgsql.js
   var require_pgsql = __commonJS({
-    "../node_modules/highlight.js/lib/languages/pgsql.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/pgsql.js"(exports, module) {
       function pgsql(hljs) {
         const COMMENT_MODE = hljs.COMMENT("--", "$");
         const UNQUOTED_IDENT = "[a-zA-Z_][a-zA-Z_0-9$]*";
@@ -43722,9 +43722,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/php.js
+  // node_modules/highlight.js/lib/languages/php.js
   var require_php = __commonJS({
-    "../node_modules/highlight.js/lib/languages/php.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/php.js"(exports, module) {
       function php(hljs) {
         const regex = hljs.regex;
         const NOT_PERL_ETC = /(?![A-Za-z0-9])(?![$])/;
@@ -44329,9 +44329,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/php-template.js
+  // node_modules/highlight.js/lib/languages/php-template.js
   var require_php_template = __commonJS({
-    "../node_modules/highlight.js/lib/languages/php-template.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/php-template.js"(exports, module) {
       function phpTemplate(hljs) {
         return {
           name: "PHP template",
@@ -44380,9 +44380,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/plaintext.js
+  // node_modules/highlight.js/lib/languages/plaintext.js
   var require_plaintext = __commonJS({
-    "../node_modules/highlight.js/lib/languages/plaintext.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/plaintext.js"(exports, module) {
       function plaintext(hljs) {
         return {
           name: "Plain text",
@@ -44397,9 +44397,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/pony.js
+  // node_modules/highlight.js/lib/languages/pony.js
   var require_pony = __commonJS({
-    "../node_modules/highlight.js/lib/languages/pony.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/pony.js"(exports, module) {
       function pony(hljs) {
         const KEYWORDS = {
           keyword: "actor addressof and as be break class compile_error compile_intrinsic consume continue delegate digestof do else elseif embed end error for fun if ifdef in interface is isnt lambda let match new not object or primitive recover repeat return struct then trait try type until use var where while with xor",
@@ -44458,9 +44458,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/powershell.js
+  // node_modules/highlight.js/lib/languages/powershell.js
   var require_powershell = __commonJS({
-    "../node_modules/highlight.js/lib/languages/powershell.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/powershell.js"(exports, module) {
       function powershell(hljs) {
         const TYPES = [
           "string",
@@ -44719,9 +44719,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/processing.js
+  // node_modules/highlight.js/lib/languages/processing.js
   var require_processing = __commonJS({
-    "../node_modules/highlight.js/lib/languages/processing.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/processing.js"(exports, module) {
       function processing(hljs) {
         const regex = hljs.regex;
         const BUILT_INS = [
@@ -45150,9 +45150,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/profile.js
+  // node_modules/highlight.js/lib/languages/profile.js
   var require_profile = __commonJS({
-    "../node_modules/highlight.js/lib/languages/profile.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/profile.js"(exports, module) {
       function profile(hljs) {
         return {
           name: "Python profiler",
@@ -45192,9 +45192,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/prolog.js
+  // node_modules/highlight.js/lib/languages/prolog.js
   var require_prolog = __commonJS({
-    "../node_modules/highlight.js/lib/languages/prolog.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/prolog.js"(exports, module) {
       function prolog(hljs) {
         const ATOM = {
           begin: /[a-z][A-Za-z0-9_]*/,
@@ -45274,9 +45274,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/properties.js
+  // node_modules/highlight.js/lib/languages/properties.js
   var require_properties = __commonJS({
-    "../node_modules/highlight.js/lib/languages/properties.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/properties.js"(exports, module) {
       function properties(hljs) {
         const WS0 = "[ \\t\\f]*";
         const WS1 = "[ \\t\\f]+";
@@ -45335,9 +45335,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/protobuf.js
+  // node_modules/highlight.js/lib/languages/protobuf.js
   var require_protobuf = __commonJS({
-    "../node_modules/highlight.js/lib/languages/protobuf.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/protobuf.js"(exports, module) {
       function protobuf(hljs) {
         const KEYWORDS = [
           "package",
@@ -45412,9 +45412,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/puppet.js
+  // node_modules/highlight.js/lib/languages/puppet.js
   var require_puppet = __commonJS({
-    "../node_modules/highlight.js/lib/languages/puppet.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/puppet.js"(exports, module) {
       function puppet(hljs) {
         const PUPPET_KEYWORDS = {
           keyword: (
@@ -45528,9 +45528,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/purebasic.js
+  // node_modules/highlight.js/lib/languages/purebasic.js
   var require_purebasic = __commonJS({
-    "../node_modules/highlight.js/lib/languages/purebasic.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/purebasic.js"(exports, module) {
       function purebasic(hljs) {
         const STRINGS = {
           // PB IDE color: #0080FF (Azure Radiance)
@@ -45592,9 +45592,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/python.js
+  // node_modules/highlight.js/lib/languages/python.js
   var require_python = __commonJS({
-    "../node_modules/highlight.js/lib/languages/python.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/python.js"(exports, module) {
       function python(hljs) {
         const regex = hljs.regex;
         const IDENT_RE = /[\p{XID_Start}_]\p{XID_Continue}*/u;
@@ -46012,9 +46012,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/python-repl.js
+  // node_modules/highlight.js/lib/languages/python-repl.js
   var require_python_repl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/python-repl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/python-repl.js"(exports, module) {
       function pythonRepl(hljs) {
         return {
           aliases: ["pycon"],
@@ -46042,9 +46042,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/q.js
+  // node_modules/highlight.js/lib/languages/q.js
   var require_q = __commonJS({
-    "../node_modules/highlight.js/lib/languages/q.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/q.js"(exports, module) {
       function q(hljs) {
         const KEYWORDS = {
           $pattern: /(`?)[A-Za-z0-9_]+\b/,
@@ -46071,9 +46071,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/qml.js
+  // node_modules/highlight.js/lib/languages/qml.js
   var require_qml = __commonJS({
-    "../node_modules/highlight.js/lib/languages/qml.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/qml.js"(exports, module) {
       function qml(hljs) {
         const regex = hljs.regex;
         const KEYWORDS = {
@@ -46224,9 +46224,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/r.js
+  // node_modules/highlight.js/lib/languages/r.js
   var require_r = __commonJS({
-    "../node_modules/highlight.js/lib/languages/r.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/r.js"(exports, module) {
       function r(hljs) {
         const regex = hljs.regex;
         const IDENT_RE = /(?:(?:[a-zA-Z]|\.[._a-zA-Z])[._a-zA-Z0-9]*)|\.(?!\d)/;
@@ -46439,9 +46439,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/reasonml.js
+  // node_modules/highlight.js/lib/languages/reasonml.js
   var require_reasonml = __commonJS({
-    "../node_modules/highlight.js/lib/languages/reasonml.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/reasonml.js"(exports, module) {
       function reasonml(hljs) {
         const BUILT_IN_TYPES = [
           "array",
@@ -46583,9 +46583,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/rib.js
+  // node_modules/highlight.js/lib/languages/rib.js
   var require_rib = __commonJS({
-    "../node_modules/highlight.js/lib/languages/rib.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/rib.js"(exports, module) {
       function rib(hljs) {
         return {
           name: "RenderMan RIB",
@@ -46603,9 +46603,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/roboconf.js
+  // node_modules/highlight.js/lib/languages/roboconf.js
   var require_roboconf = __commonJS({
-    "../node_modules/highlight.js/lib/languages/roboconf.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/roboconf.js"(exports, module) {
       function roboconf(hljs) {
         const IDENTIFIER = "[a-zA-Z-_][^\\n{]+\\{";
         const PROPERTY = {
@@ -46677,9 +46677,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/routeros.js
+  // node_modules/highlight.js/lib/languages/routeros.js
   var require_routeros = __commonJS({
-    "../node_modules/highlight.js/lib/languages/routeros.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/routeros.js"(exports, module) {
       function routeros(hljs) {
         const STATEMENTS = "foreach do while for if from to step else on-error and or not in";
         const GLOBAL_COMMANDS = "global local beep delay put len typeof pick log time set find environment terminal error execute parse resolve toarray tobool toid toip toip6 tonum tostr totime";
@@ -46828,9 +46828,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/rsl.js
+  // node_modules/highlight.js/lib/languages/rsl.js
   var require_rsl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/rsl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/rsl.js"(exports, module) {
       function rsl(hljs) {
         const BUILT_INS = [
           "abs",
@@ -46970,9 +46970,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/ruleslanguage.js
+  // node_modules/highlight.js/lib/languages/ruleslanguage.js
   var require_ruleslanguage = __commonJS({
-    "../node_modules/highlight.js/lib/languages/ruleslanguage.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/ruleslanguage.js"(exports, module) {
       function ruleslanguage(hljs) {
         return {
           name: "Oracle Rules Language",
@@ -47004,9 +47004,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/rust.js
+  // node_modules/highlight.js/lib/languages/rust.js
   var require_rust = __commonJS({
-    "../node_modules/highlight.js/lib/languages/rust.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/rust.js"(exports, module) {
       function rust(hljs) {
         const regex = hljs.regex;
         const RAW_IDENTIFIER = /(r#)?/;
@@ -47322,9 +47322,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/sas.js
+  // node_modules/highlight.js/lib/languages/sas.js
   var require_sas = __commonJS({
-    "../node_modules/highlight.js/lib/languages/sas.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/sas.js"(exports, module) {
       function sas(hljs) {
         const regex = hljs.regex;
         const SAS_KEYWORDS = [
@@ -47870,9 +47870,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/scala.js
+  // node_modules/highlight.js/lib/languages/scala.js
   var require_scala = __commonJS({
-    "../node_modules/highlight.js/lib/languages/scala.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/scala.js"(exports, module) {
       function scala(hljs) {
         const regex = hljs.regex;
         const ANNOTATION = {
@@ -48066,9 +48066,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/scheme.js
+  // node_modules/highlight.js/lib/languages/scheme.js
   var require_scheme = __commonJS({
-    "../node_modules/highlight.js/lib/languages/scheme.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/scheme.js"(exports, module) {
       function scheme(hljs) {
         const SCHEME_IDENT_RE = "[^\\(\\)\\[\\]\\{\\}\",'`;#|\\\\\\s]+";
         const SCHEME_SIMPLE_NUMBER_RE = "(-|\\+)?\\d+([./]\\d+)?";
@@ -48210,9 +48210,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/scilab.js
+  // node_modules/highlight.js/lib/languages/scilab.js
   var require_scilab = __commonJS({
-    "../node_modules/highlight.js/lib/languages/scilab.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/scilab.js"(exports, module) {
       function scilab(hljs) {
         const COMMON_CONTAINS = [
           hljs.C_NUMBER_MODE,
@@ -48273,9 +48273,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/scss.js
+  // node_modules/highlight.js/lib/languages/scss.js
   var require_scss = __commonJS({
-    "../node_modules/highlight.js/lib/languages/scss.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/scss.js"(exports, module) {
       var MODES = (hljs) => {
         return {
           IMPORTANT: {
@@ -49200,9 +49200,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/shell.js
+  // node_modules/highlight.js/lib/languages/shell.js
   var require_shell = __commonJS({
-    "../node_modules/highlight.js/lib/languages/shell.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/shell.js"(exports, module) {
       function shell(hljs) {
         return {
           name: "Shell Session",
@@ -49229,9 +49229,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/smali.js
+  // node_modules/highlight.js/lib/languages/smali.js
   var require_smali = __commonJS({
-    "../node_modules/highlight.js/lib/languages/smali.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/smali.js"(exports, module) {
       function smali(hljs) {
         const smali_instr_low_prio = [
           "add",
@@ -49352,9 +49352,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/smalltalk.js
+  // node_modules/highlight.js/lib/languages/smalltalk.js
   var require_smalltalk = __commonJS({
-    "../node_modules/highlight.js/lib/languages/smalltalk.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/smalltalk.js"(exports, module) {
       function smalltalk(hljs) {
         const VAR_IDENT_RE = "[a-z][a-zA-Z0-9_]*";
         const CHAR = {
@@ -49418,9 +49418,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/sml.js
+  // node_modules/highlight.js/lib/languages/sml.js
   var require_sml = __commonJS({
-    "../node_modules/highlight.js/lib/languages/sml.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/sml.js"(exports, module) {
       function sml(hljs) {
         return {
           name: "SML (Standard ML)",
@@ -49491,9 +49491,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/sqf.js
+  // node_modules/highlight.js/lib/languages/sqf.js
   var require_sqf = __commonJS({
-    "../node_modules/highlight.js/lib/languages/sqf.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/sqf.js"(exports, module) {
       function sqf(hljs) {
         const VARIABLE = {
           className: "variable",
@@ -52106,9 +52106,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/sql.js
+  // node_modules/highlight.js/lib/languages/sql.js
   var require_sql = __commonJS({
-    "../node_modules/highlight.js/lib/languages/sql.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/sql.js"(exports, module) {
       function sql(hljs) {
         const regex = hljs.regex;
         const COMMENT_MODE = hljs.COMMENT("--", "$");
@@ -52754,9 +52754,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/stan.js
+  // node_modules/highlight.js/lib/languages/stan.js
   var require_stan = __commonJS({
-    "../node_modules/highlight.js/lib/languages/stan.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/stan.js"(exports, module) {
       function stan(hljs) {
         const regex = hljs.regex;
         const BLOCKS = [
@@ -53254,9 +53254,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/stata.js
+  // node_modules/highlight.js/lib/languages/stata.js
   var require_stata = __commonJS({
-    "../node_modules/highlight.js/lib/languages/stata.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/stata.js"(exports, module) {
       function stata(hljs) {
         return {
           name: "Stata",
@@ -53297,9 +53297,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/step21.js
+  // node_modules/highlight.js/lib/languages/step21.js
   var require_step21 = __commonJS({
-    "../node_modules/highlight.js/lib/languages/step21.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/step21.js"(exports, module) {
       function step21(hljs) {
         const STEP21_IDENT_RE = "[A-Z_][A-Z0-9_.]*";
         const STEP21_KEYWORDS = {
@@ -53361,9 +53361,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/stylus.js
+  // node_modules/highlight.js/lib/languages/stylus.js
   var require_stylus = __commonJS({
-    "../node_modules/highlight.js/lib/languages/stylus.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/stylus.js"(exports, module) {
       var MODES = (hljs) => {
         return {
           IMPORTANT: {
@@ -54337,9 +54337,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/subunit.js
+  // node_modules/highlight.js/lib/languages/subunit.js
   var require_subunit = __commonJS({
-    "../node_modules/highlight.js/lib/languages/subunit.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/subunit.js"(exports, module) {
       function subunit(hljs) {
         const DETAILS = {
           className: "string",
@@ -54379,9 +54379,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/swift.js
+  // node_modules/highlight.js/lib/languages/swift.js
   var require_swift = __commonJS({
-    "../node_modules/highlight.js/lib/languages/swift.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/swift.js"(exports, module) {
       function source(re) {
         if (!re)
           return null;
@@ -55261,9 +55261,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/taggerscript.js
+  // node_modules/highlight.js/lib/languages/taggerscript.js
   var require_taggerscript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/taggerscript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/taggerscript.js"(exports, module) {
       function taggerscript(hljs) {
         const NOOP = {
           className: "comment",
@@ -55313,9 +55313,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/yaml.js
+  // node_modules/highlight.js/lib/languages/yaml.js
   var require_yaml = __commonJS({
-    "../node_modules/highlight.js/lib/languages/yaml.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/yaml.js"(exports, module) {
       function yaml(hljs) {
         const LITERALS = "true false yes no null";
         const URI_CHARACTERS = "[\\w#;/?:@&=+$,.~*'()[\\]]+";
@@ -55519,9 +55519,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/tap.js
+  // node_modules/highlight.js/lib/languages/tap.js
   var require_tap = __commonJS({
-    "../node_modules/highlight.js/lib/languages/tap.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/tap.js"(exports, module) {
       function tap(hljs) {
         return {
           name: "Test Anything Protocol",
@@ -55563,9 +55563,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/tcl.js
+  // node_modules/highlight.js/lib/languages/tcl.js
   var require_tcl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/tcl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/tcl.js"(exports, module) {
       function tcl(hljs) {
         const regex = hljs.regex;
         const TCL_IDENT = /[a-zA-Z_][a-zA-Z0-9_]*/;
@@ -55748,9 +55748,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/thrift.js
+  // node_modules/highlight.js/lib/languages/thrift.js
   var require_thrift = __commonJS({
-    "../node_modules/highlight.js/lib/languages/thrift.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/thrift.js"(exports, module) {
       function thrift(hljs) {
         const TYPES = [
           "bool",
@@ -55823,9 +55823,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/tp.js
+  // node_modules/highlight.js/lib/languages/tp.js
   var require_tp = __commonJS({
-    "../node_modules/highlight.js/lib/languages/tp.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/tp.js"(exports, module) {
       function tp(hljs) {
         const TPID = {
           className: "number",
@@ -55992,9 +55992,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/twig.js
+  // node_modules/highlight.js/lib/languages/twig.js
   var require_twig = __commonJS({
-    "../node_modules/highlight.js/lib/languages/twig.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/twig.js"(exports, module) {
       function twig(hljs) {
         const regex = hljs.regex;
         const FUNCTION_NAMES = [
@@ -56236,9 +56236,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/typescript.js
+  // node_modules/highlight.js/lib/languages/typescript.js
   var require_typescript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/typescript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/typescript.js"(exports, module) {
       var IDENT_RE = "[A-Za-z$_][0-9A-Za-z$_]*";
       var KEYWORDS = [
         "as",
@@ -57055,9 +57055,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/vala.js
+  // node_modules/highlight.js/lib/languages/vala.js
   var require_vala = __commonJS({
-    "../node_modules/highlight.js/lib/languages/vala.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/vala.js"(exports, module) {
       function vala(hljs) {
         return {
           name: "Vala",
@@ -57101,9 +57101,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/vbnet.js
+  // node_modules/highlight.js/lib/languages/vbnet.js
   var require_vbnet = __commonJS({
-    "../node_modules/highlight.js/lib/languages/vbnet.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/vbnet.js"(exports, module) {
       function vbnet(hljs) {
         const regex = hljs.regex;
         const CHARACTER = {
@@ -57239,9 +57239,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/vbscript.js
+  // node_modules/highlight.js/lib/languages/vbscript.js
   var require_vbscript = __commonJS({
-    "../node_modules/highlight.js/lib/languages/vbscript.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/vbscript.js"(exports, module) {
       function vbscript(hljs) {
         const regex = hljs.regex;
         const BUILT_IN_FUNCTIONS = [
@@ -57450,9 +57450,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/vbscript-html.js
+  // node_modules/highlight.js/lib/languages/vbscript-html.js
   var require_vbscript_html = __commonJS({
-    "../node_modules/highlight.js/lib/languages/vbscript-html.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/vbscript-html.js"(exports, module) {
       function vbscriptHtml(hljs) {
         return {
           name: "VBScript in HTML",
@@ -57470,9 +57470,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/verilog.js
+  // node_modules/highlight.js/lib/languages/verilog.js
   var require_verilog = __commonJS({
-    "../node_modules/highlight.js/lib/languages/verilog.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/verilog.js"(exports, module) {
       function verilog(hljs) {
         const regex = hljs.regex;
         const KEYWORDS = {
@@ -58016,9 +58016,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/vhdl.js
+  // node_modules/highlight.js/lib/languages/vhdl.js
   var require_vhdl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/vhdl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/vhdl.js"(exports, module) {
       function vhdl(hljs) {
         const INTEGER_RE = "\\d(_|\\d)*";
         const EXPONENT_RE = "[eE][-+]?" + INTEGER_RE;
@@ -58222,9 +58222,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/vim.js
+  // node_modules/highlight.js/lib/languages/vim.js
   var require_vim = __commonJS({
-    "../node_modules/highlight.js/lib/languages/vim.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/vim.js"(exports, module) {
       function vim(hljs) {
         return {
           name: "Vim Script",
@@ -58298,9 +58298,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/wasm.js
+  // node_modules/highlight.js/lib/languages/wasm.js
   var require_wasm = __commonJS({
-    "../node_modules/highlight.js/lib/languages/wasm.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/wasm.js"(exports, module) {
       function wasm(hljs) {
         hljs.regex;
         const BLOCK_COMMENT = hljs.COMMENT(/\(;/, /;\)/);
@@ -58424,9 +58424,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/wren.js
+  // node_modules/highlight.js/lib/languages/wren.js
   var require_wren = __commonJS({
-    "../node_modules/highlight.js/lib/languages/wren.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/wren.js"(exports, module) {
       function wren(hljs) {
         const regex = hljs.regex;
         const IDENT_RE = /[a-zA-Z]\w*/;
@@ -58708,9 +58708,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/x86asm.js
+  // node_modules/highlight.js/lib/languages/x86asm.js
   var require_x86asm = __commonJS({
-    "../node_modules/highlight.js/lib/languages/x86asm.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/x86asm.js"(exports, module) {
       function x86asm(hljs) {
         return {
           name: "Intel x86 Assembly",
@@ -58800,9 +58800,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/xl.js
+  // node_modules/highlight.js/lib/languages/xl.js
   var require_xl = __commonJS({
-    "../node_modules/highlight.js/lib/languages/xl.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/xl.js"(exports, module) {
       function xl(hljs) {
         const KWS = [
           "if",
@@ -59002,9 +59002,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/xquery.js
+  // node_modules/highlight.js/lib/languages/xquery.js
   var require_xquery = __commonJS({
-    "../node_modules/highlight.js/lib/languages/xquery.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/xquery.js"(exports, module) {
       function xquery(_hljs) {
         const KEYWORDS = [
           "module",
@@ -59334,9 +59334,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/languages/zephir.js
+  // node_modules/highlight.js/lib/languages/zephir.js
   var require_zephir = __commonJS({
-    "../node_modules/highlight.js/lib/languages/zephir.js"(exports, module) {
+    "node_modules/highlight.js/lib/languages/zephir.js"(exports, module) {
       function zephir(hljs) {
         const STRING = {
           className: "string",
@@ -59438,9 +59438,9 @@
     }
   });
 
-  // ../node_modules/highlight.js/lib/index.js
+  // node_modules/highlight.js/lib/index.js
   var require_lib = __commonJS({
-    "../node_modules/highlight.js/lib/index.js"(exports, module) {
+    "node_modules/highlight.js/lib/index.js"(exports, module) {
       var hljs = require_core();
       hljs.registerLanguage("1c", require_c());
       hljs.registerLanguage("abnf", require_abnf());
@@ -59640,7 +59640,7 @@
     }
   });
 
-  // src/webview/gitApiShim.ts
+  // vscode-extension/src/webview/gitApiShim.ts
   var vscode = acquireVsCodeApi();
   var nextId = 1;
   var pending = /* @__PURE__ */ new Map();
@@ -59730,11 +59730,11 @@
   window.gitAPI = gitAPI;
   window.appInfo = { platform: "vscode" };
 
-  // src/webview/app.tsx
-  var import_react23 = __toESM(require_react());
+  // vscode-extension/src/webview/app.tsx
+  var import_react24 = __toESM(require_react());
   var import_client = __toESM(require_client());
 
-  // ../src/renderer/src/contexts/SettingsContext.tsx
+  // src/renderer/src/contexts/SettingsContext.tsx
   var import_react = __toESM(require_react());
   var SettingsContext = (0, import_react.createContext)(null);
   var isVSCodeHost = typeof window !== "undefined" && window.appInfo?.platform === "vscode";
@@ -59798,10 +59798,10 @@
     return ctx;
   }
 
-  // ../src/renderer/src/i18n/LanguageContext.tsx
+  // src/renderer/src/i18n/LanguageContext.tsx
   var import_react2 = __toESM(require_react());
 
-  // ../src/renderer/src/i18n/translations.ts
+  // src/renderer/src/i18n/translations.ts
   var fr = {
     // Toolbar
     "toolbar.fetch.tooltip": "Fetch \u2014 r\xE9cup\xE8re les refs distants",
@@ -59816,6 +59816,124 @@
     "tabs.home": "Accueil",
     "tabs.whatsNew": "Quoi de neuf",
     "tabs.close": "Fermer l'onglet",
+    // Launchpad (cross-repo PRs & issues)
+    "launchpad.title": "Launchpad",
+    "launchpad.tooltip": "Launchpad \u2014 PRs & issues de tous vos d\xE9p\xF4ts",
+    // Repository Management
+    "repomgmt.title": "Gestion des d\xE9p\xF4ts",
+    "repomgmt.tooltip": "Gestion des d\xE9p\xF4ts",
+    "repomgmt.browse": "Parcourir",
+    "repomgmt.clone": "Cloner",
+    "repomgmt.init": "Init",
+    "repomgmt.newWorkspace": "Nouveau workspace",
+    "repomgmt.search": "Rechercher un d\xE9p\xF4t\u2026",
+    "repomgmt.wipSummary": "R\xE9sum\xE9 WIP",
+    "repomgmt.open": "D\xE9p\xF4ts ouverts",
+    "repomgmt.favorites": "Favoris",
+    "repomgmt.recent": "D\xE9p\xF4ts r\xE9cents",
+    "repomgmt.sectionEmpty": "Aucun d\xE9p\xF4t.",
+    "repomgmt.favorite": "Ajouter aux favoris",
+    "repomgmt.unfavorite": "Retirer des favoris",
+    "repomgmt.openInEditor": "Ouvrir dans l'\xE9diteur externe",
+    "repomgmt.details": "D\xE9tails du d\xE9p\xF4t",
+    "repomgmt.remove": "Retirer le d\xE9p\xF4t",
+    "repomgmt.openRepo": "Ouvrir le d\xE9p\xF4t",
+    "repomgmt.openGithub": "Ouvrir sur GitHub",
+    "repomgmt.loading": "Chargement\u2026",
+    "repomgmt.noReadme": "Aucun README trouv\xE9 dans ce d\xE9p\xF4t.",
+    "repomgmt.wsName": "Nom du workspace",
+    "repomgmt.wsPick": "S\xE9lectionnez les d\xE9p\xF4ts \xE0 ajouter :",
+    "repomgmt.cancel": "Annuler",
+    "repomgmt.create": "Cr\xE9er",
+    "repomgmt.wsCreated": (n) => `\u2713 Workspace \xAB ${n} \xBB cr\xE9\xE9`,
+    // Initialize a Repository modal
+    "init.title": "Initialiser un d\xE9p\xF4t",
+    "init.formTitle": "Initialiser un d\xE9p\xF4t",
+    "init.localOnly": "Local uniquement",
+    "init.account": "Compte",
+    "init.accountPlaceholder": "Connectez-vous \xE0 GitHub dans les R\xE9glages",
+    "init.name": "Nom",
+    "init.description": "Description",
+    "init.access": "Visibilit\xE9",
+    "init.public": "Public",
+    "init.private": "Priv\xE9",
+    "init.cloneAfter": "Cloner apr\xE8s cr\xE9ation",
+    "init.whereToClone": "O\xF9 cloner",
+    "init.initIn": "Initialiser dans",
+    "init.fullPath": "Chemin complet",
+    "init.defaultBranch": "Branche par d\xE9faut",
+    "init.gitignore": ".gitignore (optionnel)",
+    "init.license": "Licence (optionnel)",
+    "init.select": "Choisir\u2026",
+    "init.lfs": "Initialiser avec LFS",
+    "init.browse": "Parcourir",
+    "init.createRepo": "Cr\xE9er le d\xE9p\xF4t",
+    "init.createAndClone": "Cr\xE9er et cloner",
+    "init.creating": "Cr\xE9ation\u2026",
+    "init.chooseLocation": "Choisir un emplacement",
+    "init.needAuth": "Connectez-vous d'abord \xE0 GitHub dans les R\xE9glages",
+    "init.needRepoScope": "Votre token GitHub a besoin du scope repo pour cr\xE9er un d\xE9p\xF4t",
+    "init.created": (n) => `\u2713 ${n} cr\xE9\xE9`,
+    "launchpad.refresh": "Rafra\xEEchir",
+    "launchpad.tab.prs": "Mes Pull Requests",
+    "launchpad.tab.issues": "Mes Issues",
+    "launchpad.tab.all": "Tout",
+    "launchpad.allRepos": "Tous les d\xE9p\xF4ts r\xE9cents",
+    "launchpad.workspaceFilter": "Filtrer par workspace",
+    "launchpad.manage": "G\xE9rer les workspaces",
+    "launchpad.manageDesc": "Regroupez vos d\xE9p\xF4ts r\xE9cents en workspaces nomm\xE9s pour filtrer le Launchpad.",
+    "launchpad.workspacePlaceholder": "Nom du workspace\u2026",
+    "launchpad.noRepos": "Aucun d\xE9p\xF4t GitHub trouv\xE9 dans vos d\xE9p\xF4ts r\xE9cents.",
+    "launchpad.loading": "Chargement\u2026",
+    "launchpad.noAuthTitle": "Connexion GitHub requise",
+    "launchpad.noAuth": "Connectez-vous \xE0 GitHub dans les R\xE9glages pour voir vos PRs et issues.",
+    "launchpad.empty.prs": "Aucune pull request",
+    "launchpad.empty.issues": "Aucune issue",
+    "launchpad.empty.all": "Rien \xE0 afficher",
+    "launchpad.emptyHint": "Aucun \xE9l\xE9ment ouvert cr\xE9\xE9 par vous sur GitHub pour le moment.",
+    "launchpad.emptyWorkspace": "Aucun \xE9l\xE9ment ouvert dans les d\xE9p\xF4ts de ce workspace.",
+    "launchpad.col.status": "Statut",
+    "launchpad.col.item": "\xC9l\xE9ment",
+    "launchpad.col.author": "Auteur",
+    "launchpad.col.repo": "D\xE9p\xF4t",
+    "launchpad.col.action": "Action",
+    "launchpad.item.pr": "PR",
+    "launchpad.item.issue": "Issue",
+    "launchpad.view": "Voir",
+    "launchpad.viewRepo": "Voir le d\xE9p\xF4t",
+    "launchpad.openIn": "Ouvrir sur GitHub",
+    "launchpad.openRepo": "Ouvrir ce d\xE9p\xF4t",
+    "launchpad.openRepoGh": "Ouvrir le d\xE9p\xF4t sur GitHub",
+    "launchpad.copyLink": "Copier le lien",
+    "launchpad.tab.wips": "WIPs",
+    "launchpad.tab.snoozed": "En veille",
+    "launchpad.pin": "\xC9pingler",
+    "launchpad.unpin": "D\xE9s\xE9pingler",
+    "launchpad.snooze": "Mettre en veille",
+    "launchpad.unsnooze": "R\xE9activer",
+    "launchpad.empty.snoozed": "Rien en veille",
+    "launchpad.emptySnoozedHint": "Survolez une issue et cliquez \u{1F4A4} pour la mettre en veille.",
+    "launchpad.search": "Rechercher\u2026",
+    "launchpad.labelFilter": "Filtrer par label",
+    "launchpad.allLabels": "Tous les labels",
+    "launchpad.col.changes": "Modifs",
+    "launchpad.col.branch": "Branche",
+    "launchpad.col.repoBranch": "D\xE9p\xF4t / Branche",
+    "launchpad.wipOn": (name) => `WIP sur ${name}`,
+    "launchpad.markClosed": "Marquer comme ferm\xE9e",
+    "launchpad.closed": (n) => `\u2713 ${n} ferm\xE9e`,
+    "launchpad.closeErr": (e) => `\xC9chec : ${e}`,
+    "launchpad.createCloudPatch": "Cr\xE9er un cloud patch",
+    "launchpad.noChanges": "Aucune modification \xE0 partager",
+    "launchpad.linkCopied": "\u2713 Lien copi\xE9",
+    "launchpad.empty.wips": "Aucun travail en cours",
+    "launchpad.emptyWipsHint": "Aucun d\xE9p\xF4t local n'a de modifications non commit\xE9es.",
+    "launchpad.emptyFiltered": "Aucun r\xE9sultat pour ces filtres.",
+    "launchpad.rateTitle": "Limite de requ\xEAtes GitHub atteinte",
+    "launchpad.rateHint": (s) => `L'API de recherche GitHub est limit\xE9e \xE0 30 requ\xEAtes/min. R\xE9essayez dans ~${s}s.`,
+    "launchpad.errorTitle": "Erreur GitHub",
+    "launchpad.errorHint": (e) => `La requ\xEAte a \xE9chou\xE9 : ${e}.`,
+    "launchpad.retry": "R\xE9essayer",
     "tabs.closeOthers": "Fermer les autres onglets",
     "tabs.openRepo": "\u{1F4C2} Ouvrir un d\xE9p\xF4t\u2026",
     "tabs.clone": " Cloner depuis GitHub\u2026",
@@ -59918,6 +60036,7 @@
     "graph.menu.copyMessage": "\u{1F4CB} Copier le message",
     "graph.menu.createPatch": "\u{1F4C4} Cr\xE9er un patch\u2026",
     "graph.menu.copyPatch": "\u{1F4CB} Copier les modifications (patch)",
+    "graph.menu.sharePatch": "\u{1F517} Partager le patch par lien (gist)",
     "graph.menu.openOnRemote": "\u2197 Ouvrir le commit sur GitHub",
     "graph.menu.compareWorking": "\u21C4 Comparer avec les modifications en cours",
     "graph.menu.selectForCompare": "\u238C S\xE9lectionner pour comparer",
@@ -60095,6 +60214,8 @@ Cette action est irr\xE9versible.`,
     "settings.github.disconnect": "D\xE9connecter",
     "settings.github.login": "Se connecter avec GitHub",
     "settings.github.connecting": "Connexion en cours\u2026",
+    "settings.github.pat": "Token d'acc\xE8s personnel",
+    "settings.github.patHint": "Cr\xE9ez-en un sur github.com/settings/tokens avec les scopes repo + gist, puis collez-le ici.",
     // Settings — AI
     "settings.ai.title": "Fournisseur d'IA",
     "settings.ai.desc": "Choisissez le fournisseur utilis\xE9 pour la g\xE9n\xE9ration automatique de messages de commit.",
@@ -60254,6 +60375,10 @@ Cette action est irr\xE9versible.`,
     "toast.pushedTo": (h) => `\u2713 Pouss\xE9 jusqu'\xE0 ${h}`,
     "toast.patchSaved": (f) => `\u2713 Patch enregistr\xE9 : ${f}`,
     "toast.patchCopied": "\u2713 Patch copi\xE9 dans le presse-papiers",
+    "toast.sharePatch.needAuth": "Connectez-vous \xE0 GitHub dans les R\xE9glages pour partager un patch",
+    "toast.sharePatch.gistScope": "Reconnectez-vous \xE0 GitHub (R\xE9glages) pour autoriser l'acc\xE8s aux gists",
+    "toast.sharePatch.copied": "\u2713 Lien du patch copi\xE9 (gist secret)",
+    "toast.open": "Ouvrir",
     "toast.worktreeCreated": (d) => `\u2713 Worktree cr\xE9\xE9 : ${d}`,
     "toast.noGithubRepo": "Aucun d\xE9p\xF4t GitHub d\xE9tect\xE9",
     "worktree.selectDir": "Emplacement du nouveau worktree",
@@ -60321,6 +60446,21 @@ Cette action est irr\xE9versible.`,
     "sb.wt.removed": "Worktree supprim\xE9",
     "sb.addWorktree": "Ajouter un worktree",
     "sb.noWorktree": "Aucun worktree",
+    "sb.noAgent": "Aucun agent en cours",
+    "sb.currentWork": "Travail en cours",
+    "sb.agentsActive": (n) => `${n} agent${n > 1 ? "s" : ""} en cours`,
+    "sb.staged": "Fichiers index\xE9s",
+    "sb.changed": "Fichiers modifi\xE9s",
+    "sb.clean": "Arbre de travail propre",
+    "rail.overview": "Vue d\u2019ensemble",
+    "rail.agents": "Agents",
+    "rail.worktrees": "Worktrees",
+    "rail.branches": "Branches",
+    "rail.remotes": "D\xE9p\xF4ts distants",
+    "rail.stash": "Stash",
+    "rail.tags": "Tags",
+    "rail.board": "Tableau (bient\xF4t)",
+    "rail.more": "Plus\u2026",
     "sb.openRepo": "Ouvrir un d\xE9p\xF4t",
     "sb.openRepoDots": "Ouvrir un d\xE9p\xF4t\u2026",
     "sb.cloneDots": "Cloner depuis GitHub\u2026",
@@ -60591,7 +60731,17 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "gh.panel.error": (e) => `Erreur : ${e}`,
     "toolbar.github.tooltip": "PRs & Issues GitHub",
     // Clone from GitHub
-    "clone.title": "Cloner depuis GitHub",
+    "clone.title": "Cloner un d\xE9p\xF4t",
+    "clone.formTitle": "Cloner un d\xE9p\xF4t",
+    "clone.withUrl": "Cloner avec une URL",
+    "clone.whereTo": "O\xF9 cloner",
+    "clone.browse": "Parcourir",
+    "clone.url": "URL",
+    "clone.repoToClone": "D\xE9p\xF4t \xE0 cloner",
+    "clone.shallow": "Clone superficiel (shallow)",
+    "clone.sparse": "Sparse checkout",
+    "clone.cloneRepo": "Cloner le d\xE9p\xF4t !",
+    "clone.chooseLocation": "Choisir un emplacement",
     "clone.urlTitle": "Cloner depuis une URL",
     "clone.tabRepos": "Mes repos",
     "clone.tabUrl": "URL",
@@ -60635,6 +60785,124 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "tabs.whatsNew": "What's new",
     "tabs.close": "Close tab",
     "tabs.closeOthers": "Close other tabs",
+    // Launchpad (cross-repo PRs & issues)
+    "launchpad.title": "Launchpad",
+    "launchpad.tooltip": "Launchpad \u2014 PRs & issues across your repos",
+    // Repository Management
+    "repomgmt.title": "Repository Management",
+    "repomgmt.tooltip": "Repository Management",
+    "repomgmt.browse": "Browse",
+    "repomgmt.clone": "Clone",
+    "repomgmt.init": "Init",
+    "repomgmt.newWorkspace": "New Workspace",
+    "repomgmt.search": "Search repositories\u2026",
+    "repomgmt.wipSummary": "WIP summary",
+    "repomgmt.open": "Open repositories",
+    "repomgmt.favorites": "Favorites",
+    "repomgmt.recent": "Recent repositories",
+    "repomgmt.sectionEmpty": "No repositories.",
+    "repomgmt.favorite": "Add to favorites",
+    "repomgmt.unfavorite": "Remove from favorites",
+    "repomgmt.openInEditor": "Open in external editor",
+    "repomgmt.details": "Repository details",
+    "repomgmt.remove": "Remove repository",
+    "repomgmt.openRepo": "Open repository",
+    "repomgmt.openGithub": "Open on GitHub",
+    "repomgmt.loading": "Loading\u2026",
+    "repomgmt.noReadme": "No README found in this repository.",
+    "repomgmt.wsName": "Workspace name",
+    "repomgmt.wsPick": "Select the repositories to add:",
+    "repomgmt.cancel": "Cancel",
+    "repomgmt.create": "Create",
+    "repomgmt.wsCreated": (n) => `\u2713 Workspace "${n}" created`,
+    // Initialize a Repository modal
+    "init.title": "Initialize a Repository",
+    "init.formTitle": "Initialize a Repo",
+    "init.localOnly": "Local Only",
+    "init.account": "Account",
+    "init.accountPlaceholder": "Sign in to GitHub in Settings",
+    "init.name": "Name",
+    "init.description": "Description",
+    "init.access": "Access",
+    "init.public": "Public",
+    "init.private": "Private",
+    "init.cloneAfter": "Clone after init",
+    "init.whereToClone": "Where to clone to",
+    "init.initIn": "Initialize in",
+    "init.fullPath": "Full path",
+    "init.defaultBranch": "Default branch name",
+    "init.gitignore": ".gitignore Template (optional)",
+    "init.license": "License (optional)",
+    "init.select": "Select\u2026",
+    "init.lfs": "Initialize with LFS",
+    "init.browse": "Browse",
+    "init.createRepo": "Create Repository",
+    "init.createAndClone": "Create Repository and Clone",
+    "init.creating": "Creating\u2026",
+    "init.chooseLocation": "Choose a location",
+    "init.needAuth": "Sign in to GitHub in Settings first",
+    "init.needRepoScope": "Your GitHub token needs the repo scope to create a repository",
+    "init.created": (n) => `\u2713 Created ${n}`,
+    "launchpad.refresh": "Refresh",
+    "launchpad.tab.prs": "My Pull Requests",
+    "launchpad.tab.issues": "My Issues",
+    "launchpad.tab.all": "All",
+    "launchpad.allRepos": "All recent repos",
+    "launchpad.workspaceFilter": "Filter by workspace",
+    "launchpad.manage": "Manage workspaces",
+    "launchpad.manageDesc": "Group your recent repos into named workspaces to filter the Launchpad.",
+    "launchpad.workspacePlaceholder": "Workspace name\u2026",
+    "launchpad.noRepos": "No GitHub repos found in your recent list.",
+    "launchpad.loading": "Loading\u2026",
+    "launchpad.noAuthTitle": "GitHub sign-in required",
+    "launchpad.noAuth": "Sign in to GitHub in Settings to see your PRs and issues.",
+    "launchpad.empty.prs": "No pull requests",
+    "launchpad.empty.issues": "No issues",
+    "launchpad.empty.all": "Nothing to show",
+    "launchpad.emptyHint": "You have no open items authored by you on GitHub right now.",
+    "launchpad.emptyWorkspace": "No open items in this workspace's repositories.",
+    "launchpad.col.status": "Status",
+    "launchpad.col.item": "Item",
+    "launchpad.col.author": "Author",
+    "launchpad.col.repo": "Repo",
+    "launchpad.col.action": "Action",
+    "launchpad.item.pr": "PR",
+    "launchpad.item.issue": "Issue",
+    "launchpad.view": "View",
+    "launchpad.viewRepo": "View Repo",
+    "launchpad.openIn": "Open on GitHub",
+    "launchpad.openRepo": "Open this repo",
+    "launchpad.openRepoGh": "Open repo on GitHub",
+    "launchpad.copyLink": "Copy link",
+    "launchpad.tab.wips": "WIPs",
+    "launchpad.tab.snoozed": "Snoozed",
+    "launchpad.pin": "Pin",
+    "launchpad.unpin": "Unpin",
+    "launchpad.snooze": "Snooze",
+    "launchpad.unsnooze": "Unsnooze",
+    "launchpad.empty.snoozed": "Nothing snoozed",
+    "launchpad.emptySnoozedHint": "Hover an issue and click \u{1F4A4} to snooze it.",
+    "launchpad.search": "Search\u2026",
+    "launchpad.labelFilter": "Filter by label",
+    "launchpad.allLabels": "All labels",
+    "launchpad.col.changes": "Changes",
+    "launchpad.col.branch": "Branch",
+    "launchpad.col.repoBranch": "Repo / Branch",
+    "launchpad.wipOn": (name) => `WIP on ${name}`,
+    "launchpad.markClosed": "Mark as closed",
+    "launchpad.closed": (n) => `\u2713 ${n} closed`,
+    "launchpad.closeErr": (e) => `Failed: ${e}`,
+    "launchpad.createCloudPatch": "Create cloud patch",
+    "launchpad.noChanges": "No changes to share",
+    "launchpad.linkCopied": "\u2713 Link copied",
+    "launchpad.empty.wips": "No work in progress",
+    "launchpad.emptyWipsHint": "None of your local repos have uncommitted changes.",
+    "launchpad.emptyFiltered": "No results for these filters.",
+    "launchpad.rateTitle": "GitHub rate limit reached",
+    "launchpad.rateHint": (s) => `GitHub's search API is capped at 30 requests/min. Try again in ~${s}s.`,
+    "launchpad.errorTitle": "GitHub error",
+    "launchpad.errorHint": (e) => `The request failed: ${e}.`,
+    "launchpad.retry": "Retry",
     "tabs.openRepo": "\u{1F4C2} Open a repository\u2026",
     "tabs.clone": " Clone from GitHub\u2026",
     "whatsnew.title": "Release notes",
@@ -60735,6 +61003,7 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "graph.menu.copyMessage": "\u{1F4CB} Copy message",
     "graph.menu.createPatch": "\u{1F4C4} Create Patch\u2026",
     "graph.menu.copyPatch": "\u{1F4CB} Copy Changes (Patch)",
+    "graph.menu.sharePatch": "\u{1F517} Share Patch as Link (gist)",
     "graph.menu.openOnRemote": "\u2197 Open Commit on Remote",
     "graph.menu.compareWorking": "\u21C4 Compare Working Tree to Here",
     "graph.menu.selectForCompare": "\u238C Select for Compare",
@@ -60911,6 +61180,8 @@ This action is irreversible.`,
     "settings.github.disconnect": "Disconnect",
     "settings.github.login": "Sign in with GitHub",
     "settings.github.connecting": "Connecting\u2026",
+    "settings.github.pat": "Personal Access Token",
+    "settings.github.patHint": "Create one at github.com/settings/tokens with the repo + gist scopes, then paste it here.",
     // Settings — AI
     "settings.ai.title": "AI Provider",
     "settings.ai.desc": "Choose the provider used for automatic commit message generation.",
@@ -61070,6 +61341,10 @@ This action is irreversible.`,
     "toast.pushedTo": (h) => `\u2713 Pushed up to ${h}`,
     "toast.patchSaved": (f) => `\u2713 Patch saved: ${f}`,
     "toast.patchCopied": "\u2713 Patch copied to clipboard",
+    "toast.sharePatch.needAuth": "Sign in to GitHub in Settings to share a patch",
+    "toast.sharePatch.gistScope": "Reconnect to GitHub (Settings) to grant gist access",
+    "toast.sharePatch.copied": "\u2713 Patch link copied (secret gist)",
+    "toast.open": "Open",
     "toast.worktreeCreated": (d) => `\u2713 Worktree created: ${d}`,
     "toast.noGithubRepo": "No GitHub repository detected",
     "worktree.selectDir": "Location for the new worktree",
@@ -61137,6 +61412,21 @@ This action is irreversible.`,
     "sb.wt.removed": "Worktree removed",
     "sb.addWorktree": "Add a worktree",
     "sb.noWorktree": "No worktree",
+    "sb.noAgent": "No agent running",
+    "sb.currentWork": "Current work",
+    "sb.agentsActive": (n) => `${n} agent${n > 1 ? "s" : ""} running`,
+    "sb.staged": "Staged files",
+    "sb.changed": "Changed files",
+    "sb.clean": "Working tree clean",
+    "rail.overview": "Overview",
+    "rail.agents": "Agents",
+    "rail.worktrees": "Worktrees",
+    "rail.branches": "Branches",
+    "rail.remotes": "Remotes",
+    "rail.stash": "Stash",
+    "rail.tags": "Tags",
+    "rail.board": "Board (coming soon)",
+    "rail.more": "More\u2026",
     "sb.openRepo": "Open a repository",
     "sb.openRepoDots": "Open a repository\u2026",
     "sb.cloneDots": "Clone from GitHub\u2026",
@@ -61407,7 +61697,17 @@ Commits beyond this point will be lost for that branch.`,
     "gh.panel.error": (e) => `Error: ${e}`,
     "toolbar.github.tooltip": "PRs & Issues GitHub",
     // Clone from GitHub
-    "clone.title": "Clone from GitHub",
+    "clone.title": "Clone a Repository",
+    "clone.formTitle": "Clone a Repo",
+    "clone.withUrl": "Clone with URL",
+    "clone.whereTo": "Where to clone to",
+    "clone.browse": "Browse",
+    "clone.url": "URL",
+    "clone.repoToClone": "Repository to clone",
+    "clone.shallow": "Shallow Clone",
+    "clone.sparse": "Sparse Checkout",
+    "clone.cloneRepo": "Clone the repo!",
+    "clone.chooseLocation": "Choose a location",
     "clone.urlTitle": "Clone from URL",
     "clone.tabRepos": "My repos",
     "clone.tabUrl": "URL",
@@ -61438,7 +61738,7 @@ Commits beyond this point will be lost for that branch.`,
   };
   var translations = { fr, en };
 
-  // ../src/renderer/src/i18n/LanguageContext.tsx
+  // src/renderer/src/i18n/LanguageContext.tsx
   var LanguageContext = (0, import_react2.createContext)(null);
   var ENABLED_LANGS = ["en"];
   var DEFAULT_LANG = "en";
@@ -61468,7 +61768,7 @@ Commits beyond this point will be lost for that branch.`,
     return ctx;
   }
 
-  // ../src/renderer/src/components/Toast/Toast.tsx
+  // src/renderer/src/components/Toast/Toast.tsx
   var import_react3 = __toESM(require_react());
   var ToastContext = (0, import_react3.createContext)({
     success: () => {
@@ -61520,7 +61820,7 @@ Commits beyond this point will be lost for that branch.`,
     )))));
   }
 
-  // src/webview/CompactToolbar.tsx
+  // vscode-extension/src/webview/CompactToolbar.tsx
   var import_react4 = __toESM(require_react());
   function IconBtn({ title, onClick, disabled, active, badge, hideNarrow, children }) {
     return /* @__PURE__ */ import_react4.default.createElement(
@@ -61601,13 +61901,13 @@ Commits beyond this point will be lost for that branch.`,
     ), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-sep" }), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Nouvelle branche", onClick: p.onNewBranch }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Stash", onClick: p.onStash }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12h-6l-2 3h-4l-2-3H2" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Pop stash", onClick: p.onPop, disabled: p.stashCount === 0, badge: p.stashCount }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M12 4v8" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "8 8 12 4 16 8" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Annuler la derni\xE8re action", onClick: p.onUndo }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "9 14 4 9 9 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M20 20v-7a4 4 0 0 0-4-4H4" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "R\xE9tablir la derni\xE8re action annul\xE9e", onClick: p.onRedo }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "15 14 20 9 15 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4 20v-7a4 4 0 0 1 4-4h12" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Terminal", onClick: p.onTerminal, hideNarrow: true }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "4 17 10 11 4 5" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "19", x2: "20", y2: "19" }))), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-sep" }), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Afficher toutes les branches", onClick: p.onToggleAllBranches, active: p.showAllBranches }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Ouvrir dans Git Vertex Desktop", onClick: p.onOpenDesktop, hideNarrow: true }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "15 3 21 3 21 9" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "10", y1: "14", x2: "21", y2: "3" }))), p.onSettings && /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "R\xE9glages (identit\xE9, GitHub, IA\u2026)", onClick: p.onSettings }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M8 0a8.2 8.2 0 0 1 .701.031C9.444.095 9.99.645 10.16 1.29l.288 1.107c.018.066.079.158.212.224.231.114.454.243.668.386.123.082.233.09.299.071l1.103-.303c.644-.176 1.392.021 1.82.63.27.385.506.792.704 1.218.315.675.111 1.422-.364 1.891l-.814.806c-.049.048-.098.147-.088.294.016.257.016.515 0 .772-.01.147.038.246.088.294l.814.806c.475.469.679 1.216.364 1.891a7.977 7.977 0 0 1-.704 1.217c-.428.61-1.176.807-1.82.63l-1.102-.302c-.067-.019-.177-.011-.3.071a5.909 5.909 0 0 1-.668.386c-.133.066-.194.158-.211.224l-.29 1.106c-.168.646-.715 1.196-1.458 1.26a8.006 8.006 0 0 1-1.402 0c-.743-.064-1.289-.614-1.458-1.26l-.289-1.106c-.018-.066-.079-.158-.212-.224a5.738 5.738 0 0 1-.668-.386c-.123-.082-.233-.09-.299-.071l-1.103.303c-.644.176-1.392-.021-1.82-.63a8.12 8.12 0 0 1-.704-1.218c-.315-.675-.111-1.422.363-1.891l.815-.806c.05-.048.098-.147.088-.294a6.214 6.214 0 0 1 0-.772c.01-.147-.038-.246-.088-.294l-.815-.806C.635 6.045.431 5.298.746 4.623a7.92 7.92 0 0 1 .704-1.217c.428-.61 1.176-.807 1.82-.63l1.102.302c.067.019.177.011.3-.071.214-.143.437-.272.668-.386.133-.066.194-.158.211-.224l.29-1.106C6.009.645 6.556.095 7.299.03 7.53.01 7.764 0 8 0Zm-.571 1.525c-.036.003-.108.036-.137.146l-.289 1.105c-.147.561-.549.967-.998 1.189-.173.086-.34.183-.5.29-.417.278-.97.423-1.529.27l-1.103-.303c-.109-.03-.175.016-.195.045-.22.312-.412.644-.573.99-.014.031-.021.11.059.19l.815.806c.411.406.562.957.53 1.456a4.709 4.709 0 0 0 0 .582c.032.499-.119 1.05-.53 1.456l-.815.806c-.081.08-.073.159-.059.19.162.346.353.677.573.989.02.03.085.076.195.046l1.102-.303c.56-.153 1.113-.008 1.53.27.161.107.328.204.501.29.447.222.85.629.997 1.189l.289 1.105c.029.109.101.143.137.146a6.6 6.6 0 0 0 1.142 0c.036-.003.108-.036.137-.146l.289-1.105c.147-.561.549-.967.998-1.189.173-.086.34-.183.5-.29.417-.278.97-.423 1.529-.27l1.103.303c.109.029.175-.016.195-.045.22-.313.411-.644.573-.99.014-.031.021-.11-.059-.19l-.815-.806c-.411-.406-.562-.957-.53-1.456a4.709 4.709 0 0 0 0-.582c-.032-.499.119-1.05.53-1.456l.815-.806c.081-.08.073-.159.059-.19a6.464 6.464 0 0 0-.573-.989c-.02-.03-.085-.076-.195-.046l-1.102.303c-.56.153-1.113.008-1.53-.27a4.44 4.44 0 0 0-.501-.29c-.447-.222-.85-.629-.997-1.189l-.289-1.105c-.029-.11-.101-.143-.137-.146a6.6 6.6 0 0 0-1.142 0ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM9.5 8a1.5 1.5 0 1 0-3.001.001A1.5 1.5 0 0 0 9.5 8Z" }))), /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-search" }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" })), /* @__PURE__ */ import_react4.default.createElement("input", { type: "text", placeholder: "Rechercher\u2026", value: p.searchQuery, onChange: (e) => p.onSearch(e.target.value) }), p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && /* @__PURE__ */ import_react4.default.createElement("span", { className: `gvt-search-count${p.searchMatches === 0 ? " gvt-search-count--none" : ""}` }, p.searchMatches), p.searchQuery && /* @__PURE__ */ import_react4.default.createElement("button", { className: "gvt-search-clear", onClick: () => p.onSearch("") }, "\xD7")));
   }
 
-  // ../src/renderer/src/components/SettingsModal/SettingsModal.tsx
+  // src/renderer/src/components/SettingsModal/SettingsModal.tsx
   var import_react5 = __toESM(require_react());
 
-  // ../resources/icon.png
+  // resources/icon.png
   var icon_default = "data:image/png;base64,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";
 
-  // ../src/renderer/src/components/SettingsModal/SettingsModal.tsx
+  // src/renderer/src/components/SettingsModal/SettingsModal.tsx
   var NAV_GROUPS = [
     { group: "settings.grp.general", items: [
       { id: "git", icon: "\u{1F464}", label: "settings.sec.identity" },
@@ -61951,9 +62251,7 @@ Commits beyond this point will be lost for that branch.`,
       setGithubToken("");
       setGithubUser(null);
       showToast(t2("toast.githubDisconnected"));
-    } : handleGithubDisconnect }, t2("settings.github.disconnect"))), !githubUser && !embedded && /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-gh-login-btn", onClick: handleGithubLogin, disabled: githubLoading }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), githubLoading ? t2("settings.github.connecting") : t2("settings.github.login")), !githubUser && embedded && // No OAuth callback flow inside the VS Code panel — manual
-    // Personal Access Token entry instead.
-    /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("label", null, "Personal Access Token"), /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    } : handleGithubDisconnect }, t2("settings.github.disconnect"))), !githubUser && !embedded && /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-gh-login-btn", onClick: handleGithubLogin, disabled: githubLoading }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), githubLoading ? t2("settings.github.connecting") : t2("settings.github.login")), !githubUser && embedded && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("label", null, t2("settings.github.pat")), /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
       "input",
       {
         type: showToken ? "text" : "password",
@@ -61967,7 +62265,7 @@ Commits beyond this point will be lost for that branch.`,
       await saveGithub();
       if (githubToken.trim())
         fetchGithubUser();
-    } }, "Enregistrer")))), section === "ai" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.ai.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.ai.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-providers" }, AI_PROVIDERS.map((p) => /* @__PURE__ */ import_react5.default.createElement(
+    } }, t2("settings.save"))), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc", style: { marginTop: 6 } }, t2("settings.github.patHint")))), section === "ai" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.ai.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.ai.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-providers" }, AI_PROVIDERS.map((p) => /* @__PURE__ */ import_react5.default.createElement(
       "button",
       {
         key: p.id,
@@ -62159,11 +62457,11 @@ Commits beyond this point will be lost for that branch.`,
     ), !updateReady && updateStatus === "up-to-date" && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-update-ok" }, t2("settings.update.upToDate")), !updateReady && updateStatus === "available" && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-update-new" }, downloadProgress !== null ? t2("settings.update.downloading", downloadProgress) : t2("settings.update.starting", updateVersion ?? "")), updateStatus === "error" && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-update-err", title: updateError ?? "" }, "\u2717 ", updateError ?? t2("settings.update.unknownErr")))))));
   }
 
-  // ../src/renderer/src/components/CommitGraph/CommitGraph.tsx
+  // src/renderer/src/components/CommitGraph/CommitGraph.tsx
   var import_react8 = __toESM(require_react());
   var import_react_dom3 = __toESM(require_react_dom());
 
-  // ../src/renderer/src/components/CommitGraph/graph-layout.ts
+  // src/renderer/src/components/CommitGraph/graph-layout.ts
   var LANE_COLORS = [
     "#2dd4bf",
     // teal
@@ -62316,7 +62614,7 @@ Commits beyond this point will be lost for that branch.`,
     return result;
   }
 
-  // ../src/renderer/src/components/ContextMenu/ContextMenu.tsx
+  // src/renderer/src/components/ContextMenu/ContextMenu.tsx
   var import_react6 = __toESM(require_react());
   var import_react_dom = __toESM(require_react_dom());
   var OPEN_DELAY = 200;
@@ -62407,7 +62705,7 @@ Commits beyond this point will be lost for that branch.`,
     return (0, import_react_dom.createPortal)(menu, document.body);
   }
 
-  // ../src/renderer/src/utils/aiAvatars.ts
+  // src/renderer/src/utils/aiAvatars.ts
   var svgUri = (svg) => "data:image/svg+xml;base64," + btoa(svg);
   function claudeSvg() {
     const rays = Array.from(
@@ -62445,7 +62743,7 @@ Commits beyond this point will be lost for that branch.`,
     return null;
   }
 
-  // ../src/renderer/src/components/IssueLink/IssueLink.tsx
+  // src/renderer/src/components/IssueLink/IssueLink.tsx
   var import_react7 = __toESM(require_react());
   var import_react_dom2 = __toESM(require_react_dom());
   var issueCache = /* @__PURE__ */ new Map();
@@ -62549,7 +62847,7 @@ Commits beyond this point will be lost for that branch.`,
     return /* @__PURE__ */ React.createElement(React.Fragment, null, parts);
   }
 
-  // ../src/renderer/src/components/CommitGraph/CommitGraph.tsx
+  // src/renderer/src/components/CommitGraph/CommitGraph.tsx
   var ROW_HEIGHT = 28;
   var LANE_WIDTH = 22;
   var NODE_RADIUS = 11;
@@ -62869,6 +63167,7 @@ Commits beyond this point will be lost for that branch.`,
     onPushToCommit,
     onCreatePatch,
     onCopyPatch,
+    onSharePatch,
     onCreateWorktreeAt,
     onOpenCommitOnRemote,
     nativeContextMenu = false,
@@ -63399,6 +63698,8 @@ Commits beyond this point will be lost for that branch.`,
         items.push({ label: t2("graph.menu.createPatch"), action: () => onCreatePatch(commit.hash) });
       if (onCopyPatch)
         items.push({ label: t2("graph.menu.copyPatch"), action: () => onCopyPatch(commit.hash) });
+      if (onSharePatch)
+        items.push({ label: t2("graph.menu.sharePatch"), action: () => onSharePatch(commit.hash) });
       if (onOpenCommitOnRemote)
         items.push({ label: t2("graph.menu.openOnRemote"), action: () => onOpenCommitOnRemote(commit.hash) });
       if (onCompareWorking || onSelectForCompare || onCompareWithSelected && compareBaseHash) {
@@ -63432,6 +63733,7 @@ Commits beyond this point will be lost for that branch.`,
       onPushToCommit,
       onCreatePatch,
       onCopyPatch,
+      onSharePatch,
       onCreateWorktreeAt,
       onOpenCommitOnRemote,
       t2,
@@ -63925,14 +64227,14 @@ Commits beyond this point will be lost for that branch.`,
     })());
   }
 
-  // ../src/renderer/src/components/RightPanel/RightPanel.tsx
+  // src/renderer/src/components/RightPanel/RightPanel.tsx
   var import_react9 = __toESM(require_react());
 
-  // ../node_modules/highlight.js/es/index.js
+  // node_modules/highlight.js/es/index.js
   var import_lib = __toESM(require_lib(), 1);
   var es_default = import_lib.default;
 
-  // ../src/renderer/src/components/RightPanel/RightPanel.tsx
+  // src/renderer/src/components/RightPanel/RightPanel.tsx
   function buildTree(files) {
     const root = { name: "", fullPath: "", isFile: false, children: [] };
     for (const f of files) {
@@ -65081,7 +65383,7 @@ Signed-off-by: ` : full;
     ) : null);
   }
 
-  // ../src/renderer/src/components/Sidebar/Sidebar.tsx
+  // src/renderer/src/components/Sidebar/Sidebar.tsx
   var import_react10 = __toESM(require_react());
   function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }) {
     const [open, setOpen] = (0, import_react10.useState)(defaultOpen);
@@ -65354,13 +65656,17 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     showToast,
     showPrompt,
     showConfirm,
-    embedded = false
+    embedded = false,
+    view
   }) {
+    const single = view !== void 0;
+    const show = (v) => !single || view === v;
     const [reflog, setReflog] = (0, import_react10.useState)([]);
     const [remotes, setRemotes] = (0, import_react10.useState)([]);
     const [submodules, setSubmodules] = (0, import_react10.useState)([]);
     const [worktrees, setWorktrees] = (0, import_react10.useState)([]);
     const [agents, setAgents] = (0, import_react10.useState)([]);
+    const [work, setWork] = (0, import_react10.useState)({ staged: 0, changed: 0 });
     const { t: t2 } = useLang();
     const loadWorktrees = (0, import_react10.useCallback)(() => {
       window.gitAPI.listWorktrees().then((r) => setWorktrees(r.worktrees ?? []));
@@ -65373,6 +65679,8 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       window.gitAPI.getReflog().then((r) => setReflog(r.entries ?? []));
       window.gitAPI.getRemotes().then((r) => setRemotes(r.remotes ?? []));
       window.gitAPI.getSubmodules().then((r) => setSubmodules(r.submodules ?? []));
+      window.gitAPI.getWorkingChanges?.().then((w) => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length })).catch(() => {
+      });
       loadWorktrees();
       const interval = setInterval(() => {
         ;
@@ -65542,7 +65850,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onClick: () => onRemoveRecent(path)
       },
       "\xD7"
-    )))))), repoPath && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-search" }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z" })), /* @__PURE__ */ import_react10.default.createElement(
+    )))))), repoPath && show("branches") && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-search" }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z" })), /* @__PURE__ */ import_react10.default.createElement(
       "input",
       {
         type: "text",
@@ -65550,7 +65858,13 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         value: branchFilter,
         onChange: (e) => setBranchFilter(e.target.value)
       }
-    ), branchFilter && /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-filter-clear", onClick: () => setBranchFilter("") }, "\xD7")), repoPath && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-sections" }, /* @__PURE__ */ import_react10.default.createElement(Section, { title: "LOCAL", count: localBranches.length, onAdd: onCreateBranch, addLabel: t2("sb.newBranch") }, localBranches.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noLocalBranch")), localBranches.map((b) => /* @__PURE__ */ import_react10.default.createElement(
+    ), branchFilter && /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-filter-clear", onClick: () => setBranchFilter("") }, "\xD7")), repoPath && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-sections" }, view === "overview" && (() => {
+      const cur = branches.find((b) => b.current);
+      const ahead = cur?.ahead ?? 0;
+      const behind = cur?.behind ?? 0;
+      const hasStats = ahead > 0 || behind > 0 || work.staged > 0 || work.changed > 0;
+      return /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-overview" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-label" }, t2("sb.currentWork")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-card" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-branch" }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#3fb950" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-ov-branch-name" }, currentBranch), agents.length > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-ov-agents", title: t2("sb.agentsActive", agents.length) }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-agent-dot" }), agents.length)), hasStats && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-stats" }, ahead > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track-ahead", title: t2("sb.branch.trackTitle", ahead, behind) }, "\u2191", ahead), behind > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track-behind", title: t2("sb.branch.trackTitle", ahead, behind) }, "\u2193", behind), work.staged > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-ov-staged", title: t2("sb.staged") }, "+", work.staged), work.changed > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-ov-changed", title: t2("sb.changed") }, "\u270E", work.changed)), !hasStats && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-clean" }, t2("sb.clean"))));
+    })(), view === "agents" && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "AGENTS", count: agents.length, defaultOpen: true }, agents.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noAgent")) : agents.map((a) => /* @__PURE__ */ import_react10.default.createElement("div", { key: a.pid, className: "sb-submodule-item", title: a.cwd }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-agent-dot" }), /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-path" }, a.name, " ", /* @__PURE__ */ import_react10.default.createElement("code", { style: { opacity: 0.6 } }, "pid ", a.pid)), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-url" }, a.cwd))))), (show("branches") || view === "overview") && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "LOCAL", count: localBranches.length, onAdd: onCreateBranch, addLabel: t2("sb.newBranch") }, localBranches.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noLocalBranch")), localBranches.map((b) => /* @__PURE__ */ import_react10.default.createElement(
       BranchItem,
       {
         key: b.name,
@@ -65573,7 +65887,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         behind: b.behind,
         gone: b.gone
       }
-    ))), remoteBranches.length > 0 && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "REMOTE", count: remoteBranches.length, defaultOpen: false }, remoteBranches.map((b) => /* @__PURE__ */ import_react10.default.createElement(
+    ))), show("branches") && remoteBranches.length > 0 && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "REMOTE", count: remoteBranches.length, defaultOpen: single }, remoteBranches.map((b) => /* @__PURE__ */ import_react10.default.createElement(
       BranchItem,
       {
         key: b.name,
@@ -65591,12 +65905,12 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onToggleSolo: () => onToggleSolo(b.name),
         onToggleMute: () => onToggleMute(b.name)
       }
-    ))), /* @__PURE__ */ import_react10.default.createElement(
+    ))), show("tags") && /* @__PURE__ */ import_react10.default.createElement(
       Section,
       {
         title: "TAGS",
         count: tags.length,
-        defaultOpen: false,
+        defaultOpen: single,
         onAdd: onCreateTag,
         addLabel: t2("sb.newTag")
       },
@@ -65610,12 +65924,12 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           onDeleteRemote: () => onDeleteRemoteTag(t3.name)
         }
       ))
-    ), /* @__PURE__ */ import_react10.default.createElement(
+    ), show("remotes") && /* @__PURE__ */ import_react10.default.createElement(
       Section,
       {
         title: "REMOTES",
         count: remotes.length,
-        defaultOpen: false,
+        defaultOpen: single,
         onAdd: handleAddRemote,
         addLabel: t2("sb.addRemote")
       },
@@ -65630,7 +65944,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           onCopyUrl: () => navigator.clipboard.writeText(r.fetchUrl)
         }
       ))
-    ), submodules.length > 0 && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "SUBMODULES", count: submodules.length, defaultOpen: false }, submodules.map((sub) => /* @__PURE__ */ import_react10.default.createElement(
+    ), show("overview") && submodules.length > 0 && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "SUBMODULES", count: submodules.length, defaultOpen: false }, submodules.map((sub) => /* @__PURE__ */ import_react10.default.createElement(
       SubmoduleItem,
       {
         key: sub.path,
@@ -65638,12 +65952,12 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onInit: () => handleInitSubmodule(sub.path),
         onUpdate: () => handleUpdateSubmodule(sub.path)
       }
-    ))), /* @__PURE__ */ import_react10.default.createElement(
+    ))), show("worktrees") && /* @__PURE__ */ import_react10.default.createElement(
       Section,
       {
         title: "WORKTREES",
         count: worktrees.length,
-        defaultOpen: false,
+        defaultOpen: single,
         onAdd: handleAddWorktree,
         addLabel: t2("sb.addWorktree")
       },
@@ -65657,19 +65971,19 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           onRemove: () => handleRemoveWorktree(wt.path)
         }
       ))
-    ), /* @__PURE__ */ import_react10.default.createElement(Section, { title: "REFLOG", count: reflog.length, defaultOpen: false }, reflog.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.reflogEmpty")) : reflog.map((entry, i) => /* @__PURE__ */ import_react10.default.createElement(
+    ), show("overview") && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "REFLOG", count: reflog.length, defaultOpen: false }, reflog.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.reflogEmpty")) : reflog.map((entry, i) => /* @__PURE__ */ import_react10.default.createElement(
       ReflogItem,
       {
         key: i,
         entry,
         onSelect: () => onSelectCommit(entry.hash)
       }
-    ))), /* @__PURE__ */ import_react10.default.createElement(
+    ))), show("stash") && /* @__PURE__ */ import_react10.default.createElement(
       Section,
       {
         title: "STASH",
         count: stashes.length,
-        defaultOpen: false,
+        defaultOpen: single,
         onAdd: onCreateStash,
         addLabel: t2("sb.stash.create")
       },
@@ -65687,10 +66001,176 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     )), !repoPath && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-no-repo" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-open-btn", onClick: onOpenRepo }, t2("sb.openRepo")), /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-open-btn sb-clone-btn", onClick: onClone }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })), t2("sb.clone")), recentRepos.length > 0 && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-recents-title" }, t2("sb.recents")), recentRepos.map((path) => /* @__PURE__ */ import_react10.default.createElement("button", { key: path, className: "sb-recent-btn", onClick: () => onSetRepo(path), title: path }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })), path.split("/").pop())))));
   }
 
-  // ../src/renderer/src/components/InteractiveRebase/InteractiveRebase.tsx
+  // vscode-extension/src/webview/ActivityRail.tsx
   var import_react11 = __toESM(require_react());
+  var I = (d) => /* @__PURE__ */ import_react11.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react11.default.createElement("path", { d }));
+  var RobotIcon = () => /* @__PURE__ */ import_react11.default.createElement(
+    "svg",
+    {
+      width: "16",
+      height: "16",
+      viewBox: "0 0 16 16",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "1.3",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      "aria-hidden": "true"
+    },
+    /* @__PURE__ */ import_react11.default.createElement("rect", { x: "3", y: "5.5", width: "10", height: "7.5", rx: "1.8" }),
+    /* @__PURE__ */ import_react11.default.createElement("path", { d: "M8 3.2V5.5" }),
+    /* @__PURE__ */ import_react11.default.createElement("circle", { cx: "8", cy: "2.4", r: "1", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ import_react11.default.createElement("circle", { cx: "6.2", cy: "9", r: "0.9", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ import_react11.default.createElement("circle", { cx: "9.8", cy: "9", r: "0.9", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ import_react11.default.createElement("path", { d: "M1.5 8.5v2M14.5 8.5v2" })
+  );
+  var WorktreeIcon = () => /* @__PURE__ */ import_react11.default.createElement(
+    "svg",
+    {
+      width: "16",
+      height: "16",
+      viewBox: "0 0 16 16",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "1.3",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      "aria-hidden": "true"
+    },
+    /* @__PURE__ */ import_react11.default.createElement("rect", { x: "2", y: "2.5", width: "12", height: "11", rx: "1.8" }),
+    /* @__PURE__ */ import_react11.default.createElement("path", { d: "M8 5v2M8 9.2v1.8" }),
+    /* @__PURE__ */ import_react11.default.createElement("circle", { cx: "8", cy: "8", r: "1.5", fill: "currentColor", stroke: "none" })
+  );
+  var ITEMS = [
+    {
+      view: "overview",
+      labelKey: "rail.overview",
+      fallback: "Overview",
+      icon: I("M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9.5h-2v4.75a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366Z")
+    },
+    {
+      view: "agents",
+      labelKey: "rail.agents",
+      fallback: "Agents",
+      icon: /* @__PURE__ */ import_react11.default.createElement(RobotIcon, null)
+    },
+    {
+      view: "worktrees",
+      labelKey: "rail.worktrees",
+      fallback: "Worktrees",
+      icon: /* @__PURE__ */ import_react11.default.createElement(WorktreeIcon, null)
+    },
+    {
+      view: "branches",
+      labelKey: "rail.branches",
+      fallback: "Branches",
+      icon: I("M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z")
+    },
+    {
+      view: "remotes",
+      labelKey: "rail.remotes",
+      fallback: "Remotes",
+      icon: I("M4.5 13a3.5 3.5 0 0 1-.5-6.96 4.5 4.5 0 0 1 8.72-1.04A3.25 3.25 0 0 1 12 13H4.5Z")
+    },
+    {
+      view: "stash",
+      labelKey: "rail.stash",
+      fallback: "Stash",
+      icon: I("M1 3.5A1.5 1.5 0 0 1 2.5 2h8.75a.75.75 0 0 1 0 1.5H2.5a.5.5 0 0 0 0 1H8a1 1 0 0 1 1 1v3.75a.75.75 0 0 1-1.5 0V6H2.5A1.5 1.5 0 0 1 1 4.5v-1Zm3 9A1.5 1.5 0 0 1 2.5 11h1.25a.75.75 0 0 0 0-1.5H2.5A1.5 1.5 0 0 1 1 8v-.5a.75.75 0 0 1 1.5 0V8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-.5a.75.75 0 0 1 1.5 0V8a1.5 1.5 0 0 1-1.5 1.5H4.5v1H14a.75.75 0 0 1 0 1.5H4.5v.5a.75.75 0 0 1-1.5 0v-.5Z")
+    },
+    {
+      view: "tags",
+      labelKey: "rail.tags",
+      fallback: "Tags",
+      icon: I("M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 0 1 0 2.474l-5.026 5.026a1.75 1.75 0 0 1-2.474 0l-6.25-6.25A1.752 1.752 0 0 1 1 7.775Zm1.5 0c0 .066.026.13.073.177l6.25 6.25a.25.25 0 0 0 .354 0l5.025-5.025a.25.25 0 0 0 0-.354l-6.25-6.25a.25.25 0 0 0-.177-.073H2.75a.25.25 0 0 0-.25.25ZM6 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z")
+    }
+  ];
+  var KANBAN_ICON = I("M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0ZM1.5 1.75v12.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25ZM11.75 3a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5a.75.75 0 0 1 .75-.75Zm-8.25.75a.75.75 0 0 1 1.5 0v5.5a.75.75 0 0 1-1.5 0v-5.5ZM8 3a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 3Z");
+  var STRIDE = 36;
+  var RESERVED = 12 + STRIDE + 6;
+  function ActivityRail({
+    active,
+    onSelect
+  }) {
+    const { t: t2 } = useLang();
+    const label = (key, fallback) => {
+      const s = t2(key);
+      return s === key ? fallback : s;
+    };
+    const railRef = (0, import_react11.useRef)(null);
+    const [visible, setVisible] = (0, import_react11.useState)(ITEMS.length);
+    const [menu, setMenu] = (0, import_react11.useState)(null);
+    (0, import_react11.useEffect)(() => {
+      const el = railRef.current;
+      if (!el)
+        return;
+      const compute = () => {
+        const forIcons = el.clientHeight - RESERVED;
+        let n = Math.floor(forIcons / STRIDE);
+        if (n < ITEMS.length)
+          n = Math.max(0, n - 1);
+        setVisible(Math.min(ITEMS.length, Math.max(0, n)));
+      };
+      compute();
+      const ro = new ResizeObserver(compute);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
+    const shown = ITEMS.slice(0, visible);
+    const hidden = ITEMS.slice(visible);
+    const activeHidden = hidden.some((i) => i.view === active);
+    const openMenu = (e) => {
+      const r = e.currentTarget.getBoundingClientRect();
+      setMenu({ x: r.right + 4, y: r.top });
+    };
+    return /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-rail", ref: railRef }, shown.map((item) => /* @__PURE__ */ import_react11.default.createElement(
+      "button",
+      {
+        key: item.view,
+        className: `gv-rail-btn ${active === item.view ? "gv-rail-btn--active" : ""}`,
+        title: label(item.labelKey, item.fallback),
+        "aria-label": label(item.labelKey, item.fallback),
+        "aria-pressed": active === item.view,
+        onClick: () => onSelect(item.view)
+      },
+      item.icon
+    )), hidden.length > 0 && /* @__PURE__ */ import_react11.default.createElement(
+      "button",
+      {
+        className: `gv-rail-btn ${activeHidden ? "gv-rail-btn--active" : ""}`,
+        title: label("rail.more", "Plus\u2026"),
+        "aria-label": label("rail.more", "Plus\u2026"),
+        onClick: openMenu
+      },
+      I("M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM1.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z")
+    ), /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-rail-spacer" }), /* @__PURE__ */ import_react11.default.createElement(
+      "button",
+      {
+        className: "gv-rail-btn gv-rail-btn--soon",
+        title: label("rail.board", "Board (bient\xF4t)"),
+        "aria-label": label("rail.board", "Board (bient\xF4t)"),
+        disabled: true
+      },
+      KANBAN_ICON
+    ), menu && /* @__PURE__ */ import_react11.default.createElement(
+      ContextMenu,
+      {
+        x: menu.x,
+        y: menu.y,
+        items: hidden.map((item) => ({
+          label: label(item.labelKey, item.fallback),
+          checked: active === item.view,
+          action: () => onSelect(item.view)
+        })),
+        onClose: () => setMenu(null)
+      }
+    ));
+  }
 
-  // ../src/renderer/src/utils/rebaseMessageGroups.ts
+  // src/renderer/src/components/InteractiveRebase/InteractiveRebase.tsx
+  var import_react12 = __toESM(require_react());
+
+  // src/renderer/src/utils/rebaseMessageGroups.ts
   function computeMessageGroups(seq) {
     const groups = [];
     let current = null;
@@ -65731,7 +66211,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     return groups;
   }
 
-  // ../src/renderer/src/components/InteractiveRebase/InteractiveRebase.tsx
+  // src/renderer/src/components/InteractiveRebase/InteractiveRebase.tsx
   var ACTIONS = ["pick", "reword", "squash", "fixup", "drop"];
   var ACTION_COLORS = {
     pick: "#3fb950",
@@ -65743,14 +66223,14 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
   var groupKey = (g) => `${g.leaderIndex}:${g.memberIndexes.join(",")}`;
   function InteractiveRebase({ baseHash, onClose, onSuccess, showToast, embedded, initialPlan }) {
     const { t: t2 } = useLang();
-    const [entries, setEntries] = (0, import_react11.useState)([]);
-    const [loading, setLoading] = (0, import_react11.useState)(true);
-    const [running, setRunning] = (0, import_react11.useState)(false);
-    const [fromPlan, setFromPlan] = (0, import_react11.useState)(false);
-    const dragIndex = (0, import_react11.useRef)(null);
-    const [dragOver, setDragOver] = (0, import_react11.useState)(null);
-    const [groupMessages, setGroupMessages] = (0, import_react11.useState)({});
-    (0, import_react11.useEffect)(() => {
+    const [entries, setEntries] = (0, import_react12.useState)([]);
+    const [loading, setLoading] = (0, import_react12.useState)(true);
+    const [running, setRunning] = (0, import_react12.useState)(false);
+    const [fromPlan, setFromPlan] = (0, import_react12.useState)(false);
+    const dragIndex = (0, import_react12.useRef)(null);
+    const [dragOver, setDragOver] = (0, import_react12.useState)(null);
+    const [groupMessages, setGroupMessages] = (0, import_react12.useState)({});
+    (0, import_react12.useEffect)(() => {
       window.gitAPI.getRebaseSequence(baseHash).then((r) => {
         let list = r.commits.map((c) => ({ ...c, action: "pick" }));
         if (initialPlan?.length) {
@@ -65776,11 +66256,11 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         setLoading(false);
       });
     }, [baseHash, initialPlan]);
-    const groups = (0, import_react11.useMemo)(
+    const groups = (0, import_react12.useMemo)(
       () => computeMessageGroups(entries.map((e) => ({ action: e.action, hash: e.hash, message: e.message }))),
       [entries]
     );
-    const messageGroupByLastIndex = (0, import_react11.useMemo)(() => {
+    const messageGroupByLastIndex = (0, import_react12.useMemo)(() => {
       const map = /* @__PURE__ */ new Map();
       for (const g of groups)
         if (g.needsMessage)
@@ -65843,18 +66323,18 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         showToast(t2("ir.failed", r.error), "err");
       }
     };
-    return /* @__PURE__ */ import_react11.default.createElement(
+    return /* @__PURE__ */ import_react12.default.createElement(
       "div",
       {
         className: embedded ? "ir-page" : "ir-overlay",
         onMouseDown: embedded ? void 0 : (e) => e.target === e.currentTarget && onClose()
       },
-      /* @__PURE__ */ import_react11.default.createElement("div", { className: embedded ? "ir-panel ir-panel--embedded" : "ir-panel" }, /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react11.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react11.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-hint" }, t2("ir.hint")), fromPlan && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-plan-banner" }, t2("ir.planBanner")), /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-empty" }, t2("common.loading")), !loading && entries.length === 0 && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-empty" }, t2("ir.noCommits")), (() => {
+      /* @__PURE__ */ import_react12.default.createElement("div", { className: embedded ? "ir-panel ir-panel--embedded" : "ir-panel" }, /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react12.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react12.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-hint" }, t2("ir.hint")), fromPlan && /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-plan-banner" }, t2("ir.planBanner")), /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-empty" }, t2("common.loading")), !loading && entries.length === 0 && /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-empty" }, t2("ir.noCommits")), (() => {
         const firstKeptIndex = entries.findIndex((e) => e.action !== "drop");
         return entries.map((entry, i) => {
           const msgGroup = messageGroupByLastIndex.get(i);
           const key = msgGroup ? groupKey(msgGroup) : "";
-          return /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, { key: entry.hash }, /* @__PURE__ */ import_react11.default.createElement(
+          return /* @__PURE__ */ import_react12.default.createElement(import_react12.default.Fragment, { key: entry.hash }, /* @__PURE__ */ import_react12.default.createElement(
             "div",
             {
               className: `ir-row ${dragOver === i ? "drag-over" : ""}`,
@@ -65864,8 +66344,8 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
               onDrop: () => handleDrop(i),
               onDragEnd: () => setDragOver(null)
             },
-            /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-drag-handle", title: t2("ir.dragHandle") }, "\u283F"),
-            /* @__PURE__ */ import_react11.default.createElement(
+            /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-drag-handle", title: t2("ir.dragHandle") }, "\u283F"),
+            /* @__PURE__ */ import_react12.default.createElement(
               "select",
               {
                 className: "ir-action-select",
@@ -65876,7 +66356,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
               ACTIONS.map((a) => (
                 // squash/fixup need an earlier kept commit to fold into —
                 // disable them on the first kept row.
-                /* @__PURE__ */ import_react11.default.createElement(
+                /* @__PURE__ */ import_react12.default.createElement(
                   "option",
                   {
                     key: a,
@@ -65887,9 +66367,9 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
                 )
               ))
             ),
-            /* @__PURE__ */ import_react11.default.createElement("code", { className: "ir-hash" }, entry.shortHash),
-            /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-msg" }, entry.message)
-          ), msgGroup && /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-msg-editor" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "ir-msg-editor-label" }, "Message final (", msgGroup.memberIndexes.length, " commit", msgGroup.memberIndexes.length > 1 ? "s" : "", ")"), /* @__PURE__ */ import_react11.default.createElement(
+            /* @__PURE__ */ import_react12.default.createElement("code", { className: "ir-hash" }, entry.shortHash),
+            /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-msg" }, entry.message)
+          ), msgGroup && /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-msg-editor" }, /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-msg-editor-label" }, "Message final (", msgGroup.memberIndexes.length, " commit", msgGroup.memberIndexes.length > 1 ? "s" : "", ")"), /* @__PURE__ */ import_react12.default.createElement(
             "textarea",
             {
               className: "ir-msg-textarea",
@@ -65900,7 +66380,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
             }
           )));
         });
-      })()), /* @__PURE__ */ import_react11.default.createElement("div", { className: "ir-footer" }, /* @__PURE__ */ import_react11.default.createElement("button", { className: "ir-cancel", onClick: onClose }, "Annuler"), /* @__PURE__ */ import_react11.default.createElement(
+      })()), /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-footer" }, /* @__PURE__ */ import_react12.default.createElement("button", { className: "ir-cancel", onClick: onClose }, "Annuler"), /* @__PURE__ */ import_react12.default.createElement(
         "button",
         {
           className: "ir-launch",
@@ -65912,11 +66392,11 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     );
   }
 
-  // ../src/renderer/src/components/StagingEditor/StagingEditor.tsx
-  var import_react13 = __toESM(require_react());
+  // src/renderer/src/components/StagingEditor/StagingEditor.tsx
+  var import_react14 = __toESM(require_react());
 
-  // ../src/renderer/src/components/CenterFileDiff/CenterFileDiff.tsx
-  var import_react12 = __toESM(require_react());
+  // src/renderer/src/components/CenterFileDiff/CenterFileDiff.tsx
+  var import_react13 = __toESM(require_react());
   function parseDiff(raw) {
     const files = [];
     const blocks = raw.split(/^diff --git /m).filter(Boolean);
@@ -66027,20 +66507,20 @@ ${lineStrings.join("\n")}
   }
   function CenterFileDiff({ target, onClose, onStaged, onChangeArea }) {
     const { t: t2 } = useLang();
-    const [hunks, setHunks] = (0, import_react12.useState)([]);
-    const [loading, setLoading] = (0, import_react12.useState)(true);
-    const [showFullFile, setShowFullFile] = (0, import_react12.useState)(false);
-    const [fullContent, setFullContent] = (0, import_react12.useState)("");
-    const [fullLoading, setFullLoading] = (0, import_react12.useState)(false);
-    const [selectedLines, setSelectedLines] = (0, import_react12.useState)(/* @__PURE__ */ new Set());
-    const [applyError, setApplyError] = (0, import_react12.useState)(null);
-    const [wholeFile, setWholeFile] = (0, import_react12.useState)(false);
+    const [hunks, setHunks] = (0, import_react13.useState)([]);
+    const [loading, setLoading] = (0, import_react13.useState)(true);
+    const [showFullFile, setShowFullFile] = (0, import_react13.useState)(false);
+    const [fullContent, setFullContent] = (0, import_react13.useState)("");
+    const [fullLoading, setFullLoading] = (0, import_react13.useState)(false);
+    const [selectedLines, setSelectedLines] = (0, import_react13.useState)(/* @__PURE__ */ new Set());
+    const [applyError, setApplyError] = (0, import_react13.useState)(null);
+    const [wholeFile, setWholeFile] = (0, import_react13.useState)(false);
     const filePath = target.filePath;
     const lang = detectLang(filePath);
     const isWorking = target.type === "working";
     const isStaged = isWorking && target.area === "staged";
     const key = target.type === "commit" ? `${target.commitHash}::${target.filePath}` : `${target.area}::${target.filePath}`;
-    (0, import_react12.useEffect)(() => {
+    (0, import_react13.useEffect)(() => {
       setLoading(true);
       setHunks([]);
       setSelectedLines(/* @__PURE__ */ new Set());
@@ -66057,7 +66537,7 @@ ${lineStrings.join("\n")}
         setLoading(false);
       });
     }, [key, wholeFile]);
-    (0, import_react12.useEffect)(() => {
+    (0, import_react13.useEffect)(() => {
       if (showFullFile && target.type === "commit" && !fullContent) {
         setFullLoading(true);
         window.gitAPI.getFileAtCommit(target.commitHash, target.filePath).then((r) => {
@@ -66067,7 +66547,7 @@ ${lineStrings.join("\n")}
       }
     }, [showFullFile]);
     const lineKey = (l) => `${l.type}:${l.oldLine ?? ""}:${l.newLine ?? ""}`;
-    const toggleLine = (0, import_react12.useCallback)((l) => {
+    const toggleLine = (0, import_react13.useCallback)((l) => {
       if (l.type === "context")
         return;
       const k = lineKey(l);
@@ -66077,7 +66557,7 @@ ${lineStrings.join("\n")}
         return next;
       });
     }, []);
-    const toggleHunk = (0, import_react12.useCallback)((hunk) => {
+    const toggleHunk = (0, import_react13.useCallback)((hunk) => {
       const changeableKeys = hunk.lines.filter((l) => l.type !== "context").map(lineKey);
       const allSelected = changeableKeys.every((k) => selectedLines.has(k));
       setSelectedLines((prev) => {
@@ -66090,7 +66570,7 @@ ${lineStrings.join("\n")}
         return next;
       });
     }, [selectedLines]);
-    const applyHunk = (0, import_react12.useCallback)(async (hunk) => {
+    const applyHunk = (0, import_react13.useCallback)(async (hunk) => {
       setApplyError(null);
       const patch = buildPatch(filePath, hunk);
       const result = await window.gitAPI.applyPatch(patch, isStaged);
@@ -66104,7 +66584,7 @@ ${lineStrings.join("\n")}
         setApplyError(result.error ?? t2("cfd.unknownError"));
       }
     }, [filePath, isStaged, onStaged, wholeFile]);
-    const applySelectedLines = (0, import_react12.useCallback)(async () => {
+    const applySelectedLines = (0, import_react13.useCallback)(async () => {
       if (selectedLines.size === 0)
         return;
       setApplyError(null);
@@ -66131,7 +66611,7 @@ ${lineStrings.join("\n")}
     const areaLabel = target.type === "working" ? target.area === "staged" ? t2("cfd.staged") : t2("cfd.unstaged") : target.commitHash.slice(0, 7);
     const badgeCls = target.type === "working" ? target.area === "staged" ? "cfd-staged" : "cfd-unstaged" : "cfd-commit";
     const actionLabel = isStaged ? t2("cfd.unstage") : t2("cfd.stage");
-    return /* @__PURE__ */ import_react12.default.createElement("div", { className: `cfd-container ${isStaged ? "cfd-staged-mode" : ""}` }, /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-header" }, onClose && /* @__PURE__ */ import_react12.default.createElement("button", { className: "cfd-back", onClick: onClose, title: "Retour au graphe" }, "\u2190 Retour"), onChangeArea && isWorking ? /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-area-toggle" }, /* @__PURE__ */ import_react12.default.createElement("button", { className: !isStaged ? "active" : "", onClick: () => onChangeArea("unstaged") }, t2("cfd.unstaged")), /* @__PURE__ */ import_react12.default.createElement("button", { className: isStaged ? "active" : "", onClick: () => onChangeArea("staged") }, t2("cfd.staged"))) : /* @__PURE__ */ import_react12.default.createElement("span", { className: `cfd-area-badge ${badgeCls}` }, areaLabel), /* @__PURE__ */ import_react12.default.createElement("span", { className: "cfd-filepath" }, filePath), isWorking && selectedLines.size > 0 && /* @__PURE__ */ import_react12.default.createElement("button", { className: "cfd-apply-btn", onClick: applySelectedLines }, isStaged ? "\u25C2 " : "", actionLabel, " ", selectedLines.size, " ligne", selectedLines.size > 1 ? "s" : "", isStaged ? "" : " \u25B8"), isWorking && /* @__PURE__ */ import_react12.default.createElement(
+    return /* @__PURE__ */ import_react13.default.createElement("div", { className: `cfd-container ${isStaged ? "cfd-staged-mode" : ""}` }, /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-header" }, onClose && /* @__PURE__ */ import_react13.default.createElement("button", { className: "cfd-back", onClick: onClose, title: "Retour au graphe" }, "\u2190 Retour"), onChangeArea && isWorking ? /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-area-toggle" }, /* @__PURE__ */ import_react13.default.createElement("button", { className: !isStaged ? "active" : "", onClick: () => onChangeArea("unstaged") }, t2("cfd.unstaged")), /* @__PURE__ */ import_react13.default.createElement("button", { className: isStaged ? "active" : "", onClick: () => onChangeArea("staged") }, t2("cfd.staged"))) : /* @__PURE__ */ import_react13.default.createElement("span", { className: `cfd-area-badge ${badgeCls}` }, areaLabel), /* @__PURE__ */ import_react13.default.createElement("span", { className: "cfd-filepath" }, filePath), isWorking && selectedLines.size > 0 && /* @__PURE__ */ import_react13.default.createElement("button", { className: "cfd-apply-btn", onClick: applySelectedLines }, isStaged ? "\u25C2 " : "", actionLabel, " ", selectedLines.size, " ligne", selectedLines.size > 1 ? "s" : "", isStaged ? "" : " \u25B8"), isWorking && /* @__PURE__ */ import_react13.default.createElement(
       "button",
       {
         className: `cfd-toggle ${wholeFile ? "active" : ""}`,
@@ -66139,7 +66619,7 @@ ${lineStrings.join("\n")}
         title: wholeFile ? t2("cfd.showChangesOnly") : t2("cfd.showWholeFile")
       },
       wholeFile ? t2("cfd.wholeFileBtn") : t2("cfd.changesBtn")
-    ), target.type === "commit" && /* @__PURE__ */ import_react12.default.createElement(
+    ), target.type === "commit" && /* @__PURE__ */ import_react13.default.createElement(
       "button",
       {
         className: `cfd-toggle ${showFullFile ? "active" : ""}`,
@@ -66147,10 +66627,10 @@ ${lineStrings.join("\n")}
         title: showFullFile ? t2("cfd.showChangesOnly") : t2("cfd.showFullFile")
       },
       showFullFile ? t2("cfd.fileBtn") : "\u25C7 Diff"
-    )), applyError && /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-error" }, applyError), /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-body" }, showFullFile ? /* @__PURE__ */ import_react12.default.createElement(import_react12.default.Fragment, null, fullLoading && /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !fullLoading && fullContent && /* @__PURE__ */ import_react12.default.createElement("table", { className: "cfd-full-table" }, /* @__PURE__ */ import_react12.default.createElement("tbody", null, fullContent.split("\n").map((line, i) => /* @__PURE__ */ import_react12.default.createElement("tr", { key: i, className: "cfd-full-line" }, /* @__PURE__ */ import_react12.default.createElement("td", { className: "cfd-full-ln" }, i + 1), /* @__PURE__ */ import_react12.default.createElement("td", { className: "cfd-full-lc" }, /* @__PURE__ */ import_react12.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line, lang) } })))))), !fullLoading && !fullContent && /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-loading" }, "Erreur : impossible de charger le fichier")) : /* @__PURE__ */ import_react12.default.createElement(import_react12.default.Fragment, null, loading && /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !loading && hunks.length === 0 && /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-loading" }, t2("compare.noDiff")), !loading && hunks.map((hunk, hi) => {
+    )), applyError && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-error" }, applyError), /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-body" }, showFullFile ? /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, fullLoading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !fullLoading && fullContent && /* @__PURE__ */ import_react13.default.createElement("table", { className: "cfd-full-table" }, /* @__PURE__ */ import_react13.default.createElement("tbody", null, fullContent.split("\n").map((line, i) => /* @__PURE__ */ import_react13.default.createElement("tr", { key: i, className: "cfd-full-line" }, /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-full-ln" }, i + 1), /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-full-lc" }, /* @__PURE__ */ import_react13.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line, lang) } })))))), !fullLoading && !fullContent && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, "Erreur : impossible de charger le fichier")) : /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, loading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !loading && hunks.length === 0 && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("compare.noDiff")), !loading && hunks.map((hunk, hi) => {
       const changeableKeys = hunk.lines.filter((l) => l.type !== "context").map(lineKey);
       const allHunkSelected = changeableKeys.length > 0 && changeableKeys.every((k) => selectedLines.has(k));
-      return /* @__PURE__ */ import_react12.default.createElement("div", { key: hi, className: "cfd-hunk" }, /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-hunk-header" }, /* @__PURE__ */ import_react12.default.createElement("span", null, hunk.header), isWorking && /* @__PURE__ */ import_react12.default.createElement("div", { className: "cfd-hunk-actions" }, /* @__PURE__ */ import_react12.default.createElement(
+      return /* @__PURE__ */ import_react13.default.createElement("div", { key: hi, className: "cfd-hunk" }, /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-hunk-header" }, /* @__PURE__ */ import_react13.default.createElement("span", null, hunk.header), isWorking && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-hunk-actions" }, /* @__PURE__ */ import_react13.default.createElement(
         "button",
         {
           className: `cfd-hunk-select ${allHunkSelected ? "active" : ""}`,
@@ -66159,7 +66639,7 @@ ${lineStrings.join("\n")}
         },
         allHunkSelected ? "\u2611" : "\u2610",
         " Bloc"
-      ), /* @__PURE__ */ import_react12.default.createElement(
+      ), /* @__PURE__ */ import_react13.default.createElement(
         "button",
         {
           className: "cfd-hunk-apply",
@@ -66170,30 +66650,30 @@ ${lineStrings.join("\n")}
         actionLabel,
         " le bloc",
         isStaged ? "" : " \u25B8"
-      ))), /* @__PURE__ */ import_react12.default.createElement("table", { className: "cfd-diff-table" }, /* @__PURE__ */ import_react12.default.createElement("tbody", null, hunk.lines.map((line, li) => {
+      ))), /* @__PURE__ */ import_react13.default.createElement("table", { className: "cfd-diff-table" }, /* @__PURE__ */ import_react13.default.createElement("tbody", null, hunk.lines.map((line, li) => {
         const k = lineKey(line);
         const isSelected = selectedLines.has(k);
         const isChangeable = line.type !== "context";
-        return /* @__PURE__ */ import_react12.default.createElement(
+        return /* @__PURE__ */ import_react13.default.createElement(
           "tr",
           {
             key: li,
             className: `cfd-dl cfd-dl-${line.type} ${isSelected ? "cfd-dl--selected" : ""} ${isWorking && isChangeable ? "cfd-dl--selectable" : ""}`,
             onClick: isWorking && isChangeable ? () => toggleLine(line) : void 0
           },
-          /* @__PURE__ */ import_react12.default.createElement("td", { className: "cfd-ln" }, line.type !== "add" ? line.oldLine : ""),
-          /* @__PURE__ */ import_react12.default.createElement("td", { className: "cfd-ln" }, line.type !== "remove" ? line.newLine : ""),
-          /* @__PURE__ */ import_react12.default.createElement("td", { className: "cfd-lm" }, line.type === "add" ? "+" : line.type === "remove" ? "\u2212" : " "),
-          /* @__PURE__ */ import_react12.default.createElement("td", { className: "cfd-lc" }, /* @__PURE__ */ import_react12.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line.content, lang) } }))
+          /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-ln" }, line.type !== "add" ? line.oldLine : ""),
+          /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-ln" }, line.type !== "remove" ? line.newLine : ""),
+          /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-lm" }, line.type === "add" ? "+" : line.type === "remove" ? "\u2212" : " "),
+          /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-lc" }, /* @__PURE__ */ import_react13.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line.content, lang) } }))
         );
       }))));
     }))));
   }
 
-  // ../src/renderer/src/components/StagingEditor/StagingEditor.tsx
+  // src/renderer/src/components/StagingEditor/StagingEditor.tsx
   function StagingEditor({ file }) {
-    const [area, setArea] = (0, import_react13.useState)("unstaged");
-    return /* @__PURE__ */ import_react13.default.createElement(
+    const [area, setArea] = (0, import_react14.useState)("unstaged");
+    return /* @__PURE__ */ import_react14.default.createElement(
       CenterFileDiff,
       {
         target: { type: "working", filePath: file, area },
@@ -66202,8 +66682,8 @@ ${lineStrings.join("\n")}
     );
   }
 
-  // ../src/renderer/src/components/RebaseProgress/RebaseProgress.tsx
-  var import_react14 = __toESM(require_react());
+  // src/renderer/src/components/RebaseProgress/RebaseProgress.tsx
+  var import_react15 = __toESM(require_react());
   var api = new Proxy({}, { get: (_t, p) => window.gitAPI?.[p] });
   var EDITABLE_ACTIONS = ["pick", "reword", "edit", "squash", "fixup", "drop"];
   var SHORTCUT_KEYS = {
@@ -66228,16 +66708,16 @@ ${lineStrings.join("\n")}
   function RebaseProgress() {
     const toast = useToast();
     const { t: t2 } = useLang();
-    const [state, setState] = (0, import_react14.useState)(null);
-    const [busy, setBusy] = (0, import_react14.useState)(false);
-    const [todoEdits, setTodoEdits] = (0, import_react14.useState)([]);
-    const [groupMessages, setGroupMessages] = (0, import_react14.useState)({});
-    const [conflictFilter, setConflictFilter] = (0, import_react14.useState)("");
-    const dragIndex = (0, import_react14.useRef)(null);
-    const [dragOver, setDragOver] = (0, import_react14.useState)(null);
-    const conflictsRef = (0, import_react14.useRef)(null);
-    const sawRebase = (0, import_react14.useRef)(false);
-    const load = (0, import_react14.useCallback)(async () => {
+    const [state, setState] = (0, import_react15.useState)(null);
+    const [busy, setBusy] = (0, import_react15.useState)(false);
+    const [todoEdits, setTodoEdits] = (0, import_react15.useState)([]);
+    const [groupMessages, setGroupMessages] = (0, import_react15.useState)({});
+    const [conflictFilter, setConflictFilter] = (0, import_react15.useState)("");
+    const dragIndex = (0, import_react15.useRef)(null);
+    const [dragOver, setDragOver] = (0, import_react15.useState)(null);
+    const conflictsRef = (0, import_react15.useRef)(null);
+    const sawRebase = (0, import_react15.useRef)(false);
+    const load = (0, import_react15.useCallback)(async () => {
       try {
         const s = await api.getRebaseState();
         if (s?.inProgress)
@@ -66251,10 +66731,10 @@ ${lineStrings.join("\n")}
       } catch {
       }
     }, []);
-    (0, import_react14.useEffect)(() => {
+    (0, import_react15.useEffect)(() => {
       load();
     }, [load]);
-    (0, import_react14.useEffect)(() => {
+    (0, import_react15.useEffect)(() => {
       api.onRepoChanged(load);
       api.onWorkingChanged(load);
       return () => {
@@ -66262,17 +66742,17 @@ ${lineStrings.join("\n")}
         api.offWorkingChanged(load);
       };
     }, [load]);
-    const groups = (0, import_react14.useMemo)(() => computeMessageGroups(
+    const groups = (0, import_react15.useMemo)(() => computeMessageGroups(
       todoEdits.map((s) => ({ action: s.action, hash: s.hash, message: s.subject }))
     ), [todoEdits]);
-    const messageGroupByLastIndex = (0, import_react14.useMemo)(() => {
+    const messageGroupByLastIndex = (0, import_react15.useMemo)(() => {
       const map = /* @__PURE__ */ new Map();
       for (const g of groups)
         if (g.needsMessage)
           map.set(g.lastMemberIndex, g);
       return map;
     }, [groups]);
-    const run = (0, import_react14.useCallback)(async (label, op) => {
+    const run = (0, import_react15.useCallback)(async (label, op) => {
       setBusy(true);
       try {
         const r = await op();
@@ -66285,7 +66765,7 @@ ${lineStrings.join("\n")}
         await load();
       }
     }, [toast, load]);
-    const handleContinue = (0, import_react14.useCallback)(() => run(t2("rp.continued"), async () => {
+    const handleContinue = (0, import_react15.useCallback)(() => run(t2("rp.continued"), async () => {
       const needsMessageGroups = groups.filter((g) => g.needsMessage);
       for (const g of needsMessageGroups) {
         const msg = groupMessages[groupKey2(g)] ?? g.defaultMessage;
@@ -66301,14 +66781,14 @@ ${lineStrings.join("\n")}
       const messages = needsMessageGroups.map((g) => groupMessages[groupKey2(g)] ?? g.defaultMessage);
       return api.continueRebase(messages);
     }), [run, todoEdits, groups, groupMessages]);
-    const handleSkip = (0, import_react14.useCallback)(() => run(t2("rp.stepSkipped"), () => api.skipRebase()), [run]);
-    const handleAbort = (0, import_react14.useCallback)(async () => {
+    const handleSkip = (0, import_react15.useCallback)(() => run(t2("rp.stepSkipped"), () => api.skipRebase()), [run]);
+    const handleAbort = (0, import_react15.useCallback)(async () => {
       const confirmFn = api.uiConfirm ?? (async (m) => window.confirm(m));
       if (!await confirmFn(t2("rp.abortConfirm")))
         return;
       await run(t2("rp.aborted"), () => api.abortRebase());
     }, [run]);
-    (0, import_react14.useEffect)(() => {
+    (0, import_react15.useEffect)(() => {
       const onKeyDown = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
           e.preventDefault();
@@ -66319,13 +66799,13 @@ ${lineStrings.join("\n")}
       window.addEventListener("keydown", onKeyDown);
       return () => window.removeEventListener("keydown", onKeyDown);
     }, [busy, state, handleContinue]);
-    const handleOpenConflict = (0, import_react14.useCallback)((file) => {
+    const handleOpenConflict = (0, import_react15.useCallback)((file) => {
       if (api.openConflictResolver)
         api.openConflictResolver(file);
       else
         api.openConflict?.(file);
     }, []);
-    const scrollToConflicts = (0, import_react14.useCallback)(() => {
+    const scrollToConflicts = (0, import_react15.useCallback)(() => {
       conflictsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, []);
     const setTodoAction = (i, action) => {
@@ -66367,9 +66847,9 @@ ${lineStrings.join("\n")}
       setDragOver(null);
     };
     if (!state)
-      return /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-empty" }, t2("common.loading")));
+      return /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-empty" }, t2("common.loading")));
     if (!state.inProgress) {
-      return /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-finished" }, sawRebase.current ? /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-finished-icon rp-ok" }, "\u2713"), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-finished-title" }, t2("rp.finishedTitle")), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-finished-sub" }, t2("rp.finishedSub"))) : /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-finished-icon" }, "\u26A1"), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-finished-title" }, t2("rp.noneTitle")), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-finished-sub" }, t2("rp.noneSub")))));
+      return /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished" }, sawRebase.current ? /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-icon rp-ok" }, "\u2713"), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-title" }, t2("rp.finishedTitle")), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-sub" }, t2("rp.finishedSub"))) : /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-icon" }, "\u26A1"), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-title" }, t2("rp.noneTitle")), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-sub" }, t2("rp.noneSub")))));
     }
     const doneSettled = state.done.slice(0, -1);
     const current = state.done[state.done.length - 1] ?? null;
@@ -66379,18 +66859,18 @@ ${lineStrings.join("\n")}
     const renderReadOnlyStep = (s, key, status) => {
       const isConflicted = status === "current" && hasConflicts;
       const variant = isConflicted ? "conflict" : status;
-      return /* @__PURE__ */ import_react14.default.createElement("div", { key, className: `rp-step rp-step--${status} rp-step--${variant}` }, /* @__PURE__ */ import_react14.default.createElement("span", { className: `rp-step-dot rp-step-dot--${variant}` }), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-step-action", style: { color: ACTION_COLORS2[s.action] ?? "#8b949e" } }, s.action), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-step-subject" }, s.subject), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-step-spring" }), s.date && /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-step-date" }, s.date), s.shortHash && /* @__PURE__ */ import_react14.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", s.shortHash));
+      return /* @__PURE__ */ import_react15.default.createElement("div", { key, className: `rp-step rp-step--${status} rp-step--${variant}` }, /* @__PURE__ */ import_react15.default.createElement("span", { className: `rp-step-dot rp-step-dot--${variant}` }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-action", style: { color: ACTION_COLORS2[s.action] ?? "#8b949e" } }, s.action), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-subject" }, s.subject), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-spring" }), s.date && /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-date" }, s.date), s.shortHash && /* @__PURE__ */ import_react15.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", s.shortHash));
     };
-    return /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-title" }, t2("rp.title"))), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-header-refs" }, /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-ref-chip" }, /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-ref-icon" }, "\u2442"), state.headName || t2("rp.detachedHead")), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-ref-onto" }, "onto"), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-ref-chip rp-ref-chip--commit" }, /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-ref-icon" }, "\u25C8"), state.ontoShort), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-header-spring" }), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-counter" }, state.stepCurrent, "/", state.stepTotal, " commits"))), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-progressbar" }, /* @__PURE__ */ import_react14.default.createElement(
+    return /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-title" }, t2("rp.title"))), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header-refs" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-chip" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-icon" }, "\u2442"), state.headName || t2("rp.detachedHead")), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-onto" }, "onto"), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-chip rp-ref-chip--commit" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-icon" }, "\u25C8"), state.ontoShort), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-header-spring" }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-counter" }, state.stepCurrent, "/", state.stepTotal, " commits"))), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-progressbar" }, /* @__PURE__ */ import_react15.default.createElement(
       "div",
       {
         className: "rp-progressbar-fill",
         style: { width: `${state.stepTotal ? Math.round(state.stepCurrent / state.stepTotal * 100) : 0}%` }
       }
-    )), current && /* @__PURE__ */ import_react14.default.createElement("div", { className: `rp-banner ${hasConflicts ? "rp-banner--conflict" : ""}` }, /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-banner-icon" }, hasConflicts ? "\u26A0\uFE0F" : "\u23F8"), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-banner-text" }, hasConflicts ? /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, t2("rp.bannerConflictPre"), /* @__PURE__ */ import_react14.default.createElement("code", null, current.shortHash || state.stoppedSha?.slice(0, 7))) : /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, t2("rp.bannerStoppedPre"), /* @__PURE__ */ import_react14.default.createElement("code", null, current.shortHash || state.stoppedSha?.slice(0, 7)), " \u2014 ", pauseReason)), hasConflicts && /* @__PURE__ */ import_react14.default.createElement("button", { className: "rp-banner-link", onClick: scrollToConflicts }, t2("rp.showConflicts")), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-banner-spring" }), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-banner-count" }, "(", state.stepCurrent, "/", state.stepTotal, ") ", t2("rp.remaining", state.conflicts.length))), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-steps" }, doneSettled.map((s, i) => renderReadOnlyStep(s, `d${i}`, "done")), current && renderReadOnlyStep(current, "current", "current"), todoEdits.map((s, i) => {
+    )), current && /* @__PURE__ */ import_react15.default.createElement("div", { className: `rp-banner ${hasConflicts ? "rp-banner--conflict" : ""}` }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-icon" }, hasConflicts ? "\u26A0\uFE0F" : "\u23F8"), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-text" }, hasConflicts ? /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, t2("rp.bannerConflictPre"), /* @__PURE__ */ import_react15.default.createElement("code", null, current.shortHash || state.stoppedSha?.slice(0, 7))) : /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, t2("rp.bannerStoppedPre"), /* @__PURE__ */ import_react15.default.createElement("code", null, current.shortHash || state.stoppedSha?.slice(0, 7)), " \u2014 ", pauseReason)), hasConflicts && /* @__PURE__ */ import_react15.default.createElement("button", { className: "rp-banner-link", onClick: scrollToConflicts }, t2("rp.showConflicts")), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-spring" }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-count" }, "(", state.stepCurrent, "/", state.stepTotal, ") ", t2("rp.remaining", state.conflicts.length))), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-steps" }, doneSettled.map((s, i) => renderReadOnlyStep(s, `d${i}`, "done")), current && renderReadOnlyStep(current, "current", "current"), todoEdits.map((s, i) => {
       const msgGroup = messageGroupByLastIndex.get(i);
       const key = msgGroup ? groupKey2(msgGroup) : "";
-      return /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, { key: s.hash || `t${i}` }, /* @__PURE__ */ import_react14.default.createElement(
+      return /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, { key: s.hash || `t${i}` }, /* @__PURE__ */ import_react15.default.createElement(
         "div",
         {
           className: `rp-step rp-step--editable ${dragOver === i ? "drag-over" : ""}`,
@@ -66402,8 +66882,8 @@ ${lineStrings.join("\n")}
           onDragEnd: () => setDragOver(null),
           onKeyDown: (e) => handleRowKeyDown(e, i)
         },
-        /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-step-drag", title: t2("rp.dragTitle") }, "\u283F"),
-        s.hash ? /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, /* @__PURE__ */ import_react14.default.createElement(
+        /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-drag", title: t2("rp.dragTitle") }, "\u283F"),
+        s.hash ? /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement(
           "select",
           {
             className: "rp-step-select",
@@ -66411,9 +66891,9 @@ ${lineStrings.join("\n")}
             onChange: (e) => setTodoAction(i, e.target.value),
             style: { color: ACTION_COLORS2[s.action] ?? "#e6edf3" }
           },
-          EDITABLE_ACTIONS.map((a) => /* @__PURE__ */ import_react14.default.createElement("option", { key: a, value: a }, a))
-        ), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-step-subject" }, s.subject), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-step-spring" }), s.date && /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-step-date" }, s.date), /* @__PURE__ */ import_react14.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", s.shortHash)) : /* @__PURE__ */ import_react14.default.createElement("code", { className: "rp-step-directive" }, s.action, s.subject ? ` ${s.subject}` : "")
-      ), msgGroup && /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-msg-editor" }, /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-msg-editor-label" }, t2("rp.finalMessage", msgGroup.memberIndexes.length)), /* @__PURE__ */ import_react14.default.createElement(
+          EDITABLE_ACTIONS.map((a) => /* @__PURE__ */ import_react15.default.createElement("option", { key: a, value: a }, a))
+        ), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-subject" }, s.subject), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-spring" }), s.date && /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-date" }, s.date), /* @__PURE__ */ import_react15.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", s.shortHash)) : /* @__PURE__ */ import_react15.default.createElement("code", { className: "rp-step-directive" }, s.action, s.subject ? ` ${s.subject}` : "")
+      ), msgGroup && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-msg-editor" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-msg-editor-label" }, t2("rp.finalMessage", msgGroup.memberIndexes.length)), /* @__PURE__ */ import_react15.default.createElement(
         "textarea",
         {
           className: "rp-msg-textarea",
@@ -66423,7 +66903,7 @@ ${lineStrings.join("\n")}
           spellCheck: false
         }
       )));
-    }), state.done.length === 0 && state.todo.length === 0 && /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-empty" }, t2("rp.nonInteractive", state.stepCurrent, state.stepTotal))), hasConflicts && /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-conflicts-section", ref: conflictsRef }, /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-conflicts-header" }, /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-conflicts-title" }, t2("rp.conflictCount", state.conflicts.length))), /* @__PURE__ */ import_react14.default.createElement(
+    }), state.done.length === 0 && state.todo.length === 0 && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-empty" }, t2("rp.nonInteractive", state.stepCurrent, state.stepTotal))), hasConflicts && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-conflicts-section", ref: conflictsRef }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-conflicts-header" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflicts-title" }, t2("rp.conflictCount", state.conflicts.length))), /* @__PURE__ */ import_react15.default.createElement(
       "input",
       {
         className: "rp-conflicts-filter",
@@ -66431,7 +66911,7 @@ ${lineStrings.join("\n")}
         value: conflictFilter,
         onChange: (e) => setConflictFilter(e.target.value)
       }
-    ), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-conflicts-list" }, filteredConflicts.map((f) => /* @__PURE__ */ import_react14.default.createElement("button", { key: f, className: "rp-conflict-file", title: t2("rp.openToResolve"), onClick: () => handleOpenConflict(f) }, /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-conflict-badge" }, "!"), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-conflict-path" }, f), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-conflict-spring" }), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-conflict-status" }, "UU"))), filteredConflicts.length === 0 && /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-empty", style: { padding: "12px 18px" } }, t2("rp.noMatch")))), todoEdits.some((s) => s.hash) && /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-legend" }, /* @__PURE__ */ import_react14.default.createElement("kbd", null, "p"), "ick \xB7 ", /* @__PURE__ */ import_react14.default.createElement("kbd", null, "r"), "eword \xB7 ", /* @__PURE__ */ import_react14.default.createElement("kbd", null, "e"), "dit \xB7 ", /* @__PURE__ */ import_react14.default.createElement("kbd", null, "s"), "quash \xB7 ", /* @__PURE__ */ import_react14.default.createElement("kbd", null, "f"), "ixup \xB7 ", /* @__PURE__ */ import_react14.default.createElement("kbd", null, "d"), "rop \xB7 ", /* @__PURE__ */ import_react14.default.createElement("kbd", null, "alt"), "+", /* @__PURE__ */ import_react14.default.createElement("kbd", null, "\u2191\u2193"), " ", t2("rp.legendMove")), /* @__PURE__ */ import_react14.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react14.default.createElement("button", { className: "rp-btn rp-btn--abort", disabled: busy, onClick: handleAbort }, t2("rp.abort")), /* @__PURE__ */ import_react14.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react14.default.createElement("button", { className: "rp-btn", disabled: busy, onClick: handleSkip, title: t2("rp.skipTitle") }, t2("rp.skip")), /* @__PURE__ */ import_react14.default.createElement(
+    ), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-conflicts-list" }, filteredConflicts.map((f) => /* @__PURE__ */ import_react15.default.createElement("button", { key: f, className: "rp-conflict-file", title: t2("rp.openToResolve"), onClick: () => handleOpenConflict(f) }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflict-badge" }, "!"), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflict-path" }, f), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflict-spring" }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflict-status" }, "UU"))), filteredConflicts.length === 0 && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-empty", style: { padding: "12px 18px" } }, t2("rp.noMatch")))), todoEdits.some((s) => s.hash) && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-legend" }, /* @__PURE__ */ import_react15.default.createElement("kbd", null, "p"), "ick \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "r"), "eword \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "e"), "dit \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "s"), "quash \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "f"), "ixup \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "d"), "rop \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "alt"), "+", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "\u2191\u2193"), " ", t2("rp.legendMove")), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react15.default.createElement("button", { className: "rp-btn rp-btn--abort", disabled: busy, onClick: handleAbort }, t2("rp.abort")), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react15.default.createElement("button", { className: "rp-btn", disabled: busy, onClick: handleSkip, title: t2("rp.skipTitle") }, t2("rp.skip")), /* @__PURE__ */ import_react15.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn--continue",
@@ -66443,8 +66923,8 @@ ${lineStrings.join("\n")}
     )));
   }
 
-  // src/webview/RebaseTodoApp.tsx
-  var import_react15 = __toESM(require_react());
+  // vscode-extension/src/webview/RebaseTodoApp.tsx
+  var import_react16 = __toESM(require_react());
   var ACTIONS2 = ["pick", "reword", "edit", "squash", "fixup", "drop"];
   var SHORTCUT_KEYS2 = {
     p: "pick",
@@ -66509,14 +66989,14 @@ ${lineStrings.join("\n")}
   }
   function RebaseTodoApp() {
     const { t: t2 } = useLang();
-    const [entries, setEntries] = (0, import_react15.useState)([]);
-    const [loading, setLoading] = (0, import_react15.useState)(true);
-    const [error, setError] = (0, import_react15.useState)(null);
-    const [headName, setHeadName] = (0, import_react15.useState)("");
-    const [ontoShort, setOntoShort] = (0, import_react15.useState)("");
-    const dragIndex = (0, import_react15.useRef)(null);
-    const [dragOver, setDragOver] = (0, import_react15.useState)(null);
-    (0, import_react15.useEffect)(() => {
+    const [entries, setEntries] = (0, import_react16.useState)([]);
+    const [loading, setLoading] = (0, import_react16.useState)(true);
+    const [error, setError] = (0, import_react16.useState)(null);
+    const [headName, setHeadName] = (0, import_react16.useState)("");
+    const [ontoShort, setOntoShort] = (0, import_react16.useState)("");
+    const dragIndex = (0, import_react16.useRef)(null);
+    const [dragOver, setDragOver] = (0, import_react16.useState)(null);
+    (0, import_react16.useEffect)(() => {
       window.gitAPI.todoGet().then((r) => {
         setEntries(parseTodo(r?.text ?? ""));
         setLoading(false);
@@ -66576,7 +67056,7 @@ ${lineStrings.join("\n")}
     };
     const commits = entries.filter((e) => e.kind === "commit");
     const firstKeptIndex = entries.findIndex((e) => e.kind === "commit" && e.action !== "drop");
-    const handleLaunch = (0, import_react15.useCallback)(async () => {
+    const handleLaunch = (0, import_react16.useCallback)(async () => {
       const firstKept = entries.find((e) => e.kind === "commit" && e.action !== "drop");
       if (firstKept && (firstKept.action === "squash" || firstKept.action === "fixup")) {
         setError(t2("ir.firstKept"));
@@ -66585,12 +67065,12 @@ ${lineStrings.join("\n")}
       setError(null);
       await window.gitAPI.todoSave(serializeTodo(entries));
     }, [entries]);
-    const handleAbort = (0, import_react15.useCallback)(async () => {
+    const handleAbort = (0, import_react16.useCallback)(async () => {
       const ok = await window.gitAPI.uiConfirm("Abandonner le rebase interactif ?");
       if (ok)
         await window.gitAPI.todoAbort();
     }, []);
-    return /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-title" }, "\u26A1 Rebase interactif")), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header-refs" }, headName && /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-chip" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-icon" }, "\u2442"), headName), headName && ontoShort && /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-onto" }, "onto"), ontoShort && /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-chip rp-ref-chip--commit" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-icon" }, "\u25C8"), ontoShort), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-header-spring" }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-counter" }, commits.length, " commit", commits.length > 1 ? "s" : ""))), error && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-banner rp-banner--conflict" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-text" }, error)), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-steps" }, loading && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-empty" }, t2("ext.rebase.empty")), entries.map((entry, i) => /* @__PURE__ */ import_react15.default.createElement(
+    return /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-title" }, "\u26A1 Rebase interactif")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header-refs" }, headName && /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-chip" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-icon" }, "\u2442"), headName), headName && ontoShort && /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-onto" }, "onto"), ontoShort && /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-chip rp-ref-chip--commit" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-icon" }, "\u25C8"), ontoShort), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-header-spring" }), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-counter" }, commits.length, " commit", commits.length > 1 ? "s" : ""))), error && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-banner rp-banner--conflict" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-banner-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-banner-text" }, error)), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-steps" }, loading && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-empty" }, t2("ext.rebase.empty")), entries.map((entry, i) => /* @__PURE__ */ import_react16.default.createElement(
       "div",
       {
         key: entry.id,
@@ -66603,8 +67083,8 @@ ${lineStrings.join("\n")}
         onDragEnd: () => setDragOver(null),
         onKeyDown: (e) => handleRowKeyDown(e, i)
       },
-      /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-drag", title: t2("ext.rebase.drag") }, "\u283F"),
-      entry.kind === "commit" ? /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement(
+      /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-drag", title: t2("ext.rebase.drag") }, "\u283F"),
+      entry.kind === "commit" ? /* @__PURE__ */ import_react16.default.createElement(import_react16.default.Fragment, null, /* @__PURE__ */ import_react16.default.createElement(
         "select",
         {
           className: "rp-step-select",
@@ -66612,7 +67092,7 @@ ${lineStrings.join("\n")}
           onChange: (e) => setAction(i, e.target.value),
           style: { color: ACTION_COLORS3[entry.action] ?? "#e6edf3" }
         },
-        ACTIONS2.map((a) => /* @__PURE__ */ import_react15.default.createElement(
+        ACTIONS2.map((a) => /* @__PURE__ */ import_react16.default.createElement(
           "option",
           {
             key: a,
@@ -66621,12 +67101,12 @@ ${lineStrings.join("\n")}
           },
           a
         ))
-      ), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-subject" }, entry.rest.replace(/^#\s*/, "")), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-spring" }), /* @__PURE__ */ import_react15.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", entry.shortHash)) : /* @__PURE__ */ import_react15.default.createElement("code", { className: "rp-step-directive" }, entry.raw)
-    ))), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-legend" }, t2("ext.rebase.help")), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react15.default.createElement("button", { className: "rp-btn rp-btn--abort", onClick: handleAbort }, "Abandonner"), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react15.default.createElement("button", { className: "rp-btn rp-btn--continue", onClick: handleLaunch, disabled: loading || entries.length === 0 }, "\u26A1 Lancer le rebase")));
+      ), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-subject" }, entry.rest.replace(/^#\s*/, "")), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-spring" }), /* @__PURE__ */ import_react16.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", entry.shortHash)) : /* @__PURE__ */ import_react16.default.createElement("code", { className: "rp-step-directive" }, entry.raw)
+    ))), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-legend" }, t2("ext.rebase.help")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react16.default.createElement("button", { className: "rp-btn rp-btn--abort", onClick: handleAbort }, "Abandonner"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react16.default.createElement("button", { className: "rp-btn rp-btn--continue", onClick: handleLaunch, disabled: loading || entries.length === 0 }, "\u26A1 Lancer le rebase")));
   }
 
-  // ../src/renderer/src/components/ConflictResolver/ConflictResolver.tsx
-  var import_react16 = __toESM(require_react());
+  // src/renderer/src/components/ConflictResolver/ConflictResolver.tsx
+  var import_react17 = __toESM(require_react());
   function matchesAt(propLines, pos, candidate) {
     if (pos + candidate.length > propLines.length)
       return false;
@@ -66677,15 +67157,15 @@ ${lineStrings.join("\n")}
   }
   function ConflictResolver({ file, initialProposal, onFinish, onAbort, showToast }) {
     const { t: t2 } = useLang();
-    const [chunks, setChunks] = (0, import_react16.useState)([]);
-    const [selections, setSelections] = (0, import_react16.useState)({});
-    const [manualOutput, setManualOutput] = (0, import_react16.useState)(null);
-    const [loading, setLoading] = (0, import_react16.useState)(true);
-    const [aiInstruction, setAiInstruction] = (0, import_react16.useState)("");
-    const [aiBusy, setAiBusy] = (0, import_react16.useState)(false);
-    const [aiExplanation, setAiExplanation] = (0, import_react16.useState)(null);
-    const [sides, setSides] = (0, import_react16.useState)(null);
-    (0, import_react16.useEffect)(() => {
+    const [chunks, setChunks] = (0, import_react17.useState)([]);
+    const [selections, setSelections] = (0, import_react17.useState)({});
+    const [manualOutput, setManualOutput] = (0, import_react17.useState)(null);
+    const [loading, setLoading] = (0, import_react17.useState)(true);
+    const [aiInstruction, setAiInstruction] = (0, import_react17.useState)("");
+    const [aiBusy, setAiBusy] = (0, import_react17.useState)(false);
+    const [aiExplanation, setAiExplanation] = (0, import_react17.useState)(null);
+    const [sides, setSides] = (0, import_react17.useState)(null);
+    (0, import_react17.useEffect)(() => {
       ;
       window.gitAPI.getConflictSides?.().then((s) => {
         if (s?.ours || s?.theirs)
@@ -66710,12 +67190,12 @@ ${lineStrings.join("\n")}
         setAiBusy(false);
       }
     };
-    const oursRef = import_react16.default.useRef(null);
-    const theirsRef = import_react16.default.useRef(null);
-    const isSyncing = import_react16.default.useRef(false);
-    const loadedRawRef = import_react16.default.useRef(null);
-    const userEditedRef = import_react16.default.useRef(false);
-    const load = import_react16.default.useCallback((applyProposal) => {
+    const oursRef = import_react17.default.useRef(null);
+    const theirsRef = import_react17.default.useRef(null);
+    const isSyncing = import_react17.default.useRef(false);
+    const loadedRawRef = import_react17.default.useRef(null);
+    const userEditedRef = import_react17.default.useRef(false);
+    const load = import_react17.default.useCallback((applyProposal) => {
       setLoading(true);
       setManualOutput(null);
       Promise.all([
@@ -66829,11 +67309,11 @@ ${lineStrings.join("\n")}
         setLoading(false);
       });
     }, [file, initialProposal]);
-    (0, import_react16.useEffect)(() => {
+    (0, import_react17.useEffect)(() => {
       userEditedRef.current = false;
       load(true);
     }, [load]);
-    (0, import_react16.useEffect)(() => {
+    (0, import_react17.useEffect)(() => {
       const handler = async () => {
         const r = await window.gitAPI.getFileContent(file);
         if (r.error)
@@ -66863,7 +67343,7 @@ ${lineStrings.join("\n")}
         window.gitAPI.offRepoChanged(handler);
       };
     }, [file, load, showToast]);
-    const conflictIndexMap = (0, import_react16.useMemo)(() => {
+    const conflictIndexMap = (0, import_react17.useMemo)(() => {
       const map = {};
       let idx = 0;
       chunks.forEach((c) => {
@@ -66872,7 +67352,7 @@ ${lineStrings.join("\n")}
       });
       return map;
     }, [chunks]);
-    const outputLines = (0, import_react16.useMemo)(() => {
+    const outputLines = (0, import_react17.useMemo)(() => {
       const out = [];
       for (const c of chunks) {
         if (c.type === "common") {
@@ -66893,7 +67373,7 @@ ${lineStrings.join("\n")}
         out.pop();
       return out;
     }, [chunks, selections]);
-    const outputString = (0, import_react16.useMemo)(() => outputLines.map((l) => l.text).join("\n"), [outputLines]);
+    const outputString = (0, import_react17.useMemo)(() => outputLines.map((l) => l.text).join("\n"), [outputLines]);
     const currentOutput = manualOutput !== null ? manualOutput : outputString;
     const toggleLine = (chunkId, side, index) => {
       userEditedRef.current = true;
@@ -66988,10 +67468,10 @@ ${lineStrings.join("\n")}
         isSyncing.current = false;
       });
     };
-    const renderLines = (lines, startNum) => lines.map((l, i) => /* @__PURE__ */ import_react16.default.createElement("div", { key: i, className: "mt-line" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-line-num" }, startNum + i), /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-line-content" }, l)));
+    const renderLines = (lines, startNum) => lines.map((l, i) => /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: "mt-line" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-num" }, startNum + i), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-content" }, l)));
     const renderConflictLines = (lines, startNum, chunkId, side) => lines.map((l, i) => {
       const isIn = (selections[chunkId] ?? []).some((r) => r.side === side && r.index === i);
-      return /* @__PURE__ */ import_react16.default.createElement("div", { key: i, className: `mt-line mt-line-interactive${isIn ? " mt-line-in-output" : ""}` }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-line-num" }, startNum + i, /* @__PURE__ */ import_react16.default.createElement(
+      return /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: `mt-line mt-line-interactive${isIn ? " mt-line-in-output" : ""}` }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-num" }, startNum + i, /* @__PURE__ */ import_react17.default.createElement(
         "button",
         {
           className: `mt-line-action ${isIn ? "mt-line-action-remove" : "mt-line-action-add"}`,
@@ -67002,10 +67482,10 @@ ${lineStrings.join("\n")}
           }
         },
         isIn ? "\u2212" : "+"
-      )), /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-line-content" }, l));
+      )), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-content" }, l));
     });
     if (loading)
-      return /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-container" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-loading" }, "Chargement\u2026"));
+      return /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-container" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-loading" }, "Chargement\u2026"));
     const conflictChunks = chunks.filter((c) => c.type === "conflict");
     const resolvedCount = conflictChunks.filter((c) => (selections[c.id] ?? []).length > 0 || c.base.length > 0).length;
     const totalConflicts = conflictChunks.length;
@@ -67014,9 +67494,9 @@ ${lineStrings.join("\n")}
     const renderPanel = (side) => {
       const ref = side === "ours" ? oursRef : theirsRef;
       const isOurs = side === "ours";
-      return /* @__PURE__ */ import_react16.default.createElement("div", { className: `mt-pane ${isOurs ? "mt-ours-pane" : "mt-theirs-pane"}` }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-pane-header" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: `mt-badge ${isOurs ? "mt-badge-ours" : "mt-badge-theirs"}` }, isOurs ? "A" : "B"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-pane-title", title: isOurs ? sides?.ours || oursGlobalName : sides?.theirs || theirsGlobalName }, isOurs ? sides?.ours || t2("cr.ours", oursGlobalName) : sides?.theirs || t2("cr.theirs", theirsGlobalName))), /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-pane-content", ref, onScroll: () => handleScroll(side) }, chunks.map((c, i) => {
+      return /* @__PURE__ */ import_react17.default.createElement("div", { className: `mt-pane ${isOurs ? "mt-ours-pane" : "mt-theirs-pane"}` }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-pane-header" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: `mt-badge ${isOurs ? "mt-badge-ours" : "mt-badge-theirs"}` }, isOurs ? "A" : "B"), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-pane-title", title: isOurs ? sides?.ours || oursGlobalName : sides?.theirs || theirsGlobalName }, isOurs ? sides?.ours || t2("cr.ours", oursGlobalName) : sides?.theirs || t2("cr.theirs", theirsGlobalName))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-pane-content", ref, onScroll: () => handleScroll(side) }, chunks.map((c, i) => {
         if (c.type === "common") {
-          return /* @__PURE__ */ import_react16.default.createElement("div", { key: i, className: "mt-block-common" }, renderLines(c.lines, isOurs ? c.oursStartLine : c.theirsStartLine));
+          return /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: "mt-block-common" }, renderLines(c.lines, isOurs ? c.oursStartLine : c.theirsStartLine));
         }
         const maxLines = Math.max(c.ours.length, c.theirs.length, c.base.length);
         const sel = selections[c.id] ?? [];
@@ -67025,32 +67505,32 @@ ${lineStrings.join("\n")}
         const allIn = conflictLines.length > 0 && conflictLines.every((_, i2) => sel.some((r) => r.side === thisSide && r.index === i2));
         const noneSelected = sel.length === 0;
         const startLine = isOurs ? c.oursStartLine : c.theirsStartLine;
-        return /* @__PURE__ */ import_react16.default.createElement(
+        return /* @__PURE__ */ import_react17.default.createElement(
           "div",
           {
             key: i,
             className: `mt-block-conflict ${isOurs ? "mt-block-ours" : "mt-block-theirs"} ${allIn ? "selected" : ""}`,
             style: { minHeight: `${maxLines * 20 + 26}px` }
           },
-          /* @__PURE__ */ import_react16.default.createElement(
+          /* @__PURE__ */ import_react17.default.createElement(
             "div",
             {
               className: "mt-block-header",
               onClick: () => toggleBlock(c.id, side),
               style: { cursor: "pointer" }
             },
-            /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-conflict-num" }, "#", conflictIndexMap[c.id]),
-            sel.some((r) => r.side === thisSide) ? /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-selected-badge" }, t2("cr.linesBadge", sel.filter((r) => r.side === thisSide).length, conflictLines.length)) : noneSelected && c.base.length > 0 ? /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-base-hint" }, t2("cr.baseActive")) : /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-click-hint" }, t2("cr.clickHeader"))
+            /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-conflict-num" }, "#", conflictIndexMap[c.id]),
+            sel.some((r) => r.side === thisSide) ? /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-selected-badge" }, t2("cr.linesBadge", sel.filter((r) => r.side === thisSide).length, conflictLines.length)) : noneSelected && c.base.length > 0 ? /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-base-hint" }, t2("cr.baseActive")) : /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-click-hint" }, t2("cr.clickHeader"))
           ),
-          /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-block-text" }, renderConflictLines(conflictLines, startLine, c.id, side))
+          /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-block-text" }, renderConflictLines(conflictLines, startLine, c.id, side))
         );
       })));
     };
-    return /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-container" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-header" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-header-left" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-filename" }, file), /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-count" }, "(", totalConflicts, " conflict", totalConflicts > 1 ? "s" : "", ")")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-header-right" }, /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-btn mt-btn-all-a", onClick: () => selectAll("ours"), title: t2("cr.selectAllA") }, t2("cr.allA")), /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-btn mt-btn-all-b", onClick: () => selectAll("theirs"), title: t2("cr.selectAllB") }, t2("cr.allB")), /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-btn", onClick: async () => {
+    return /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-container" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-header" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-header-left" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-filename" }, file), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-count" }, "(", totalConflicts, " conflict", totalConflicts > 1 ? "s" : "", ")")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-header-right" }, /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-all-a", onClick: () => selectAll("ours"), title: t2("cr.selectAllA") }, t2("cr.allA")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-all-b", onClick: () => selectAll("theirs"), title: t2("cr.selectAllB") }, t2("cr.allB")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn", onClick: async () => {
       const r = await window.gitAPI.openInEditor(file);
       if (!r.success)
         showToast(t2("toast.err", r.error ?? t2("cr.editorNotFound")), "err");
-    }, title: t2("cr.openExternalTitle") }, t2("cr.externalEditor")), /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-btn mt-btn-abort", onClick: onAbort }, t2("cr.close")), /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-btn mt-btn-save", onClick: handleSave }, t2("cr.saveResolve")))), /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-ai-bar" }, /* @__PURE__ */ import_react16.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor", className: "mt-ai-icon" }, /* @__PURE__ */ import_react16.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })), /* @__PURE__ */ import_react16.default.createElement(
+    }, title: t2("cr.openExternalTitle") }, t2("cr.externalEditor")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-abort", onClick: onAbort }, t2("cr.close")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-save", onClick: handleSave }, t2("cr.saveResolve")))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-ai-bar" }, /* @__PURE__ */ import_react17.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor", className: "mt-ai-icon" }, /* @__PURE__ */ import_react17.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })), /* @__PURE__ */ import_react17.default.createElement(
       "input",
       {
         className: "mt-ai-input",
@@ -67064,7 +67544,7 @@ ${lineStrings.join("\n")}
         },
         disabled: aiBusy
       }
-    ), /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-btn mt-btn-ai", onClick: runAiResolve, disabled: aiBusy }, aiBusy ? t2("cr.aiBusy") : manualOutput !== null ? t2("cr.aiRetry") : t2("cr.aiResolve"))), aiExplanation && /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-ai-explain" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-ai-explain-text" }, "\u{1F4AC} ", aiExplanation), /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-ai-explain-close", onClick: () => setAiExplanation(null) }, "\u2715")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-main" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-top" }, renderPanel("ours"), renderPanel("theirs")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-bottom" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-pane-header" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-pane-title" }, t2("cr.outputTitle", resolvedCount, totalConflicts)), manualOutput !== null ? /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-manual-badge" }, t2("cr.manualActive")) : /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(outputString) }, t2("cr.edit")), manualOutput !== null && /* @__PURE__ */ import_react16.default.createElement("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(null) }, t2("cr.cancelEdit"))), /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-output-wrapper" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-output-line-numbers" }, (manualOutput !== null ? manualOutput.split("\n") : outputLines).map((_, i) => /* @__PURE__ */ import_react16.default.createElement("div", { key: i, className: "mt-line-num" }, i + 1))), manualOutput !== null ? /* @__PURE__ */ import_react16.default.createElement(
+    ), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-ai", onClick: runAiResolve, disabled: aiBusy }, aiBusy ? t2("cr.aiBusy") : manualOutput !== null ? t2("cr.aiRetry") : t2("cr.aiResolve"))), aiExplanation && /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-ai-explain" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-ai-explain-text" }, "\u{1F4AC} ", aiExplanation), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-ai-explain-close", onClick: () => setAiExplanation(null) }, "\u2715")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-main" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-top" }, renderPanel("ours"), renderPanel("theirs")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-bottom" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-pane-header" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-pane-title" }, t2("cr.outputTitle", resolvedCount, totalConflicts)), manualOutput !== null ? /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-manual-badge" }, t2("cr.manualActive")) : /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(outputString) }, t2("cr.edit")), manualOutput !== null && /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(null) }, t2("cr.cancelEdit"))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-output-wrapper" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-output-line-numbers" }, (manualOutput !== null ? manualOutput.split("\n") : outputLines).map((_, i) => /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: "mt-line-num" }, i + 1))), manualOutput !== null ? /* @__PURE__ */ import_react17.default.createElement(
       "textarea",
       {
         className: "mt-output-editor",
@@ -67077,14 +67557,14 @@ ${lineStrings.join("\n")}
         wrap: "off",
         autoFocus: true
       }
-    ) : /* @__PURE__ */ import_react16.default.createElement("div", { className: "mt-output-lines" }, outputLines.map((l, i) => /* @__PURE__ */ import_react16.default.createElement("div", { key: i, className: `mt-line mt-output-line mt-output-line--${l.source}` }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "mt-line-content" }, l.text || " "))))))));
+    ) : /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-output-lines" }, outputLines.map((l, i) => /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: `mt-line mt-output-line mt-output-line--${l.source}` }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-content" }, l.text || " "))))))));
   }
 
-  // ../src/renderer/src/components/FileHistory/FileHistory.tsx
-  var import_react18 = __toESM(require_react());
+  // src/renderer/src/components/FileHistory/FileHistory.tsx
+  var import_react19 = __toESM(require_react());
 
-  // ../src/renderer/src/components/DiffViewer/DiffViewer.tsx
-  var import_react17 = __toESM(require_react());
+  // src/renderer/src/components/DiffViewer/DiffViewer.tsx
+  var import_react18 = __toESM(require_react());
   function parseDiff2(raw) {
     const files = [];
     const fileBlocks = raw.split(/^diff --git /m).filter(Boolean);
@@ -67195,10 +67675,10 @@ ${lineStrings.join("\n")}
   function FileList({ files }) {
     if (!files.length)
       return null;
-    return /* @__PURE__ */ import_react17.default.createElement("div", { className: "file-list" }, files.map((f, i) => /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: "file-item" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: `file-status status-${f.status.toLowerCase()}` }, f.status), /* @__PURE__ */ import_react17.default.createElement("span", { className: "file-path" }, f.path), /* @__PURE__ */ import_react17.default.createElement("span", { className: "file-stats" }, f.additions > 0 && /* @__PURE__ */ import_react17.default.createElement("span", { className: "add-count" }, "+", f.additions), f.deletions > 0 && /* @__PURE__ */ import_react17.default.createElement("span", { className: "del-count" }, "-", f.deletions)))));
+    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "file-list" }, files.map((f, i) => /* @__PURE__ */ import_react18.default.createElement("div", { key: i, className: "file-item" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: `file-status status-${f.status.toLowerCase()}` }, f.status), /* @__PURE__ */ import_react18.default.createElement("span", { className: "file-path" }, f.path), /* @__PURE__ */ import_react18.default.createElement("span", { className: "file-stats" }, f.additions > 0 && /* @__PURE__ */ import_react18.default.createElement("span", { className: "add-count" }, "+", f.additions), f.deletions > 0 && /* @__PURE__ */ import_react18.default.createElement("span", { className: "del-count" }, "-", f.deletions)))));
   }
   function UnifiedHunk({ hunk, lang }) {
-    return /* @__PURE__ */ import_react17.default.createElement("div", { className: "hunk" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "hunk-header" }, hunk.header), /* @__PURE__ */ import_react17.default.createElement("table", { className: "diff-table" }, /* @__PURE__ */ import_react17.default.createElement("tbody", null, hunk.lines.map((line, li) => /* @__PURE__ */ import_react17.default.createElement("tr", { key: li, className: `diff-line diff-${line.type}` }, /* @__PURE__ */ import_react17.default.createElement("td", { className: "line-num old" }, line.type !== "add" ? line.oldLine : ""), /* @__PURE__ */ import_react17.default.createElement("td", { className: "line-num new" }, line.type !== "remove" ? line.newLine : ""), /* @__PURE__ */ import_react17.default.createElement("td", { className: "line-marker" }, line.type === "add" ? "+" : line.type === "remove" ? "\u2212" : " "), /* @__PURE__ */ import_react17.default.createElement("td", { className: "line-content" }, /* @__PURE__ */ import_react17.default.createElement(
+    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "hunk" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "hunk-header" }, hunk.header), /* @__PURE__ */ import_react18.default.createElement("table", { className: "diff-table" }, /* @__PURE__ */ import_react18.default.createElement("tbody", null, hunk.lines.map((line, li) => /* @__PURE__ */ import_react18.default.createElement("tr", { key: li, className: `diff-line diff-${line.type}` }, /* @__PURE__ */ import_react18.default.createElement("td", { className: "line-num old" }, line.type !== "add" ? line.oldLine : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: "line-num new" }, line.type !== "remove" ? line.newLine : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: "line-marker" }, line.type === "add" ? "+" : line.type === "remove" ? "\u2212" : " "), /* @__PURE__ */ import_react18.default.createElement("td", { className: "line-content" }, /* @__PURE__ */ import_react18.default.createElement(
       "code",
       {
         className: "hljs",
@@ -67207,21 +67687,21 @@ ${lineStrings.join("\n")}
     )))))));
   }
   function SplitHunk({ hunk, lang }) {
-    const rows = (0, import_react17.useMemo)(() => buildSplitRows(hunk.lines), [hunk.lines]);
-    return /* @__PURE__ */ import_react17.default.createElement("div", { className: "hunk" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "hunk-header split-hunk-header" }, hunk.header), /* @__PURE__ */ import_react17.default.createElement("table", { className: "diff-table split-table" }, /* @__PURE__ */ import_react17.default.createElement("tbody", null, rows.map((row, ri) => {
+    const rows = (0, import_react18.useMemo)(() => buildSplitRows(hunk.lines), [hunk.lines]);
+    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "hunk" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "hunk-header split-hunk-header" }, hunk.header), /* @__PURE__ */ import_react18.default.createElement("table", { className: "diff-table split-table" }, /* @__PURE__ */ import_react18.default.createElement("tbody", null, rows.map((row, ri) => {
       const leftType = row.left?.type ?? "empty";
       const rightType = row.right?.type ?? "empty";
-      return /* @__PURE__ */ import_react17.default.createElement("tr", { key: ri, className: "split-row" }, /* @__PURE__ */ import_react17.default.createElement("td", { className: `line-num old split-num ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left?.type !== "add" ? row.left?.oldLine ?? "" : ""), /* @__PURE__ */ import_react17.default.createElement("td", { className: `line-marker split-marker ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left ? row.left.type === "remove" ? "\u2212" : " " : ""), /* @__PURE__ */ import_react17.default.createElement("td", { className: `line-content split-content ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left ? /* @__PURE__ */ import_react17.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: highlightCode(row.left.content, lang) } }) : null), /* @__PURE__ */ import_react17.default.createElement("td", { className: `line-num new split-num ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right?.type !== "remove" ? row.right?.newLine ?? "" : ""), /* @__PURE__ */ import_react17.default.createElement("td", { className: `line-marker split-marker ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right ? row.right.type === "add" ? "+" : " " : ""), /* @__PURE__ */ import_react17.default.createElement("td", { className: `line-content split-content ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right ? /* @__PURE__ */ import_react17.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: highlightCode(row.right.content, lang) } }) : null));
+      return /* @__PURE__ */ import_react18.default.createElement("tr", { key: ri, className: "split-row" }, /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-num old split-num ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left?.type !== "add" ? row.left?.oldLine ?? "" : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-marker split-marker ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left ? row.left.type === "remove" ? "\u2212" : " " : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-content split-content ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left ? /* @__PURE__ */ import_react18.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: highlightCode(row.left.content, lang) } }) : null), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-num new split-num ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right?.type !== "remove" ? row.right?.newLine ?? "" : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-marker split-marker ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right ? row.right.type === "add" ? "+" : " " : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-content split-content ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right ? /* @__PURE__ */ import_react18.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: highlightCode(row.right.content, lang) } }) : null));
     }))));
   }
   function DiffViewer({ commit, diff, files, loading, headerLabel }) {
     const { t: t2 } = useLang();
-    const [viewMode, setViewMode] = (0, import_react17.useState)("unified");
-    const parsedDiff = (0, import_react17.useMemo)(() => parseDiff2(diff), [diff]);
+    const [viewMode, setViewMode] = (0, import_react18.useState)("unified");
+    const parsedDiff = (0, import_react18.useMemo)(() => parseDiff2(diff), [diff]);
     if (!commit && !headerLabel) {
-      return /* @__PURE__ */ import_react17.default.createElement("div", { className: "diff-empty" }, /* @__PURE__ */ import_react17.default.createElement("svg", { width: "48", height: "48", viewBox: "0 0 16 16", fill: "#484f58" }, /* @__PURE__ */ import_react17.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react17.default.createElement("p", null, t2("dv.selectCommit")));
+      return /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-empty" }, /* @__PURE__ */ import_react18.default.createElement("svg", { width: "48", height: "48", viewBox: "0 0 16 16", fill: "#484f58" }, /* @__PURE__ */ import_react18.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react18.default.createElement("p", null, t2("dv.selectCommit")));
     }
-    return /* @__PURE__ */ import_react17.default.createElement("div", { className: "diff-viewer" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "commit-header" }, commit ? /* @__PURE__ */ import_react17.default.createElement(import_react17.default.Fragment, null, /* @__PURE__ */ import_react17.default.createElement("div", { className: "commit-hash-badge", style: { background: "#1f6feb22", borderColor: "#1f6feb44" } }, /* @__PURE__ */ import_react17.default.createElement("code", null, commit.shortHash)), /* @__PURE__ */ import_react17.default.createElement("div", { className: "commit-meta" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "commit-title" }, commit.message), /* @__PURE__ */ import_react17.default.createElement("div", { className: "commit-sub" }, /* @__PURE__ */ import_react17.default.createElement("span", null, commit.author), /* @__PURE__ */ import_react17.default.createElement("span", { className: "dot" }, "\xB7"), /* @__PURE__ */ import_react17.default.createElement("span", null, new Date(commit.date).toLocaleString("fr-FR"))))) : /* @__PURE__ */ import_react17.default.createElement("div", { className: "commit-meta" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "commit-title" }, headerLabel)), /* @__PURE__ */ import_react17.default.createElement("div", { className: "diff-view-toggle" }, /* @__PURE__ */ import_react17.default.createElement(
+    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-viewer" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-header" }, commit ? /* @__PURE__ */ import_react18.default.createElement(import_react18.default.Fragment, null, /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-hash-badge", style: { background: "#1f6feb22", borderColor: "#1f6feb44" } }, /* @__PURE__ */ import_react18.default.createElement("code", null, commit.shortHash)), /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-meta" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-title" }, commit.message), /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-sub" }, /* @__PURE__ */ import_react18.default.createElement("span", null, commit.author), /* @__PURE__ */ import_react18.default.createElement("span", { className: "dot" }, "\xB7"), /* @__PURE__ */ import_react18.default.createElement("span", null, new Date(commit.date).toLocaleString("fr-FR"))))) : /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-meta" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-title" }, headerLabel)), /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-view-toggle" }, /* @__PURE__ */ import_react18.default.createElement(
       "button",
       {
         className: `toggle-btn ${viewMode === "unified" ? "active" : ""}`,
@@ -67229,7 +67709,7 @@ ${lineStrings.join("\n")}
         title: t2("dv.unifiedTitle")
       },
       "Unified"
-    ), /* @__PURE__ */ import_react17.default.createElement(
+    ), /* @__PURE__ */ import_react18.default.createElement(
       "button",
       {
         className: `toggle-btn ${viewMode === "split" ? "active" : ""}`,
@@ -67237,13 +67717,13 @@ ${lineStrings.join("\n")}
         title: t2("dv.splitTitle")
       },
       "Split"
-    ))), loading ? /* @__PURE__ */ import_react17.default.createElement("div", { className: "diff-loading" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "spinner" }), /* @__PURE__ */ import_react17.default.createElement("span", null, "Chargement du diff\u2026")) : /* @__PURE__ */ import_react17.default.createElement(import_react17.default.Fragment, null, /* @__PURE__ */ import_react17.default.createElement(FileList, { files }), parsedDiff.length === 0 && !loading && /* @__PURE__ */ import_react17.default.createElement("div", { className: "diff-empty-inner" }, t2("diff.empty")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "diff-scroll" }, parsedDiff.map((file, fi) => {
+    ))), loading ? /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-loading" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "spinner" }), /* @__PURE__ */ import_react18.default.createElement("span", null, "Chargement du diff\u2026")) : /* @__PURE__ */ import_react18.default.createElement(import_react18.default.Fragment, null, /* @__PURE__ */ import_react18.default.createElement(FileList, { files }), parsedDiff.length === 0 && !loading && /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-empty-inner" }, t2("diff.empty")), /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-scroll" }, parsedDiff.map((file, fi) => {
       const lang = detectLanguage(file.to);
-      return /* @__PURE__ */ import_react17.default.createElement("div", { key: fi, className: "file-diff" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "file-diff-header" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "file-icon" }, "\u{1F4C4}"), /* @__PURE__ */ import_react17.default.createElement("span", { className: "file-diff-name" }, file.to)), viewMode === "unified" ? file.hunks.map((hunk, hi) => /* @__PURE__ */ import_react17.default.createElement(UnifiedHunk, { key: hi, hunk, lang })) : file.hunks.map((hunk, hi) => /* @__PURE__ */ import_react17.default.createElement(SplitHunk, { key: hi, hunk, lang })));
+      return /* @__PURE__ */ import_react18.default.createElement("div", { key: fi, className: "file-diff" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "file-diff-header" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "file-icon" }, "\u{1F4C4}"), /* @__PURE__ */ import_react18.default.createElement("span", { className: "file-diff-name" }, file.to)), viewMode === "unified" ? file.hunks.map((hunk, hi) => /* @__PURE__ */ import_react18.default.createElement(UnifiedHunk, { key: hi, hunk, lang })) : file.hunks.map((hunk, hi) => /* @__PURE__ */ import_react18.default.createElement(SplitHunk, { key: hi, hunk, lang })));
     }))));
   }
 
-  // ../src/renderer/src/components/FileHistory/FileHistory.tsx
+  // src/renderer/src/components/FileHistory/FileHistory.tsx
   var api2 = new Proxy({}, { get: (_t, p) => window.gitAPI?.[p] });
   function toCommitNode(e) {
     return {
@@ -67258,14 +67738,14 @@ ${lineStrings.join("\n")}
     };
   }
   function FileHistory({ file }) {
-    const [entries, setEntries] = (0, import_react18.useState)([]);
-    const [selected, setSelected] = (0, import_react18.useState)(null);
-    const [mode, setMode] = (0, import_react18.useState)("diff");
-    const [diff, setDiff] = (0, import_react18.useState)("");
-    const [blame, setBlame] = (0, import_react18.useState)([]);
-    const [loadingList, setLoadingList] = (0, import_react18.useState)(true);
-    const [loadingPane, setLoadingPane] = (0, import_react18.useState)(false);
-    (0, import_react18.useEffect)(() => {
+    const [entries, setEntries] = (0, import_react19.useState)([]);
+    const [selected, setSelected] = (0, import_react19.useState)(null);
+    const [mode, setMode] = (0, import_react19.useState)("diff");
+    const [diff, setDiff] = (0, import_react19.useState)("");
+    const [blame, setBlame] = (0, import_react19.useState)([]);
+    const [loadingList, setLoadingList] = (0, import_react19.useState)(true);
+    const [loadingPane, setLoadingPane] = (0, import_react19.useState)(false);
+    (0, import_react19.useEffect)(() => {
       api2.getFileHistory(file).then((r) => {
         const commits = r?.commits ?? [];
         setEntries(commits);
@@ -67273,7 +67753,7 @@ ${lineStrings.join("\n")}
         setLoadingList(false);
       }).catch(() => setLoadingList(false));
     }, [file]);
-    (0, import_react18.useEffect)(() => {
+    (0, import_react19.useEffect)(() => {
       if (!selected)
         return;
       let stale = false;
@@ -67294,7 +67774,7 @@ ${lineStrings.join("\n")}
         stale = true;
       };
     }, [selected, mode, file]);
-    const selectByHash = (0, import_react18.useCallback)((hash) => {
+    const selectByHash = (0, import_react19.useCallback)((hash) => {
       const found = entries.find((e) => e.hash === hash || hash.startsWith(e.hash) || e.hash.startsWith(hash));
       if (found)
         setSelected(found);
@@ -67303,7 +67783,7 @@ ${lineStrings.join("\n")}
       const d = new Date(iso);
       return isNaN(d.getTime()) ? iso : d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
     };
-    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-page" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-header" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "fh-title" }, "\u{1F558} Historique"), /* @__PURE__ */ import_react18.default.createElement("code", { className: "fh-file" }, file), /* @__PURE__ */ import_react18.default.createElement("span", { className: "fh-count" }, entries.length, " commit", entries.length > 1 ? "s" : ""), /* @__PURE__ */ import_react18.default.createElement("span", { className: "fh-spring" }), /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-toggle" }, /* @__PURE__ */ import_react18.default.createElement("button", { className: mode === "diff" ? "active" : "", onClick: () => setMode("diff") }, "Diff"), /* @__PURE__ */ import_react18.default.createElement("button", { className: mode === "blame" ? "active" : "", onClick: () => setMode("blame") }, "Blame")), api2.openDiff && selected && /* @__PURE__ */ import_react18.default.createElement(
+    return /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-page" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-header" }, /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-title" }, "\u{1F558} Historique"), /* @__PURE__ */ import_react19.default.createElement("code", { className: "fh-file" }, file), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-count" }, entries.length, " commit", entries.length > 1 ? "s" : ""), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-spring" }), /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-toggle" }, /* @__PURE__ */ import_react19.default.createElement("button", { className: mode === "diff" ? "active" : "", onClick: () => setMode("diff") }, "Diff"), /* @__PURE__ */ import_react19.default.createElement("button", { className: mode === "blame" ? "active" : "", onClick: () => setMode("blame") }, "Blame")), api2.openDiff && selected && /* @__PURE__ */ import_react19.default.createElement(
       "button",
       {
         className: "fh-native",
@@ -67311,17 +67791,17 @@ ${lineStrings.join("\n")}
         onClick: () => api2.openDiff({ type: "commit", commitHash: selected.hash, filePath: file })
       },
       "\u2197 Diff natif"
-    )), /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-body" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-list" }, loadingList && /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-empty" }, "Chargement\u2026"), !loadingList && entries.length === 0 && /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-empty" }, "Aucun historique pour ce fichier"), entries.map((e) => /* @__PURE__ */ import_react18.default.createElement(
+    )), /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-body" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-list" }, loadingList && /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-empty" }, "Chargement\u2026"), !loadingList && entries.length === 0 && /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-empty" }, "Aucun historique pour ce fichier"), entries.map((e) => /* @__PURE__ */ import_react19.default.createElement(
       "button",
       {
         key: e.hash,
         className: `fh-item ${selected?.hash === e.hash ? "selected" : ""}`,
         onClick: () => setSelected(e)
       },
-      /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-item-top" }, /* @__PURE__ */ import_react18.default.createElement("code", { className: "fh-item-hash" }, e.shortHash), /* @__PURE__ */ import_react18.default.createElement("span", { className: "fh-item-date" }, relDate(e.date))),
-      /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-item-msg" }, e.message),
-      /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-item-author" }, e.author)
-    ))), /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-pane" }, mode === "diff" ? /* @__PURE__ */ import_react18.default.createElement(
+      /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-item-top" }, /* @__PURE__ */ import_react19.default.createElement("code", { className: "fh-item-hash" }, e.shortHash), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-item-date" }, relDate(e.date))),
+      /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-item-msg" }, e.message),
+      /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-item-author" }, e.author)
+    ))), /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-pane" }, mode === "diff" ? /* @__PURE__ */ import_react19.default.createElement(
       DiffViewer,
       {
         commit: selected ? toCommitNode(selected) : null,
@@ -67329,7 +67809,7 @@ ${lineStrings.join("\n")}
         files: [],
         loading: loadingPane
       }
-    ) : /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-blame" }, loadingPane && /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-empty" }, "Chargement\u2026"), !loadingPane && blame.length === 0 && /* @__PURE__ */ import_react18.default.createElement("div", { className: "fh-empty" }, t("fh.noBlame")), !loadingPane && blame.map((l, i) => /* @__PURE__ */ import_react18.default.createElement("div", { key: i, className: "fh-blame-line" }, /* @__PURE__ */ import_react18.default.createElement(
+    ) : /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-blame" }, loadingPane && /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-empty" }, "Chargement\u2026"), !loadingPane && blame.length === 0 && /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-empty" }, t("fh.noBlame")), !loadingPane && blame.map((l, i) => /* @__PURE__ */ import_react19.default.createElement("div", { key: i, className: "fh-blame-line" }, /* @__PURE__ */ import_react19.default.createElement(
       "button",
       {
         className: "fh-blame-hash",
@@ -67337,23 +67817,23 @@ ${lineStrings.join("\n")}
         onClick: () => selectByHash(l.hash)
       },
       l.shortHash
-    ), /* @__PURE__ */ import_react18.default.createElement("span", { className: "fh-blame-author" }, l.author), /* @__PURE__ */ import_react18.default.createElement("span", { className: "fh-blame-date" }, l.date), /* @__PURE__ */ import_react18.default.createElement("span", { className: "fh-blame-num" }, l.lineNum), /* @__PURE__ */ import_react18.default.createElement("span", { className: "fh-blame-content" }, l.content)))))));
+    ), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-blame-author" }, l.author), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-blame-date" }, l.date), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-blame-num" }, l.lineNum), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-blame-content" }, l.content)))))));
   }
 
-  // ../src/renderer/src/components/CompareView/CompareView.tsx
-  var import_react19 = __toESM(require_react());
+  // src/renderer/src/components/CompareView/CompareView.tsx
+  var import_react20 = __toESM(require_react());
   var api3 = new Proxy({}, { get: (_t, p) => window.gitAPI?.[p] });
   function CompareView({ initialA, initialB }) {
     const { t: t2 } = useLang();
-    const [refs, setRefs] = (0, import_react19.useState)([]);
-    const [refA, setRefA] = (0, import_react19.useState)(initialA ?? "");
-    const [refB, setRefB] = (0, import_react19.useState)(initialB ?? "");
-    const [ahead, setAhead] = (0, import_react19.useState)([]);
-    const [behind, setBehind] = (0, import_react19.useState)([]);
-    const [diff, setDiff] = (0, import_react19.useState)("");
-    const [files, setFiles] = (0, import_react19.useState)([]);
-    const [loading, setLoading] = (0, import_react19.useState)(false);
-    (0, import_react19.useEffect)(() => {
+    const [refs, setRefs] = (0, import_react20.useState)([]);
+    const [refA, setRefA] = (0, import_react20.useState)(initialA ?? "");
+    const [refB, setRefB] = (0, import_react20.useState)(initialB ?? "");
+    const [ahead, setAhead] = (0, import_react20.useState)([]);
+    const [behind, setBehind] = (0, import_react20.useState)([]);
+    const [diff, setDiff] = (0, import_react20.useState)("");
+    const [files, setFiles] = (0, import_react20.useState)([]);
+    const [loading, setLoading] = (0, import_react20.useState)(false);
+    (0, import_react20.useEffect)(() => {
       Promise.all([api3.getBranches(), api3.getTags().catch(() => ({ tags: [] }))]).then(([b, t3]) => {
         const branchNames = (b?.branches ?? []).map((x) => x.name.replace(/^remotes\//, ""));
         const tagNames = (t3?.tags ?? []).map((x) => x.name);
@@ -67363,7 +67843,7 @@ ${lineStrings.join("\n")}
       }).catch(() => {
       });
     }, []);
-    (0, import_react19.useEffect)(() => {
+    (0, import_react20.useEffect)(() => {
       if (!refA || !refB) {
         setAhead([]);
         setBehind([]);
@@ -67393,14 +67873,14 @@ ${lineStrings.join("\n")}
         stale = true;
       };
     }, [refA, refB]);
-    const swap = (0, import_react19.useCallback)(() => {
+    const swap = (0, import_react20.useCallback)(() => {
       setRefA(refB);
       setRefB(refA);
     }, [refA, refB]);
-    const renderRefSelect = (value, onChange) => /* @__PURE__ */ import_react19.default.createElement("select", { className: "cv-ref-select", value, onChange: (e) => onChange(e.target.value) }, /* @__PURE__ */ import_react19.default.createElement("option", { value: "" }, t2("cv.chooseRef")), refs.map((r) => /* @__PURE__ */ import_react19.default.createElement("option", { key: r, value: r }, r)));
-    const renderCommitList = (title, list, accent) => /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-commits-section" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-commits-title", style: { color: accent } }, title, " ", /* @__PURE__ */ import_react19.default.createElement("span", { className: "cv-commits-count" }, "(", list.length, ")")), list.length === 0 && /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-commits-empty" }, t2("cv.noCommit")), list.map((c) => /* @__PURE__ */ import_react19.default.createElement("div", { key: c.hash, className: "cv-commit" }, /* @__PURE__ */ import_react19.default.createElement("code", { className: "cv-commit-hash" }, c.shortHash), /* @__PURE__ */ import_react19.default.createElement("span", { className: "cv-commit-msg" }, c.message))));
+    const renderRefSelect = (value, onChange) => /* @__PURE__ */ import_react20.default.createElement("select", { className: "cv-ref-select", value, onChange: (e) => onChange(e.target.value) }, /* @__PURE__ */ import_react20.default.createElement("option", { value: "" }, t2("cv.chooseRef")), refs.map((r) => /* @__PURE__ */ import_react20.default.createElement("option", { key: r, value: r }, r)));
+    const renderCommitList = (title, list, accent) => /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-commits-section" }, /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-commits-title", style: { color: accent } }, title, " ", /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-commits-count" }, "(", list.length, ")")), list.length === 0 && /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-commits-empty" }, t2("cv.noCommit")), list.map((c) => /* @__PURE__ */ import_react20.default.createElement("div", { key: c.hash, className: "cv-commit" }, /* @__PURE__ */ import_react20.default.createElement("code", { className: "cv-commit-hash" }, c.shortHash), /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-commit-msg" }, c.message))));
     const ready = refA && refB;
-    return /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-page" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-header" }, /* @__PURE__ */ import_react19.default.createElement("span", { className: "cv-title" }, t2("cv.title")), renderRefSelect(refA, setRefA), /* @__PURE__ */ import_react19.default.createElement("button", { className: "cv-swap", onClick: swap, title: t2("cv.swapTitle") }, "\u21C4"), renderRefSelect(refB, setRefB), ready && /* @__PURE__ */ import_react19.default.createElement("span", { className: "cv-summary" }, /* @__PURE__ */ import_react19.default.createElement("span", { className: "cv-sum-ahead" }, "+", ahead.length), " / ", /* @__PURE__ */ import_react19.default.createElement("span", { className: "cv-sum-behind" }, "\u2212", behind.length), " commits")), !ready ? /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-empty" }, t2("cv.chooseTwo")) : /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-body" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-left" }, renderCommitList(t2("cv.inOnly", refB), ahead, "#3fb950"), renderCommitList(t2("cv.inOnly", refA), behind, "#f85149")), /* @__PURE__ */ import_react19.default.createElement("div", { className: "cv-right" }, /* @__PURE__ */ import_react19.default.createElement(
+    return /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-page" }, /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-header" }, /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-title" }, t2("cv.title")), renderRefSelect(refA, setRefA), /* @__PURE__ */ import_react20.default.createElement("button", { className: "cv-swap", onClick: swap, title: t2("cv.swapTitle") }, "\u21C4"), renderRefSelect(refB, setRefB), ready && /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-summary" }, /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-sum-ahead" }, "+", ahead.length), " / ", /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-sum-behind" }, "\u2212", behind.length), " commits")), !ready ? /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-empty" }, t2("cv.chooseTwo")) : /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-body" }, /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-left" }, renderCommitList(t2("cv.inOnly", refB), ahead, "#3fb950"), renderCommitList(t2("cv.inOnly", refA), behind, "#f85149")), /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-right" }, /* @__PURE__ */ import_react20.default.createElement(
       DiffViewer,
       {
         commit: null,
@@ -67412,22 +67892,22 @@ ${lineStrings.join("\n")}
     ))));
   }
 
-  // src/webview/CompareWorkingView.tsx
-  var import_react20 = __toESM(require_react());
+  // vscode-extension/src/webview/CompareWorkingView.tsx
+  var import_react21 = __toESM(require_react());
   function syntheticCommit(shortHash, message) {
     return { hash: shortHash, shortHash, message, author: "", authorEmail: "", date: "", parents: [], refs: [] };
   }
   function CompareWorkingView({ hash }) {
     const { t: t2 } = useLang();
-    const [diff, setDiff] = (0, import_react20.useState)("");
-    const [loading, setLoading] = (0, import_react20.useState)(true);
-    (0, import_react20.useEffect)(() => {
+    const [diff, setDiff] = (0, import_react21.useState)("");
+    const [loading, setLoading] = (0, import_react21.useState)(true);
+    (0, import_react21.useEffect)(() => {
       window.gitAPI.diffCommitToWorking(hash).then((r) => {
         setDiff(r?.diff ?? "");
         setLoading(false);
       });
     }, [hash]);
-    return /* @__PURE__ */ import_react20.default.createElement("div", { style: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" } }, !loading && diff.trim() === "" ? /* @__PURE__ */ import_react20.default.createElement("div", { style: { padding: 24, color: "#8b949e" } }, "Aucune diff\xE9rence avec le r\xE9pertoire de travail") : /* @__PURE__ */ import_react20.default.createElement(
+    return /* @__PURE__ */ import_react21.default.createElement("div", { style: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" } }, !loading && diff.trim() === "" ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: 24, color: "#8b949e" } }, "Aucune diff\xE9rence avec le r\xE9pertoire de travail") : /* @__PURE__ */ import_react21.default.createElement(
       DiffViewer,
       {
         commit: syntheticCommit(hash.slice(0, 7), t2("ext.compare.workingDir")),
@@ -67438,8 +67918,8 @@ ${lineStrings.join("\n")}
     ));
   }
 
-  // ../src/renderer/src/components/GitHubPanel/GitHubPanel.tsx
-  var import_react21 = __toESM(require_react());
+  // src/renderer/src/components/GitHubPanel/GitHubPanel.tsx
+  var import_react22 = __toESM(require_react());
   function timeAgo(dateStr, lang, t2) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1e3);
     if (diff < 60)
@@ -67467,30 +67947,31 @@ ${lineStrings.join("\n")}
     const bg = `#${label.color}22`;
     const border = `#${label.color}66`;
     const color = `#${label.color}`;
-    return /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-label", style: { background: bg, borderColor: border, color } }, label.name);
+    return /* @__PURE__ */ React.createElement("span", { className: "ghp-label", style: { background: bg, borderColor: border, color } }, label.name);
   }
   function PRItem({ pr, lang }) {
     const { t: t2 } = useLang();
-    return /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-item", onClick: () => window.gitAPI.openExternal(pr.url), title: t2("gh.panel.openIn") }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-item-top" }, /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-number" }, "#", pr.number), pr.draft && /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-badge ghp-draft" }, t2("gh.panel.draft")), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-title" }, pr.title)), /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-item-meta" }, /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-refs" }, /* @__PURE__ */ import_react21.default.createElement("code", null, pr.headRef), /* @__PURE__ */ import_react21.default.createElement("svg", { width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react21.default.createElement("path", { d: "M8 9l3-3-3-3" }), /* @__PURE__ */ import_react21.default.createElement("path", { d: "M2 12V6a2 2 0 0 1 2-2h8" })), /* @__PURE__ */ import_react21.default.createElement("code", null, pr.baseRef)), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-author" }, "@", pr.author), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-time" }, timeAgo(pr.createdAt, lang, t2)), pr.comments > 0 && /* @__PURE__ */ import_react21.default.createElement(import_react21.default.Fragment, null, /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-comments" }, /* @__PURE__ */ import_react21.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react21.default.createElement("path", { d: "M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Z" })), pr.comments))), pr.labels.length > 0 && /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-labels" }, pr.labels.slice(0, 4).map((l) => /* @__PURE__ */ import_react21.default.createElement(LabelChip, { key: l.name, label: l }))));
+    return /* @__PURE__ */ React.createElement("div", { className: "ghp-item", onClick: () => window.gitAPI.openExternal(pr.url), title: t2("gh.panel.openIn") }, /* @__PURE__ */ React.createElement("div", { className: "ghp-item-top" }, pr.repoLabel && /* @__PURE__ */ React.createElement("span", { className: "ghp-repo-badge" }, pr.repoLabel), /* @__PURE__ */ React.createElement("span", { className: "ghp-number" }, "#", pr.number), pr.draft && /* @__PURE__ */ React.createElement("span", { className: "ghp-badge ghp-draft" }, t2("gh.panel.draft")), /* @__PURE__ */ React.createElement("span", { className: "ghp-title" }, pr.title)), /* @__PURE__ */ React.createElement("div", { className: "ghp-item-meta" }, /* @__PURE__ */ React.createElement("span", { className: "ghp-refs" }, /* @__PURE__ */ React.createElement("code", null, pr.headRef), /* @__PURE__ */ React.createElement("svg", { width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M8 9l3-3-3-3" }), /* @__PURE__ */ React.createElement("path", { d: "M2 12V6a2 2 0 0 1 2-2h8" })), /* @__PURE__ */ React.createElement("code", null, pr.baseRef)), /* @__PURE__ */ React.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ React.createElement("span", { className: "ghp-author" }, "@", pr.author), /* @__PURE__ */ React.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ React.createElement("span", { className: "ghp-time" }, timeAgo(pr.createdAt, lang, t2)), pr.comments > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ React.createElement("span", { className: "ghp-comments" }, /* @__PURE__ */ React.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Z" })), pr.comments))), pr.labels.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "ghp-labels" }, pr.labels.slice(0, 4).map((l) => /* @__PURE__ */ React.createElement(LabelChip, { key: l.name, label: l }))));
   }
   function IssueItem({ issue, lang }) {
     const { t: t2 } = useLang();
-    return /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-item", onClick: () => window.gitAPI.openExternal(issue.url), title: t2("gh.panel.openIn") }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-item-top" }, /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-number" }, "#", issue.number), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-title" }, issue.title)), /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-item-meta" }, /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-author" }, "@", issue.author), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-time" }, timeAgo(issue.createdAt, lang, t2)), issue.comments > 0 && /* @__PURE__ */ import_react21.default.createElement(import_react21.default.Fragment, null, /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-comments" }, /* @__PURE__ */ import_react21.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react21.default.createElement("path", { d: "M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Z" })), issue.comments))), issue.labels.length > 0 && /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-labels" }, issue.labels.slice(0, 4).map((l) => /* @__PURE__ */ import_react21.default.createElement(LabelChip, { key: l.name, label: l }))));
+    return /* @__PURE__ */ React.createElement("div", { className: "ghp-item", onClick: () => window.gitAPI.openExternal(issue.url), title: t2("gh.panel.openIn") }, /* @__PURE__ */ React.createElement("div", { className: "ghp-item-top" }, issue.repoLabel && /* @__PURE__ */ React.createElement("span", { className: "ghp-repo-badge" }, issue.repoLabel), /* @__PURE__ */ React.createElement("span", { className: "ghp-number" }, "#", issue.number), /* @__PURE__ */ React.createElement("span", { className: "ghp-title" }, issue.title)), /* @__PURE__ */ React.createElement("div", { className: "ghp-item-meta" }, /* @__PURE__ */ React.createElement("span", { className: "ghp-author" }, "@", issue.author), /* @__PURE__ */ React.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ React.createElement("span", { className: "ghp-time" }, timeAgo(issue.createdAt, lang, t2)), issue.comments > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "ghp-dot" }, "\xB7"), /* @__PURE__ */ React.createElement("span", { className: "ghp-comments" }, /* @__PURE__ */ React.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Z" })), issue.comments))), issue.labels.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "ghp-labels" }, issue.labels.slice(0, 4).map((l) => /* @__PURE__ */ React.createElement(LabelChip, { key: l.name, label: l }))));
   }
   function GitHubPanel({ repoPath }) {
     const { t: t2, lang } = useLang();
-    const [tab, setTab] = (0, import_react21.useState)("prs");
-    const [owner, setOwner] = (0, import_react21.useState)(null);
-    const [repo, setRepo] = (0, import_react21.useState)(null);
-    const [noRepo, setNoRepo] = (0, import_react21.useState)(false);
-    const [noAuth, setNoAuth] = (0, import_react21.useState)(false);
-    const [prs, setPRs] = (0, import_react21.useState)([]);
-    const [issues, setIssues] = (0, import_react21.useState)([]);
-    const [loading, setLoading] = (0, import_react21.useState)(false);
-    const [error, setError] = (0, import_react21.useState)(null);
-    (0, import_react21.useEffect)(() => {
+    const [tab, setTab] = (0, import_react22.useState)("prs");
+    const [owner, setOwner] = (0, import_react22.useState)(null);
+    const [repo, setRepo] = (0, import_react22.useState)(null);
+    const [noRepo, setNoRepo] = (0, import_react22.useState)(false);
+    const [noAuth, setNoAuth] = (0, import_react22.useState)(false);
+    const [prs, setPRs] = (0, import_react22.useState)([]);
+    const [issues, setIssues] = (0, import_react22.useState)([]);
+    const [loading, setLoading] = (0, import_react22.useState)(false);
+    const [error, setError] = (0, import_react22.useState)(null);
+    (0, import_react22.useEffect)(() => {
       if (!repoPath)
         return;
+      setNoRepo(false);
       window.gitAPI.githubDetectRepo().then((r) => {
         if (!r.owner) {
           setNoRepo(true);
@@ -67500,7 +67981,7 @@ ${lineStrings.join("\n")}
         setRepo(r.repo);
       });
     }, [repoPath]);
-    const load = (0, import_react21.useCallback)(async (o, r) => {
+    const load = (0, import_react22.useCallback)(async (o, r) => {
       setLoading(true);
       setError(null);
       try {
@@ -67531,11 +68012,11 @@ ${lineStrings.join("\n")}
         setLoading(false);
       }
     }, [tab, t2]);
-    (0, import_react21.useEffect)(() => {
+    (0, import_react22.useEffect)(() => {
       if (owner && repo)
         load(owner, repo);
     }, [owner, repo, tab, load]);
-    return /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-panel" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-header" }, /* @__PURE__ */ import_react21.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#8b949e" }, /* @__PURE__ */ import_react21.default.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })), /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-repo-name" }, owner && repo ? `${owner}/${repo}` : "GitHub"), /* @__PURE__ */ import_react21.default.createElement("div", { style: { flex: 1 } }), owner && repo && !noAuth && /* @__PURE__ */ import_react21.default.createElement("button", { className: "ghp-refresh", onClick: () => load(owner, repo), title: t2("gh.panel.refresh") }, /* @__PURE__ */ import_react21.default.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "ghp-panel" }, /* @__PURE__ */ React.createElement("div", { className: "ghp-header" }, /* @__PURE__ */ React.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#8b949e" }, /* @__PURE__ */ React.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })), /* @__PURE__ */ React.createElement("span", { className: "ghp-repo-name" }, owner && repo ? `${owner}/${repo}` : "GitHub"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), owner && repo && !noAuth && /* @__PURE__ */ React.createElement("button", { className: "ghp-refresh", onClick: () => load(owner, repo), title: t2("gh.panel.refresh") }, /* @__PURE__ */ React.createElement(
       "svg",
       {
         width: "13",
@@ -67546,13 +68027,13 @@ ${lineStrings.join("\n")}
         strokeWidth: "2",
         style: { animation: loading ? "ghp-spin 0.8s linear infinite" : "none" }
       },
-      /* @__PURE__ */ import_react21.default.createElement("polyline", { points: "23 4 23 10 17 10" }),
-      /* @__PURE__ */ import_react21.default.createElement("path", { d: "M20.49 15a9 9 0 1 1-2.12-9.36L23 10" })
-    ))), !noRepo && !noAuth && /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-tabs" }, /* @__PURE__ */ import_react21.default.createElement("button", { className: `ghp-tab ${tab === "prs" ? "active" : ""}`, onClick: () => setTab("prs") }, /* @__PURE__ */ import_react21.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react21.default.createElement("path", { d: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z" })), t2("gh.panel.tabPRs"), prs.length > 0 && /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-count" }, prs.length)), /* @__PURE__ */ import_react21.default.createElement("button", { className: `ghp-tab ${tab === "issues" ? "active" : ""}`, onClick: () => setTab("issues") }, /* @__PURE__ */ import_react21.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react21.default.createElement("path", { d: "M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" }), /* @__PURE__ */ import_react21.default.createElement("path", { d: "M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" })), t2("gh.panel.tabIssues"), issues.length > 0 && /* @__PURE__ */ import_react21.default.createElement("span", { className: "ghp-count" }, issues.length))), /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-body" }, noRepo && /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-state" }, t2("gh.panel.noRepo")), noAuth && /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-state" }, t2("gh.panel.noAuth")), error && /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-state ghp-err" }, error), !noRepo && !noAuth && !error && loading && /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-state" }, t2("gh.panel.loading")), !noRepo && !noAuth && !error && !loading && tab === "prs" && (prs.length === 0 ? /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-state" }, t2("gh.panel.noPRs")) : prs.map((pr) => /* @__PURE__ */ import_react21.default.createElement(PRItem, { key: pr.number, pr, lang }))), !noRepo && !noAuth && !error && !loading && tab === "issues" && (issues.length === 0 ? /* @__PURE__ */ import_react21.default.createElement("div", { className: "ghp-state" }, t2("gh.panel.noIssues")) : issues.map((issue) => /* @__PURE__ */ import_react21.default.createElement(IssueItem, { key: issue.number, issue, lang })))));
+      /* @__PURE__ */ React.createElement("polyline", { points: "23 4 23 10 17 10" }),
+      /* @__PURE__ */ React.createElement("path", { d: "M20.49 15a9 9 0 1 1-2.12-9.36L23 10" })
+    ))), !noRepo && !noAuth && /* @__PURE__ */ React.createElement("div", { className: "ghp-tabs" }, /* @__PURE__ */ React.createElement("button", { className: `ghp-tab ${tab === "prs" ? "active" : ""}`, onClick: () => setTab("prs") }, /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z" })), t2("gh.panel.tabPRs"), prs.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ghp-count" }, prs.length)), /* @__PURE__ */ React.createElement("button", { className: `ghp-tab ${tab === "issues" ? "active" : ""}`, onClick: () => setTab("issues") }, /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" }), /* @__PURE__ */ React.createElement("path", { d: "M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" })), t2("gh.panel.tabIssues"), issues.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ghp-count" }, issues.length))), /* @__PURE__ */ React.createElement("div", { className: "ghp-body" }, noRepo && /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.noRepo")), noAuth && /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.noAuth")), error && /* @__PURE__ */ React.createElement("div", { className: "ghp-state ghp-err" }, error), !noRepo && !noAuth && !error && loading && /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.loading")), !noRepo && !noAuth && !error && !loading && tab === "prs" && (prs.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.noPRs")) : prs.map((pr) => /* @__PURE__ */ React.createElement(PRItem, { key: pr.number, pr, lang }))), !noRepo && !noAuth && !error && !loading && tab === "issues" && (issues.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.noIssues")) : issues.map((issue) => /* @__PURE__ */ React.createElement(IssueItem, { key: issue.number, issue, lang })))));
   }
 
-  // src/webview/CommitMsgEditorView.tsx
-  var import_react22 = __toESM(require_react());
+  // vscode-extension/src/webview/CommitMsgEditorView.tsx
+  var import_react23 = __toESM(require_react());
   function titleFor(boot2) {
     if (boot2.action === "reword")
       return "\u270F\uFE0F Reword \u2014 reformuler le message";
@@ -67562,9 +68043,9 @@ ${lineStrings.join("\n")}
   }
   function CommitMsgEditorView({ boot: boot2 }) {
     const { t: t2 } = useLang();
-    const [text, setText] = (0, import_react22.useState)(boot2.initialMessage ?? "");
-    const [saving, setSaving] = (0, import_react22.useState)(false);
-    const handleSave = (0, import_react22.useCallback)(async () => {
+    const [text, setText] = (0, import_react23.useState)(boot2.initialMessage ?? "");
+    const [saving, setSaving] = (0, import_react23.useState)(false);
+    const handleSave = (0, import_react23.useCallback)(async () => {
       setSaving(true);
       try {
         await window.gitAPI.commitMsgSave(text);
@@ -67572,14 +68053,14 @@ ${lineStrings.join("\n")}
         setSaving(false);
       }
     }, [text]);
-    const handleKeyDown = (0, import_react22.useCallback)((e) => {
+    const handleKeyDown = (0, import_react23.useCallback)((e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
         e.preventDefault();
         void handleSave();
       }
     }, [handleSave]);
     const hasStep = typeof boot2.stepCurrent === "number" && typeof boot2.stepTotal === "number";
-    return /* @__PURE__ */ import_react22.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react22.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react22.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react22.default.createElement("span", { className: "rp-title" }, titleFor(boot2))), (hasStep || boot2.subject) && /* @__PURE__ */ import_react22.default.createElement("div", { className: "rp-header-refs" }, hasStep && /* @__PURE__ */ import_react22.default.createElement("span", { className: "rp-ref-chip" }, boot2.stepCurrent, "/", boot2.stepTotal, " commits"), boot2.subject && /* @__PURE__ */ import_react22.default.createElement("span", { className: "rp-ref-onto", style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, boot2.subject))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { flex: 1, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 } }, /* @__PURE__ */ import_react22.default.createElement("span", { className: "rp-msg-editor-label" }, "Message de commit"), /* @__PURE__ */ import_react22.default.createElement(
+    return /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-title" }, titleFor(boot2))), (hasStep || boot2.subject) && /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-header-refs" }, hasStep && /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-ref-chip" }, boot2.stepCurrent, "/", boot2.stepTotal, " commits"), boot2.subject && /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-ref-onto", style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, boot2.subject))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { flex: 1, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 } }, /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-msg-editor-label" }, "Message de commit"), /* @__PURE__ */ import_react23.default.createElement(
       "textarea",
       {
         className: "rp-msg-textarea",
@@ -67590,7 +68071,7 @@ ${lineStrings.join("\n")}
         spellCheck: false,
         autoFocus: true
       }
-    )), /* @__PURE__ */ import_react22.default.createElement("div", { className: "rp-legend" }, t2("ext.commit.help")), /* @__PURE__ */ import_react22.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react22.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react22.default.createElement(
+    )), /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-legend" }, t2("ext.commit.help")), /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn--continue",
@@ -67602,47 +68083,50 @@ ${lineStrings.join("\n")}
     )));
   }
 
-  // src/webview/app.tsx
+  // vscode-extension/src/webview/app.tsx
+  var RAIL_VIEWS = ["overview", "agents", "worktrees", "branches", "remotes", "stash", "tags"];
   function VertexApp() {
     const { t: t2 } = useLang();
     const toast = useToast();
-    const showToast = (0, import_react23.useCallback)((msg, type) => {
+    const showToast = (0, import_react24.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const [commits, setCommits] = (0, import_react23.useState)([]);
-    const [branches, setBranches] = (0, import_react23.useState)([]);
-    const [currentBranch, setCurrentBranch] = (0, import_react23.useState)("");
-    const [compareBaseHash, setCompareBaseHash] = (0, import_react23.useState)(null);
-    const [repoName, setRepoName] = (0, import_react23.useState)("");
-    const [selectedCommit, setSelectedCommit] = (0, import_react23.useState)(null);
-    const [wipCount, setWipCount] = (0, import_react23.useState)(0);
-    const [conflictFiles, setConflictFiles] = (0, import_react23.useState)([]);
-    const [conflictMode, setConflictMode] = (0, import_react23.useState)(null);
-    const [searchQuery, setSearchQuery] = (0, import_react23.useState)("");
-    const [searchMatches, setSearchMatches] = (0, import_react23.useState)(-1);
-    const [rightW, setRightW] = (0, import_react23.useState)(380);
-    const [showAllBranches, setShowAllBranches] = (0, import_react23.useState)(true);
-    const [stashCount, setStashCount] = (0, import_react23.useState)(0);
-    const [stashes, setStashes] = (0, import_react23.useState)([]);
-    const [tags, setTags] = (0, import_react23.useState)([]);
-    const [soloBranch, setSoloBranch] = (0, import_react23.useState)(null);
-    const [mutedBranches, setMutedBranches] = (0, import_react23.useState)(/* @__PURE__ */ new Set());
-    const [sidebarOpen, setSidebarOpen] = (0, import_react23.useState)(false);
-    const [settingsOpen, setSettingsOpen] = (0, import_react23.useState)(false);
-    const [loading, setLoading] = (0, import_react23.useState)(false);
-    const [lastFetch, setLastFetch] = (0, import_react23.useState)(null);
-    const [tracking, setTracking] = (0, import_react23.useState)({ ahead: 0, behind: 0 });
-    const isLoadingRef = (0, import_react23.useRef)(false);
-    const showAllRef = (0, import_react23.useRef)(showAllBranches);
+    const [commits, setCommits] = (0, import_react24.useState)([]);
+    const [branches, setBranches] = (0, import_react24.useState)([]);
+    const [currentBranch, setCurrentBranch] = (0, import_react24.useState)("");
+    const [compareBaseHash, setCompareBaseHash] = (0, import_react24.useState)(null);
+    const [repoName, setRepoName] = (0, import_react24.useState)("");
+    const [selectedCommit, setSelectedCommit] = (0, import_react24.useState)(null);
+    const [wipCount, setWipCount] = (0, import_react24.useState)(0);
+    const [conflictFiles, setConflictFiles] = (0, import_react24.useState)([]);
+    const [conflictMode, setConflictMode] = (0, import_react24.useState)(null);
+    const [searchQuery, setSearchQuery] = (0, import_react24.useState)("");
+    const [searchMatches, setSearchMatches] = (0, import_react24.useState)(-1);
+    const [rightW, setRightW] = (0, import_react24.useState)(380);
+    const [showAllBranches, setShowAllBranches] = (0, import_react24.useState)(true);
+    const [stashCount, setStashCount] = (0, import_react24.useState)(0);
+    const [stashes, setStashes] = (0, import_react24.useState)([]);
+    const [tags, setTags] = (0, import_react24.useState)([]);
+    const [soloBranch, setSoloBranch] = (0, import_react24.useState)(null);
+    const [mutedBranches, setMutedBranches] = (0, import_react24.useState)(/* @__PURE__ */ new Set());
+    const [activeView, setActiveView] = (0, import_react24.useState)(null);
+    const [sideW, setSideW] = (0, import_react24.useState)(240);
+    const lastViewRef = (0, import_react24.useRef)("overview");
+    const [settingsOpen, setSettingsOpen] = (0, import_react24.useState)(false);
+    const [loading, setLoading] = (0, import_react24.useState)(false);
+    const [lastFetch, setLastFetch] = (0, import_react24.useState)(null);
+    const [tracking, setTracking] = (0, import_react24.useState)({ ahead: 0, behind: 0 });
+    const isLoadingRef = (0, import_react24.useRef)(false);
+    const showAllRef = (0, import_react24.useRef)(showAllBranches);
     showAllRef.current = showAllBranches;
-    const soloRef = (0, import_react23.useRef)(soloBranch);
+    const soloRef = (0, import_react24.useRef)(soloBranch);
     soloRef.current = soloBranch;
-    const mutedRef = (0, import_react23.useRef)(mutedBranches);
+    const mutedRef = (0, import_react24.useRef)(mutedBranches);
     mutedRef.current = mutedBranches;
-    const loadRepoData = (0, import_react23.useCallback)(async (silent = false) => {
+    const loadRepoData = (0, import_react24.useCallback)(async (silent = false) => {
       if (isLoadingRef.current)
         return;
       isLoadingRef.current = true;
@@ -67703,24 +68187,39 @@ ${lineStrings.join("\n")}
           setLoading(false);
       }
     }, []);
-    (0, import_react23.useEffect)(() => {
+    (0, import_react24.useEffect)(() => {
       loadRepoData();
     }, [loadRepoData]);
-    (0, import_react23.useEffect)(() => {
+    (0, import_react24.useEffect)(() => {
       window.gitAPI.settingsGetAll().then((s) => {
-        if (s?.sidebarOpen === "1")
-          setSidebarOpen(true);
+        const v = s?.sidebarView;
+        if (v && RAIL_VIEWS.includes(v)) {
+          setActiveView(v);
+          lastViewRef.current = v;
+        }
+        const w = parseInt(s?.sidebarWidth ?? "", 10);
+        if (!isNaN(w))
+          setSideW(Math.max(180, Math.min(500, w)));
       }).catch(() => {
       });
     }, []);
-    const handleToggleSidebar = (0, import_react23.useCallback)(() => {
-      setSidebarOpen((o) => {
-        const next = !o;
-        void window.gitAPI.settingsSet("sidebarOpen", next ? "1" : "0");
+    const handleSelectView = (0, import_react24.useCallback)((v) => {
+      setActiveView((cur) => {
+        const next = cur === v ? null : v;
+        if (next)
+          lastViewRef.current = next;
+        void window.gitAPI.settingsSet("sidebarView", next ?? "");
         return next;
       });
     }, []);
-    (0, import_react23.useEffect)(() => {
+    const handleToggleSidebar = (0, import_react24.useCallback)(() => {
+      setActiveView((cur) => {
+        const next = cur ? null : lastViewRef.current;
+        void window.gitAPI.settingsSet("sidebarView", next ?? "");
+        return next;
+      });
+    }, []);
+    (0, import_react24.useEffect)(() => {
       const handler = () => loadRepoData(true);
       window.gitAPI.onRepoChanged(handler);
       window.gitAPI.onWorkingChanged(handler);
@@ -67729,14 +68228,14 @@ ${lineStrings.join("\n")}
         window.gitAPI.offWorkingChanged(handler);
       };
     }, [loadRepoData]);
-    (0, import_react23.useEffect)(() => {
+    (0, import_react24.useEffect)(() => {
       if (!selectedCommit || selectedCommit.hash === "__WIP__")
         return;
       const still = commits.find((c) => c.hash === selectedCommit.hash);
       if (!still)
         setSelectedCommit(null);
     }, [commits]);
-    const doUndo = (0, import_react23.useCallback)(async () => {
+    const doUndo = (0, import_react24.useCallback)(async () => {
       const r = await window.gitAPI.undoLastAction();
       if (r && r.success === false)
         toast.error(r.error ?? "Impossible d'annuler");
@@ -67744,7 +68243,7 @@ ${lineStrings.join("\n")}
         toast.success(t2("ext.app.undoOk"));
       await loadRepoData();
     }, [toast, loadRepoData]);
-    const runOp = (0, import_react23.useCallback)(async (label, op, undoable = false) => {
+    const runOp = (0, import_react24.useCallback)(async (label, op, undoable = false) => {
       const r = await op();
       if (r && r.success === false)
         showToast(r.error ?? `${label} a \xE9chou\xE9`, "err");
@@ -67756,7 +68255,7 @@ ${lineStrings.join("\n")}
         showToast(`\u2713 ${label}`);
       await loadRepoData();
     }, [showToast, toast, doUndo, loadRepoData]);
-    const guardConflict = (0, import_react23.useCallback)(async (predict, op) => {
+    const guardConflict = (0, import_react24.useCallback)(async (predict, op) => {
       const settings = await window.gitAPI.settingsGetAll().catch(() => ({}));
       if (settings?.warnBeforeConflict === "false") {
         await op();
@@ -67782,46 +68281,46 @@ ${lineStrings.join("\n")}
         // sticky — a go/no-go decision must not silently time out
       );
     }, [toast]);
-    const handleCheckout = (0, import_react23.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
-    const handleCherryPick = (0, import_react23.useCallback)((hash) => guardConflict(
+    const handleCheckout = (0, import_react24.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
+    const handleCherryPick = (0, import_react24.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictConflicts(hash, "HEAD", `${hash}^`),
       // base = commit's parent
       () => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash))
     ), [runOp, guardConflict]);
-    const handleRevert = (0, import_react23.useCallback)((hash) => guardConflict(
+    const handleRevert = (0, import_react24.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictConflicts(`${hash}^`, "HEAD", hash),
       // apply the inverse
       () => runOp("Revert", () => window.gitAPI.revert(hash))
     ), [runOp, guardConflict]);
-    const handleReset = (0, import_react23.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
-    const handleCreateTag = (0, import_react23.useCallback)(async (hash) => {
+    const handleReset = (0, import_react24.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
+    const handleCreateTag = (0, import_react24.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom du tag");
       if (name)
         runOp(t2("ext.app.tagCreated"), () => window.gitAPI.createTag(name, hash));
     }, [runOp]);
-    const handleCreateBranchAt = (0, import_react23.useCallback)(async (hash) => {
+    const handleCreateBranchAt = (0, import_react24.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp(t2("ext.app.branchCreated"), () => window.gitAPI.createBranchAt(name, hash, true));
     }, [runOp]);
-    const handleDropCommit = (0, import_react23.useCallback)(async (hash) => {
+    const handleDropCommit = (0, import_react24.useCallback)(async (hash) => {
       const ok = await window.gitAPI.uiConfirm(`Delete commit ${hash.slice(0, 7)}? This rewrites history.`);
       if (!ok)
         return;
       setSelectedCommit(null);
       await runOp(t2("ext.app.commitDeleted"), () => window.gitAPI.dropCommit(hash), true);
     }, [runOp]);
-    const handleMoveCommit = (0, import_react23.useCallback)((hash, direction) => runOp(t2("ext.app.commitMoved"), () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
-    const handleMergeBranch = (0, import_react23.useCallback)((name) => guardConflict(
+    const handleMoveCommit = (0, import_react24.useCallback)((hash, direction) => runOp(t2("ext.app.commitMoved"), () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
+    const handleMergeBranch = (0, import_react24.useCallback)((name) => guardConflict(
       () => window.gitAPI.predictConflicts(name),
       () => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true)
     ), [runOp, guardConflict]);
-    const handleRebaseCurrentOnto = (0, import_react23.useCallback)((name) => guardConflict(
+    const handleRebaseCurrentOnto = (0, import_react24.useCallback)((name) => guardConflict(
       () => window.gitAPI.predictRebaseConflicts(name),
       // accurate per-commit replay
       () => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true)
     ), [runOp, guardConflict]);
-    const handleRewordCommit = (0, import_react23.useCallback)(async (hash) => {
+    const handleRewordCommit = (0, import_react24.useCallback)(async (hash) => {
       const current = commits.find((c) => c.hash === hash);
       if (!current)
         return;
@@ -67845,13 +68344,13 @@ ${lineStrings.join("\n")}
       const sequence = seq.commits.map((c) => ({ action: c.hash === current.hash ? "reword" : "pick", hash: c.hash }));
       await runOp(t2("ext.app.msgModified"), () => window.gitAPI.interactiveRebase(sequence, [newMsg]));
     }, [runOp, commits, currentBranch, showToast]);
-    const handleRebaseCurrentOntoCommit = (0, import_react23.useCallback)((hash) => guardConflict(
+    const handleRebaseCurrentOntoCommit = (0, import_react24.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictRebaseConflicts(hash),
       // accurate per-commit replay
       () => runOp(`Rebase sur ${hash.slice(0, 7)}`, () => window.gitAPI.rebaseOnto(hash), true)
     ), [runOp, guardConflict]);
-    const handlePushToCommit = (0, import_react23.useCallback)((hash) => runOp(`Push to ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp]);
-    const handleCreatePatch = (0, import_react23.useCallback)(async (hash) => {
+    const handlePushToCommit = (0, import_react24.useCallback)((hash) => runOp(`Push to ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp]);
+    const handleCreatePatch = (0, import_react24.useCallback)(async (hash) => {
       const res = await window.gitAPI.createPatch(hash);
       if (res.error) {
         showToast(res.error, "err");
@@ -67863,7 +68362,7 @@ ${lineStrings.join("\n")}
       else if (!r.canceled)
         showToast(r.error ?? "\xC9chec", "err");
     }, [showToast]);
-    const handleCopyPatch = (0, import_react23.useCallback)(async (hash) => {
+    const handleCopyPatch = (0, import_react24.useCallback)(async (hash) => {
       const res = await window.gitAPI.createPatch(hash);
       if (res.error) {
         showToast(res.error, "err");
@@ -67872,7 +68371,7 @@ ${lineStrings.join("\n")}
       navigator.clipboard.writeText(res.patch);
       showToast(t2("ext.app.patchCopiedOk"));
     }, [showToast]);
-    const handleCreateWorktreeAt = (0, import_react23.useCallback)(async (hash) => {
+    const handleCreateWorktreeAt = (0, import_react24.useCallback)(async (hash) => {
       const dirPath = await window.gitAPI.selectDirectory("Emplacement du nouveau worktree");
       if (!dirPath)
         return;
@@ -67885,7 +68384,7 @@ ${lineStrings.join("\n")}
       else
         showToast(r.error ?? "\xC9chec", "err");
     }, [showToast]);
-    const handleOpenCommitOnRemote = (0, import_react23.useCallback)(async (hash) => {
+    const handleOpenCommitOnRemote = (0, import_react24.useCallback)(async (hash) => {
       const detected = await window.gitAPI.githubDetectRepo();
       if (!detected?.owner) {
         showToast(t2("ext.app.noGithub"), "err");
@@ -67893,7 +68392,7 @@ ${lineStrings.join("\n")}
       }
       window.gitAPI.openExternal(`https://github.com/${detected.owner}/${detected.repo}/commit/${hash}`);
     }, [showToast]);
-    (0, import_react23.useEffect)(() => {
+    (0, import_react24.useEffect)(() => {
       const onMenuAction = (action, hash) => {
         const commit = commits.find((c) => c.hash === hash);
         switch (action) {
@@ -68000,35 +68499,35 @@ ${lineStrings.join("\n")}
       handleOpenCommitOnRemote,
       showToast
     ]);
-    const handleRenameBranch = (0, import_react23.useCallback)(async (name) => {
+    const handleRenameBranch = (0, import_react24.useCallback)(async (name) => {
       const newName = await window.gitAPI.uiPrompt("Nouveau nom de branche", name);
       if (newName && newName !== name)
         runOp(t2("ext.app.branchRenamed"), () => window.gitAPI.renameBranch(name, newName));
     }, [runOp]);
-    const handleDeleteBranch = (0, import_react23.useCallback)(async (name) => {
+    const handleDeleteBranch = (0, import_react24.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer la branche "${name}" ?`)) {
         runOp(t2("ext.app.branchDeleted"), () => window.gitAPI.deleteBranch(name));
       }
     }, [runOp]);
-    const handlePushBranch = (0, import_react23.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
-    const handleSetUpstream = (0, import_react23.useCallback)((name) => runOp(t2("ext.app.upstreamSet"), () => window.gitAPI.setUpstream(name)), [runOp]);
-    const handleDeleteRemoteBranch = (0, import_react23.useCallback)(async (ref) => {
+    const handlePushBranch = (0, import_react24.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
+    const handleSetUpstream = (0, import_react24.useCallback)((name) => runOp(t2("ext.app.upstreamSet"), () => window.gitAPI.setUpstream(name)), [runOp]);
+    const handleDeleteRemoteBranch = (0, import_react24.useCallback)(async (ref) => {
       if (await window.gitAPI.uiConfirm(`Supprimer la branche distante "${ref}" ?`)) {
         runOp(t2("ext.app.remoteBranchDeleted"), () => window.gitAPI.deleteRemoteBranch(ref));
       }
     }, [runOp]);
-    const handlePushTag = (0, import_react23.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
-    const handleDeleteTag = (0, import_react23.useCallback)(async (name) => {
+    const handlePushTag = (0, import_react24.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
+    const handleDeleteTag = (0, import_react24.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le tag "${name}" ?`)) {
         runOp(t2("ext.app.tagDeleted"), () => window.gitAPI.deleteTag(name));
       }
     }, [runOp]);
-    const handleDeleteRemoteTag = (0, import_react23.useCallback)(async (name) => {
+    const handleDeleteRemoteTag = (0, import_react24.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le tag distant "${name}" ?`)) {
         runOp(t2("ext.app.remoteTagDeleted"), () => window.gitAPI.deleteRemoteTag(name));
       }
     }, [runOp]);
-    const loadStashes = (0, import_react23.useCallback)(async () => {
+    const loadStashes = (0, import_react24.useCallback)(async () => {
       try {
         const st = await window.gitAPI.getStashes();
         setStashes(st?.stashes ?? []);
@@ -68036,29 +68535,29 @@ ${lineStrings.join("\n")}
       } catch {
       }
     }, []);
-    const showPrompt = (0, import_react23.useCallback)(async (msg, def) => {
+    const showPrompt = (0, import_react24.useCallback)(async (msg, def) => {
       const r = await window.gitAPI.uiPrompt(msg, def);
       return r ?? null;
     }, []);
-    const showConfirm = (0, import_react23.useCallback)((msg) => window.gitAPI.uiConfirm(msg), []);
-    const handleApplyStash = (0, import_react23.useCallback)((index) => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.applyStash(index)), [runOp]);
-    const handlePopStashIndex = (0, import_react23.useCallback)((index) => runOp(t2("ext.app.stashPopped"), () => window.gitAPI.popStash(index)), [runOp]);
-    const handleDropStash = (0, import_react23.useCallback)(async (index) => {
+    const showConfirm = (0, import_react24.useCallback)((msg) => window.gitAPI.uiConfirm(msg), []);
+    const handleApplyStash = (0, import_react24.useCallback)((index) => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.applyStash(index)), [runOp]);
+    const handlePopStashIndex = (0, import_react24.useCallback)((index) => runOp(t2("ext.app.stashPopped"), () => window.gitAPI.popStash(index)), [runOp]);
+    const handleDropStash = (0, import_react24.useCallback)(async (index) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le stash @{${index}} ?`)) {
         runOp(t2("ext.app.stashDropped"), () => window.gitAPI.dropStash(index));
       }
     }, [runOp]);
-    const handleCreateTagPrompt = (0, import_react23.useCallback)(async () => {
+    const handleCreateTagPrompt = (0, import_react24.useCallback)(async () => {
       const name = await window.gitAPI.uiPrompt("Nom du tag (sur HEAD)");
       if (name)
         runOp(t2("ext.app.tagCreated"), () => window.gitAPI.createTag(name));
     }, [runOp]);
-    const handleSelectCommitByHash = (0, import_react23.useCallback)((hash) => {
+    const handleSelectCommitByHash = (0, import_react24.useCallback)((hash) => {
       const found = commits.find((c) => c.hash === hash || c.hash.startsWith(hash));
       if (found)
         setSelectedCommit(found);
     }, [commits]);
-    const handleToggleSolo = (0, import_react23.useCallback)((name) => {
+    const handleToggleSolo = (0, import_react24.useCallback)((name) => {
       setSoloBranch((prev) => {
         const next = prev === name ? null : name;
         soloRef.current = next;
@@ -68066,7 +68565,7 @@ ${lineStrings.join("\n")}
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const handleToggleMute = (0, import_react23.useCallback)((name) => {
+    const handleToggleMute = (0, import_react24.useCallback)((name) => {
       setMutedBranches((prev) => {
         const next = new Set(prev);
         if (next.has(name))
@@ -68078,7 +68577,7 @@ ${lineStrings.join("\n")}
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const handleBranchDrop = (0, import_react23.useCallback)(async (branch, hash, action, targetBranch) => {
+    const handleBranchDrop = (0, import_react24.useCallback)(async (branch, hash, action, targetBranch) => {
       if (action === "merge" && !targetBranch)
         return;
       if (action === "reset") {
@@ -68098,7 +68597,7 @@ ${lineStrings.join("\n")}
         run
       );
     }, [runOp, guardConflict]);
-    const handleConflictFinish = (0, import_react23.useCallback)(async (action, message) => {
+    const handleConflictFinish = (0, import_react24.useCallback)(async (action, message) => {
       const mode = conflictMode ?? action;
       let r;
       if (mode === "rebase")
@@ -68115,7 +68614,7 @@ ${lineStrings.join("\n")}
         showToast(mode === "rebase" ? t2("ext.app.rebaseContinued") : t2("ext.app.conflictsResolved"));
       await loadRepoData();
     }, [conflictMode, showToast, loadRepoData]);
-    const handleConflictAbort = (0, import_react23.useCallback)(async () => {
+    const handleConflictAbort = (0, import_react24.useCallback)(async () => {
       if (conflictMode === "merge")
         await window.gitAPI.abortMerge();
       else if (conflictMode === "cherry-pick")
@@ -68127,41 +68626,41 @@ ${lineStrings.join("\n")}
       showToast(t2("ext.app.opAborted"));
       await loadRepoData();
     }, [conflictMode, showToast, loadRepoData]);
-    const handleOpenResolver = (0, import_react23.useCallback)((file) => {
+    const handleOpenResolver = (0, import_react24.useCallback)((file) => {
       window.gitAPI.openConflictResolver(file);
     }, []);
-    const handleOpenFileDiff = (0, import_react23.useCallback)((target) => {
+    const handleOpenFileDiff = (0, import_react24.useCallback)((target) => {
       window.gitAPI.openDiff(target);
     }, []);
-    const handleFetch = (0, import_react23.useCallback)(async () => {
+    const handleFetch = (0, import_react24.useCallback)(async () => {
       await runOp("Fetch", () => window.gitAPI.fetch());
       setLastFetch(/* @__PURE__ */ new Date());
     }, [runOp]);
-    const handleOpenDesktop = (0, import_react23.useCallback)(() => window.gitAPI.openDesktop(), []);
-    const handlePull = (0, import_react23.useCallback)(() => guardConflict(
+    const handleOpenDesktop = (0, import_react24.useCallback)(() => window.gitAPI.openDesktop(), []);
+    const handlePull = (0, import_react24.useCallback)(() => guardConflict(
       () => window.gitAPI.predictConflicts("@{u}"),
       // merge of the already-known upstream tip (pre-fetch)
       () => runOp("Pull", () => window.gitAPI.pull())
     ), [runOp, guardConflict]);
-    const handlePush = (0, import_react23.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
-    const handleUndo = (0, import_react23.useCallback)(() => runOp(t2("ext.app.undone"), () => window.gitAPI.undoLastAction()), [runOp]);
-    const handleRedo = (0, import_react23.useCallback)(() => runOp(t2("ext.app.redone"), () => window.gitAPI.redoLastAction()), [runOp]);
-    const handleStash = (0, import_react23.useCallback)(() => runOp(t2("ext.app.stashCreated"), () => window.gitAPI.createStash()), [runOp]);
-    const handlePop = (0, import_react23.useCallback)(() => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.popStash(0)), [runOp]);
-    const handleTerminal = (0, import_react23.useCallback)(() => window.gitAPI.openTerminal(), []);
-    const handleNewBranch = (0, import_react23.useCallback)(async () => {
+    const handlePush = (0, import_react24.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
+    const handleUndo = (0, import_react24.useCallback)(() => runOp(t2("ext.app.undone"), () => window.gitAPI.undoLastAction()), [runOp]);
+    const handleRedo = (0, import_react24.useCallback)(() => runOp(t2("ext.app.redone"), () => window.gitAPI.redoLastAction()), [runOp]);
+    const handleStash = (0, import_react24.useCallback)(() => runOp(t2("ext.app.stashCreated"), () => window.gitAPI.createStash()), [runOp]);
+    const handlePop = (0, import_react24.useCallback)(() => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.popStash(0)), [runOp]);
+    const handleTerminal = (0, import_react24.useCallback)(() => window.gitAPI.openTerminal(), []);
+    const handleNewBranch = (0, import_react24.useCallback)(async () => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp(t2("ext.app.branchCreated"), () => window.gitAPI.createBranch(name));
     }, [runOp]);
-    const handleToggleAllBranches = (0, import_react23.useCallback)(() => {
+    const handleToggleAllBranches = (0, import_react24.useCallback)(() => {
       setShowAllBranches((v) => {
         showAllRef.current = !v;
         return !v;
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const startResizeRight = (0, import_react23.useCallback)((e) => {
+    const startResizeRight = (0, import_react24.useCallback)((e) => {
       e.preventDefault();
       const startX = e.clientX;
       const startW = rightW;
@@ -68176,16 +68675,34 @@ ${lineStrings.join("\n")}
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     }, [rightW]);
-    const [viewportW, setViewportW] = (0, import_react23.useState)(window.innerWidth);
-    (0, import_react23.useEffect)(() => {
+    const startResizeSide = (0, import_react24.useCallback)((e) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startW = sideW;
+      const onMove = (ev) => {
+        setSideW(Math.max(180, Math.min(500, startW + (ev.clientX - startX))));
+      };
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        setSideW((w) => {
+          void window.gitAPI.settingsSet("sidebarWidth", String(w));
+          return w;
+        });
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    }, [sideW]);
+    const [viewportW, setViewportW] = (0, import_react24.useState)(window.innerWidth);
+    (0, import_react24.useEffect)(() => {
       const onResize = () => setViewportW(window.innerWidth);
       window.addEventListener("resize", onResize);
       return () => window.removeEventListener("resize", onResize);
     }, []);
     const stacked = viewportW < 640;
-    const appBodyRef = (0, import_react23.useRef)(null);
-    const [bodyH, setBodyH] = (0, import_react23.useState)(0);
-    (0, import_react23.useEffect)(() => {
+    const appBodyRef = (0, import_react24.useRef)(null);
+    const [bodyH, setBodyH] = (0, import_react24.useState)(0);
+    (0, import_react24.useEffect)(() => {
       const el = appBodyRef.current;
       if (!el)
         return;
@@ -68196,7 +68713,7 @@ ${lineStrings.join("\n")}
     const shortPanel = bodyH > 0 && bodyH < 300 && !stacked;
     const effRightW = shortPanel ? Math.min(Math.max(rightW, 700), viewportW - 340) : rightW;
     const showRight = !!selectedCommit || !!conflictMode;
-    return /* @__PURE__ */ import_react23.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react24.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react24.default.createElement(
       CompactToolbar,
       {
         repoName,
@@ -68224,11 +68741,11 @@ ${lineStrings.join("\n")}
         onTerminal: handleTerminal,
         onOpenDesktop: handleOpenDesktop,
         onRefresh: loadRepoData,
-        sidebarOpen,
+        sidebarOpen: activeView !== null,
         onToggleSidebar: handleToggleSidebar,
         onSettings: () => setSettingsOpen(true)
       }
-    ), settingsOpen && /* @__PURE__ */ import_react23.default.createElement("div", { className: "gv-settings-overlay" }, /* @__PURE__ */ import_react23.default.createElement(SettingsModal, { embedded: true, onClose: () => setSettingsOpen(false), showToast })), conflictMode && /* @__PURE__ */ import_react23.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react23.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react23.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react23.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} file(s) to resolve` : t2("ext.app.noConflictToResolve")), /* @__PURE__ */ import_react23.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react23.default.createElement(
+    ), settingsOpen && /* @__PURE__ */ import_react24.default.createElement("div", { className: "gv-settings-overlay" }, /* @__PURE__ */ import_react24.default.createElement(SettingsModal, { embedded: true, onClose: () => setSettingsOpen(false), showToast })), conflictMode && /* @__PURE__ */ import_react24.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react24.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react24.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react24.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} file(s) to resolve` : t2("ext.app.noConflictToResolve")), /* @__PURE__ */ import_react24.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         className: "gv-cb-btn gv-cb-continue",
@@ -68237,9 +68754,10 @@ ${lineStrings.join("\n")}
         onClick: () => handleConflictFinish(conflictMode === "merge" ? "merge" : "rebase")
       },
       "Continuer"
-    ), /* @__PURE__ */ import_react23.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react23.default.createElement("div", { className: "app-body", ref: appBodyRef }, sidebarOpen && !stacked && /* @__PURE__ */ import_react23.default.createElement(
+    ), /* @__PURE__ */ import_react24.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react24.default.createElement("div", { className: "app-body", ref: appBodyRef }, !stacked && /* @__PURE__ */ import_react24.default.createElement(ActivityRail, { active: activeView, onSelect: handleSelectView }), activeView && !stacked && /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, /* @__PURE__ */ import_react24.default.createElement("div", { className: "gv-sidepanel", style: { width: sideW } }, /* @__PURE__ */ import_react24.default.createElement(
       Sidebar,
       {
+        view: activeView,
         repoPath: repoName || "repo",
         repoName,
         currentBranch,
@@ -68284,7 +68802,7 @@ ${lineStrings.join("\n")}
         showConfirm,
         embedded: true
       }
-    ), /* @__PURE__ */ import_react23.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react23.default.createElement(
+    )), /* @__PURE__ */ import_react24.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeSide })), /* @__PURE__ */ import_react24.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react24.default.createElement(
       CommitGraph,
       {
         commits,
@@ -68337,7 +68855,7 @@ ${lineStrings.join("\n")}
         nativeContextMenu: true,
         onNativeMenuTarget: (hash) => window.gitAPI.setLastMenuHash(hash)
       }
-    )), showRight && /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, !stacked && !shortPanel && /* @__PURE__ */ import_react23.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react23.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: effRightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react23.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react23.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react23.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react23.default.createElement(
+    )), showRight && /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, !stacked && !shortPanel && /* @__PURE__ */ import_react24.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react24.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: effRightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react24.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react24.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react24.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react24.default.createElement(
       RightPanel,
       {
         selectedCommit,
@@ -68375,33 +68893,33 @@ ${lineStrings.join("\n")}
   var boot = window.__GV_BOOT__;
   function ConflictTab({ file }) {
     const toast = useToast();
-    const showToast = (0, import_react23.useCallback)((msg, type) => {
+    const showToast = (0, import_react24.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const close = (0, import_react23.useCallback)(() => {
+    const close = (0, import_react24.useCallback)(() => {
       window.gitAPI.closeSelf();
     }, []);
-    return /* @__PURE__ */ import_react23.default.createElement(ConflictResolver, { file, onFinish: close, onAbort: close, showToast });
+    return /* @__PURE__ */ import_react24.default.createElement(ConflictResolver, { file, onFinish: close, onAbort: close, showToast });
   }
   function InteractiveRebaseTab({ baseHash }) {
     const toast = useToast();
-    const showToast = (0, import_react23.useCallback)((msg, type) => {
+    const showToast = (0, import_react24.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const close = (0, import_react23.useCallback)(() => {
+    const close = (0, import_react24.useCallback)(() => {
       window.gitAPI.closeSelf();
     }, []);
-    return /* @__PURE__ */ import_react23.default.createElement(InteractiveRebase, { embedded: true, baseHash, onClose: close, onSuccess: () => {
+    return /* @__PURE__ */ import_react24.default.createElement(InteractiveRebase, { embedded: true, baseHash, onClose: close, onSuccess: () => {
     }, showToast });
   }
   import_client.default.createRoot(document.getElementById("root")).render(
-    /* @__PURE__ */ import_react23.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react23.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react23.default.createElement(ToastProvider, null, boot?.mode === "stage" && boot.file ? /* @__PURE__ */ import_react23.default.createElement(StagingEditor, { file: boot.file }) : boot?.mode === "conflict" && boot.file ? /* @__PURE__ */ import_react23.default.createElement(ConflictTab, { file: boot.file }) : boot?.mode === "history" && boot.file ? /* @__PURE__ */ import_react23.default.createElement(FileHistory, { file: boot.file }) : boot?.mode === "compare" ? /* @__PURE__ */ import_react23.default.createElement(CompareView, { initialA: boot.refA, initialB: boot.refB }) : boot?.mode === "compareWorking" && boot.hash ? /* @__PURE__ */ import_react23.default.createElement(CompareWorkingView, { hash: boot.hash }) : boot?.mode === "github" ? /* @__PURE__ */ import_react23.default.createElement(GitHubPanel, { repoPath: "." }) : boot?.mode === "rebase" ? /* @__PURE__ */ import_react23.default.createElement(RebaseProgress, null) : boot?.mode === "todo" ? /* @__PURE__ */ import_react23.default.createElement(RebaseTodoApp, null) : boot?.mode === "plan" && boot.baseHash ? /* @__PURE__ */ import_react23.default.createElement(InteractiveRebaseTab, { baseHash: boot.baseHash }) : boot?.mode === "commitMsg" ? /* @__PURE__ */ import_react23.default.createElement(CommitMsgEditorView, { boot }) : /* @__PURE__ */ import_react23.default.createElement(VertexApp, null))))
+    /* @__PURE__ */ import_react24.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react24.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react24.default.createElement(ToastProvider, null, boot?.mode === "stage" && boot.file ? /* @__PURE__ */ import_react24.default.createElement(StagingEditor, { file: boot.file }) : boot?.mode === "conflict" && boot.file ? /* @__PURE__ */ import_react24.default.createElement(ConflictTab, { file: boot.file }) : boot?.mode === "history" && boot.file ? /* @__PURE__ */ import_react24.default.createElement(FileHistory, { file: boot.file }) : boot?.mode === "compare" ? /* @__PURE__ */ import_react24.default.createElement(CompareView, { initialA: boot.refA, initialB: boot.refB }) : boot?.mode === "compareWorking" && boot.hash ? /* @__PURE__ */ import_react24.default.createElement(CompareWorkingView, { hash: boot.hash }) : boot?.mode === "github" ? /* @__PURE__ */ import_react24.default.createElement(GitHubPanel, { repoPath: "." }) : boot?.mode === "rebase" ? /* @__PURE__ */ import_react24.default.createElement(RebaseProgress, null) : boot?.mode === "todo" ? /* @__PURE__ */ import_react24.default.createElement(RebaseTodoApp, null) : boot?.mode === "plan" && boot.baseHash ? /* @__PURE__ */ import_react24.default.createElement(InteractiveRebaseTab, { baseHash: boot.baseHash }) : boot?.mode === "commitMsg" ? /* @__PURE__ */ import_react24.default.createElement(CommitMsgEditorView, { boot }) : /* @__PURE__ */ import_react24.default.createElement(VertexApp, null))))
   );
 })();
 /*! Bundled license information:

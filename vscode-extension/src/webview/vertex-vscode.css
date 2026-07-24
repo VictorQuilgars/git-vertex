@@ -9,6 +9,61 @@
    available height is the viewport, so 100vh works, but force overflow hidden. */
 .gv-app.app { overflow: hidden; }
 
+/* ── Activity rail (another tool-style) ─────────────────────────── */
+.gv-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 44px;
+  flex-shrink: 0;
+  height: 100%;
+  padding: 6px 0;
+  background: #0d1117;
+  border-right: 1px solid #21262d;
+  user-select: none;
+  overflow: hidden;
+}
+.gv-rail-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.gv-rail-btn:hover:not(:disabled) { background: #21262d; color: #e6edf3; }
+.gv-rail-btn--active { color: #e6edf3; }
+/* Accent bar on the active icon (VS Code activity-bar convention) */
+.gv-rail-btn--active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 2px;
+  background: #58a6ff;
+}
+.gv-rail-btn--soon { opacity: 0.4; cursor: default; }
+.gv-rail-spacer { flex: 1; }
+
+/* ── Resizable side-panel wrapping the single-view Sidebar ──── */
+.gv-sidepanel {
+  flex-shrink: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  min-width: 180px;
+}
+.gv-sidepanel .sidebar { border-right: none; }
+
 /* ── Compact another tool-style toolbar ───────────────────────────── */
 .gvt {
   display: flex;
