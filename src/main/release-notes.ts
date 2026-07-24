@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.18.2': `## What's new in 1.18.2
+
+### 🧹 Settings cleanup
+- Removed the **Environment** block (Electron / Node.js / Chrome versions) from **Settings → About**.
+`,
   '1.18.1': `## What's new in 1.18.1
 
 ### ✍️ Commit message, simplified
