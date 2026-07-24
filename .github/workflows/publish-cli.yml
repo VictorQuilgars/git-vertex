@@ -45,9 +45,33 @@ jobs:
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
           fi
 
+  test:
+    name: Typecheck
+    needs: check-version
+    if: needs.check-version.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: cli
+
+      # No test suite yet in cli/ — typecheck is the minimal gate so a
+      # broken release can't ship silently.
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: cli
+
   publish:
     name: Build & publish
-    needs: check-version
+    needs: [check-version, test]
     if: needs.check-version.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     env:
