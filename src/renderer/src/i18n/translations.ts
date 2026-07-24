@@ -360,6 +360,8 @@ const fr = {
   'settings.github.disconnect': 'Déconnecter',
   'settings.github.login': 'Se connecter avec GitHub',
   'settings.github.connecting': 'Connexion en cours…',
+  'settings.github.pat': 'Token d\'accès personnel',
+  'settings.github.patHint': 'Créez-en un sur github.com/settings/tokens avec les scopes repo + gist, puis collez-le ici.',
 
   // Settings — AI
   'settings.ai.title': "Fournisseur d'IA",
@@ -1267,6 +1269,8 @@ const en: typeof fr = {
   'settings.github.disconnect': 'Disconnect',
   'settings.github.login': 'Sign in with GitHub',
   'settings.github.connecting': 'Connecting…',
+  'settings.github.pat': 'Personal Access Token',
+  'settings.github.patHint': 'Create one at github.com/settings/tokens with the repo + gist scopes, then paste it here.',
 
   // Settings — AI
   'settings.ai.title': 'AI Provider',
