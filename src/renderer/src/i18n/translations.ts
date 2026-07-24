@@ -311,8 +311,10 @@ const fr = {
   'panel.noUnstaged': 'Aucun fichier modifié',
   'panel.amendBadge.tooltip': "Fichier du dernier commit (inclus dans l'amend)",
   'panel.folder': '(dossier)',
+  'panel.stage': 'Indexer',
   'panel.stage.file': (f: string) => `Indexer "${f}"`,
   'panel.stage.folder': (f: string) => `Indexer tout le dossier "${f}"`,
+  'panel.hunkEditor': 'Éditeur de staging (par bloc)',
   'panel.discard': 'Annuler les modifications',
   'panel.discard.confirm': (path: string) => `Annuler les modifications de "${path}" ?\nCette action est irréversible.`,
   'panel.deleteUntracked': 'Supprimer le fichier non suivi',
@@ -345,8 +347,9 @@ const fr = {
   'panel.aiCopied': 'Message proposé copié dans le presse-papiers',
 
   // RightPanel — commit
-  'panel.commitMsg.placeholder': 'Message de commit…\n\nDescription optionnelle',
+  'panel.commitMsg.placeholder': 'Message de commit…',
   'panel.generate.tooltip': "Générer un message de commit avec l'IA",
+  'panel.generate.short': 'IA',
   'panel.commitDetails': 'Détails du commit',
   'panel.stageAndCommit': 'Indexer et commiter',
   'panel.commit': 'Commit',
@@ -365,10 +368,7 @@ const fr = {
   'panel.tab.stash': 'Remiser (stash)',
   'panel.tab.push': 'Push',
   'panel.amendPrevious': 'Amender le commit précédent',
-  'panel.commit.summary': 'Résumé du commit',
-  'panel.commit.description': 'Description',
   'panel.commitOptions': 'Options de commit',
-  'panel.composeAI': "Composer avec l'IA",
   'panel.signoff': 'Ajouter Signed-off-by',
   'panel.abort': 'Annuler',
   'panel.commit.inProgress': 'En cours…',
@@ -997,7 +997,6 @@ const fr = {
   'issue.loading': 'Chargement…',
   'graph.emptyRepo': 'Dépôt sans commit — ajoutez ou modifiez des fichiers, ils apparaîtront ici pour créer votre premier commit',
   'toast.undo': 'Annuler',
-  'panel.ccType.tooltip': 'Type de commit conventionnel (feat, fix…)',
 }
 
 const en: typeof fr = {
@@ -1309,8 +1308,10 @@ const en: typeof fr = {
   'panel.noUnstaged': 'No modified files',
   'panel.amendBadge.tooltip': 'File from last commit (included in amend)',
   'panel.folder': '(folder)',
+  'panel.stage': 'Stage',
   'panel.stage.file': (f: string) => `Stage "${f}"`,
   'panel.stage.folder': (f: string) => `Stage entire folder "${f}"`,
+  'panel.hunkEditor': 'Staging editor (by hunk)',
   'panel.discard': 'Discard changes',
   'panel.discard.confirm': (path: string) => `Discard changes to "${path}"?\nThis action is irreversible.`,
   'panel.deleteUntracked': 'Delete untracked file',
@@ -1343,8 +1344,9 @@ const en: typeof fr = {
   'panel.aiCopied': 'Proposed message copied to clipboard',
 
   // RightPanel — commit
-  'panel.commitMsg.placeholder': 'Commit message…\n\nOptional description',
+  'panel.commitMsg.placeholder': 'Commit message…',
   'panel.generate.tooltip': 'Generate commit message with AI',
+  'panel.generate.short': 'AI',
   'panel.commitDetails': 'Commit details',
   'panel.stageAndCommit': 'Stage and commit',
   'panel.commit': 'Commit',
@@ -1363,10 +1365,7 @@ const en: typeof fr = {
   'panel.tab.stash': 'Stash',
   'panel.tab.push': 'Push',
   'panel.amendPrevious': 'Amend previous commit',
-  'panel.commit.summary': 'Commit summary',
-  'panel.commit.description': 'Description',
   'panel.commitOptions': 'Commit options',
-  'panel.composeAI': 'Compose commits with AI',
   'panel.signoff': 'Add Signed-off-by',
   'panel.abort': 'Abort',
   'panel.commit.inProgress': 'Committing…',
@@ -1995,7 +1994,6 @@ const en: typeof fr = {
   'issue.loading': 'Loading…',
   'graph.emptyRepo': 'No commits yet — add or edit files and they will show up here so you can create your first commit',
   'toast.undo': 'Undo',
-  'panel.ccType.tooltip': 'Conventional commit type (feat, fix…)',
 }
 
 export const translations = { fr, en }

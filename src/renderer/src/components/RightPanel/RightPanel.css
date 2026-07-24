@@ -1113,8 +1113,6 @@
 .st2-icon-btn:disabled { opacity: 0.4; cursor: default; }
 .st2-danger { border-color: #f8514955; color: #f85149; }
 .st2-danger:hover:not(:disabled) { background: #f8514918; border-color: #f85149; color: #f85149; }
-.st2-ai { border-color: #8957e5aa; color: #b083f0; }
-.st2-ai:hover:not(:disabled) { background: #8957e522; border-color: #8957e5; color: #c4a7f5; }
 
 /* ── View bar (sort + Path/Tree) ── */
 .st2-viewbar {
@@ -1237,7 +1235,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 6px 12px 0;
+  padding: 6px 12px 10px;
 }
 .st2-tabs {
   display: flex;
@@ -1298,6 +1296,28 @@
 }
 .st2-amend input { accent-color: var(--accent,#58a6ff); }
 
+/* Amend + AI-generate (+ the commit ✓, once stackedCompact drops the bottom
+   band) always share one row — .st2-commit-scroll already provides the
+   surrounding padding/gap, so this is just a flex row. */
+.st2-msg-toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.st2-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid #8957e5aa;
+  background: #8957e51a;
+  color: #b083f0;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.st2-ai-btn:hover:not(:disabled) { background: #8957e533; color: #c4a7f5; }
+.st2-ai-btn:disabled { opacity: 0.5; cursor: wait; }
+.st2-ai-btn.loading { animation: ai-pulse 1s ease-in-out infinite; }
+
 /* ── Agent proposal banner (MCP propose_commit) ── */
 .st2-proposal {
   border: 1px solid #58a6ff55;
@@ -1355,71 +1375,53 @@
 }
 .st2-proposal-stage:hover { background: #388bfd; }
 
-/* ── Message box ── */
+/* ── Message box ──────────────────────────────────────────────────────────
+   One free-form field, no internal toolbar — the user's own line breaks
+   decide subject vs. body; nothing here artificially splits the message
+   into two inputs. The amend/AI/commit row lives above it (`.st2-msg-toolbar`). */
 .st2-msgbox {
   border: 1px solid #30363d;
   border-radius: 8px;
   background: #161b22;
   overflow: hidden;
-  flex-shrink: 0;
-}
-.st2-summary-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 8px 8px 12px;
-  border-bottom: 1px solid #21262d;
-}
-.st2-summary {
   flex: 1;
-  background: none;
-  border: none;
-  outline: none;
-  color: #e6edf3;
-  font-size: 14px;
-  font-weight: 500;
-  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
-.st2-summary::placeholder { color: #6e7681; font-weight: 400; }
-.st2-counter { color: #6e7681; font-size: 12px; font-variant-numeric: tabular-nums; }
-.st2-counter.over { color: #f85149; }
-.st2-msg-ai {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+
+/* Stacked-compact: commit lives on the toolbar row instead of its own band
+   below. `.st2-commit-btn` (the flex:1, full-padding base look) is redefined
+   further down, so this needs the two-class selector to win regardless of
+   source order. */
+.st2-commit-btn.st2-commit-btn--inline {
+  flex: 0 0 auto;
   width: 26px;
   height: 26px;
+  padding: 0;
   border-radius: 6px;
-  border: 1px solid #8957e5aa;
-  background: #8957e51a;
-  color: #b083f0;
-  cursor: pointer;
-  flex-shrink: 0;
 }
-.st2-msg-ai:hover:not(:disabled) { background: #8957e533; color: #c4a7f5; }
-.st2-msg-ai:disabled { opacity: 0.5; cursor: wait; }
-.st2-msg-ai.loading { animation: ai-pulse 1s ease-in-out infinite; }
-.st2-description {
+.st2-message {
+  flex: 1;
+  min-height: 44px;
   width: 100%;
   box-sizing: border-box;
-  min-height: 64px;
   resize: none;
   background: none;
   border: none;
   outline: none;
-  color: #c9d1d9;
+  color: #e6edf3;
   font-size: 13px;
+  line-height: 1.5;
   padding: 10px 12px;
   font-family: inherit;
 }
-.st2-description::placeholder { color: #6e7681; }
+.st2-message::placeholder { color: #6e7681; }
 
-/* ── Options + compose ── */
+/* ── Options (signoff toggle) ── */
 .st2-options-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   flex-shrink: 0;
 }
 .st2-options-toggle {
@@ -1438,23 +1440,6 @@
   min-width: 0;
 }
 .st2-options-toggle:hover { color: #c9d1d9; }
-.st2-compose {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border: 1px solid #8957e5;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #8957e5 0%, #6e40c9 100%);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.st2-compose:hover:not(:disabled) { filter: brightness(1.1); }
-.st2-compose:disabled { opacity: 0.55; cursor: wait; }
 .st2-options {
   padding: 4px 2px 0;
   flex-shrink: 0;
@@ -1465,7 +1450,7 @@
   display: flex;
   gap: 8px;
   flex-shrink: 0;
-  padding: 0 12px 12px;
+  padding: 10px 14px 14px;
 }
 .st2-commit-btn {
   flex: 1;
@@ -1499,48 +1484,23 @@
 }
 .st2-abort:hover { background: #f8514918; }
 
-/* ── Conventional-commit type selector ────────────────────── */
-.st2-cc-type {
-  flex-shrink: 0;
-  max-width: 86px;
-  height: 24px;
-  padding: 0 4px;
-  background: #0d1117;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  color: #8b949e;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  outline: none;
-}
-.st2-cc-type:hover { border-color: #58a6ff; color: #c9d1d9; }
-.st2-cc-type:focus { border-color: #58a6ff; }
-
 /* ── Compact mode (short panels, e.g. VS Code panel under a terminal) ──────
-   The commit form shrinks to its essentials so the file lists keep priority
-   and the summary field + Commit button stay visible without resizing. */
-.st2--trimtop .st2-topbar { display: none; }        /* "N modifs sur main" + trash + AI — redundant up to 500px */
+   The commit form shrinks to its essentials so the file lists keep priority.
+   Its height is still user-controlled (the resize handle stays enabled, just
+   with a lower floor — see maxFormH in the component) rather than hard-capped
+   here, so the user can trade space between the file lists and the form. */
+.st2--trimtop .st2-topbar { display: none; }        /* "N modifs sur main" + trash — redundant up to 500px */
 .st2--compact .st2-viewbar { display: none; }       /* sort + path/tree toggle */
-.st2--compact .st2-resize { display: none; }         /* manual resize handle */
-.st2--trimtop .st2-tabs { display: none; }           /* stash/push tabs (in toolbar) — they pushed the summary out of view */
+.st2--row .st2-resize { display: none; }             /* row split uses a fixed-width column instead */
+.st2--trimtop .st2-tabs { display: none; }           /* stash/push tabs (in toolbar) — they pushed the message out of view */
 .st2--trimtop .st2-options-row,
 .st2--trimtop .st2-options { display: none; }        /* compose + signoff options */
-/* Vertical compact only: drop the body field to keep the form tiny.
-   In row mode there's full height on the right, so it stays. */
-.st2--compact:not(.st2--row) .st2-description { display: none; }
 
 /* File lists scroll as one block (headers + files) so they never collapse to
    nothing or overlap; they keep priority over the compact form. */
 .st2--compact .st2-lists { overflow-y: auto; }
 .st2--compact .st2-section.open { flex: 0 0 auto; }
-.st2--compact:not(.st2--row) .st2-file-list { max-height: 38vh; }
 
-/* Commit area: natural height (summary + button), lists take the rest. */
-.st2--compact .st2-commit {
-  height: auto;
-  flex-shrink: 0;
-}
 .st2--compact .st2-commit-scroll {
   overflow: visible;
   gap: 6px;
@@ -1590,43 +1550,32 @@
 }
 .st2--row .st2-commit-scroll { overflow-y: auto; }
 
-/* ── Very short panel → single-row commit bar ─────────────────────────────
-   [ summary …………………… ⚡ ] [ Commit ]  — keeps the file lists tall. */
-.st2-commit--mini {
+/* Compact + not-row (<300px tall, <640px wide, classic stacked layout) DURING
+   A CONFLICT: the merged single-row layout is skipped for conflicts (Abort +
+   Commit&Merge need explicit, unambiguous buttons), so this bar is still used
+   there. Outside conflicts, stackedCompact folds commit into the summary row
+   (`.st2-commit-btn--inline`) and this bar isn't rendered at all. */
+.st2--compact:not(.st2--row) .st2-commit-actions { justify-content: flex-end; }
+.st2-commit-btn--short {
   flex: 0 0 auto;
-  height: auto;
-  border-top: 1px solid #21262d;
-  background: #0d1117;
-  padding: 6px 8px;
+  padding: 9px 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
-.st2-mini-row { display: flex; align-items: center; gap: 6px; }
-.st2-mini-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  color: #e6edf3;
-  font-size: 12px;
-  padding: 7px 9px;
-  outline: none;
-}
-.st2-mini-input:focus { border-color: var(--accent,#58a6ff); }
-.st2-mini-input::placeholder { color: #6e7681; }
-.st2-mini-btn {
-  flex: 0 0 auto;
-  width: 40px;
-  height: 32px;
-  padding: 0;
+.st2-commit-btn--short.ready:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
 }
 
-/* Tiny panel (<190px): commit button → small check floating over the
-   description (no band). At 190–300px a normal labelled button is kept. */
-.st2--tiny .st2-commit { position: relative; }
-.st2--tiny .st2-commit-actions {
+/* Row layout + tiny (<190px tall, ≥640px wide, form docked on the side): the
+   commit form has the panel's full height with room to spare below the
+   fields, so the icon-only button can float low in that empty space —
+   anchored bottom-right, inset from the edges, with a deep shadow + a solid
+   ring (matching the panel background) to lift it clearly into the
+   foreground without looking glitchy. */
+.st2--row.st2--tiny .st2-commit { position: relative; overflow: visible; }
+.st2--row.st2--tiny .st2-commit-actions {
   position: absolute;
-  right: 10px;
-  bottom: 8px;
+  right: 14px;
+  bottom: 14px;
   padding: 0;
   background: transparent;
   border: none;
@@ -1634,16 +1583,47 @@
 }
 .st2-commit-btn--mini {
   flex: 0 0 auto;
-  width: 44px;
-  height: 32px;
+  width: 46px;
+  height: 34px;
   padding: 0;
   gap: 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 3px #0d1117;
+}
+.st2-commit-btn--mini.ready:hover:not(:disabled) {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.7), 0 0 0 3px #0d1117;
 }
 
-/* 190–300px: short labelled button ("Commiter"), auto width, right-aligned */
-.st2--compact:not(.st2--tiny) .st2-commit-actions { justify-content: flex-end; }
-.st2-commit-btn--short {
-  flex: 0 0 auto;
-  padding: 8px 18px;
+/* ── Embedded (VS Code) single checkbox staging list ─────────── */
+/* Own container — deliberately NOT `.st2-lists`, so the desktop split-view
+   rules (`.st2--row`/`.st2--splitlists .st2-lists { flex-direction: row }`)
+   never flip this single-list layout sideways. */
+.stx { display: flex; flex-direction: column; min-height: 0; flex: 1; overflow: hidden; }
+.stx-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
 }
+.stx-count { font-size: 11px; font-weight: 600; color: #8b949e; }
+.stx-spring { flex: 1; }
+/* Small icon-only sort / path / tree toggles, tucked in the header corner */
+.stx-tool { width: 24px; height: 22px; border-radius: 5px; }
+.stx-tool.active { border-color: var(--accent,#58a6ff); color: #58a6ff; background: #1f6feb1a; }
+.stx-list { flex: 1; overflow-y: auto; min-height: 0; }
+.stx-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.stx-row:hover { background: #161b22; }
+.stx-row.st-selected { background: #1f2d3d; }
+.stx-check { flex-shrink: 0; width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent,#58a6ff); margin: 0; }
+.stx-check-spacer { width: 14px; flex-shrink: 0; }
+.stx-master { margin-right: 2px; }
+/* In the checkbox tree, drop the row's own left padding chevron spacing tweak */
+.stx-row.st-tr { gap: 6px; }
+.stx-row.st-tr-dir .st-tr-tri { margin-left: 0; }

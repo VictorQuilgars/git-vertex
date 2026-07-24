@@ -108,6 +108,15 @@ function treeStats(node: TreeNode): { mod: number; add: number; del: number } {
   }, { mod: 0, add: 0, del: 0 })
 }
 
+// Single source of truth for the per-file status marker (M/A/D/R/?), used
+// everywhere — staging list, staging tree, commit details — so the same file
+// state always reads the same. Defined near buildTree; STATUS_META lives below
+// and is hoisted, so this resolves fine at render time.
+function StatusBadge({ status, className }: { status?: string; className?: string }) {
+  const m = STATUS_META[status ?? 'M'] ?? STATUS_META['?']
+  return <span className={`st-badge ${className ?? ''}`} style={{ color: m.color }}>{m.label}</span>
+}
+
 function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect, isSelected }: {
   node: TreeNode; depth: number
   onAction: (paths: string[]) => void
@@ -119,16 +128,13 @@ function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect,
   const indent = depth * 10
 
   if (node.isFile) {
-    const s = node.status ?? 'M'
     return (
       <div
         className={`st-tr st-clickable ${isSelected ? 'st-selected' : ''}`}
         style={{ paddingLeft: indent + 4 }}
         onClick={() => onSelect?.(node.fullPath)}
       >
-        {s === 'A' ? <span className="st-fsi st-fsi-add">+</span>
-          : s === 'D' ? <span className="st-fsi st-fsi-del">−</span>
-          : <TreePencil />}
+        <StatusBadge status={node.status} className="st-tr-badge" />
         <span className="st-tr-name">{node.name}</span>
         {actionIcon && (
           <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
@@ -708,16 +714,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                         className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
                         onClick={() => { setSelectedFile(f.path); onOpenFileDiff?.({ type: 'commit', commitHash: commit.hash, filePath: f.path }) }}
                       >
-                        {s === 'A'
-                          ? <span className="rp-fsi rp-fsi-add">+</span>
-                          : s === 'D'
-                          ? <span className="rp-fsi rp-fsi-del">−</span>
-                          : s === 'R'
-                          ? <span className="rp-fsi rp-fsi-ren">R</span>
-                          : <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" className="rp-file-pencil">
-                              <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
-                            </svg>
-                        }
+                        <StatusBadge status={s} className="rp-file-badge" />
                         <span className="rp-file-path">
                           {dir && <span className="rp-file-dir">{dir}</span>}
                           <span className="rp-file-name">{name}</span>
@@ -753,8 +750,6 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 // ── Staging view (commit panel) ───────────────
 interface SelectedDiffFile { path: string; area: 'staged' | 'unstaged' }
 
-const SUMMARY_LIMIT = 72
-
 // Inline icons (currentColor)
 const IcoTrash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15Z"/></svg>)
 const IcoSpark = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>)
@@ -768,15 +763,81 @@ const IcoHunks = () => (<svg width="13" height="13" viewBox="0 0 16 16" fill="cu
 const IcoCloud = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z"/></svg>)
 const IcoChevron = ({ open }: { open: boolean }) => (<svg className={`st2-chev ${open ? 'open' : ''}`} width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>)
 
-// Conventional-commit helper for the summary field
-const CC_TYPES = ['feat', 'fix', 'chore', 'docs', 'refactor', 'perf', 'test', 'build', 'ci']
-const CC_PREFIX_RE = /^([a-z]+)(\([^)]*\))?!?:\s*/
-function ccTypeOf(summary: string): string {
-  const m = CC_PREFIX_RE.exec(summary)
-  return m && CC_TYPES.includes(m[1]) ? m[1] : ''
+// ── Embedded (VS Code) single-list staging: checkbox helpers ──────
+type StageState = 'staged' | 'unstaged' | 'partial'
+
+// Checkbox that can render the tri-state "indeterminate" look (partial staging /
+// mixed folder). React has no `indeterminate` prop, so it's set via a ref.
+function IndetCheckbox({ checked, indeterminate, onChange, className, title, disabled }: {
+  checked: boolean; indeterminate?: boolean; onChange: () => void
+  className?: string; title?: string; disabled?: boolean
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  useEffect(() => { if (ref.current) ref.current.indeterminate = !!indeterminate && !checked }, [indeterminate, checked])
+  return (
+    <input ref={ref} type="checkbox" className={className} title={title} disabled={disabled}
+      checked={checked} onChange={onChange} onClick={e => e.stopPropagation()} />
+  )
 }
 
-function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed }: {
+interface StageTreeCtx {
+  stateByPath: Map<string, StageState>
+  onStage: (paths: string[]) => void
+  onUnstage: (paths: string[]) => void
+  onDiscard: (path: string) => void
+  onSelect: (path: string, area: 'staged' | 'unstaged') => void
+  selectedPath?: string | null
+  onOpenStagingEditor?: (file: string) => void
+  stageTitle: string; unstageTitle: string; discardTitle: string; hunkTitle: string
+}
+function collectTreeFiles(n: TreeNode): string[] {
+  return n.isFile ? [n.fullPath] : n.children.flatMap(collectTreeFiles)
+}
+// Checkbox file-tree row for the embedded single-list staging view. Folders get
+// a tri-state checkbox that stages/unstages every descendant at once.
+function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx: StageTreeCtx }) {
+  const [open, setOpen] = React.useState(true)
+  const indent = depth * 10
+  if (node.isFile) {
+    const state = ctx.stateByPath.get(node.fullPath) ?? 'unstaged'
+    const staged = state === 'staged'
+    const selected = ctx.selectedPath === node.fullPath
+    return (
+      <div className={`stx-row st-tr st-clickable ${selected ? 'st-selected' : ''}`}
+        style={{ paddingLeft: indent + 4 }}
+        onClick={() => ctx.onSelect(node.fullPath, staged ? 'staged' : 'unstaged')}>
+        <IndetCheckbox className="stx-check" checked={staged} indeterminate={state === 'partial'}
+          title={staged ? ctx.unstageTitle : ctx.stageTitle}
+          onChange={() => staged ? ctx.onUnstage([node.fullPath]) : ctx.onStage([node.fullPath])} />
+        <StatusBadge status={node.status} className="st-tr-badge" />
+        <span className="st-tr-name">{node.name}</span>
+        {ctx.onOpenStagingEditor && (
+          <button className="st-action st-hunk-editor" title={ctx.hunkTitle}
+            onClick={e => { e.stopPropagation(); ctx.onOpenStagingEditor!(node.fullPath) }}><IcoHunks /></button>
+        )}
+        <button className="st-action st-discard" title={ctx.discardTitle}
+          onClick={e => { e.stopPropagation(); ctx.onDiscard(node.fullPath) }}>↺</button>
+      </div>
+    )
+  }
+  const files = collectTreeFiles(node)
+  const states = files.map(p => ctx.stateByPath.get(p) ?? 'unstaged')
+  const allStaged = states.length > 0 && states.every(s => s === 'staged')
+  const noneStaged = states.every(s => s === 'unstaged')
+  return (
+    <>
+      <div className="stx-row st-tr st-tr-dir" style={{ paddingLeft: indent }} onClick={() => setOpen(o => !o)}>
+        <IndetCheckbox className="stx-check" checked={allStaged} indeterminate={!allStaged && !noneStaged}
+          onChange={() => allStaged ? ctx.onUnstage(files) : ctx.onStage(files)} />
+        <span className="st-tr-tri">{open ? '▼' : '▶'}</span>
+        <span className="st-tr-dirname">{node.name}</span>
+      </div>
+      {open && node.children.map(c => <CheckTreeRow key={c.fullPath} node={c} depth={depth + 1} ctx={ctx} />)}
+    </>
+  )
+}
+
+function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   currentBranch?: string
@@ -788,12 +849,15 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   onOpenStagingEditor?: (file: string) => void
   commitProposal?: { message: string; files: string[] } | null
   onProposalConsumed?: () => void
+  embedded?: boolean
 }) {
   const { t } = useLang()
   const isConflict = !!conflictMode
   const [changes, setChanges] = useState<WorkingChanges>({ staged: [], unstaged: [], untracked: [] })
-  const [summary, setSummary] = useState('')
-  const [description, setDescription] = useState('')
+  // Single free-form commit message: the user controls their own line breaks
+  // (first line reads as the subject by git convention, but nothing forces
+  // that split — no separate summary/description fields).
+  const [message, setMessage] = useState('')
   const [amend, setAmend] = useState(false)
   const [amendFiles, setAmendFiles] = useState<FileChange[]>([])
   const [treeMode, setTreeMode] = useState(() => localStorage.getItem('st-tree-mode') === 'true')
@@ -824,40 +888,45 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     return () => ro.disconnect()
   }, [])
   const panelH = panelSize.h
-  // Reserve less vertical room below 500px since the top banner is hidden there,
-  // so the form can grow enough to show the summary + description.
-  const maxFormH = panelH > 0 ? Math.max(140, panelH - (panelH < 500 ? 150 : 220)) : Infinity
+  // The form can always be dragged up to a generous flat ceiling (800) — for
+  // any realistic panel size that's effectively unbounded, so a short VS Code
+  // terminal never "blocks" the user from wanting more room. The only thing
+  // still trimmed off that ceiling is a thin sliver (56px — resize handle +
+  // a couple of file rows) reserved so the form can never grow taller than
+  // the panel itself: without that, the message box would render past the
+  // panel's actual bottom edge with no clipping/scroll to catch it, which
+  // reads as its border "touching" or being cut off by the window edge.
+  const maxFormH = panelH > 0 ? Math.min(800, Math.max(96, panelH - 56)) : 800
   const effFormHeight = Math.min(formHeight, maxFormH)
   // In short panels (VS Code panel docked under a terminal) the classic vertical
   // stack (file lists above, commit form below) runs out of height. Two responsive
   // fallbacks:
-  //  • compact     — short panel: trim the chrome (topbar, viewbar, resize…).
+  //  • compact     — short panel: trim the chrome (topbar, viewbar…).
   //  • compactRow  — short *and* wide: lay out files | commit form side by side,
   //                  each on the full height, so nothing gets clipped.
   // Height tiers:
-  //  • ≥ 300px        → classic layout (unchanged).
-  //  • 190–300px      → compact layout + a normal labelled commit button.
-  //  • < 190px (tiny) → compact layout + a floating ✓ button; if also narrow,
-  //                     the commit area becomes a single [summary … ⚡] [✓] row.
+  //  • ≥ 300px                    → classic layout (unchanged).
+  //  • < 300px, wide (compactRow) → files | form side by side, form keeps its
+  //                                  usual shape (plenty of height to spare).
+  //  • < 300px, narrow (stacked)  → merged layout: amend + AI share one row,
+  //                                  the commit button becomes a ✓ at the end
+  //                                  of the message toolbar instead of its own
+  //                                  band.
   const compact = panelH > 0 && panelH < 300
   const compactRow = compact && panelSize.w >= 640
   const tiny = compact && panelH < 190
-  const mini = compact && !compactRow && tiny
+  // Stacked (narrow) + compact, and not mid-conflict — conflict resolution
+  // keeps the explicit Abort/Commit&Merge bar regardless of size.
+  const stackedCompact = compact && !compactRow && !isConflict
   // Up to 500px the top banner (discard-all, "N changes on branch", AI) is
-  // redundant chrome — counts are in the section headers, AI is in the message
-  // box — so hide it to give the file lists more room, even in classic layout.
+  // redundant chrome — counts are in the section headers, AI is on the message
+  // toolbar — so hide it to give the file lists more room, even in classic layout.
   const trimTop = panelH > 0 && panelH < 500
   // Up to 500px (and wide enough), put Unstaged | Staged side by side so both
   // are readable without one pushing the other down. In the full horizontal
   // (compactRow) layout the lists are already split, so this only adds the
   // split to the classic vertical layout.
   const splitLists = trimTop && panelSize.w >= 360
-
-  const splitMessage = (full: string) => {
-    const lines = full.split('\n')
-    setSummary(lines[0] ?? '')
-    setDescription(lines.slice(1).join('\n').replace(/^\n+/, ''))
-  }
 
   const toggleAmend = useCallback(async (checked: boolean) => {
     setAmend(checked)
@@ -866,13 +935,10 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
         window.gitAPI.getLastCommitMessage(),
         window.gitAPI.getCommitFiles('HEAD'),
       ])
-      const full = msgRes.message ?? ''
-      const lines = full.split('\n')
-      setSummary(lines[0] ?? '')
-      setDescription(lines.slice(1).join('\n').replace(/^\n+/, ''))
+      setMessage(msgRes.message ?? '')
       setAmendFiles(filesRes.files ?? [])
     } else {
-      setSummary(''); setDescription('')
+      setMessage('')
       setAmendFiles([])
     }
   }, [])
@@ -896,7 +962,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 
   useEffect(() => {
     if (isConflict) {
-      window.gitAPI.getMergeMessage().then(r => { if (r.message) splitMessage(r.message) })
+      window.gitAPI.getMergeMessage().then(r => { if (r.message) setMessage(r.message) })
     }
   }, [isConflict])
 
@@ -904,7 +970,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   // form. The proposed files are only *listed* in the banner below — staging
   // them stays a one-click user action, never automatic.
   useEffect(() => {
-    if (commitProposal) splitMessage(commitProposal.message)
+    if (commitProposal) setMessage(commitProposal.message)
   }, [commitProposal])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const stageProposedFiles = async () => {
@@ -925,7 +991,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     const onMove = (ev: MouseEvent) => {
       if (!dragRef.current) return
       // dragging up grows the form, down shrinks it
-      const next = Math.min(560, maxFormH, Math.max(150, dragRef.current.h - (ev.clientY - dragRef.current.y)))
+      const next = Math.min(maxFormH, Math.max(96, dragRef.current.h - (ev.clientY - dragRef.current.y)))
       setFormHeight(next)
     }
     const onUp = () => {
@@ -945,7 +1011,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
       if (!r) showToast(t('panel.gen.empty'), 'err')
       else if (r.error === 'NO_API_KEY') showToast(t('panel.gen.noKey'), 'err')
       else if (r.error) showToast(t('panel.gen.failed', r.error ?? ''), 'err')
-      else if (r.message) splitMessage(r.message)
+      else if (r.message) setMessage(r.message)
       else showToast(t('panel.gen.empty'), 'err')
     } catch (e: any) {
       showToast(t('panel.gen.unexpected', e?.message ?? e), 'err')
@@ -997,7 +1063,42 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     ...sortedUntracked.map(f => ({ path: f, status: '?' })),
   ])
 
-  const remaining = SUMMARY_LIMIT - summary.length
+  // ── Embedded single-list model: one row per file, checkbox = staged ──
+  // A file can be in both staged and unstaged (partial staging) → 'partial'.
+  const mergedFiles: { path: string; status: string; state: StageState }[] = (() => {
+    const m = new Map<string, { path: string; status: string; state: StageState }>()
+    for (const f of changes.staged) m.set(f.path, { path: f.path, status: f.status, state: 'staged' })
+    for (const f of changes.unstaged) {
+      const ex = m.get(f.path)
+      if (ex) ex.state = 'partial'
+      else m.set(f.path, { path: f.path, status: f.status, state: 'unstaged' })
+    }
+    for (const raw of changes.untracked) {
+      const p = raw.replace(/\/$/, '') // git add/discard accept the slash-less form
+      if (!m.has(p)) m.set(p, { path: p, status: '?', state: 'unstaged' })
+    }
+    return sortFiles([...m.values()])
+  })()
+  const stateByPath = new Map<string, StageState>(mergedFiles.map(f => [f.path, f.state]))
+  const mergedTree = buildTree(mergedFiles.map(f => ({ path: f.path, status: f.status })))
+  const allStaged = mergedFiles.length > 0 && mergedFiles.every(f => f.state === 'staged')
+  const noneStaged = mergedFiles.every(f => f.state === 'unstaged')
+  const stageOne = (paths: string[]) => handle(() => window.gitAPI.stage(paths))
+  const unstageOne = (paths: string[]) => handle(() => window.gitAPI.unstage(paths))
+  const discardOne = async (path: string) => {
+    if (!window.confirm(t('panel.discard.confirm', path))) return
+    handle(() => window.gitAPI.discardFile(path))
+  }
+  const toggleAllStaged = () => handle(() =>
+    allStaged ? window.gitAPI.unstage(changes.staged.map(x => x.path)) : window.gitAPI.stageAll())
+  const stageCtx: StageTreeCtx = {
+    stateByPath, onStage: stageOne, onUnstage: unstageOne, onDiscard: discardOne,
+    onSelect: (path, area) => selectFile({ path, area }),
+    selectedPath: selectedDiff?.path, onOpenStagingEditor,
+    stageTitle: t('panel.stage'), unstageTitle: t('panel.unstaged'),
+    discardTitle: t('panel.discard'), hunkTitle: t('panel.hunkEditor'),
+  }
+
   const branchName = currentBranch || 'HEAD'
 
   // Dynamic commit-button label following the commit flow.
@@ -1005,14 +1106,14 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     if (committing) return t('panel.commit.inProgress')
     if (isConflict) return 'Commit & Merge'
     if (!canCommit) return t('panel.commit.stageFirst')      // nothing staged
-    if (!summary.trim()) return t('panel.commit.typeMessage') // staged, no message
+    if (!message.trim()) return t('panel.commit.typeMessage') // staged, no message
     if (amend && changes.staged.length === 0) return t('panel.commit.amend')
     const n = changes.staged.length
     return t('panel.commit.changes', String(n), n !== 1 ? 's' : '')
   })()
   const commitReady = isConflict
-    ? (!!summary.trim() && !conflictFiles?.length)
-    : (canCommit && !!summary.trim())
+    ? (!!message.trim() && !conflictFiles?.length)
+    : (canCommit && !!message.trim())
 
   return (
     <div className={`rp-content rp-staging st2 ${compact ? 'st2--compact' : ''} ${compactRow ? 'st2--row' : ''} ${tiny ? 'st2--tiny' : ''} ${trimTop ? 'st2--trimtop' : ''} ${splitLists ? 'st2--splitlists' : ''}`} ref={stRootRef}>
@@ -1026,12 +1127,61 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           <span className="st2-on">{t('panel.on')}</span>
           <span className="st2-branch-chip" title={branchName}>{branchName}</span>
         </div>
-        <button className="st2-icon-btn st2-ai" title={t('panel.generate.tooltip')} onClick={generateMessage} disabled={generating}>
-          <IcoSpark />
-        </button>
       </div>
 
       {/* ── Sort + view toggle ── */}
+      {/* ── Embedded (VS Code): single checkbox list ── */}
+      {embedded && (
+        <div className="stx">
+          <div className="stx-head">
+            <IndetCheckbox className="stx-check stx-master" checked={allStaged}
+              indeterminate={!allStaged && !noneStaged} disabled={mergedFiles.length === 0}
+              title={allStaged ? t('panel.unstageAll') : t('panel.stageAll')}
+              onChange={toggleAllStaged} />
+            <span className="stx-count">
+              {totalChanged} {totalChanged === 1 ? t('panel.fileChange') : t('panel.fileChanges')}
+            </span>
+            <div className="stx-spring" />
+            <button className="st2-icon-btn stx-tool" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}><IcoSort /></button>
+            <button className={`st2-icon-btn stx-tool ${!treeMode ? 'active' : ''}`} title={t('panel.view.path')} onClick={() => treeMode && toggleTree()}><IcoPathView /></button>
+            <button className={`st2-icon-btn stx-tool ${treeMode ? 'active' : ''}`} title={t('panel.view.tree')} onClick={() => !treeMode && toggleTree()}><IcoTreeView /></button>
+          </div>
+          <div className="st2-file-list stx-list">
+            {mergedFiles.length === 0 && amendOnly.length === 0
+              ? <div className="st-empty">{t('panel.noChanges')}</div>
+              : treeMode
+                ? mergedTree.map(node => <CheckTreeRow key={node.fullPath} node={node} depth={0} ctx={stageCtx} />)
+                : mergedFiles.map(f => {
+                    const staged = f.state === 'staged'
+                    const isSelected = selectedDiff?.path === f.path
+                    return (
+                      <div key={f.path} className={`stx-row st-clickable ${isSelected ? 'st-selected' : ''}`}
+                        onClick={() => selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' })}>
+                        <IndetCheckbox className="stx-check" checked={staged} indeterminate={f.state === 'partial'}
+                          title={staged ? t('panel.unstaged') : t('panel.stage')}
+                          onChange={() => staged ? unstageOne([f.path]) : stageOne([f.path])} />
+                        <StatusBadge status={f.status} />
+                        <span className="st-path" title={f.path}>{f.path}</span>
+                        {onOpenStagingEditor && <button className="st-action st-hunk-editor" title={t('panel.hunkEditor')} onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
+                        <button className="st-action st-discard" title={t('panel.discard')} onClick={e => { e.stopPropagation(); discardOne(f.path) }}>↺</button>
+                      </div>
+                    )
+                  })
+            }
+            {amendOnly.map(f => (
+              <div key={f.path} className="stx-row st-amend-file" title={t('panel.amendBadge.tooltip')}>
+                <span className="stx-check-spacer" />
+                <StatusBadge status={f.status} />
+                <span className="st-path">{f.path}</span>
+                <span className="st-amend-tag">amend</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop: Unstaged / Staged two-section layout ── */}
+      {!embedded && (<>
       <div className="st2-viewbar">
         <button className="st2-icon-btn st2-sort" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}>
           <IcoSort />
@@ -1176,37 +1326,13 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           )}
         </div>
       </div>
+      </>)}
 
       {/* ── Resize handle ── */}
       <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
 
       {/* ── Commit area ── */}
-      {mini ? (
-        <div className="st2-commit st2-commit--mini">
-          <div className="st2-mini-row">
-            <input
-              className="st2-mini-input"
-              placeholder={t('panel.commit.summary')}
-              value={summary}
-              onChange={e => setSummary(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doCommit() }}
-            />
-            <button className={`st2-msg-ai ${generating ? 'loading' : ''}`} title={t('panel.generate.tooltip')}
-              onClick={generateMessage} disabled={generating}>
-              <IcoSpark size={13} />
-            </button>
-            <button
-              className={`st2-commit-btn st2-mini-btn ${commitReady ? 'ready' : ''}`}
-              disabled={!commitReady || committing}
-              onClick={doCommit}
-              title={commitLabel}
-            >
-              <IcoCheck />
-            </button>
-          </div>
-        </div>
-      ) : (
-      <div className="st2-commit" style={compact ? undefined : { height: effFormHeight }}>
+      <div className="st2-commit" style={compactRow ? undefined : { height: effFormHeight }}>
         <div className="st2-commit-scroll">
         {/* Tabs */}
         <div className="st2-tabs">
@@ -1223,13 +1349,34 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           }}><IcoCloud /></button>
         </div>
 
-        {/* Amend */}
-        {!isConflict && (
-          <label className="st2-amend">
-            <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />
-            <span>{t('panel.amendPrevious')}</span>
-          </label>
-        )}
+        {/* Amend + AI generate — always share one row, at every panel size,
+            so the message field below can start tall instead of losing a row
+            to chrome. Amend itself only applies outside a conflict; the AI
+            button (and, once stackedCompact drops the bottom action bar, the
+            commit ✓) stay on this row regardless. */}
+        <div className="st2-msg-toolbar">
+          {!isConflict && (
+            <label className="st2-amend">
+              <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />
+              <span>{t('panel.amendPrevious')}</span>
+            </label>
+          )}
+          <div style={{ flex: 1 }} />
+          <button className={`st2-ai-btn ${generating ? 'loading' : ''}`} title={t('panel.generate.tooltip')}
+            onClick={generateMessage} disabled={generating}>
+            <IcoSpark size={13} /> <span>{t('panel.generate.short')}</span>
+          </button>
+          {stackedCompact && (
+            <button
+              className={`st2-commit-btn st2-commit-btn--inline ${commitReady ? 'ready' : ''}`}
+              disabled={!commitReady || committing}
+              onClick={doCommit}
+              title={commitLabel}
+            >
+              <IcoCheck />
+            </button>
+          )}
+        </div>
 
         {/* Agent proposal banner (MCP propose_commit) */}
         {commitProposal && (
@@ -1253,52 +1400,25 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           </div>
         )}
 
-        {/* Message box */}
+        {/* Message box — one free-form field; the user's own line breaks decide
+            where the subject ends and the body begins, git reads it the same
+            way either way. No type prefix picker, no length counter: both ate
+            into the field's height for little benefit. */}
         <div className="st2-msgbox">
-          <div className="st2-summary-row">
-            <select
-              className="st2-cc-type"
-              title={t('panel.ccType.tooltip')}
-              value={ccTypeOf(summary)}
-              onChange={e => {
-                const type = e.target.value
-                const scope = CC_PREFIX_RE.exec(summary)?.[2] ?? ''
-                const rest = summary.replace(CC_PREFIX_RE, '')
-                setSummary(type ? `${type}${scope}: ${rest}` : rest)
-              }}
-            >
-              <option value="">type</option>
-              {CC_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <input
-              className="st2-summary"
-              placeholder={t('panel.commit.summary')}
-              value={summary}
-              onChange={e => setSummary(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doCommit() }}
-            />
-            <span className={`st2-counter ${remaining < 0 ? 'over' : ''}`}>{remaining}</span>
-            <button className={`st2-msg-ai ${generating ? 'loading' : ''}`} title={t('panel.generate.tooltip')}
-              onClick={generateMessage} disabled={generating}>
-              <IcoSpark size={13} />
-            </button>
-          </div>
           <textarea
-            className="st2-description"
-            placeholder={t('panel.commit.description')}
-            value={description}
-            onChange={e => setDescription(e.target.value)}
+            className="st2-message"
+            placeholder={t('panel.commitMsg.placeholder')}
+            value={message}
+            onChange={e => setMessage(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doCommit() }}
           />
         </div>
 
-        {/* Options + Compose with AI */}
+        {/* Options (signoff) — Compose-with-AI now lives on the toolbar above,
+            so this row is just the collapsible toggle. */}
         <div className="st2-options-row">
           <button className="st2-options-toggle" onClick={() => setOptionsOpen(o => !o)}>
             <IcoChevron open={optionsOpen} /> {t('panel.commitOptions')}
-          </button>
-          <button className="st2-compose" onClick={generateMessage} disabled={generating}>
-            <IcoSpark size={13} /> {t('panel.composeAI')}
           </button>
         </div>
         {optionsOpen && (
@@ -1312,39 +1432,41 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 
         </div>{/* end st2-commit-scroll */}
 
-        {/* Dynamic commit button (+ abort in conflict mode) */}
-        <div className="st2-commit-actions">
-          {isConflict && (
-            <button className="st2-commit-btn st2-abort" onClick={onConflictAbort}>{t('panel.abort')}</button>
-          )}
-          <button
-            className={`st2-commit-btn ${tiny ? 'st2-commit-btn--mini' : ''} ${compact && !tiny ? 'st2-commit-btn--short' : ''} ${commitReady ? 'ready' : ''}`}
-            disabled={!commitReady || committing}
-            onClick={doCommit}
-            title={compact ? commitLabel : '⌘↵'}
-          >
-            {tiny ? <IcoCheck /> : <><IcoCommit /> {compact ? t('panel.commit.short') : commitLabel}</>}
-          </button>
-        </div>
+        {/* Dynamic commit button (+ abort in conflict mode). Skipped when
+            stackedCompact folds it into the message toolbar's inline ✓ instead. */}
+        {!stackedCompact && (
+          <div className="st2-commit-actions">
+            {isConflict && (
+              <button className="st2-commit-btn st2-abort" onClick={onConflictAbort}>{t('panel.abort')}</button>
+            )}
+            <button
+              className={`st2-commit-btn ${tiny ? 'st2-commit-btn--mini' : ''} ${compact && !tiny ? 'st2-commit-btn--short' : ''} ${commitReady ? 'ready' : ''}`}
+              disabled={!commitReady || committing}
+              onClick={doCommit}
+              title={compact ? commitLabel : '⌘↵'}
+            >
+              {tiny ? <IcoCheck /> : <><IcoCommit /> {compact ? t('panel.commit.short') : commitLabel}</>}
+            </button>
+          </div>
+        )}
       </div>
-      )}
     </div>
   )
 
   async function doCommit() {
-    if (!summary.trim()) return
-    const full = summary.trim() + (description.trim() ? `\n\n${description.trim()}` : '')
+    if (!message.trim()) return
+    const full = message.trim()
     setCommitting(true)
     if (isConflict && onConflictFinish) {
       const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
       onConflictFinish(action, full)
-      setSummary(''); setDescription('')
+      setMessage('')
     } else {
-      const message = signoff ? `${full}\n\nSigned-off-by: ` : full
-      const r = await window.gitAPI.commit(message, amend)
+      const finalMessage = signoff ? `${full}\n\nSigned-off-by: ` : full
+      const r = await window.gitAPI.commit(finalMessage, amend)
       if (r.success) {
         showToast(t('toast.commitOk'))
-        setSummary(''); setDescription(''); setAmend(false); setSelectedDiff(null)
+        setMessage(''); setAmend(false); setSelectedDiff(null)
         onProposalConsumed?.()
         await load(); onCommitSuccess()
       } else showToast(t('toast.commitErr', r.error ?? ''), 'err')
@@ -1517,12 +1639,15 @@ interface RightPanelProps {
   // nothing is staged or committed until the user acts.
   commitProposal?: { message: string; files: string[] } | null
   onCommitProposalConsumed?: () => void
+  // VS Code panel: use the compact single-list (checkbox) staging layout
+  // instead of the desktop's Unstaged/Staged two-section view.
+  embedded?: boolean
 }
 
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
-  onRewordWithMessage, commitProposal, onCommitProposalConsumed
+  onRewordWithMessage, commitProposal, onCommitProposalConsumed, embedded
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -1556,6 +1681,7 @@ export default function RightPanel({
           onOpenStagingEditor={onOpenStagingEditor}
           commitProposal={commitProposal}
           onProposalConsumed={onCommitProposalConsumed}
+          embedded={embedded}
         />
       ) : hasCommit ? (
         <CommitDetail
