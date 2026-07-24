@@ -25,8 +25,15 @@ async function build() {
   console.log('Extension host bundled → out/extension.js')
 
   // ── Webview (browser) — reuses the real desktop React components ──
-  // Entry is app.tsx; esbuild transpiles JSX (React in scope) and extracts all
-  // imported CSS (App.css, component CSS, hljs theme) into media/main.css.
+  // Entry is app.tsx; esbuild transpiles JSX and extracts all imported CSS
+  // (App.css, component CSS, hljs theme) into media/main.css.
+  //
+  // jsx: 'automatic' is load-bearing. With the classic 'transform' this build
+  // used before, every .tsx had to `import React` or the panel died at runtime
+  // with "React is not defined" — while jest (react-jsx) and electron-vite both
+  // use the automatic runtime and compiled the very same file happily. A shared
+  // component could therefore pass tests and the desktop build and still break
+  // only here. All three now agree.
   await esbuild.build({
     entryPoints: [path.join(__dirname, 'src', 'webview', 'app.tsx')],
     bundle: true,
@@ -34,7 +41,7 @@ async function build() {
     platform: 'browser',
     format: 'iife',
     target: 'es2020',
-    jsx: 'transform',
+    jsx: 'automatic',
     sourcemap: true,
     minify: false,
     loader: { '.ttf': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.png': 'dataurl', '.svg': 'dataurl' },
