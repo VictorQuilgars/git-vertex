@@ -1843,6 +1843,7 @@ export default function App() {
                 const updated = await (window.gitAPI as any).setRepoWorkspace(path, name)
                 setWorkspaces(updated ?? {})
               }}
+              onOpenRepo={handleSetRepo}
             />
           ) : !repoPath ? (
             <div className="app-welcome">

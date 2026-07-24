@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
-import { join } from 'path'
+import { join, dirname } from 'path'
+import { existsSync, readdirSync } from 'fs'
 import { createHash } from 'crypto'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
@@ -1863,6 +1864,64 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
       }))
     }
   } catch (e: any) { return { error: e.message } }
+})
+
+// ── Local repo scan (Launchpad WIPS + "View Repo" mapping) ──────────
+// Discovering which local dirs are git repos (has a .git) is the slow part, so
+// it's cached (60s TTL, or force). Discovery seeds from the recent repos and
+// their sibling directories one level up, so newly-cloned neighbours show up on
+// the next non-cached scan. `git status` runs fresh each call for accurate WIP
+// counts; the GitHub remote name is cached per path (it rarely changes).
+let repoScanCache: { paths: string[]; ts: number } = { paths: [], ts: 0 }
+const fullnameCache = new Map<string, string | null>()
+
+function discoverLocalRepos(seeds: string[]): string[] {
+  const found = new Set<string>()
+  const parents = new Set<string>()
+  for (const p of seeds) {
+    if (existsSync(join(p, '.git'))) found.add(p)
+    parents.add(dirname(p))
+  }
+  for (const parent of parents) {
+    try {
+      for (const entry of readdirSync(parent, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+        const dir = join(parent, entry.name)
+        if (existsSync(join(dir, '.git'))) found.add(dir)
+      }
+    } catch { /* unreadable dir — skip */ }
+  }
+  return [...found]
+}
+
+ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
+  const now = Date.now()
+  if (force || now - repoScanCache.ts > 60_000) {
+    repoScanCache = { paths: discoverLocalRepos(getRecentRepos()), ts: now }
+  }
+  const { execFile } = await import('child_process')
+  const { promisify } = await import('util')
+  const exec = promisify(execFile)
+  const repos = await Promise.all(repoScanCache.paths.map(async p => {
+    let changed = 0, branch = ''
+    try {
+      const st = await exec('git', ['-C', p, 'status', '--porcelain'], { env: { ...process.env, LC_ALL: 'C' } })
+      changed = st.stdout.split('\n').filter(Boolean).length
+    } catch { return null }   // not a real repo anymore — drop it
+    try {
+      const b = await exec('git', ['-C', p, 'rev-parse', '--abbrev-ref', 'HEAD'])
+      branch = b.stdout.trim()
+    } catch { /* detached — leave blank */ }
+    if (!fullnameCache.has(p)) {
+      try {
+        const r = await exec('git', ['-C', p, 'remote', 'get-url', 'origin'])
+        const m = r.stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
+        fullnameCache.set(p, m ? `${m[1]}/${m[2]}` : null)
+      } catch { fullnameCache.set(p, null) }
+    }
+    return { path: p, name: p.split('/').pop() ?? p, changed, branch, fullname: fullnameCache.get(p) ?? null }
+  }))
+  return { repos: repos.filter(Boolean) }
 })
 
 // User-centric Launchpad feed: one GitHub search across ALL of the user's

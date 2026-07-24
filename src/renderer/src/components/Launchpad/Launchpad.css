@@ -55,6 +55,26 @@
 }
 .lp-tab.active .lp-count { background: var(--accent, #58a6ff); color: #0d1117; }
 
+/* Filters row (search · workspace · labels) */
+.lp-filters {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 28px 12px;
+}
+.lp-search {
+  flex: 1; max-width: 420px; display: flex; align-items: center; gap: 8px;
+  background: #161b22; border: 1px solid #30363d; border-radius: 7px; padding: 0 10px;
+  color: #6e7681;
+}
+.lp-search:focus-within { border-color: var(--accent, #58a6ff); }
+.lp-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #e6edf3; font-size: 13px; padding: 7px 0;
+}
+.lp-select {
+  background: #161b22; border: 1px solid #30363d; color: #c9d1d9;
+  border-radius: 7px; padding: 7px 9px; font-size: 12px; cursor: pointer; max-width: 180px;
+}
+
 /* Manage-workspaces panel */
 .lp-manage-panel {
   margin: 12px 28px 0; padding: 14px 16px;
@@ -142,7 +162,16 @@
 }
 .lp-split-main { border-radius: 6px 0 0 6px; border-right: none; }
 .lp-split-caret { border-radius: 0 6px 6px 0; padding: 5px 8px; }
+.lp-split-solo { border-radius: 6px; border-right: 1px solid #2ea043; }
 .lp-split-main:hover, .lp-split-caret:hover { background: #2ea043; }
+
+/* WIPs */
+.lp-wip-badge {
+  display: inline-block; min-width: 20px; text-align: center;
+  padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  color: #d29922; background: #d2992222; border: 1px solid #d2992255;
+}
+.lp-branch { font-size: 12.5px; color: #8b949e; font-family: ui-monospace, monospace; }
 
 .lp-menu {
   position: absolute; top: calc(100% + 4px); right: 0; z-index: 20;
