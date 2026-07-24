@@ -1839,6 +1839,52 @@ ipcMain.handle('github:share-patch', async (_e, hash: string) => {
   } catch (e: any) { return { error: e.message } }
 })
 
+// Launchpad "Mark as closed": close an issue or PR. GitHub's issues endpoint
+// closes both. Invalidates the search cache so the next refresh drops it.
+ipcMain.handle('github:close-issue', async (_e, owner: string, repo: string, number: number) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${number}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({ state: 'closed' }),
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    searchCache.clear()
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+})
+
+// Launchpad WIP "Create cloud patch": the working-tree diff of a local repo
+// (uncommitted, tracked changes vs HEAD) goes to a secret gist; the link comes
+// back. Zero-server, revocable by deleting the gist.
+ipcMain.handle('github:share-wip-patch', async (_e, repoPath: string) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const exec = promisify(execFile)
+    const diff = await exec('git', ['-C', repoPath, 'diff', 'HEAD'], { maxBuffer: 20 * 1024 * 1024 })
+    const patch = diff.stdout
+    if (!patch.trim()) return { error: 'no_changes' }
+    const name = repoPath.split('/').pop() || 'wip'
+    const res = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        description: `git-vertex WIP patch — ${name}`,
+        public: false,
+        files: { [`${name}-wip.patch`]: { content: patch } },
+      }),
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any
+    return { url: data.html_url }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }
