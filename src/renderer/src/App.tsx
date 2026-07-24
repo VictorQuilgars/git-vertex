@@ -20,6 +20,7 @@ import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import Launchpad from './components/Launchpad/Launchpad'
 import RepoManager from './components/RepoManager/RepoManager'
+import InitModal from './components/InitModal/InitModal'
 import PRModal from './components/PRModal/PRModal'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
@@ -226,7 +227,7 @@ type DialogState =
 // Tabs are heterogeneous: the classic repo tab, the "home" welcome screen
 // (multiple allowed — every "+" opens a fresh one) and the full-page
 // Launchpad (opened by the 🚀 button). `path`/`name` are only set on repo tabs.
-type TabKind = 'home' | 'repo' | 'launchpad' | 'repomgmt'
+type TabKind = 'home' | 'repo' | 'launchpad'
 interface AppTab { id: string; kind: TabKind; path?: string; name?: string }
 let tabSeq = 0
 const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
@@ -302,12 +303,16 @@ export default function App() {
   const [rebasePlanProposal, setRebasePlanProposal] = useState<{ hash: string; action: string; message?: string }[] | null>(null)
   const [pushModalOpen, setPushModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Repository Management is a full-page overlay (like Settings), reached from
+  // the fixed 📁 button — it is NOT a tab.
+  const [repoMgmtOpen, setRepoMgmtOpen] = useState(false)
   // Release notes shown once after an update (like VS Code's "what's new" tab).
   const [whatsNew, setWhatsNew] = useState<{ version: string; notes: string } | null>(null)
   // The "what's new" tab is a normal tab: it can stay open in the background
   // while you work in a repo. `whatsNewActive` is whether it's the current view.
   const [whatsNewActive, setWhatsNewActive] = useState(false)
   const [cloneOpen, setCloneOpen] = useState(false)
+  const [initModalOpen, setInitModalOpen] = useState(false)
   const [githubConnected, setGithubConnected] = useState(false)
   const [activeView, setActiveView] = useState<'git' | 'github'>('git')
   const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
@@ -776,22 +781,6 @@ export default function App() {
       const id = newTabId('launchpad')
       setActiveTabId(id)
       return [...prev, { id, kind: 'launchpad' }]
-    })
-    clearRepoView()
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
-
-  // 📁 → focus the Repository Management tab if open, otherwise open one.
-  const openRepoManagerTab = useCallback(() => {
-    if (conflictResolverFile || rebaseHash) return
-    setWhatsNewActive(false)
-    setSettingsOpen(false)
-    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
-    setTabs(prev => {
-      const existing = prev.find(tb => tb.kind === 'repomgmt')
-      if (existing) { setActiveTabId(existing.id); return prev }
-      const id = newTabId('repomgmt')
-      setActiveTabId(id)
-      return [...prev, { id, kind: 'repomgmt' }]
     })
     clearRepoView()
   }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
@@ -1558,7 +1547,6 @@ export default function App() {
   }, [])
   const activeTab = tabs.find(tb => tb.id === activeTabId)
   const launchpadActive = activeTab?.kind === 'launchpad'
-  const repomgmtActive = activeTab?.kind === 'repomgmt'
 
   return (
     <div className="app">
@@ -1571,9 +1559,10 @@ export default function App() {
       {(
         <div className="app-tabs">
           {isMac && !isFullscreen && <div className="app-tabs-mac-spacer" />}
-          {/* 📁 Repository Management launcher — fixed, GitKraken-style. */}
-          <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'repomgmt' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
-            title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); openRepoManagerTab() }}>📁</button>
+          {/* 📁 Repository Management — a fixed button opening a full-page
+              overlay (like Settings), never a tab. */}
+          <button className={`app-tab-launch ${repoMgmtOpen ? 'active' : ''}`}
+            title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); setWhatsNewActive(false); setRepoMgmtOpen(o => !o) }}>📁</button>
           {/* 🚀 Launchpad launcher — always reachable, GitKraken-style. */}
           <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
             title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}>🚀</button>
@@ -1736,13 +1725,34 @@ export default function App() {
 
       {/* "What's new" is a full-page tab: no repo sidebar/toolbar behind it, so
           repo actions aren't reachable while it's the active view. */}
-      {whatsNewActive && whatsNew && !settingsOpen && (
+      {whatsNewActive && whatsNew && !settingsOpen && !repoMgmtOpen && (
         <div className="app-fullpage-view">
           <WhatsNew version={whatsNew.version} notes={whatsNew.notes} />
         </div>
       )}
 
-      <div className="app-body" style={{ display: settingsOpen || whatsNewActive ? 'none' : undefined }}>
+      {/* Repository Management — full-page overlay (like Settings). */}
+      {repoMgmtOpen && !settingsOpen && (
+        <div className="app-fullpage-view">
+          <RepoManager
+            recentRepos={recentRepos}
+            openRepoPaths={tabs.filter(tb => tb.kind === 'repo').map(tb => tb.path!)}
+            workspaces={workspaces}
+            onSetWorkspace={async (path, name) => {
+              const updated = await (window.gitAPI as any).setRepoWorkspace(path, name)
+              setWorkspaces(updated ?? {})
+            }}
+            onOpenRepo={(p) => { setRepoMgmtOpen(false); handleSetRepo(p) }}
+            onRemoveRecent={handleRemoveRecent}
+            onClone={() => setCloneOpen(true)}
+            onBrowse={() => { setRepoMgmtOpen(false); handleOpenRepo() }}
+            onInit={() => setInitModalOpen(true)}
+            showToast={showToast}
+          />
+        </div>
+      )}
+
+      <div className="app-body" style={{ display: settingsOpen || whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
         {/* ── Activity bar — only with a repo open (useless/empty on the home) ── */}
         {repoPath && (
         <div className="app-activity-bar">
@@ -1861,22 +1871,6 @@ export default function App() {
               initialPlan={rebasePlanProposal ?? undefined}
               onClose={() => { setRebaseHash(null); setRebasePlanProposal(null) }}
               onSuccess={loadRepoData}
-              showToast={showToast}
-            />
-          ) : repomgmtActive ? (
-            <RepoManager
-              recentRepos={recentRepos}
-              openRepoPaths={tabs.filter(tb => tb.kind === 'repo').map(tb => tb.path!)}
-              workspaces={workspaces}
-              onSetWorkspace={async (path, name) => {
-                const updated = await (window.gitAPI as any).setRepoWorkspace(path, name)
-                setWorkspaces(updated ?? {})
-              }}
-              onOpenRepo={handleSetRepo}
-              onRemoveRecent={handleRemoveRecent}
-              onClone={() => setCloneOpen(true)}
-              onBrowse={handleOpenRepo}
-              onInit={handleCreateRepo}
               showToast={showToast}
             />
           ) : launchpadActive ? (
@@ -2127,6 +2121,14 @@ export default function App() {
             applyRepo({ path, name })
             showToast(t('toast.cloneOk', name), 'ok')
           }}
+        />
+      )}
+
+      {initModalOpen && (
+        <InitModal
+          onClose={() => setInitModalOpen(false)}
+          onCreated={(path) => { setInitModalOpen(false); setRepoMgmtOpen(false); handleSetRepo(path) }}
+          showToast={showToast}
         />
       )}
 

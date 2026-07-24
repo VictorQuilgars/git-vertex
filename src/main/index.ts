@@ -400,6 +400,96 @@ ipcMain.handle('git:init-repo', async (_event, dir: string) => {
   }
 })
 
+// GitKraken-style "Initialize a Repository" (Local Only): create <location>/<name>,
+// git init on the given branch, optionally drop a .gitignore/LICENSE (fetched
+// from GitHub's template APIs) and run `git lfs install`.
+ipcMain.handle('git:init-advanced', async (_e, opts: { location: string; name: string; branch?: string; gitignore?: string; license?: string; lfs?: boolean }) => {
+  try {
+    const { mkdirSync, writeFileSync } = await import('fs')
+    const target = join(opts.location, opts.name)
+    mkdirSync(target, { recursive: true })
+    await simpleGit(target).init(['-b', opts.branch?.trim() || 'main'])
+    const token = readSettings().githubToken
+    const ghHeaders: Record<string, string> = { Accept: 'application/vnd.github+json' }
+    if (token) ghHeaders.Authorization = `Bearer ${token}`
+    if (opts.gitignore) {
+      try {
+        const r = await fetch(`https://api.github.com/gitignore/templates/${opts.gitignore}`, { headers: ghHeaders })
+        if (r.ok) { const d = await r.json() as any; writeFileSync(join(target, '.gitignore'), d.source ?? '') }
+      } catch { /* optional */ }
+    }
+    if (opts.license) {
+      try {
+        const r = await fetch(`https://api.github.com/licenses/${opts.license}`, { headers: ghHeaders })
+        if (r.ok) { const d = await r.json() as any; writeFileSync(join(target, 'LICENSE'), d.body ?? '') }
+      } catch { /* optional */ }
+    }
+    if (opts.lfs) {
+      try {
+        const { execFile } = await import('child_process')
+        const { promisify } = await import('util')
+        await promisify(execFile)('git', ['-C', target, 'lfs', 'install'])
+      } catch { /* lfs not installed — skip */ }
+    }
+    return openRepoAt(target)
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:list-gitignore-templates', async () => {
+  try {
+    const token = readSettings().githubToken
+    const r = await fetch('https://api.github.com/gitignore/templates', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    return r.ok ? { templates: await r.json() } : { templates: [] }
+  } catch { return { templates: [] } }
+})
+
+ipcMain.handle('github:list-licenses', async () => {
+  try {
+    const token = readSettings().githubToken
+    const r = await fetch('https://api.github.com/licenses', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    if (!r.ok) return { licenses: [] }
+    const d = await r.json() as any[]
+    return { licenses: d.map(l => ({ key: l.key, name: l.name })) }
+  } catch { return { licenses: [] } }
+})
+
+// GitKraken-style init on GitHub.com: create the remote repo, optionally clone
+// it to a chosen local folder.
+ipcMain.handle('github:create-repo', async (_e, opts: { name: string; description?: string; private?: boolean; gitignore?: string; license?: string; cloneTo?: string }) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const r = await fetch('https://api.github.com/user/repos', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        name: opts.name,
+        description: opts.description || '',
+        private: !!opts.private,
+        auto_init: true,
+        gitignore_template: opts.gitignore || undefined,
+        license_template: opts.license || undefined,
+      }),
+    })
+    if (r.status === 403 || r.status === 404) return { error: 'scope' }
+    if (!r.ok) { const e = await r.json().catch(() => ({})) as any; return { error: e.message || `HTTP ${r.status}` } }
+    const d = await r.json() as any
+    if (opts.cloneTo) {
+      const target = join(opts.cloneTo, opts.name)
+      try {
+        // Clone over HTTPS with the token so private repos work.
+        const authUrl = d.clone_url.replace('https://', `https://${token}@`)
+        await simpleGit().clone(authUrl, target)
+        // Rewrite origin without the embedded token.
+        await simpleGit(target).remote(['set-url', 'origin', d.clone_url])
+        const opened = await openRepoAt(target)
+        return { ...opened, htmlUrl: d.html_url, fullName: d.full_name }
+      } catch (e: any) { return { error: e.message, htmlUrl: d.html_url } }
+    }
+    return { htmlUrl: d.html_url, fullName: d.full_name }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('app:select-directory', async (_event, title?: string) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory', 'createDirectory'],
