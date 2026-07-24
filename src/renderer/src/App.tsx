@@ -1844,6 +1844,7 @@ export default function App() {
                 setWorkspaces(updated ?? {})
               }}
               onOpenRepo={handleSetRepo}
+              showToast={showToast}
             />
           ) : !repoPath ? (
             <div className="app-welcome">

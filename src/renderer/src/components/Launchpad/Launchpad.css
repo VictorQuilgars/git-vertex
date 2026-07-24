@@ -113,7 +113,7 @@
 .lp-col-status { width: 88px; }
 .lp-col-author { width: 60px; text-align: center !important; }
 .lp-col-repo { width: 190px; }
-.lp-col-action { width: 130px; text-align: right !important; }
+.lp-col-action { width: 150px; text-align: right !important; white-space: nowrap; }
 
 .lp-row { cursor: pointer; border-bottom: 1px solid #161b22; }
 .lp-row:hover { background: #161b22; }
@@ -166,11 +166,11 @@
 }
 .lp-repo-link:hover { color: var(--accent, #58a6ff); text-decoration: underline; }
 
-/* Split action button (another tool-style) */
-.lp-split { position: relative; display: inline-flex; }
+/* Split action button (another tool-style) — stays on one line */
+.lp-split { position: relative; display: inline-flex; white-space: nowrap; vertical-align: middle; }
 .lp-split-main, .lp-split-caret {
   background: #238636; border: 1px solid #2ea043; color: #fff; cursor: pointer;
-  font-size: 12px; font-weight: 600; padding: 5px 12px;
+  font-size: 12px; font-weight: 600; padding: 5px 12px; white-space: nowrap;
 }
 .lp-split-main { border-radius: 6px 0 0 6px; border-right: none; }
 .lp-split-caret { border-radius: 0 6px 6px 0; padding: 5px 8px; }
@@ -197,4 +197,6 @@
   text-align: left; padding: 7px 10px; border-radius: 5px; font-size: 12.5px;
 }
 .lp-menu button:hover { background: #1f6feb1a; color: #fff; }
+.lp-menu button.lp-menu-danger { color: #f85149; }
+.lp-menu button.lp-menu-danger:hover { background: #f8514922; color: #ff7b72; }
 .lp-menu-backdrop { position: fixed; inset: 0; z-index: 10; }

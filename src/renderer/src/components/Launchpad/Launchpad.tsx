@@ -30,6 +30,7 @@ interface Props {
   workspaces: Record<string, string>
   onSetWorkspace: (path: string, name: string) => Promise<void> | void
   onOpenRepo: (path: string) => void
+  showToast: (msg: string, type?: 'ok' | 'err', action?: { label: string; onClick: () => void }) => void
 }
 type Tab = 'prs' | 'issues' | 'wips' | 'all'
 
@@ -43,7 +44,7 @@ function timeAgo(dateStr: string, lang: string): string {
   return `${Math.floor(diff / 31536000)}${lang === 'fr' ? 'an' : 'y'}`
 }
 
-export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onOpenRepo }: Props) {
+export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onOpenRepo, showToast }: Props) {
   const { t, lang } = useLang()
   const [tab, setTab] = useState<Tab>('issues')
   const [wsFilter, setWsFilter] = useState<string>('')
@@ -141,10 +142,33 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
   }, [tab, prShown, issShown, wips, labelFilter, search])
 
   const openExt = (url?: string) => { if (url) window.gitAPI.openExternal(url) }
-  const copy = (url: string) => { navigator.clipboard.writeText(url); setMenuKey(null) }
+  const copy = (url: string) => { navigator.clipboard.writeText(url); setMenuKey(null); showToast(t('launchpad.linkCopied')) }
   const viewRepo = (fullname: string, repoUrl?: string) => {
     const p = repoMap[fullname]
     if (p) onOpenRepo(p); else openExt(repoUrl)
+  }
+
+  // Mark an issue/PR as closed on GitHub, then drop it from the list.
+  const closeItem = async (r: Row) => {
+    setMenuKey(null)
+    const [owner, repo] = r.repo.split('/')
+    const res = await (window.gitAPI as any).githubCloseIssue(owner, repo, r.number)
+    if (res?.error) { showToast(t('launchpad.closeErr', res.error), 'err'); return }
+    setPrItems(prev => prev.filter(x => !(x.repo === r.repo && x.number === r.number)))
+    setIssueItems(prev => prev.filter(x => !(x.repo === r.repo && x.number === r.number)))
+    if (r.type === 'pr') setPrTotal(n => Math.max(0, n - 1)); else setIssueTotal(n => Math.max(0, n - 1))
+    showToast(t('launchpad.closed', `#${r.number}`))
+  }
+
+  // Share a local repo's uncommitted work as a secret-gist patch link.
+  const shareWip = async (path: string) => {
+    setMenuKey(null)
+    const res = await (window.gitAPI as any).githubShareWipPatch(path)
+    if (res?.error === 'not_authenticated') { showToast(t('toast.sharePatch.needAuth'), 'err'); return }
+    if (res?.error === 'no_changes') { showToast(t('launchpad.noChanges'), 'err'); return }
+    if (res?.error) { showToast(t('launchpad.closeErr', res.error), 'err'); return }
+    navigator.clipboard.writeText(res.url)
+    showToast(t('toast.sharePatch.copied'), 'ok', { label: t('toast.open'), onClick: () => openExt(res.url) })
   }
 
   const TABS: { id: Tab; label: string; count: number }[] = [
@@ -270,7 +294,16 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
                     {en.wip.branch && <div className="lp-branch">⑂ {en.wip.branch}</div>}
                   </td>
                   <td className="lp-col-action" onClick={e => e.stopPropagation()}>
-                    <button className="lp-split-main lp-split-solo" onClick={() => onOpenRepo(en.wip.path)}>{t('launchpad.viewRepo')}</button>
+                    <div className="lp-split">
+                      <button className="lp-split-main" onClick={() => onOpenRepo(en.wip.path)}>{t('launchpad.viewRepo')}</button>
+                      <button className="lp-split-caret" onClick={() => setMenuKey(menuKey === `wip-${en.wip.path}` ? null : `wip-${en.wip.path}`)}>▾</button>
+                      {menuKey === `wip-${en.wip.path}` && (
+                        <div className="lp-menu">
+                          <button onClick={() => { onOpenRepo(en.wip.path); setMenuKey(null) }}>{t('launchpad.viewRepo')}</button>
+                          <button onClick={() => shareWip(en.wip.path)}>{t('launchpad.createCloudPatch')}</button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (() => {
@@ -316,6 +349,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
                             <button onClick={() => { openExt(r.url); setMenuKey(null) }}>{t('launchpad.openIn')}</button>
                             <button onClick={() => { openExt(r.repoUrl); setMenuKey(null) }}>{t('launchpad.openRepoGh')}</button>
                             <button onClick={() => copy(r.url)}>{t('launchpad.copyLink')}</button>
+                            <button className="lp-menu-danger" onClick={() => closeItem(r)}>{t('launchpad.markClosed')}</button>
                           </div>
                         )}
                       </div>

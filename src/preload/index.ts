@@ -181,6 +181,8 @@ const gitAPI = {
   githubListPRs: (owner: string, repo: string) => ipcRenderer.invoke('github:list-prs', owner, repo),
   githubListIssues: (owner: string, repo: string) => ipcRenderer.invoke('github:list-issues', owner, repo),
   githubSearchIssues: (q: string, force?: boolean) => ipcRenderer.invoke('github:search-issues', q, force),
+  githubCloseIssue: (owner: string, repo: string, number: number) => ipcRenderer.invoke('github:close-issue', owner, repo, number),
+  githubShareWipPatch: (repoPath: string) => ipcRenderer.invoke('github:share-wip-patch', repoPath),
   scanLocalRepos: (force?: boolean) => ipcRenderer.invoke('git:scan-local-repos', force),
   githubGetIssue: (owner: string, repo: string, number: number) =>
     ipcRenderer.invoke('github:get-issue', owner, repo, number),
