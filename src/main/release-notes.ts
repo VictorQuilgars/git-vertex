@@ -2,6 +2,18 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.18.1': `## What's new in 1.18.1
+
+### ✍️ Commit message, simplified
+- The commit message is now a **single free-form field** — write it with your own line breaks, exactly like \`git commit\` does. No more separate summary/description inputs.
+- Removed the conventional-commit type picker and character counter to give the message field more room.
+
+### 🤖 AI generate, always in reach
+- **Generate with AI** now shares the **Amend previous commit** row, at every panel size.
+
+### 🐛 Fixed
+- The commit-form resize handle is no longer capped by short window sizes — drag it as tall as you want.
+`,
   '1.18.0': `## What's new in 1.18.0
 
 ### 🗂️ Repository Management

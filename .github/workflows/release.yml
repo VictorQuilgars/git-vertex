@@ -25,6 +25,17 @@ jobs:
             exit 1
           fi
           echo "✓ tag v$TAG matches package.json $PKG"
+      # src/main/release-notes.ts feeds the app's own "What's new" tab (shown
+      # on first launch after an update) — separate from CHANGELOG.md and
+      # easy to forget. Fail if this version has no entry there.
+      - name: Verify in-app release notes exist
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          if ! grep -qE "^\s*'${TAG//./\\.}':" src/main/release-notes.ts; then
+            echo "::error::No entry for version $TAG in src/main/release-notes.ts (RELEASE_NOTES). This feeds the app's in-app \"What's new\" tab — add a '$TAG': ... entry before releasing."
+            exit 1
+          fi
+          echo "✓ src/main/release-notes.ts has an entry for $TAG"
       # Release notes come from CHANGELOG.md, never a generic placeholder — a
       # tag with no matching entry fails the release instead of shipping with
       # "Release vX.Y.Z" as its only description.
