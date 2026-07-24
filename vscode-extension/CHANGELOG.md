@@ -1,20 +1,26 @@
 # Changelog
 
-## 1.19.0
+## 1.19.1
 
 ### Added
-- **Activity rail** — the panel's left sidebar is now a slim, always-visible icon rail (like VS Code's own activity bar). Each icon opens a single, resizable side-panel view instead of one tall stacked list, leaving the commit graph more room: Overview, Agents, Worktrees, Branches, Remotes, Stash, Tags. Your active view and the panel width are remembered. When the panel is too short to show every icon, the overflow collapses into a "…" menu — icons never shrink.
-- **Overview "current work" view** — a home view that summarizes the checked-out branch (ahead/behind, staged and changed file counts, and a badge when AI agents are running in the repo), followed by your local branches. The reflog moves to a collapsed section at the bottom.
 - **Checkbox staging list** — the panel's file list now uses a single checkbox-per-file list (with tri-state folder checkboxes in tree view) instead of separate Unstaged/Staged sections, matching VS Code's own Source Control view.
 
 ### Changed
-- **Distinct worktree & branch icons** — the worktree icon is now a framed commit node, clearly different from the branch fork next to it.
 - **Commit message is a single free-form field** — no more separate summary/description inputs; write your message with your own line breaks, same as `git commit` itself. The conventional-commit type picker and character counter were removed to give the field more room.
 - **Amend previous commit** now shares its row with **Generate with AI**, at every panel size, and the commit-form resize handle is no longer capped by short panels.
 
 ### Fixed
 - The staging file list could render sideways (files next to the header instead of below it) in short, wide panels.
 - The commit button could overlap the summary field or spill past the panel edges in short panels.
+
+## 1.19.0
+
+### Added
+- **Activity rail** — the panel's left sidebar is now a slim, always-visible icon rail (like VS Code's own activity bar). Each icon opens a single, resizable side-panel view instead of one tall stacked list, leaving the commit graph more room: Overview, Agents, Worktrees, Branches, Remotes, Stash, Tags. Your active view and the panel width are remembered. When the panel is too short to show every icon, the overflow collapses into a "…" menu — icons never shrink.
+- **Overview "current work" view** — a home view that summarizes the checked-out branch (ahead/behind, staged and changed file counts, and a badge when AI agents are running in the repo), followed by your local branches. The reflog moves to a collapsed section at the bottom.
+
+### Changed
+- **Distinct worktree & branch icons** — the worktree icon is now a framed commit node, clearly different from the branch fork next to it.
 
 ## 1.18.1
 
