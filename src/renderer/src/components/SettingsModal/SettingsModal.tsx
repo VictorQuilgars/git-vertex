@@ -501,12 +501,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     {githubLoading ? t('settings.github.connecting') : t('settings.github.login')}
                   </button>
                 )}
-                {/* Manual Personal Access Token — the only path inside the VS
-                    Code panel (no OAuth callback there), and a fallback on
-                    desktop when OAuth is unavailable (e.g. a dev build with no
-                    client id) or to grant an extra scope like `gist`. */}
-                {!githubUser && (
-                  <div className="stg-field" style={{ marginTop: embedded ? 0 : 12 }}>
+                {/* Manual Personal Access Token — the VS Code panel has no OAuth
+                    callback, so it's the only sign-in path there. On desktop,
+                    OAuth handles it (prod builds carry the client id). */}
+                {!githubUser && embedded && (
+                  <div className="stg-field">
                     <label>{t('settings.github.pat')}</label>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input
