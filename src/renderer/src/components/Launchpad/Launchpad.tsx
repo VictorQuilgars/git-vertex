@@ -165,6 +165,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
     setMenuKey(null)
     const res = await (window.gitAPI as any).githubShareWipPatch(path)
     if (res?.error === 'not_authenticated') { showToast(t('toast.sharePatch.needAuth'), 'err'); return }
+    if (res?.error === 'gist_scope') { showToast(t('toast.sharePatch.gistScope'), 'err'); return }
     if (res?.error === 'no_changes') { showToast(t('launchpad.noChanges'), 'err'); return }
     if (res?.error) { showToast(t('launchpad.closeErr', res.error), 'err'); return }
     navigator.clipboard.writeText(res.url)

@@ -1833,6 +1833,9 @@ ipcMain.handle('github:share-patch', async (_e, hash: string) => {
         files: { [`${short}.patch`]: { content: patchRes.patch } },
       }),
     })
+    // 404 on the gists endpoint almost always means the token lacks the `gist`
+    // scope (GitHub hides it rather than 403) — tell the user to reconnect.
+    if (res.status === 404) return { error: 'gist_scope' }
     if (!res.ok) return { error: `HTTP ${res.status}` }
     const data = await res.json() as any
     return { url: data.html_url }
@@ -1879,6 +1882,9 @@ ipcMain.handle('github:share-wip-patch', async (_e, repoPath: string) => {
         files: { [`${name}-wip.patch`]: { content: patch } },
       }),
     })
+    // 404 on the gists endpoint almost always means the token lacks the `gist`
+    // scope (GitHub hides it rather than 403) — tell the user to reconnect.
+    if (res.status === 404) return { error: 'gist_scope' }
     if (!res.ok) return { error: `HTTP ${res.status}` }
     const data = await res.json() as any
     return { url: data.html_url }

@@ -1264,6 +1264,7 @@ export default function App() {
   const handleSharePatch = async (hash: string) => {
     const res = await (window.gitAPI as any).githubSharePatch(hash)
     if (res.error === 'not_authenticated') { showToast(t('toast.sharePatch.needAuth'), 'err'); return }
+    if (res.error === 'gist_scope') { showToast(t('toast.sharePatch.gistScope'), 'err'); return }
     if (res.error) { showToast(t('toast.err', res.error), 'err'); return }
     navigator.clipboard.writeText(res.url)
     showToast(t('toast.sharePatch.copied'), 'ok', { label: t('toast.open'), onClick: () => (window.gitAPI as any).openExternal(res.url) })
