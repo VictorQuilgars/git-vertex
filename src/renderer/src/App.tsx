@@ -1533,6 +1533,12 @@ export default function App() {
   }
 
   const isMac = (window as any).appInfo?.platform === 'darwin'
+  // macOS fullscreen hides the traffic lights, so the 72px spacer must go.
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  useEffect(() => {
+    ;(window.gitAPI as any).isFullscreen?.().then((fs: boolean) => setIsFullscreen(!!fs)).catch(() => {})
+    return (window.gitAPI as any).onFullscreenChanged?.((fs: boolean) => setIsFullscreen(!!fs))
+  }, [])
   const activeTab = tabs.find(tb => tb.id === activeTabId)
   const launchpadActive = activeTab?.kind === 'launchpad'
 
@@ -1546,7 +1552,7 @@ export default function App() {
           welcome screen too (not only once a repo/tab is open). */}
       {(
         <div className="app-tabs">
-          {isMac && <div className="app-tabs-mac-spacer" />}
+          {isMac && !isFullscreen && <div className="app-tabs-mac-spacer" />}
           {/* 🚀 Launchpad launcher — always reachable, another tool-style. */}
           <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
             title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}>🚀</button>
