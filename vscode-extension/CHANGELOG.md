@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.19.0
+
+### Added
+- **Activity rail** — the panel's left sidebar is now a slim, always-visible icon rail (like VS Code's own activity bar). Each icon opens a single, resizable side-panel view instead of one tall stacked list, leaving the commit graph more room: Overview, Agents, Worktrees, Branches, Remotes, Stash, Tags. Your active view and the panel width are remembered. When the panel is too short to show every icon, the overflow collapses into a "…" menu — icons never shrink.
+- **Overview "current work" view** — a home view that summarizes the checked-out branch (ahead/behind, staged and changed file counts, and a badge when AI agents are running in the repo), followed by your local branches. The reflog moves to a collapsed section at the bottom.
+
+### Changed
+- **Distinct worktree & branch icons** — the worktree icon is now a framed commit node, clearly different from the branch fork next to it.
+
 ## 1.18.1
 
 ### Changed

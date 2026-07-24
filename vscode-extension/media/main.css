@@ -1,4 +1,4 @@
-/* ../src/renderer/src/components/Toast/Toast.css */
+/* src/renderer/src/components/Toast/Toast.css */
 .toast-container {
   position: fixed;
   bottom: 20px;
@@ -87,7 +87,7 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* ../src/renderer/src/components/SettingsModal/SettingsModal.css */
+/* src/renderer/src/components/SettingsModal/SettingsModal.css */
 .stg-page {
   flex: 1;
   display: flex;
@@ -822,7 +822,7 @@
   color: #f85149;
 }
 
-/* ../src/renderer/src/components/ContextMenu/ContextMenu.css */
+/* src/renderer/src/components/ContextMenu/ContextMenu.css */
 .ctx-menu {
   background: #1c2128;
   border: 1px solid #30363d;
@@ -917,7 +917,7 @@
   margin: 4px 0;
 }
 
-/* ../src/renderer/src/components/IssueLink/IssueLink.css */
+/* src/renderer/src/components/IssueLink/IssueLink.css */
 .issue-link-wrap {
   position: relative;
   display: inline;
@@ -984,7 +984,7 @@
   font-style: italic;
 }
 
-/* ../src/renderer/src/components/CommitGraph/CommitGraph.css */
+/* src/renderer/src/components/CommitGraph/CommitGraph.css */
 .cg-container {
   display: flex;
   flex-direction: column;
@@ -1481,7 +1481,7 @@
   background: #30363d;
 }
 
-/* ../src/renderer/src/components/RightPanel/RightPanel.css */
+/* src/renderer/src/components/RightPanel/RightPanel.css */
 .right-panel {
   display: flex;
   flex-direction: column;
@@ -3590,7 +3590,7 @@
   padding: 8px 18px;
 }
 
-/* ../src/renderer/src/components/Sidebar/Sidebar.css */
+/* src/renderer/src/components/Sidebar/Sidebar.css */
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -3602,6 +3602,67 @@
   font-size: 12px;
   color: #8b949e;
   user-select: none;
+}
+.sb-overview {
+  padding: 8px 10px 4px;
+}
+.sb-ov-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #6e7681;
+  padding: 2px 2px 6px;
+}
+.sb-ov-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #1c2128;
+  border: 1px solid #30363d;
+  border-left: 2px solid #3fb950;
+  border-radius: 8px;
+}
+.sb-ov-branch {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.sb-ov-branch-name {
+  color: #e6edf3;
+  font-weight: 700;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.sb-ov-agents {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b949e;
+}
+.sb-ov-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.sb-ov-staged {
+  color: #3fb950;
+}
+.sb-ov-changed {
+  color: #d29922;
+}
+.sb-ov-clean {
+  font-size: 11px;
+  color: #6e7681;
 }
 .sb-repo-area {
   position: relative;
@@ -4208,7 +4269,7 @@
   font-size: 9px;
 }
 
-/* ../src/renderer/src/components/InteractiveRebase/InteractiveRebase.css */
+/* src/renderer/src/components/InteractiveRebase/InteractiveRebase.css */
 .ir-overlay {
   position: fixed;
   inset: 0;
@@ -4429,7 +4490,7 @@
   cursor: not-allowed;
 }
 
-/* ../src/renderer/src/components/CenterFileDiff/CenterFileDiff.css */
+/* src/renderer/src/components/CenterFileDiff/CenterFileDiff.css */
 .cfd-container {
   display: flex;
   flex-direction: column;
@@ -4744,7 +4805,7 @@
   font-size: inherit;
 }
 
-/* ../src/renderer/src/components/RebaseProgress/RebaseProgress.css */
+/* src/renderer/src/components/RebaseProgress/RebaseProgress.css */
 .rp-page {
   display: flex;
   flex-direction: column;
@@ -5144,7 +5205,7 @@
   max-width: 420px;
 }
 
-/* ../src/renderer/src/components/ConflictResolver/ConflictResolver.css */
+/* src/renderer/src/components/ConflictResolver/ConflictResolver.css */
 .mt-container {
   display: flex;
   flex-direction: column;
@@ -5648,7 +5709,7 @@
   color: #bc8cff;
 }
 
-/* ../node_modules/highlight.js/styles/github-dark.css */
+/* node_modules/highlight.js/styles/github-dark.css */
 pre code.hljs {
   display: block;
   overflow-x: auto;
@@ -5742,7 +5803,7 @@ code.hljs {
 .hljs-tag {
 }
 
-/* ../src/renderer/src/components/DiffViewer/DiffViewer.css */
+/* src/renderer/src/components/DiffViewer/DiffViewer.css */
 .diff-viewer {
   display: flex;
   flex-direction: column;
@@ -6055,7 +6116,7 @@ td.diff-context.line-content code {
   border-right: 2px solid #30363d;
 }
 
-/* ../src/renderer/src/components/FileHistory/FileHistory.css */
+/* src/renderer/src/components/FileHistory/FileHistory.css */
 .fh-page {
   display: flex;
   flex-direction: column;
@@ -6250,7 +6311,7 @@ td.diff-context.line-content code {
   color: #484f58;
 }
 
-/* ../src/renderer/src/components/CompareView/CompareView.css */
+/* src/renderer/src/components/CompareView/CompareView.css */
 .cv-page {
   display: flex;
   flex-direction: column;
@@ -6374,7 +6435,7 @@ td.diff-context.line-content code {
   color: #484f58;
 }
 
-/* ../src/renderer/src/components/GitHubPanel/GitHubPanel.css */
+/* src/renderer/src/components/GitHubPanel/GitHubPanel.css */
 .ghp-panel {
   flex: 1;
   display: flex;
@@ -6413,6 +6474,21 @@ td.diff-context.line-content code {
 .ghp-refresh:hover {
   color: #e6edf3;
   background: #21262d;
+}
+.ghp-repo-badge {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #8b949e;
+  background: #21262d;
+  border: 1px solid #30363d;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ghp-close {
   background: transparent;
@@ -6582,7 +6658,7 @@ td.diff-context.line-content code {
   }
 }
 
-/* ../src/renderer/src/App.css */
+/* src/renderer/src/App.css */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6644,6 +6720,7 @@ body {
 .app-tab,
 .app-tab-close,
 .app-tab-add,
+.app-tab-launch,
 .app-tb-icon,
 .app-profile-chip {
   -webkit-app-region: no-drag;
@@ -6796,6 +6873,28 @@ body {
 .app-tab-add.active {
   color: #e6edf3;
   background: #161b22;
+}
+.app-tab-launch {
+  background: none;
+  border: none;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 8px;
+  align-self: center;
+  border-radius: 5px;
+  filter: grayscale(0.35);
+  opacity: 0.8;
+}
+.app-tab-launch:hover {
+  filter: none;
+  opacity: 1;
+  background: #161b22;
+}
+.app-tab-launch.active {
+  filter: none;
+  opacity: 1;
+  background: #1f6feb1a;
 }
 .app-activity-bar {
   width: 44px;
@@ -7342,12 +7441,74 @@ body {
   box-shadow: 0 0 0 2px #0d1117;
 }
 
-/* src/webview/vertex-vscode.css */
+/* vscode-extension/src/webview/vertex-vscode.css */
 .gv-app {
   height: 100%;
 }
 .gv-app.app {
   overflow: hidden;
+}
+.gv-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 44px;
+  flex-shrink: 0;
+  height: 100%;
+  padding: 6px 0;
+  background: #0d1117;
+  border-right: 1px solid #21262d;
+  user-select: none;
+  overflow: hidden;
+}
+.gv-rail-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.gv-rail-btn:hover:not(:disabled) {
+  background: #21262d;
+  color: #e6edf3;
+}
+.gv-rail-btn--active {
+  color: #e6edf3;
+}
+.gv-rail-btn--active::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 2px;
+  background: #58a6ff;
+}
+.gv-rail-btn--soon {
+  opacity: 0.4;
+  cursor: default;
+}
+.gv-rail-spacer {
+  flex: 1;
+}
+.gv-sidepanel {
+  flex-shrink: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  min-width: 180px;
+}
+.gv-sidepanel .sidebar {
+  border-right: none;
 }
 .gvt {
   display: flex;

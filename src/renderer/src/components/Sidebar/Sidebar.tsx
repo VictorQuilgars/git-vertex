@@ -7,6 +7,12 @@ import './Sidebar.css'
 interface StashEntry { index: number; message: string }
 interface TagEntry   { name: string; hash: string }
 
+// Single-view mode (VS Code panel): the rail on the left selects which one of
+// these views the resizable side-panel shows. When `view` is undefined the
+// Sidebar renders its classic stacked layout (desktop app).
+export type SidebarView =
+  | 'overview' | 'agents' | 'worktrees' | 'branches' | 'remotes' | 'stash' | 'tags'
+
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
 interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
 interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }
@@ -56,6 +62,9 @@ interface SidebarProps {
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
   embedded?: boolean
+  // Single-view mode: render only the section the activity rail selected.
+  // Undefined = classic stacked layout (desktop).
+  view?: SidebarView
 }
 
 // ── Collapse section ─────────────────────────────────────────────
@@ -432,8 +441,12 @@ export default function Sidebar({
   onCreateTag, onDeleteTag, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
-  showToast, showPrompt, showConfirm, embedded = false,
+  showToast, showPrompt, showConfirm, embedded = false, view,
 }: SidebarProps) {
+  // In single-view mode a section is shown when it matches the active view.
+  // Without a view (desktop) every section renders (classic stacked layout).
+  const single = view !== undefined
+  const show = (v: SidebarView) => !single || view === v
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
   const [submodules, setSubmodules] = useState<SubmoduleEntry[]>([])
@@ -441,6 +454,8 @@ export default function Sidebar({
   // Running AI agents (Claude Code, aider…) keyed by their cwd — matched
   // against worktree paths to badge "an agent is working here".
   const [agents, setAgents] = useState<AgentEntry[]>([])
+  // Working-tree summary for the overview "current work" card.
+  const [work, setWork] = useState<{ staged: number; changed: number }>({ staged: 0, changed: 0 })
   const { t } = useLang()
 
   const loadWorktrees = useCallback(() => {
@@ -453,6 +468,9 @@ export default function Sidebar({
     window.gitAPI.getReflog().then(r => setReflog(r.entries ?? []))
     window.gitAPI.getRemotes().then(r => setRemotes(r.remotes ?? []))
     window.gitAPI.getSubmodules().then(r => setSubmodules(r.submodules ?? []))
+    window.gitAPI.getWorkingChanges?.()
+      .then(w => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length }))
+      .catch(() => {})
     loadWorktrees()
     // Light poll so agent badges stay current while the sidebar is open.
     const interval = setInterval(() => {
@@ -635,8 +653,8 @@ export default function Sidebar({
       </div>
       )}
 
-      {/* ── Branch filter ── */}
-      {repoPath && (
+      {/* ── Branch filter ── (branches view only in single mode) */}
+      {repoPath && show('branches') && (
         <div className="sb-search">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
             <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
@@ -651,7 +669,63 @@ export default function Sidebar({
       {repoPath && (
         <div className="sb-sections">
 
-          {/* LOCAL */}
+          {/* OVERVIEW "current work" card (single-view only) */}
+          {view === 'overview' && (() => {
+            const cur = branches.find(b => b.current)
+            const ahead = cur?.ahead ?? 0
+            const behind = cur?.behind ?? 0
+            const hasStats = ahead > 0 || behind > 0 || work.staged > 0 || work.changed > 0
+            return (
+              <div className="sb-overview">
+                <div className="sb-ov-label">{t('sb.currentWork')}</div>
+                <div className="sb-ov-card">
+                  <div className="sb-ov-branch">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="#3fb950">
+                      <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
+                    </svg>
+                    <span className="sb-ov-branch-name">{currentBranch}</span>
+                    {agents.length > 0 && (
+                      <span className="sb-ov-agents" title={t('sb.agentsActive', agents.length)}>
+                        <span className="sb-agent-dot" />{agents.length}
+                      </span>
+                    )}
+                  </div>
+                  {hasStats && (
+                    <div className="sb-ov-stats">
+                      {ahead > 0 && <span className="sb-track-ahead" title={t('sb.branch.trackTitle', ahead, behind)}>↑{ahead}</span>}
+                      {behind > 0 && <span className="sb-track-behind" title={t('sb.branch.trackTitle', ahead, behind)}>↓{behind}</span>}
+                      {work.staged > 0 && <span className="sb-ov-staged" title={t('sb.staged')}>+{work.staged}</span>}
+                      {work.changed > 0 && <span className="sb-ov-changed" title={t('sb.changed')}>✎{work.changed}</span>}
+                    </div>
+                  )}
+                  {!hasStats && <div className="sb-ov-clean">{t('sb.clean')}</div>}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* AGENTS (single-view only) */}
+          {view === 'agents' && (
+            <Section title="AGENTS" count={agents.length} defaultOpen>
+              {agents.length === 0
+                ? <div className="sb-empty">{t('sb.noAgent')}</div>
+                : agents.map(a => (
+                    <div key={a.pid} className="sb-submodule-item" title={a.cwd}>
+                      <span className="sb-agent-dot" />
+                      <div className="sb-sub-info">
+                        <span className="sb-sub-path">
+                          {a.name} <code style={{ opacity: 0.6 }}>pid {a.pid}</code>
+                        </span>
+                        <span className="sb-sub-url">{a.cwd}</span>
+                      </div>
+                    </div>
+                  ))
+              }
+            </Section>
+          )}
+
+          {/* LOCAL (also shown in the overview "current work" home) */}
+          {(show('branches') || view === 'overview') && (
           <Section title="LOCAL" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}>
             {localBranches.length === 0 && <div className="sb-empty">{t('sb.noLocalBranch')}</div>}
             {localBranches.map(b => (
@@ -678,10 +752,11 @@ export default function Sidebar({
               />
             ))}
           </Section>
+          )}
 
           {/* REMOTE */}
-          {remoteBranches.length > 0 && (
-            <Section title="REMOTE" count={remoteBranches.length} defaultOpen={false}>
+          {show('branches') && remoteBranches.length > 0 && (
+            <Section title="REMOTE" count={remoteBranches.length} defaultOpen={single}>
               {remoteBranches.map(b => (
                 <BranchItem
                   key={b.name}
@@ -704,7 +779,8 @@ export default function Sidebar({
           )}
 
           {/* TAGS */}
-          <Section title="TAGS" count={tags.length} defaultOpen={false}
+          {show('tags') && (
+          <Section title="TAGS" count={tags.length} defaultOpen={single}
             onAdd={onCreateTag} addLabel={t('sb.newTag')}>
             {tags.length === 0
               ? <div className="sb-empty">{t('sb.noTag')}</div>
@@ -714,9 +790,11 @@ export default function Sidebar({
                 ))
             }
           </Section>
+          )}
 
           {/* REMOTES */}
-          <Section title="REMOTES" count={remotes.length} defaultOpen={false}
+          {show('remotes') && (
+          <Section title="REMOTES" count={remotes.length} defaultOpen={single}
             onAdd={handleAddRemote} addLabel={t('sb.addRemote')}>
             {remotes.length === 0
               ? <div className="sb-empty">{t('sb.noRemote')}</div>
@@ -732,9 +810,10 @@ export default function Sidebar({
                 ))
             }
           </Section>
+          )}
 
           {/* SUBMODULES */}
-          {submodules.length > 0 && (
+          {show('overview') && submodules.length > 0 && (
             <Section title="SUBMODULES" count={submodules.length} defaultOpen={false}>
               {submodules.map(sub => (
                 <SubmoduleItem
@@ -748,7 +827,8 @@ export default function Sidebar({
           )}
 
           {/* WORKTREES */}
-          <Section title="WORKTREES" count={worktrees.length} defaultOpen={false}
+          {show('worktrees') && (
+          <Section title="WORKTREES" count={worktrees.length} defaultOpen={single}
             onAdd={handleAddWorktree} addLabel={t('sb.addWorktree')}>
             {worktrees.length === 0
               ? <div className="sb-empty">{t('sb.noWorktree')}</div>
@@ -763,8 +843,11 @@ export default function Sidebar({
                 ))
             }
           </Section>
+          )}
 
-          {/* REFLOG */}
+          {/* REFLOG — recovery/history tool, kept collapsed at the bottom of
+              the overview (not the point of the overview) */}
+          {show('overview') && (
           <Section title="REFLOG" count={reflog.length} defaultOpen={false}>
             {reflog.length === 0
               ? <div className="sb-empty">{t('sb.reflogEmpty')}</div>
@@ -777,12 +860,14 @@ export default function Sidebar({
                 ))
             }
           </Section>
+          )}
 
           {/* STASH */}
+          {show('stash') && (
           <Section
             title="STASH"
             count={stashes.length}
-            defaultOpen={false}
+            defaultOpen={single}
             onAdd={onCreateStash}
             addLabel={t('sb.stash.create')}
           >
@@ -800,6 +885,7 @@ export default function Sidebar({
                 ))
             }
           </Section>
+          )}
 
         </div>
       )}
