@@ -19,6 +19,8 @@ import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import Launchpad from './components/Launchpad/Launchpad'
+import RepoManager from './components/RepoManager/RepoManager'
+import InitModal from './components/InitModal/InitModal'
 import PRModal from './components/PRModal/PRModal'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
@@ -301,12 +303,16 @@ export default function App() {
   const [rebasePlanProposal, setRebasePlanProposal] = useState<{ hash: string; action: string; message?: string }[] | null>(null)
   const [pushModalOpen, setPushModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Repository Management is a full-page overlay (like Settings), reached from
+  // the fixed 📁 button — it is NOT a tab.
+  const [repoMgmtOpen, setRepoMgmtOpen] = useState(false)
   // Release notes shown once after an update (like VS Code's "what's new" tab).
   const [whatsNew, setWhatsNew] = useState<{ version: string; notes: string } | null>(null)
   // The "what's new" tab is a normal tab: it can stay open in the background
   // while you work in a repo. `whatsNewActive` is whether it's the current view.
   const [whatsNewActive, setWhatsNewActive] = useState(false)
   const [cloneOpen, setCloneOpen] = useState(false)
+  const [initModalOpen, setInitModalOpen] = useState(false)
   const [githubConnected, setGithubConnected] = useState(false)
   const [activeView, setActiveView] = useState<'git' | 'github'>('git')
   const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
@@ -756,6 +762,7 @@ export default function App() {
   const openHomeTab = useCallback(() => {
     if (conflictResolverFile || rebaseHash) return
     setWhatsNewActive(false)
+    setRepoMgmtOpen(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     const id = newTabId('home')
     setTabs(prev => [...prev, { id, kind: 'home' }])
@@ -768,6 +775,7 @@ export default function App() {
     if (conflictResolverFile || rebaseHash) return
     setWhatsNewActive(false)
     setSettingsOpen(false)
+    setRepoMgmtOpen(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setTabs(prev => {
       const existing = prev.find(tb => tb.kind === 'launchpad')
@@ -781,6 +789,7 @@ export default function App() {
 
   const switchTab = useCallback(async (tab: AppTab) => {
     setWhatsNewActive(false)   // clicking a tab leaves the what's-new view (tab stays open)
+    setRepoMgmtOpen(false)
     if (tab.id === activeTabId) return
     if (conflictResolverFile || rebaseHash) return
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
@@ -1533,6 +1542,12 @@ export default function App() {
   }
 
   const isMac = (window as any).appInfo?.platform === 'darwin'
+  // macOS fullscreen hides the traffic lights, so the 72px spacer must go.
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  useEffect(() => {
+    ;(window.gitAPI as any).isFullscreen?.().then((fs: boolean) => setIsFullscreen(!!fs)).catch(() => {})
+    return (window.gitAPI as any).onFullscreenChanged?.((fs: boolean) => setIsFullscreen(!!fs))
+  }, [])
   const activeTab = tabs.find(tb => tb.id === activeTabId)
   const launchpadActive = activeTab?.kind === 'launchpad'
 
@@ -1546,7 +1561,11 @@ export default function App() {
           welcome screen too (not only once a repo/tab is open). */}
       {(
         <div className="app-tabs">
-          {isMac && <div className="app-tabs-mac-spacer" />}
+          {isMac && !isFullscreen && <div className="app-tabs-mac-spacer" />}
+          {/* 📁 Repository Management — a fixed button opening a full-page
+              overlay (like Settings), never a tab. */}
+          <button className={`app-tab-launch ${repoMgmtOpen ? 'active' : ''}`}
+            title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); setWhatsNewActive(false); setRepoMgmtOpen(o => !o) }}>📁</button>
           {/* 🚀 Launchpad launcher — always reachable, GitKraken-style. */}
           <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
             title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}>🚀</button>
@@ -1564,9 +1583,9 @@ export default function App() {
                   <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
                 </svg>
               ) : (
-                <span className="app-tab-icon app-tab-icon--tool">{tab.kind === 'launchpad' ? '🚀' : '🏠'}</span>
+                <span className="app-tab-icon app-tab-icon--tool">{tab.kind === 'launchpad' ? '🚀' : tab.kind === 'repomgmt' ? '📁' : '🏠'}</span>
               )}
-              <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : t('tabs.home')}</span>
+              <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : tab.kind === 'repomgmt' ? t('repomgmt.title') : t('tabs.home')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
             </div>
@@ -1581,7 +1600,7 @@ export default function App() {
           )}
           {whatsNew && (
             <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title={t('tabs.whatsNew')}
-              onClick={() => { setSettingsOpen(false); setWhatsNewActive(true) }}>
+              onClick={() => { setSettingsOpen(false); setRepoMgmtOpen(false); setWhatsNewActive(true) }}>
               <span className="app-tab-icon app-tab-icon--tool">✨</span>
               <span className="app-tab-name">{t('tabs.whatsNew')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
@@ -1612,14 +1631,14 @@ export default function App() {
               )}
             </button>
             <button className={`app-tb-icon ${settingsOpen ? 'active' : ''}`}
-              title={t('settings.title')} onClick={() => setSettingsOpen(v => !v)}>
+              title={t('settings.title')} onClick={() => { setRepoMgmtOpen(false); setSettingsOpen(v => !v) }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                 <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.376l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.318z"/>
               </svg>
             </button>
             <button className="app-profile-chip" title={githubUser?.login ?? t('settings.profile')}
-              onClick={() => { setSettingsOpen(true) }}>
+              onClick={() => { setRepoMgmtOpen(false); setSettingsOpen(true) }}>
               {githubUser?.avatar
                 ? <img className="app-profile-avatar" src={githubUser.avatar} alt={githubUser.login} />
                 : <span className="app-profile-avatar app-profile-avatar--fallback">{(githubUser?.login ?? '?').slice(0, 1).toUpperCase()}</span>}
@@ -1709,13 +1728,34 @@ export default function App() {
 
       {/* "What's new" is a full-page tab: no repo sidebar/toolbar behind it, so
           repo actions aren't reachable while it's the active view. */}
-      {whatsNewActive && whatsNew && !settingsOpen && (
+      {whatsNewActive && whatsNew && !settingsOpen && !repoMgmtOpen && (
         <div className="app-fullpage-view">
           <WhatsNew version={whatsNew.version} notes={whatsNew.notes} />
         </div>
       )}
 
-      <div className="app-body" style={{ display: settingsOpen || whatsNewActive ? 'none' : undefined }}>
+      {/* Repository Management — full-page overlay (like Settings). */}
+      {repoMgmtOpen && !settingsOpen && (
+        <div className="app-fullpage-view">
+          <RepoManager
+            recentRepos={recentRepos}
+            openRepoPaths={tabs.filter(tb => tb.kind === 'repo').map(tb => tb.path!)}
+            workspaces={workspaces}
+            onSetWorkspace={async (path, name) => {
+              const updated = await (window.gitAPI as any).setRepoWorkspace(path, name)
+              setWorkspaces(updated ?? {})
+            }}
+            onOpenRepo={(p) => { setRepoMgmtOpen(false); handleSetRepo(p) }}
+            onRemoveRecent={handleRemoveRecent}
+            onClone={() => setCloneOpen(true)}
+            onBrowse={() => { setRepoMgmtOpen(false); handleOpenRepo() }}
+            onInit={() => setInitModalOpen(true)}
+            showToast={showToast}
+          />
+        </div>
+      )}
+
+      <div className="app-body" style={{ display: settingsOpen || whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
         {/* ── Activity bar — only with a repo open (useless/empty on the home) ── */}
         {repoPath && (
         <div className="app-activity-bar">
@@ -2084,6 +2124,14 @@ export default function App() {
             applyRepo({ path, name })
             showToast(t('toast.cloneOk', name), 'ok')
           }}
+        />
+      )}
+
+      {initModalOpen && (
+        <InitModal
+          onClose={() => setInitModalOpen(false)}
+          onCreated={(path) => { setInitModalOpen(false); setRepoMgmtOpen(false); handleSetRepo(path) }}
+          showToast={showToast}
         />
       )}
 

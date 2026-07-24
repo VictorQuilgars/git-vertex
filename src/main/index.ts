@@ -142,6 +142,12 @@ function createWindow(): void {
     closeSplash()
   })
 
+  // In macOS fullscreen the traffic-light buttons are hidden, so the renderer
+  // must drop the 72px spacer that reserves room for them.
+  const sendFullscreen = () => mainWindow?.webContents.send('app:fullscreen-changed', mainWindow.isFullScreen())
+  mainWindow.on('enter-full-screen', sendFullscreen)
+  mainWindow.on('leave-full-screen', sendFullscreen)
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -359,6 +365,8 @@ async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; name?: 
 }
 
 // ── IPC: Repo management ──────────────────────────────────────
+ipcMain.handle('app:is-fullscreen', () => mainWindow?.isFullScreen() ?? false)
+
 ipcMain.handle('app:get-recent-repos', () => getRecentRepos())
 
 ipcMain.handle('app:remove-recent-repo', (_event, path: string) => removeRecentRepo(path))
@@ -390,6 +398,96 @@ ipcMain.handle('git:init-repo', async (_event, dir: string) => {
   } catch (e: any) {
     return { error: e.message }
   }
+})
+
+// GitKraken-style "Initialize a Repository" (Local Only): create <location>/<name>,
+// git init on the given branch, optionally drop a .gitignore/LICENSE (fetched
+// from GitHub's template APIs) and run `git lfs install`.
+ipcMain.handle('git:init-advanced', async (_e, opts: { location: string; name: string; branch?: string; gitignore?: string; license?: string; lfs?: boolean }) => {
+  try {
+    const { mkdirSync, writeFileSync } = await import('fs')
+    const target = join(opts.location, opts.name)
+    mkdirSync(target, { recursive: true })
+    await simpleGit(target).init(['-b', opts.branch?.trim() || 'main'])
+    const token = readSettings().githubToken
+    const ghHeaders: Record<string, string> = { Accept: 'application/vnd.github+json' }
+    if (token) ghHeaders.Authorization = `Bearer ${token}`
+    if (opts.gitignore) {
+      try {
+        const r = await fetch(`https://api.github.com/gitignore/templates/${opts.gitignore}`, { headers: ghHeaders })
+        if (r.ok) { const d = await r.json() as any; writeFileSync(join(target, '.gitignore'), d.source ?? '') }
+      } catch { /* optional */ }
+    }
+    if (opts.license) {
+      try {
+        const r = await fetch(`https://api.github.com/licenses/${opts.license}`, { headers: ghHeaders })
+        if (r.ok) { const d = await r.json() as any; writeFileSync(join(target, 'LICENSE'), d.body ?? '') }
+      } catch { /* optional */ }
+    }
+    if (opts.lfs) {
+      try {
+        const { execFile } = await import('child_process')
+        const { promisify } = await import('util')
+        await promisify(execFile)('git', ['-C', target, 'lfs', 'install'])
+      } catch { /* lfs not installed — skip */ }
+    }
+    return openRepoAt(target)
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:list-gitignore-templates', async () => {
+  try {
+    const token = readSettings().githubToken
+    const r = await fetch('https://api.github.com/gitignore/templates', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    return r.ok ? { templates: await r.json() } : { templates: [] }
+  } catch { return { templates: [] } }
+})
+
+ipcMain.handle('github:list-licenses', async () => {
+  try {
+    const token = readSettings().githubToken
+    const r = await fetch('https://api.github.com/licenses', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    if (!r.ok) return { licenses: [] }
+    const d = await r.json() as any[]
+    return { licenses: d.map(l => ({ key: l.key, name: l.name })) }
+  } catch { return { licenses: [] } }
+})
+
+// GitKraken-style init on GitHub.com: create the remote repo, optionally clone
+// it to a chosen local folder.
+ipcMain.handle('github:create-repo', async (_e, opts: { name: string; description?: string; private?: boolean; gitignore?: string; license?: string; cloneTo?: string }) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const r = await fetch('https://api.github.com/user/repos', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        name: opts.name,
+        description: opts.description || '',
+        private: !!opts.private,
+        auto_init: true,
+        gitignore_template: opts.gitignore || undefined,
+        license_template: opts.license || undefined,
+      }),
+    })
+    if (r.status === 403 || r.status === 404) return { error: 'scope' }
+    if (!r.ok) { const e = await r.json().catch(() => ({})) as any; return { error: e.message || `HTTP ${r.status}` } }
+    const d = await r.json() as any
+    if (opts.cloneTo) {
+      const target = join(opts.cloneTo, opts.name)
+      try {
+        // Clone over HTTPS with the token so private repos work.
+        const authUrl = d.clone_url.replace('https://', `https://${token}@`)
+        await simpleGit().clone(authUrl, target)
+        // Rewrite origin without the embedded token.
+        await simpleGit(target).remote(['set-url', 'origin', d.clone_url])
+        const opened = await openRepoAt(target)
+        return { ...opened, htmlUrl: d.html_url, fullName: d.full_name }
+      } catch (e: any) { return { error: e.message, htmlUrl: d.html_url } }
+    }
+    return { htmlUrl: d.html_url, fullName: d.full_name }
+  } catch (e: any) { return { error: e.message } }
 })
 
 ipcMain.handle('app:select-directory', async (_event, title?: string) => {
@@ -1418,6 +1516,36 @@ ipcMain.handle('app:open-in-editor', async (_e, filepath: string) => {
   }
 })
 
+// Open an arbitrary repo folder in the external editor (Repository Management —
+// not tied to the currently-open repo, unlike app:open-in-editor).
+ipcMain.handle('app:open-path-in-editor', async (_e, dir: string) => {
+  const editor = (readSettings().externalEditor ?? '').trim()
+  if (!editor) {
+    const err = await shell.openPath(dir)
+    return err ? { success: false, error: err } : { success: true }
+  }
+  try {
+    const { spawn } = await import('child_process')
+    const parts = editor.split(' ').filter(Boolean)
+    const child = spawn(parts[0], [...parts.slice(1), dir], { cwd: dir, detached: true, stdio: 'ignore' })
+    child.on('error', () => {})
+    child.unref()
+    return { success: true }
+  } catch (e: any) { return { success: false, error: e.message } }
+})
+
+// Read a repo's README (first match) for the Repository Management details panel.
+ipcMain.handle('git:read-readme', async (_e, dir: string) => {
+  try {
+    const { readFileSync } = await import('fs')
+    for (const n of ['README.md', 'README.MD', 'Readme.md', 'readme.md', 'README', 'README.txt', 'README.rst']) {
+      const p = join(dir, n)
+      if (existsSync(p)) return { content: readFileSync(p, 'utf-8'), name: n }
+    }
+    return { content: null }
+  } catch (e: any) { return { error: e.message } }
+})
+
 // Open the system terminal at the repository root.
 ipcMain.handle('app:open-terminal', async () => {
   if (!gitService) return { success: false, error: 'No repo open' }
@@ -2137,6 +2265,25 @@ ipcMain.handle('github:clone', async (_e, cloneUrl: string, repoName: string) =>
   } catch (e: any) {
     return { error: e.message }
   }
+})
+
+// Clone to an explicit location (no native dialog) with Shallow/Sparse options —
+// used by the GitKraken-style Clone modal.
+ipcMain.handle('git:clone-to', async (_e, opts: { url: string; location: string; name: string; shallow?: boolean; sparse?: boolean }) => {
+  try {
+    const target = pathJoin(opts.location, opts.name)
+    const args: string[] = []
+    if (opts.shallow) args.push('--depth', '1')
+    if (opts.sparse) args.push('--sparse')
+    // Embed the token for github.com HTTPS so private repos clone, then scrub it.
+    const token = readSettings().githubToken
+    let url = opts.url
+    const isGh = /^https:\/\/github\.com\//.test(url)
+    if (token && isGh) url = url.replace('https://', `https://${token}@`)
+    await simpleGit().clone(url, target, args)
+    if (token && isGh) { try { await simpleGit(target).remote(['set-url', 'origin', opts.url]) } catch { /* keep */ } }
+    return openRepoAt(target)
+  } catch (e: any) { return { error: e.message } }
 })
 
 ipcMain.handle('github:get-user', async () => {
