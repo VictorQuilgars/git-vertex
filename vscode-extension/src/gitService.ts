@@ -225,9 +225,43 @@ export class GitService {
     }
   }
 
+  // `git diff --numstat` names a rename as "old => new" or "dir/{old => new}/f";
+  // both resolve to the new path, which is what status keys on.
+  private static numstatPath(raw: string): string {
+    if (!raw.includes('=>')) return raw
+    const braced = /^(.*)\{(.*) => (.*)\}(.*)$/.exec(raw)
+    if (braced) return `${braced[1]}${braced[3]}${braced[4]}`.replace(/\/{2,}/g, '/')
+    return raw.split('=>').pop()!.trim()
+  }
+
+  /** Per-path added/removed line counts. Binary files are omitted (git prints "-"). */
+  private async workingNumstat(args: string[]): Promise<Map<string, { additions: number; deletions: number }>> {
+    const out = new Map<string, { additions: number; deletions: number }>()
+    try {
+      const raw = await this.git.raw(['diff', '--numstat', ...args])
+      for (const line of raw.split('\n')) {
+        if (!line.trim()) continue
+        const [a, d, ...rest] = line.split('\t')
+        const path = rest.join('\t').trim()
+        if (!path || a === '-' || d === '-') continue
+        out.set(GitService.numstatPath(path), { additions: Number(a) || 0, deletions: Number(d) || 0 })
+      }
+    } catch {
+      // No stats is a degraded display, never a reason to fail the whole status.
+    }
+    return out
+  }
+
   async getWorkingChanges(): Promise<WorkingChanges> {
     try {
-      const status = await this.git.status()
+      // Mirrors the desktop GitService (v1.22.0): one numstat per section so
+      // each reports its own counts. Untracked files get none — git diff cannot
+      // see them, and stat-ing each would mean a subprocess per file.
+      const [status, stagedStats, unstagedStats] = await Promise.all([
+        this.git.status(),
+        this.workingNumstat(['--cached']),
+        this.workingNumstat([]),
+      ])
       const staged: { path: string; status: string }[] = []
       const seen = new Set<string>()
 
@@ -237,7 +271,7 @@ export class GitService {
         if (index && index !== ' ' && index !== '?' && !seen.has(path)) {
           seen.add(path)
           const s = index === 'A' ? 'A' : index === 'D' ? 'D' : index === 'R' ? 'R' : index === 'C' ? 'C' : 'M'
-          staged.push({ path, status: s })
+          staged.push({ path, status: s, ...stagedStats.get(path) })
         }
       }
 
@@ -250,7 +284,7 @@ export class GitService {
         if (working && working !== ' ' && working !== '?' && !seenU.has(path)) {
           seenU.add(path)
           const s = working === 'D' ? 'D' : working === 'A' ? 'A' : 'M'
-          unstaged.push({ path, status: s })
+          unstaged.push({ path, status: s, ...unstagedStats.get(path) })
         }
         if ((working === 'U' || index === 'U') && !seenU.has(path)) {
           seenU.add(path)

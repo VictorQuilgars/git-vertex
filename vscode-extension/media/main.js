@@ -70052,8 +70052,25 @@ ${lineStrings.join("\n")}
     return /* @__PURE__ */ import_react27.default.createElement(InteractiveRebase, { embedded: true, baseHash, onClose: close, onSuccess: () => {
     }, showToast });
   }
+  var PanelErrorBoundary = class extends import_react27.default.Component {
+    constructor() {
+      super(...arguments);
+      this.state = { error: null };
+    }
+    static getDerivedStateFromError(error) {
+      return { error };
+    }
+    componentDidCatch(error, info) {
+      console.error("[GitVertex] panel render failed:", error, info.componentStack);
+    }
+    render() {
+      if (!this.state.error)
+        return this.props.children;
+      return /* @__PURE__ */ import_react27.default.createElement("div", { style: { padding: 16, font: "12px var(--vscode-editor-font-family, monospace)", color: "#f85149" } }, /* @__PURE__ */ import_react27.default.createElement("div", { style: { fontWeight: 600, marginBottom: 8 } }, "Git Vertex \u2014 erreur de rendu"), /* @__PURE__ */ import_react27.default.createElement("pre", { style: { whiteSpace: "pre-wrap", color: "#c9d1d9", margin: 0 } }, this.state.error.message, "\n\n", this.state.error.stack));
+    }
+  };
   import_client.default.createRoot(document.getElementById("root")).render(
-    /* @__PURE__ */ import_react27.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react27.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react27.default.createElement(ToastProvider, null, boot?.mode === "stage" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(StagingEditor, { file: boot.file }) : boot?.mode === "conflict" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(ConflictTab, { file: boot.file }) : boot?.mode === "history" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(FileHistory, { file: boot.file }) : boot?.mode === "compare" ? /* @__PURE__ */ import_react27.default.createElement(CompareView, { initialA: boot.refA, initialB: boot.refB }) : boot?.mode === "compareWorking" && boot.hash ? /* @__PURE__ */ import_react27.default.createElement(CompareWorkingView, { hash: boot.hash }) : boot?.mode === "github" ? /* @__PURE__ */ import_react27.default.createElement(GitHubPanel, { repoPath: "." }) : boot?.mode === "rebase" ? /* @__PURE__ */ import_react27.default.createElement(RebaseProgress, null) : boot?.mode === "todo" ? /* @__PURE__ */ import_react27.default.createElement(RebaseTodoApp, null) : boot?.mode === "plan" && boot.baseHash ? /* @__PURE__ */ import_react27.default.createElement(InteractiveRebaseTab, { baseHash: boot.baseHash }) : boot?.mode === "commitMsg" ? /* @__PURE__ */ import_react27.default.createElement(CommitMsgEditorView, { boot }) : /* @__PURE__ */ import_react27.default.createElement(VertexApp, null))))
+    /* @__PURE__ */ import_react27.default.createElement(PanelErrorBoundary, null, /* @__PURE__ */ import_react27.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react27.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react27.default.createElement(ToastProvider, null, boot?.mode === "stage" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(StagingEditor, { file: boot.file }) : boot?.mode === "conflict" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(ConflictTab, { file: boot.file }) : boot?.mode === "history" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(FileHistory, { file: boot.file }) : boot?.mode === "compare" ? /* @__PURE__ */ import_react27.default.createElement(CompareView, { initialA: boot.refA, initialB: boot.refB }) : boot?.mode === "compareWorking" && boot.hash ? /* @__PURE__ */ import_react27.default.createElement(CompareWorkingView, { hash: boot.hash }) : boot?.mode === "github" ? /* @__PURE__ */ import_react27.default.createElement(GitHubPanel, { repoPath: "." }) : boot?.mode === "rebase" ? /* @__PURE__ */ import_react27.default.createElement(RebaseProgress, null) : boot?.mode === "todo" ? /* @__PURE__ */ import_react27.default.createElement(RebaseTodoApp, null) : boot?.mode === "plan" && boot.baseHash ? /* @__PURE__ */ import_react27.default.createElement(InteractiveRebaseTab, { baseHash: boot.baseHash }) : boot?.mode === "commitMsg" ? /* @__PURE__ */ import_react27.default.createElement(CommitMsgEditorView, { boot }) : /* @__PURE__ */ import_react27.default.createElement(VertexApp, null)))))
   );
 })();
 /*! Bundled license information:
