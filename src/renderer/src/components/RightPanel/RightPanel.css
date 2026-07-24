@@ -1611,6 +1611,47 @@
 /* Small icon-only sort / path / tree toggles, tucked in the header corner */
 .stx-tool { width: 24px; height: 22px; border-radius: 5px; }
 .stx-tool.active { border-color: var(--accent,#58a6ff); color: #58a6ff; background: #1f6feb1a; }
+/* ── File filter (staging lists) ──────────────────────────────
+   Shared by the embedded single-list header and the desktop viewbar; the
+   input is only mounted while the filter is open. */
+.st-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+.st-filter-input {
+  flex: 1;
+  min-width: 0;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 5px;
+  color: #c9d1d9;
+  font-size: 11px;
+  padding: 3px 7px;
+  outline: none;
+}
+.st-filter-input:focus { border-color: var(--accent,#58a6ff); }
+.st-filter-input::placeholder { color: #484f58; }
+.st-filter-clear {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.st-filter-clear:hover { background: #21262d; color: #c9d1d9; }
+/* Compact desktop layout hides the viewbar that carries the filter toggle —
+   hide the orphaned input too (child combinator spares the embedded one,
+   which lives inside .stx). */
+.st2--compact > .st-filter { display: none; }
+
 .stx-list { flex: 1; overflow-y: auto; min-height: 0; }
 .stx-row {
   display: flex;

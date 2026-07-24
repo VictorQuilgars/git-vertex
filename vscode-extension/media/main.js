@@ -60157,6 +60157,10 @@ Cette action est irr\xE9versible.`,
     "panel.fileChanges": "modifications",
     "panel.on": "sur",
     "panel.sort": "Trier",
+    "panel.filter": "Filtrer les fichiers",
+    "panel.filter.placeholder": "Filtrer les fichiers\u2026",
+    "panel.filter.clear": "Effacer le filtre",
+    "panel.filter.noMatch": (q) => `Aucun fichier ne correspond \xE0 \xAB ${q} \xBB`,
     "panel.view.path": "Chemin",
     "panel.view.tree": "Arbre",
     "panel.tab.commit": "Commit",
@@ -60259,7 +60263,6 @@ Cette action est irr\xE9versible.`,
     "settings.about.releases": "Releases",
     "settings.about.reportBug": "Signaler un bug",
     "settings.about.createdBy": "Cr\xE9\xE9 par",
-    "settings.about.env": "Environnement",
     "settings.about.language": "Langue",
     // Settings — Language
     "settings.lang.fr": "Fran\xE7ais",
@@ -60274,6 +60277,8 @@ Cette action est irr\xE9versible.`,
     "settings.sec.github": "GitHub",
     "settings.sec.ai": "Assistant IA",
     "settings.sec.behavior": "Comportement",
+    "settings.sec.externalTools": "Outils externes",
+    "settings.sec.ssh": "SSH",
     "settings.sec.about": "\xC0 propos",
     // Settings — accent colors
     "settings.color.blue": "Bleu",
@@ -60334,6 +60339,35 @@ Cette action est irr\xE9versible.`,
     "settings.behavior.externalEditor": "\xC9diteur externe",
     "settings.behavior.externalEditorHintPre": "(commande pour ouvrir les fichiers/conflits, ex : ",
     "settings.behavior.externalEditorHintPost": ". Vide = app par d\xE9faut)",
+    // Settings — General (v1.20.0)
+    "settings.general.defaultBranch": "Nom de branche par d\xE9faut",
+    "settings.general.defaultBranchHint": "(utilis\xE9 lors de la cr\xE9ation d'un nouveau d\xE9p\xF4t)",
+    "settings.general.autoFetch": "Intervalle de fetch automatique",
+    "settings.general.autoFetchHint": "(en minutes, 0 = d\xE9sactiv\xE9)",
+    "settings.general.autoSubmodules": "Maintenir les submodules \xE0 jour",
+    "settings.general.autoSubmodulesHint": "(met \xE0 jour les submodules apr\xE8s un checkout, pull, merge ou rebase)",
+    // Settings — External tools (v1.20.0)
+    "settings.externalTools.title": "Outils externes",
+    "settings.externalTools.desc": "Applications utilis\xE9es pour ouvrir des fichiers, comparer des r\xE9visions ou r\xE9soudre des conflits en dehors de Git Vertex.",
+    "settings.externalTools.diffTool": "Outil de diff externe",
+    "settings.externalTools.diffToolHint": "(commande lanc\xE9e avec deux fichiers en argument, ex : opendiff, code --diff)",
+    "settings.externalTools.mergeTool": "Outil de merge externe",
+    "settings.externalTools.mergeToolHint": "(commande lanc\xE9e avec ours/theirs/merged en argument, depuis le r\xE9solveur de conflits)",
+    "settings.externalTools.terminal": "Terminal externe",
+    "settings.externalTools.terminalHint": "(nom de l'application, ex : iTerm, Warp. Vide = terminal syst\xE8me par d\xE9faut)",
+    // Settings — SSH (v1.20.0)
+    "settings.ssh.title": "SSH",
+    "settings.ssh.desc": "Cl\xE9 utilis\xE9e pour les op\xE9rations Git par SSH (fetch, pull, push).",
+    "settings.ssh.useAgent": "Utiliser l'agent SSH local",
+    "settings.ssh.privateKey": "Cl\xE9 priv\xE9e SSH",
+    "settings.ssh.publicKey": "Cl\xE9 publique SSH",
+    "settings.ssh.browse": "Parcourir",
+    "settings.ssh.generate.title": "G\xE9n\xE9rer une nouvelle paire de cl\xE9s",
+    "settings.ssh.generate.desc": "Cr\xE9e une cl\xE9 ed25519 dans ~/.ssh et la configure comme cl\xE9 active.",
+    "settings.ssh.generate.passphrase": "Phrase secr\xE8te (optionnel)",
+    "settings.ssh.generate.button": "G\xE9n\xE9rer",
+    "settings.ssh.generate.busy": "G\xE9n\xE9ration\u2026",
+    "settings.ssh.generate.done": "Cl\xE9 SSH g\xE9n\xE9r\xE9e \u2713",
     // Settings — GitHub token
     "settings.github.tokenSaved": "Token GitHub sauvegard\xE9 \u2713",
     // Settings — update check
@@ -60495,6 +60529,12 @@ Cette action est irr\xE9versible.`,
     "cr.editorNotFound": "\xE9diteur introuvable",
     "cr.openExternalTitle": "Ouvrir dans l'\xE9diteur externe configur\xE9",
     "cr.externalEditor": "\u2197 \xC9diteur externe",
+    "cr.externalMergeOpenTitle": "Ouvrir ce conflit dans l'outil de merge externe configur\xE9",
+    "cr.externalMergeOpen": "\u2197 Outil de merge externe",
+    "cr.externalMergeOpened": 'Outil de merge externe lanc\xE9 \u2014 r\xE9solvez puis enregistrez, ensuite cliquez sur "Charger le r\xE9sultat"',
+    "cr.externalMergeLoadTitle": "Relire le fichier une fois r\xE9solu dans l'outil externe",
+    "cr.externalMergeLoad": "\u2199 Charger le r\xE9sultat",
+    "cr.externalMergeLoaded": "R\xE9sultat charg\xE9 \u2014 v\xE9rifiez avant d'enregistrer",
     "cr.close": "\u2715 Fermer",
     "cr.saveResolve": "Enregistrer & R\xE9soudre",
     "cr.aiBusy": "IA en cours\u2026",
@@ -60555,6 +60595,7 @@ Cette action est irr\xE9versible.`,
     "cfd.wholeFileBtn": "\u25C6 Fichier entier",
     "cfd.changesBtn": "\u25C7 Modifications",
     "cfd.fileBtn": "\u25C6 Fichier",
+    "cfd.externalDiffTitle": "Ouvrir dans l'outil de diff externe configur\xE9",
     // CommitPanel
     "cp.discardConfirm": (path) => `Annuler les modifications de "${path}" ? Cette action est irr\xE9versible.`,
     "cp.noStaged": "Aucun fichier index\xE9",
@@ -61122,6 +61163,10 @@ This action is irreversible.`,
     "panel.fileChanges": "file changes",
     "panel.on": "on",
     "panel.sort": "Sort",
+    "panel.filter": "Filter files",
+    "panel.filter.placeholder": "Filter files\u2026",
+    "panel.filter.clear": "Clear filter",
+    "panel.filter.noMatch": (q) => `No file matches "${q}"`,
     "panel.view.path": "Path",
     "panel.view.tree": "Tree",
     "panel.tab.commit": "Commit",
@@ -61224,7 +61269,6 @@ This action is irreversible.`,
     "settings.about.releases": "Releases",
     "settings.about.reportBug": "Report a bug",
     "settings.about.createdBy": "Created by",
-    "settings.about.env": "Environment",
     "settings.about.language": "Language",
     // Settings — Language
     "settings.lang.fr": "Fran\xE7ais",
@@ -61239,6 +61283,8 @@ This action is irreversible.`,
     "settings.sec.github": "GitHub",
     "settings.sec.ai": "AI Assistant",
     "settings.sec.behavior": "Behavior",
+    "settings.sec.externalTools": "External Tools",
+    "settings.sec.ssh": "SSH",
     "settings.sec.about": "About",
     // Settings — accent colors
     "settings.color.blue": "Blue",
@@ -61299,6 +61345,35 @@ This action is irreversible.`,
     "settings.behavior.externalEditor": "External editor",
     "settings.behavior.externalEditorHintPre": "(command to open files/conflicts, e.g. ",
     "settings.behavior.externalEditorHintPost": ". Empty = default app)",
+    // Settings — General (v1.20.0)
+    "settings.general.defaultBranch": "Default branch name",
+    "settings.general.defaultBranchHint": "(used when creating a new repository)",
+    "settings.general.autoFetch": "Auto-Fetch Interval",
+    "settings.general.autoFetchHint": "(in minutes, 0 = disabled)",
+    "settings.general.autoSubmodules": "Keep submodules up to date",
+    "settings.general.autoSubmodulesHint": "(updates submodules after a checkout, pull, merge or rebase)",
+    // Settings — External tools (v1.20.0)
+    "settings.externalTools.title": "External Tools",
+    "settings.externalTools.desc": "Applications used to open files, compare revisions, or resolve conflicts outside of Git Vertex.",
+    "settings.externalTools.diffTool": "External diff tool",
+    "settings.externalTools.diffToolHint": "(command launched with two files as arguments, e.g. opendiff, code --diff)",
+    "settings.externalTools.mergeTool": "External merge tool",
+    "settings.externalTools.mergeToolHint": "(command launched with ours/theirs/merged as arguments, from the conflict resolver)",
+    "settings.externalTools.terminal": "External terminal",
+    "settings.externalTools.terminalHint": "(app name, e.g. iTerm, Warp. Empty = default system terminal)",
+    // Settings — SSH (v1.20.0)
+    "settings.ssh.title": "SSH",
+    "settings.ssh.desc": "Key used for Git operations over SSH (fetch, pull, push).",
+    "settings.ssh.useAgent": "Use local SSH agent",
+    "settings.ssh.privateKey": "SSH Private Key",
+    "settings.ssh.publicKey": "SSH Public Key",
+    "settings.ssh.browse": "Browse",
+    "settings.ssh.generate.title": "Generate new key pair",
+    "settings.ssh.generate.desc": "Creates an ed25519 key in ~/.ssh and sets it as the active key.",
+    "settings.ssh.generate.passphrase": "Passphrase (optional)",
+    "settings.ssh.generate.button": "Generate",
+    "settings.ssh.generate.busy": "Generating\u2026",
+    "settings.ssh.generate.done": "SSH key generated \u2713",
     // Settings — GitHub token
     "settings.github.tokenSaved": "GitHub token saved \u2713",
     // Settings — update check
@@ -61460,6 +61535,12 @@ This action is irreversible.`,
     "cr.editorNotFound": "editor not found",
     "cr.openExternalTitle": "Open in the configured external editor",
     "cr.externalEditor": "\u2197 External editor",
+    "cr.externalMergeOpenTitle": "Open this conflict in the configured external merge tool",
+    "cr.externalMergeOpen": "\u2197 External merge tool",
+    "cr.externalMergeOpened": 'External merge tool launched \u2014 resolve and save, then click "Load result"',
+    "cr.externalMergeLoadTitle": "Read the file back once resolved in the external tool",
+    "cr.externalMergeLoad": "\u2199 Load result",
+    "cr.externalMergeLoaded": "Result loaded \u2014 review before saving",
     "cr.close": "\u2715 Close",
     "cr.saveResolve": "Save & Resolve",
     "cr.aiBusy": "AI running\u2026",
@@ -61520,6 +61601,7 @@ This action is irreversible.`,
     "cfd.wholeFileBtn": "\u25C6 Whole file",
     "cfd.changesBtn": "\u25C7 Changes",
     "cfd.fileBtn": "\u25C6 File",
+    "cfd.externalDiffTitle": "Open in the configured external diff tool",
     // CommitPanel
     "cp.discardConfirm": (path) => `Discard changes to "${path}"? This action is irreversible.`,
     "cp.noStaged": "No staged files",
@@ -61906,19 +61988,48 @@ Commits beyond this point will be lost for that branch.`,
   var icon_default = "data:image/png;base64,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";
 
   // ../src/renderer/src/components/SettingsModal/SettingsModal.tsx
+  var DESKTOP_ONLY_SECTIONS = ["externalTools", "ssh", "about"];
+  function NavIcon({ children }) {
+    return /* @__PURE__ */ import_react5.default.createElement(
+      "svg",
+      {
+        width: "16",
+        height: "16",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "1.7",
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": "true"
+      },
+      children
+    );
+  }
+  var IconIdentity = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "8", r: "3.3" }), /* @__PURE__ */ import_react5.default.createElement("path", { d: "M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2" }));
+  var IconAppearance = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("line", { x1: "4", y1: "20", x2: "4", y2: "14" }), /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "4", cy: "11", r: "2" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "4", y1: "8", x2: "4", y2: "4" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "20", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "9", r: "2" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "6", x2: "12", y2: "4" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "20", y1: "20", x2: "20", y2: "16" }), /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "20", cy: "13", r: "2" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "20", y1: "10", x2: "20", y2: "4" }));
+  var IconGraph = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "3" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "2", x2: "12", y2: "9" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "15", x2: "12", y2: "22" }));
+  var IconShield = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z" }));
+  var IconGithubMark = () => /* @__PURE__ */ import_react5.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" }));
+  var IconSparkle = () => /* @__PURE__ */ import_react5.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" }));
+  var IconActivity = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "3 12 8 12 10 6 14 18 16 12 21 12" }));
+  var IconTool = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" }));
+  var IconInfo = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "16", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "8", x2: "12.01", y2: "8" }));
   var NAV_GROUPS = [
     { group: "settings.grp.general", items: [
-      { id: "git", icon: "\u{1F464}", label: "settings.sec.identity" },
-      { id: "appearance", icon: "\u{1F3A8}", label: "settings.sec.appearance" },
-      { id: "graph", icon: "\u{1F333}", label: "settings.sec.graph" }
+      { id: "git", icon: /* @__PURE__ */ import_react5.default.createElement(IconIdentity, null), label: "settings.sec.identity" },
+      { id: "appearance", icon: /* @__PURE__ */ import_react5.default.createElement(IconAppearance, null), label: "settings.sec.appearance" },
+      { id: "graph", icon: /* @__PURE__ */ import_react5.default.createElement(IconGraph, null), label: "settings.sec.graph" },
+      { id: "ssh", icon: /* @__PURE__ */ import_react5.default.createElement(IconShield, null), label: "settings.sec.ssh" }
     ] },
     { group: "settings.grp.integrations", items: [
-      { id: "github", icon: "\u{1F419}", label: "settings.sec.github" },
-      { id: "ai", icon: "\u2728", label: "settings.sec.ai" }
+      { id: "github", icon: /* @__PURE__ */ import_react5.default.createElement(IconGithubMark, null), label: "settings.sec.github" },
+      { id: "ai", icon: /* @__PURE__ */ import_react5.default.createElement(IconSparkle, null), label: "settings.sec.ai" }
     ] },
     { group: "settings.grp.system", items: [
-      { id: "notifications", icon: "\u2699\uFE0F", label: "settings.sec.behavior" },
-      { id: "about", icon: "\u2139\uFE0F", label: "settings.sec.about" }
+      { id: "notifications", icon: /* @__PURE__ */ import_react5.default.createElement(IconActivity, null), label: "settings.sec.behavior" },
+      { id: "externalTools", icon: /* @__PURE__ */ import_react5.default.createElement(IconTool, null), label: "settings.sec.externalTools" },
+      { id: "about", icon: /* @__PURE__ */ import_react5.default.createElement(IconInfo, null), label: "settings.sec.about" }
     ] }
   ];
   var ACCENT_PRESETS = [
@@ -61940,7 +62051,7 @@ Commits beyond this point will be lost for that branch.`,
     const { t: t2, lang, setLang } = useLang();
     const { get, getBool, set } = useSettings();
     const [section, setSection] = (0, import_react5.useState)("git");
-    const navGroups = embedded ? NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== "about") })).filter((g) => g.items.length > 0) : NAV_GROUPS;
+    const navGroups = embedded ? NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !DESKTOP_ONLY_SECTIONS.includes(i.id)) })).filter((g) => g.items.length > 0) : NAV_GROUPS;
     const [gitUserName, setGitUserName] = (0, import_react5.useState)("");
     const [gitUserEmail, setGitUserEmail] = (0, import_react5.useState)("");
     const [githubToken, setGithubToken] = (0, import_react5.useState)("");
@@ -61975,6 +62086,17 @@ Commits beyond this point will be lost for that branch.`,
     const [gpgSign, setGpgSign] = (0, import_react5.useState)(false);
     const [profiles, setProfiles] = (0, import_react5.useState)([]);
     const [externalEditor, setExternalEditor] = (0, import_react5.useState)("");
+    const [defaultBranchName, setDefaultBranchName] = (0, import_react5.useState)("");
+    const [autoFetchInterval, setAutoFetchInterval] = (0, import_react5.useState)("0");
+    const [autoUpdateSubmodules, setAutoUpdateSubmodules] = (0, import_react5.useState)(false);
+    const [externalDiffTool, setExternalDiffTool] = (0, import_react5.useState)("");
+    const [externalMergeTool, setExternalMergeTool] = (0, import_react5.useState)("");
+    const [externalTerminal, setExternalTerminal] = (0, import_react5.useState)("");
+    const [sshUseAgent, setSshUseAgent] = (0, import_react5.useState)(false);
+    const [sshPrivateKey, setSshPrivateKey] = (0, import_react5.useState)("");
+    const [sshPublicKey, setSshPublicKey] = (0, import_react5.useState)("");
+    const [sshGenerating, setSshGenerating] = (0, import_react5.useState)(false);
+    const [sshPassphrase, setSshPassphrase] = (0, import_react5.useState)("");
     const fetchModels = async (provider, key) => {
       if (!key)
         return;
@@ -62029,6 +62151,15 @@ Commits beyond this point will be lost for that branch.`,
         } catch {
           setProfiles([]);
         }
+        setDefaultBranchName(s.defaultBranchName ?? "");
+        setAutoFetchInterval(s.autoFetchInterval ?? "0");
+        setAutoUpdateSubmodules(s.autoUpdateSubmodules === "true");
+        setExternalDiffTool(s.externalDiffTool ?? "");
+        setExternalMergeTool(s.externalMergeTool ?? "");
+        setExternalTerminal(s.externalTerminal ?? "");
+        setSshUseAgent(s.sshUseAgent === "true");
+        setSshPrivateKey(s.sshPrivateKey ?? "");
+        setSshPublicKey(s.sshPublicKey ?? "");
         setAiProvider(provider);
         setAiKeys(keys);
         setAiModels((m) => ({
@@ -62357,18 +62488,43 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("warnBeforeConflict", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.behavior.warnConflict"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.warnConflictHint")))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.behavior.externalEditor"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.externalEditorHintPre"), /* @__PURE__ */ import_react5.default.createElement("code", null, "code"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "code --wait"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "subl"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "meld"), t2("settings.behavior.externalEditorHintPost"))), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.behavior.warnConflict"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.warnConflictHint")))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.general.defaultBranch"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.defaultBranchHint"))), /* @__PURE__ */ import_react5.default.createElement(
       "input",
       {
         className: "stg-input",
-        value: externalEditor,
+        value: defaultBranchName,
         onChange: async (e) => {
-          setExternalEditor(e.target.value);
-          await window.gitAPI.settingsSet("externalEditor", e.target.value);
+          setDefaultBranchName(e.target.value);
+          await window.gitAPI.settingsSet("defaultBranchName", e.target.value);
         },
-        placeholder: "code"
+        placeholder: "main"
       }
-    )), !embedded && /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 16 } }, t2("settings.notifications.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.notifications.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.general.autoFetch"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.autoFetchHint"))), /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        className: "stg-input",
+        type: "number",
+        min: 0,
+        max: 60,
+        value: autoFetchInterval,
+        onChange: async (e) => {
+          const v = e.target.value;
+          setAutoFetchInterval(v);
+          await window.gitAPI.settingsSet("autoFetchInterval", v);
+        },
+        placeholder: "0"
+      }
+    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: autoUpdateSubmodules,
+        onChange: async (e) => {
+          setAutoUpdateSubmodules(e.target.checked);
+          await window.gitAPI.settingsSet("autoUpdateSubmodules", String(e.target.checked));
+        }
+      }
+    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.general.autoSubmodules"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.autoSubmodulesHint")))), !embedded && /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 16 } }, t2("settings.notifications.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.notifications.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62398,7 +62554,145 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("notifyUpdate", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.notifications.update"))))), section === "about" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-hero" }, /* @__PURE__ */ import_react5.default.createElement("img", { src: icon_default, className: "stg-about-icon", alt: "Git Vertex", onError: (e) => e.currentTarget.style.display = "none" }), /* @__PURE__ */ import_react5.default.createElement("div", null, /* @__PURE__ */ import_react5.default.createElement("h1", { className: "stg-about-name" }, "Git Vertex"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-version" }, "v", appInfo?.version ?? "\u2014"))), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.about.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-links" }, /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), t2("settings.about.sourceCode")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/releases") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), t2("settings.about.releases")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/issues") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "8", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" })), t2("settings.about.reportBug"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-author" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t2("settings.about.createdBy")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars") }, "Victor Quilgars")), ENABLED_LANGS.length > 1 && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-lang" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t2("settings.about.language")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-lang-btns" }, ENABLED_LANGS.map((l) => /* @__PURE__ */ import_react5.default.createElement("button", { key: l, className: `stg-lang-btn ${lang === l ? "active" : ""}`, onClick: () => setLang(l) }, l === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F1EC}\u{1F1E7}", " ", t2(`settings.lang.${l}`))))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-env" }, /* @__PURE__ */ import_react5.default.createElement("h3", { className: "stg-about-env-title" }, t2("settings.about.env")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-env-grid" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Git Vertex"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.version ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Electron"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.electron ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Node.js"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.node ?? "\u2014"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-key" }, "Chrome"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-env-val" }, appInfo?.chrome ?? "\u2014"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-update" }, updateReady ? /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.notifications.update"))))), section === "externalTools" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.externalTools.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.externalTools.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.behavior.externalEditor"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.externalEditorHintPre"), /* @__PURE__ */ import_react5.default.createElement("code", null, "code"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "code --wait"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "subl"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "meld"), t2("settings.behavior.externalEditorHintPost"))), /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        className: "stg-input",
+        value: externalEditor,
+        onChange: async (e) => {
+          setExternalEditor(e.target.value);
+          await window.gitAPI.settingsSet("externalEditor", e.target.value);
+        },
+        placeholder: "code"
+      }
+    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.externalTools.diffTool"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.diffToolHint"))), /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        className: "stg-input",
+        value: externalDiffTool,
+        onChange: async (e) => {
+          setExternalDiffTool(e.target.value);
+          await window.gitAPI.settingsSet("externalDiffTool", e.target.value);
+        },
+        placeholder: "opendiff"
+      }
+    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.externalTools.mergeTool"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.mergeToolHint"))), /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        className: "stg-input",
+        value: externalMergeTool,
+        onChange: async (e) => {
+          setExternalMergeTool(e.target.value);
+          await window.gitAPI.settingsSet("externalMergeTool", e.target.value);
+        },
+        placeholder: "opendiff -merge"
+      }
+    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.externalTools.terminal"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.terminalHint"))), /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        className: "stg-input",
+        value: externalTerminal,
+        onChange: async (e) => {
+          setExternalTerminal(e.target.value);
+          await window.gitAPI.settingsSet("externalTerminal", e.target.value);
+        },
+        placeholder: "iTerm"
+      }
+    ))), section === "ssh" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.ssh.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.ssh.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: sshUseAgent,
+        onChange: async (e) => {
+          setSshUseAgent(e.target.checked);
+          await window.gitAPI.settingsSet("sshUseAgent", String(e.target.checked));
+        }
+      }
+    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.ssh.useAgent"))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.ssh.privateKey")), /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        className: "stg-input",
+        value: sshPrivateKey,
+        disabled: sshUseAgent,
+        onChange: async (e) => {
+          setSshPrivateKey(e.target.value);
+          await window.gitAPI.settingsSet("sshPrivateKey", e.target.value);
+        },
+        placeholder: "~/.ssh/id_ed25519"
+      }
+    ), /* @__PURE__ */ import_react5.default.createElement(
+      "button",
+      {
+        className: "stg-save",
+        style: { background: "#21262d", color: "#c9d1d9" },
+        disabled: sshUseAgent,
+        onClick: async () => {
+          const r = await window.gitAPI.sshBrowseKey("private");
+          if (r?.path) {
+            setSshPrivateKey(r.path);
+            await window.gitAPI.settingsSet("sshPrivateKey", r.path);
+          }
+        }
+      },
+      t2("settings.ssh.browse")
+    ))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.ssh.publicKey")), /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        className: "stg-input",
+        value: sshPublicKey,
+        disabled: sshUseAgent,
+        onChange: async (e) => {
+          setSshPublicKey(e.target.value);
+          await window.gitAPI.settingsSet("sshPublicKey", e.target.value);
+        },
+        placeholder: "~/.ssh/id_ed25519.pub"
+      }
+    ), /* @__PURE__ */ import_react5.default.createElement(
+      "button",
+      {
+        className: "stg-save",
+        style: { background: "#21262d", color: "#c9d1d9" },
+        disabled: sshUseAgent,
+        onClick: async () => {
+          const r = await window.gitAPI.sshBrowseKey("public");
+          if (r?.path) {
+            setSshPublicKey(r.path);
+            await window.gitAPI.settingsSet("sshPublicKey", r.path);
+          }
+        }
+      },
+      t2("settings.ssh.browse")
+    ))), /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.ssh.generate.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.ssh.generate.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+      "input",
+      {
+        className: "stg-input",
+        type: "password",
+        value: sshPassphrase,
+        onChange: (e) => setSshPassphrase(e.target.value),
+        placeholder: t2("settings.ssh.generate.passphrase")
+      }
+    ), /* @__PURE__ */ import_react5.default.createElement(
+      "button",
+      {
+        className: "stg-save",
+        disabled: sshGenerating,
+        onClick: async () => {
+          setSshGenerating(true);
+          const r = await window.gitAPI.sshGenerateKey(sshPassphrase);
+          setSshGenerating(false);
+          if (r?.error) {
+            showToast(t2("toast.err", r.error), "err");
+            return;
+          }
+          setSshPrivateKey(r.privateKey);
+          setSshPublicKey(r.publicKey);
+          await window.gitAPI.settingsSet("sshPrivateKey", r.privateKey);
+          await window.gitAPI.settingsSet("sshPublicKey", r.publicKey);
+          showToast(t2("settings.ssh.generate.done"));
+        }
+      },
+      sshGenerating ? t2("settings.ssh.generate.busy") : t2("settings.ssh.generate.button")
+    )))), section === "about" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-hero" }, /* @__PURE__ */ import_react5.default.createElement("img", { src: icon_default, className: "stg-about-icon", alt: "Git Vertex", onError: (e) => e.currentTarget.style.display = "none" }), /* @__PURE__ */ import_react5.default.createElement("div", null, /* @__PURE__ */ import_react5.default.createElement("h1", { className: "stg-about-name" }, "Git Vertex"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-version" }, "v", appInfo?.version ?? "\u2014"))), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.about.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-links" }, /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), t2("settings.about.sourceCode")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/releases") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), t2("settings.about.releases")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/issues") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "8", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" })), t2("settings.about.reportBug"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-author" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t2("settings.about.createdBy")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars") }, "Victor Quilgars")), ENABLED_LANGS.length > 1 && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-lang" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t2("settings.about.language")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-lang-btns" }, ENABLED_LANGS.map((l) => /* @__PURE__ */ import_react5.default.createElement("button", { key: l, className: `stg-lang-btn ${lang === l ? "active" : ""}`, onClick: () => setLang(l) }, l === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F1EC}\u{1F1E7}", " ", t2(`settings.lang.${l}`))))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-update" }, updateReady ? /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
       "button",
       {
         className: "stg-about-install-btn",
@@ -64744,6 +65038,7 @@ ${line.date}`
   var IcoSpark = ({ size = 14 }) => /* @__PURE__ */ import_react9.default.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" }));
   var IcoSort = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z" }));
   var IcoPathView = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" }));
+  var IcoSearch = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ import_react9.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react9.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" }));
   var IcoTreeView = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z" }));
   var IcoCommit = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" }));
   var IcoStash = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z" }));
@@ -64849,6 +65144,8 @@ ${line.date}`
     const [amendFiles, setAmendFiles] = (0, import_react9.useState)([]);
     const [treeMode, setTreeMode] = (0, import_react9.useState)(() => localStorage.getItem("st-tree-mode") === "true");
     const [sortAsc, setSortAsc] = (0, import_react9.useState)(true);
+    const [fileFilter, setFileFilter] = (0, import_react9.useState)("");
+    const [filterOpen, setFilterOpen] = (0, import_react9.useState)(false);
     const [unstagedOpen, setUnstagedOpen] = (0, import_react9.useState)(true);
     const [stagedOpen, setStagedOpen] = (0, import_react9.useState)(true);
     const [optionsOpen, setOptionsOpen] = (0, import_react9.useState)(false);
@@ -64856,6 +65153,7 @@ ${line.date}`
     const [committing, setCommitting] = (0, import_react9.useState)(false);
     const [generating, setGenerating] = (0, import_react9.useState)(false);
     const [selectedDiff, setSelectedDiff] = (0, import_react9.useState)(null);
+    const filterRef = (0, import_react9.useRef)(null);
     const [formHeight, setFormHeight] = (0, import_react9.useState)(() => parseInt(localStorage.getItem("st-form-h") || "300"));
     const dragRef = (0, import_react9.useRef)(null);
     const stRootRef = (0, import_react9.useRef)(null);
@@ -65008,9 +65306,25 @@ ${line.date}`
       localStorage.setItem("st-tree-mode", String(!v));
       return !v;
     });
-    const sortedStaged = sortFiles(changes.staged);
-    const sortedUnstaged = sortFiles(changes.unstaged);
-    const sortedUntracked = sortFiles(changes.untracked.map((p) => ({ path: p }))).map((x) => x.path);
+    const closeFilter = () => {
+      setFilterOpen(false);
+      setFileFilter("");
+    };
+    const toggleFilter = () => {
+      if (filterOpen)
+        closeFilter();
+      else
+        setFilterOpen(true);
+    };
+    (0, import_react9.useEffect)(() => {
+      if (filterOpen)
+        filterRef.current?.focus();
+    }, [filterOpen]);
+    const filterNeedle = fileFilter.trim().toLowerCase();
+    const matchFilter = (path) => !filterNeedle || path.toLowerCase().includes(filterNeedle);
+    const sortedStaged = sortFiles(changes.staged).filter((f) => matchFilter(f.path));
+    const sortedUnstaged = sortFiles(changes.unstaged).filter((f) => matchFilter(f.path));
+    const sortedUntracked = sortFiles(changes.untracked.map((p) => ({ path: p }))).map((x) => x.path).filter(matchFilter);
     const stagedTree = buildTree(sortedStaged.map((f) => ({ path: f.path, status: f.status })));
     const unstagedTree = buildTree([
       ...sortedUnstaged.map((f) => ({ path: f.path, status: f.status })),
@@ -65035,9 +65349,12 @@ ${line.date}`
       return sortFiles([...m.values()]);
     })();
     const stateByPath = new Map(mergedFiles.map((f) => [f.path, f.state]));
-    const mergedTree = buildTree(mergedFiles.map((f) => ({ path: f.path, status: f.status })));
+    const visibleFiles = mergedFiles.filter((f) => matchFilter(f.path));
+    const mergedTree = buildTree(visibleFiles.map((f) => ({ path: f.path, status: f.status })));
     const allStaged = mergedFiles.length > 0 && mergedFiles.every((f) => f.state === "staged");
     const noneStaged = mergedFiles.every((f) => f.state === "unstaged");
+    const visibleAmendOnly = amendOnly.filter((f) => matchFilter(f.path));
+    const filterHidesAll = !!filterNeedle && mergedFiles.length + amendOnly.length > 0 && visibleFiles.length + visibleAmendOnly.length === 0;
     const stageOne = (paths) => handle(() => window.gitAPI.stage(paths));
     const unstageOne = (paths) => handle(() => window.gitAPI.unstage(paths));
     const discardOne = async (path) => {
@@ -65085,7 +65402,42 @@ ${line.date}`
         title: allStaged ? t2("panel.unstageAll") : t2("panel.stageAll"),
         onChange: toggleAllStaged
       }
-    ), /* @__PURE__ */ import_react9.default.createElement("span", { className: "stx-count" }, totalChanged, " ", totalChanged === 1 ? t2("panel.fileChange") : t2("panel.fileChanges")), /* @__PURE__ */ import_react9.default.createElement("div", { className: "stx-spring" }), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-icon-btn stx-tool", title: t2("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react9.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-icon-btn stx-tool ${!treeMode ? "active" : ""}`, title: t2("panel.view.path"), onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoPathView, null)), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-icon-btn stx-tool ${treeMode ? "active" : ""}`, title: t2("panel.view.tree"), onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoTreeView, null))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list stx-list" }, mergedFiles.length === 0 && amendOnly.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noChanges")) : treeMode ? mergedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(CheckTreeRow, { key: node.fullPath, node, depth: 0, ctx: stageCtx })) : mergedFiles.map((f) => {
+    ), /* @__PURE__ */ import_react9.default.createElement("span", { className: "stx-count" }, totalChanged, " ", totalChanged === 1 ? t2("panel.fileChange") : t2("panel.fileChanges")), /* @__PURE__ */ import_react9.default.createElement("div", { className: "stx-spring" }), /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: `st2-icon-btn stx-tool ${filterOpen || fileFilter ? "active" : ""}`,
+        title: t2("panel.filter"),
+        onClick: () => toggleFilter()
+      },
+      /* @__PURE__ */ import_react9.default.createElement(IcoSearch, null)
+    ), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-icon-btn stx-tool", title: t2("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react9.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-icon-btn stx-tool ${!treeMode ? "active" : ""}`, title: t2("panel.view.path"), onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoPathView, null)), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-icon-btn stx-tool ${treeMode ? "active" : ""}`, title: t2("panel.view.tree"), onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoTreeView, null))), filterOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-filter" }, /* @__PURE__ */ import_react9.default.createElement(
+      "input",
+      {
+        ref: filterRef,
+        type: "text",
+        className: "st-filter-input",
+        placeholder: t2("panel.filter.placeholder"),
+        value: fileFilter,
+        onChange: (e) => setFileFilter(e.target.value),
+        onKeyDown: (e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            closeFilter();
+          }
+        }
+      }
+    ), fileFilter && /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: "st-filter-clear",
+        title: t2("panel.filter.clear"),
+        onClick: () => {
+          setFileFilter("");
+          filterRef.current?.focus();
+        }
+      },
+      "\xD7"
+    )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list stx-list" }, filterHidesAll ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : visibleFiles.length === 0 && visibleAmendOnly.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noChanges")) : treeMode ? mergedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(CheckTreeRow, { key: node.fullPath, node, depth: 0, ctx: stageCtx })) : visibleFiles.map((f) => {
       const staged = f.state === "staged";
       const isSelected = selectedDiff?.path === f.path;
       return /* @__PURE__ */ import_react9.default.createElement(
@@ -65116,7 +65468,42 @@ ${line.date}`
           discardOne(f.path);
         } }, "\u21BA")
       );
-    }), amendOnly.map((f) => /* @__PURE__ */ import_react9.default.createElement("div", { key: f.path, className: "stx-row st-amend-file", title: t2("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "stx-check-spacer" }), /* @__PURE__ */ import_react9.default.createElement(StatusBadge, { status: f.status }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-amend-tag" }, "amend"))))), !embedded && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t2("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react9.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoPathView, null), " ", t2("panel.view.path")), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoTreeView, null), " ", t2("panel.view.tree")))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-section-title" }, t2("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react9.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t2("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noChanges")) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(
+    }), visibleAmendOnly.map((f) => /* @__PURE__ */ import_react9.default.createElement("div", { key: f.path, className: "stx-row st-amend-file", title: t2("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "stx-check-spacer" }), /* @__PURE__ */ import_react9.default.createElement(StatusBadge, { status: f.status }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-amend-tag" }, "amend"))))), !embedded && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t2("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react9.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: `st2-icon-btn st2-sort ${filterOpen || fileFilter ? "active" : ""}`,
+        title: t2("panel.filter"),
+        onClick: () => toggleFilter()
+      },
+      /* @__PURE__ */ import_react9.default.createElement(IcoSearch, null)
+    ), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoPathView, null), " ", t2("panel.view.path")), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoTreeView, null), " ", t2("panel.view.tree")))), filterOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-filter" }, /* @__PURE__ */ import_react9.default.createElement(
+      "input",
+      {
+        ref: filterRef,
+        type: "text",
+        className: "st-filter-input",
+        placeholder: t2("panel.filter.placeholder"),
+        value: fileFilter,
+        onChange: (e) => setFileFilter(e.target.value),
+        onKeyDown: (e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            closeFilter();
+          }
+        }
+      }
+    ), fileFilter && /* @__PURE__ */ import_react9.default.createElement(
+      "button",
+      {
+        className: "st-filter-clear",
+        title: t2("panel.filter.clear"),
+        onClick: () => {
+          setFileFilter("");
+          filterRef.current?.focus();
+        }
+      },
+      "\xD7"
+    )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-section-title" }, t2("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react9.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t2("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noChanges")) : sortedUnstaged.length + sortedUntracked.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -65171,7 +65558,7 @@ ${line.date}`
           return;
         handle(() => window.gitAPI.discardFile(f));
       } }, "\u{1F5D1}"));
-    })))), /* @__PURE__ */ import_react9.default.createElement("div", { className: `st2-section ${stagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-section-toggle", onClick: () => setStagedOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement(IcoChevron, { open: stagedOpen }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-section-title" }, t2("panel.staged"), " (", stagedCount, ")")), /* @__PURE__ */ import_react9.default.createElement("div", { style: { flex: 1 } }), changes.staged.length > 0 && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-link st2-danger-link", onClick: () => handle(() => window.gitAPI.unstage(changes.staged.map((f) => f.path))) }, t2("panel.unstageAll"))), stagedOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list" }, stagedCount === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noStaged")) : treeMode ? stagedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(
+    })))), /* @__PURE__ */ import_react9.default.createElement("div", { className: `st2-section ${stagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-section-toggle", onClick: () => setStagedOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement(IcoChevron, { open: stagedOpen }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-section-title" }, t2("panel.staged"), " (", stagedCount, ")")), /* @__PURE__ */ import_react9.default.createElement("div", { style: { flex: 1 } }), changes.staged.length > 0 && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-link st2-danger-link", onClick: () => handle(() => window.gitAPI.unstage(changes.staged.map((f) => f.path))) }, t2("panel.unstageAll"))), stagedOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list" }, stagedCount === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noStaged")) : sortedStaged.length + visibleAmendOnly.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : treeMode ? stagedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -65204,7 +65591,7 @@ ${line.date}`
           handle(() => window.gitAPI.unstage([f.path]));
         } }, "\u2212")
       );
-    }), amendOnly.map((f) => {
+    }), visibleAmendOnly.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
       return /* @__PURE__ */ import_react9.default.createElement("div", { key: f.path, className: "st-file-row st-amend-file", title: t2("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-amend-tag" }, "amend"));
     })))))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-resize-grip" })), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-commit", style: compactRow ? void 0 : { height: effFormHeight } }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react9.default.createElement(IcoCommit, null), " ", t2("panel.tab.commit")), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-tab-icon", title: t2("panel.tab.stash"), onClick: async () => {
@@ -66615,6 +67002,9 @@ ${lineStrings.join("\n")}
   }
   function CenterFileDiff({ target, onClose, onStaged, onChangeArea }) {
     const { t: t2 } = useLang();
+    const { get } = useSettings();
+    const externalDiffTool = get("externalDiffTool", "");
+    const [externalDiffBusy, setExternalDiffBusy] = (0, import_react13.useState)(false);
     const [hunks, setHunks] = (0, import_react13.useState)([]);
     const [loading, setLoading] = (0, import_react13.useState)(true);
     const [showFullFile, setShowFullFile] = (0, import_react13.useState)(false);
@@ -66716,6 +67106,23 @@ ${lineStrings.join("\n")}
       setHunks(all.flatMap((f) => f.hunks));
       setSelectedLines(/* @__PURE__ */ new Set());
     }, [selectedLines, hunks, filePath, isStaged, onStaged, wholeFile]);
+    const openExternalDiff = (0, import_react13.useCallback)(async () => {
+      setExternalDiffBusy(true);
+      try {
+        const [leftRes, rightRes] = target.type === "commit" ? await Promise.all([
+          window.gitAPI.getFileAtCommit(`${target.commitHash}^`, filePath),
+          window.gitAPI.getFileAtCommit(target.commitHash, filePath)
+        ]) : await Promise.all([
+          window.gitAPI.getFileAtCommit("HEAD", filePath),
+          window.gitAPI.getFileContent(filePath)
+        ]);
+        const r = await window.gitAPI.openExternalDiff(leftRes.content ?? "", rightRes.content ?? "", filePath);
+        if (!r.success)
+          console.error("[external diff]", r.error);
+      } finally {
+        setExternalDiffBusy(false);
+      }
+    }, [target, filePath]);
     const areaLabel = target.type === "working" ? target.area === "staged" ? t2("cfd.staged") : t2("cfd.unstaged") : target.commitHash.slice(0, 7);
     const badgeCls = target.type === "working" ? target.area === "staged" ? "cfd-staged" : "cfd-unstaged" : "cfd-commit";
     const actionLabel = isStaged ? t2("cfd.unstage") : t2("cfd.stage");
@@ -66735,7 +67142,7 @@ ${lineStrings.join("\n")}
         title: showFullFile ? t2("cfd.showChangesOnly") : t2("cfd.showFullFile")
       },
       showFullFile ? t2("cfd.fileBtn") : "\u25C7 Diff"
-    )), applyError && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-error" }, applyError), /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-body" }, showFullFile ? /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, fullLoading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !fullLoading && fullContent && /* @__PURE__ */ import_react13.default.createElement("table", { className: "cfd-full-table" }, /* @__PURE__ */ import_react13.default.createElement("tbody", null, fullContent.split("\n").map((line, i) => /* @__PURE__ */ import_react13.default.createElement("tr", { key: i, className: "cfd-full-line" }, /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-full-ln" }, i + 1), /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-full-lc" }, /* @__PURE__ */ import_react13.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line, lang) } })))))), !fullLoading && !fullContent && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, "Erreur : impossible de charger le fichier")) : /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, loading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !loading && hunks.length === 0 && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("compare.noDiff")), !loading && hunks.map((hunk, hi) => {
+    ), externalDiffTool && /* @__PURE__ */ import_react13.default.createElement("button", { className: "cfd-toggle", disabled: externalDiffBusy, onClick: openExternalDiff, title: t2("cfd.externalDiffTitle") }, "\u2197")), applyError && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-error" }, applyError), /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-body" }, showFullFile ? /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, fullLoading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !fullLoading && fullContent && /* @__PURE__ */ import_react13.default.createElement("table", { className: "cfd-full-table" }, /* @__PURE__ */ import_react13.default.createElement("tbody", null, fullContent.split("\n").map((line, i) => /* @__PURE__ */ import_react13.default.createElement("tr", { key: i, className: "cfd-full-line" }, /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-full-ln" }, i + 1), /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-full-lc" }, /* @__PURE__ */ import_react13.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line, lang) } })))))), !fullLoading && !fullContent && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, "Erreur : impossible de charger le fichier")) : /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, loading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !loading && hunks.length === 0 && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("compare.noDiff")), !loading && hunks.map((hunk, hi) => {
       const changeableKeys = hunk.lines.filter((l) => l.type !== "context").map(lineKey);
       const allHunkSelected = changeableKeys.length > 0 && changeableKeys.every((k) => selectedLines.has(k));
       return /* @__PURE__ */ import_react13.default.createElement("div", { key: hi, className: "cfd-hunk" }, /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-hunk-header" }, /* @__PURE__ */ import_react13.default.createElement("span", null, hunk.header), isWorking && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-hunk-actions" }, /* @__PURE__ */ import_react13.default.createElement(
@@ -67265,10 +67672,14 @@ ${lineStrings.join("\n")}
   }
   function ConflictResolver({ file, initialProposal, onFinish, onAbort, showToast }) {
     const { t: t2 } = useLang();
+    const { get } = useSettings();
+    const externalMergeTool = get("externalMergeTool", "");
     const [chunks, setChunks] = (0, import_react17.useState)([]);
     const [selections, setSelections] = (0, import_react17.useState)({});
     const [manualOutput, setManualOutput] = (0, import_react17.useState)(null);
     const [loading, setLoading] = (0, import_react17.useState)(true);
+    const [externalMergePath, setExternalMergePath] = (0, import_react17.useState)(null);
+    const [externalMergeBusy, setExternalMergeBusy] = (0, import_react17.useState)(false);
     const [aiInstruction, setAiInstruction] = (0, import_react17.useState)("");
     const [aiBusy, setAiBusy] = (0, import_react17.useState)(false);
     const [aiExplanation, setAiExplanation] = (0, import_react17.useState)(null);
@@ -67296,6 +67707,36 @@ ${lineStrings.join("\n")}
         showToast(e?.message ?? t2("toast.aiError"), "err");
       } finally {
         setAiBusy(false);
+      }
+    };
+    const openExternalMergeTool = async () => {
+      setExternalMergeBusy(true);
+      try {
+        const r = await window.gitAPI.openExternalMerge(file);
+        if (!r.success) {
+          showToast(r.error ?? t2("cr.editorNotFound"), "err");
+          return;
+        }
+        setExternalMergePath(r.mergedPath);
+        showToast(t2("cr.externalMergeOpened"));
+      } finally {
+        setExternalMergeBusy(false);
+      }
+    };
+    const loadExternalMergeResult = async () => {
+      if (!externalMergePath)
+        return;
+      setExternalMergeBusy(true);
+      try {
+        const r = await window.gitAPI.readTempFile(externalMergePath);
+        if (r.error) {
+          showToast(r.error, "err");
+          return;
+        }
+        setManualOutput(r.content ?? "");
+        showToast(t2("cr.externalMergeLoaded"));
+      } finally {
+        setExternalMergeBusy(false);
       }
     };
     const oursRef = import_react17.default.useRef(null);
@@ -67638,7 +68079,7 @@ ${lineStrings.join("\n")}
       const r = await window.gitAPI.openInEditor(file);
       if (!r.success)
         showToast(t2("toast.err", r.error ?? t2("cr.editorNotFound")), "err");
-    }, title: t2("cr.openExternalTitle") }, t2("cr.externalEditor")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-abort", onClick: onAbort }, t2("cr.close")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-save", onClick: handleSave }, t2("cr.saveResolve")))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-ai-bar" }, /* @__PURE__ */ import_react17.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor", className: "mt-ai-icon" }, /* @__PURE__ */ import_react17.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })), /* @__PURE__ */ import_react17.default.createElement(
+    }, title: t2("cr.openExternalTitle") }, t2("cr.externalEditor")), externalMergeTool && (externalMergePath ? /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn", disabled: externalMergeBusy, onClick: loadExternalMergeResult, title: t2("cr.externalMergeLoadTitle") }, t2("cr.externalMergeLoad")) : /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn", disabled: externalMergeBusy, onClick: openExternalMergeTool, title: t2("cr.externalMergeOpenTitle") }, t2("cr.externalMergeOpen"))), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-abort", onClick: onAbort }, t2("cr.close")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-save", onClick: handleSave }, t2("cr.saveResolve")))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-ai-bar" }, /* @__PURE__ */ import_react17.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor", className: "mt-ai-icon" }, /* @__PURE__ */ import_react17.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })), /* @__PURE__ */ import_react17.default.createElement(
       "input",
       {
         className: "mt-ai-input",
