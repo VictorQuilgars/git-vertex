@@ -1902,12 +1902,19 @@ ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
   const { execFile } = await import('child_process')
   const { promisify } = await import('util')
   const exec = promisify(execFile)
+  const env = { ...process.env, LC_ALL: 'C' }
   const repos = await Promise.all(repoScanCache.paths.map(async p => {
-    let changed = 0, branch = ''
+    let changed = 0, added = 0, deleted = 0, branch = ''
     try {
-      const st = await exec('git', ['-C', p, 'status', '--porcelain'], { env: { ...process.env, LC_ALL: 'C' } })
+      const st = await exec('git', ['-C', p, 'status', '--porcelain'], { env })
       changed = st.stdout.split('\n').filter(Boolean).length
     } catch { return null }   // not a real repo anymore — drop it
+    // Line-level breakdown (tracked changes vs HEAD), GitKraken-style ✏ + −.
+    try {
+      const ss = await exec('git', ['-C', p, 'diff', 'HEAD', '--shortstat'], { env })
+      added = Number(ss.stdout.match(/(\d+) insertion/)?.[1] ?? 0)
+      deleted = Number(ss.stdout.match(/(\d+) deletion/)?.[1] ?? 0)
+    } catch { /* empty repo / no HEAD — leave 0 */ }
     try {
       const b = await exec('git', ['-C', p, 'rev-parse', '--abbrev-ref', 'HEAD'])
       branch = b.stdout.trim()
@@ -1919,7 +1926,7 @@ ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
         fullnameCache.set(p, m ? `${m[1]}/${m[2]}` : null)
       } catch { fullnameCache.set(p, null) }
     }
-    return { path: p, name: p.split('/').pop() ?? p, changed, branch, fullname: fullnameCache.get(p) ?? null }
+    return { path: p, name: p.split('/').pop() ?? p, changed, added, deleted, branch, fullname: fullnameCache.get(p) ?? null }
   }))
   return { repos: repos.filter(Boolean) }
 })
