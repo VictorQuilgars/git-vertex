@@ -194,6 +194,7 @@ const gitAPI = {
     ipcRenderer.invoke('github:get-issue', owner, repo, number),
   githubListRepos: () => ipcRenderer.invoke('github:list-repos'),
   githubClone: (cloneUrl: string, repoName: string) => ipcRenderer.invoke('github:clone', cloneUrl, repoName),
+  cloneTo: (opts: any) => ipcRenderer.invoke('git:clone-to', opts),
   // GitHub OAuth
   githubStartAuth: () => ipcRenderer.invoke('github:start-auth'),
   githubDisconnect: () => ipcRenderer.invoke('github:disconnect'),
