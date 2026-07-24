@@ -180,7 +180,7 @@ const gitAPI = {
   githubSharePatch: (hash: string) => ipcRenderer.invoke('github:share-patch', hash),
   githubListPRs: (owner: string, repo: string) => ipcRenderer.invoke('github:list-prs', owner, repo),
   githubListIssues: (owner: string, repo: string) => ipcRenderer.invoke('github:list-issues', owner, repo),
-  githubSearchIssues: (q: string) => ipcRenderer.invoke('github:search-issues', q),
+  githubSearchIssues: (q: string, force?: boolean) => ipcRenderer.invoke('github:search-issues', q, force),
   scanLocalRepos: (force?: boolean) => ipcRenderer.invoke('git:scan-local-repos', force),
   githubGetIssue: (owner: string, repo: string, number: number) =>
     ipcRenderer.invoke('github:get-issue', owner, repo, number),

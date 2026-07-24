@@ -1927,17 +1927,29 @@ ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
 // User-centric Launchpad feed: one GitHub search across ALL of the user's
 // repos (not just the recent/local ones), GitKraken-style. `q` is a GitHub
 // issue-search query, e.g. "is:open is:pr author:@me".
-ipcMain.handle('github:search-issues', async (_e, q: string) => {
+// The search API is capped at 30 req/min, and the Launchpad remounts on every
+// tab switch, so results are cached (20s TTL, force to bypass) to avoid
+// burning through the limit and silently showing an empty list.
+const searchCache = new Map<string, { ts: number; data: any }>()
+ipcMain.handle('github:search-issues', async (_e, q: string, force?: boolean) => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }
+  const hit = searchCache.get(q)
+  if (!force && hit && Date.now() - hit.ts < 20_000) return hit.data
   try {
     const res = await fetch(
       `https://api.github.com/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
       { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
     )
+    if (res.status === 403 || res.status === 429) {
+      // Secondary/primary rate limit — tell the renderer how long to wait.
+      const reset = Number(res.headers.get('x-ratelimit-reset')) * 1000
+      const secs = reset ? Math.max(1, Math.ceil((reset - Date.now()) / 1000)) : 60
+      return { error: 'rate_limited', retryIn: secs }
+    }
     if (!res.ok) return { error: `HTTP ${res.status}` }
     const data = await res.json() as any
-    return {
+    const result = {
       total: data.total_count ?? 0,
       items: (data.items ?? []).map((x: any) => {
         const repo = (x.repository_url ?? '').split('/').slice(-2).join('/')
@@ -1958,6 +1970,8 @@ ipcMain.handle('github:search-issues', async (_e, q: string) => {
         }
       }),
     }
+    searchCache.set(q, { ts: Date.now(), data: result })
+    return result
   } catch (e: any) { return { error: e.message } }
 })
 

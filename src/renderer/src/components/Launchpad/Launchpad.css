@@ -97,6 +97,11 @@
 .lp-empty { padding: 64px 28px; max-width: 560px; }
 .lp-empty-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 .lp-empty-hint { font-size: 14px; color: #8b949e; line-height: 1.5; }
+.lp-retry {
+  margin-top: 14px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9;
+  cursor: pointer; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+}
+.lp-retry:hover { background: #30363d; color: #fff; }
 
 /* Table */
 .lp-table { width: 100%; border-collapse: collapse; }
