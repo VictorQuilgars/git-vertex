@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
-import { join } from 'path'
+import { join, dirname } from 'path'
+import { existsSync, readdirSync } from 'fs'
 import { createHash } from 'crypto'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
@@ -7,7 +8,7 @@ import simpleGit from 'simple-git'
 
 import { GitService } from './git-service'
 import { RELEASE_NOTES } from './release-notes'
-import { getRecentRepos, addRecentRepo, removeRecentRepo } from './recent-repos'
+import { getRecentRepos, addRecentRepo, removeRecentRepo, getWorkspaces, setRepoWorkspace } from './recent-repos'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 import { splashHtml } from './splash'
 import iconPng from '../../resources/icon.png?asset'
@@ -361,6 +362,11 @@ async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; name?: 
 ipcMain.handle('app:get-recent-repos', () => getRecentRepos())
 
 ipcMain.handle('app:remove-recent-repo', (_event, path: string) => removeRecentRepo(path))
+
+ipcMain.handle('app:get-workspaces', () => getWorkspaces())
+
+ipcMain.handle('app:set-repo-workspace', (_event, path: string, workspace: string) =>
+  setRepoWorkspace(path, workspace))
 
 ipcMain.handle('git:open-repo', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -1759,6 +1765,20 @@ ipcMain.handle('github:detect-repo', async () => {
   } catch { return { owner: null, repo: null } }
 })
 
+// Same GitHub-remote detection, but for an arbitrary local path (cross-repo
+// Launchpad: recent repos other than the currently-open one).
+ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
+  try {
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const exec = promisify(execFile)
+    const r = await exec('git', ['-C', repoPath, 'remote', 'get-url', 'origin'])
+    const match = r.stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
+    if (!match) return { owner: null, repo: null }
+    return { owner: match[1], repo: match[2] }
+  } catch { return { owner: null, repo: null } }
+})
+
 ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }
@@ -1788,6 +1808,89 @@ ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
   } catch (e: any) { return { error: e.message } }
 })
 
+// Cloud Patches, the zero-server way: the commit's patch goes into a SECRET
+// gist under the user's own account and the shareable URL comes back.
+// Secret gists are unlisted (anyone with the link can read) — good enough
+// for "feedback before the PR", and revocable by deleting the gist.
+ipcMain.handle('github:share-patch', async (_e, hash: string) => {
+  if (!gitService) return { error: 'No repo open' }
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  const patchRes = await gitService.createPatch(hash)
+  if ((patchRes as any).error) return { error: (patchRes as any).error }
+  try {
+    const short = hash.slice(0, 7)
+    let subject = short
+    try {
+      subject = (await (gitService as any).git.raw(['log', '-1', '--pretty=format:%s', hash])).trim() || short
+    } catch { /* subject is cosmetic */ }
+    const res = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        description: `git-vertex patch — ${short}: ${subject}`,
+        public: false,
+        files: { [`${short}.patch`]: { content: patchRes.patch } },
+      }),
+    })
+    // 404 on the gists endpoint almost always means the token lacks the `gist`
+    // scope (GitHub hides it rather than 403) — tell the user to reconnect.
+    if (res.status === 404) return { error: 'gist_scope' }
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any
+    return { url: data.html_url }
+  } catch (e: any) { return { error: e.message } }
+})
+
+// Launchpad "Mark as closed": close an issue or PR. GitHub's issues endpoint
+// closes both. Invalidates the search cache so the next refresh drops it.
+ipcMain.handle('github:close-issue', async (_e, owner: string, repo: string, number: number) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${number}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({ state: 'closed' }),
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    searchCache.clear()
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+})
+
+// Launchpad WIP "Create cloud patch": the working-tree diff of a local repo
+// (uncommitted, tracked changes vs HEAD) goes to a secret gist; the link comes
+// back. Zero-server, revocable by deleting the gist.
+ipcMain.handle('github:share-wip-patch', async (_e, repoPath: string) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const exec = promisify(execFile)
+    const diff = await exec('git', ['-C', repoPath, 'diff', 'HEAD'], { maxBuffer: 20 * 1024 * 1024 })
+    const patch = diff.stdout
+    if (!patch.trim()) return { error: 'no_changes' }
+    const name = repoPath.split('/').pop() || 'wip'
+    const res = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        description: `git-vertex WIP patch — ${name}`,
+        public: false,
+        files: { [`${name}-wip.patch`]: { content: patch } },
+      }),
+    })
+    // 404 on the gists endpoint almost always means the token lacks the `gist`
+    // scope (GitHub hides it rather than 403) — tell the user to reconnect.
+    if (res.status === 404) return { error: 'gist_scope' }
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any
+    return { url: data.html_url }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => {
   const token = readSettings().githubToken
   if (!token) return { error: 'not_authenticated' }
@@ -1812,6 +1915,122 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
         url: issue.html_url,
       }))
     }
+  } catch (e: any) { return { error: e.message } }
+})
+
+// ── Local repo scan (Launchpad WIPS + "View Repo" mapping) ──────────
+// Discovering which local dirs are git repos (has a .git) is the slow part, so
+// it's cached (60s TTL, or force). Discovery seeds from the recent repos and
+// their sibling directories one level up, so newly-cloned neighbours show up on
+// the next non-cached scan. `git status` runs fresh each call for accurate WIP
+// counts; the GitHub remote name is cached per path (it rarely changes).
+let repoScanCache: { paths: string[]; ts: number } = { paths: [], ts: 0 }
+const fullnameCache = new Map<string, string | null>()
+
+function discoverLocalRepos(seeds: string[]): string[] {
+  const found = new Set<string>()
+  const parents = new Set<string>()
+  for (const p of seeds) {
+    if (existsSync(join(p, '.git'))) found.add(p)
+    parents.add(dirname(p))
+  }
+  for (const parent of parents) {
+    try {
+      for (const entry of readdirSync(parent, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+        const dir = join(parent, entry.name)
+        if (existsSync(join(dir, '.git'))) found.add(dir)
+      }
+    } catch { /* unreadable dir — skip */ }
+  }
+  return [...found]
+}
+
+ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
+  const now = Date.now()
+  if (force || now - repoScanCache.ts > 60_000) {
+    repoScanCache = { paths: discoverLocalRepos(getRecentRepos()), ts: now }
+  }
+  const { execFile } = await import('child_process')
+  const { promisify } = await import('util')
+  const exec = promisify(execFile)
+  const env = { ...process.env, LC_ALL: 'C' }
+  const repos = await Promise.all(repoScanCache.paths.map(async p => {
+    let changed = 0, added = 0, deleted = 0, branch = ''
+    try {
+      const st = await exec('git', ['-C', p, 'status', '--porcelain'], { env })
+      changed = st.stdout.split('\n').filter(Boolean).length
+    } catch { return null }   // not a real repo anymore — drop it
+    // Line-level breakdown (tracked changes vs HEAD), another tool-style ✏ + −.
+    try {
+      const ss = await exec('git', ['-C', p, 'diff', 'HEAD', '--shortstat'], { env })
+      added = Number(ss.stdout.match(/(\d+) insertion/)?.[1] ?? 0)
+      deleted = Number(ss.stdout.match(/(\d+) deletion/)?.[1] ?? 0)
+    } catch { /* empty repo / no HEAD — leave 0 */ }
+    try {
+      const b = await exec('git', ['-C', p, 'rev-parse', '--abbrev-ref', 'HEAD'])
+      branch = b.stdout.trim()
+    } catch { /* detached — leave blank */ }
+    if (!fullnameCache.has(p)) {
+      try {
+        const r = await exec('git', ['-C', p, 'remote', 'get-url', 'origin'])
+        const m = r.stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
+        fullnameCache.set(p, m ? `${m[1]}/${m[2]}` : null)
+      } catch { fullnameCache.set(p, null) }
+    }
+    return { path: p, name: p.split('/').pop() ?? p, changed, added, deleted, branch, fullname: fullnameCache.get(p) ?? null }
+  }))
+  return { repos: repos.filter(Boolean) }
+})
+
+// User-centric Launchpad feed: one GitHub search across ALL of the user's
+// repos (not just the recent/local ones), another tool-style. `q` is a GitHub
+// issue-search query, e.g. "is:open is:pr author:@me".
+// The search API is capped at 30 req/min, and the Launchpad remounts on every
+// tab switch, so results are cached (20s TTL, force to bypass) to avoid
+// burning through the limit and silently showing an empty list.
+const searchCache = new Map<string, { ts: number; data: any }>()
+ipcMain.handle('github:search-issues', async (_e, q: string, force?: boolean) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  const hit = searchCache.get(q)
+  if (!force && hit && Date.now() - hit.ts < 20_000) return hit.data
+  try {
+    const res = await fetch(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
+      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+    )
+    if (res.status === 403 || res.status === 429) {
+      // Secondary/primary rate limit — tell the renderer how long to wait.
+      const reset = Number(res.headers.get('x-ratelimit-reset')) * 1000
+      const secs = reset ? Math.max(1, Math.ceil((reset - Date.now()) / 1000)) : 60
+      return { error: 'rate_limited', retryIn: secs }
+    }
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any
+    const result = {
+      total: data.total_count ?? 0,
+      items: (data.items ?? []).map((x: any) => {
+        const repo = (x.repository_url ?? '').split('/').slice(-2).join('/')
+        return {
+          type: x.pull_request ? 'pr' : 'issue',
+          number: x.number,
+          title: x.title,
+          draft: x.draft ?? false,
+          author: x.user?.login ?? '',
+          authorAvatar: x.user?.avatar_url ?? '',
+          createdAt: x.created_at,
+          updatedAt: x.updated_at,
+          comments: x.comments ?? 0,
+          labels: (x.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+          url: x.html_url,
+          repo,                          // owner/repo
+          repoUrl: `https://github.com/${repo}`,
+        }
+      }),
+    }
+    searchCache.set(q, { ts: Date.now(), data: result })
+    return result
   } catch (e: any) { return { error: e.message } }
 })
 

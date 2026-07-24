@@ -18,6 +18,8 @@ const gitAPI = {
   setRepo: (path: string) => ipcRenderer.invoke('git:set-repo', path),
   initRepo: (dir: string) => ipcRenderer.invoke('git:init-repo', dir),
   getRecentRepos: () => ipcRenderer.invoke('app:get-recent-repos'),
+  getWorkspaces: () => ipcRenderer.invoke('app:get-workspaces'),
+  setRepoWorkspace: (path: string, workspace: string) => ipcRenderer.invoke('app:set-repo-workspace', path, workspace),
   removeRecentRepo: (path: string) => ipcRenderer.invoke('app:remove-recent-repo', path),
   // Deep links (gitgui://open — e.g. from the MCP server's open_in_git_vertex)
   getPendingDeepLink: () => ipcRenderer.invoke('app:get-pending-deeplink'),
@@ -171,11 +173,17 @@ const gitAPI = {
   openTerminal: () => ipcRenderer.invoke('app:open-terminal'),
   // GitHub
   githubDetectRepo: () => ipcRenderer.invoke('github:detect-repo'),
+  githubDetectRepoAt: (path: string) => ipcRenderer.invoke('github:detect-repo-at', path),
   githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) =>
     ipcRenderer.invoke('github:create-pr', owner, repo, title, body, head, base),
   githubListBranches: (owner: string, repo: string) => ipcRenderer.invoke('github:list-branches', owner, repo),
+  githubSharePatch: (hash: string) => ipcRenderer.invoke('github:share-patch', hash),
   githubListPRs: (owner: string, repo: string) => ipcRenderer.invoke('github:list-prs', owner, repo),
   githubListIssues: (owner: string, repo: string) => ipcRenderer.invoke('github:list-issues', owner, repo),
+  githubSearchIssues: (q: string, force?: boolean) => ipcRenderer.invoke('github:search-issues', q, force),
+  githubCloseIssue: (owner: string, repo: string, number: number) => ipcRenderer.invoke('github:close-issue', owner, repo, number),
+  githubShareWipPatch: (repoPath: string) => ipcRenderer.invoke('github:share-wip-patch', repoPath),
+  scanLocalRepos: (force?: boolean) => ipcRenderer.invoke('git:scan-local-repos', force),
   githubGetIssue: (owner: string, repo: string, number: number) =>
     ipcRenderer.invoke('github:get-issue', owner, repo, number),
   githubListRepos: () => ipcRenderer.invoke('github:list-repos'),

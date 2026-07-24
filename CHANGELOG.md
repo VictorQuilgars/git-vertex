@@ -1,5 +1,19 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.17.0
+
+### Added
+- **Full-page Launchpad** (rocket button in the tab bar): a user-centric feed of your open PRs and issues across all your GitHub repos, with **My Pull Requests / My Issues / WIPs / All / Snoozed** tabs, search, workspace and label filters, and always-visible counts.
+- **WIPs**: scans local repos for uncommitted work (files changed, +/− lines) with a **View Repo** action and **Create cloud patch** (secret gist of the working diff).
+- Row actions: View Repo (opens the local tab when cloned), Open on GitHub, Copy link, **Mark as closed**.
+- **Pin** and **snooze** items (free), persisted locally; snoozed items collect under the Snoozed tab.
+- **Multiple Home tabs** — every **+** opens a fresh Home.
+- **Named workspaces** over recent repos (managed from the Launchpad) and **Share a commit's patch** as a secret-gist link (recovered features).
+
+### Fixed
+- Patch sharing now requests the GitHub **gist** scope (reconnect to grant it); clearer error when the scope is missing.
+- The Launchpad no longer silently shows 0 items on a GitHub search rate-limit — it surfaces the limit with a retry, and caches results to avoid hitting it.
+
 ## 1.16.2
 
 ### Changed

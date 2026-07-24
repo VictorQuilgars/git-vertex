@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './GitHubPanel.css'
 import { useLang } from '../../i18n/LanguageContext'
 
@@ -15,6 +15,8 @@ interface PR {
   url: string
   headRef: string
   baseRef: string
+  // Set in cross-repo mode: which repository this item belongs to
+  repoLabel?: string
 }
 
 interface Issue {
@@ -25,6 +27,7 @@ interface Issue {
   comments: number
   labels: Label[]
   url: string
+  repoLabel?: string
 }
 
 interface Props {
@@ -70,6 +73,7 @@ function PRItem({ pr, lang }: { pr: PR; lang: string }) {
   return (
     <div className="ghp-item" onClick={() => window.gitAPI.openExternal(pr.url)} title={t('gh.panel.openIn')}>
       <div className="ghp-item-top">
+        {pr.repoLabel && <span className="ghp-repo-badge">{pr.repoLabel}</span>}
         <span className="ghp-number">#{pr.number}</span>
         {pr.draft && <span className="ghp-badge ghp-draft">{t('gh.panel.draft')}</span>}
         <span className="ghp-title">{pr.title}</span>
@@ -110,6 +114,7 @@ function IssueItem({ issue, lang }: { issue: Issue; lang: string }) {
   return (
     <div className="ghp-item" onClick={() => window.gitAPI.openExternal(issue.url)} title={t('gh.panel.openIn')}>
       <div className="ghp-item-top">
+        {issue.repoLabel && <span className="ghp-repo-badge">{issue.repoLabel}</span>}
         <span className="ghp-number">#{issue.number}</span>
         <span className="ghp-title">{issue.title}</span>
       </div>
@@ -153,6 +158,7 @@ export default function GitHubPanel({ repoPath }: Props) {
 
   useEffect(() => {
     if (!repoPath) return
+    setNoRepo(false)
     window.gitAPI.githubDetectRepo().then((r: any) => {
       if (!r.owner) { setNoRepo(true); return }
       setOwner(r.owner)

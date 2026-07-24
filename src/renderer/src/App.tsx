@@ -18,6 +18,7 @@ import PushModal from './components/PushModal/PushModal'
 import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
+import Launchpad from './components/Launchpad/Launchpad'
 import PRModal from './components/PRModal/PRModal'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
@@ -220,6 +221,15 @@ type DialogState =
   | { kind: 'prompt';  message: string; defaultValue?: string; multiline?: boolean; resolve: (v: string | null) => void }
   | { kind: 'confirm'; message: string; danger?: boolean;      resolve: (v: boolean) => void }
 
+// ── Tabs ───────────────────────────────────────────────────────
+// Tabs are heterogeneous: the classic repo tab, the "home" welcome screen
+// (multiple allowed — every "+" opens a fresh one) and the full-page
+// Launchpad (opened by the 🚀 button). `path`/`name` are only set on repo tabs.
+type TabKind = 'home' | 'repo' | 'launchpad'
+interface AppTab { id: string; kind: TabKind; path?: string; name?: string }
+let tabSeq = 0
+const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
+
 export default function App() {
   // ── Dialog state ───────────────────────────────────────────
   const [dlg, setDlg] = useState<DialogState | null>(null)
@@ -261,14 +271,16 @@ export default function App() {
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
   const [comparePair, setComparePair] = useState<{ from: string; to: string } | null>(null)
   const [gitflowOpen, setGitflowOpen] = useState(false)
-  // ── Multi-repo tabs ──
-  const [tabs, setTabs] = useState<{ id: string; path: string; name: string }[]>([])
-  const [activeTabId, setActiveTabId] = useState<string | null>(null)
+  // ── Tabs (home / repo / launchpad) ──
+  const [tabs, setTabs] = useState<AppTab[]>(() => [{ id: 'home-initial', kind: 'home' }])
+  const [activeTabId, setActiveTabId] = useState<string | null>('home-initial')
   const [tabMenu, setTabMenu] = useState<{ x: number; y: number; id: string } | null>(null)
   const selectedByTab = useRef<Map<string, CommitNode | null>>(new Map())
   const [loading, setLoading] = useState<boolean>(false)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
   const [repoSearch, setRepoSearch] = useState('')   // welcome-screen recents filter
+  // Named workspaces over the recent repos: { repoPath: workspaceName }
+  const [workspaces, setWorkspaces] = useState<Record<string, string>>({})
   const [stashes, setStashes] = useState<StashEntry[]>([])
   const [tags, setTags] = useState<TagEntry[]>([])
   const [sidebarW, setSidebarW] = useState<number>(230)
@@ -470,6 +482,7 @@ export default function App() {
   // ── Load recent repos on mount ─────────────────────────────
   useEffect(() => {
     window.gitAPI.getRecentRepos().then(r => setRecentRepos(r ?? []))
+    ;(window.gitAPI as any).getWorkspaces?.().then((w: Record<string, string>) => setWorkspaces(w ?? {})).catch(() => {})
   }, [])
 
   // ── "What's new" after an update ───────────────────────────
@@ -618,16 +631,22 @@ export default function App() {
         // Paths are NFC-normalized in the main process, but a tab registered
         // before that (or from a differently-normalized source) must still
         // match rather than open a second tab on the same repo.
-        const existing = prev.find(tb => tb.path.normalize('NFC') === res.path!.normalize('NFC'))
+        const existing = prev.find(tb => tb.kind === 'repo' && tb.path!.normalize('NFC') === res.path!.normalize('NFC'))
         if (existing) { setActiveTabId(existing.id); return prev }
-        const id = `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+        // Opening a repo from a home tab converts that tab in place (another tool's
+        // "New Tab" becomes the repo) rather than leaving an empty home behind.
+        const active = prev.find(tb => tb.id === activeTabId)
+        if (active && active.kind === 'home') {
+          return prev.map(tb => tb.id === active.id ? { id: tb.id, kind: 'repo', path: res.path!, name } : tb)
+        }
+        const id = newTabId('repo')
         setActiveTabId(id)
-        return [...prev, { id, path: res.path!, name }]
+        return [...prev, { id, kind: 'repo', path: res.path!, name }]
       })
     } else if (res.error && res.error !== 'cancelled') {
       showToast(t('toast.err', res.error), 'err')
     }
-  }, [showToast, detectGithub])
+  }, [showToast, detectGithub, activeTabId])
 
   const handleOpenRepo = async () => applyRepo(await window.gitAPI.openRepo())
   const handleSetRepo = async (path: string) => applyRepo(await window.gitAPI.setRepo(path))
@@ -722,38 +741,62 @@ export default function App() {
   }, [deepLinkHash, commits])
 
   // ── Tab switching ──────────────────────────────────────────
-  // "New tab" → return to the welcome screen so the user can pick
-  // open / clone / a recent repo.
-  const goHome = useCallback(() => {
-    if (conflictResolverFile || rebaseHash) return
-    setWhatsNewActive(false)
-    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
-    setActiveTabId(null)
+  // Tear down the repo view (home & launchpad tabs have no repo).
+  const clearRepoView = useCallback(() => {
     setRepoPath(null)
     setRepoName('')
     setSelectedCommit(null)
     setCommits([])
     setGithubRepoUrl(null)
     setGithubOwnerRepo(null)
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash])
+    setActiveView('git')
+  }, [])
 
-  const switchTab = useCallback(async (tab: { id: string; path: string; name: string }) => {
-    setWhatsNewActive(false)   // clicking a repo tab leaves the what's-new view (tab stays open)
+  // "+" → a fresh home ("New Tab") every time, another tool-style.
+  const openHomeTab = useCallback(() => {
+    if (conflictResolverFile || rebaseHash) return
+    setWhatsNewActive(false)
+    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
+    const id = newTabId('home')
+    setTabs(prev => [...prev, { id, kind: 'home' }])
+    setActiveTabId(id)
+    clearRepoView()
+  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
+
+  // 🚀 → focus the Launchpad if one is open, otherwise open one.
+  const openLaunchpadTab = useCallback(() => {
+    if (conflictResolverFile || rebaseHash) return
+    setWhatsNewActive(false)
+    setSettingsOpen(false)
+    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
+    setTabs(prev => {
+      const existing = prev.find(tb => tb.kind === 'launchpad')
+      if (existing) { setActiveTabId(existing.id); return prev }
+      const id = newTabId('launchpad')
+      setActiveTabId(id)
+      return [...prev, { id, kind: 'launchpad' }]
+    })
+    clearRepoView()
+  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
+
+  const switchTab = useCallback(async (tab: AppTab) => {
+    setWhatsNewActive(false)   // clicking a tab leaves the what's-new view (tab stays open)
     if (tab.id === activeTabId) return
     if (conflictResolverFile || rebaseHash) return
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setActiveTabId(tab.id)
-    const r = await window.gitAPI.setRepo(tab.path)
+    if (tab.kind !== 'repo') { clearRepoView(); return }
+    const r = await window.gitAPI.setRepo(tab.path!)
     if (r.path) {
       setRepoPath(r.path)
-      setRepoName(r.name ?? tab.name)
+      setRepoName(r.name ?? tab.name!)
       setCommits([])
       setSelectedCommit(selectedByTab.current.get(tab.id) ?? null)
       await detectGithub()
     } else if (r.error) {
       showToast(t('toast.err', r.error), 'err')
     }
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, detectGithub, showToast])
+  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, detectGithub, showToast, clearRepoView])
 
   const closeTab = useCallback((id: string) => {
     selectedByTab.current.delete(id)
@@ -761,37 +804,52 @@ export default function App() {
       const idx = prev.findIndex(tb => tb.id === id)
       const next = prev.filter(tb => tb.id !== id)
       if (id === activeTabId) {
+        // Never leave the window tab-less: fall back to a neighbour, or seed a
+        // fresh home if this was the last tab.
         if (next.length === 0) {
-          setActiveTabId(null)
-          setRepoPath(null)
-          setRepoName('')
-          setCommits([])
-          setSelectedCommit(null)
-        } else {
-          const fallback = next[Math.max(0, idx - 1)]
-          setActiveTabId(fallback.id)
-          window.gitAPI.setRepo(fallback.path).then(r => {
+          const home: AppTab = { id: newTabId('home'), kind: 'home' }
+          setActiveTabId(home.id)
+          clearRepoView()
+          return [home]
+        }
+        const fallback = next[Math.max(0, idx - 1)]
+        setActiveTabId(fallback.id)
+        if (fallback.kind === 'repo') {
+          window.gitAPI.setRepo(fallback.path!).then(r => {
             if (r.path) {
               setRepoPath(r.path)
-              setRepoName(r.name ?? fallback.name)
+              setRepoName(r.name ?? fallback.name!)
               setCommits([])
               setSelectedCommit(selectedByTab.current.get(fallback.id) ?? null)
               detectGithub()
             }
           })
+        } else {
+          clearRepoView()
         }
       }
       return next
     })
-  }, [activeTabId, detectGithub])
+  }, [activeTabId, detectGithub, clearRepoView])
 
   const closeOtherTabs = useCallback((id: string) => {
+    const kept = tabs.find(tb => tb.id === id)
     setTabs(prev => prev.filter(tb => tb.id === id))
     for (const key of Array.from(selectedByTab.current.keys())) {
       if (key !== id) selectedByTab.current.delete(key)
     }
     setActiveTabId(id)
-  }, [])
+    // Reconcile the body if the survivor isn't the repo currently loaded.
+    if (kept && kept.kind !== 'repo') clearRepoView()
+    else if (kept && kept.kind === 'repo' && kept.path !== repoPath) {
+      window.gitAPI.setRepo(kept.path!).then(r => {
+        if (r.path) {
+          setRepoPath(r.path); setRepoName(r.name ?? kept.name!)
+          setCommits([]); setSelectedCommit(selectedByTab.current.get(kept.id) ?? null); detectGithub()
+        }
+      })
+    }
+  }, [tabs, repoPath, clearRepoView, detectGithub])
 
   // ── Git operations ─────────────────────────────────────────
   const handleUndo = async () => {
@@ -1201,6 +1259,17 @@ export default function App() {
     showToast(t('toast.patchCopied'))
   }
 
+  // Cloud Patches without a server: the patch goes to a secret gist and the
+  // shareable link lands in the clipboard.
+  const handleSharePatch = async (hash: string) => {
+    const res = await (window.gitAPI as any).githubSharePatch(hash)
+    if (res.error === 'not_authenticated') { showToast(t('toast.sharePatch.needAuth'), 'err'); return }
+    if (res.error === 'gist_scope') { showToast(t('toast.sharePatch.gistScope'), 'err'); return }
+    if (res.error) { showToast(t('toast.err', res.error), 'err'); return }
+    navigator.clipboard.writeText(res.url)
+    showToast(t('toast.sharePatch.copied'), 'ok', { label: t('toast.open'), onClick: () => (window.gitAPI as any).openExternal(res.url) })
+  }
+
   const handleCreateWorktreeAt = async (hash: string) => {
     const dir = await window.gitAPI.selectDirectory(t('worktree.selectDir'))
     if (!dir.path) return
@@ -1464,6 +1533,8 @@ export default function App() {
   }
 
   const isMac = (window as any).appInfo?.platform === 'darwin'
+  const activeTab = tabs.find(tb => tb.id === activeTabId)
+  const launchpadActive = activeTab?.kind === 'launchpad'
 
   return (
     <div className="app">
@@ -1476,6 +1547,9 @@ export default function App() {
       {(
         <div className="app-tabs">
           {isMac && <div className="app-tabs-mac-spacer" />}
+          {/* 🚀 Launchpad launcher — always reachable, another tool-style. */}
+          <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
+            title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}>🚀</button>
           {tabs.map(tab => (
             <div
               key={tab.id}
@@ -1483,12 +1557,16 @@ export default function App() {
               onClick={() => { setSettingsOpen(false); switchTab(tab) }}
               onAuxClick={e => { if (e.button === 1) { e.preventDefault(); closeTab(tab.id) } }}
               onContextMenu={e => { e.preventDefault(); setTabMenu({ x: e.clientX, y: e.clientY, id: tab.id }) }}
-              title={tab.path}
+              title={tab.kind === 'repo' ? tab.path : undefined}
             >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="app-tab-icon">
-                <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-              </svg>
-              <span className="app-tab-name">{tab.name}</span>
+              {tab.kind === 'repo' ? (
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="app-tab-icon">
+                  <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+                </svg>
+              ) : (
+                <span className="app-tab-icon app-tab-icon--tool">{tab.kind === 'launchpad' ? '🚀' : '🏠'}</span>
+              )}
+              <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : t('tabs.home')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
             </div>
@@ -1501,18 +1579,6 @@ export default function App() {
                 onClick={e => { e.stopPropagation(); setRebaseHash(null) }}>×</button>
             </div>
           )}
-          {/* Tab order = opening order. The home is a "pick a repo" screen: opening
-              a REPO from it closes it (this tab disappears once a repo is active).
-              It stays only while the home is the view, or while a non-repo view
-              (release notes) opened FROM it is up — and it renders BEFORE those,
-              since they're opened after it. */}
-          {(activeTabId === null || whatsNewActive) && (
-            <div className={`app-tab app-tab--tool ${activeTabId === null && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
-              title={t('tabs.home')} onClick={() => { setSettingsOpen(false); goHome() }}>
-              <span className="app-tab-icon app-tab-icon--tool">🏠</span>
-              <span className="app-tab-name">{t('tabs.home')}</span>
-            </div>
-          )}
           {whatsNew && (
             <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title={t('tabs.whatsNew')}
               onClick={() => { setSettingsOpen(false); setWhatsNewActive(true) }}>
@@ -1523,7 +1589,7 @@ export default function App() {
             </div>
           )}
           <button className="app-tab-add"
-            title={t('tabs.new')} onClick={() => { setSettingsOpen(false); goHome() }}>+</button>
+            title={t('tabs.new')} onClick={() => { setSettingsOpen(false); openHomeTab() }}>+</button>
 
           {/* Right cluster: update · notifications · settings · profile */}
           <div className="app-tabs-right">
@@ -1770,6 +1836,17 @@ export default function App() {
               onSuccess={loadRepoData}
               showToast={showToast}
             />
+          ) : launchpadActive ? (
+            <Launchpad
+              recentRepos={recentRepos}
+              workspaces={workspaces}
+              onSetWorkspace={async (path, name) => {
+                const updated = await (window.gitAPI as any).setRepoWorkspace(path, name)
+                setWorkspaces(updated ?? {})
+              }}
+              onOpenRepo={handleSetRepo}
+              showToast={showToast}
+            />
           ) : !repoPath ? (
             <div className="app-welcome">
               <div className="welcome-hero">
@@ -1918,6 +1995,7 @@ export default function App() {
               onPushToCommit={handlePushToCommit}
               onCreatePatch={handleCreatePatch}
               onCopyPatch={handleCopyPatch}
+              onSharePatch={handleSharePatch}
               onCreateWorktreeAt={handleCreateWorktreeAt}
               onOpenCommitOnRemote={handleOpenCommitOnRemote}
               wipCount={wipCount}

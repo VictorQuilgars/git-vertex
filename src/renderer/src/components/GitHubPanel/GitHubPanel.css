@@ -39,6 +39,23 @@
 }
 .ghp-refresh:hover { color: #e6edf3; background: #21262d; }
 
+/* Repo badge on aggregated items (kept for defensive rendering) */
+.ghp-repo-badge {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #8b949e;
+  background: #21262d;
+  border: 1px solid #30363d;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ghp-close {
   background: transparent;
   border: none;
