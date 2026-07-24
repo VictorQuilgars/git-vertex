@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './GitHubPanel.css'
 import { useLang } from '../../i18n/LanguageContext'
 
@@ -32,8 +32,6 @@ interface Issue {
 
 interface Props {
   repoPath: string | null
-  // Recent repo paths — enables the cross-repo "Tous les dépôts" scope
-  recentRepos?: string[]
 }
 
 function timeAgo(dateStr: string, lang: string, t: (k: string) => string): string {
@@ -145,12 +143,9 @@ function IssueItem({ issue, lang }: { issue: Issue; lang: string }) {
   )
 }
 
-export default function GitHubPanel({ repoPath, recentRepos = [] }: Props) {
+export default function GitHubPanel({ repoPath }: Props) {
   const { t, lang } = useLang()
   const [tab, setTab] = useState<'prs' | 'issues'>('prs')
-  // 'current' = the open repo only; 'all' = every recent repo with a GitHub
-  // remote, aggregated (cross-repo Launchpad).
-  const [scope, setScope] = useState<'current' | 'all'>('current')
   const [owner, setOwner] = useState<string | null>(null)
   const [repo, setRepo] = useState<string | null>(null)
   const [noRepo, setNoRepo] = useState(false)
@@ -171,60 +166,29 @@ export default function GitHubPanel({ repoPath, recentRepos = [] }: Props) {
     })
   }, [repoPath])
 
-  // Resolve every distinct GitHub repo behind the recent paths (+ current).
-  const resolveAllRepos = useCallback(async (): Promise<{ owner: string; repo: string }[]> => {
-    const paths = [...new Set([...(repoPath ? [repoPath] : []), ...recentRepos])]
-    const detected = await Promise.all(paths.map(p =>
-      (window.gitAPI as any).githubDetectRepoAt(p).catch(() => ({ owner: null }))
-    ))
-    const seen = new Set<string>()
-    const repos: { owner: string; repo: string }[] = []
-    for (const d of detected) {
-      if (!d?.owner) continue
-      const key = `${d.owner}/${d.repo}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      repos.push({ owner: d.owner, repo: d.repo })
-    }
-    return repos
-  }, [repoPath, recentRepos])
-
   const load = useCallback(async (o: string, r: string) => {
     setLoading(true)
     setError(null)
     try {
-      const targets = scope === 'all' ? await resolveAllRepos() : [{ owner: o, repo: r }]
-      const isPRs = tab === 'prs'
-      const results = await Promise.all(targets.map(async tgt => {
-        const res = isPRs
-          ? await (window.gitAPI as any).githubListPRs(tgt.owner, tgt.repo)
-          : await (window.gitAPI as any).githubListIssues(tgt.owner, tgt.repo)
-        return { tgt, res }
-      }))
-      if (results.some(x => x.res.error === 'not_authenticated')) { setNoAuth(true); return }
-      const firstError = results.find(x => x.res.error)
-      // Cross-repo: one failing repo (archived, no access…) must not blank
-      // the whole aggregate — only surface the error in single-repo mode.
-      if (firstError && scope === 'current') { setError(t('gh.panel.error', firstError.res.error)); return }
-      const label = (tgt: { owner: string; repo: string }) =>
-        scope === 'all' && targets.length > 1 ? tgt.repo : undefined
-      if (isPRs) {
-        const merged: PR[] = results.flatMap(x => (x.res.prs ?? []).map((p: PR) => ({ ...p, repoLabel: label(x.tgt) })))
-        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setPRs(merged)
+      if (tab === 'prs') {
+        const res = await (window.gitAPI as any).githubListPRs(o, r)
+        if (res.error === 'not_authenticated') { setNoAuth(true); return }
+        if (res.error) { setError(t('gh.panel.error', res.error)); return }
+        setPRs(res.prs ?? [])
       } else {
-        const merged: Issue[] = results.flatMap(x => (x.res.issues ?? []).map((i: Issue) => ({ ...i, repoLabel: label(x.tgt) })))
-        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setIssues(merged)
+        const res = await (window.gitAPI as any).githubListIssues(o, r)
+        if (res.error === 'not_authenticated') { setNoAuth(true); return }
+        if (res.error) { setError(t('gh.panel.error', res.error)); return }
+        setIssues(res.issues ?? [])
       }
     } finally {
       setLoading(false)
     }
-  }, [tab, scope, resolveAllRepos, t])
+  }, [tab, t])
 
   useEffect(() => {
     if (owner && repo) load(owner, repo)
-  }, [owner, repo, tab, scope, load])
+  }, [owner, repo, tab, load])
 
   return (
     <div className="ghp-panel">
@@ -233,18 +197,9 @@ export default function GitHubPanel({ repoPath, recentRepos = [] }: Props) {
           <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
         </svg>
         <span className="ghp-repo-name">
-          {scope === 'all' ? t('gh.panel.allRepos') : owner && repo ? `${owner}/${repo}` : 'GitHub'}
+          {owner && repo ? `${owner}/${repo}` : 'GitHub'}
         </span>
         <div style={{ flex: 1 }} />
-        {recentRepos.length > 0 && !noRepo && !noAuth && (
-          <button
-            className={`ghp-scope ${scope === 'all' ? 'active' : ''}`}
-            onClick={() => setScope(s => s === 'all' ? 'current' : 'all')}
-            title={t('gh.panel.scopeTooltip')}
-          >
-            {scope === 'all' ? '⊞' : '⊡'}
-          </button>
-        )}
         {owner && repo && !noAuth && (
           <button className="ghp-refresh" onClick={() => load(owner, repo)} title={t('gh.panel.refresh')}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"

@@ -25,9 +25,6 @@ interface SidebarProps {
   onClone: () => void
   onSetRepo: (path: string) => void
   onRemoveRecent: (path: string) => void
-  // Named workspaces over recent repos ({ path: name }) + assignment action
-  workspaces?: Record<string, string>
-  onAssignWorkspace?: (path: string) => void
   onCheckout: (name: string) => void
   onCreateBranch: () => void
   onDeleteBranch: (name: string) => void
@@ -428,7 +425,7 @@ function WorktreeItem({ wt, agents = [], onOpen, onRemove }: {
 // ── Main Sidebar ──────────────────────────────────────────────────
 export default function Sidebar({
   repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags,
-  onOpenRepo, onClone, onSetRepo, onRemoveRecent, workspaces = {}, onAssignWorkspace,
+  onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
@@ -613,43 +610,26 @@ export default function Sidebar({
               </svg>
               {t('sb.cloneDots')}
             </button>
-            {otherRecents.length > 0 && (() => {
-              // Group recents by workspace: named groups first (A→Z), then
-              // the ungrouped rest under the classic RECENTS label.
-              const groups = new Map<string, string[]>()
-              for (const p of otherRecents) {
-                const ws = workspaces[p] ?? ''
-                if (!groups.has(ws)) groups.set(ws, [])
-                groups.get(ws)!.push(p)
-              }
-              const order = [...[...groups.keys()].filter(k => k).sort(), ...(groups.has('') ? [''] : [])]
-              return order.map(ws => (
-                <React.Fragment key={ws || '__recents__'}>
-                  <div className="sb-dropdown-sep" />
-                  <div className={`sb-dropdown-label${ws ? ' sb-workspace-label' : ''}`}>
-                    {ws ? ws.toUpperCase() : t('sb.recents')}
+            {otherRecents.length > 0 && (
+              <>
+                <div className="sb-dropdown-sep" />
+                <div className="sb-dropdown-label">{t('sb.recents')}</div>
+                {otherRecents.map(path => (
+                  <div key={path} className="sb-dropdown-item sb-recent-item">
+                    <button className="sb-recent-path"
+                      onClick={() => { onSetRepo(path); setRepoMenuOpen(false) }} title={path}>
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
+                      </svg>
+                      <span>{path.split('/').pop()}</span>
+                      <span className="sb-recent-full">{path}</span>
+                    </button>
+                    <button className="sb-recent-remove" title={t('sb.removeRecent')}
+                      onClick={() => onRemoveRecent(path)}>×</button>
                   </div>
-                  {groups.get(ws)!.map(path => (
-                    <div key={path} className="sb-dropdown-item sb-recent-item">
-                      <button className="sb-recent-path"
-                        onClick={() => { onSetRepo(path); setRepoMenuOpen(false) }} title={path}>
-                        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-                          <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-                        </svg>
-                        <span>{path.split('/').pop()}</span>
-                        <span className="sb-recent-full">{path}</span>
-                      </button>
-                      {onAssignWorkspace && (
-                        <button className="sb-recent-remove" title={t('sb.assignWorkspace')}
-                          onClick={() => onAssignWorkspace(path)}>⬚</button>
-                      )}
-                      <button className="sb-recent-remove" title={t('sb.removeRecent')}
-                        onClick={() => onRemoveRecent(path)}>×</button>
-                    </div>
-                  ))}
-                </React.Fragment>
-              ))
-            })()}
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>
