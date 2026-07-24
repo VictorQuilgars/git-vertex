@@ -1879,19 +1879,25 @@ ipcMain.handle('github:search-issues', async (_e, q: string) => {
     if (!res.ok) return { error: `HTTP ${res.status}` }
     const data = await res.json() as any
     return {
-      items: (data.items ?? []).map((x: any) => ({
-        type: x.pull_request ? 'pr' : 'issue',
-        number: x.number,
-        title: x.title,
-        draft: x.draft ?? false,
-        author: x.user?.login ?? '',
-        createdAt: x.created_at,
-        comments: x.comments ?? 0,
-        labels: (x.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
-        url: x.html_url,
-        // repository_url is like https://api.github.com/repos/<owner>/<repo>
-        repo: (x.repository_url ?? '').split('/').slice(-2).join('/'),
-      })),
+      total: data.total_count ?? 0,
+      items: (data.items ?? []).map((x: any) => {
+        const repo = (x.repository_url ?? '').split('/').slice(-2).join('/')
+        return {
+          type: x.pull_request ? 'pr' : 'issue',
+          number: x.number,
+          title: x.title,
+          draft: x.draft ?? false,
+          author: x.user?.login ?? '',
+          authorAvatar: x.user?.avatar_url ?? '',
+          createdAt: x.created_at,
+          updatedAt: x.updated_at,
+          comments: x.comments ?? 0,
+          labels: (x.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+          url: x.html_url,
+          repo,                          // owner/repo
+          repoUrl: `https://github.com/${repo}`,
+        }
+      }),
     }
   } catch (e: any) { return { error: e.message } }
 })
