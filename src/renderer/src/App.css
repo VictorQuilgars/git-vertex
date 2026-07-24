@@ -30,7 +30,7 @@ body {
   -webkit-app-region: drag;
 }
 .app-tabs-mac-spacer { width: 72px; flex-shrink: 0; }
-.app-tab, .app-tab-close, .app-tab-add,
+.app-tab, .app-tab-close, .app-tab-add, .app-tab-launch,
 .app-tb-icon, .app-profile-chip { -webkit-app-region: no-drag; }
 
 /* Right cluster: notifications · settings · profile */
@@ -149,6 +149,22 @@ body {
 }
 .app-tab-add:hover { color: #e6edf3; background: #161b22; }
 .app-tab-add.active { color: #e6edf3; background: #161b22; }
+
+/* 🚀 Launchpad launcher — sits at the far left of the tab bar. */
+.app-tab-launch {
+  background: none;
+  border: none;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 8px;
+  align-self: center;
+  border-radius: 5px;
+  filter: grayscale(0.35);
+  opacity: 0.8;
+}
+.app-tab-launch:hover { filter: none; opacity: 1; background: #161b22; }
+.app-tab-launch.active { filter: none; opacity: 1; background: #1f6feb1a; }
 
 /* Activity bar */
 .app-activity-bar {
