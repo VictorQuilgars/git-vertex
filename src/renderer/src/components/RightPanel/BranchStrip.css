@@ -1,0 +1,72 @@
+/* Branch strip pinned above the staging file list (v1.22.0). */
+.bstrip {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+.bstrip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  min-width: 0;
+}
+.bstrip-icon { flex-shrink: 0; color: #58a6ff; }
+.bstrip-name {
+  color: #58a6ff;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.bstrip-track { display: inline-flex; gap: 4px; flex-shrink: 0; font-size: 10px; }
+.bstrip-ahead { color: #3fb950; }
+.bstrip-behind { color: #d29922; }
+.bstrip-noupstream { color: #d29922; font-size: 11px; flex-shrink: 0; }
+.bstrip-spring { flex: 1; min-width: 0; }
+.bstrip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: #8b949e;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.bstrip-btn:hover { background: #21262d; color: #c9d1d9; }
+.bstrip-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Associate-issue call to action */
+.bstrip-issue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 10px 6px;
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+  min-width: 0;
+}
+.bstrip-issue:hover { color: #c9d1d9; }
+.bstrip-issue--linked { color: #58a6ff; }
+.bstrip-issue-num { font-weight: 600; flex-shrink: 0; }
+.bstrip-issue-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #8b949e;
+  min-width: 0;
+}
+.bstrip-issue-change { margin-left: auto; padding: 0 4px; border-radius: 4px; flex-shrink: 0; }
+.bstrip-issue-change:hover { background: #30363d; color: #c9d1d9; }

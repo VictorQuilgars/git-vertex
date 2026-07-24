@@ -605,6 +605,42 @@ function VertexApp() {
 
   const showRight = !!selectedCommit || !!conflictMode
 
+  // Branch strip shown above the staging file list (v1.22.0). Everything here
+  // already existed on the toolbar or in the ⋮ menu — this only brings it into
+  // the panel, where the files are.
+  const branchStripProps = {
+    branch: currentBranch,
+    ahead: tracking.ahead,
+    behind: tracking.behind,
+    onPush: handlePush,
+    onPull: handlePull,
+    onFetch: handleFetch,
+    issue: branchMeta.issueFor(currentBranch),
+    onAssociateIssue: () => setIssueModalBranch(currentBranch),
+    onOpenIssue: async (n: number) => {
+      const d = await window.gitAPI.githubDetectRepo()
+      if (d?.owner) window.gitAPI.openExternal(`https://github.com/${d.owner}/${d.repo}/issues/${n}`)
+    },
+    menuState: {
+      soloed: soloBranch === currentBranch,
+      muted: mutedBranches.has(currentBranch),
+      favorite: branchMeta.isFavorite(currentBranch),
+    },
+    menuActions: {
+      onFetch: handleFetch,
+      onPull: handlePull,
+      onPush: handlePush,
+      onSetUpstream: () => handleSetUpstream(currentBranch),
+      onOpenOnRemote: () => handleOpenBranchOnRemote(currentBranch),
+      onAssociateIssue: () => setIssueModalBranch(currentBranch),
+      onToggleFavorite: () => branchMeta.toggleFavorite(currentBranch),
+      onToggleSolo: () => handleToggleSolo(currentBranch),
+      onToggleMute: () => handleToggleMute(currentBranch),
+      onCopyName: () => navigator.clipboard.writeText(currentBranch),
+      onRename: () => handleRenameBranch(currentBranch),
+    },
+  }
+
   return (
     <div className="app gv-app">
       <CompactToolbar
@@ -824,6 +860,7 @@ function VertexApp() {
                 onOpenResolver={handleOpenResolver}
                 onOpenFileDiff={handleOpenFileDiff}
                 onOpenStagingEditor={(f) => window.gitAPI.openStagingEditor(f)}
+                branchStrip={branchStripProps}
               />
             </div>
           </>

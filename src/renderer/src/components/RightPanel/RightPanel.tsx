@@ -6,6 +6,7 @@ import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import { linkifyIssues, IssueRepo } from '../IssueLink/IssueLink'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
 
 function detectLang(filename: string): string | undefined {
@@ -756,6 +757,21 @@ const IcoSpark = ({ size = 14 }: { size?: number }) => (<svg width={size} height
 const IcoSort = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z"/></svg>)
 const IcoPathView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z"/></svg>)
 const IcoSearch = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>)
+
+const IcoCopy = () => (<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>)
+const IcoOpenDiff = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8.75 1.75a.75.75 0 0 0 0 1.5h2.44L6.72 7.72a.75.75 0 1 0 1.06 1.06l4.47-4.47v2.44a.75.75 0 0 0 1.5 0v-4.25a.75.75 0 0 0-.75-.75H8.75ZM2.5 4.25c0-.138.112-.25.25-.25H6a.75.75 0 0 0 0-1.5H2.75A1.75 1.75 0 0 0 1 4.25v9c0 .966.784 1.75 1.75 1.75h9a1.75 1.75 0 0 0 1.75-1.75V10a.75.75 0 0 0-1.5 0v3.25a.25.25 0 0 1-.25.25h-9a.25.25 0 0 1-.25-.25v-9Z"/></svg>)
+
+// Per-file line counts (v1.22.0). Renders nothing when git reported none —
+// untracked files and binaries — so "unknown" never reads as "+0 −0".
+function DiffStat({ additions, deletions }: { additions?: number; deletions?: number }) {
+  if (additions === undefined && deletions === undefined) return null
+  return (
+    <span className="st-numstat" title={`+${additions ?? 0} / −${deletions ?? 0}`}>
+      {!!additions && <span className="st-numstat-add">+{additions}</span>}
+      {!!deletions && <span className="st-numstat-del">−{deletions}</span>}
+    </span>
+  )
+}
 const IcoTreeView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z"/></svg>)
 const IcoCommit = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg>)
 const IcoStash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z"/></svg>)
@@ -838,7 +854,7 @@ function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx
   )
 }
 
-function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded }: {
+function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded, branchStrip }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   currentBranch?: string
@@ -851,6 +867,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   commitProposal?: { message: string; files: string[] } | null
   onProposalConsumed?: () => void
   embedded?: boolean
+  branchStrip?: BranchStripProps
 }) {
   const { t } = useLang()
   const isConflict = !!conflictMode
@@ -1047,6 +1064,20 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     await load()
   }
 
+  // Stash from the staging panel itself (v1.22.0) — it previously existed only
+  // on the toolbar, i.e. nowhere near the files you are looking at.
+  const stashAll = async () => {
+    const r = await window.gitAPI.createStash()
+    if (r?.success === false) { showToast(r.error ?? t('panel.stashFromPanel'), 'err'); return }
+    showToast(t('panel.stashFromPanel'))
+    await load()
+  }
+
+  const copyFileList = async () => {
+    await navigator.clipboard.writeText(mergedFiles.map(f => f.path).join('\n'))
+    showToast(t('panel.copyFileList.done'))
+  }
+
   const sortFiles = <T extends { path: string }>(arr: T[]) =>
     [...arr].sort((a, b) => sortAsc ? a.path.localeCompare(b.path) : b.path.localeCompare(a.path))
 
@@ -1083,13 +1114,23 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 
   // ── Embedded single-list model: one row per file, checkbox = staged ──
   // A file can be in both staged and unstaged (partial staging) → 'partial'.
-  const mergedFiles: { path: string; status: string; state: StageState }[] = (() => {
-    const m = new Map<string, { path: string; status: string; state: StageState }>()
-    for (const f of changes.staged) m.set(f.path, { path: f.path, status: f.status, state: 'staged' })
+  type MergedFile = { path: string; status: string; state: StageState; additions?: number; deletions?: number }
+  const mergedFiles: MergedFile[] = (() => {
+    const m = new Map<string, MergedFile>()
+    // A partially staged file is one row here but two numstat entries, so the
+    // counts add up — the row reports everything changed against HEAD.
+    const addStats = (e: MergedFile, f: { additions?: number; deletions?: number }) => {
+      if (f.additions === undefined && f.deletions === undefined) return
+      e.additions = (e.additions ?? 0) + (f.additions ?? 0)
+      e.deletions = (e.deletions ?? 0) + (f.deletions ?? 0)
+    }
+    for (const f of changes.staged) {
+      m.set(f.path, { path: f.path, status: f.status, state: 'staged', additions: f.additions, deletions: f.deletions })
+    }
     for (const f of changes.unstaged) {
       const ex = m.get(f.path)
-      if (ex) ex.state = 'partial'
-      else m.set(f.path, { path: f.path, status: f.status, state: 'unstaged' })
+      if (ex) { ex.state = 'partial'; addStats(ex, f) }
+      else m.set(f.path, { path: f.path, status: f.status, state: 'unstaged', additions: f.additions, deletions: f.deletions })
     }
     for (const raw of changes.untracked) {
       const p = raw.replace(/\/$/, '') // git add/discard accept the slash-less form
@@ -1156,6 +1197,9 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
         </div>
       </div>
 
+      {/* ── Branch strip (v1.22.0) — above the files, in both layouts ── */}
+      {branchStrip && <BranchStrip {...branchStrip} />}
+
       {/* ── Sort + view toggle ── */}
       {/* ── Embedded (VS Code): single checkbox list ── */}
       {embedded && (
@@ -1168,7 +1212,20 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
             <span className="stx-count">
               {totalChanged} {totalChanged === 1 ? t('panel.fileChange') : t('panel.fileChanges')}
             </span>
+            {/* How many of those are actually staged — the count alone never
+                said, so "ready to commit" had to be read off the checkboxes. */}
+            {changes.staged.length > 0 && (
+              <span className="stx-staged-badge">{t('panel.staged.badge', changes.staged.length)}</span>
+            )}
             <div className="stx-spring" />
+            {/* Discard-all lived only in the topbar, which the compact layout
+                hides; stash only in the toolbar. Both belong here (v1.22.0). */}
+            <button className="st2-icon-btn stx-tool st2-danger" title={t('panel.discardAll')}
+              onClick={discardAll} disabled={totalChanged === 0}><IcoTrash /></button>
+            <button className="st2-icon-btn stx-tool" title={t('panel.stashFromPanel')}
+              onClick={stashAll} disabled={totalChanged === 0}><IcoStash /></button>
+            <button className="st2-icon-btn stx-tool" title={t('panel.copyFileList')}
+              onClick={copyFileList} disabled={mergedFiles.length === 0}><IcoCopy /></button>
             <button className={`st2-icon-btn stx-tool ${filterOpen || fileFilter ? 'active' : ''}`}
               title={t('panel.filter')} onClick={() => toggleFilter()}><IcoSearch /></button>
             <button className="st2-icon-btn stx-tool" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}><IcoSort /></button>
@@ -1205,6 +1262,9 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                           onChange={() => staged ? unstageOne([f.path]) : stageOne([f.path])} />
                         <StatusBadge status={f.status} />
                         <span className="st-path" title={f.path}>{f.path}</span>
+                        <DiffStat additions={f.additions} deletions={f.deletions} />
+                        <button className="st-action st-open-diff" title={t('panel.openDiff')}
+                          onClick={e => { e.stopPropagation(); selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' }) }}><IcoOpenDiff /></button>
                         {onOpenStagingEditor && <button className="st-action st-hunk-editor" title={t('panel.hunkEditor')} onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
                         <button className="st-action st-discard" title={t('panel.discard')} onClick={e => { e.stopPropagation(); discardOne(f.path) }}>↺</button>
                       </div>
@@ -1295,6 +1355,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                             onClick={() => selectFile({ path: f.path, area: 'unstaged' })}>
                             <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
                             <span className="st-path" title={f.path}>{f.path}</span>
+                            <DiffStat additions={f.additions} deletions={f.deletions} />
                             {onOpenStagingEditor && <button className="st-action st-hunk-editor" title="Éditeur de staging (par bloc)" onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
                             <button className="st-action st-stage" title={t('panel.stage.file', f.path)} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
                             <button className="st-action st-discard" title={t('panel.discard')} onClick={async e => {
@@ -1368,6 +1429,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                             onClick={() => selectFile({ path: f.path, area: 'staged' })}>
                             <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
                             <span className="st-path" title={f.path}>{f.path}</span>
+                            <DiffStat additions={f.additions} deletions={f.deletions} />
                             {onOpenStagingEditor && <button className="st-action st-hunk-editor" title="Éditeur de staging (par bloc)" onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
                             <button className="st-action st-unstage" title={t('panel.unstaged')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
                           </div>
@@ -1705,12 +1767,15 @@ interface RightPanelProps {
   // VS Code panel: use the compact single-list (checkbox) staging layout
   // instead of the desktop's Unstaged/Staged two-section view.
   embedded?: boolean
+  // Branch strip above the file list (v1.22.0). Omitted ⇒ no strip, so hosts
+  // that cannot supply branch actions are unaffected.
+  branchStrip?: BranchStripProps
 }
 
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
-  onRewordWithMessage, commitProposal, onCommitProposalConsumed, embedded
+  onRewordWithMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -1745,6 +1810,7 @@ export default function RightPanel({
           commitProposal={commitProposal}
           onProposalConsumed={onCommitProposalConsumed}
           embedded={embedded}
+          branchStrip={branchStrip}
         />
       ) : hasCommit ? (
         <CommitDetail

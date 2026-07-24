@@ -59731,7 +59731,7 @@
   window.appInfo = { platform: "vscode" };
 
   // src/webview/app.tsx
-  var import_react26 = __toESM(require_react());
+  var import_react27 = __toESM(require_react());
   var import_client = __toESM(require_client());
 
   // ../src/renderer/src/contexts/SettingsContext.tsx
@@ -60168,6 +60168,14 @@ Cette action est irr\xE9versible.`,
     "panel.on": "sur",
     "panel.sort": "Trier",
     "panel.filter": "Filtrer les fichiers",
+    "panel.openDiff": "Ouvrir les changements",
+    "panel.strip.publish": "Publier la branche (pas d'upstream)",
+    "panel.strip.noUpstream": "Cette branche n'a pas d'upstream",
+    "panel.strip.changeIssue": "Changer l'issue li\xE9e",
+    "panel.staged.badge": (n) => `${n} EN INDEX`,
+    "panel.stashFromPanel": "Remiser toutes les modifications",
+    "panel.copyFileList": "Copier la liste des fichiers",
+    "panel.copyFileList.done": "Liste des fichiers copi\xE9e",
     "panel.filter.placeholder": "Filtrer les fichiers\u2026",
     "panel.filter.clear": "Effacer le filtre",
     "panel.filter.noMatch": (q) => `Aucun fichier ne correspond \xE0 \xAB ${q} \xBB`,
@@ -61198,6 +61206,14 @@ This action is irreversible.`,
     "panel.on": "on",
     "panel.sort": "Sort",
     "panel.filter": "Filter files",
+    "panel.openDiff": "Open changes",
+    "panel.strip.publish": "Publish branch (no upstream)",
+    "panel.strip.noUpstream": "This branch has no upstream",
+    "panel.strip.changeIssue": "Change linked issue",
+    "panel.staged.badge": (n) => `${n} STAGED`,
+    "panel.stashFromPanel": "Stash all changes",
+    "panel.copyFileList": "Copy file list",
+    "panel.copyFileList.done": "File list copied",
     "panel.filter.placeholder": "Filter files\u2026",
     "panel.filter.clear": "Clear filter",
     "panel.filter.noMatch": (q) => `No file matches "${q}"`,
@@ -64711,11 +64727,70 @@ Commits beyond this point will be lost for that branch.`,
   }
 
   // ../src/renderer/src/components/RightPanel/RightPanel.tsx
-  var import_react9 = __toESM(require_react());
+  var import_react10 = __toESM(require_react());
 
   // ../node_modules/highlight.js/es/index.js
   var import_lib = __toESM(require_lib(), 1);
   var es_default = import_lib.default;
+
+  // ../src/renderer/src/components/RightPanel/BranchStrip.tsx
+  var import_react9 = __toESM(require_react());
+  var IcoPush = () => /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "21", x2: "12", y2: "9" }), /* @__PURE__ */ React.createElement("polyline", { points: "7 14 12 9 17 14" }), /* @__PURE__ */ React.createElement("polyline", { points: "3 3 21 3" }));
+  var IcoPull = () => /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" }), /* @__PURE__ */ React.createElement("polyline", { points: "7 10 12 15 17 10" }), /* @__PURE__ */ React.createElement("polyline", { points: "3 21 21 21" }));
+  var IcoFetch = () => /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ React.createElement("path", { d: "M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" }));
+  var IcoDots = () => /* @__PURE__ */ React.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z" }));
+  var IcoLink = () => /* @__PURE__ */ React.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M7.775 3.275a.75.75 0 0 0 1.06 1.06l1.25-1.25a2 2 0 1 1 2.83 2.83l-2.5 2.5a2 2 0 0 1-2.83 0 .75.75 0 0 0-1.06 1.06 3.5 3.5 0 0 0 4.95 0l2.5-2.5a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25Zm-4.69 9.64a2 2 0 0 1 0-2.83l2.5-2.5a2 2 0 0 1 2.83 0 .75.75 0 0 0 1.06-1.06 3.5 3.5 0 0 0-4.95 0l-2.5 2.5a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25a.75.75 0 0 0-1.06-1.06l-1.25 1.25a2 2 0 0 1-2.83 0Z" }));
+  function BranchStrip(p) {
+    const { t: t2 } = useLang();
+    const [menu, setMenu] = (0, import_react9.useState)(null);
+    const items = p.menuActions ? buildBranchMenu(
+      { name: p.branch, display: p.branch, current: true, remote: false },
+      { currentBranch: p.branch, issue: p.issue, ...p.menuState },
+      p.menuActions,
+      t2
+    ) : [];
+    return /* @__PURE__ */ React.createElement("div", { className: "bstrip" }, /* @__PURE__ */ React.createElement("div", { className: "bstrip-row" }, /* @__PURE__ */ React.createElement("svg", { className: "bstrip-icon", width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ React.createElement("span", { className: "bstrip-name", title: p.branch }, p.branch || "\u2014"), (!!p.ahead || !!p.behind) && /* @__PURE__ */ React.createElement("span", { className: "bstrip-track" }, !!p.ahead && /* @__PURE__ */ React.createElement("span", { className: "bstrip-ahead" }, "\u2191", p.ahead), !!p.behind && /* @__PURE__ */ React.createElement("span", { className: "bstrip-behind" }, "\u2193", p.behind)), p.noUpstream && /* @__PURE__ */ React.createElement("span", { className: "bstrip-noupstream", title: t2("panel.strip.noUpstream") }, "\u26A0"), /* @__PURE__ */ React.createElement("span", { className: "bstrip-spring" }), p.onPull && /* @__PURE__ */ React.createElement("button", { className: "bstrip-btn", title: t2("sb.branch.pull"), onClick: p.onPull }, /* @__PURE__ */ React.createElement(IcoPull, null)), p.onPush && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "bstrip-btn",
+        title: p.noUpstream ? t2("panel.strip.publish") : t2("sb.branch.push"),
+        onClick: p.onPush
+      },
+      /* @__PURE__ */ React.createElement(IcoPush, null)
+    ), p.onFetch && /* @__PURE__ */ React.createElement("button", { className: "bstrip-btn", title: t2("sb.branch.fetch"), onClick: p.onFetch }, /* @__PURE__ */ React.createElement(IcoFetch, null)), items.length > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "bstrip-btn",
+        title: t2("sb.branch.menu"),
+        onClick: (e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setMenu({ x: r.left, y: r.bottom + 3 });
+        }
+      },
+      /* @__PURE__ */ React.createElement(IcoDots, null)
+    )), p.onAssociateIssue && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: `bstrip-issue${p.issue ? " bstrip-issue--linked" : ""}`,
+        onClick: () => p.issue && p.onOpenIssue ? p.onOpenIssue(p.issue.number) : p.onAssociateIssue(),
+        title: p.issue ? p.issue.title || `#${p.issue.number}` : t2("sb.branch.associateIssue")
+      },
+      /* @__PURE__ */ React.createElement(IcoLink, null),
+      p.issue ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "bstrip-issue-num" }, "#", p.issue.number), p.issue.title && /* @__PURE__ */ React.createElement("span", { className: "bstrip-issue-title" }, p.issue.title)) : /* @__PURE__ */ React.createElement("span", null, t2("sb.branch.associateIssue")),
+      p.issue && /* @__PURE__ */ React.createElement(
+        "span",
+        {
+          className: "bstrip-issue-change",
+          title: t2("panel.strip.changeIssue"),
+          onClick: (e) => {
+            e.stopPropagation();
+            p.onAssociateIssue();
+          }
+        },
+        "\u22EF"
+      )
+    ), menu && /* @__PURE__ */ React.createElement(ContextMenu, { x: menu.x, y: menu.y, items, onClose: () => setMenu(null) }));
+  }
 
   // ../src/renderer/src/components/RightPanel/RightPanel.tsx
   function buildTree(files) {
@@ -64735,7 +64810,7 @@ Commits beyond this point will be lost for that branch.`,
     }
     return root.children;
   }
-  var TreePencil = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", style: { flexShrink: 0 } }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" }));
+  var TreePencil = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", style: { flexShrink: 0 } }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" }));
   function treeStats(node) {
     if (node.isFile) {
       const s = node.status ?? "M";
@@ -64748,22 +64823,22 @@ Commits beyond this point will be lost for that branch.`,
   }
   function StatusBadge({ status, className }) {
     const m = STATUS_META[status ?? "M"] ?? STATUS_META["?"];
-    return /* @__PURE__ */ import_react9.default.createElement("span", { className: `st-badge ${className ?? ""}`, style: { color: m.color } }, m.label);
+    return /* @__PURE__ */ import_react10.default.createElement("span", { className: `st-badge ${className ?? ""}`, style: { color: m.color } }, m.label);
   }
   function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect, isSelected }) {
-    const [open, setOpen] = import_react9.default.useState(true);
+    const [open, setOpen] = import_react10.default.useState(true);
     const indent = depth * 10;
     if (node.isFile) {
-      return /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement(
         "div",
         {
           className: `st-tr st-clickable ${isSelected ? "st-selected" : ""}`,
           style: { paddingLeft: indent + 4 },
           onClick: () => onSelect?.(node.fullPath)
         },
-        /* @__PURE__ */ import_react9.default.createElement(StatusBadge, { status: node.status, className: "st-tr-badge" }),
-        /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-tr-name" }, node.name),
-        actionIcon && /* @__PURE__ */ import_react9.default.createElement(
+        /* @__PURE__ */ import_react10.default.createElement(StatusBadge, { status: node.status, className: "st-tr-badge" }),
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-tr-name" }, node.name),
+        actionIcon && /* @__PURE__ */ import_react10.default.createElement(
           "button",
           {
             className: `st-action ${actionIcon === "+" ? "st-stage" : "st-unstage"}`,
@@ -64779,7 +64854,7 @@ Commits beyond this point will be lost for that branch.`,
     }
     const allPaths = (n) => n.isFile ? [n.fullPath] : n.children.flatMap(allPaths);
     const stats = !open ? treeStats(node) : null;
-    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-tr st-tr-dir", style: { paddingLeft: indent }, onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-tr-tri" }, open ? "\u25BC" : "\u25B6"), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-tr-dirname" }, node.name), stats && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-tr-stats" }, stats.mod > 0 && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(TreePencil, null), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-stat-mod" }, stats.mod)), stats.add > 0 && /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-stat-add" }, "+", stats.add), stats.del > 0 && /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-stat-del" }, "\u2212", stats.del)), actionIcon && /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-tr st-tr-dir", style: { paddingLeft: indent }, onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-tr-tri" }, open ? "\u25BC" : "\u25B6"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-tr-dirname" }, node.name), stats && /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-tr-stats" }, stats.mod > 0 && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(TreePencil, null), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-stat-mod" }, stats.mod)), stats.add > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-stat-add" }, "+", stats.add), stats.del > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-stat-del" }, "\u2212", stats.del)), actionIcon && /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: `st-action ${actionIcon === "+" ? "st-stage" : "st-unstage"}`,
@@ -64790,7 +64865,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       },
       actionIcon
-    )), open && node.children.map((c) => /* @__PURE__ */ import_react9.default.createElement(
+    )), open && node.children.map((c) => /* @__PURE__ */ import_react10.default.createElement(
       TreeFileRow,
       {
         key: c.fullPath,
@@ -64816,8 +64891,8 @@ Commits beyond this point will be lost for that branch.`,
   }
   function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }) {
     const aiLogo = aiAvatarDataUri(name, email);
-    const [src, setSrc] = (0, import_react9.useState)(aiLogo);
-    (0, import_react9.useEffect)(() => {
+    const [src, setSrc] = (0, import_react10.useState)(aiLogo);
+    (0, import_react10.useEffect)(() => {
       if (aiLogo) {
         setSrc(aiLogo);
         return;
@@ -64836,7 +64911,7 @@ Commits beyond this point will be lost for that branch.`,
     }, [email, sha, aiLogo]);
     const base = { width: size, height: size, borderRadius: radius, flexShrink: 0 };
     if (src) {
-      return /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement(
         "img",
         {
           src,
@@ -64849,7 +64924,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       );
     }
-    return /* @__PURE__ */ import_react9.default.createElement("div", { style: {
+    return /* @__PURE__ */ import_react10.default.createElement("div", { style: {
       ...base,
       background: getAvatarColor(email),
       display: "flex",
@@ -64877,19 +64952,19 @@ Commits beyond this point will be lost for that branch.`,
   };
   function FileHistoryModal({ filepath, onClose, onSelectCommit }) {
     const { t: t2 } = useLang();
-    const [history, setHistory] = (0, import_react9.useState)([]);
-    const [loading, setLoading] = (0, import_react9.useState)(true);
-    (0, import_react9.useEffect)(() => {
+    const [history, setHistory] = (0, import_react10.useState)([]);
+    const [loading, setLoading] = (0, import_react10.useState)(true);
+    (0, import_react10.useEffect)(() => {
       setLoading(true);
       window.gitAPI.getFileHistory(filepath).then((r) => {
         setHistory(r.commits ?? []);
         setLoading(false);
       });
     }, [filepath]);
-    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "fh-overlay", onClick: (e) => e.target === e.currentTarget && onClose() }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "fh-modal" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "fh-header" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "fh-title" }, t2("panel.fileHistory", filepath.split("/").pop() ?? "")), /* @__PURE__ */ import_react9.default.createElement("button", { className: "fh-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react9.default.createElement("div", { className: "fh-path" }, filepath), /* @__PURE__ */ import_react9.default.createElement("div", { className: "fh-list" }, loading && /* @__PURE__ */ import_react9.default.createElement("div", { className: "fh-empty" }, t2("panel.loading")), !loading && history.length === 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "fh-empty" }, t2("panel.noHistory")), history.map((c) => /* @__PURE__ */ import_react9.default.createElement("div", { key: c.hash, className: "fh-row", onClick: () => {
+    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "fh-overlay", onClick: (e) => e.target === e.currentTarget && onClose() }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "fh-modal" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "fh-header" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "fh-title" }, t2("panel.fileHistory", filepath.split("/").pop() ?? "")), /* @__PURE__ */ import_react10.default.createElement("button", { className: "fh-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "fh-path" }, filepath), /* @__PURE__ */ import_react10.default.createElement("div", { className: "fh-list" }, loading && /* @__PURE__ */ import_react10.default.createElement("div", { className: "fh-empty" }, t2("panel.loading")), !loading && history.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "fh-empty" }, t2("panel.noHistory")), history.map((c) => /* @__PURE__ */ import_react10.default.createElement("div", { key: c.hash, className: "fh-row", onClick: () => {
       onSelectCommit(c.hash);
       onClose();
-    } }, /* @__PURE__ */ import_react9.default.createElement("code", { className: "fh-hash" }, c.shortHash), /* @__PURE__ */ import_react9.default.createElement("div", { className: "fh-info" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "fh-msg" }, c.message), /* @__PURE__ */ import_react9.default.createElement("span", { className: "fh-meta" }, c.author, " \xB7 ", fmtDate2(c.date))))))));
+    } }, /* @__PURE__ */ import_react10.default.createElement("code", { className: "fh-hash" }, c.shortHash), /* @__PURE__ */ import_react10.default.createElement("div", { className: "fh-info" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "fh-msg" }, c.message), /* @__PURE__ */ import_react10.default.createElement("span", { className: "fh-meta" }, c.author, " \xB7 ", fmtDate2(c.date))))))));
   }
   function hashToColor(hash) {
     let n = 0;
@@ -64900,9 +64975,9 @@ Commits beyond this point will be lost for that branch.`,
   }
   function BlameView({ commitHash, filepath, onSelectCommit }) {
     const { t: t2 } = useLang();
-    const [lines, setLines] = (0, import_react9.useState)([]);
-    const [loading, setLoading] = (0, import_react9.useState)(true);
-    (0, import_react9.useEffect)(() => {
+    const [lines, setLines] = (0, import_react10.useState)([]);
+    const [loading, setLoading] = (0, import_react10.useState)(true);
+    (0, import_react10.useEffect)(() => {
       setLoading(true);
       window.gitAPI.getBlame(commitHash, filepath).then((r) => {
         setLines(r.lines ?? []);
@@ -64910,20 +64985,20 @@ Commits beyond this point will be lost for that branch.`,
       });
     }, [commitHash, filepath]);
     if (loading)
-      return /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-blame-loading" }, t2("panel.loadingBlame"));
+      return /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-blame-loading" }, t2("panel.loadingBlame"));
     if (!lines.length)
-      return /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-blame-loading" }, t2("panel.noBlame"));
-    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-blame-container" }, /* @__PURE__ */ import_react9.default.createElement("table", { className: "rp-blame-table" }, /* @__PURE__ */ import_react9.default.createElement("tbody", null, lines.map((line, i) => {
+      return /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-blame-loading" }, t2("panel.noBlame"));
+    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-blame-container" }, /* @__PURE__ */ import_react10.default.createElement("table", { className: "rp-blame-table" }, /* @__PURE__ */ import_react10.default.createElement("tbody", null, lines.map((line, i) => {
       const prevHash = lines[i - 1]?.hash;
       const isNewBlock = line.hash !== prevHash;
       const bg = hashToColor(line.hash);
-      return /* @__PURE__ */ import_react9.default.createElement("tr", { key: i, className: "rp-blame-row" }, /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement("tr", { key: i, className: "rp-blame-row" }, /* @__PURE__ */ import_react10.default.createElement(
         "td",
         {
           className: "rp-blame-meta",
           style: { background: bg, opacity: isNewBlock ? 1 : 0.6 }
         },
-        isNewBlock ? /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(
+        isNewBlock ? /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(
           "span",
           {
             className: "rp-blame-hash",
@@ -64933,8 +65008,8 @@ ${line.author}
 ${line.date}`
           },
           line.shortHash
-        ), /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-blame-author" }, line.author.split(" ")[0]), /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-blame-date" }, line.date)) : null
-      ), /* @__PURE__ */ import_react9.default.createElement("td", { className: "rp-blame-linenum" }, line.lineNum), /* @__PURE__ */ import_react9.default.createElement("td", { className: "rp-blame-content" }, /* @__PURE__ */ import_react9.default.createElement("code", null, line.content)));
+        ), /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-blame-author" }, line.author.split(" ")[0]), /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-blame-date" }, line.date)) : null
+      ), /* @__PURE__ */ import_react10.default.createElement("td", { className: "rp-blame-linenum" }, line.lineNum), /* @__PURE__ */ import_react10.default.createElement("td", { className: "rp-blame-content" }, /* @__PURE__ */ import_react10.default.createElement("code", null, line.content)));
     }))));
   }
   function formatPath(path) {
@@ -64950,24 +65025,24 @@ ${line.date}`
   var MAX_MSG_H = 400;
   function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordWithMessage, showToast }) {
     const { t: t2 } = useLang();
-    const [files, setFiles] = (0, import_react9.useState)([]);
-    const [body, setBody] = (0, import_react9.useState)("");
-    const [selectedFile, setSelectedFile] = (0, import_react9.useState)(null);
-    const [view, setView] = (0, import_react9.useState)("files");
-    const [cdTreeMode, setCdTreeMode] = (0, import_react9.useState)(() => localStorage.getItem("cd-tree-mode") === "true");
-    const [fileHistoryPath, setFileHistoryPath] = (0, import_react9.useState)(null);
-    const [viewAll, setViewAll] = (0, import_react9.useState)(false);
-    const [msgHeight, setMsgHeight] = (0, import_react9.useState)(120);
-    const [amendEditing, setAmendEditing] = (0, import_react9.useState)(false);
-    const [amendMsg, setAmendMsg] = (0, import_react9.useState)("");
-    const [amendLoading, setAmendLoading] = (0, import_react9.useState)(false);
-    const [aiMenu, setAiMenu] = (0, import_react9.useState)(null);
-    const [aiBusy, setAiBusy] = (0, import_react9.useState)(false);
-    const [aiExplanation, setAiExplanation] = (0, import_react9.useState)(null);
-    const [explOpen, setExplOpen] = (0, import_react9.useState)(false);
-    const [cachedExplanation, setCachedExplanation] = (0, import_react9.useState)(null);
-    const dragRef = (0, import_react9.useRef)(null);
-    const onResizeMouseDown = (0, import_react9.useCallback)((e) => {
+    const [files, setFiles] = (0, import_react10.useState)([]);
+    const [body, setBody] = (0, import_react10.useState)("");
+    const [selectedFile, setSelectedFile] = (0, import_react10.useState)(null);
+    const [view, setView] = (0, import_react10.useState)("files");
+    const [cdTreeMode, setCdTreeMode] = (0, import_react10.useState)(() => localStorage.getItem("cd-tree-mode") === "true");
+    const [fileHistoryPath, setFileHistoryPath] = (0, import_react10.useState)(null);
+    const [viewAll, setViewAll] = (0, import_react10.useState)(false);
+    const [msgHeight, setMsgHeight] = (0, import_react10.useState)(120);
+    const [amendEditing, setAmendEditing] = (0, import_react10.useState)(false);
+    const [amendMsg, setAmendMsg] = (0, import_react10.useState)("");
+    const [amendLoading, setAmendLoading] = (0, import_react10.useState)(false);
+    const [aiMenu, setAiMenu] = (0, import_react10.useState)(null);
+    const [aiBusy, setAiBusy] = (0, import_react10.useState)(false);
+    const [aiExplanation, setAiExplanation] = (0, import_react10.useState)(null);
+    const [explOpen, setExplOpen] = (0, import_react10.useState)(false);
+    const [cachedExplanation, setCachedExplanation] = (0, import_react10.useState)(null);
+    const dragRef = (0, import_react10.useRef)(null);
+    const onResizeMouseDown = (0, import_react10.useCallback)((e) => {
       e.preventDefault();
       dragRef.current = { startY: e.clientY, startH: msgHeight };
       const onMove = (ev) => {
@@ -64985,7 +65060,7 @@ ${line.date}`
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     }, [msgHeight]);
-    (0, import_react9.useEffect)(() => {
+    (0, import_react10.useEffect)(() => {
       setFiles([]);
       setBody("");
       setSelectedFile(null);
@@ -65013,7 +65088,7 @@ ${line.date}`
     }, [commit.hash]);
     const parentShort = commit.parents?.[0]?.slice(0, 7) ?? null;
     const isHeadCommit = commit.refs.some((r) => r.includes("HEAD"));
-    const runAiRecompose = (0, import_react9.useCallback)(async () => {
+    const runAiRecompose = (0, import_react10.useCallback)(async () => {
       setAiBusy(true);
       try {
         const r = await window.gitAPI.aiRecomposeCommit(commit.hash);
@@ -65036,7 +65111,7 @@ ${line.date}`
         setAiBusy(false);
       }
     }, [commit.hash, isHeadCommit, onRewordWithMessage, showToast, t2]);
-    const runAiExplain = (0, import_react9.useCallback)(async (force = false) => {
+    const runAiExplain = (0, import_react10.useCallback)(async (force = false) => {
       setAiBusy(true);
       if (force)
         setAiExplanation(null);
@@ -65061,7 +65136,7 @@ ${line.date}`
     ];
     const coAuthors = body ? [...body.matchAll(/Co-Authored-By:\s*(.+?)\s*<([^>]+)>/gi)].map((m) => ({ name: m[1].trim(), email: m[2].trim() })) : [];
     const cleanBody = body ? body.replace(/^Co-Authored-By:.*$/gim, "").trim() : "";
-    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-content" }, wipCount != null && wipCount > 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-wip-banner" }, /* @__PURE__ */ import_react9.default.createElement("span", null, t2("rp2.wipCount", wipCount)), /* @__PURE__ */ import_react9.default.createElement("button", { className: "cd-view-change-btn", onClick: onViewWip }, "Voir les changements")), /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-top-row" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-hash-info" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-label" }, "commit:"), /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-content" }, wipCount != null && wipCount > 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-wip-banner" }, /* @__PURE__ */ import_react10.default.createElement("span", null, t2("rp2.wipCount", wipCount)), /* @__PURE__ */ import_react10.default.createElement("button", { className: "cd-view-change-btn", onClick: onViewWip }, "Voir les changements")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-top-row" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-hash-info" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-label" }, "commit:"), /* @__PURE__ */ import_react10.default.createElement(
       "code",
       {
         className: "cd-hash",
@@ -65069,7 +65144,7 @@ ${line.date}`
         title: t2("panel.copyHash")
       },
       commit.shortHash
-    )), /* @__PURE__ */ import_react9.default.createElement(
+    )), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "cd-ai-btn",
@@ -65079,11 +65154,11 @@ ${line.date}`
           setAiMenu({ x: rect.left, y: rect.bottom + 4 });
         }
       },
-      /* @__PURE__ */ import_react9.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })),
-      /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-ai-label" }, aiBusy ? t2("panel.aiWorking") : "Recompose commit with AI"),
-      /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-ai-sep" }),
-      /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-ai-arrow" }, "\u25BC")
-    ), aiMenu && /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })),
+      /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-ai-label" }, aiBusy ? t2("panel.aiWorking") : "Recompose commit with AI"),
+      /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-ai-sep" }),
+      /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-ai-arrow" }, "\u25BC")
+    ), aiMenu && /* @__PURE__ */ import_react10.default.createElement(
       ContextMenu,
       {
         x: aiMenu.x,
@@ -65091,16 +65166,16 @@ ${line.date}`
         items: aiMenuItems,
         onClose: () => setAiMenu(null)
       }
-    )), (aiExplanation || cachedExplanation) && /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-ai-explain" }, /* @__PURE__ */ import_react9.default.createElement(
+    )), (aiExplanation || cachedExplanation) && /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-ai-explain" }, /* @__PURE__ */ import_react10.default.createElement(
       "div",
       {
         className: "cd-ai-explain-head",
         onClick: () => setExplOpen((o) => !o),
         title: explOpen ? void 0 : t2("panel.aiShowCached")
       },
-      /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-ai-explain-chevron" }, explOpen ? "\u25BE" : "\u25B8"),
-      /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-ai-explain-title" }, "\u{1F4AC} ", explOpen ? t2("panel.aiExplainTitle") : t2("panel.aiExplainAvailable")),
-      explOpen && /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-ai-explain-chevron" }, explOpen ? "\u25BE" : "\u25B8"),
+      /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-ai-explain-title" }, "\u{1F4AC} ", explOpen ? t2("panel.aiExplainTitle") : t2("panel.aiExplainAvailable")),
+      explOpen && /* @__PURE__ */ import_react10.default.createElement(
         "button",
         {
           className: "cd-ai-explain-refresh",
@@ -65113,7 +65188,7 @@ ${line.date}`
         },
         aiBusy ? "\u2026" : "\u21BB"
       )
-    ), explOpen && /* @__PURE__ */ import_react9.default.createElement("p", { className: "cd-ai-explain-text" }, aiExplanation ?? cachedExplanation)), /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-scroll" }, /* @__PURE__ */ import_react9.default.createElement(
+    ), explOpen && /* @__PURE__ */ import_react10.default.createElement("p", { className: "cd-ai-explain-text" }, aiExplanation ?? cachedExplanation)), /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-scroll" }, /* @__PURE__ */ import_react10.default.createElement(
       "div",
       {
         className: `cd-message-block${amendEditing ? " cd-message-block--editing" : ""}${!amendEditing && isHeadCommit ? " cd-message-block--amendable" : ""}`,
@@ -65125,7 +65200,7 @@ ${line.date}`
         } : void 0,
         title: !amendEditing && isHeadCommit ? t2("panel.clickToAmend") : void 0
       },
-      amendEditing ? /* @__PURE__ */ import_react9.default.createElement(
+      amendEditing ? /* @__PURE__ */ import_react10.default.createElement(
         "textarea",
         {
           className: "cd-amend-textarea",
@@ -65134,8 +65209,8 @@ ${line.date}`
           autoFocus: true,
           onClick: (e) => e.stopPropagation()
         }
-      ) : /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("p", { className: "cd-title" }, linkifyIssues(commit.message, githubRepo)), cleanBody && /* @__PURE__ */ import_react9.default.createElement("pre", { className: "cd-body" }, linkifyIssues(cleanBody, githubRepo)))
-    ), amendEditing && /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-amend-actions" }, /* @__PURE__ */ import_react9.default.createElement(
+      ) : /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("p", { className: "cd-title" }, linkifyIssues(commit.message, githubRepo)), cleanBody && /* @__PURE__ */ import_react10.default.createElement("pre", { className: "cd-body" }, linkifyIssues(cleanBody, githubRepo)))
+    ), amendEditing && /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-amend-actions" }, /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "cd-amend-confirm",
@@ -65154,25 +65229,25 @@ ${line.date}`
         }
       },
       amendLoading ? "\u2026" : t2("panel.amendConfirm")
-    ), /* @__PURE__ */ import_react9.default.createElement("button", { className: "cd-amend-cancel", onClick: () => setAmendEditing(false) }, t2("panel.amendCancel"))), !amendEditing && /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-resize-handle", onMouseDown: onResizeMouseDown }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-resize-grip" })), /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-info-zone" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-author-block" }, /* @__PURE__ */ import_react9.default.createElement(GravatarAvatar, { email: commit.authorEmail, name: commit.author, sha: commit.hash, size: 36, radius: 6 }), /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-author-mid" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-author-name" }, commit.author), /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-author-meta" }, "authored ", fmtDate2(commit.date))), parentShort && /* @__PURE__ */ import_react9.default.createElement("button", { className: "cd-parent-btn", onClick: () => onSelectCommit(commit.parents[0]) }, "parent: ", /* @__PURE__ */ import_react9.default.createElement("code", null, parentShort))), coAuthors.length > 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-coauthors" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-label" }, "Co-authors:"), coAuthors.map((a, i) => /* @__PURE__ */ import_react9.default.createElement(GravatarAvatar, { key: i, email: a.email, name: a.name, size: 28, radius: 6 }))), commit.refs.length > 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-refs" }, commit.refs.filter((r) => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r)).map((r, i) => {
+    ), /* @__PURE__ */ import_react10.default.createElement("button", { className: "cd-amend-cancel", onClick: () => setAmendEditing(false) }, t2("panel.amendCancel"))), !amendEditing && /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-resize-handle", onMouseDown: onResizeMouseDown }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-resize-grip" })), /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-info-zone" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-author-block" }, /* @__PURE__ */ import_react10.default.createElement(GravatarAvatar, { email: commit.authorEmail, name: commit.author, sha: commit.hash, size: 36, radius: 6 }), /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-author-mid" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-author-name" }, commit.author), /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-author-meta" }, "authored ", fmtDate2(commit.date))), parentShort && /* @__PURE__ */ import_react10.default.createElement("button", { className: "cd-parent-btn", onClick: () => onSelectCommit(commit.parents[0]) }, "parent: ", /* @__PURE__ */ import_react10.default.createElement("code", null, parentShort))), coAuthors.length > 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-coauthors" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-label" }, "Co-authors:"), coAuthors.map((a, i) => /* @__PURE__ */ import_react10.default.createElement(GravatarAvatar, { key: i, email: a.email, name: a.name, size: 28, radius: 6 }))), commit.refs.length > 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-refs" }, commit.refs.filter((r) => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r)).map((r, i) => {
       const isHead = r.includes("HEAD"), isTag = r.startsWith("tag:");
       const isRemote = r.includes("origin/") || r.includes("remotes/");
       const text = r.replace("tag: ", "").replace("HEAD -> ", "\u2605 ");
       const cls = isHead ? "rp-ref-head" : isTag ? "rp-ref-tag" : isRemote ? "rp-ref-remote" : "rp-ref-local";
-      return /* @__PURE__ */ import_react9.default.createElement("span", { key: i, className: `rp-ref ${cls}` }, text);
+      return /* @__PURE__ */ import_react10.default.createElement("span", { key: i, className: `rp-ref ${cls}` }, text);
     })), files.length > 0 && (() => {
       const nMod = files.filter((f) => f.status !== "A" && f.status !== "D").length;
       const nAdd = files.filter((f) => f.status === "A").length;
       const nDel = files.filter((f) => f.status === "D").length;
-      return /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-files-count-row" }, nMod > 0 && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", style: { flexShrink: 0 } }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" })), /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-count-mod" }, nMod, " modified")), nAdd > 0 && /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-count-add" }, "+ ", nAdd, " added"), nDel > 0 && /* @__PURE__ */ import_react9.default.createElement("span", { className: "cd-count-del" }, "\u2212 ", nDel, " deleted"));
-    })(), /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-files-bar" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "cd-sort-btn", title: "Trier" }, /* @__PURE__ */ import_react9.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z" }))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "cd-view-toggle" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: `cd-view-btn ${!cdTreeMode ? "active" : ""}`, onClick: () => {
+      return /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-files-count-row" }, nMod > 0 && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "#e3b341", style: { flexShrink: 0 } }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z" })), /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-count-mod" }, nMod, " modified")), nAdd > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-count-add" }, "+ ", nAdd, " added"), nDel > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "cd-count-del" }, "\u2212 ", nDel, " deleted"));
+    })(), /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-files-bar" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "cd-sort-btn", title: "Trier" }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z" }))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "cd-view-toggle" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: `cd-view-btn ${!cdTreeMode ? "active" : ""}`, onClick: () => {
       setView("files");
       setCdTreeMode(false);
       localStorage.setItem("cd-tree-mode", "false");
-    } }, /* @__PURE__ */ import_react9.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z" })), "Path"), /* @__PURE__ */ import_react9.default.createElement("button", { className: `cd-view-btn ${cdTreeMode ? "active" : ""}`, onClick: () => setCdTreeMode((v) => {
+    } }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z" })), "Path"), /* @__PURE__ */ import_react10.default.createElement("button", { className: `cd-view-btn ${cdTreeMode ? "active" : ""}`, onClick: () => setCdTreeMode((v) => {
       localStorage.setItem("cd-tree-mode", String(!v));
       return !v;
-    }) }, /* @__PURE__ */ import_react9.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm9.5-8a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3z" })), "Tree")), /* @__PURE__ */ import_react9.default.createElement("label", { className: "cd-viewall" }, /* @__PURE__ */ import_react9.default.createElement("input", { type: "checkbox", checked: viewAll, onChange: (e) => setViewAll(e.target.checked) }), /* @__PURE__ */ import_react9.default.createElement("span", null, "Tous les fichiers"))), view === "files" && /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-file-list" }, cdTreeMode ? buildTree(files.map((f) => ({ path: f.path, status: f.status ?? "M" }))).map((node) => /* @__PURE__ */ import_react9.default.createElement(
+    }) }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm9.5-8a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3z" })), "Tree")), /* @__PURE__ */ import_react10.default.createElement("label", { className: "cd-viewall" }, /* @__PURE__ */ import_react10.default.createElement("input", { type: "checkbox", checked: viewAll, onChange: (e) => setViewAll(e.target.checked) }), /* @__PURE__ */ import_react10.default.createElement("span", null, "Tous les fichiers"))), view === "files" && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-file-list" }, cdTreeMode ? buildTree(files.map((f) => ({ path: f.path, status: f.status ?? "M" }))).map((node) => /* @__PURE__ */ import_react10.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -65191,7 +65266,7 @@ ${line.date}`
     )) : files.map((f, i) => {
       const { dir, name } = formatPath(f.path);
       const s = f.status ?? "M";
-      return /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement(
         "div",
         {
           key: i,
@@ -65201,9 +65276,9 @@ ${line.date}`
             onOpenFileDiff?.({ type: "commit", commitHash: commit.hash, filePath: f.path });
           }
         },
-        /* @__PURE__ */ import_react9.default.createElement(StatusBadge, { status: s, className: "rp-file-badge" }),
-        /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-file-path" }, dir && /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-file-dir" }, dir), /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-file-name" }, name)),
-        /* @__PURE__ */ import_react9.default.createElement(
+        /* @__PURE__ */ import_react10.default.createElement(StatusBadge, { status: s, className: "rp-file-badge" }),
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-file-path" }, dir && /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-file-dir" }, dir), /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-file-name" }, name)),
+        /* @__PURE__ */ import_react10.default.createElement(
           "button",
           {
             className: "rp-history-btn",
@@ -65213,37 +65288,44 @@ ${line.date}`
               setFileHistoryPath(f.path);
             }
           },
-          /* @__PURE__ */ import_react9.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z" }))
+          /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z" }))
         )
       );
-    }), files.length === 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-empty" }, t2("panel.loading"))), fileHistoryPath && /* @__PURE__ */ import_react9.default.createElement(
+    }), files.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-empty" }, t2("panel.loading"))), fileHistoryPath && /* @__PURE__ */ import_react10.default.createElement(
       FileHistoryModal,
       {
         filepath: fileHistoryPath,
         onClose: () => setFileHistoryPath(null),
         onSelectCommit
       }
-    ), view === "blame" && selectedFile && /* @__PURE__ */ import_react9.default.createElement(BlameView, { commitHash: commit.hash, filepath: selectedFile, onSelectCommit }))));
+    ), view === "blame" && selectedFile && /* @__PURE__ */ import_react10.default.createElement(BlameView, { commitHash: commit.hash, filepath: selectedFile, onSelectCommit }))));
   }
-  var IcoTrash = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15Z" }));
-  var IcoSpark = ({ size = 14 }) => /* @__PURE__ */ import_react9.default.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" }));
-  var IcoSort = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z" }));
-  var IcoPathView = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" }));
-  var IcoSearch = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ import_react9.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react9.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" }));
-  var IcoTreeView = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z" }));
-  var IcoCommit = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" }));
-  var IcoStash = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z" }));
-  var IcoCheck = ({ size = 16 }) => /* @__PURE__ */ import_react9.default.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.97 8.53a.75.75 0 0 1 1.06-1.06L6 10.44l6.72-6.72a.75.75 0 0 1 1.06 0Z" }));
-  var IcoHunks = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M2 2.75A.75.75 0 0 1 2.75 2h10.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75V2.75ZM3.5 3.5v9H7.25v-9H3.5Zm5.25 0v9H12.5v-9H8.75Z" }));
-  var IcoCloud = () => /* @__PURE__ */ import_react9.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z" }));
-  var IcoChevron = ({ open }) => /* @__PURE__ */ import_react9.default.createElement("svg", { className: `st2-chev ${open ? "open" : ""}`, width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z" }));
+  var IcoTrash = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15Z" }));
+  var IcoSpark = ({ size = 14 }) => /* @__PURE__ */ import_react10.default.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" }));
+  var IcoSort = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z" }));
+  var IcoPathView = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" }));
+  var IcoSearch = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ import_react10.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react10.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" }));
+  var IcoCopy = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z" }), /* @__PURE__ */ import_react10.default.createElement("path", { d: "M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z" }));
+  var IcoOpenDiff = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M8.75 1.75a.75.75 0 0 0 0 1.5h2.44L6.72 7.72a.75.75 0 1 0 1.06 1.06l4.47-4.47v2.44a.75.75 0 0 0 1.5 0v-4.25a.75.75 0 0 0-.75-.75H8.75ZM2.5 4.25c0-.138.112-.25.25-.25H6a.75.75 0 0 0 0-1.5H2.75A1.75 1.75 0 0 0 1 4.25v9c0 .966.784 1.75 1.75 1.75h9a1.75 1.75 0 0 0 1.75-1.75V10a.75.75 0 0 0-1.5 0v3.25a.25.25 0 0 1-.25.25h-9a.25.25 0 0 1-.25-.25v-9Z" }));
+  function DiffStat({ additions, deletions }) {
+    if (additions === void 0 && deletions === void 0)
+      return null;
+    return /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-numstat", title: `+${additions ?? 0} / \u2212${deletions ?? 0}` }, !!additions && /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-numstat-add" }, "+", additions), !!deletions && /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-numstat-del" }, "\u2212", deletions));
+  }
+  var IcoTreeView = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z" }));
+  var IcoCommit = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" }));
+  var IcoStash = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z" }));
+  var IcoCheck = ({ size = 16 }) => /* @__PURE__ */ import_react10.default.createElement("svg", { width: size, height: size, viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.97 8.53a.75.75 0 0 1 1.06-1.06L6 10.44l6.72-6.72a.75.75 0 0 1 1.06 0Z" }));
+  var IcoHunks = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 2.75A.75.75 0 0 1 2.75 2h10.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75V2.75ZM3.5 3.5v9H7.25v-9H3.5Zm5.25 0v9H12.5v-9H8.75Z" }));
+  var IcoCloud = () => /* @__PURE__ */ import_react10.default.createElement("svg", { width: "15", height: "15", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z" }));
+  var IcoChevron = ({ open }) => /* @__PURE__ */ import_react10.default.createElement("svg", { className: `st2-chev ${open ? "open" : ""}`, width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z" }));
   function IndetCheckbox({ checked, indeterminate, onChange, className, title, disabled }) {
-    const ref = (0, import_react9.useRef)(null);
-    (0, import_react9.useEffect)(() => {
+    const ref = (0, import_react10.useRef)(null);
+    (0, import_react10.useEffect)(() => {
       if (ref.current)
         ref.current.indeterminate = !!indeterminate && !checked;
     }, [indeterminate, checked]);
-    return /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement(
       "input",
       {
         ref,
@@ -65261,20 +65343,20 @@ ${line.date}`
     return n.isFile ? [n.fullPath] : n.children.flatMap(collectTreeFiles);
   }
   function CheckTreeRow({ node, depth, ctx }) {
-    const [open, setOpen] = import_react9.default.useState(true);
+    const [open, setOpen] = import_react10.default.useState(true);
     const indent = depth * 10;
     if (node.isFile) {
       const state = ctx.stateByPath.get(node.fullPath) ?? "unstaged";
       const staged = state === "staged";
       const selected = ctx.selectedPath === node.fullPath;
-      return /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement(
         "div",
         {
           className: `stx-row st-tr st-clickable ${selected ? "st-selected" : ""}`,
           style: { paddingLeft: indent + 4 },
           onClick: () => ctx.onSelect(node.fullPath, staged ? "staged" : "unstaged")
         },
-        /* @__PURE__ */ import_react9.default.createElement(
+        /* @__PURE__ */ import_react10.default.createElement(
           IndetCheckbox,
           {
             className: "stx-check",
@@ -65284,9 +65366,9 @@ ${line.date}`
             onChange: () => staged ? ctx.onUnstage([node.fullPath]) : ctx.onStage([node.fullPath])
           }
         ),
-        /* @__PURE__ */ import_react9.default.createElement(StatusBadge, { status: node.status, className: "st-tr-badge" }),
-        /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-tr-name" }, node.name),
-        ctx.onOpenStagingEditor && /* @__PURE__ */ import_react9.default.createElement(
+        /* @__PURE__ */ import_react10.default.createElement(StatusBadge, { status: node.status, className: "st-tr-badge" }),
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-tr-name" }, node.name),
+        ctx.onOpenStagingEditor && /* @__PURE__ */ import_react10.default.createElement(
           "button",
           {
             className: "st-action st-hunk-editor",
@@ -65296,9 +65378,9 @@ ${line.date}`
               ctx.onOpenStagingEditor(node.fullPath);
             }
           },
-          /* @__PURE__ */ import_react9.default.createElement(IcoHunks, null)
+          /* @__PURE__ */ import_react10.default.createElement(IcoHunks, null)
         ),
-        /* @__PURE__ */ import_react9.default.createElement(
+        /* @__PURE__ */ import_react10.default.createElement(
           "button",
           {
             className: "st-action st-discard",
@@ -65316,7 +65398,7 @@ ${line.date}`
     const states = files.map((p) => ctx.stateByPath.get(p) ?? "unstaged");
     const allStaged = states.length > 0 && states.every((s) => s === "staged");
     const noneStaged = states.every((s) => s === "unstaged");
-    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "stx-row st-tr st-tr-dir", style: { paddingLeft: indent }, onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("div", { className: "stx-row st-tr st-tr-dir", style: { paddingLeft: indent }, onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react10.default.createElement(
       IndetCheckbox,
       {
         className: "stx-check",
@@ -65324,32 +65406,32 @@ ${line.date}`
         indeterminate: !allStaged && !noneStaged,
         onChange: () => allStaged ? ctx.onUnstage(files) : ctx.onStage(files)
       }
-    ), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-tr-tri" }, open ? "\u25BC" : "\u25B6"), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-tr-dirname" }, node.name)), open && node.children.map((c) => /* @__PURE__ */ import_react9.default.createElement(CheckTreeRow, { key: c.fullPath, node: c, depth: depth + 1, ctx })));
+    ), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-tr-tri" }, open ? "\u25BC" : "\u25B6"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-tr-dirname" }, node.name)), open && node.children.map((c) => /* @__PURE__ */ import_react10.default.createElement(CheckTreeRow, { key: c.fullPath, node: c, depth: depth + 1, ctx })));
   }
-  function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded }) {
+  function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded, branchStrip }) {
     const { t: t2 } = useLang();
     const isConflict = !!conflictMode;
-    const [changes, setChanges] = (0, import_react9.useState)({ staged: [], unstaged: [], untracked: [] });
-    const [message, setMessage] = (0, import_react9.useState)("");
-    const [amend, setAmend] = (0, import_react9.useState)(false);
-    const [amendFiles, setAmendFiles] = (0, import_react9.useState)([]);
-    const [treeMode, setTreeMode] = (0, import_react9.useState)(() => localStorage.getItem("st-tree-mode") === "true");
-    const [sortAsc, setSortAsc] = (0, import_react9.useState)(true);
-    const [fileFilter, setFileFilter] = (0, import_react9.useState)("");
-    const [filterOpen, setFilterOpen] = (0, import_react9.useState)(false);
-    const [unstagedOpen, setUnstagedOpen] = (0, import_react9.useState)(true);
-    const [stagedOpen, setStagedOpen] = (0, import_react9.useState)(true);
-    const [optionsOpen, setOptionsOpen] = (0, import_react9.useState)(false);
-    const [signoff, setSignoff] = (0, import_react9.useState)(false);
-    const [committing, setCommitting] = (0, import_react9.useState)(false);
-    const [generating, setGenerating] = (0, import_react9.useState)(false);
-    const [selectedDiff, setSelectedDiff] = (0, import_react9.useState)(null);
-    const filterRef = (0, import_react9.useRef)(null);
-    const [formHeight, setFormHeight] = (0, import_react9.useState)(() => parseInt(localStorage.getItem("st-form-h") || "300"));
-    const dragRef = (0, import_react9.useRef)(null);
-    const stRootRef = (0, import_react9.useRef)(null);
-    const [panelSize, setPanelSize] = (0, import_react9.useState)({ w: 0, h: 0 });
-    (0, import_react9.useEffect)(() => {
+    const [changes, setChanges] = (0, import_react10.useState)({ staged: [], unstaged: [], untracked: [] });
+    const [message, setMessage] = (0, import_react10.useState)("");
+    const [amend, setAmend] = (0, import_react10.useState)(false);
+    const [amendFiles, setAmendFiles] = (0, import_react10.useState)([]);
+    const [treeMode, setTreeMode] = (0, import_react10.useState)(() => localStorage.getItem("st-tree-mode") === "true");
+    const [sortAsc, setSortAsc] = (0, import_react10.useState)(true);
+    const [fileFilter, setFileFilter] = (0, import_react10.useState)("");
+    const [filterOpen, setFilterOpen] = (0, import_react10.useState)(false);
+    const [unstagedOpen, setUnstagedOpen] = (0, import_react10.useState)(true);
+    const [stagedOpen, setStagedOpen] = (0, import_react10.useState)(true);
+    const [optionsOpen, setOptionsOpen] = (0, import_react10.useState)(false);
+    const [signoff, setSignoff] = (0, import_react10.useState)(false);
+    const [committing, setCommitting] = (0, import_react10.useState)(false);
+    const [generating, setGenerating] = (0, import_react10.useState)(false);
+    const [selectedDiff, setSelectedDiff] = (0, import_react10.useState)(null);
+    const filterRef = (0, import_react10.useRef)(null);
+    const [formHeight, setFormHeight] = (0, import_react10.useState)(() => parseInt(localStorage.getItem("st-form-h") || "300"));
+    const dragRef = (0, import_react10.useRef)(null);
+    const stRootRef = (0, import_react10.useRef)(null);
+    const [panelSize, setPanelSize] = (0, import_react10.useState)({ w: 0, h: 0 });
+    (0, import_react10.useEffect)(() => {
       const el = stRootRef.current;
       if (!el)
         return;
@@ -65369,7 +65451,7 @@ ${line.date}`
     const stackedCompact = compact && !compactRow && !isConflict;
     const trimTop = panelH > 0 && panelH < 500;
     const splitLists = trimTop && panelSize.w >= 360;
-    const toggleAmend = (0, import_react9.useCallback)(async (checked) => {
+    const toggleAmend = (0, import_react10.useCallback)(async (checked) => {
       setAmend(checked);
       if (checked) {
         const [msgRes, filesRes] = await Promise.all([
@@ -65383,14 +65465,14 @@ ${line.date}`
         setAmendFiles([]);
       }
     }, []);
-    const load = (0, import_react9.useCallback)(async () => {
+    const load = (0, import_react10.useCallback)(async () => {
       const r = await window.gitAPI.getWorkingChanges();
       setChanges(r);
     }, []);
-    (0, import_react9.useEffect)(() => {
+    (0, import_react10.useEffect)(() => {
       load();
     }, [load]);
-    (0, import_react9.useEffect)(() => {
+    (0, import_react10.useEffect)(() => {
       const handler = () => load();
       window.gitAPI.onRepoChanged(handler);
       window.gitAPI.onWorkingChanged(handler);
@@ -65399,7 +65481,7 @@ ${line.date}`
         window.gitAPI.offWorkingChanged(handler);
       };
     }, [load]);
-    (0, import_react9.useEffect)(() => {
+    (0, import_react10.useEffect)(() => {
       if (isConflict) {
         window.gitAPI.getMergeMessage().then((r) => {
           if (r.message)
@@ -65407,7 +65489,7 @@ ${line.date}`
         });
       }
     }, [isConflict]);
-    (0, import_react9.useEffect)(() => {
+    (0, import_react10.useEffect)(() => {
       if (commitProposal)
         setMessage(commitProposal.message);
     }, [commitProposal]);
@@ -65424,7 +65506,7 @@ ${line.date}`
       if (missing > 0)
         showToast(t2("panel.proposal.missing", String(missing)), "err");
     };
-    const onResizeDown = (0, import_react9.useCallback)((e) => {
+    const onResizeDown = (0, import_react10.useCallback)((e) => {
       e.preventDefault();
       dragRef.current = { y: e.clientY, h: formHeight };
       const onMove = (ev) => {
@@ -65486,6 +65568,19 @@ ${line.date}`
         await window.gitAPI.discardFile(f);
       await load();
     };
+    const stashAll = async () => {
+      const r = await window.gitAPI.createStash();
+      if (r?.success === false) {
+        showToast(r.error ?? t2("panel.stashFromPanel"), "err");
+        return;
+      }
+      showToast(t2("panel.stashFromPanel"));
+      await load();
+    };
+    const copyFileList = async () => {
+      await navigator.clipboard.writeText(mergedFiles.map((f) => f.path).join("\n"));
+      showToast(t2("panel.copyFileList.done"));
+    };
     const sortFiles = (arr) => [...arr].sort((a, b) => sortAsc ? a.path.localeCompare(b.path) : b.path.localeCompare(a.path));
     const totalUnstaged = changes.unstaged.length + changes.untracked.length;
     const stagedPaths = new Set(changes.staged.map((f) => f.path));
@@ -65507,7 +65602,7 @@ ${line.date}`
       else
         setFilterOpen(true);
     };
-    (0, import_react9.useEffect)(() => {
+    (0, import_react10.useEffect)(() => {
       if (filterOpen)
         filterRef.current?.focus();
     }, [filterOpen]);
@@ -65523,14 +65618,22 @@ ${line.date}`
     ]);
     const mergedFiles = (() => {
       const m = /* @__PURE__ */ new Map();
-      for (const f of changes.staged)
-        m.set(f.path, { path: f.path, status: f.status, state: "staged" });
+      const addStats = (e, f) => {
+        if (f.additions === void 0 && f.deletions === void 0)
+          return;
+        e.additions = (e.additions ?? 0) + (f.additions ?? 0);
+        e.deletions = (e.deletions ?? 0) + (f.deletions ?? 0);
+      };
+      for (const f of changes.staged) {
+        m.set(f.path, { path: f.path, status: f.status, state: "staged", additions: f.additions, deletions: f.deletions });
+      }
       for (const f of changes.unstaged) {
         const ex = m.get(f.path);
-        if (ex)
+        if (ex) {
           ex.state = "partial";
-        else
-          m.set(f.path, { path: f.path, status: f.status, state: "unstaged" });
+          addStats(ex, f);
+        } else
+          m.set(f.path, { path: f.path, status: f.status, state: "unstaged", additions: f.additions, deletions: f.deletions });
       }
       for (const raw of changes.untracked) {
         const p = raw.replace(/\/$/, "");
@@ -65583,7 +65686,7 @@ ${line.date}`
       return t2("panel.commit.changes", String(n), n !== 1 ? "s" : "");
     })();
     const commitReady = isConflict ? !!message.trim() && !conflictFiles?.length : canCommit && !!message.trim();
-    return /* @__PURE__ */ import_react9.default.createElement("div", { className: `rp-content rp-staging st2 ${compact ? "st2--compact" : ""} ${compactRow ? "st2--row" : ""} ${tiny ? "st2--tiny" : ""} ${trimTop ? "st2--trimtop" : ""} ${splitLists ? "st2--splitlists" : ""}`, ref: stRootRef }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-topbar" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-icon-btn st2-danger", title: t2("panel.discardAll"), onClick: discardAll, disabled: totalChanged === 0 }, /* @__PURE__ */ import_react9.default.createElement(IcoTrash, null)), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-topbar-mid" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-changecount" }, totalChanged, " ", totalChanged === 1 ? t2("panel.fileChange") : t2("panel.fileChanges")), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-on" }, t2("panel.on")), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-branch-chip", title: branchName }, branchName))), embedded && /* @__PURE__ */ import_react9.default.createElement("div", { className: "stx" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "stx-head" }, /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement("div", { className: `rp-content rp-staging st2 ${compact ? "st2--compact" : ""} ${compactRow ? "st2--row" : ""} ${tiny ? "st2--tiny" : ""} ${trimTop ? "st2--trimtop" : ""} ${splitLists ? "st2--splitlists" : ""}`, ref: stRootRef }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-topbar" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-icon-btn st2-danger", title: t2("panel.discardAll"), onClick: discardAll, disabled: totalChanged === 0 }, /* @__PURE__ */ import_react10.default.createElement(IcoTrash, null)), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-topbar-mid" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "st2-changecount" }, totalChanged, " ", totalChanged === 1 ? t2("panel.fileChange") : t2("panel.fileChanges")), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st2-on" }, t2("panel.on")), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st2-branch-chip", title: branchName }, branchName))), branchStrip && /* @__PURE__ */ import_react10.default.createElement(BranchStrip, { ...branchStrip }), embedded && /* @__PURE__ */ import_react10.default.createElement("div", { className: "stx" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "stx-head" }, /* @__PURE__ */ import_react10.default.createElement(
       IndetCheckbox,
       {
         className: "stx-check stx-master",
@@ -65593,15 +65696,42 @@ ${line.date}`
         title: allStaged ? t2("panel.unstageAll") : t2("panel.stageAll"),
         onChange: toggleAllStaged
       }
-    ), /* @__PURE__ */ import_react9.default.createElement("span", { className: "stx-count" }, totalChanged, " ", totalChanged === 1 ? t2("panel.fileChange") : t2("panel.fileChanges")), /* @__PURE__ */ import_react9.default.createElement("div", { className: "stx-spring" }), /* @__PURE__ */ import_react9.default.createElement(
+    ), /* @__PURE__ */ import_react10.default.createElement("span", { className: "stx-count" }, totalChanged, " ", totalChanged === 1 ? t2("panel.fileChange") : t2("panel.fileChanges")), changes.staged.length > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "stx-staged-badge" }, t2("panel.staged.badge", changes.staged.length)), /* @__PURE__ */ import_react10.default.createElement("div", { className: "stx-spring" }), /* @__PURE__ */ import_react10.default.createElement(
+      "button",
+      {
+        className: "st2-icon-btn stx-tool st2-danger",
+        title: t2("panel.discardAll"),
+        onClick: discardAll,
+        disabled: totalChanged === 0
+      },
+      /* @__PURE__ */ import_react10.default.createElement(IcoTrash, null)
+    ), /* @__PURE__ */ import_react10.default.createElement(
+      "button",
+      {
+        className: "st2-icon-btn stx-tool",
+        title: t2("panel.stashFromPanel"),
+        onClick: stashAll,
+        disabled: totalChanged === 0
+      },
+      /* @__PURE__ */ import_react10.default.createElement(IcoStash, null)
+    ), /* @__PURE__ */ import_react10.default.createElement(
+      "button",
+      {
+        className: "st2-icon-btn stx-tool",
+        title: t2("panel.copyFileList"),
+        onClick: copyFileList,
+        disabled: mergedFiles.length === 0
+      },
+      /* @__PURE__ */ import_react10.default.createElement(IcoCopy, null)
+    ), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: `st2-icon-btn stx-tool ${filterOpen || fileFilter ? "active" : ""}`,
         title: t2("panel.filter"),
         onClick: () => toggleFilter()
       },
-      /* @__PURE__ */ import_react9.default.createElement(IcoSearch, null)
-    ), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-icon-btn stx-tool", title: t2("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react9.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-icon-btn stx-tool ${!treeMode ? "active" : ""}`, title: t2("panel.view.path"), onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoPathView, null)), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-icon-btn stx-tool ${treeMode ? "active" : ""}`, title: t2("panel.view.tree"), onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoTreeView, null))), filterOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-filter" }, /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement(IcoSearch, null)
+    ), /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-icon-btn stx-tool", title: t2("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react10.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react10.default.createElement("button", { className: `st2-icon-btn stx-tool ${!treeMode ? "active" : ""}`, title: t2("panel.view.path"), onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react10.default.createElement(IcoPathView, null)), /* @__PURE__ */ import_react10.default.createElement("button", { className: `st2-icon-btn stx-tool ${treeMode ? "active" : ""}`, title: t2("panel.view.tree"), onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react10.default.createElement(IcoTreeView, null))), filterOpen && /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-filter" }, /* @__PURE__ */ import_react10.default.createElement(
       "input",
       {
         ref: filterRef,
@@ -65617,7 +65747,7 @@ ${line.date}`
           }
         }
       }
-    ), fileFilter && /* @__PURE__ */ import_react9.default.createElement(
+    ), fileFilter && /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "st-filter-clear",
@@ -65629,17 +65759,17 @@ ${line.date}`
         }
       },
       "\xD7"
-    )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list stx-list" }, filterHidesAll ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : visibleFiles.length === 0 && visibleAmendOnly.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noChanges")) : treeMode ? mergedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(CheckTreeRow, { key: node.fullPath, node, depth: 0, ctx: stageCtx })) : visibleFiles.map((f) => {
+    )), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-file-list stx-list" }, filterHidesAll ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : visibleFiles.length === 0 && visibleAmendOnly.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-empty" }, t2("panel.noChanges")) : treeMode ? mergedTree.map((node) => /* @__PURE__ */ import_react10.default.createElement(CheckTreeRow, { key: node.fullPath, node, depth: 0, ctx: stageCtx })) : visibleFiles.map((f) => {
       const staged = f.state === "staged";
       const isSelected = selectedDiff?.path === f.path;
-      return /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement(
         "div",
         {
           key: f.path,
           className: `stx-row st-clickable ${isSelected ? "st-selected" : ""}`,
           onClick: () => selectFile({ path: f.path, area: staged ? "staged" : "unstaged" })
         },
-        /* @__PURE__ */ import_react9.default.createElement(
+        /* @__PURE__ */ import_react10.default.createElement(
           IndetCheckbox,
           {
             className: "stx-check",
@@ -65649,26 +65779,39 @@ ${line.date}`
             onChange: () => staged ? unstageOne([f.path]) : stageOne([f.path])
           }
         ),
-        /* @__PURE__ */ import_react9.default.createElement(StatusBadge, { status: f.status }),
-        /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path", title: f.path }, f.path),
-        onOpenStagingEditor && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st-action st-hunk-editor", title: t2("panel.hunkEditor"), onClick: (e) => {
+        /* @__PURE__ */ import_react10.default.createElement(StatusBadge, { status: f.status }),
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-path", title: f.path }, f.path),
+        /* @__PURE__ */ import_react10.default.createElement(DiffStat, { additions: f.additions, deletions: f.deletions }),
+        /* @__PURE__ */ import_react10.default.createElement(
+          "button",
+          {
+            className: "st-action st-open-diff",
+            title: t2("panel.openDiff"),
+            onClick: (e) => {
+              e.stopPropagation();
+              selectFile({ path: f.path, area: staged ? "staged" : "unstaged" });
+            }
+          },
+          /* @__PURE__ */ import_react10.default.createElement(IcoOpenDiff, null)
+        ),
+        onOpenStagingEditor && /* @__PURE__ */ import_react10.default.createElement("button", { className: "st-action st-hunk-editor", title: t2("panel.hunkEditor"), onClick: (e) => {
           e.stopPropagation();
           onOpenStagingEditor(f.path);
-        } }, /* @__PURE__ */ import_react9.default.createElement(IcoHunks, null)),
-        /* @__PURE__ */ import_react9.default.createElement("button", { className: "st-action st-discard", title: t2("panel.discard"), onClick: (e) => {
+        } }, /* @__PURE__ */ import_react10.default.createElement(IcoHunks, null)),
+        /* @__PURE__ */ import_react10.default.createElement("button", { className: "st-action st-discard", title: t2("panel.discard"), onClick: (e) => {
           e.stopPropagation();
           discardOne(f.path);
         } }, "\u21BA")
       );
-    }), visibleAmendOnly.map((f) => /* @__PURE__ */ import_react9.default.createElement("div", { key: f.path, className: "stx-row st-amend-file", title: t2("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "stx-check-spacer" }), /* @__PURE__ */ import_react9.default.createElement(StatusBadge, { status: f.status }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-amend-tag" }, "amend"))))), !embedded && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t2("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react9.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react9.default.createElement(
+    }), visibleAmendOnly.map((f) => /* @__PURE__ */ import_react10.default.createElement("div", { key: f.path, className: "stx-row st-amend-file", title: t2("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "stx-check-spacer" }), /* @__PURE__ */ import_react10.default.createElement(StatusBadge, { status: f.status }), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-amend-tag" }, "amend"))))), !embedded && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-viewbar" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-icon-btn st2-sort", title: t2("panel.sort"), onClick: () => setSortAsc((s) => !s) }, /* @__PURE__ */ import_react10.default.createElement(IcoSort, null)), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: `st2-icon-btn st2-sort ${filterOpen || fileFilter ? "active" : ""}`,
         title: t2("panel.filter"),
         onClick: () => toggleFilter()
       },
-      /* @__PURE__ */ import_react9.default.createElement(IcoSearch, null)
-    ), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoPathView, null), " ", t2("panel.view.path")), /* @__PURE__ */ import_react9.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react9.default.createElement(IcoTreeView, null), " ", t2("panel.view.tree")))), filterOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-filter" }, /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement(IcoSearch, null)
+    ), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-seg" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: `st2-seg-btn ${!treeMode ? "active" : ""}`, onClick: () => treeMode && toggleTree() }, /* @__PURE__ */ import_react10.default.createElement(IcoPathView, null), " ", t2("panel.view.path")), /* @__PURE__ */ import_react10.default.createElement("button", { className: `st2-seg-btn ${treeMode ? "active" : ""}`, onClick: () => !treeMode && toggleTree() }, /* @__PURE__ */ import_react10.default.createElement(IcoTreeView, null), " ", t2("panel.view.tree")))), filterOpen && /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-filter" }, /* @__PURE__ */ import_react10.default.createElement(
       "input",
       {
         ref: filterRef,
@@ -65684,7 +65827,7 @@ ${line.date}`
           }
         }
       }
-    ), fileFilter && /* @__PURE__ */ import_react9.default.createElement(
+    ), fileFilter && /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "st-filter-clear",
@@ -65696,7 +65839,7 @@ ${line.date}`
         }
       },
       "\xD7"
-    )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-section-title" }, t2("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react9.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t2("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noChanges")) : sortedUnstaged.length + sortedUntracked.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(
+    )), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-lists" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: `st2-section ${unstagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-section-toggle", onClick: () => setUnstagedOpen((o) => !o) }, /* @__PURE__ */ import_react10.default.createElement(IcoChevron, { open: unstagedOpen }), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st2-section-title" }, t2("panel.unstaged"), " (", totalUnstaged, ")")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { flex: 1 } }), totalUnstaged > 0 && /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-link st2-green", onClick: () => handle(() => window.gitAPI.stageAll()) }, t2("panel.stageAll"))), unstagedOpen && /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-file-list" }, totalUnstaged === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-empty" }, t2("panel.noChanges")) : sortedUnstaged.length + sortedUntracked.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : treeMode ? unstagedTree.map((node) => /* @__PURE__ */ import_react10.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -65708,27 +65851,28 @@ ${line.date}`
         onSelect: (p) => selectFile({ path: p, area: "unstaged" }),
         isSelected: selectedDiff?.area === "unstaged" && selectedDiff?.path === node.fullPath
       }
-    )) : /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, sortedUnstaged.map((f) => {
+    )) : /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, sortedUnstaged.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
       const isSelected = selectedDiff?.path === f.path && selectedDiff.area === "unstaged";
-      return /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement(
         "div",
         {
           key: f.path,
           className: `st-file-row st-clickable ${isSelected ? "st-selected" : ""}`,
           onClick: () => selectFile({ path: f.path, area: "unstaged" })
         },
-        /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label),
-        /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path", title: f.path }, f.path),
-        onOpenStagingEditor && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st-action st-hunk-editor", title: "\xC9diteur de staging (par bloc)", onClick: (e) => {
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label),
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-path", title: f.path }, f.path),
+        /* @__PURE__ */ import_react10.default.createElement(DiffStat, { additions: f.additions, deletions: f.deletions }),
+        onOpenStagingEditor && /* @__PURE__ */ import_react10.default.createElement("button", { className: "st-action st-hunk-editor", title: "\xC9diteur de staging (par bloc)", onClick: (e) => {
           e.stopPropagation();
           onOpenStagingEditor(f.path);
-        } }, /* @__PURE__ */ import_react9.default.createElement(IcoHunks, null)),
-        /* @__PURE__ */ import_react9.default.createElement("button", { className: "st-action st-stage", title: t2("panel.stage.file", f.path), onClick: (e) => {
+        } }, /* @__PURE__ */ import_react10.default.createElement(IcoHunks, null)),
+        /* @__PURE__ */ import_react10.default.createElement("button", { className: "st-action st-stage", title: t2("panel.stage.file", f.path), onClick: (e) => {
           e.stopPropagation();
           handle(() => window.gitAPI.stage([f.path]));
         } }, "+"),
-        /* @__PURE__ */ import_react9.default.createElement("button", { className: "st-action st-discard", title: t2("panel.discard"), onClick: async (e) => {
+        /* @__PURE__ */ import_react10.default.createElement("button", { className: "st-action st-discard", title: t2("panel.discard"), onClick: async (e) => {
           e.stopPropagation();
           if (!window.confirm(t2("panel.discard.confirm", f.path)))
             return;
@@ -65737,7 +65881,7 @@ ${line.date}`
       );
     }), sortedUntracked.map((f) => {
       const isDir = f.endsWith("/");
-      return /* @__PURE__ */ import_react9.default.createElement("div", { key: f, className: "st-file-row" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-badge", style: { color: "#3fb950" } }, isDir ? "\u{1F4C1}" : "?"), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path", title: f }, f, isDir && /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-dir-hint" }, " ", t2("panel.folder"))), /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement("div", { key: f, className: "st-file-row" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-badge", style: { color: "#3fb950" } }, isDir ? "\u{1F4C1}" : "?"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-path", title: f }, f, isDir && /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-dir-hint" }, " ", t2("panel.folder"))), /* @__PURE__ */ import_react10.default.createElement(
         "button",
         {
           className: "st-action st-stage",
@@ -65745,13 +65889,13 @@ ${line.date}`
           onClick: () => handle(() => window.gitAPI.stage([f]))
         },
         "+"
-      ), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st-action st-discard", title: t2("panel.deleteUntracked"), onClick: async (e) => {
+      ), /* @__PURE__ */ import_react10.default.createElement("button", { className: "st-action st-discard", title: t2("panel.deleteUntracked"), onClick: async (e) => {
         e.stopPropagation();
         if (!window.confirm(t2("panel.deleteUntracked.confirm", f)))
           return;
         handle(() => window.gitAPI.discardFile(f));
       } }, "\u{1F5D1}"));
-    })))), /* @__PURE__ */ import_react9.default.createElement("div", { className: `st2-section ${stagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-section-toggle", onClick: () => setStagedOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement(IcoChevron, { open: stagedOpen }), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-section-title" }, t2("panel.staged"), " (", stagedCount, ")")), /* @__PURE__ */ import_react9.default.createElement("div", { style: { flex: 1 } }), changes.staged.length > 0 && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-link st2-danger-link", onClick: () => handle(() => window.gitAPI.unstage(changes.staged.map((f) => f.path))) }, t2("panel.unstageAll"))), stagedOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-file-list" }, stagedCount === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.noStaged")) : sortedStaged.length + visibleAmendOnly.length === 0 ? /* @__PURE__ */ import_react9.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : treeMode ? stagedTree.map((node) => /* @__PURE__ */ import_react9.default.createElement(
+    })))), /* @__PURE__ */ import_react10.default.createElement("div", { className: `st2-section ${stagedOpen ? "open" : ""}` }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-section-head" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-section-toggle", onClick: () => setStagedOpen((o) => !o) }, /* @__PURE__ */ import_react10.default.createElement(IcoChevron, { open: stagedOpen }), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st2-section-title" }, t2("panel.staged"), " (", stagedCount, ")")), /* @__PURE__ */ import_react10.default.createElement("div", { style: { flex: 1 } }), changes.staged.length > 0 && /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-link st2-danger-link", onClick: () => handle(() => window.gitAPI.unstage(changes.staged.map((f) => f.path))) }, t2("panel.unstageAll"))), stagedOpen && /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-file-list" }, stagedCount === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-empty" }, t2("panel.noStaged")) : sortedStaged.length + visibleAmendOnly.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "st-empty" }, t2("panel.filter.noMatch", fileFilter.trim())) : treeMode ? stagedTree.map((node) => /* @__PURE__ */ import_react10.default.createElement(
       TreeFileRow,
       {
         key: node.fullPath,
@@ -65763,31 +65907,32 @@ ${line.date}`
         onSelect: (p) => selectFile({ path: p, area: "staged" }),
         isSelected: selectedDiff?.area === "staged" && selectedDiff?.path === node.fullPath
       }
-    )) : /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, sortedStaged.map((f) => {
+    )) : /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, sortedStaged.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
       const isSelected = selectedDiff?.path === f.path && selectedDiff.area === "staged";
-      return /* @__PURE__ */ import_react9.default.createElement(
+      return /* @__PURE__ */ import_react10.default.createElement(
         "div",
         {
           key: f.path,
           className: `st-file-row st-clickable ${isSelected ? "st-selected" : ""}`,
           onClick: () => selectFile({ path: f.path, area: "staged" })
         },
-        /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label),
-        /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path", title: f.path }, f.path),
-        onOpenStagingEditor && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st-action st-hunk-editor", title: "\xC9diteur de staging (par bloc)", onClick: (e) => {
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label),
+        /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-path", title: f.path }, f.path),
+        /* @__PURE__ */ import_react10.default.createElement(DiffStat, { additions: f.additions, deletions: f.deletions }),
+        onOpenStagingEditor && /* @__PURE__ */ import_react10.default.createElement("button", { className: "st-action st-hunk-editor", title: "\xC9diteur de staging (par bloc)", onClick: (e) => {
           e.stopPropagation();
           onOpenStagingEditor(f.path);
-        } }, /* @__PURE__ */ import_react9.default.createElement(IcoHunks, null)),
-        /* @__PURE__ */ import_react9.default.createElement("button", { className: "st-action st-unstage", title: t2("panel.unstaged"), onClick: (e) => {
+        } }, /* @__PURE__ */ import_react10.default.createElement(IcoHunks, null)),
+        /* @__PURE__ */ import_react10.default.createElement("button", { className: "st-action st-unstage", title: t2("panel.unstaged"), onClick: (e) => {
           e.stopPropagation();
           handle(() => window.gitAPI.unstage([f.path]));
         } }, "\u2212")
       );
     }), visibleAmendOnly.map((f) => {
       const meta = STATUS_META[f.status] ?? STATUS_META["?"];
-      return /* @__PURE__ */ import_react9.default.createElement("div", { key: f.path, className: "st-file-row st-amend-file", title: t2("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react9.default.createElement("span", { className: "st-amend-tag" }, "amend"));
-    })))))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-resize-grip" })), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-commit", style: compactRow ? void 0 : { height: effFormHeight } }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react9.default.createElement(IcoCommit, null), " ", t2("panel.tab.commit")), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-tab-icon", title: t2("panel.tab.stash"), onClick: async () => {
+      return /* @__PURE__ */ import_react10.default.createElement("div", { key: f.path, className: "st-file-row st-amend-file", title: t2("panel.amendBadge.tooltip") }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-badge", style: { color: meta.color } }, meta.label), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-path" }, f.path), /* @__PURE__ */ import_react10.default.createElement("span", { className: "st-amend-tag" }, "amend"));
+    })))))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-resize", onMouseDown: onResizeDown }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-resize-grip" })), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-commit", style: compactRow ? void 0 : { height: effFormHeight } }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-commit-scroll" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-tabs" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-tab active" }, /* @__PURE__ */ import_react10.default.createElement(IcoCommit, null), " ", t2("panel.tab.commit")), /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-tab-icon", title: t2("panel.tab.stash"), onClick: async () => {
       const r = await window.gitAPI.createStash();
       if (r?.success === false)
         showToast(t2("toast.stashErr", r.error ?? ""), "err");
@@ -65796,13 +65941,13 @@ ${line.date}`
         await load();
         onCommitSuccess();
       }
-    } }, /* @__PURE__ */ import_react9.default.createElement(IcoStash, null)), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-tab-icon", title: t2("panel.tab.push"), onClick: async () => {
+    } }, /* @__PURE__ */ import_react10.default.createElement(IcoStash, null)), /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-tab-icon", title: t2("panel.tab.push"), onClick: async () => {
       const r = await window.gitAPI.push();
       if (r?.success === false)
         showToast(t2("toast.pushErr", r.error ?? ""), "err");
       else
         showToast(t2("toast.pushOk", branchName));
-    } }, /* @__PURE__ */ import_react9.default.createElement(IcoCloud, null))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-msg-toolbar" }, !isConflict && /* @__PURE__ */ import_react9.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react9.default.createElement("input", { type: "checkbox", checked: amend, onChange: (e) => toggleAmend(e.target.checked) }), /* @__PURE__ */ import_react9.default.createElement("span", null, t2("panel.amendPrevious"))), /* @__PURE__ */ import_react9.default.createElement("div", { style: { flex: 1 } }), /* @__PURE__ */ import_react9.default.createElement(
+    } }, /* @__PURE__ */ import_react10.default.createElement(IcoCloud, null))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-msg-toolbar" }, !isConflict && /* @__PURE__ */ import_react10.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react10.default.createElement("input", { type: "checkbox", checked: amend, onChange: (e) => toggleAmend(e.target.checked) }), /* @__PURE__ */ import_react10.default.createElement("span", null, t2("panel.amendPrevious"))), /* @__PURE__ */ import_react10.default.createElement("div", { style: { flex: 1 } }), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: `st2-ai-btn ${generating ? "loading" : ""}`,
@@ -65810,10 +65955,10 @@ ${line.date}`
         onClick: generateMessage,
         disabled: generating
       },
-      /* @__PURE__ */ import_react9.default.createElement(IcoSpark, { size: 13 }),
+      /* @__PURE__ */ import_react10.default.createElement(IcoSpark, { size: 13 }),
       " ",
-      /* @__PURE__ */ import_react9.default.createElement("span", null, t2("panel.generate.short"))
-    ), stackedCompact && /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("span", null, t2("panel.generate.short"))
+    ), stackedCompact && /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: `st2-commit-btn st2-commit-btn--inline ${commitReady ? "ready" : ""}`,
@@ -65821,8 +65966,8 @@ ${line.date}`
         onClick: doCommit,
         title: commitLabel
       },
-      /* @__PURE__ */ import_react9.default.createElement(IcoCheck, null)
-    )), commitProposal && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-proposal" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-proposal-head" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "st2-proposal-title" }, "\u{1F916} ", t2("panel.proposal.title")), /* @__PURE__ */ import_react9.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement(IcoCheck, null)
+    )), commitProposal && /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-proposal" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-proposal-head" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "st2-proposal-title" }, "\u{1F916} ", t2("panel.proposal.title")), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "st2-proposal-close",
@@ -65830,7 +65975,7 @@ ${line.date}`
         onClick: () => onProposalConsumed?.()
       },
       "\xD7"
-    )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-proposal-body" }, t2("panel.proposal.msg")), commitProposal.files.length > 0 && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("ul", { className: "st2-proposal-files" }, commitProposal.files.map((f) => /* @__PURE__ */ import_react9.default.createElement("li", { key: f, title: f }, f))), /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-proposal-stage", onClick: stageProposedFiles }, t2("panel.proposal.stage", String(commitProposal.files.length))))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-msgbox" }, /* @__PURE__ */ import_react9.default.createElement(
+    )), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-proposal-body" }, t2("panel.proposal.msg")), commitProposal.files.length > 0 && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("ul", { className: "st2-proposal-files" }, commitProposal.files.map((f) => /* @__PURE__ */ import_react10.default.createElement("li", { key: f, title: f }, f))), /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-proposal-stage", onClick: stageProposedFiles }, t2("panel.proposal.stage", String(commitProposal.files.length))))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-msgbox" }, /* @__PURE__ */ import_react10.default.createElement(
       "textarea",
       {
         className: "st2-message",
@@ -65842,7 +65987,7 @@ ${line.date}`
             doCommit();
         }
       }
-    )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-options-row" }, /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-options-toggle", onClick: () => setOptionsOpen((o) => !o) }, /* @__PURE__ */ import_react9.default.createElement(IcoChevron, { open: optionsOpen }), " ", t2("panel.commitOptions"))), optionsOpen && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-options" }, /* @__PURE__ */ import_react9.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react9.default.createElement("input", { type: "checkbox", checked: signoff, onChange: (e) => setSignoff(e.target.checked) }), /* @__PURE__ */ import_react9.default.createElement("span", null, t2("panel.signoff"))))), !stackedCompact && /* @__PURE__ */ import_react9.default.createElement("div", { className: "st2-commit-actions" }, isConflict && /* @__PURE__ */ import_react9.default.createElement("button", { className: "st2-commit-btn st2-abort", onClick: onConflictAbort }, t2("panel.abort")), /* @__PURE__ */ import_react9.default.createElement(
+    )), /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-options-row" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-options-toggle", onClick: () => setOptionsOpen((o) => !o) }, /* @__PURE__ */ import_react10.default.createElement(IcoChevron, { open: optionsOpen }), " ", t2("panel.commitOptions"))), optionsOpen && /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-options" }, /* @__PURE__ */ import_react10.default.createElement("label", { className: "st2-amend" }, /* @__PURE__ */ import_react10.default.createElement("input", { type: "checkbox", checked: signoff, onChange: (e) => setSignoff(e.target.checked) }), /* @__PURE__ */ import_react10.default.createElement("span", null, t2("panel.signoff"))))), !stackedCompact && /* @__PURE__ */ import_react10.default.createElement("div", { className: "st2-commit-actions" }, isConflict && /* @__PURE__ */ import_react10.default.createElement("button", { className: "st2-commit-btn st2-abort", onClick: onConflictAbort }, t2("panel.abort")), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: `st2-commit-btn ${tiny ? "st2-commit-btn--mini" : ""} ${compact && !tiny ? "st2-commit-btn--short" : ""} ${commitReady ? "ready" : ""}`,
@@ -65850,7 +65995,7 @@ ${line.date}`
         onClick: doCommit,
         title: compact ? commitLabel : "\u2318\u21B5"
       },
-      tiny ? /* @__PURE__ */ import_react9.default.createElement(IcoCheck, null) : /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(IcoCommit, null), " ", compact ? t2("panel.commit.short") : commitLabel)
+      tiny ? /* @__PURE__ */ import_react10.default.createElement(IcoCheck, null) : /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(IcoCommit, null), " ", compact ? t2("panel.commit.short") : commitLabel)
     ))));
     async function doCommit() {
       if (!message.trim())
@@ -65890,16 +66035,16 @@ Signed-off-by: ` : full;
     onCommitSuccess
   }) {
     const { t: t2 } = useLang();
-    const [commitMsg, setCommitMsg] = (0, import_react9.useState)("");
-    const [committing, setCommitting] = (0, import_react9.useState)(false);
-    const [resolvedFiles, setResolvedFiles] = (0, import_react9.useState)([]);
-    (0, import_react9.useEffect)(() => {
+    const [commitMsg, setCommitMsg] = (0, import_react10.useState)("");
+    const [committing, setCommitting] = (0, import_react10.useState)(false);
+    const [resolvedFiles, setResolvedFiles] = (0, import_react10.useState)([]);
+    (0, import_react10.useEffect)(() => {
       window.gitAPI.getMergeMessage().then((r) => {
         if (r.message)
           setCommitMsg(r.message);
       });
     }, []);
-    (0, import_react9.useEffect)(() => {
+    (0, import_react10.useEffect)(() => {
       window.gitAPI.getWorkingChanges().then((r) => {
         if (r.staged) {
           const actuallyResolved = r.staged.filter((f) => !conflictFiles.includes(f.path));
@@ -65932,7 +66077,7 @@ Signed-off-by: ` : full;
       setCommitting(false);
     }
     const allResolved = conflictFiles.length === 0;
-    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-content rp-conflict-mode" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-conflict-header" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react9.default.createElement("span", { className: "cr-title" }, "Conflits en cours : ", /* @__PURE__ */ import_react9.default.createElement("strong", null, conflictMode))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-section-title" }, "Fichiers en conflit (", conflictFiles.length, ")")), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-file-list" }, conflictFiles.length === 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-empty" }, t2("rp.allResolved")), conflictFiles.map((f) => /* @__PURE__ */ import_react9.default.createElement("div", { key: f, className: "rp-file-row rp-file-conflicted" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-file-status", style: { color: "#ffa657" } }, "!"), /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-content rp-conflict-mode" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-conflict-header" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "cr-title" }, "Conflits en cours : ", /* @__PURE__ */ import_react10.default.createElement("strong", null, conflictMode))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-section-title" }, "Fichiers en conflit (", conflictFiles.length, ")")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-file-list" }, conflictFiles.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-empty" }, t2("rp.allResolved")), conflictFiles.map((f) => /* @__PURE__ */ import_react10.default.createElement("div", { key: f, className: "rp-file-row rp-file-conflicted" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-file-status", style: { color: "#ffa657" } }, "!"), /* @__PURE__ */ import_react10.default.createElement(
       "span",
       {
         className: "rp-file-path",
@@ -65941,7 +66086,7 @@ Signed-off-by: ` : full;
         onClick: () => onOpenResolver(f)
       },
       f
-    ), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-conflict-actions" }, /* @__PURE__ */ import_react9.default.createElement(
+    ), /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-conflict-actions" }, /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "rp-cf-btn",
@@ -65952,7 +66097,7 @@ Signed-off-by: ` : full;
         }
       },
       "Current"
-    ), /* @__PURE__ */ import_react9.default.createElement(
+    ), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "rp-cf-btn",
@@ -65963,7 +66108,7 @@ Signed-off-by: ` : full;
         }
       },
       "Incoming"
-    ), /* @__PURE__ */ import_react9.default.createElement(
+    ), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "rp-cf-btn rp-cf-btn--ok",
@@ -65974,7 +66119,7 @@ Signed-off-by: ` : full;
         }
       },
       "\u2713"
-    )))))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-section-title" }, "Fichiers r\xE9solus (", resolvedFiles.length, ")")), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-file-list" }, resolvedFiles.length === 0 && /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-empty" }, "Aucun fichier r\xE9solu"), resolvedFiles.map((f) => /* @__PURE__ */ import_react9.default.createElement("div", { key: f.path, className: "rp-file-row rp-file-resolved" }, /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-file-status", style: { color: "#3fb950" } }, "\u2713"), /* @__PURE__ */ import_react9.default.createElement("span", { className: "rp-file-path" }, f.path))))), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-commit-area", style: { marginTop: "auto" } }, /* @__PURE__ */ import_react9.default.createElement(
+    )))))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-section" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-section-header" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-section-title" }, "Fichiers r\xE9solus (", resolvedFiles.length, ")")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-file-list" }, resolvedFiles.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-empty" }, "Aucun fichier r\xE9solu"), resolvedFiles.map((f) => /* @__PURE__ */ import_react10.default.createElement("div", { key: f.path, className: "rp-file-row rp-file-resolved" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-file-status", style: { color: "#3fb950" } }, "\u2713"), /* @__PURE__ */ import_react10.default.createElement("span", { className: "rp-file-path" }, f.path))))), /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-commit-area", style: { marginTop: "auto" } }, /* @__PURE__ */ import_react10.default.createElement(
       "textarea",
       {
         className: "rp-commit-input",
@@ -65982,7 +66127,7 @@ Signed-off-by: ` : full;
         value: commitMsg,
         onChange: (e) => setCommitMsg(e.target.value)
       }
-    ), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rp-commit-actions", style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ import_react9.default.createElement(
+    ), /* @__PURE__ */ import_react10.default.createElement("div", { className: "rp-commit-actions", style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn-abort",
@@ -65991,7 +66136,7 @@ Signed-off-by: ` : full;
       },
       "Annuler le ",
       conflictMode
-    ), /* @__PURE__ */ import_react9.default.createElement(
+    ), /* @__PURE__ */ import_react10.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn-commit",
@@ -66021,14 +66166,15 @@ Signed-off-by: ` : full;
     onRewordWithMessage,
     commitProposal,
     onCommitProposalConsumed,
-    embedded
+    embedded,
+    branchStrip
   }) {
     const isWip = selectedCommit?.hash === "__WIP__";
     const hasCommit = !!selectedCommit && !isWip;
     const isConflict = conflictMode !== null && conflictMode !== void 0;
     const hasUnresolvedConflicts = isConflict && (conflictFiles?.length ?? 0) > 0;
     const allConflictsResolved = isConflict && (conflictFiles?.length ?? 0) === 0;
-    return /* @__PURE__ */ import_react9.default.createElement("div", { className: "right-panel" }, hasUnresolvedConflicts ? /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "right-panel" }, hasUnresolvedConflicts ? /* @__PURE__ */ import_react10.default.createElement(
       ConflictPanel,
       {
         conflictFiles: conflictFiles ?? [],
@@ -66039,7 +66185,7 @@ Signed-off-by: ` : full;
         showToast,
         onCommitSuccess
       }
-    ) : (isWip || allConflictsResolved) && !hasCommit ? /* @__PURE__ */ import_react9.default.createElement(
+    ) : (isWip || allConflictsResolved) && !hasCommit ? /* @__PURE__ */ import_react10.default.createElement(
       StagingView,
       {
         onCommitSuccess,
@@ -66053,9 +66199,10 @@ Signed-off-by: ` : full;
         onOpenStagingEditor,
         commitProposal,
         onProposalConsumed: onCommitProposalConsumed,
-        embedded
+        embedded,
+        branchStrip
       }
-    ) : hasCommit ? /* @__PURE__ */ import_react9.default.createElement(
+    ) : hasCommit ? /* @__PURE__ */ import_react10.default.createElement(
       CommitDetail,
       {
         commit: selectedCommit,
@@ -66072,11 +66219,11 @@ Signed-off-by: ` : full;
   }
 
   // ../src/renderer/src/components/Sidebar/Sidebar.tsx
-  var import_react10 = __toESM(require_react());
+  var import_react11 = __toESM(require_react());
   function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }) {
-    const [open, setOpen] = (0, import_react10.useState)(defaultOpen);
+    const [open, setOpen] = (0, import_react11.useState)(defaultOpen);
     const { t: t2 } = useLang();
-    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-section" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-section-header", onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react10.default.createElement("svg", { className: `chevron ${open ? "open" : ""}`, width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "m4 1 8 7-8 7V1z" })), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-section-title" }, title), count !== void 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-section-count" }, count), onAdd && /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-section" }, /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-section-header", onClick: () => setOpen((o) => !o) }, /* @__PURE__ */ import_react11.default.createElement("svg", { className: `chevron ${open ? "open" : ""}`, width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "m4 1 8 7-8 7V1z" })), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-section-title" }, title), count !== void 0 && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-section-count" }, count), onAdd && /* @__PURE__ */ import_react11.default.createElement(
       "button",
       {
         className: "sb-add-btn",
@@ -66086,13 +66233,13 @@ Signed-off-by: ` : full;
           onAdd();
         }
       },
-      /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" }))
-    )), open && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-section-body" }, children));
+      /* @__PURE__ */ import_react11.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" }))
+    )), open && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-section-body" }, children));
   }
   function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, ahead = 0, behind = 0, gone = false }) {
-    const [hover, setHover] = (0, import_react10.useState)(false);
-    const [ctx, setCtx] = (0, import_react10.useState)(null);
-    const lastClickTime = (0, import_react10.useRef)(0);
+    const [hover, setHover] = (0, import_react11.useState)(false);
+    const [ctx, setCtx] = (0, import_react11.useState)(null);
+    const lastClickTime = (0, import_react11.useRef)(0);
     const { t: t2 } = useLang();
     const display = remote ? name.replace(/^remotes\/[^/]+\//, "") : name;
     const menuItems = buildBranchMenu(
@@ -66132,7 +66279,7 @@ Signed-off-by: ` : full;
         lastClickTime.current = now;
       }
     };
-    return /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, /* @__PURE__ */ import_react11.default.createElement(
       "div",
       {
         className: `sb-branch-item ${current ? "current" : ""} ${remote ? "remote" : ""} ${muted ? "muted" : ""} ${soloed ? "soloed" : ""}`,
@@ -66145,17 +66292,17 @@ Signed-off-by: ` : full;
         onMouseLeave: () => setHover(false),
         title: current ? t2("sb.branch.currentTitle", name) : t2("sb.branch.hint")
       },
-      /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "branch-icon" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })),
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-name" }, display),
-      (ahead > 0 || behind > 0) && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track", title: t2("sb.branch.trackTitle", ahead, behind) }, ahead > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track-ahead" }, "\u2191", ahead), behind > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track-behind" }, "\u2193", behind)),
-      gone && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track sb-track-gone", title: t2("sb.branch.goneTitle") }, "\u2702"),
-      favorite && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag sb-branch-star", title: t2("sb.branch.favoriteFlag") }, "\u2605"),
-      pinned && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.pinFlag") }, "\u{1F4CC}"),
-      issue && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag", title: issue.title || `#${issue.number}` }, "#", issue.number),
-      soloed && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.soloFlag") }, "\u{1F441}"),
-      muted && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.mutedFlag") }, "\u{1F507}"),
-      current && /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "#3fb950", className: "current-check" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" })),
-      hover && menuItems.length > 0 && /* @__PURE__ */ import_react10.default.createElement(
+      /* @__PURE__ */ import_react11.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "branch-icon" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })),
+      /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-branch-name" }, display),
+      (ahead > 0 || behind > 0) && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-track", title: t2("sb.branch.trackTitle", ahead, behind) }, ahead > 0 && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-track-ahead" }, "\u2191", ahead), behind > 0 && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-track-behind" }, "\u2193", behind)),
+      gone && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-track sb-track-gone", title: t2("sb.branch.goneTitle") }, "\u2702"),
+      favorite && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-branch-flag sb-branch-star", title: t2("sb.branch.favoriteFlag") }, "\u2605"),
+      pinned && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.pinFlag") }, "\u{1F4CC}"),
+      issue && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-branch-flag", title: issue.title || `#${issue.number}` }, "#", issue.number),
+      soloed && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.soloFlag") }, "\u{1F441}"),
+      muted && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.mutedFlag") }, "\u{1F507}"),
+      current && /* @__PURE__ */ import_react11.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "#3fb950", className: "current-check" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" })),
+      hover && menuItems.length > 0 && /* @__PURE__ */ import_react11.default.createElement(
         "button",
         {
           className: "sb-branch-menu-btn",
@@ -66166,12 +66313,12 @@ Signed-off-by: ` : full;
             setCtx({ x: r.right, y: r.bottom + 2 });
           }
         },
-        /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z" }))
+        /* @__PURE__ */ import_react11.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z" }))
       )
-    ), ctx && menuItems.length > 0 && /* @__PURE__ */ import_react10.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+    ), ctx && menuItems.length > 0 && /* @__PURE__ */ import_react11.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
   }
   function StashItem({ stash, onApply, onPop, onDrop, onPreview }) {
-    const [ctx, setCtx] = (0, import_react10.useState)(null);
+    const [ctx, setCtx] = (0, import_react11.useState)(null);
     const { t: t2 } = useLang();
     const label = stash.message.replace(/^stash@\{\d+\}: /, "");
     const menuItems = [
@@ -66181,7 +66328,7 @@ Signed-off-by: ` : full;
       { separator: true },
       { label: t2("sb.delete"), action: onDrop, danger: true }
     ];
-    return /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, /* @__PURE__ */ import_react11.default.createElement(
       "div",
       {
         className: "sb-stash-item",
@@ -66192,13 +66339,13 @@ Signed-off-by: ` : full;
         },
         title: onPreview ? t2("sb.stash.title", stash.message) : stash.message
       },
-      /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "stash-icon" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M1 3.5A1.5 1.5 0 0 1 2.5 2h8.75a.75.75 0 0 1 0 1.5H2.5a.5.5 0 0 0 0 1H8a1 1 0 0 1 1 1v3.75a.75.75 0 0 1-1.5 0V6H2.5A1.5 1.5 0 0 1 1 4.5v-1Zm3 9A1.5 1.5 0 0 1 2.5 11h1.25a.75.75 0 0 0 0-1.5H2.5A1.5 1.5 0 0 1 1 8v-.5a.75.75 0 0 1 1.5 0V8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-.5a.75.75 0 0 1 1.5 0V8a1.5 1.5 0 0 1-1.5 1.5H4.5v1H14a.75.75 0 0 1 0 1.5H4.5v.5a.75.75 0 0 1-1.5 0v-.5Z" })),
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-stash-label" }, label),
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-stash-index" }, "#", stash.index)
-    ), ctx && /* @__PURE__ */ import_react10.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+      /* @__PURE__ */ import_react11.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "stash-icon" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M1 3.5A1.5 1.5 0 0 1 2.5 2h8.75a.75.75 0 0 1 0 1.5H2.5a.5.5 0 0 0 0 1H8a1 1 0 0 1 1 1v3.75a.75.75 0 0 1-1.5 0V6H2.5A1.5 1.5 0 0 1 1 4.5v-1Zm3 9A1.5 1.5 0 0 1 2.5 11h1.25a.75.75 0 0 0 0-1.5H2.5A1.5 1.5 0 0 1 1 8v-.5a.75.75 0 0 1 1.5 0V8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-.5a.75.75 0 0 1 1.5 0V8a1.5 1.5 0 0 1-1.5 1.5H4.5v1H14a.75.75 0 0 1 0 1.5H4.5v.5a.75.75 0 0 1-1.5 0v-.5Z" })),
+      /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-stash-label" }, label),
+      /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-stash-index" }, "#", stash.index)
+    ), ctx && /* @__PURE__ */ import_react11.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
   }
   function TagItem({ tag, onDelete, onPush, onDeleteRemote }) {
-    const [ctx, setCtx] = (0, import_react10.useState)(null);
+    const [ctx, setCtx] = (0, import_react11.useState)(null);
     const { t: t2 } = useLang();
     const menuItems = [
       { label: t2("sb.copyName"), action: () => navigator.clipboard.writeText(tag.name) },
@@ -66207,7 +66354,7 @@ Signed-off-by: ` : full;
       { label: t2("sb.tag.deleteLocal"), action: onDelete, danger: true },
       { label: t2("sb.tag.deleteRemote"), action: onDeleteRemote, danger: true }
     ];
-    return /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, /* @__PURE__ */ import_react11.default.createElement(
       "div",
       {
         className: "sb-tag-item",
@@ -66217,13 +66364,13 @@ Signed-off-by: ` : full;
         },
         title: `${tag.name} \u2192 ${tag.hash}`
       },
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-tag-icon" }, "\u{1F3F7}"),
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-tag-name" }, tag.name),
-      /* @__PURE__ */ import_react10.default.createElement("code", { className: "sb-tag-hash" }, tag.hash)
-    ), ctx && /* @__PURE__ */ import_react10.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+      /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-tag-icon" }, "\u{1F3F7}"),
+      /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-tag-name" }, tag.name),
+      /* @__PURE__ */ import_react11.default.createElement("code", { className: "sb-tag-hash" }, tag.hash)
+    ), ctx && /* @__PURE__ */ import_react11.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
   }
   function ReflogItem({ entry, onSelect }) {
-    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-reflog-item", onClick: onSelect, title: `${entry.ref}: ${entry.message}` }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-reflog-icon" }, "\u{1F4CB}"), /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-reflog-info" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-reflog-ref" }, entry.ref), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-reflog-msg" }, entry.message), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-reflog-date" }, entry.date)));
+    return /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-reflog-item", onClick: onSelect, title: `${entry.ref}: ${entry.message}` }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-reflog-icon" }, "\u{1F4CB}"), /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-reflog-info" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-reflog-ref" }, entry.ref), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-reflog-msg" }, entry.message), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-reflog-date" }, entry.date)));
   }
   function RemoteItem({
     remote,
@@ -66232,7 +66379,7 @@ Signed-off-by: ` : full;
     onRemove,
     onCopyUrl
   }) {
-    const [ctx, setCtx] = (0, import_react10.useState)(null);
+    const [ctx, setCtx] = (0, import_react11.useState)(null);
     const { t: t2 } = useLang();
     const menuItems = [
       { label: t2("sb.remote.fetch"), action: onFetch },
@@ -66241,7 +66388,7 @@ Signed-off-by: ` : full;
       { separator: true },
       { label: t2("sb.delete"), action: onRemove, danger: true }
     ];
-    return /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, /* @__PURE__ */ import_react11.default.createElement(
       "div",
       {
         className: "sb-remote-item",
@@ -66251,16 +66398,16 @@ Signed-off-by: ` : full;
         },
         title: remote.fetchUrl
       },
-      /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "remote-icon" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2ZM1.5 12.251c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V5.809L8.38 9.397a.75.75 0 0 1-.76 0L1.5 5.809v6.442Zm13-8.181v-.32a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25v.32L8 7.88Z" })),
-      /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-remote-info" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-remote-name" }, remote.name), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-remote-url" }, remote.fetchUrl))
-    ), ctx && /* @__PURE__ */ import_react10.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+      /* @__PURE__ */ import_react11.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "remote-icon" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2ZM1.5 12.251c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V5.809L8.38 9.397a.75.75 0 0 1-.76 0L1.5 5.809v6.442Zm13-8.181v-.32a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25v.32L8 7.88Z" })),
+      /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-remote-info" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-remote-name" }, remote.name), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-remote-url" }, remote.fetchUrl))
+    ), ctx && /* @__PURE__ */ import_react11.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
   }
   function SubmoduleItem({
     sub,
     onInit,
     onUpdate
   }) {
-    const [ctx, setCtx] = (0, import_react10.useState)(null);
+    const [ctx, setCtx] = (0, import_react11.useState)(null);
     const { t: t2 } = useLang();
     const statusColor = sub.status === "ok" ? "#3fb950" : sub.status === "dirty" ? "#ffa657" : "#484f58";
     const statusLabel = sub.status === "ok" ? "\u2713" : sub.status === "dirty" ? "~" : "\u25CB";
@@ -66268,7 +66415,7 @@ Signed-off-by: ` : full;
       ...sub.status === "uninitialized" ? [{ label: t2("sb.sub.init"), action: onInit }] : [],
       { label: t2("sb.sub.update"), action: onUpdate }
     ];
-    return /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, /* @__PURE__ */ import_react11.default.createElement(
       "div",
       {
         className: "sb-submodule-item",
@@ -66278,12 +66425,12 @@ Signed-off-by: ` : full;
         },
         title: sub.url
       },
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-status", style: { color: statusColor } }, statusLabel),
-      /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-path" }, sub.path), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-url" }, sub.url))
-    ), ctx && menuItems.length > 0 && /* @__PURE__ */ import_react10.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+      /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-sub-status", style: { color: statusColor } }, statusLabel),
+      /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-sub-path" }, sub.path), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-sub-url" }, sub.url))
+    ), ctx && menuItems.length > 0 && /* @__PURE__ */ import_react11.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
   }
   function WorktreeItem({ wt, agents = [], onOpen, onRemove }) {
-    const [ctx, setCtx] = (0, import_react10.useState)(null);
+    const [ctx, setCtx] = (0, import_react11.useState)(null);
     const { t: t2 } = useLang();
     const name = wt.path.split("/").pop() || wt.path;
     const menuItems = [
@@ -66295,7 +66442,7 @@ Signed-off-by: ` : full;
       ] : []
     ];
     const agentSummary = [...new Map(agents.map((a) => [a.name, agents.filter((x) => x.name === a.name).length])).entries()];
-    return /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, /* @__PURE__ */ import_react11.default.createElement(
       "div",
       {
         className: "sb-submodule-item",
@@ -66308,9 +66455,9 @@ Signed-off-by: ` : full;
 ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         style: { cursor: "pointer" }
       },
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-status", style: { color: wt.isMain ? "#3fb950" : "#58a6ff" } }, wt.isMain ? "\u25C9" : "\u25CB"),
-      /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-path" }, name, " ", /* @__PURE__ */ import_react10.default.createElement("code", { style: { opacity: 0.6 } }, wt.branch), agentSummary.map(([agentName, count]) => /* @__PURE__ */ import_react10.default.createElement("span", { key: agentName, className: "sb-agent-badge" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-agent-dot" }), count > 1 ? `${count}\xD7 ` : "", agentName))), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-url" }, wt.path))
-    ), ctx && /* @__PURE__ */ import_react10.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
+      /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-sub-status", style: { color: wt.isMain ? "#3fb950" : "#58a6ff" } }, wt.isMain ? "\u25C9" : "\u25CB"),
+      /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-sub-path" }, name, " ", /* @__PURE__ */ import_react11.default.createElement("code", { style: { opacity: 0.6 } }, wt.branch), agentSummary.map(([agentName, count]) => /* @__PURE__ */ import_react11.default.createElement("span", { key: agentName, className: "sb-agent-badge" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-agent-dot" }), count > 1 ? `${count}\xD7 ` : "", agentName))), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-sub-url" }, wt.path))
+    ), ctx && /* @__PURE__ */ import_react11.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
   }
   function Sidebar({
     repoPath,
@@ -66366,19 +66513,19 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
   }) {
     const single = view !== void 0;
     const show = (v) => !single || view === v;
-    const [reflog, setReflog] = (0, import_react10.useState)([]);
-    const [remotes, setRemotes] = (0, import_react10.useState)([]);
-    const [submodules, setSubmodules] = (0, import_react10.useState)([]);
-    const [worktrees, setWorktrees] = (0, import_react10.useState)([]);
-    const [agents, setAgents] = (0, import_react10.useState)([]);
-    const [work, setWork] = (0, import_react10.useState)({ staged: 0, changed: 0 });
+    const [reflog, setReflog] = (0, import_react11.useState)([]);
+    const [remotes, setRemotes] = (0, import_react11.useState)([]);
+    const [submodules, setSubmodules] = (0, import_react11.useState)([]);
+    const [worktrees, setWorktrees] = (0, import_react11.useState)([]);
+    const [agents, setAgents] = (0, import_react11.useState)([]);
+    const [work, setWork] = (0, import_react11.useState)({ staged: 0, changed: 0 });
     const { t: t2 } = useLang();
-    const loadWorktrees = (0, import_react10.useCallback)(() => {
+    const loadWorktrees = (0, import_react11.useCallback)(() => {
       window.gitAPI.listWorktrees().then((r) => setWorktrees(r.worktrees ?? []));
       window.gitAPI.listAgents?.().then((r) => setAgents(r?.agents ?? [])).catch(() => {
       });
     }, []);
-    (0, import_react10.useEffect)(() => {
+    (0, import_react11.useEffect)(() => {
       if (!repoPath)
         return;
       window.gitAPI.getReflog().then((r) => setReflog(r.entries ?? []));
@@ -66394,7 +66541,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       }, 1e4);
       return () => clearInterval(interval);
     }, [repoPath, loadWorktrees]);
-    const agentsFor = (0, import_react10.useCallback)(
+    const agentsFor = (0, import_react11.useCallback)(
       (wtPath) => agents.filter((a) => a.cwd === wtPath || a.cwd.startsWith(wtPath + "/")),
       [agents]
     );
@@ -66497,10 +66644,10 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       else
         showToast(t2("toast.fetchErr", r.error ?? ""), "err");
     };
-    const [repoMenuOpen, setRepoMenuOpen] = (0, import_react10.useState)(false);
-    const [branchFilter, setBranchFilter] = (0, import_react10.useState)("");
-    const repoMenuRef = (0, import_react10.useRef)(null);
-    (0, import_react10.useEffect)(() => {
+    const [repoMenuOpen, setRepoMenuOpen] = (0, import_react11.useState)(false);
+    const [branchFilter, setBranchFilter] = (0, import_react11.useState)("");
+    const repoMenuRef = (0, import_react11.useRef)(null);
+    (0, import_react11.useEffect)(() => {
       const handler = (e) => {
         if (repoMenuRef.current && !repoMenuRef.current.contains(e.target)) {
           setRepoMenuOpen(false);
@@ -66512,7 +66659,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     const localBranches = branches.filter((b) => !b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase())).sort((a, b) => Number(isFavorite?.(b.name) ?? false) - Number(isFavorite?.(a.name) ?? false));
     const remoteBranches = branches.filter((b) => b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()));
     const otherRecents = recentRepos.filter((r) => r !== repoPath);
-    return /* @__PURE__ */ import_react10.default.createElement("div", { className: "sidebar" }, !embedded && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-repo-area", ref: repoMenuRef }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-repo-btn", onClick: () => setRepoMenuOpen((o) => !o) }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#3fb950" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-repo-name" }, repoName || t2("sb.openRepo")), /* @__PURE__ */ import_react10.default.createElement("svg", { width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z" }))), repoMenuOpen && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-repo-dropdown" }, /* @__PURE__ */ import_react10.default.createElement(
+    return /* @__PURE__ */ import_react11.default.createElement("div", { className: "sidebar" }, !embedded && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-repo-area", ref: repoMenuRef }, /* @__PURE__ */ import_react11.default.createElement("button", { className: "sb-repo-btn", onClick: () => setRepoMenuOpen((o) => !o) }, /* @__PURE__ */ import_react11.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#3fb950" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-repo-name" }, repoName || t2("sb.openRepo")), /* @__PURE__ */ import_react11.default.createElement("svg", { width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z" }))), repoMenuOpen && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-repo-dropdown" }, /* @__PURE__ */ import_react11.default.createElement(
       "button",
       {
         className: "sb-dropdown-item sb-open-item",
@@ -66521,9 +66668,9 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           setRepoMenuOpen(false);
         }
       },
-      /* @__PURE__ */ import_react10.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M.75 9.75a.75.75 0 0 0 0 1.5h14.5a.75.75 0 0 0 0-1.5H.75ZM0 2.75C0 2.336.336 2 .75 2h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 2.75ZM0 6.25C0 5.836.336 5.5.75 5.5h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 6.25Z" })),
+      /* @__PURE__ */ import_react11.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M.75 9.75a.75.75 0 0 0 0 1.5h14.5a.75.75 0 0 0 0-1.5H.75ZM0 2.75C0 2.336.336 2 .75 2h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 2.75ZM0 6.25C0 5.836.336 5.5.75 5.5h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 6.25Z" })),
       t2("sb.openRepoDots")
-    ), /* @__PURE__ */ import_react10.default.createElement(
+    ), /* @__PURE__ */ import_react11.default.createElement(
       "button",
       {
         className: "sb-dropdown-item sb-open-item",
@@ -66532,9 +66679,9 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           setRepoMenuOpen(false);
         }
       },
-      /* @__PURE__ */ import_react10.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })),
+      /* @__PURE__ */ import_react11.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })),
       t2("sb.cloneDots")
-    ), otherRecents.length > 0 && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-dropdown-sep" }), /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-dropdown-label" }, t2("sb.recents")), otherRecents.map((path) => /* @__PURE__ */ import_react10.default.createElement("div", { key: path, className: "sb-dropdown-item sb-recent-item" }, /* @__PURE__ */ import_react10.default.createElement(
+    ), otherRecents.length > 0 && /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-dropdown-sep" }), /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-dropdown-label" }, t2("sb.recents")), otherRecents.map((path) => /* @__PURE__ */ import_react11.default.createElement("div", { key: path, className: "sb-dropdown-item sb-recent-item" }, /* @__PURE__ */ import_react11.default.createElement(
       "button",
       {
         className: "sb-recent-path",
@@ -66544,10 +66691,10 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         },
         title: path
       },
-      /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })),
-      /* @__PURE__ */ import_react10.default.createElement("span", null, path.split("/").pop()),
-      /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-recent-full" }, path)
-    ), /* @__PURE__ */ import_react10.default.createElement(
+      /* @__PURE__ */ import_react11.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })),
+      /* @__PURE__ */ import_react11.default.createElement("span", null, path.split("/").pop()),
+      /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-recent-full" }, path)
+    ), /* @__PURE__ */ import_react11.default.createElement(
       "button",
       {
         className: "sb-recent-remove",
@@ -66555,7 +66702,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onClick: () => onRemoveRecent(path)
       },
       "\xD7"
-    )))))), repoPath && show("branches") && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-search" }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z" })), /* @__PURE__ */ import_react10.default.createElement(
+    )))))), repoPath && show("branches") && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-search" }, /* @__PURE__ */ import_react11.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z" })), /* @__PURE__ */ import_react11.default.createElement(
       "input",
       {
         type: "text",
@@ -66563,13 +66710,13 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         value: branchFilter,
         onChange: (e) => setBranchFilter(e.target.value)
       }
-    ), branchFilter && /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-filter-clear", onClick: () => setBranchFilter("") }, "\xD7")), repoPath && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-sections" }, view === "overview" && (() => {
+    ), branchFilter && /* @__PURE__ */ import_react11.default.createElement("button", { className: "sb-filter-clear", onClick: () => setBranchFilter("") }, "\xD7")), repoPath && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-sections" }, view === "overview" && (() => {
       const cur = branches.find((b) => b.current);
       const ahead = cur?.ahead ?? 0;
       const behind = cur?.behind ?? 0;
       const hasStats = ahead > 0 || behind > 0 || work.staged > 0 || work.changed > 0;
-      return /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-overview" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-label" }, t2("sb.currentWork")), /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-card" }, /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-branch" }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#3fb950" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-ov-branch-name" }, currentBranch), agents.length > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-ov-agents", title: t2("sb.agentsActive", agents.length) }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-agent-dot" }), agents.length)), hasStats && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-stats" }, ahead > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track-ahead", title: t2("sb.branch.trackTitle", ahead, behind) }, "\u2191", ahead), behind > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track-behind", title: t2("sb.branch.trackTitle", ahead, behind) }, "\u2193", behind), work.staged > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-ov-staged", title: t2("sb.staged") }, "+", work.staged), work.changed > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-ov-changed", title: t2("sb.changed") }, "\u270E", work.changed)), !hasStats && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-ov-clean" }, t2("sb.clean"))));
-    })(), view === "agents" && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "AGENTS", count: agents.length, defaultOpen: true }, agents.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noAgent")) : agents.map((a) => /* @__PURE__ */ import_react10.default.createElement("div", { key: a.pid, className: "sb-submodule-item", title: a.cwd }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-agent-dot" }), /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-path" }, a.name, " ", /* @__PURE__ */ import_react10.default.createElement("code", { style: { opacity: 0.6 } }, "pid ", a.pid)), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-sub-url" }, a.cwd))))), (show("branches") || view === "overview") && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "LOCAL", count: localBranches.length, onAdd: onCreateBranch, addLabel: t2("sb.newBranch") }, localBranches.length === 0 && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noLocalBranch")), localBranches.map((b) => /* @__PURE__ */ import_react10.default.createElement(
+      return /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-overview" }, /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-ov-label" }, t2("sb.currentWork")), /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-ov-card" }, /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-ov-branch" }, /* @__PURE__ */ import_react11.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#3fb950" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-ov-branch-name" }, currentBranch), agents.length > 0 && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-ov-agents", title: t2("sb.agentsActive", agents.length) }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-agent-dot" }), agents.length)), hasStats && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-ov-stats" }, ahead > 0 && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-track-ahead", title: t2("sb.branch.trackTitle", ahead, behind) }, "\u2191", ahead), behind > 0 && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-track-behind", title: t2("sb.branch.trackTitle", ahead, behind) }, "\u2193", behind), work.staged > 0 && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-ov-staged", title: t2("sb.staged") }, "+", work.staged), work.changed > 0 && /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-ov-changed", title: t2("sb.changed") }, "\u270E", work.changed)), !hasStats && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-ov-clean" }, t2("sb.clean"))));
+    })(), view === "agents" && /* @__PURE__ */ import_react11.default.createElement(Section, { title: "AGENTS", count: agents.length, defaultOpen: true }, agents.length === 0 ? /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-empty" }, t2("sb.noAgent")) : agents.map((a) => /* @__PURE__ */ import_react11.default.createElement("div", { key: a.pid, className: "sb-submodule-item", title: a.cwd }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-agent-dot" }), /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-sub-info" }, /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-sub-path" }, a.name, " ", /* @__PURE__ */ import_react11.default.createElement("code", { style: { opacity: 0.6 } }, "pid ", a.pid)), /* @__PURE__ */ import_react11.default.createElement("span", { className: "sb-sub-url" }, a.cwd))))), (show("branches") || view === "overview") && /* @__PURE__ */ import_react11.default.createElement(Section, { title: "LOCAL", count: localBranches.length, onAdd: onCreateBranch, addLabel: t2("sb.newBranch") }, localBranches.length === 0 && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-empty" }, t2("sb.noLocalBranch")), localBranches.map((b) => /* @__PURE__ */ import_react11.default.createElement(
       BranchItem,
       {
         key: b.name,
@@ -66601,7 +66748,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         behind: b.behind,
         gone: b.gone
       }
-    ))), show("branches") && remoteBranches.length > 0 && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "REMOTE", count: remoteBranches.length, defaultOpen: single }, remoteBranches.map((b) => /* @__PURE__ */ import_react10.default.createElement(
+    ))), show("branches") && remoteBranches.length > 0 && /* @__PURE__ */ import_react11.default.createElement(Section, { title: "REMOTE", count: remoteBranches.length, defaultOpen: single }, remoteBranches.map((b) => /* @__PURE__ */ import_react11.default.createElement(
       BranchItem,
       {
         key: b.name,
@@ -66624,7 +66771,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onTogglePin: onTogglePin && (() => onTogglePin(b.name)),
         onOpenOnRemote: onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))
       }
-    ))), show("tags") && /* @__PURE__ */ import_react10.default.createElement(
+    ))), show("tags") && /* @__PURE__ */ import_react11.default.createElement(
       Section,
       {
         title: "TAGS",
@@ -66633,7 +66780,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onAdd: onCreateTag,
         addLabel: t2("sb.newTag")
       },
-      tags.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noTag")) : tags.map((t3) => /* @__PURE__ */ import_react10.default.createElement(
+      tags.length === 0 ? /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-empty" }, t2("sb.noTag")) : tags.map((t3) => /* @__PURE__ */ import_react11.default.createElement(
         TagItem,
         {
           key: t3.name,
@@ -66643,7 +66790,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           onDeleteRemote: () => onDeleteRemoteTag(t3.name)
         }
       ))
-    ), show("remotes") && /* @__PURE__ */ import_react10.default.createElement(
+    ), show("remotes") && /* @__PURE__ */ import_react11.default.createElement(
       Section,
       {
         title: "REMOTES",
@@ -66652,7 +66799,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onAdd: handleAddRemote,
         addLabel: t2("sb.addRemote")
       },
-      remotes.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noRemote")) : remotes.map((r) => /* @__PURE__ */ import_react10.default.createElement(
+      remotes.length === 0 ? /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-empty" }, t2("sb.noRemote")) : remotes.map((r) => /* @__PURE__ */ import_react11.default.createElement(
         RemoteItem,
         {
           key: r.name,
@@ -66663,7 +66810,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           onCopyUrl: () => navigator.clipboard.writeText(r.fetchUrl)
         }
       ))
-    ), show("overview") && submodules.length > 0 && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "SUBMODULES", count: submodules.length, defaultOpen: false }, submodules.map((sub) => /* @__PURE__ */ import_react10.default.createElement(
+    ), show("overview") && submodules.length > 0 && /* @__PURE__ */ import_react11.default.createElement(Section, { title: "SUBMODULES", count: submodules.length, defaultOpen: false }, submodules.map((sub) => /* @__PURE__ */ import_react11.default.createElement(
       SubmoduleItem,
       {
         key: sub.path,
@@ -66671,7 +66818,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onInit: () => handleInitSubmodule(sub.path),
         onUpdate: () => handleUpdateSubmodule(sub.path)
       }
-    ))), show("worktrees") && /* @__PURE__ */ import_react10.default.createElement(
+    ))), show("worktrees") && /* @__PURE__ */ import_react11.default.createElement(
       Section,
       {
         title: "WORKTREES",
@@ -66680,7 +66827,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onAdd: handleAddWorktree,
         addLabel: t2("sb.addWorktree")
       },
-      worktrees.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noWorktree")) : worktrees.map((wt) => /* @__PURE__ */ import_react10.default.createElement(
+      worktrees.length === 0 ? /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-empty" }, t2("sb.noWorktree")) : worktrees.map((wt) => /* @__PURE__ */ import_react11.default.createElement(
         WorktreeItem,
         {
           key: wt.path,
@@ -66690,14 +66837,14 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           onRemove: () => handleRemoveWorktree(wt.path)
         }
       ))
-    ), show("overview") && /* @__PURE__ */ import_react10.default.createElement(Section, { title: "REFLOG", count: reflog.length, defaultOpen: false }, reflog.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.reflogEmpty")) : reflog.map((entry, i) => /* @__PURE__ */ import_react10.default.createElement(
+    ), show("overview") && /* @__PURE__ */ import_react11.default.createElement(Section, { title: "REFLOG", count: reflog.length, defaultOpen: false }, reflog.length === 0 ? /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-empty" }, t2("sb.reflogEmpty")) : reflog.map((entry, i) => /* @__PURE__ */ import_react11.default.createElement(
       ReflogItem,
       {
         key: i,
         entry,
         onSelect: () => onSelectCommit(entry.hash)
       }
-    ))), show("stash") && /* @__PURE__ */ import_react10.default.createElement(
+    ))), show("stash") && /* @__PURE__ */ import_react11.default.createElement(
       Section,
       {
         title: "STASH",
@@ -66706,7 +66853,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onAdd: onCreateStash,
         addLabel: t2("sb.stash.create")
       },
-      stashes.length === 0 ? /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-empty" }, t2("sb.noStash")) : stashes.map((s) => /* @__PURE__ */ import_react10.default.createElement(
+      stashes.length === 0 ? /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-empty" }, t2("sb.noStash")) : stashes.map((s) => /* @__PURE__ */ import_react11.default.createElement(
         StashItem,
         {
           key: s.index,
@@ -66717,13 +66864,13 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           onPreview: onPreviewStash ? () => onPreviewStash(s.index, s.message) : void 0
         }
       ))
-    )), !repoPath && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-no-repo" }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-open-btn", onClick: onOpenRepo }, t2("sb.openRepo")), /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-open-btn sb-clone-btn", onClick: onClone }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })), t2("sb.clone")), recentRepos.length > 0 && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-recents-title" }, t2("sb.recents")), recentRepos.map((path) => /* @__PURE__ */ import_react10.default.createElement("button", { key: path, className: "sb-recent-btn", onClick: () => onSetRepo(path), title: path }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })), path.split("/").pop())))));
+    )), !repoPath && /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-no-repo" }, /* @__PURE__ */ import_react11.default.createElement("button", { className: "sb-open-btn", onClick: onOpenRepo }, t2("sb.openRepo")), /* @__PURE__ */ import_react11.default.createElement("button", { className: "sb-open-btn sb-clone-btn", onClick: onClone }, /* @__PURE__ */ import_react11.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" })), t2("sb.clone")), recentRepos.length > 0 && /* @__PURE__ */ import_react11.default.createElement(import_react11.default.Fragment, null, /* @__PURE__ */ import_react11.default.createElement("div", { className: "sb-recents-title" }, t2("sb.recents")), recentRepos.map((path) => /* @__PURE__ */ import_react11.default.createElement("button", { key: path, className: "sb-recent-btn", onClick: () => onSetRepo(path), title: path }, /* @__PURE__ */ import_react11.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react11.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })), path.split("/").pop())))));
   }
 
   // src/webview/ActivityRail.tsx
-  var import_react11 = __toESM(require_react());
-  var I = (d) => /* @__PURE__ */ import_react11.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react11.default.createElement("path", { d }));
-  var RobotIcon = () => /* @__PURE__ */ import_react11.default.createElement(
+  var import_react12 = __toESM(require_react());
+  var I = (d) => /* @__PURE__ */ import_react12.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react12.default.createElement("path", { d }));
+  var RobotIcon = () => /* @__PURE__ */ import_react12.default.createElement(
     "svg",
     {
       width: "16",
@@ -66736,14 +66883,14 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       strokeLinejoin: "round",
       "aria-hidden": "true"
     },
-    /* @__PURE__ */ import_react11.default.createElement("rect", { x: "3", y: "5.5", width: "10", height: "7.5", rx: "1.8" }),
-    /* @__PURE__ */ import_react11.default.createElement("path", { d: "M8 3.2V5.5" }),
-    /* @__PURE__ */ import_react11.default.createElement("circle", { cx: "8", cy: "2.4", r: "1", fill: "currentColor", stroke: "none" }),
-    /* @__PURE__ */ import_react11.default.createElement("circle", { cx: "6.2", cy: "9", r: "0.9", fill: "currentColor", stroke: "none" }),
-    /* @__PURE__ */ import_react11.default.createElement("circle", { cx: "9.8", cy: "9", r: "0.9", fill: "currentColor", stroke: "none" }),
-    /* @__PURE__ */ import_react11.default.createElement("path", { d: "M1.5 8.5v2M14.5 8.5v2" })
+    /* @__PURE__ */ import_react12.default.createElement("rect", { x: "3", y: "5.5", width: "10", height: "7.5", rx: "1.8" }),
+    /* @__PURE__ */ import_react12.default.createElement("path", { d: "M8 3.2V5.5" }),
+    /* @__PURE__ */ import_react12.default.createElement("circle", { cx: "8", cy: "2.4", r: "1", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ import_react12.default.createElement("circle", { cx: "6.2", cy: "9", r: "0.9", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ import_react12.default.createElement("circle", { cx: "9.8", cy: "9", r: "0.9", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ import_react12.default.createElement("path", { d: "M1.5 8.5v2M14.5 8.5v2" })
   );
-  var WorktreeIcon = () => /* @__PURE__ */ import_react11.default.createElement(
+  var WorktreeIcon = () => /* @__PURE__ */ import_react12.default.createElement(
     "svg",
     {
       width: "16",
@@ -66756,9 +66903,9 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       strokeLinejoin: "round",
       "aria-hidden": "true"
     },
-    /* @__PURE__ */ import_react11.default.createElement("rect", { x: "2", y: "2.5", width: "12", height: "11", rx: "1.8" }),
-    /* @__PURE__ */ import_react11.default.createElement("path", { d: "M8 5v2M8 9.2v1.8" }),
-    /* @__PURE__ */ import_react11.default.createElement("circle", { cx: "8", cy: "8", r: "1.5", fill: "currentColor", stroke: "none" })
+    /* @__PURE__ */ import_react12.default.createElement("rect", { x: "2", y: "2.5", width: "12", height: "11", rx: "1.8" }),
+    /* @__PURE__ */ import_react12.default.createElement("path", { d: "M8 5v2M8 9.2v1.8" }),
+    /* @__PURE__ */ import_react12.default.createElement("circle", { cx: "8", cy: "8", r: "1.5", fill: "currentColor", stroke: "none" })
   );
   var ITEMS = [
     {
@@ -66771,13 +66918,13 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       view: "agents",
       labelKey: "rail.agents",
       fallback: "Agents",
-      icon: /* @__PURE__ */ import_react11.default.createElement(RobotIcon, null)
+      icon: /* @__PURE__ */ import_react12.default.createElement(RobotIcon, null)
     },
     {
       view: "worktrees",
       labelKey: "rail.worktrees",
       fallback: "Worktrees",
-      icon: /* @__PURE__ */ import_react11.default.createElement(WorktreeIcon, null)
+      icon: /* @__PURE__ */ import_react12.default.createElement(WorktreeIcon, null)
     },
     {
       view: "branches",
@@ -66816,10 +66963,10 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       const s = t2(key);
       return s === key ? fallback : s;
     };
-    const railRef = (0, import_react11.useRef)(null);
-    const [visible, setVisible] = (0, import_react11.useState)(ITEMS.length);
-    const [menu, setMenu] = (0, import_react11.useState)(null);
-    (0, import_react11.useEffect)(() => {
+    const railRef = (0, import_react12.useRef)(null);
+    const [visible, setVisible] = (0, import_react12.useState)(ITEMS.length);
+    const [menu, setMenu] = (0, import_react12.useState)(null);
+    (0, import_react12.useEffect)(() => {
       const el = railRef.current;
       if (!el)
         return;
@@ -66842,7 +66989,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       const r = e.currentTarget.getBoundingClientRect();
       setMenu({ x: r.right + 4, y: r.top });
     };
-    return /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-rail", ref: railRef }, shown.map((item) => /* @__PURE__ */ import_react11.default.createElement(
+    return /* @__PURE__ */ import_react12.default.createElement("div", { className: "gv-rail", ref: railRef }, shown.map((item) => /* @__PURE__ */ import_react12.default.createElement(
       "button",
       {
         key: item.view,
@@ -66853,7 +67000,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onClick: () => onSelect(item.view)
       },
       item.icon
-    )), hidden.length > 0 && /* @__PURE__ */ import_react11.default.createElement(
+    )), hidden.length > 0 && /* @__PURE__ */ import_react12.default.createElement(
       "button",
       {
         className: `gv-rail-btn ${activeHidden ? "gv-rail-btn--active" : ""}`,
@@ -66862,7 +67009,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onClick: openMenu
       },
       I("M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM1.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z")
-    ), /* @__PURE__ */ import_react11.default.createElement("div", { className: "gv-rail-spacer" }), /* @__PURE__ */ import_react11.default.createElement(
+    ), /* @__PURE__ */ import_react12.default.createElement("div", { className: "gv-rail-spacer" }), /* @__PURE__ */ import_react12.default.createElement(
       "button",
       {
         className: "gv-rail-btn gv-rail-btn--soon",
@@ -66871,7 +67018,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         disabled: true
       },
       KANBAN_ICON
-    ), menu && /* @__PURE__ */ import_react11.default.createElement(
+    ), menu && /* @__PURE__ */ import_react12.default.createElement(
       ContextMenu,
       {
         x: menu.x,
@@ -66887,7 +67034,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
   }
 
   // ../src/renderer/src/components/InteractiveRebase/InteractiveRebase.tsx
-  var import_react12 = __toESM(require_react());
+  var import_react13 = __toESM(require_react());
 
   // ../src/renderer/src/utils/rebaseMessageGroups.ts
   function computeMessageGroups(seq) {
@@ -66942,14 +67089,14 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
   var groupKey = (g) => `${g.leaderIndex}:${g.memberIndexes.join(",")}`;
   function InteractiveRebase({ baseHash, onClose, onSuccess, showToast, embedded, initialPlan }) {
     const { t: t2 } = useLang();
-    const [entries, setEntries] = (0, import_react12.useState)([]);
-    const [loading, setLoading] = (0, import_react12.useState)(true);
-    const [running, setRunning] = (0, import_react12.useState)(false);
-    const [fromPlan, setFromPlan] = (0, import_react12.useState)(false);
-    const dragIndex = (0, import_react12.useRef)(null);
-    const [dragOver, setDragOver] = (0, import_react12.useState)(null);
-    const [groupMessages, setGroupMessages] = (0, import_react12.useState)({});
-    (0, import_react12.useEffect)(() => {
+    const [entries, setEntries] = (0, import_react13.useState)([]);
+    const [loading, setLoading] = (0, import_react13.useState)(true);
+    const [running, setRunning] = (0, import_react13.useState)(false);
+    const [fromPlan, setFromPlan] = (0, import_react13.useState)(false);
+    const dragIndex = (0, import_react13.useRef)(null);
+    const [dragOver, setDragOver] = (0, import_react13.useState)(null);
+    const [groupMessages, setGroupMessages] = (0, import_react13.useState)({});
+    (0, import_react13.useEffect)(() => {
       window.gitAPI.getRebaseSequence(baseHash).then((r) => {
         let list = r.commits.map((c) => ({ ...c, action: "pick" }));
         if (initialPlan?.length) {
@@ -66975,11 +67122,11 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         setLoading(false);
       });
     }, [baseHash, initialPlan]);
-    const groups = (0, import_react12.useMemo)(
+    const groups = (0, import_react13.useMemo)(
       () => computeMessageGroups(entries.map((e) => ({ action: e.action, hash: e.hash, message: e.message }))),
       [entries]
     );
-    const messageGroupByLastIndex = (0, import_react12.useMemo)(() => {
+    const messageGroupByLastIndex = (0, import_react13.useMemo)(() => {
       const map = /* @__PURE__ */ new Map();
       for (const g of groups)
         if (g.needsMessage)
@@ -67042,18 +67189,18 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         showToast(t2("ir.failed", r.error), "err");
       }
     };
-    return /* @__PURE__ */ import_react12.default.createElement(
+    return /* @__PURE__ */ import_react13.default.createElement(
       "div",
       {
         className: embedded ? "ir-page" : "ir-overlay",
         onMouseDown: embedded ? void 0 : (e) => e.target === e.currentTarget && onClose()
       },
-      /* @__PURE__ */ import_react12.default.createElement("div", { className: embedded ? "ir-panel ir-panel--embedded" : "ir-panel" }, /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react12.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react12.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-hint" }, t2("ir.hint")), fromPlan && /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-plan-banner" }, t2("ir.planBanner")), /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-empty" }, t2("common.loading")), !loading && entries.length === 0 && /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-empty" }, t2("ir.noCommits")), (() => {
+      /* @__PURE__ */ import_react13.default.createElement("div", { className: embedded ? "ir-panel ir-panel--embedded" : "ir-panel" }, /* @__PURE__ */ import_react13.default.createElement("div", { className: "ir-header" }, /* @__PURE__ */ import_react13.default.createElement("span", { className: "ir-title" }, "\u26A1 Interactive Rebase"), /* @__PURE__ */ import_react13.default.createElement("span", { className: "ir-base" }, "depuis ", /* @__PURE__ */ import_react13.default.createElement("code", null, baseHash.slice(0, 7))), /* @__PURE__ */ import_react13.default.createElement("button", { className: "ir-close", onClick: onClose }, "\xD7")), /* @__PURE__ */ import_react13.default.createElement("div", { className: "ir-hint" }, t2("ir.hint")), fromPlan && /* @__PURE__ */ import_react13.default.createElement("div", { className: "ir-plan-banner" }, t2("ir.planBanner")), /* @__PURE__ */ import_react13.default.createElement("div", { className: "ir-list" }, loading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "ir-empty" }, t2("common.loading")), !loading && entries.length === 0 && /* @__PURE__ */ import_react13.default.createElement("div", { className: "ir-empty" }, t2("ir.noCommits")), (() => {
         const firstKeptIndex = entries.findIndex((e) => e.action !== "drop");
         return entries.map((entry, i) => {
           const msgGroup = messageGroupByLastIndex.get(i);
           const key = msgGroup ? groupKey(msgGroup) : "";
-          return /* @__PURE__ */ import_react12.default.createElement(import_react12.default.Fragment, { key: entry.hash }, /* @__PURE__ */ import_react12.default.createElement(
+          return /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, { key: entry.hash }, /* @__PURE__ */ import_react13.default.createElement(
             "div",
             {
               className: `ir-row ${dragOver === i ? "drag-over" : ""}`,
@@ -67063,8 +67210,8 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
               onDrop: () => handleDrop(i),
               onDragEnd: () => setDragOver(null)
             },
-            /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-drag-handle", title: t2("ir.dragHandle") }, "\u283F"),
-            /* @__PURE__ */ import_react12.default.createElement(
+            /* @__PURE__ */ import_react13.default.createElement("span", { className: "ir-drag-handle", title: t2("ir.dragHandle") }, "\u283F"),
+            /* @__PURE__ */ import_react13.default.createElement(
               "select",
               {
                 className: "ir-action-select",
@@ -67075,7 +67222,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
               ACTIONS.map((a) => (
                 // squash/fixup need an earlier kept commit to fold into —
                 // disable them on the first kept row.
-                /* @__PURE__ */ import_react12.default.createElement(
+                /* @__PURE__ */ import_react13.default.createElement(
                   "option",
                   {
                     key: a,
@@ -67086,9 +67233,9 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
                 )
               ))
             ),
-            /* @__PURE__ */ import_react12.default.createElement("code", { className: "ir-hash" }, entry.shortHash),
-            /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-msg" }, entry.message)
-          ), msgGroup && /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-msg-editor" }, /* @__PURE__ */ import_react12.default.createElement("span", { className: "ir-msg-editor-label" }, "Message final (", msgGroup.memberIndexes.length, " commit", msgGroup.memberIndexes.length > 1 ? "s" : "", ")"), /* @__PURE__ */ import_react12.default.createElement(
+            /* @__PURE__ */ import_react13.default.createElement("code", { className: "ir-hash" }, entry.shortHash),
+            /* @__PURE__ */ import_react13.default.createElement("span", { className: "ir-msg" }, entry.message)
+          ), msgGroup && /* @__PURE__ */ import_react13.default.createElement("div", { className: "ir-msg-editor" }, /* @__PURE__ */ import_react13.default.createElement("span", { className: "ir-msg-editor-label" }, "Message final (", msgGroup.memberIndexes.length, " commit", msgGroup.memberIndexes.length > 1 ? "s" : "", ")"), /* @__PURE__ */ import_react13.default.createElement(
             "textarea",
             {
               className: "ir-msg-textarea",
@@ -67099,7 +67246,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
             }
           )));
         });
-      })()), /* @__PURE__ */ import_react12.default.createElement("div", { className: "ir-footer" }, /* @__PURE__ */ import_react12.default.createElement("button", { className: "ir-cancel", onClick: onClose }, "Annuler"), /* @__PURE__ */ import_react12.default.createElement(
+      })()), /* @__PURE__ */ import_react13.default.createElement("div", { className: "ir-footer" }, /* @__PURE__ */ import_react13.default.createElement("button", { className: "ir-cancel", onClick: onClose }, "Annuler"), /* @__PURE__ */ import_react13.default.createElement(
         "button",
         {
           className: "ir-launch",
@@ -67112,10 +67259,10 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
   }
 
   // ../src/renderer/src/components/StagingEditor/StagingEditor.tsx
-  var import_react14 = __toESM(require_react());
+  var import_react15 = __toESM(require_react());
 
   // ../src/renderer/src/components/CenterFileDiff/CenterFileDiff.tsx
-  var import_react13 = __toESM(require_react());
+  var import_react14 = __toESM(require_react());
   function parseDiff(raw) {
     const files = [];
     const blocks = raw.split(/^diff --git /m).filter(Boolean);
@@ -67228,21 +67375,21 @@ ${lineStrings.join("\n")}
     const { t: t2 } = useLang();
     const { get } = useSettings();
     const externalDiffTool = get("externalDiffTool", "");
-    const [externalDiffBusy, setExternalDiffBusy] = (0, import_react13.useState)(false);
-    const [hunks, setHunks] = (0, import_react13.useState)([]);
-    const [loading, setLoading] = (0, import_react13.useState)(true);
-    const [showFullFile, setShowFullFile] = (0, import_react13.useState)(false);
-    const [fullContent, setFullContent] = (0, import_react13.useState)("");
-    const [fullLoading, setFullLoading] = (0, import_react13.useState)(false);
-    const [selectedLines, setSelectedLines] = (0, import_react13.useState)(/* @__PURE__ */ new Set());
-    const [applyError, setApplyError] = (0, import_react13.useState)(null);
-    const [wholeFile, setWholeFile] = (0, import_react13.useState)(false);
+    const [externalDiffBusy, setExternalDiffBusy] = (0, import_react14.useState)(false);
+    const [hunks, setHunks] = (0, import_react14.useState)([]);
+    const [loading, setLoading] = (0, import_react14.useState)(true);
+    const [showFullFile, setShowFullFile] = (0, import_react14.useState)(false);
+    const [fullContent, setFullContent] = (0, import_react14.useState)("");
+    const [fullLoading, setFullLoading] = (0, import_react14.useState)(false);
+    const [selectedLines, setSelectedLines] = (0, import_react14.useState)(/* @__PURE__ */ new Set());
+    const [applyError, setApplyError] = (0, import_react14.useState)(null);
+    const [wholeFile, setWholeFile] = (0, import_react14.useState)(false);
     const filePath = target.filePath;
     const lang = detectLang(filePath);
     const isWorking = target.type === "working";
     const isStaged = isWorking && target.area === "staged";
     const key = target.type === "commit" ? `${target.commitHash}::${target.filePath}` : `${target.area}::${target.filePath}`;
-    (0, import_react13.useEffect)(() => {
+    (0, import_react14.useEffect)(() => {
       setLoading(true);
       setHunks([]);
       setSelectedLines(/* @__PURE__ */ new Set());
@@ -67259,7 +67406,7 @@ ${lineStrings.join("\n")}
         setLoading(false);
       });
     }, [key, wholeFile]);
-    (0, import_react13.useEffect)(() => {
+    (0, import_react14.useEffect)(() => {
       if (showFullFile && target.type === "commit" && !fullContent) {
         setFullLoading(true);
         window.gitAPI.getFileAtCommit(target.commitHash, target.filePath).then((r) => {
@@ -67269,7 +67416,7 @@ ${lineStrings.join("\n")}
       }
     }, [showFullFile]);
     const lineKey = (l) => `${l.type}:${l.oldLine ?? ""}:${l.newLine ?? ""}`;
-    const toggleLine = (0, import_react13.useCallback)((l) => {
+    const toggleLine = (0, import_react14.useCallback)((l) => {
       if (l.type === "context")
         return;
       const k = lineKey(l);
@@ -67279,7 +67426,7 @@ ${lineStrings.join("\n")}
         return next;
       });
     }, []);
-    const toggleHunk = (0, import_react13.useCallback)((hunk) => {
+    const toggleHunk = (0, import_react14.useCallback)((hunk) => {
       const changeableKeys = hunk.lines.filter((l) => l.type !== "context").map(lineKey);
       const allSelected = changeableKeys.every((k) => selectedLines.has(k));
       setSelectedLines((prev) => {
@@ -67292,7 +67439,7 @@ ${lineStrings.join("\n")}
         return next;
       });
     }, [selectedLines]);
-    const applyHunk = (0, import_react13.useCallback)(async (hunk) => {
+    const applyHunk = (0, import_react14.useCallback)(async (hunk) => {
       setApplyError(null);
       const patch = buildPatch(filePath, hunk);
       const result = await window.gitAPI.applyPatch(patch, isStaged);
@@ -67306,7 +67453,7 @@ ${lineStrings.join("\n")}
         setApplyError(result.error ?? t2("cfd.unknownError"));
       }
     }, [filePath, isStaged, onStaged, wholeFile]);
-    const applySelectedLines = (0, import_react13.useCallback)(async () => {
+    const applySelectedLines = (0, import_react14.useCallback)(async () => {
       if (selectedLines.size === 0)
         return;
       setApplyError(null);
@@ -67330,7 +67477,7 @@ ${lineStrings.join("\n")}
       setHunks(all.flatMap((f) => f.hunks));
       setSelectedLines(/* @__PURE__ */ new Set());
     }, [selectedLines, hunks, filePath, isStaged, onStaged, wholeFile]);
-    const openExternalDiff = (0, import_react13.useCallback)(async () => {
+    const openExternalDiff = (0, import_react14.useCallback)(async () => {
       setExternalDiffBusy(true);
       try {
         const [leftRes, rightRes] = target.type === "commit" ? await Promise.all([
@@ -67350,7 +67497,7 @@ ${lineStrings.join("\n")}
     const areaLabel = target.type === "working" ? target.area === "staged" ? t2("cfd.staged") : t2("cfd.unstaged") : target.commitHash.slice(0, 7);
     const badgeCls = target.type === "working" ? target.area === "staged" ? "cfd-staged" : "cfd-unstaged" : "cfd-commit";
     const actionLabel = isStaged ? t2("cfd.unstage") : t2("cfd.stage");
-    return /* @__PURE__ */ import_react13.default.createElement("div", { className: `cfd-container ${isStaged ? "cfd-staged-mode" : ""}` }, /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-header" }, onClose && /* @__PURE__ */ import_react13.default.createElement("button", { className: "cfd-back", onClick: onClose, title: "Retour au graphe" }, "\u2190 Retour"), onChangeArea && isWorking ? /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-area-toggle" }, /* @__PURE__ */ import_react13.default.createElement("button", { className: !isStaged ? "active" : "", onClick: () => onChangeArea("unstaged") }, t2("cfd.unstaged")), /* @__PURE__ */ import_react13.default.createElement("button", { className: isStaged ? "active" : "", onClick: () => onChangeArea("staged") }, t2("cfd.staged"))) : /* @__PURE__ */ import_react13.default.createElement("span", { className: `cfd-area-badge ${badgeCls}` }, areaLabel), /* @__PURE__ */ import_react13.default.createElement("span", { className: "cfd-filepath" }, filePath), isWorking && selectedLines.size > 0 && /* @__PURE__ */ import_react13.default.createElement("button", { className: "cfd-apply-btn", onClick: applySelectedLines }, isStaged ? "\u25C2 " : "", actionLabel, " ", selectedLines.size, " ligne", selectedLines.size > 1 ? "s" : "", isStaged ? "" : " \u25B8"), isWorking && /* @__PURE__ */ import_react13.default.createElement(
+    return /* @__PURE__ */ import_react14.default.createElement("div", { className: `cfd-container ${isStaged ? "cfd-staged-mode" : ""}` }, /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-header" }, onClose && /* @__PURE__ */ import_react14.default.createElement("button", { className: "cfd-back", onClick: onClose, title: "Retour au graphe" }, "\u2190 Retour"), onChangeArea && isWorking ? /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-area-toggle" }, /* @__PURE__ */ import_react14.default.createElement("button", { className: !isStaged ? "active" : "", onClick: () => onChangeArea("unstaged") }, t2("cfd.unstaged")), /* @__PURE__ */ import_react14.default.createElement("button", { className: isStaged ? "active" : "", onClick: () => onChangeArea("staged") }, t2("cfd.staged"))) : /* @__PURE__ */ import_react14.default.createElement("span", { className: `cfd-area-badge ${badgeCls}` }, areaLabel), /* @__PURE__ */ import_react14.default.createElement("span", { className: "cfd-filepath" }, filePath), isWorking && selectedLines.size > 0 && /* @__PURE__ */ import_react14.default.createElement("button", { className: "cfd-apply-btn", onClick: applySelectedLines }, isStaged ? "\u25C2 " : "", actionLabel, " ", selectedLines.size, " ligne", selectedLines.size > 1 ? "s" : "", isStaged ? "" : " \u25B8"), isWorking && /* @__PURE__ */ import_react14.default.createElement(
       "button",
       {
         className: `cfd-toggle ${wholeFile ? "active" : ""}`,
@@ -67358,7 +67505,7 @@ ${lineStrings.join("\n")}
         title: wholeFile ? t2("cfd.showChangesOnly") : t2("cfd.showWholeFile")
       },
       wholeFile ? t2("cfd.wholeFileBtn") : t2("cfd.changesBtn")
-    ), target.type === "commit" && /* @__PURE__ */ import_react13.default.createElement(
+    ), target.type === "commit" && /* @__PURE__ */ import_react14.default.createElement(
       "button",
       {
         className: `cfd-toggle ${showFullFile ? "active" : ""}`,
@@ -67366,10 +67513,10 @@ ${lineStrings.join("\n")}
         title: showFullFile ? t2("cfd.showChangesOnly") : t2("cfd.showFullFile")
       },
       showFullFile ? t2("cfd.fileBtn") : "\u25C7 Diff"
-    ), externalDiffTool && /* @__PURE__ */ import_react13.default.createElement("button", { className: "cfd-toggle", disabled: externalDiffBusy, onClick: openExternalDiff, title: t2("cfd.externalDiffTitle") }, "\u2197")), applyError && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-error" }, applyError), /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-body" }, showFullFile ? /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, fullLoading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !fullLoading && fullContent && /* @__PURE__ */ import_react13.default.createElement("table", { className: "cfd-full-table" }, /* @__PURE__ */ import_react13.default.createElement("tbody", null, fullContent.split("\n").map((line, i) => /* @__PURE__ */ import_react13.default.createElement("tr", { key: i, className: "cfd-full-line" }, /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-full-ln" }, i + 1), /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-full-lc" }, /* @__PURE__ */ import_react13.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line, lang) } })))))), !fullLoading && !fullContent && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, "Erreur : impossible de charger le fichier")) : /* @__PURE__ */ import_react13.default.createElement(import_react13.default.Fragment, null, loading && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !loading && hunks.length === 0 && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-loading" }, t2("compare.noDiff")), !loading && hunks.map((hunk, hi) => {
+    ), externalDiffTool && /* @__PURE__ */ import_react14.default.createElement("button", { className: "cfd-toggle", disabled: externalDiffBusy, onClick: openExternalDiff, title: t2("cfd.externalDiffTitle") }, "\u2197")), applyError && /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-error" }, applyError), /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-body" }, showFullFile ? /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, fullLoading && /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !fullLoading && fullContent && /* @__PURE__ */ import_react14.default.createElement("table", { className: "cfd-full-table" }, /* @__PURE__ */ import_react14.default.createElement("tbody", null, fullContent.split("\n").map((line, i) => /* @__PURE__ */ import_react14.default.createElement("tr", { key: i, className: "cfd-full-line" }, /* @__PURE__ */ import_react14.default.createElement("td", { className: "cfd-full-ln" }, i + 1), /* @__PURE__ */ import_react14.default.createElement("td", { className: "cfd-full-lc" }, /* @__PURE__ */ import_react14.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line, lang) } })))))), !fullLoading && !fullContent && /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-loading" }, "Erreur : impossible de charger le fichier")) : /* @__PURE__ */ import_react14.default.createElement(import_react14.default.Fragment, null, loading && /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-loading" }, t2("common.loading")), !loading && hunks.length === 0 && /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-loading" }, t2("compare.noDiff")), !loading && hunks.map((hunk, hi) => {
       const changeableKeys = hunk.lines.filter((l) => l.type !== "context").map(lineKey);
       const allHunkSelected = changeableKeys.length > 0 && changeableKeys.every((k) => selectedLines.has(k));
-      return /* @__PURE__ */ import_react13.default.createElement("div", { key: hi, className: "cfd-hunk" }, /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-hunk-header" }, /* @__PURE__ */ import_react13.default.createElement("span", null, hunk.header), isWorking && /* @__PURE__ */ import_react13.default.createElement("div", { className: "cfd-hunk-actions" }, /* @__PURE__ */ import_react13.default.createElement(
+      return /* @__PURE__ */ import_react14.default.createElement("div", { key: hi, className: "cfd-hunk" }, /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-hunk-header" }, /* @__PURE__ */ import_react14.default.createElement("span", null, hunk.header), isWorking && /* @__PURE__ */ import_react14.default.createElement("div", { className: "cfd-hunk-actions" }, /* @__PURE__ */ import_react14.default.createElement(
         "button",
         {
           className: `cfd-hunk-select ${allHunkSelected ? "active" : ""}`,
@@ -67378,7 +67525,7 @@ ${lineStrings.join("\n")}
         },
         allHunkSelected ? "\u2611" : "\u2610",
         " Bloc"
-      ), /* @__PURE__ */ import_react13.default.createElement(
+      ), /* @__PURE__ */ import_react14.default.createElement(
         "button",
         {
           className: "cfd-hunk-apply",
@@ -67389,21 +67536,21 @@ ${lineStrings.join("\n")}
         actionLabel,
         " le bloc",
         isStaged ? "" : " \u25B8"
-      ))), /* @__PURE__ */ import_react13.default.createElement("table", { className: "cfd-diff-table" }, /* @__PURE__ */ import_react13.default.createElement("tbody", null, hunk.lines.map((line, li) => {
+      ))), /* @__PURE__ */ import_react14.default.createElement("table", { className: "cfd-diff-table" }, /* @__PURE__ */ import_react14.default.createElement("tbody", null, hunk.lines.map((line, li) => {
         const k = lineKey(line);
         const isSelected = selectedLines.has(k);
         const isChangeable = line.type !== "context";
-        return /* @__PURE__ */ import_react13.default.createElement(
+        return /* @__PURE__ */ import_react14.default.createElement(
           "tr",
           {
             key: li,
             className: `cfd-dl cfd-dl-${line.type} ${isSelected ? "cfd-dl--selected" : ""} ${isWorking && isChangeable ? "cfd-dl--selectable" : ""}`,
             onClick: isWorking && isChangeable ? () => toggleLine(line) : void 0
           },
-          /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-ln" }, line.type !== "add" ? line.oldLine : ""),
-          /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-ln" }, line.type !== "remove" ? line.newLine : ""),
-          /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-lm" }, line.type === "add" ? "+" : line.type === "remove" ? "\u2212" : " "),
-          /* @__PURE__ */ import_react13.default.createElement("td", { className: "cfd-lc" }, /* @__PURE__ */ import_react13.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line.content, lang) } }))
+          /* @__PURE__ */ import_react14.default.createElement("td", { className: "cfd-ln" }, line.type !== "add" ? line.oldLine : ""),
+          /* @__PURE__ */ import_react14.default.createElement("td", { className: "cfd-ln" }, line.type !== "remove" ? line.newLine : ""),
+          /* @__PURE__ */ import_react14.default.createElement("td", { className: "cfd-lm" }, line.type === "add" ? "+" : line.type === "remove" ? "\u2212" : " "),
+          /* @__PURE__ */ import_react14.default.createElement("td", { className: "cfd-lc" }, /* @__PURE__ */ import_react14.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line.content, lang) } }))
         );
       }))));
     }))));
@@ -67411,8 +67558,8 @@ ${lineStrings.join("\n")}
 
   // ../src/renderer/src/components/StagingEditor/StagingEditor.tsx
   function StagingEditor({ file }) {
-    const [area, setArea] = (0, import_react14.useState)("unstaged");
-    return /* @__PURE__ */ import_react14.default.createElement(
+    const [area, setArea] = (0, import_react15.useState)("unstaged");
+    return /* @__PURE__ */ import_react15.default.createElement(
       CenterFileDiff,
       {
         target: { type: "working", filePath: file, area },
@@ -67422,7 +67569,7 @@ ${lineStrings.join("\n")}
   }
 
   // ../src/renderer/src/components/RebaseProgress/RebaseProgress.tsx
-  var import_react15 = __toESM(require_react());
+  var import_react16 = __toESM(require_react());
   var api = new Proxy({}, { get: (_t, p) => window.gitAPI?.[p] });
   var EDITABLE_ACTIONS = ["pick", "reword", "edit", "squash", "fixup", "drop"];
   var SHORTCUT_KEYS = {
@@ -67447,16 +67594,16 @@ ${lineStrings.join("\n")}
   function RebaseProgress() {
     const toast = useToast();
     const { t: t2 } = useLang();
-    const [state, setState] = (0, import_react15.useState)(null);
-    const [busy, setBusy] = (0, import_react15.useState)(false);
-    const [todoEdits, setTodoEdits] = (0, import_react15.useState)([]);
-    const [groupMessages, setGroupMessages] = (0, import_react15.useState)({});
-    const [conflictFilter, setConflictFilter] = (0, import_react15.useState)("");
-    const dragIndex = (0, import_react15.useRef)(null);
-    const [dragOver, setDragOver] = (0, import_react15.useState)(null);
-    const conflictsRef = (0, import_react15.useRef)(null);
-    const sawRebase = (0, import_react15.useRef)(false);
-    const load = (0, import_react15.useCallback)(async () => {
+    const [state, setState] = (0, import_react16.useState)(null);
+    const [busy, setBusy] = (0, import_react16.useState)(false);
+    const [todoEdits, setTodoEdits] = (0, import_react16.useState)([]);
+    const [groupMessages, setGroupMessages] = (0, import_react16.useState)({});
+    const [conflictFilter, setConflictFilter] = (0, import_react16.useState)("");
+    const dragIndex = (0, import_react16.useRef)(null);
+    const [dragOver, setDragOver] = (0, import_react16.useState)(null);
+    const conflictsRef = (0, import_react16.useRef)(null);
+    const sawRebase = (0, import_react16.useRef)(false);
+    const load = (0, import_react16.useCallback)(async () => {
       try {
         const s = await api.getRebaseState();
         if (s?.inProgress)
@@ -67470,10 +67617,10 @@ ${lineStrings.join("\n")}
       } catch {
       }
     }, []);
-    (0, import_react15.useEffect)(() => {
+    (0, import_react16.useEffect)(() => {
       load();
     }, [load]);
-    (0, import_react15.useEffect)(() => {
+    (0, import_react16.useEffect)(() => {
       api.onRepoChanged(load);
       api.onWorkingChanged(load);
       return () => {
@@ -67481,17 +67628,17 @@ ${lineStrings.join("\n")}
         api.offWorkingChanged(load);
       };
     }, [load]);
-    const groups = (0, import_react15.useMemo)(() => computeMessageGroups(
+    const groups = (0, import_react16.useMemo)(() => computeMessageGroups(
       todoEdits.map((s) => ({ action: s.action, hash: s.hash, message: s.subject }))
     ), [todoEdits]);
-    const messageGroupByLastIndex = (0, import_react15.useMemo)(() => {
+    const messageGroupByLastIndex = (0, import_react16.useMemo)(() => {
       const map = /* @__PURE__ */ new Map();
       for (const g of groups)
         if (g.needsMessage)
           map.set(g.lastMemberIndex, g);
       return map;
     }, [groups]);
-    const run = (0, import_react15.useCallback)(async (label, op) => {
+    const run = (0, import_react16.useCallback)(async (label, op) => {
       setBusy(true);
       try {
         const r = await op();
@@ -67504,7 +67651,7 @@ ${lineStrings.join("\n")}
         await load();
       }
     }, [toast, load]);
-    const handleContinue = (0, import_react15.useCallback)(() => run(t2("rp.continued"), async () => {
+    const handleContinue = (0, import_react16.useCallback)(() => run(t2("rp.continued"), async () => {
       const needsMessageGroups = groups.filter((g) => g.needsMessage);
       for (const g of needsMessageGroups) {
         const msg = groupMessages[groupKey2(g)] ?? g.defaultMessage;
@@ -67520,14 +67667,14 @@ ${lineStrings.join("\n")}
       const messages = needsMessageGroups.map((g) => groupMessages[groupKey2(g)] ?? g.defaultMessage);
       return api.continueRebase(messages);
     }), [run, todoEdits, groups, groupMessages]);
-    const handleSkip = (0, import_react15.useCallback)(() => run(t2("rp.stepSkipped"), () => api.skipRebase()), [run]);
-    const handleAbort = (0, import_react15.useCallback)(async () => {
+    const handleSkip = (0, import_react16.useCallback)(() => run(t2("rp.stepSkipped"), () => api.skipRebase()), [run]);
+    const handleAbort = (0, import_react16.useCallback)(async () => {
       const confirmFn = api.uiConfirm ?? (async (m) => window.confirm(m));
       if (!await confirmFn(t2("rp.abortConfirm")))
         return;
       await run(t2("rp.aborted"), () => api.abortRebase());
     }, [run]);
-    (0, import_react15.useEffect)(() => {
+    (0, import_react16.useEffect)(() => {
       const onKeyDown = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
           e.preventDefault();
@@ -67538,13 +67685,13 @@ ${lineStrings.join("\n")}
       window.addEventListener("keydown", onKeyDown);
       return () => window.removeEventListener("keydown", onKeyDown);
     }, [busy, state, handleContinue]);
-    const handleOpenConflict = (0, import_react15.useCallback)((file) => {
+    const handleOpenConflict = (0, import_react16.useCallback)((file) => {
       if (api.openConflictResolver)
         api.openConflictResolver(file);
       else
         api.openConflict?.(file);
     }, []);
-    const scrollToConflicts = (0, import_react15.useCallback)(() => {
+    const scrollToConflicts = (0, import_react16.useCallback)(() => {
       conflictsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, []);
     const setTodoAction = (i, action) => {
@@ -67586,9 +67733,9 @@ ${lineStrings.join("\n")}
       setDragOver(null);
     };
     if (!state)
-      return /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-empty" }, t2("common.loading")));
+      return /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-empty" }, t2("common.loading")));
     if (!state.inProgress) {
-      return /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished" }, sawRebase.current ? /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-icon rp-ok" }, "\u2713"), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-title" }, t2("rp.finishedTitle")), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-sub" }, t2("rp.finishedSub"))) : /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-icon" }, "\u26A1"), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-title" }, t2("rp.noneTitle")), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-finished-sub" }, t2("rp.noneSub")))));
+      return /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-finished" }, sawRebase.current ? /* @__PURE__ */ import_react16.default.createElement(import_react16.default.Fragment, null, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-finished-icon rp-ok" }, "\u2713"), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-finished-title" }, t2("rp.finishedTitle")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-finished-sub" }, t2("rp.finishedSub"))) : /* @__PURE__ */ import_react16.default.createElement(import_react16.default.Fragment, null, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-finished-icon" }, "\u26A1"), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-finished-title" }, t2("rp.noneTitle")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-finished-sub" }, t2("rp.noneSub")))));
     }
     const doneSettled = state.done.slice(0, -1);
     const current = state.done[state.done.length - 1] ?? null;
@@ -67598,18 +67745,18 @@ ${lineStrings.join("\n")}
     const renderReadOnlyStep = (s, key, status) => {
       const isConflicted = status === "current" && hasConflicts;
       const variant = isConflicted ? "conflict" : status;
-      return /* @__PURE__ */ import_react15.default.createElement("div", { key, className: `rp-step rp-step--${status} rp-step--${variant}` }, /* @__PURE__ */ import_react15.default.createElement("span", { className: `rp-step-dot rp-step-dot--${variant}` }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-action", style: { color: ACTION_COLORS2[s.action] ?? "#8b949e" } }, s.action), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-subject" }, s.subject), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-spring" }), s.date && /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-date" }, s.date), s.shortHash && /* @__PURE__ */ import_react15.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", s.shortHash));
+      return /* @__PURE__ */ import_react16.default.createElement("div", { key, className: `rp-step rp-step--${status} rp-step--${variant}` }, /* @__PURE__ */ import_react16.default.createElement("span", { className: `rp-step-dot rp-step-dot--${variant}` }), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-action", style: { color: ACTION_COLORS2[s.action] ?? "#8b949e" } }, s.action), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-subject" }, s.subject), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-spring" }), s.date && /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-date" }, s.date), s.shortHash && /* @__PURE__ */ import_react16.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", s.shortHash));
     };
-    return /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-title" }, t2("rp.title"))), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-header-refs" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-chip" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-icon" }, "\u2442"), state.headName || t2("rp.detachedHead")), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-onto" }, "onto"), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-chip rp-ref-chip--commit" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-ref-icon" }, "\u25C8"), state.ontoShort), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-header-spring" }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-counter" }, state.stepCurrent, "/", state.stepTotal, " commits"))), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-progressbar" }, /* @__PURE__ */ import_react15.default.createElement(
+    return /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-title" }, t2("rp.title"))), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header-refs" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-chip" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-icon" }, "\u2442"), state.headName || t2("rp.detachedHead")), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-onto" }, "onto"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-chip rp-ref-chip--commit" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-icon" }, "\u25C8"), state.ontoShort), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-header-spring" }), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-counter" }, state.stepCurrent, "/", state.stepTotal, " commits"))), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-progressbar" }, /* @__PURE__ */ import_react16.default.createElement(
       "div",
       {
         className: "rp-progressbar-fill",
         style: { width: `${state.stepTotal ? Math.round(state.stepCurrent / state.stepTotal * 100) : 0}%` }
       }
-    )), current && /* @__PURE__ */ import_react15.default.createElement("div", { className: `rp-banner ${hasConflicts ? "rp-banner--conflict" : ""}` }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-icon" }, hasConflicts ? "\u26A0\uFE0F" : "\u23F8"), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-text" }, hasConflicts ? /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, t2("rp.bannerConflictPre"), /* @__PURE__ */ import_react15.default.createElement("code", null, current.shortHash || state.stoppedSha?.slice(0, 7))) : /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, t2("rp.bannerStoppedPre"), /* @__PURE__ */ import_react15.default.createElement("code", null, current.shortHash || state.stoppedSha?.slice(0, 7)), " \u2014 ", pauseReason)), hasConflicts && /* @__PURE__ */ import_react15.default.createElement("button", { className: "rp-banner-link", onClick: scrollToConflicts }, t2("rp.showConflicts")), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-spring" }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-banner-count" }, "(", state.stepCurrent, "/", state.stepTotal, ") ", t2("rp.remaining", state.conflicts.length))), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-steps" }, doneSettled.map((s, i) => renderReadOnlyStep(s, `d${i}`, "done")), current && renderReadOnlyStep(current, "current", "current"), todoEdits.map((s, i) => {
+    )), current && /* @__PURE__ */ import_react16.default.createElement("div", { className: `rp-banner ${hasConflicts ? "rp-banner--conflict" : ""}` }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-banner-icon" }, hasConflicts ? "\u26A0\uFE0F" : "\u23F8"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-banner-text" }, hasConflicts ? /* @__PURE__ */ import_react16.default.createElement(import_react16.default.Fragment, null, t2("rp.bannerConflictPre"), /* @__PURE__ */ import_react16.default.createElement("code", null, current.shortHash || state.stoppedSha?.slice(0, 7))) : /* @__PURE__ */ import_react16.default.createElement(import_react16.default.Fragment, null, t2("rp.bannerStoppedPre"), /* @__PURE__ */ import_react16.default.createElement("code", null, current.shortHash || state.stoppedSha?.slice(0, 7)), " \u2014 ", pauseReason)), hasConflicts && /* @__PURE__ */ import_react16.default.createElement("button", { className: "rp-banner-link", onClick: scrollToConflicts }, t2("rp.showConflicts")), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-banner-spring" }), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-banner-count" }, "(", state.stepCurrent, "/", state.stepTotal, ") ", t2("rp.remaining", state.conflicts.length))), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-steps" }, doneSettled.map((s, i) => renderReadOnlyStep(s, `d${i}`, "done")), current && renderReadOnlyStep(current, "current", "current"), todoEdits.map((s, i) => {
       const msgGroup = messageGroupByLastIndex.get(i);
       const key = msgGroup ? groupKey2(msgGroup) : "";
-      return /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, { key: s.hash || `t${i}` }, /* @__PURE__ */ import_react15.default.createElement(
+      return /* @__PURE__ */ import_react16.default.createElement(import_react16.default.Fragment, { key: s.hash || `t${i}` }, /* @__PURE__ */ import_react16.default.createElement(
         "div",
         {
           className: `rp-step rp-step--editable ${dragOver === i ? "drag-over" : ""}`,
@@ -67621,8 +67768,8 @@ ${lineStrings.join("\n")}
           onDragEnd: () => setDragOver(null),
           onKeyDown: (e) => handleRowKeyDown(e, i)
         },
-        /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-drag", title: t2("rp.dragTitle") }, "\u283F"),
-        s.hash ? /* @__PURE__ */ import_react15.default.createElement(import_react15.default.Fragment, null, /* @__PURE__ */ import_react15.default.createElement(
+        /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-drag", title: t2("rp.dragTitle") }, "\u283F"),
+        s.hash ? /* @__PURE__ */ import_react16.default.createElement(import_react16.default.Fragment, null, /* @__PURE__ */ import_react16.default.createElement(
           "select",
           {
             className: "rp-step-select",
@@ -67630,9 +67777,9 @@ ${lineStrings.join("\n")}
             onChange: (e) => setTodoAction(i, e.target.value),
             style: { color: ACTION_COLORS2[s.action] ?? "#e6edf3" }
           },
-          EDITABLE_ACTIONS.map((a) => /* @__PURE__ */ import_react15.default.createElement("option", { key: a, value: a }, a))
-        ), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-subject" }, s.subject), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-spring" }), s.date && /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-step-date" }, s.date), /* @__PURE__ */ import_react15.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", s.shortHash)) : /* @__PURE__ */ import_react15.default.createElement("code", { className: "rp-step-directive" }, s.action, s.subject ? ` ${s.subject}` : "")
-      ), msgGroup && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-msg-editor" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-msg-editor-label" }, t2("rp.finalMessage", msgGroup.memberIndexes.length)), /* @__PURE__ */ import_react15.default.createElement(
+          EDITABLE_ACTIONS.map((a) => /* @__PURE__ */ import_react16.default.createElement("option", { key: a, value: a }, a))
+        ), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-subject" }, s.subject), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-spring" }), s.date && /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-date" }, s.date), /* @__PURE__ */ import_react16.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", s.shortHash)) : /* @__PURE__ */ import_react16.default.createElement("code", { className: "rp-step-directive" }, s.action, s.subject ? ` ${s.subject}` : "")
+      ), msgGroup && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-msg-editor" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-msg-editor-label" }, t2("rp.finalMessage", msgGroup.memberIndexes.length)), /* @__PURE__ */ import_react16.default.createElement(
         "textarea",
         {
           className: "rp-msg-textarea",
@@ -67642,7 +67789,7 @@ ${lineStrings.join("\n")}
           spellCheck: false
         }
       )));
-    }), state.done.length === 0 && state.todo.length === 0 && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-empty" }, t2("rp.nonInteractive", state.stepCurrent, state.stepTotal))), hasConflicts && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-conflicts-section", ref: conflictsRef }, /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-conflicts-header" }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflicts-title" }, t2("rp.conflictCount", state.conflicts.length))), /* @__PURE__ */ import_react15.default.createElement(
+    }), state.done.length === 0 && state.todo.length === 0 && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-empty" }, t2("rp.nonInteractive", state.stepCurrent, state.stepTotal))), hasConflicts && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-conflicts-section", ref: conflictsRef }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-conflicts-header" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-conflicts-title" }, t2("rp.conflictCount", state.conflicts.length))), /* @__PURE__ */ import_react16.default.createElement(
       "input",
       {
         className: "rp-conflicts-filter",
@@ -67650,7 +67797,7 @@ ${lineStrings.join("\n")}
         value: conflictFilter,
         onChange: (e) => setConflictFilter(e.target.value)
       }
-    ), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-conflicts-list" }, filteredConflicts.map((f) => /* @__PURE__ */ import_react15.default.createElement("button", { key: f, className: "rp-conflict-file", title: t2("rp.openToResolve"), onClick: () => handleOpenConflict(f) }, /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflict-badge" }, "!"), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflict-path" }, f), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflict-spring" }), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-conflict-status" }, "UU"))), filteredConflicts.length === 0 && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-empty", style: { padding: "12px 18px" } }, t2("rp.noMatch")))), todoEdits.some((s) => s.hash) && /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-legend" }, /* @__PURE__ */ import_react15.default.createElement("kbd", null, "p"), "ick \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "r"), "eword \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "e"), "dit \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "s"), "quash \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "f"), "ixup \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "d"), "rop \xB7 ", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "alt"), "+", /* @__PURE__ */ import_react15.default.createElement("kbd", null, "\u2191\u2193"), " ", t2("rp.legendMove")), /* @__PURE__ */ import_react15.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react15.default.createElement("button", { className: "rp-btn rp-btn--abort", disabled: busy, onClick: handleAbort }, t2("rp.abort")), /* @__PURE__ */ import_react15.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react15.default.createElement("button", { className: "rp-btn", disabled: busy, onClick: handleSkip, title: t2("rp.skipTitle") }, t2("rp.skip")), /* @__PURE__ */ import_react15.default.createElement(
+    ), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-conflicts-list" }, filteredConflicts.map((f) => /* @__PURE__ */ import_react16.default.createElement("button", { key: f, className: "rp-conflict-file", title: t2("rp.openToResolve"), onClick: () => handleOpenConflict(f) }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-conflict-badge" }, "!"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-conflict-path" }, f), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-conflict-spring" }), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-conflict-status" }, "UU"))), filteredConflicts.length === 0 && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-empty", style: { padding: "12px 18px" } }, t2("rp.noMatch")))), todoEdits.some((s) => s.hash) && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-legend" }, /* @__PURE__ */ import_react16.default.createElement("kbd", null, "p"), "ick \xB7 ", /* @__PURE__ */ import_react16.default.createElement("kbd", null, "r"), "eword \xB7 ", /* @__PURE__ */ import_react16.default.createElement("kbd", null, "e"), "dit \xB7 ", /* @__PURE__ */ import_react16.default.createElement("kbd", null, "s"), "quash \xB7 ", /* @__PURE__ */ import_react16.default.createElement("kbd", null, "f"), "ixup \xB7 ", /* @__PURE__ */ import_react16.default.createElement("kbd", null, "d"), "rop \xB7 ", /* @__PURE__ */ import_react16.default.createElement("kbd", null, "alt"), "+", /* @__PURE__ */ import_react16.default.createElement("kbd", null, "\u2191\u2193"), " ", t2("rp.legendMove")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react16.default.createElement("button", { className: "rp-btn rp-btn--abort", disabled: busy, onClick: handleAbort }, t2("rp.abort")), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react16.default.createElement("button", { className: "rp-btn", disabled: busy, onClick: handleSkip, title: t2("rp.skipTitle") }, t2("rp.skip")), /* @__PURE__ */ import_react16.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn--continue",
@@ -67663,7 +67810,7 @@ ${lineStrings.join("\n")}
   }
 
   // src/webview/RebaseTodoApp.tsx
-  var import_react16 = __toESM(require_react());
+  var import_react17 = __toESM(require_react());
   var ACTIONS2 = ["pick", "reword", "edit", "squash", "fixup", "drop"];
   var SHORTCUT_KEYS2 = {
     p: "pick",
@@ -67728,14 +67875,14 @@ ${lineStrings.join("\n")}
   }
   function RebaseTodoApp() {
     const { t: t2 } = useLang();
-    const [entries, setEntries] = (0, import_react16.useState)([]);
-    const [loading, setLoading] = (0, import_react16.useState)(true);
-    const [error, setError] = (0, import_react16.useState)(null);
-    const [headName, setHeadName] = (0, import_react16.useState)("");
-    const [ontoShort, setOntoShort] = (0, import_react16.useState)("");
-    const dragIndex = (0, import_react16.useRef)(null);
-    const [dragOver, setDragOver] = (0, import_react16.useState)(null);
-    (0, import_react16.useEffect)(() => {
+    const [entries, setEntries] = (0, import_react17.useState)([]);
+    const [loading, setLoading] = (0, import_react17.useState)(true);
+    const [error, setError] = (0, import_react17.useState)(null);
+    const [headName, setHeadName] = (0, import_react17.useState)("");
+    const [ontoShort, setOntoShort] = (0, import_react17.useState)("");
+    const dragIndex = (0, import_react17.useRef)(null);
+    const [dragOver, setDragOver] = (0, import_react17.useState)(null);
+    (0, import_react17.useEffect)(() => {
       window.gitAPI.todoGet().then((r) => {
         setEntries(parseTodo(r?.text ?? ""));
         setLoading(false);
@@ -67795,7 +67942,7 @@ ${lineStrings.join("\n")}
     };
     const commits = entries.filter((e) => e.kind === "commit");
     const firstKeptIndex = entries.findIndex((e) => e.kind === "commit" && e.action !== "drop");
-    const handleLaunch = (0, import_react16.useCallback)(async () => {
+    const handleLaunch = (0, import_react17.useCallback)(async () => {
       const firstKept = entries.find((e) => e.kind === "commit" && e.action !== "drop");
       if (firstKept && (firstKept.action === "squash" || firstKept.action === "fixup")) {
         setError(t2("ir.firstKept"));
@@ -67804,12 +67951,12 @@ ${lineStrings.join("\n")}
       setError(null);
       await window.gitAPI.todoSave(serializeTodo(entries));
     }, [entries]);
-    const handleAbort = (0, import_react16.useCallback)(async () => {
+    const handleAbort = (0, import_react17.useCallback)(async () => {
       const ok = await window.gitAPI.uiConfirm("Abandonner le rebase interactif ?");
       if (ok)
         await window.gitAPI.todoAbort();
     }, []);
-    return /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-title" }, "\u26A1 Rebase interactif")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-header-refs" }, headName && /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-chip" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-icon" }, "\u2442"), headName), headName && ontoShort && /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-onto" }, "onto"), ontoShort && /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-chip rp-ref-chip--commit" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-ref-icon" }, "\u25C8"), ontoShort), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-header-spring" }), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-counter" }, commits.length, " commit", commits.length > 1 ? "s" : ""))), error && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-banner rp-banner--conflict" }, /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-banner-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-banner-text" }, error)), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-steps" }, loading && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-empty" }, t2("ext.rebase.empty")), entries.map((entry, i) => /* @__PURE__ */ import_react16.default.createElement(
+    return /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-title" }, "\u26A1 Rebase interactif")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-header-refs" }, headName && /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-ref-chip" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-ref-icon" }, "\u2442"), headName), headName && ontoShort && /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-ref-onto" }, "onto"), ontoShort && /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-ref-chip rp-ref-chip--commit" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-ref-icon" }, "\u25C8"), ontoShort), /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-header-spring" }), /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-counter" }, commits.length, " commit", commits.length > 1 ? "s" : ""))), error && /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-banner rp-banner--conflict" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-banner-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-banner-text" }, error)), /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-steps" }, loading && /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-empty" }, "Chargement\u2026"), !loading && entries.length === 0 && /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-empty" }, t2("ext.rebase.empty")), entries.map((entry, i) => /* @__PURE__ */ import_react17.default.createElement(
       "div",
       {
         key: entry.id,
@@ -67822,8 +67969,8 @@ ${lineStrings.join("\n")}
         onDragEnd: () => setDragOver(null),
         onKeyDown: (e) => handleRowKeyDown(e, i)
       },
-      /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-drag", title: t2("ext.rebase.drag") }, "\u283F"),
-      entry.kind === "commit" ? /* @__PURE__ */ import_react16.default.createElement(import_react16.default.Fragment, null, /* @__PURE__ */ import_react16.default.createElement(
+      /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-step-drag", title: t2("ext.rebase.drag") }, "\u283F"),
+      entry.kind === "commit" ? /* @__PURE__ */ import_react17.default.createElement(import_react17.default.Fragment, null, /* @__PURE__ */ import_react17.default.createElement(
         "select",
         {
           className: "rp-step-select",
@@ -67831,7 +67978,7 @@ ${lineStrings.join("\n")}
           onChange: (e) => setAction(i, e.target.value),
           style: { color: ACTION_COLORS3[entry.action] ?? "#e6edf3" }
         },
-        ACTIONS2.map((a) => /* @__PURE__ */ import_react16.default.createElement(
+        ACTIONS2.map((a) => /* @__PURE__ */ import_react17.default.createElement(
           "option",
           {
             key: a,
@@ -67840,12 +67987,12 @@ ${lineStrings.join("\n")}
           },
           a
         ))
-      ), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-subject" }, entry.rest.replace(/^#\s*/, "")), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-step-spring" }), /* @__PURE__ */ import_react16.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", entry.shortHash)) : /* @__PURE__ */ import_react16.default.createElement("code", { className: "rp-step-directive" }, entry.raw)
-    ))), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-legend" }, t2("ext.rebase.help")), /* @__PURE__ */ import_react16.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react16.default.createElement("button", { className: "rp-btn rp-btn--abort", onClick: handleAbort }, "Abandonner"), /* @__PURE__ */ import_react16.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react16.default.createElement("button", { className: "rp-btn rp-btn--continue", onClick: handleLaunch, disabled: loading || entries.length === 0 }, "\u26A1 Lancer le rebase")));
+      ), /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-step-subject" }, entry.rest.replace(/^#\s*/, "")), /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-step-spring" }), /* @__PURE__ */ import_react17.default.createElement("code", { className: "rp-step-hash" }, "\u25C8 ", entry.shortHash)) : /* @__PURE__ */ import_react17.default.createElement("code", { className: "rp-step-directive" }, entry.raw)
+    ))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-legend" }, t2("ext.rebase.help")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react17.default.createElement("button", { className: "rp-btn rp-btn--abort", onClick: handleAbort }, "Abandonner"), /* @__PURE__ */ import_react17.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react17.default.createElement("button", { className: "rp-btn rp-btn--continue", onClick: handleLaunch, disabled: loading || entries.length === 0 }, "\u26A1 Lancer le rebase")));
   }
 
   // ../src/renderer/src/components/ConflictResolver/ConflictResolver.tsx
-  var import_react17 = __toESM(require_react());
+  var import_react18 = __toESM(require_react());
   function matchesAt(propLines, pos, candidate) {
     if (pos + candidate.length > propLines.length)
       return false;
@@ -67898,17 +68045,17 @@ ${lineStrings.join("\n")}
     const { t: t2 } = useLang();
     const { get } = useSettings();
     const externalMergeTool = get("externalMergeTool", "");
-    const [chunks, setChunks] = (0, import_react17.useState)([]);
-    const [selections, setSelections] = (0, import_react17.useState)({});
-    const [manualOutput, setManualOutput] = (0, import_react17.useState)(null);
-    const [loading, setLoading] = (0, import_react17.useState)(true);
-    const [externalMergePath, setExternalMergePath] = (0, import_react17.useState)(null);
-    const [externalMergeBusy, setExternalMergeBusy] = (0, import_react17.useState)(false);
-    const [aiInstruction, setAiInstruction] = (0, import_react17.useState)("");
-    const [aiBusy, setAiBusy] = (0, import_react17.useState)(false);
-    const [aiExplanation, setAiExplanation] = (0, import_react17.useState)(null);
-    const [sides, setSides] = (0, import_react17.useState)(null);
-    (0, import_react17.useEffect)(() => {
+    const [chunks, setChunks] = (0, import_react18.useState)([]);
+    const [selections, setSelections] = (0, import_react18.useState)({});
+    const [manualOutput, setManualOutput] = (0, import_react18.useState)(null);
+    const [loading, setLoading] = (0, import_react18.useState)(true);
+    const [externalMergePath, setExternalMergePath] = (0, import_react18.useState)(null);
+    const [externalMergeBusy, setExternalMergeBusy] = (0, import_react18.useState)(false);
+    const [aiInstruction, setAiInstruction] = (0, import_react18.useState)("");
+    const [aiBusy, setAiBusy] = (0, import_react18.useState)(false);
+    const [aiExplanation, setAiExplanation] = (0, import_react18.useState)(null);
+    const [sides, setSides] = (0, import_react18.useState)(null);
+    (0, import_react18.useEffect)(() => {
       ;
       window.gitAPI.getConflictSides?.().then((s) => {
         if (s?.ours || s?.theirs)
@@ -67963,12 +68110,12 @@ ${lineStrings.join("\n")}
         setExternalMergeBusy(false);
       }
     };
-    const oursRef = import_react17.default.useRef(null);
-    const theirsRef = import_react17.default.useRef(null);
-    const isSyncing = import_react17.default.useRef(false);
-    const loadedRawRef = import_react17.default.useRef(null);
-    const userEditedRef = import_react17.default.useRef(false);
-    const load = import_react17.default.useCallback((applyProposal) => {
+    const oursRef = import_react18.default.useRef(null);
+    const theirsRef = import_react18.default.useRef(null);
+    const isSyncing = import_react18.default.useRef(false);
+    const loadedRawRef = import_react18.default.useRef(null);
+    const userEditedRef = import_react18.default.useRef(false);
+    const load = import_react18.default.useCallback((applyProposal) => {
       setLoading(true);
       setManualOutput(null);
       Promise.all([
@@ -68082,11 +68229,11 @@ ${lineStrings.join("\n")}
         setLoading(false);
       });
     }, [file, initialProposal]);
-    (0, import_react17.useEffect)(() => {
+    (0, import_react18.useEffect)(() => {
       userEditedRef.current = false;
       load(true);
     }, [load]);
-    (0, import_react17.useEffect)(() => {
+    (0, import_react18.useEffect)(() => {
       const handler = async () => {
         const r = await window.gitAPI.getFileContent(file);
         if (r.error)
@@ -68116,7 +68263,7 @@ ${lineStrings.join("\n")}
         window.gitAPI.offRepoChanged(handler);
       };
     }, [file, load, showToast]);
-    const conflictIndexMap = (0, import_react17.useMemo)(() => {
+    const conflictIndexMap = (0, import_react18.useMemo)(() => {
       const map = {};
       let idx = 0;
       chunks.forEach((c) => {
@@ -68125,7 +68272,7 @@ ${lineStrings.join("\n")}
       });
       return map;
     }, [chunks]);
-    const outputLines = (0, import_react17.useMemo)(() => {
+    const outputLines = (0, import_react18.useMemo)(() => {
       const out = [];
       for (const c of chunks) {
         if (c.type === "common") {
@@ -68146,7 +68293,7 @@ ${lineStrings.join("\n")}
         out.pop();
       return out;
     }, [chunks, selections]);
-    const outputString = (0, import_react17.useMemo)(() => outputLines.map((l) => l.text).join("\n"), [outputLines]);
+    const outputString = (0, import_react18.useMemo)(() => outputLines.map((l) => l.text).join("\n"), [outputLines]);
     const currentOutput = manualOutput !== null ? manualOutput : outputString;
     const toggleLine = (chunkId, side, index) => {
       userEditedRef.current = true;
@@ -68241,10 +68388,10 @@ ${lineStrings.join("\n")}
         isSyncing.current = false;
       });
     };
-    const renderLines = (lines, startNum) => lines.map((l, i) => /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: "mt-line" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-num" }, startNum + i), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-content" }, l)));
+    const renderLines = (lines, startNum) => lines.map((l, i) => /* @__PURE__ */ import_react18.default.createElement("div", { key: i, className: "mt-line" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-line-num" }, startNum + i), /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-line-content" }, l)));
     const renderConflictLines = (lines, startNum, chunkId, side) => lines.map((l, i) => {
       const isIn = (selections[chunkId] ?? []).some((r) => r.side === side && r.index === i);
-      return /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: `mt-line mt-line-interactive${isIn ? " mt-line-in-output" : ""}` }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-num" }, startNum + i, /* @__PURE__ */ import_react17.default.createElement(
+      return /* @__PURE__ */ import_react18.default.createElement("div", { key: i, className: `mt-line mt-line-interactive${isIn ? " mt-line-in-output" : ""}` }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-line-num" }, startNum + i, /* @__PURE__ */ import_react18.default.createElement(
         "button",
         {
           className: `mt-line-action ${isIn ? "mt-line-action-remove" : "mt-line-action-add"}`,
@@ -68255,10 +68402,10 @@ ${lineStrings.join("\n")}
           }
         },
         isIn ? "\u2212" : "+"
-      )), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-content" }, l));
+      )), /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-line-content" }, l));
     });
     if (loading)
-      return /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-container" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-loading" }, "Chargement\u2026"));
+      return /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-container" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-loading" }, "Chargement\u2026"));
     const conflictChunks = chunks.filter((c) => c.type === "conflict");
     const resolvedCount = conflictChunks.filter((c) => (selections[c.id] ?? []).length > 0 || c.base.length > 0).length;
     const totalConflicts = conflictChunks.length;
@@ -68267,9 +68414,9 @@ ${lineStrings.join("\n")}
     const renderPanel = (side) => {
       const ref = side === "ours" ? oursRef : theirsRef;
       const isOurs = side === "ours";
-      return /* @__PURE__ */ import_react17.default.createElement("div", { className: `mt-pane ${isOurs ? "mt-ours-pane" : "mt-theirs-pane"}` }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-pane-header" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: `mt-badge ${isOurs ? "mt-badge-ours" : "mt-badge-theirs"}` }, isOurs ? "A" : "B"), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-pane-title", title: isOurs ? sides?.ours || oursGlobalName : sides?.theirs || theirsGlobalName }, isOurs ? sides?.ours || t2("cr.ours", oursGlobalName) : sides?.theirs || t2("cr.theirs", theirsGlobalName))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-pane-content", ref, onScroll: () => handleScroll(side) }, chunks.map((c, i) => {
+      return /* @__PURE__ */ import_react18.default.createElement("div", { className: `mt-pane ${isOurs ? "mt-ours-pane" : "mt-theirs-pane"}` }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-pane-header" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: `mt-badge ${isOurs ? "mt-badge-ours" : "mt-badge-theirs"}` }, isOurs ? "A" : "B"), /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-pane-title", title: isOurs ? sides?.ours || oursGlobalName : sides?.theirs || theirsGlobalName }, isOurs ? sides?.ours || t2("cr.ours", oursGlobalName) : sides?.theirs || t2("cr.theirs", theirsGlobalName))), /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-pane-content", ref, onScroll: () => handleScroll(side) }, chunks.map((c, i) => {
         if (c.type === "common") {
-          return /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: "mt-block-common" }, renderLines(c.lines, isOurs ? c.oursStartLine : c.theirsStartLine));
+          return /* @__PURE__ */ import_react18.default.createElement("div", { key: i, className: "mt-block-common" }, renderLines(c.lines, isOurs ? c.oursStartLine : c.theirsStartLine));
         }
         const maxLines = Math.max(c.ours.length, c.theirs.length, c.base.length);
         const sel = selections[c.id] ?? [];
@@ -68278,32 +68425,32 @@ ${lineStrings.join("\n")}
         const allIn = conflictLines.length > 0 && conflictLines.every((_, i2) => sel.some((r) => r.side === thisSide && r.index === i2));
         const noneSelected = sel.length === 0;
         const startLine = isOurs ? c.oursStartLine : c.theirsStartLine;
-        return /* @__PURE__ */ import_react17.default.createElement(
+        return /* @__PURE__ */ import_react18.default.createElement(
           "div",
           {
             key: i,
             className: `mt-block-conflict ${isOurs ? "mt-block-ours" : "mt-block-theirs"} ${allIn ? "selected" : ""}`,
             style: { minHeight: `${maxLines * 20 + 26}px` }
           },
-          /* @__PURE__ */ import_react17.default.createElement(
+          /* @__PURE__ */ import_react18.default.createElement(
             "div",
             {
               className: "mt-block-header",
               onClick: () => toggleBlock(c.id, side),
               style: { cursor: "pointer" }
             },
-            /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-conflict-num" }, "#", conflictIndexMap[c.id]),
-            sel.some((r) => r.side === thisSide) ? /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-selected-badge" }, t2("cr.linesBadge", sel.filter((r) => r.side === thisSide).length, conflictLines.length)) : noneSelected && c.base.length > 0 ? /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-base-hint" }, t2("cr.baseActive")) : /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-click-hint" }, t2("cr.clickHeader"))
+            /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-conflict-num" }, "#", conflictIndexMap[c.id]),
+            sel.some((r) => r.side === thisSide) ? /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-selected-badge" }, t2("cr.linesBadge", sel.filter((r) => r.side === thisSide).length, conflictLines.length)) : noneSelected && c.base.length > 0 ? /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-base-hint" }, t2("cr.baseActive")) : /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-click-hint" }, t2("cr.clickHeader"))
           ),
-          /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-block-text" }, renderConflictLines(conflictLines, startLine, c.id, side))
+          /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-block-text" }, renderConflictLines(conflictLines, startLine, c.id, side))
         );
       })));
     };
-    return /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-container" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-header" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-header-left" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-filename" }, file), /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-count" }, "(", totalConflicts, " conflict", totalConflicts > 1 ? "s" : "", ")")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-header-right" }, /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-all-a", onClick: () => selectAll("ours"), title: t2("cr.selectAllA") }, t2("cr.allA")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-all-b", onClick: () => selectAll("theirs"), title: t2("cr.selectAllB") }, t2("cr.allB")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn", onClick: async () => {
+    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-container" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-header" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-header-left" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "cr-warning" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-filename" }, file), /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-count" }, "(", totalConflicts, " conflict", totalConflicts > 1 ? "s" : "", ")")), /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-header-right" }, /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn mt-btn-all-a", onClick: () => selectAll("ours"), title: t2("cr.selectAllA") }, t2("cr.allA")), /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn mt-btn-all-b", onClick: () => selectAll("theirs"), title: t2("cr.selectAllB") }, t2("cr.allB")), /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn", onClick: async () => {
       const r = await window.gitAPI.openInEditor(file);
       if (!r.success)
         showToast(t2("toast.err", r.error ?? t2("cr.editorNotFound")), "err");
-    }, title: t2("cr.openExternalTitle") }, t2("cr.externalEditor")), externalMergeTool && (externalMergePath ? /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn", disabled: externalMergeBusy, onClick: loadExternalMergeResult, title: t2("cr.externalMergeLoadTitle") }, t2("cr.externalMergeLoad")) : /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn", disabled: externalMergeBusy, onClick: openExternalMergeTool, title: t2("cr.externalMergeOpenTitle") }, t2("cr.externalMergeOpen"))), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-abort", onClick: onAbort }, t2("cr.close")), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-save", onClick: handleSave }, t2("cr.saveResolve")))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-ai-bar" }, /* @__PURE__ */ import_react17.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor", className: "mt-ai-icon" }, /* @__PURE__ */ import_react17.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })), /* @__PURE__ */ import_react17.default.createElement(
+    }, title: t2("cr.openExternalTitle") }, t2("cr.externalEditor")), externalMergeTool && (externalMergePath ? /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn", disabled: externalMergeBusy, onClick: loadExternalMergeResult, title: t2("cr.externalMergeLoadTitle") }, t2("cr.externalMergeLoad")) : /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn", disabled: externalMergeBusy, onClick: openExternalMergeTool, title: t2("cr.externalMergeOpenTitle") }, t2("cr.externalMergeOpen"))), /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn mt-btn-abort", onClick: onAbort }, t2("cr.close")), /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn mt-btn-save", onClick: handleSave }, t2("cr.saveResolve")))), /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-ai-bar" }, /* @__PURE__ */ import_react18.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor", className: "mt-ai-icon" }, /* @__PURE__ */ import_react18.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" })), /* @__PURE__ */ import_react18.default.createElement(
       "input",
       {
         className: "mt-ai-input",
@@ -68317,7 +68464,7 @@ ${lineStrings.join("\n")}
         },
         disabled: aiBusy
       }
-    ), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-ai", onClick: runAiResolve, disabled: aiBusy }, aiBusy ? t2("cr.aiBusy") : manualOutput !== null ? t2("cr.aiRetry") : t2("cr.aiResolve"))), aiExplanation && /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-ai-explain" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-ai-explain-text" }, "\u{1F4AC} ", aiExplanation), /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-ai-explain-close", onClick: () => setAiExplanation(null) }, "\u2715")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-main" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-top" }, renderPanel("ours"), renderPanel("theirs")), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-bottom" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-pane-header" }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-pane-title" }, t2("cr.outputTitle", resolvedCount, totalConflicts)), manualOutput !== null ? /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-manual-badge" }, t2("cr.manualActive")) : /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(outputString) }, t2("cr.edit")), manualOutput !== null && /* @__PURE__ */ import_react17.default.createElement("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(null) }, t2("cr.cancelEdit"))), /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-output-wrapper" }, /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-output-line-numbers" }, (manualOutput !== null ? manualOutput.split("\n") : outputLines).map((_, i) => /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: "mt-line-num" }, i + 1))), manualOutput !== null ? /* @__PURE__ */ import_react17.default.createElement(
+    ), /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn mt-btn-ai", onClick: runAiResolve, disabled: aiBusy }, aiBusy ? t2("cr.aiBusy") : manualOutput !== null ? t2("cr.aiRetry") : t2("cr.aiResolve"))), aiExplanation && /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-ai-explain" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-ai-explain-text" }, "\u{1F4AC} ", aiExplanation), /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-ai-explain-close", onClick: () => setAiExplanation(null) }, "\u2715")), /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-main" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-top" }, renderPanel("ours"), renderPanel("theirs")), /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-bottom" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-pane-header" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-pane-title" }, t2("cr.outputTitle", resolvedCount, totalConflicts)), manualOutput !== null ? /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-manual-badge" }, t2("cr.manualActive")) : /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(outputString) }, t2("cr.edit")), manualOutput !== null && /* @__PURE__ */ import_react18.default.createElement("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(null) }, t2("cr.cancelEdit"))), /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-output-wrapper" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-output-line-numbers" }, (manualOutput !== null ? manualOutput.split("\n") : outputLines).map((_, i) => /* @__PURE__ */ import_react18.default.createElement("div", { key: i, className: "mt-line-num" }, i + 1))), manualOutput !== null ? /* @__PURE__ */ import_react18.default.createElement(
       "textarea",
       {
         className: "mt-output-editor",
@@ -68330,14 +68477,14 @@ ${lineStrings.join("\n")}
         wrap: "off",
         autoFocus: true
       }
-    ) : /* @__PURE__ */ import_react17.default.createElement("div", { className: "mt-output-lines" }, outputLines.map((l, i) => /* @__PURE__ */ import_react17.default.createElement("div", { key: i, className: `mt-line mt-output-line mt-output-line--${l.source}` }, /* @__PURE__ */ import_react17.default.createElement("span", { className: "mt-line-content" }, l.text || " "))))))));
+    ) : /* @__PURE__ */ import_react18.default.createElement("div", { className: "mt-output-lines" }, outputLines.map((l, i) => /* @__PURE__ */ import_react18.default.createElement("div", { key: i, className: `mt-line mt-output-line mt-output-line--${l.source}` }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "mt-line-content" }, l.text || " "))))))));
   }
 
   // ../src/renderer/src/components/FileHistory/FileHistory.tsx
-  var import_react19 = __toESM(require_react());
+  var import_react20 = __toESM(require_react());
 
   // ../src/renderer/src/components/DiffViewer/DiffViewer.tsx
-  var import_react18 = __toESM(require_react());
+  var import_react19 = __toESM(require_react());
   function parseDiff2(raw) {
     const files = [];
     const fileBlocks = raw.split(/^diff --git /m).filter(Boolean);
@@ -68448,10 +68595,10 @@ ${lineStrings.join("\n")}
   function FileList({ files }) {
     if (!files.length)
       return null;
-    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "file-list" }, files.map((f, i) => /* @__PURE__ */ import_react18.default.createElement("div", { key: i, className: "file-item" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: `file-status status-${f.status.toLowerCase()}` }, f.status), /* @__PURE__ */ import_react18.default.createElement("span", { className: "file-path" }, f.path), /* @__PURE__ */ import_react18.default.createElement("span", { className: "file-stats" }, f.additions > 0 && /* @__PURE__ */ import_react18.default.createElement("span", { className: "add-count" }, "+", f.additions), f.deletions > 0 && /* @__PURE__ */ import_react18.default.createElement("span", { className: "del-count" }, "-", f.deletions)))));
+    return /* @__PURE__ */ import_react19.default.createElement("div", { className: "file-list" }, files.map((f, i) => /* @__PURE__ */ import_react19.default.createElement("div", { key: i, className: "file-item" }, /* @__PURE__ */ import_react19.default.createElement("span", { className: `file-status status-${f.status.toLowerCase()}` }, f.status), /* @__PURE__ */ import_react19.default.createElement("span", { className: "file-path" }, f.path), /* @__PURE__ */ import_react19.default.createElement("span", { className: "file-stats" }, f.additions > 0 && /* @__PURE__ */ import_react19.default.createElement("span", { className: "add-count" }, "+", f.additions), f.deletions > 0 && /* @__PURE__ */ import_react19.default.createElement("span", { className: "del-count" }, "-", f.deletions)))));
   }
   function UnifiedHunk({ hunk, lang }) {
-    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "hunk" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "hunk-header" }, hunk.header), /* @__PURE__ */ import_react18.default.createElement("table", { className: "diff-table" }, /* @__PURE__ */ import_react18.default.createElement("tbody", null, hunk.lines.map((line, li) => /* @__PURE__ */ import_react18.default.createElement("tr", { key: li, className: `diff-line diff-${line.type}` }, /* @__PURE__ */ import_react18.default.createElement("td", { className: "line-num old" }, line.type !== "add" ? line.oldLine : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: "line-num new" }, line.type !== "remove" ? line.newLine : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: "line-marker" }, line.type === "add" ? "+" : line.type === "remove" ? "\u2212" : " "), /* @__PURE__ */ import_react18.default.createElement("td", { className: "line-content" }, /* @__PURE__ */ import_react18.default.createElement(
+    return /* @__PURE__ */ import_react19.default.createElement("div", { className: "hunk" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "hunk-header" }, hunk.header), /* @__PURE__ */ import_react19.default.createElement("table", { className: "diff-table" }, /* @__PURE__ */ import_react19.default.createElement("tbody", null, hunk.lines.map((line, li) => /* @__PURE__ */ import_react19.default.createElement("tr", { key: li, className: `diff-line diff-${line.type}` }, /* @__PURE__ */ import_react19.default.createElement("td", { className: "line-num old" }, line.type !== "add" ? line.oldLine : ""), /* @__PURE__ */ import_react19.default.createElement("td", { className: "line-num new" }, line.type !== "remove" ? line.newLine : ""), /* @__PURE__ */ import_react19.default.createElement("td", { className: "line-marker" }, line.type === "add" ? "+" : line.type === "remove" ? "\u2212" : " "), /* @__PURE__ */ import_react19.default.createElement("td", { className: "line-content" }, /* @__PURE__ */ import_react19.default.createElement(
       "code",
       {
         className: "hljs",
@@ -68460,21 +68607,21 @@ ${lineStrings.join("\n")}
     )))))));
   }
   function SplitHunk({ hunk, lang }) {
-    const rows = (0, import_react18.useMemo)(() => buildSplitRows(hunk.lines), [hunk.lines]);
-    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "hunk" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "hunk-header split-hunk-header" }, hunk.header), /* @__PURE__ */ import_react18.default.createElement("table", { className: "diff-table split-table" }, /* @__PURE__ */ import_react18.default.createElement("tbody", null, rows.map((row, ri) => {
+    const rows = (0, import_react19.useMemo)(() => buildSplitRows(hunk.lines), [hunk.lines]);
+    return /* @__PURE__ */ import_react19.default.createElement("div", { className: "hunk" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "hunk-header split-hunk-header" }, hunk.header), /* @__PURE__ */ import_react19.default.createElement("table", { className: "diff-table split-table" }, /* @__PURE__ */ import_react19.default.createElement("tbody", null, rows.map((row, ri) => {
       const leftType = row.left?.type ?? "empty";
       const rightType = row.right?.type ?? "empty";
-      return /* @__PURE__ */ import_react18.default.createElement("tr", { key: ri, className: "split-row" }, /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-num old split-num ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left?.type !== "add" ? row.left?.oldLine ?? "" : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-marker split-marker ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left ? row.left.type === "remove" ? "\u2212" : " " : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-content split-content ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left ? /* @__PURE__ */ import_react18.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: highlightCode(row.left.content, lang) } }) : null), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-num new split-num ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right?.type !== "remove" ? row.right?.newLine ?? "" : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-marker split-marker ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right ? row.right.type === "add" ? "+" : " " : ""), /* @__PURE__ */ import_react18.default.createElement("td", { className: `line-content split-content ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right ? /* @__PURE__ */ import_react18.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: highlightCode(row.right.content, lang) } }) : null));
+      return /* @__PURE__ */ import_react19.default.createElement("tr", { key: ri, className: "split-row" }, /* @__PURE__ */ import_react19.default.createElement("td", { className: `line-num old split-num ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left?.type !== "add" ? row.left?.oldLine ?? "" : ""), /* @__PURE__ */ import_react19.default.createElement("td", { className: `line-marker split-marker ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left ? row.left.type === "remove" ? "\u2212" : " " : ""), /* @__PURE__ */ import_react19.default.createElement("td", { className: `line-content split-content ${leftType === "remove" ? "diff-remove" : leftType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.left ? /* @__PURE__ */ import_react19.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: highlightCode(row.left.content, lang) } }) : null), /* @__PURE__ */ import_react19.default.createElement("td", { className: `line-num new split-num ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right?.type !== "remove" ? row.right?.newLine ?? "" : ""), /* @__PURE__ */ import_react19.default.createElement("td", { className: `line-marker split-marker ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right ? row.right.type === "add" ? "+" : " " : ""), /* @__PURE__ */ import_react19.default.createElement("td", { className: `line-content split-content ${rightType === "add" ? "diff-add" : rightType === "context" ? "diff-context" : "diff-empty-cell"}` }, row.right ? /* @__PURE__ */ import_react19.default.createElement("code", { className: "hljs", dangerouslySetInnerHTML: { __html: highlightCode(row.right.content, lang) } }) : null));
     }))));
   }
   function DiffViewer({ commit, diff, files, loading, headerLabel }) {
     const { t: t2 } = useLang();
-    const [viewMode, setViewMode] = (0, import_react18.useState)("unified");
-    const parsedDiff = (0, import_react18.useMemo)(() => parseDiff2(diff), [diff]);
+    const [viewMode, setViewMode] = (0, import_react19.useState)("unified");
+    const parsedDiff = (0, import_react19.useMemo)(() => parseDiff2(diff), [diff]);
     if (!commit && !headerLabel) {
-      return /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-empty" }, /* @__PURE__ */ import_react18.default.createElement("svg", { width: "48", height: "48", viewBox: "0 0 16 16", fill: "#484f58" }, /* @__PURE__ */ import_react18.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react18.default.createElement("p", null, t2("dv.selectCommit")));
+      return /* @__PURE__ */ import_react19.default.createElement("div", { className: "diff-empty" }, /* @__PURE__ */ import_react19.default.createElement("svg", { width: "48", height: "48", viewBox: "0 0 16 16", fill: "#484f58" }, /* @__PURE__ */ import_react19.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react19.default.createElement("p", null, t2("dv.selectCommit")));
     }
-    return /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-viewer" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-header" }, commit ? /* @__PURE__ */ import_react18.default.createElement(import_react18.default.Fragment, null, /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-hash-badge", style: { background: "#1f6feb22", borderColor: "#1f6feb44" } }, /* @__PURE__ */ import_react18.default.createElement("code", null, commit.shortHash)), /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-meta" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-title" }, commit.message), /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-sub" }, /* @__PURE__ */ import_react18.default.createElement("span", null, commit.author), /* @__PURE__ */ import_react18.default.createElement("span", { className: "dot" }, "\xB7"), /* @__PURE__ */ import_react18.default.createElement("span", null, new Date(commit.date).toLocaleString("fr-FR"))))) : /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-meta" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "commit-title" }, headerLabel)), /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-view-toggle" }, /* @__PURE__ */ import_react18.default.createElement(
+    return /* @__PURE__ */ import_react19.default.createElement("div", { className: "diff-viewer" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "commit-header" }, commit ? /* @__PURE__ */ import_react19.default.createElement(import_react19.default.Fragment, null, /* @__PURE__ */ import_react19.default.createElement("div", { className: "commit-hash-badge", style: { background: "#1f6feb22", borderColor: "#1f6feb44" } }, /* @__PURE__ */ import_react19.default.createElement("code", null, commit.shortHash)), /* @__PURE__ */ import_react19.default.createElement("div", { className: "commit-meta" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "commit-title" }, commit.message), /* @__PURE__ */ import_react19.default.createElement("div", { className: "commit-sub" }, /* @__PURE__ */ import_react19.default.createElement("span", null, commit.author), /* @__PURE__ */ import_react19.default.createElement("span", { className: "dot" }, "\xB7"), /* @__PURE__ */ import_react19.default.createElement("span", null, new Date(commit.date).toLocaleString("fr-FR"))))) : /* @__PURE__ */ import_react19.default.createElement("div", { className: "commit-meta" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "commit-title" }, headerLabel)), /* @__PURE__ */ import_react19.default.createElement("div", { className: "diff-view-toggle" }, /* @__PURE__ */ import_react19.default.createElement(
       "button",
       {
         className: `toggle-btn ${viewMode === "unified" ? "active" : ""}`,
@@ -68482,7 +68629,7 @@ ${lineStrings.join("\n")}
         title: t2("dv.unifiedTitle")
       },
       "Unified"
-    ), /* @__PURE__ */ import_react18.default.createElement(
+    ), /* @__PURE__ */ import_react19.default.createElement(
       "button",
       {
         className: `toggle-btn ${viewMode === "split" ? "active" : ""}`,
@@ -68490,9 +68637,9 @@ ${lineStrings.join("\n")}
         title: t2("dv.splitTitle")
       },
       "Split"
-    ))), loading ? /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-loading" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "spinner" }), /* @__PURE__ */ import_react18.default.createElement("span", null, "Chargement du diff\u2026")) : /* @__PURE__ */ import_react18.default.createElement(import_react18.default.Fragment, null, /* @__PURE__ */ import_react18.default.createElement(FileList, { files }), parsedDiff.length === 0 && !loading && /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-empty-inner" }, t2("diff.empty")), /* @__PURE__ */ import_react18.default.createElement("div", { className: "diff-scroll" }, parsedDiff.map((file, fi) => {
+    ))), loading ? /* @__PURE__ */ import_react19.default.createElement("div", { className: "diff-loading" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "spinner" }), /* @__PURE__ */ import_react19.default.createElement("span", null, "Chargement du diff\u2026")) : /* @__PURE__ */ import_react19.default.createElement(import_react19.default.Fragment, null, /* @__PURE__ */ import_react19.default.createElement(FileList, { files }), parsedDiff.length === 0 && !loading && /* @__PURE__ */ import_react19.default.createElement("div", { className: "diff-empty-inner" }, t2("diff.empty")), /* @__PURE__ */ import_react19.default.createElement("div", { className: "diff-scroll" }, parsedDiff.map((file, fi) => {
       const lang = detectLanguage(file.to);
-      return /* @__PURE__ */ import_react18.default.createElement("div", { key: fi, className: "file-diff" }, /* @__PURE__ */ import_react18.default.createElement("div", { className: "file-diff-header" }, /* @__PURE__ */ import_react18.default.createElement("span", { className: "file-icon" }, "\u{1F4C4}"), /* @__PURE__ */ import_react18.default.createElement("span", { className: "file-diff-name" }, file.to)), viewMode === "unified" ? file.hunks.map((hunk, hi) => /* @__PURE__ */ import_react18.default.createElement(UnifiedHunk, { key: hi, hunk, lang })) : file.hunks.map((hunk, hi) => /* @__PURE__ */ import_react18.default.createElement(SplitHunk, { key: hi, hunk, lang })));
+      return /* @__PURE__ */ import_react19.default.createElement("div", { key: fi, className: "file-diff" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "file-diff-header" }, /* @__PURE__ */ import_react19.default.createElement("span", { className: "file-icon" }, "\u{1F4C4}"), /* @__PURE__ */ import_react19.default.createElement("span", { className: "file-diff-name" }, file.to)), viewMode === "unified" ? file.hunks.map((hunk, hi) => /* @__PURE__ */ import_react19.default.createElement(UnifiedHunk, { key: hi, hunk, lang })) : file.hunks.map((hunk, hi) => /* @__PURE__ */ import_react19.default.createElement(SplitHunk, { key: hi, hunk, lang })));
     }))));
   }
 
@@ -68511,14 +68658,14 @@ ${lineStrings.join("\n")}
     };
   }
   function FileHistory({ file }) {
-    const [entries, setEntries] = (0, import_react19.useState)([]);
-    const [selected, setSelected] = (0, import_react19.useState)(null);
-    const [mode, setMode] = (0, import_react19.useState)("diff");
-    const [diff, setDiff] = (0, import_react19.useState)("");
-    const [blame, setBlame] = (0, import_react19.useState)([]);
-    const [loadingList, setLoadingList] = (0, import_react19.useState)(true);
-    const [loadingPane, setLoadingPane] = (0, import_react19.useState)(false);
-    (0, import_react19.useEffect)(() => {
+    const [entries, setEntries] = (0, import_react20.useState)([]);
+    const [selected, setSelected] = (0, import_react20.useState)(null);
+    const [mode, setMode] = (0, import_react20.useState)("diff");
+    const [diff, setDiff] = (0, import_react20.useState)("");
+    const [blame, setBlame] = (0, import_react20.useState)([]);
+    const [loadingList, setLoadingList] = (0, import_react20.useState)(true);
+    const [loadingPane, setLoadingPane] = (0, import_react20.useState)(false);
+    (0, import_react20.useEffect)(() => {
       api2.getFileHistory(file).then((r) => {
         const commits = r?.commits ?? [];
         setEntries(commits);
@@ -68526,7 +68673,7 @@ ${lineStrings.join("\n")}
         setLoadingList(false);
       }).catch(() => setLoadingList(false));
     }, [file]);
-    (0, import_react19.useEffect)(() => {
+    (0, import_react20.useEffect)(() => {
       if (!selected)
         return;
       let stale = false;
@@ -68547,7 +68694,7 @@ ${lineStrings.join("\n")}
         stale = true;
       };
     }, [selected, mode, file]);
-    const selectByHash = (0, import_react19.useCallback)((hash) => {
+    const selectByHash = (0, import_react20.useCallback)((hash) => {
       const found = entries.find((e) => e.hash === hash || hash.startsWith(e.hash) || e.hash.startsWith(hash));
       if (found)
         setSelected(found);
@@ -68556,7 +68703,7 @@ ${lineStrings.join("\n")}
       const d = new Date(iso);
       return isNaN(d.getTime()) ? iso : d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
     };
-    return /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-page" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-header" }, /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-title" }, "\u{1F558} Historique"), /* @__PURE__ */ import_react19.default.createElement("code", { className: "fh-file" }, file), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-count" }, entries.length, " commit", entries.length > 1 ? "s" : ""), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-spring" }), /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-toggle" }, /* @__PURE__ */ import_react19.default.createElement("button", { className: mode === "diff" ? "active" : "", onClick: () => setMode("diff") }, "Diff"), /* @__PURE__ */ import_react19.default.createElement("button", { className: mode === "blame" ? "active" : "", onClick: () => setMode("blame") }, "Blame")), api2.openDiff && selected && /* @__PURE__ */ import_react19.default.createElement(
+    return /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-page" }, /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-header" }, /* @__PURE__ */ import_react20.default.createElement("span", { className: "fh-title" }, "\u{1F558} Historique"), /* @__PURE__ */ import_react20.default.createElement("code", { className: "fh-file" }, file), /* @__PURE__ */ import_react20.default.createElement("span", { className: "fh-count" }, entries.length, " commit", entries.length > 1 ? "s" : ""), /* @__PURE__ */ import_react20.default.createElement("span", { className: "fh-spring" }), /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-toggle" }, /* @__PURE__ */ import_react20.default.createElement("button", { className: mode === "diff" ? "active" : "", onClick: () => setMode("diff") }, "Diff"), /* @__PURE__ */ import_react20.default.createElement("button", { className: mode === "blame" ? "active" : "", onClick: () => setMode("blame") }, "Blame")), api2.openDiff && selected && /* @__PURE__ */ import_react20.default.createElement(
       "button",
       {
         className: "fh-native",
@@ -68564,17 +68711,17 @@ ${lineStrings.join("\n")}
         onClick: () => api2.openDiff({ type: "commit", commitHash: selected.hash, filePath: file })
       },
       "\u2197 Diff natif"
-    )), /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-body" }, /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-list" }, loadingList && /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-empty" }, "Chargement\u2026"), !loadingList && entries.length === 0 && /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-empty" }, "Aucun historique pour ce fichier"), entries.map((e) => /* @__PURE__ */ import_react19.default.createElement(
+    )), /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-body" }, /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-list" }, loadingList && /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-empty" }, "Chargement\u2026"), !loadingList && entries.length === 0 && /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-empty" }, "Aucun historique pour ce fichier"), entries.map((e) => /* @__PURE__ */ import_react20.default.createElement(
       "button",
       {
         key: e.hash,
         className: `fh-item ${selected?.hash === e.hash ? "selected" : ""}`,
         onClick: () => setSelected(e)
       },
-      /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-item-top" }, /* @__PURE__ */ import_react19.default.createElement("code", { className: "fh-item-hash" }, e.shortHash), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-item-date" }, relDate(e.date))),
-      /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-item-msg" }, e.message),
-      /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-item-author" }, e.author)
-    ))), /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-pane" }, mode === "diff" ? /* @__PURE__ */ import_react19.default.createElement(
+      /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-item-top" }, /* @__PURE__ */ import_react20.default.createElement("code", { className: "fh-item-hash" }, e.shortHash), /* @__PURE__ */ import_react20.default.createElement("span", { className: "fh-item-date" }, relDate(e.date))),
+      /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-item-msg" }, e.message),
+      /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-item-author" }, e.author)
+    ))), /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-pane" }, mode === "diff" ? /* @__PURE__ */ import_react20.default.createElement(
       DiffViewer,
       {
         commit: selected ? toCommitNode(selected) : null,
@@ -68582,7 +68729,7 @@ ${lineStrings.join("\n")}
         files: [],
         loading: loadingPane
       }
-    ) : /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-blame" }, loadingPane && /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-empty" }, "Chargement\u2026"), !loadingPane && blame.length === 0 && /* @__PURE__ */ import_react19.default.createElement("div", { className: "fh-empty" }, t("fh.noBlame")), !loadingPane && blame.map((l, i) => /* @__PURE__ */ import_react19.default.createElement("div", { key: i, className: "fh-blame-line" }, /* @__PURE__ */ import_react19.default.createElement(
+    ) : /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-blame" }, loadingPane && /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-empty" }, "Chargement\u2026"), !loadingPane && blame.length === 0 && /* @__PURE__ */ import_react20.default.createElement("div", { className: "fh-empty" }, t("fh.noBlame")), !loadingPane && blame.map((l, i) => /* @__PURE__ */ import_react20.default.createElement("div", { key: i, className: "fh-blame-line" }, /* @__PURE__ */ import_react20.default.createElement(
       "button",
       {
         className: "fh-blame-hash",
@@ -68590,23 +68737,23 @@ ${lineStrings.join("\n")}
         onClick: () => selectByHash(l.hash)
       },
       l.shortHash
-    ), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-blame-author" }, l.author), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-blame-date" }, l.date), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-blame-num" }, l.lineNum), /* @__PURE__ */ import_react19.default.createElement("span", { className: "fh-blame-content" }, l.content)))))));
+    ), /* @__PURE__ */ import_react20.default.createElement("span", { className: "fh-blame-author" }, l.author), /* @__PURE__ */ import_react20.default.createElement("span", { className: "fh-blame-date" }, l.date), /* @__PURE__ */ import_react20.default.createElement("span", { className: "fh-blame-num" }, l.lineNum), /* @__PURE__ */ import_react20.default.createElement("span", { className: "fh-blame-content" }, l.content)))))));
   }
 
   // ../src/renderer/src/components/CompareView/CompareView.tsx
-  var import_react20 = __toESM(require_react());
+  var import_react21 = __toESM(require_react());
   var api3 = new Proxy({}, { get: (_t, p) => window.gitAPI?.[p] });
   function CompareView({ initialA, initialB }) {
     const { t: t2 } = useLang();
-    const [refs, setRefs] = (0, import_react20.useState)([]);
-    const [refA, setRefA] = (0, import_react20.useState)(initialA ?? "");
-    const [refB, setRefB] = (0, import_react20.useState)(initialB ?? "");
-    const [ahead, setAhead] = (0, import_react20.useState)([]);
-    const [behind, setBehind] = (0, import_react20.useState)([]);
-    const [diff, setDiff] = (0, import_react20.useState)("");
-    const [files, setFiles] = (0, import_react20.useState)([]);
-    const [loading, setLoading] = (0, import_react20.useState)(false);
-    (0, import_react20.useEffect)(() => {
+    const [refs, setRefs] = (0, import_react21.useState)([]);
+    const [refA, setRefA] = (0, import_react21.useState)(initialA ?? "");
+    const [refB, setRefB] = (0, import_react21.useState)(initialB ?? "");
+    const [ahead, setAhead] = (0, import_react21.useState)([]);
+    const [behind, setBehind] = (0, import_react21.useState)([]);
+    const [diff, setDiff] = (0, import_react21.useState)("");
+    const [files, setFiles] = (0, import_react21.useState)([]);
+    const [loading, setLoading] = (0, import_react21.useState)(false);
+    (0, import_react21.useEffect)(() => {
       Promise.all([api3.getBranches(), api3.getTags().catch(() => ({ tags: [] }))]).then(([b, t3]) => {
         const branchNames = (b?.branches ?? []).map((x) => x.name.replace(/^remotes\//, ""));
         const tagNames = (t3?.tags ?? []).map((x) => x.name);
@@ -68616,7 +68763,7 @@ ${lineStrings.join("\n")}
       }).catch(() => {
       });
     }, []);
-    (0, import_react20.useEffect)(() => {
+    (0, import_react21.useEffect)(() => {
       if (!refA || !refB) {
         setAhead([]);
         setBehind([]);
@@ -68646,14 +68793,14 @@ ${lineStrings.join("\n")}
         stale = true;
       };
     }, [refA, refB]);
-    const swap = (0, import_react20.useCallback)(() => {
+    const swap = (0, import_react21.useCallback)(() => {
       setRefA(refB);
       setRefB(refA);
     }, [refA, refB]);
-    const renderRefSelect = (value, onChange) => /* @__PURE__ */ import_react20.default.createElement("select", { className: "cv-ref-select", value, onChange: (e) => onChange(e.target.value) }, /* @__PURE__ */ import_react20.default.createElement("option", { value: "" }, t2("cv.chooseRef")), refs.map((r) => /* @__PURE__ */ import_react20.default.createElement("option", { key: r, value: r }, r)));
-    const renderCommitList = (title, list, accent) => /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-commits-section" }, /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-commits-title", style: { color: accent } }, title, " ", /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-commits-count" }, "(", list.length, ")")), list.length === 0 && /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-commits-empty" }, t2("cv.noCommit")), list.map((c) => /* @__PURE__ */ import_react20.default.createElement("div", { key: c.hash, className: "cv-commit" }, /* @__PURE__ */ import_react20.default.createElement("code", { className: "cv-commit-hash" }, c.shortHash), /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-commit-msg" }, c.message))));
+    const renderRefSelect = (value, onChange) => /* @__PURE__ */ import_react21.default.createElement("select", { className: "cv-ref-select", value, onChange: (e) => onChange(e.target.value) }, /* @__PURE__ */ import_react21.default.createElement("option", { value: "" }, t2("cv.chooseRef")), refs.map((r) => /* @__PURE__ */ import_react21.default.createElement("option", { key: r, value: r }, r)));
+    const renderCommitList = (title, list, accent) => /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-commits-section" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-commits-title", style: { color: accent } }, title, " ", /* @__PURE__ */ import_react21.default.createElement("span", { className: "cv-commits-count" }, "(", list.length, ")")), list.length === 0 && /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-commits-empty" }, t2("cv.noCommit")), list.map((c) => /* @__PURE__ */ import_react21.default.createElement("div", { key: c.hash, className: "cv-commit" }, /* @__PURE__ */ import_react21.default.createElement("code", { className: "cv-commit-hash" }, c.shortHash), /* @__PURE__ */ import_react21.default.createElement("span", { className: "cv-commit-msg" }, c.message))));
     const ready = refA && refB;
-    return /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-page" }, /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-header" }, /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-title" }, t2("cv.title")), renderRefSelect(refA, setRefA), /* @__PURE__ */ import_react20.default.createElement("button", { className: "cv-swap", onClick: swap, title: t2("cv.swapTitle") }, "\u21C4"), renderRefSelect(refB, setRefB), ready && /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-summary" }, /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-sum-ahead" }, "+", ahead.length), " / ", /* @__PURE__ */ import_react20.default.createElement("span", { className: "cv-sum-behind" }, "\u2212", behind.length), " commits")), !ready ? /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-empty" }, t2("cv.chooseTwo")) : /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-body" }, /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-left" }, renderCommitList(t2("cv.inOnly", refB), ahead, "#3fb950"), renderCommitList(t2("cv.inOnly", refA), behind, "#f85149")), /* @__PURE__ */ import_react20.default.createElement("div", { className: "cv-right" }, /* @__PURE__ */ import_react20.default.createElement(
+    return /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-page" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-header" }, /* @__PURE__ */ import_react21.default.createElement("span", { className: "cv-title" }, t2("cv.title")), renderRefSelect(refA, setRefA), /* @__PURE__ */ import_react21.default.createElement("button", { className: "cv-swap", onClick: swap, title: t2("cv.swapTitle") }, "\u21C4"), renderRefSelect(refB, setRefB), ready && /* @__PURE__ */ import_react21.default.createElement("span", { className: "cv-summary" }, /* @__PURE__ */ import_react21.default.createElement("span", { className: "cv-sum-ahead" }, "+", ahead.length), " / ", /* @__PURE__ */ import_react21.default.createElement("span", { className: "cv-sum-behind" }, "\u2212", behind.length), " commits")), !ready ? /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-empty" }, t2("cv.chooseTwo")) : /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-body" }, /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-left" }, renderCommitList(t2("cv.inOnly", refB), ahead, "#3fb950"), renderCommitList(t2("cv.inOnly", refA), behind, "#f85149")), /* @__PURE__ */ import_react21.default.createElement("div", { className: "cv-right" }, /* @__PURE__ */ import_react21.default.createElement(
       DiffViewer,
       {
         commit: null,
@@ -68666,21 +68813,21 @@ ${lineStrings.join("\n")}
   }
 
   // src/webview/CompareWorkingView.tsx
-  var import_react21 = __toESM(require_react());
+  var import_react22 = __toESM(require_react());
   function syntheticCommit(shortHash, message) {
     return { hash: shortHash, shortHash, message, author: "", authorEmail: "", date: "", parents: [], refs: [] };
   }
   function CompareWorkingView({ hash }) {
     const { t: t2 } = useLang();
-    const [diff, setDiff] = (0, import_react21.useState)("");
-    const [loading, setLoading] = (0, import_react21.useState)(true);
-    (0, import_react21.useEffect)(() => {
+    const [diff, setDiff] = (0, import_react22.useState)("");
+    const [loading, setLoading] = (0, import_react22.useState)(true);
+    (0, import_react22.useEffect)(() => {
       window.gitAPI.diffCommitToWorking(hash).then((r) => {
         setDiff(r?.diff ?? "");
         setLoading(false);
       });
     }, [hash]);
-    return /* @__PURE__ */ import_react21.default.createElement("div", { style: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" } }, !loading && diff.trim() === "" ? /* @__PURE__ */ import_react21.default.createElement("div", { style: { padding: 24, color: "#8b949e" } }, "Aucune diff\xE9rence avec le r\xE9pertoire de travail") : /* @__PURE__ */ import_react21.default.createElement(
+    return /* @__PURE__ */ import_react22.default.createElement("div", { style: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" } }, !loading && diff.trim() === "" ? /* @__PURE__ */ import_react22.default.createElement("div", { style: { padding: 24, color: "#8b949e" } }, "Aucune diff\xE9rence avec le r\xE9pertoire de travail") : /* @__PURE__ */ import_react22.default.createElement(
       DiffViewer,
       {
         commit: syntheticCommit(hash.slice(0, 7), t2("ext.compare.workingDir")),
@@ -68692,7 +68839,7 @@ ${lineStrings.join("\n")}
   }
 
   // ../src/renderer/src/components/GitHubPanel/GitHubPanel.tsx
-  var import_react22 = __toESM(require_react());
+  var import_react23 = __toESM(require_react());
   function timeAgo(dateStr, lang, t2) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1e3);
     if (diff < 60)
@@ -68732,16 +68879,16 @@ ${lineStrings.join("\n")}
   }
   function GitHubPanel({ repoPath }) {
     const { t: t2, lang } = useLang();
-    const [tab, setTab] = (0, import_react22.useState)("prs");
-    const [owner, setOwner] = (0, import_react22.useState)(null);
-    const [repo, setRepo] = (0, import_react22.useState)(null);
-    const [noRepo, setNoRepo] = (0, import_react22.useState)(false);
-    const [noAuth, setNoAuth] = (0, import_react22.useState)(false);
-    const [prs, setPRs] = (0, import_react22.useState)([]);
-    const [issues, setIssues] = (0, import_react22.useState)([]);
-    const [loading, setLoading] = (0, import_react22.useState)(false);
-    const [error, setError] = (0, import_react22.useState)(null);
-    (0, import_react22.useEffect)(() => {
+    const [tab, setTab] = (0, import_react23.useState)("prs");
+    const [owner, setOwner] = (0, import_react23.useState)(null);
+    const [repo, setRepo] = (0, import_react23.useState)(null);
+    const [noRepo, setNoRepo] = (0, import_react23.useState)(false);
+    const [noAuth, setNoAuth] = (0, import_react23.useState)(false);
+    const [prs, setPRs] = (0, import_react23.useState)([]);
+    const [issues, setIssues] = (0, import_react23.useState)([]);
+    const [loading, setLoading] = (0, import_react23.useState)(false);
+    const [error, setError] = (0, import_react23.useState)(null);
+    (0, import_react23.useEffect)(() => {
       if (!repoPath)
         return;
       setNoRepo(false);
@@ -68754,7 +68901,7 @@ ${lineStrings.join("\n")}
         setRepo(r.repo);
       });
     }, [repoPath]);
-    const load = (0, import_react22.useCallback)(async (o, r) => {
+    const load = (0, import_react23.useCallback)(async (o, r) => {
       setLoading(true);
       setError(null);
       try {
@@ -68785,7 +68932,7 @@ ${lineStrings.join("\n")}
         setLoading(false);
       }
     }, [tab, t2]);
-    (0, import_react22.useEffect)(() => {
+    (0, import_react23.useEffect)(() => {
       if (owner && repo)
         load(owner, repo);
     }, [owner, repo, tab, load]);
@@ -68806,13 +68953,13 @@ ${lineStrings.join("\n")}
   }
 
   // ../src/renderer/src/components/IssueLink/AssociateIssueModal.tsx
-  var import_react23 = __toESM(require_react());
+  var import_react24 = __toESM(require_react());
   function AssociateIssueModal({ branch, current, onPick, onClose }) {
     const { t: t2 } = useLang();
-    const [issues, setIssues] = (0, import_react23.useState)(null);
-    const [error, setError] = (0, import_react23.useState)(null);
-    const [query, setQuery] = (0, import_react23.useState)("");
-    (0, import_react23.useEffect)(() => {
+    const [issues, setIssues] = (0, import_react24.useState)(null);
+    const [error, setError] = (0, import_react24.useState)(null);
+    const [query, setQuery] = (0, import_react24.useState)("");
+    (0, import_react24.useEffect)(() => {
       let alive = true;
       (async () => {
         try {
@@ -68836,7 +68983,7 @@ ${lineStrings.join("\n")}
         alive = false;
       };
     }, [t2]);
-    const shown = (0, import_react23.useMemo)(() => {
+    const shown = (0, import_react24.useMemo)(() => {
       const q = query.trim().toLowerCase();
       if (!q || !issues)
         return issues ?? [];
@@ -68873,7 +69020,7 @@ ${lineStrings.join("\n")}
   }
 
   // ../src/renderer/src/hooks/useBranchMeta.ts
-  var import_react24 = __toESM(require_react());
+  var import_react25 = __toESM(require_react());
   var EMPTY = { favorites: [], pinned: [], issues: {} };
   var keyFor = (repoPath) => repoPath ? `gv-branch-meta:${repoPath}` : null;
   function read(repoPath) {
@@ -68904,30 +69051,30 @@ ${lineStrings.join("\n")}
     }
   }
   function useBranchMeta(repoPath) {
-    const [meta, setMeta] = (0, import_react24.useState)(() => read(repoPath));
-    (0, import_react24.useEffect)(() => {
+    const [meta, setMeta] = (0, import_react25.useState)(() => read(repoPath));
+    (0, import_react25.useEffect)(() => {
       setMeta(read(repoPath));
     }, [repoPath]);
-    const update = (0, import_react24.useCallback)((fn) => {
+    const update = (0, import_react25.useCallback)((fn) => {
       setMeta((prev) => {
         const next = fn(prev);
         write(repoPath, next);
         return next;
       });
     }, [repoPath]);
-    const toggleFavorite = (0, import_react24.useCallback)((branch) => {
+    const toggleFavorite = (0, import_react25.useCallback)((branch) => {
       update((m) => ({
         ...m,
         favorites: m.favorites.includes(branch) ? m.favorites.filter((b) => b !== branch) : [...m.favorites, branch]
       }));
     }, [update]);
-    const togglePin = (0, import_react24.useCallback)((branch) => {
+    const togglePin = (0, import_react25.useCallback)((branch) => {
       update((m) => ({
         ...m,
         pinned: m.pinned.includes(branch) ? m.pinned.filter((b) => b !== branch) : [...m.pinned, branch]
       }));
     }, [update]);
-    const setIssue = (0, import_react24.useCallback)((branch, issue) => {
+    const setIssue = (0, import_react25.useCallback)((branch, issue) => {
       update((m) => {
         const issues = { ...m.issues };
         if (issue)
@@ -68937,14 +69084,14 @@ ${lineStrings.join("\n")}
         return { ...m, issues };
       });
     }, [update]);
-    const isFavorite = (0, import_react24.useCallback)((branch) => meta.favorites.includes(branch), [meta.favorites]);
-    const isPinned = (0, import_react24.useCallback)((branch) => meta.pinned.includes(branch), [meta.pinned]);
-    const issueFor = (0, import_react24.useCallback)((branch) => meta.issues[branch] ?? null, [meta.issues]);
+    const isFavorite = (0, import_react25.useCallback)((branch) => meta.favorites.includes(branch), [meta.favorites]);
+    const isPinned = (0, import_react25.useCallback)((branch) => meta.pinned.includes(branch), [meta.pinned]);
+    const issueFor = (0, import_react25.useCallback)((branch) => meta.issues[branch] ?? null, [meta.issues]);
     return { meta, toggleFavorite, togglePin, setIssue, isFavorite, isPinned, issueFor };
   }
 
   // src/webview/CommitMsgEditorView.tsx
-  var import_react25 = __toESM(require_react());
+  var import_react26 = __toESM(require_react());
   function titleFor(boot2) {
     if (boot2.action === "reword")
       return "\u270F\uFE0F Reword \u2014 reformuler le message";
@@ -68954,9 +69101,9 @@ ${lineStrings.join("\n")}
   }
   function CommitMsgEditorView({ boot: boot2 }) {
     const { t: t2 } = useLang();
-    const [text, setText] = (0, import_react25.useState)(boot2.initialMessage ?? "");
-    const [saving, setSaving] = (0, import_react25.useState)(false);
-    const handleSave = (0, import_react25.useCallback)(async () => {
+    const [text, setText] = (0, import_react26.useState)(boot2.initialMessage ?? "");
+    const [saving, setSaving] = (0, import_react26.useState)(false);
+    const handleSave = (0, import_react26.useCallback)(async () => {
       setSaving(true);
       try {
         await window.gitAPI.commitMsgSave(text);
@@ -68964,14 +69111,14 @@ ${lineStrings.join("\n")}
         setSaving(false);
       }
     }, [text]);
-    const handleKeyDown = (0, import_react25.useCallback)((e) => {
+    const handleKeyDown = (0, import_react26.useCallback)((e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
         e.preventDefault();
         void handleSave();
       }
     }, [handleSave]);
     const hasStep = typeof boot2.stepCurrent === "number" && typeof boot2.stepTotal === "number";
-    return /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-title" }, titleFor(boot2))), (hasStep || boot2.subject) && /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-header-refs" }, hasStep && /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-ref-chip" }, boot2.stepCurrent, "/", boot2.stepTotal, " commits"), boot2.subject && /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-ref-onto", style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, boot2.subject))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { flex: 1, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 } }, /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-msg-editor-label" }, "Message de commit"), /* @__PURE__ */ import_react25.default.createElement(
+    return /* @__PURE__ */ import_react26.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react26.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react26.default.createElement("span", { className: "rp-title" }, titleFor(boot2))), (hasStep || boot2.subject) && /* @__PURE__ */ import_react26.default.createElement("div", { className: "rp-header-refs" }, hasStep && /* @__PURE__ */ import_react26.default.createElement("span", { className: "rp-ref-chip" }, boot2.stepCurrent, "/", boot2.stepTotal, " commits"), boot2.subject && /* @__PURE__ */ import_react26.default.createElement("span", { className: "rp-ref-onto", style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, boot2.subject))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { flex: 1, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 } }, /* @__PURE__ */ import_react26.default.createElement("span", { className: "rp-msg-editor-label" }, "Message de commit"), /* @__PURE__ */ import_react26.default.createElement(
       "textarea",
       {
         className: "rp-msg-textarea",
@@ -68982,7 +69129,7 @@ ${lineStrings.join("\n")}
         spellCheck: false,
         autoFocus: true
       }
-    )), /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-legend" }, t2("ext.commit.help")), /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react25.default.createElement(
+    )), /* @__PURE__ */ import_react26.default.createElement("div", { className: "rp-legend" }, t2("ext.commit.help")), /* @__PURE__ */ import_react26.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react26.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn--continue",
@@ -68999,47 +69146,47 @@ ${lineStrings.join("\n")}
   function VertexApp() {
     const { t: t2 } = useLang();
     const toast = useToast();
-    const showToast = (0, import_react26.useCallback)((msg, type) => {
+    const showToast = (0, import_react27.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const [commits, setCommits] = (0, import_react26.useState)([]);
-    const [branches, setBranches] = (0, import_react26.useState)([]);
-    const [currentBranch, setCurrentBranch] = (0, import_react26.useState)("");
-    const [compareBaseHash, setCompareBaseHash] = (0, import_react26.useState)(null);
-    const [repoName, setRepoName] = (0, import_react26.useState)("");
-    const [selectedCommit, setSelectedCommit] = (0, import_react26.useState)(null);
-    const [wipCount, setWipCount] = (0, import_react26.useState)(0);
-    const [conflictFiles, setConflictFiles] = (0, import_react26.useState)([]);
-    const [conflictMode, setConflictMode] = (0, import_react26.useState)(null);
-    const [searchQuery, setSearchQuery] = (0, import_react26.useState)("");
-    const [searchMatches, setSearchMatches] = (0, import_react26.useState)(-1);
-    const [rightW, setRightW] = (0, import_react26.useState)(380);
-    const [showAllBranches, setShowAllBranches] = (0, import_react26.useState)(true);
-    const [stashCount, setStashCount] = (0, import_react26.useState)(0);
-    const [stashes, setStashes] = (0, import_react26.useState)([]);
-    const [tags, setTags] = (0, import_react26.useState)([]);
-    const [soloBranch, setSoloBranch] = (0, import_react26.useState)(null);
-    const [mutedBranches, setMutedBranches] = (0, import_react26.useState)(/* @__PURE__ */ new Set());
+    const [commits, setCommits] = (0, import_react27.useState)([]);
+    const [branches, setBranches] = (0, import_react27.useState)([]);
+    const [currentBranch, setCurrentBranch] = (0, import_react27.useState)("");
+    const [compareBaseHash, setCompareBaseHash] = (0, import_react27.useState)(null);
+    const [repoName, setRepoName] = (0, import_react27.useState)("");
+    const [selectedCommit, setSelectedCommit] = (0, import_react27.useState)(null);
+    const [wipCount, setWipCount] = (0, import_react27.useState)(0);
+    const [conflictFiles, setConflictFiles] = (0, import_react27.useState)([]);
+    const [conflictMode, setConflictMode] = (0, import_react27.useState)(null);
+    const [searchQuery, setSearchQuery] = (0, import_react27.useState)("");
+    const [searchMatches, setSearchMatches] = (0, import_react27.useState)(-1);
+    const [rightW, setRightW] = (0, import_react27.useState)(380);
+    const [showAllBranches, setShowAllBranches] = (0, import_react27.useState)(true);
+    const [stashCount, setStashCount] = (0, import_react27.useState)(0);
+    const [stashes, setStashes] = (0, import_react27.useState)([]);
+    const [tags, setTags] = (0, import_react27.useState)([]);
+    const [soloBranch, setSoloBranch] = (0, import_react27.useState)(null);
+    const [mutedBranches, setMutedBranches] = (0, import_react27.useState)(/* @__PURE__ */ new Set());
     const branchMeta = useBranchMeta(repoName || "repo");
-    const [issueModalBranch, setIssueModalBranch] = (0, import_react26.useState)(null);
-    const [activeView, setActiveView] = (0, import_react26.useState)(null);
-    const [sideW, setSideW] = (0, import_react26.useState)(240);
-    const lastViewRef = (0, import_react26.useRef)("overview");
-    const [settingsOpen, setSettingsOpen] = (0, import_react26.useState)(false);
-    const [loading, setLoading] = (0, import_react26.useState)(false);
-    const [lastFetch, setLastFetch] = (0, import_react26.useState)(null);
-    const [tracking, setTracking] = (0, import_react26.useState)({ ahead: 0, behind: 0 });
-    const isLoadingRef = (0, import_react26.useRef)(false);
-    const showAllRef = (0, import_react26.useRef)(showAllBranches);
+    const [issueModalBranch, setIssueModalBranch] = (0, import_react27.useState)(null);
+    const [activeView, setActiveView] = (0, import_react27.useState)(null);
+    const [sideW, setSideW] = (0, import_react27.useState)(240);
+    const lastViewRef = (0, import_react27.useRef)("overview");
+    const [settingsOpen, setSettingsOpen] = (0, import_react27.useState)(false);
+    const [loading, setLoading] = (0, import_react27.useState)(false);
+    const [lastFetch, setLastFetch] = (0, import_react27.useState)(null);
+    const [tracking, setTracking] = (0, import_react27.useState)({ ahead: 0, behind: 0 });
+    const isLoadingRef = (0, import_react27.useRef)(false);
+    const showAllRef = (0, import_react27.useRef)(showAllBranches);
     showAllRef.current = showAllBranches;
-    const soloRef = (0, import_react26.useRef)(soloBranch);
+    const soloRef = (0, import_react27.useRef)(soloBranch);
     soloRef.current = soloBranch;
-    const mutedRef = (0, import_react26.useRef)(mutedBranches);
+    const mutedRef = (0, import_react27.useRef)(mutedBranches);
     mutedRef.current = mutedBranches;
-    const loadRepoData = (0, import_react26.useCallback)(async (silent = false) => {
+    const loadRepoData = (0, import_react27.useCallback)(async (silent = false) => {
       if (isLoadingRef.current)
         return;
       isLoadingRef.current = true;
@@ -69100,10 +69247,10 @@ ${lineStrings.join("\n")}
           setLoading(false);
       }
     }, []);
-    (0, import_react26.useEffect)(() => {
+    (0, import_react27.useEffect)(() => {
       loadRepoData();
     }, [loadRepoData]);
-    (0, import_react26.useEffect)(() => {
+    (0, import_react27.useEffect)(() => {
       window.gitAPI.settingsGetAll().then((s) => {
         const v = s?.sidebarView;
         if (v && RAIL_VIEWS.includes(v)) {
@@ -69119,7 +69266,7 @@ ${lineStrings.join("\n")}
       }).catch(() => {
       });
     }, []);
-    const handleSelectView = (0, import_react26.useCallback)((v) => {
+    const handleSelectView = (0, import_react27.useCallback)((v) => {
       setActiveView((cur) => {
         const next = cur === v ? null : v;
         if (next)
@@ -69128,14 +69275,14 @@ ${lineStrings.join("\n")}
         return next;
       });
     }, []);
-    const handleToggleSidebar = (0, import_react26.useCallback)(() => {
+    const handleToggleSidebar = (0, import_react27.useCallback)(() => {
       setActiveView((cur) => {
         const next = cur ? null : lastViewRef.current;
         void window.gitAPI.settingsSet("sidebarView", next ?? "");
         return next;
       });
     }, []);
-    (0, import_react26.useEffect)(() => {
+    (0, import_react27.useEffect)(() => {
       const handler = () => loadRepoData(true);
       window.gitAPI.onRepoChanged(handler);
       window.gitAPI.onWorkingChanged(handler);
@@ -69144,14 +69291,14 @@ ${lineStrings.join("\n")}
         window.gitAPI.offWorkingChanged(handler);
       };
     }, [loadRepoData]);
-    (0, import_react26.useEffect)(() => {
+    (0, import_react27.useEffect)(() => {
       if (!selectedCommit || selectedCommit.hash === "__WIP__")
         return;
       const still = commits.find((c) => c.hash === selectedCommit.hash);
       if (!still)
         setSelectedCommit(null);
     }, [commits]);
-    const doUndo = (0, import_react26.useCallback)(async () => {
+    const doUndo = (0, import_react27.useCallback)(async () => {
       const r = await window.gitAPI.undoLastAction();
       if (r && r.success === false)
         toast.error(r.error ?? "Impossible d'annuler");
@@ -69159,7 +69306,7 @@ ${lineStrings.join("\n")}
         toast.success(t2("ext.app.undoOk"));
       await loadRepoData();
     }, [toast, loadRepoData]);
-    const runOp = (0, import_react26.useCallback)(async (label, op, undoable = false) => {
+    const runOp = (0, import_react27.useCallback)(async (label, op, undoable = false) => {
       const r = await op();
       if (r && r.success === false)
         showToast(r.error ?? `${label} a \xE9chou\xE9`, "err");
@@ -69171,7 +69318,7 @@ ${lineStrings.join("\n")}
         showToast(`\u2713 ${label}`);
       await loadRepoData();
     }, [showToast, toast, doUndo, loadRepoData]);
-    const guardConflict = (0, import_react26.useCallback)(async (predict, op) => {
+    const guardConflict = (0, import_react27.useCallback)(async (predict, op) => {
       const settings = await window.gitAPI.settingsGetAll().catch(() => ({}));
       if (settings?.warnBeforeConflict === "false") {
         await op();
@@ -69197,46 +69344,46 @@ ${lineStrings.join("\n")}
         // sticky — a go/no-go decision must not silently time out
       );
     }, [toast]);
-    const handleCheckout = (0, import_react26.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
-    const handleCherryPick = (0, import_react26.useCallback)((hash) => guardConflict(
+    const handleCheckout = (0, import_react27.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
+    const handleCherryPick = (0, import_react27.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictConflicts(hash, "HEAD", `${hash}^`),
       // base = commit's parent
       () => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash))
     ), [runOp, guardConflict]);
-    const handleRevert = (0, import_react26.useCallback)((hash) => guardConflict(
+    const handleRevert = (0, import_react27.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictConflicts(`${hash}^`, "HEAD", hash),
       // apply the inverse
       () => runOp("Revert", () => window.gitAPI.revert(hash))
     ), [runOp, guardConflict]);
-    const handleReset = (0, import_react26.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
-    const handleCreateTag = (0, import_react26.useCallback)(async (hash) => {
+    const handleReset = (0, import_react27.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
+    const handleCreateTag = (0, import_react27.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom du tag");
       if (name)
         runOp(t2("ext.app.tagCreated"), () => window.gitAPI.createTag(name, hash));
     }, [runOp]);
-    const handleCreateBranchAt = (0, import_react26.useCallback)(async (hash) => {
+    const handleCreateBranchAt = (0, import_react27.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp(t2("ext.app.branchCreated"), () => window.gitAPI.createBranchAt(name, hash, true));
     }, [runOp]);
-    const handleDropCommit = (0, import_react26.useCallback)(async (hash) => {
+    const handleDropCommit = (0, import_react27.useCallback)(async (hash) => {
       const ok = await window.gitAPI.uiConfirm(`Delete commit ${hash.slice(0, 7)}? This rewrites history.`);
       if (!ok)
         return;
       setSelectedCommit(null);
       await runOp(t2("ext.app.commitDeleted"), () => window.gitAPI.dropCommit(hash), true);
     }, [runOp]);
-    const handleMoveCommit = (0, import_react26.useCallback)((hash, direction) => runOp(t2("ext.app.commitMoved"), () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
-    const handleMergeBranch = (0, import_react26.useCallback)((name) => guardConflict(
+    const handleMoveCommit = (0, import_react27.useCallback)((hash, direction) => runOp(t2("ext.app.commitMoved"), () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
+    const handleMergeBranch = (0, import_react27.useCallback)((name) => guardConflict(
       () => window.gitAPI.predictConflicts(name),
       () => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true)
     ), [runOp, guardConflict]);
-    const handleRebaseCurrentOnto = (0, import_react26.useCallback)((name) => guardConflict(
+    const handleRebaseCurrentOnto = (0, import_react27.useCallback)((name) => guardConflict(
       () => window.gitAPI.predictRebaseConflicts(name),
       // accurate per-commit replay
       () => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true)
     ), [runOp, guardConflict]);
-    const handleRewordCommit = (0, import_react26.useCallback)(async (hash) => {
+    const handleRewordCommit = (0, import_react27.useCallback)(async (hash) => {
       const current = commits.find((c) => c.hash === hash);
       if (!current)
         return;
@@ -69260,13 +69407,13 @@ ${lineStrings.join("\n")}
       const sequence = seq.commits.map((c) => ({ action: c.hash === current.hash ? "reword" : "pick", hash: c.hash }));
       await runOp(t2("ext.app.msgModified"), () => window.gitAPI.interactiveRebase(sequence, [newMsg]));
     }, [runOp, commits, currentBranch, showToast]);
-    const handleRebaseCurrentOntoCommit = (0, import_react26.useCallback)((hash) => guardConflict(
+    const handleRebaseCurrentOntoCommit = (0, import_react27.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictRebaseConflicts(hash),
       // accurate per-commit replay
       () => runOp(`Rebase sur ${hash.slice(0, 7)}`, () => window.gitAPI.rebaseOnto(hash), true)
     ), [runOp, guardConflict]);
-    const handlePushToCommit = (0, import_react26.useCallback)((hash) => runOp(`Push to ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp]);
-    const handleCreatePatch = (0, import_react26.useCallback)(async (hash) => {
+    const handlePushToCommit = (0, import_react27.useCallback)((hash) => runOp(`Push to ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp]);
+    const handleCreatePatch = (0, import_react27.useCallback)(async (hash) => {
       const res = await window.gitAPI.createPatch(hash);
       if (res.error) {
         showToast(res.error, "err");
@@ -69278,7 +69425,7 @@ ${lineStrings.join("\n")}
       else if (!r.canceled)
         showToast(r.error ?? "\xC9chec", "err");
     }, [showToast]);
-    const handleCopyPatch = (0, import_react26.useCallback)(async (hash) => {
+    const handleCopyPatch = (0, import_react27.useCallback)(async (hash) => {
       const res = await window.gitAPI.createPatch(hash);
       if (res.error) {
         showToast(res.error, "err");
@@ -69287,7 +69434,7 @@ ${lineStrings.join("\n")}
       navigator.clipboard.writeText(res.patch);
       showToast(t2("ext.app.patchCopiedOk"));
     }, [showToast]);
-    const handleCreateWorktreeAt = (0, import_react26.useCallback)(async (hash) => {
+    const handleCreateWorktreeAt = (0, import_react27.useCallback)(async (hash) => {
       const dirPath = await window.gitAPI.selectDirectory("Emplacement du nouveau worktree");
       if (!dirPath)
         return;
@@ -69300,7 +69447,7 @@ ${lineStrings.join("\n")}
       else
         showToast(r.error ?? "\xC9chec", "err");
     }, [showToast]);
-    const handleOpenCommitOnRemote = (0, import_react26.useCallback)(async (hash) => {
+    const handleOpenCommitOnRemote = (0, import_react27.useCallback)(async (hash) => {
       const detected = await window.gitAPI.githubDetectRepo();
       if (!detected?.owner) {
         showToast(t2("ext.app.noGithub"), "err");
@@ -69308,7 +69455,7 @@ ${lineStrings.join("\n")}
       }
       window.gitAPI.openExternal(`https://github.com/${detected.owner}/${detected.repo}/commit/${hash}`);
     }, [showToast]);
-    const handleOpenBranchOnRemote = (0, import_react26.useCallback)(async (name) => {
+    const handleOpenBranchOnRemote = (0, import_react27.useCallback)(async (name) => {
       const detected = await window.gitAPI.githubDetectRepo();
       if (!detected?.owner) {
         showToast(t2("ext.app.noGithub"), "err");
@@ -69319,7 +69466,7 @@ ${lineStrings.join("\n")}
         `https://github.com/${detected.owner}/${detected.repo}/tree/${short.split("/").map(encodeURIComponent).join("/")}`
       );
     }, [showToast]);
-    (0, import_react26.useEffect)(() => {
+    (0, import_react27.useEffect)(() => {
       const onMenuAction = (action, hash) => {
         const commit = commits.find((c) => c.hash === hash);
         switch (action) {
@@ -69426,35 +69573,35 @@ ${lineStrings.join("\n")}
       handleOpenCommitOnRemote,
       showToast
     ]);
-    const handleRenameBranch = (0, import_react26.useCallback)(async (name) => {
+    const handleRenameBranch = (0, import_react27.useCallback)(async (name) => {
       const newName = await window.gitAPI.uiPrompt("Nouveau nom de branche", name);
       if (newName && newName !== name)
         runOp(t2("ext.app.branchRenamed"), () => window.gitAPI.renameBranch(name, newName));
     }, [runOp]);
-    const handleDeleteBranch = (0, import_react26.useCallback)(async (name) => {
+    const handleDeleteBranch = (0, import_react27.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer la branche "${name}" ?`)) {
         runOp(t2("ext.app.branchDeleted"), () => window.gitAPI.deleteBranch(name));
       }
     }, [runOp]);
-    const handlePushBranch = (0, import_react26.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
-    const handleSetUpstream = (0, import_react26.useCallback)((name) => runOp(t2("ext.app.upstreamSet"), () => window.gitAPI.setUpstream(name)), [runOp]);
-    const handleDeleteRemoteBranch = (0, import_react26.useCallback)(async (ref) => {
+    const handlePushBranch = (0, import_react27.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
+    const handleSetUpstream = (0, import_react27.useCallback)((name) => runOp(t2("ext.app.upstreamSet"), () => window.gitAPI.setUpstream(name)), [runOp]);
+    const handleDeleteRemoteBranch = (0, import_react27.useCallback)(async (ref) => {
       if (await window.gitAPI.uiConfirm(`Supprimer la branche distante "${ref}" ?`)) {
         runOp(t2("ext.app.remoteBranchDeleted"), () => window.gitAPI.deleteRemoteBranch(ref));
       }
     }, [runOp]);
-    const handlePushTag = (0, import_react26.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
-    const handleDeleteTag = (0, import_react26.useCallback)(async (name) => {
+    const handlePushTag = (0, import_react27.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
+    const handleDeleteTag = (0, import_react27.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le tag "${name}" ?`)) {
         runOp(t2("ext.app.tagDeleted"), () => window.gitAPI.deleteTag(name));
       }
     }, [runOp]);
-    const handleDeleteRemoteTag = (0, import_react26.useCallback)(async (name) => {
+    const handleDeleteRemoteTag = (0, import_react27.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le tag distant "${name}" ?`)) {
         runOp(t2("ext.app.remoteTagDeleted"), () => window.gitAPI.deleteRemoteTag(name));
       }
     }, [runOp]);
-    const loadStashes = (0, import_react26.useCallback)(async () => {
+    const loadStashes = (0, import_react27.useCallback)(async () => {
       try {
         const st = await window.gitAPI.getStashes();
         setStashes(st?.stashes ?? []);
@@ -69462,29 +69609,29 @@ ${lineStrings.join("\n")}
       } catch {
       }
     }, []);
-    const showPrompt = (0, import_react26.useCallback)(async (msg, def) => {
+    const showPrompt = (0, import_react27.useCallback)(async (msg, def) => {
       const r = await window.gitAPI.uiPrompt(msg, def);
       return r ?? null;
     }, []);
-    const showConfirm = (0, import_react26.useCallback)((msg) => window.gitAPI.uiConfirm(msg), []);
-    const handleApplyStash = (0, import_react26.useCallback)((index) => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.applyStash(index)), [runOp]);
-    const handlePopStashIndex = (0, import_react26.useCallback)((index) => runOp(t2("ext.app.stashPopped"), () => window.gitAPI.popStash(index)), [runOp]);
-    const handleDropStash = (0, import_react26.useCallback)(async (index) => {
+    const showConfirm = (0, import_react27.useCallback)((msg) => window.gitAPI.uiConfirm(msg), []);
+    const handleApplyStash = (0, import_react27.useCallback)((index) => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.applyStash(index)), [runOp]);
+    const handlePopStashIndex = (0, import_react27.useCallback)((index) => runOp(t2("ext.app.stashPopped"), () => window.gitAPI.popStash(index)), [runOp]);
+    const handleDropStash = (0, import_react27.useCallback)(async (index) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le stash @{${index}} ?`)) {
         runOp(t2("ext.app.stashDropped"), () => window.gitAPI.dropStash(index));
       }
     }, [runOp]);
-    const handleCreateTagPrompt = (0, import_react26.useCallback)(async () => {
+    const handleCreateTagPrompt = (0, import_react27.useCallback)(async () => {
       const name = await window.gitAPI.uiPrompt("Nom du tag (sur HEAD)");
       if (name)
         runOp(t2("ext.app.tagCreated"), () => window.gitAPI.createTag(name));
     }, [runOp]);
-    const handleSelectCommitByHash = (0, import_react26.useCallback)((hash) => {
+    const handleSelectCommitByHash = (0, import_react27.useCallback)((hash) => {
       const found = commits.find((c) => c.hash === hash || c.hash.startsWith(hash));
       if (found)
         setSelectedCommit(found);
     }, [commits]);
-    const handleToggleSolo = (0, import_react26.useCallback)((name) => {
+    const handleToggleSolo = (0, import_react27.useCallback)((name) => {
       setSoloBranch((prev) => {
         const next = prev === name ? null : name;
         soloRef.current = next;
@@ -69492,7 +69639,7 @@ ${lineStrings.join("\n")}
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const handleToggleMute = (0, import_react26.useCallback)((name) => {
+    const handleToggleMute = (0, import_react27.useCallback)((name) => {
       setMutedBranches((prev) => {
         const next = new Set(prev);
         if (next.has(name))
@@ -69504,7 +69651,7 @@ ${lineStrings.join("\n")}
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const handleBranchDrop = (0, import_react26.useCallback)(async (branch, hash, action, targetBranch) => {
+    const handleBranchDrop = (0, import_react27.useCallback)(async (branch, hash, action, targetBranch) => {
       if (action === "merge" && !targetBranch)
         return;
       if (action === "reset") {
@@ -69524,7 +69671,7 @@ ${lineStrings.join("\n")}
         run
       );
     }, [runOp, guardConflict]);
-    const handleConflictFinish = (0, import_react26.useCallback)(async (action, message) => {
+    const handleConflictFinish = (0, import_react27.useCallback)(async (action, message) => {
       const mode = conflictMode ?? action;
       let r;
       if (mode === "rebase")
@@ -69541,7 +69688,7 @@ ${lineStrings.join("\n")}
         showToast(mode === "rebase" ? t2("ext.app.rebaseContinued") : t2("ext.app.conflictsResolved"));
       await loadRepoData();
     }, [conflictMode, showToast, loadRepoData]);
-    const handleConflictAbort = (0, import_react26.useCallback)(async () => {
+    const handleConflictAbort = (0, import_react27.useCallback)(async () => {
       if (conflictMode === "merge")
         await window.gitAPI.abortMerge();
       else if (conflictMode === "cherry-pick")
@@ -69553,41 +69700,41 @@ ${lineStrings.join("\n")}
       showToast(t2("ext.app.opAborted"));
       await loadRepoData();
     }, [conflictMode, showToast, loadRepoData]);
-    const handleOpenResolver = (0, import_react26.useCallback)((file) => {
+    const handleOpenResolver = (0, import_react27.useCallback)((file) => {
       window.gitAPI.openConflictResolver(file);
     }, []);
-    const handleOpenFileDiff = (0, import_react26.useCallback)((target) => {
+    const handleOpenFileDiff = (0, import_react27.useCallback)((target) => {
       window.gitAPI.openDiff(target);
     }, []);
-    const handleFetch = (0, import_react26.useCallback)(async () => {
+    const handleFetch = (0, import_react27.useCallback)(async () => {
       await runOp("Fetch", () => window.gitAPI.fetch());
       setLastFetch(/* @__PURE__ */ new Date());
     }, [runOp]);
-    const handleOpenDesktop = (0, import_react26.useCallback)(() => window.gitAPI.openDesktop(), []);
-    const handlePull = (0, import_react26.useCallback)(() => guardConflict(
+    const handleOpenDesktop = (0, import_react27.useCallback)(() => window.gitAPI.openDesktop(), []);
+    const handlePull = (0, import_react27.useCallback)(() => guardConflict(
       () => window.gitAPI.predictConflicts("@{u}"),
       // merge of the already-known upstream tip (pre-fetch)
       () => runOp("Pull", () => window.gitAPI.pull())
     ), [runOp, guardConflict]);
-    const handlePush = (0, import_react26.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
-    const handleUndo = (0, import_react26.useCallback)(() => runOp(t2("ext.app.undone"), () => window.gitAPI.undoLastAction()), [runOp]);
-    const handleRedo = (0, import_react26.useCallback)(() => runOp(t2("ext.app.redone"), () => window.gitAPI.redoLastAction()), [runOp]);
-    const handleStash = (0, import_react26.useCallback)(() => runOp(t2("ext.app.stashCreated"), () => window.gitAPI.createStash()), [runOp]);
-    const handlePop = (0, import_react26.useCallback)(() => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.popStash(0)), [runOp]);
-    const handleTerminal = (0, import_react26.useCallback)(() => window.gitAPI.openTerminal(), []);
-    const handleNewBranch = (0, import_react26.useCallback)(async () => {
+    const handlePush = (0, import_react27.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
+    const handleUndo = (0, import_react27.useCallback)(() => runOp(t2("ext.app.undone"), () => window.gitAPI.undoLastAction()), [runOp]);
+    const handleRedo = (0, import_react27.useCallback)(() => runOp(t2("ext.app.redone"), () => window.gitAPI.redoLastAction()), [runOp]);
+    const handleStash = (0, import_react27.useCallback)(() => runOp(t2("ext.app.stashCreated"), () => window.gitAPI.createStash()), [runOp]);
+    const handlePop = (0, import_react27.useCallback)(() => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.popStash(0)), [runOp]);
+    const handleTerminal = (0, import_react27.useCallback)(() => window.gitAPI.openTerminal(), []);
+    const handleNewBranch = (0, import_react27.useCallback)(async () => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp(t2("ext.app.branchCreated"), () => window.gitAPI.createBranch(name));
     }, [runOp]);
-    const handleToggleAllBranches = (0, import_react26.useCallback)(() => {
+    const handleToggleAllBranches = (0, import_react27.useCallback)(() => {
       setShowAllBranches((v) => {
         showAllRef.current = !v;
         return !v;
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const startResizeRight = (0, import_react26.useCallback)((e) => {
+    const startResizeRight = (0, import_react27.useCallback)((e) => {
       e.preventDefault();
       const startX = e.clientX;
       const startW = rightW;
@@ -69606,7 +69753,7 @@ ${lineStrings.join("\n")}
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     }, [rightW]);
-    const startResizeSide = (0, import_react26.useCallback)((e) => {
+    const startResizeSide = (0, import_react27.useCallback)((e) => {
       e.preventDefault();
       const startX = e.clientX;
       const startW = sideW;
@@ -69624,17 +69771,50 @@ ${lineStrings.join("\n")}
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     }, [sideW]);
-    const [viewportW, setViewportW] = (0, import_react26.useState)(window.innerWidth);
-    (0, import_react26.useEffect)(() => {
+    const [viewportW, setViewportW] = (0, import_react27.useState)(window.innerWidth);
+    (0, import_react27.useEffect)(() => {
       const onResize = () => setViewportW(window.innerWidth);
       window.addEventListener("resize", onResize);
       return () => window.removeEventListener("resize", onResize);
     }, []);
     const stacked = viewportW < 640;
-    const appBodyRef = (0, import_react26.useRef)(null);
+    const appBodyRef = (0, import_react27.useRef)(null);
     const effRightW = Math.min(rightW, Math.max(320, viewportW - 340));
     const showRight = !!selectedCommit || !!conflictMode;
-    return /* @__PURE__ */ import_react26.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react26.default.createElement(
+    const branchStripProps = {
+      branch: currentBranch,
+      ahead: tracking.ahead,
+      behind: tracking.behind,
+      onPush: handlePush,
+      onPull: handlePull,
+      onFetch: handleFetch,
+      issue: branchMeta.issueFor(currentBranch),
+      onAssociateIssue: () => setIssueModalBranch(currentBranch),
+      onOpenIssue: async (n) => {
+        const d = await window.gitAPI.githubDetectRepo();
+        if (d?.owner)
+          window.gitAPI.openExternal(`https://github.com/${d.owner}/${d.repo}/issues/${n}`);
+      },
+      menuState: {
+        soloed: soloBranch === currentBranch,
+        muted: mutedBranches.has(currentBranch),
+        favorite: branchMeta.isFavorite(currentBranch)
+      },
+      menuActions: {
+        onFetch: handleFetch,
+        onPull: handlePull,
+        onPush: handlePush,
+        onSetUpstream: () => handleSetUpstream(currentBranch),
+        onOpenOnRemote: () => handleOpenBranchOnRemote(currentBranch),
+        onAssociateIssue: () => setIssueModalBranch(currentBranch),
+        onToggleFavorite: () => branchMeta.toggleFavorite(currentBranch),
+        onToggleSolo: () => handleToggleSolo(currentBranch),
+        onToggleMute: () => handleToggleMute(currentBranch),
+        onCopyName: () => navigator.clipboard.writeText(currentBranch),
+        onRename: () => handleRenameBranch(currentBranch)
+      }
+    };
+    return /* @__PURE__ */ import_react27.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react27.default.createElement(
       CompactToolbar,
       {
         repoName,
@@ -69678,7 +69858,7 @@ ${lineStrings.join("\n")}
         soloBranch,
         mutedBranches
       }
-    ), settingsOpen && /* @__PURE__ */ import_react26.default.createElement("div", { className: "gv-settings-overlay" }, /* @__PURE__ */ import_react26.default.createElement(SettingsModal, { embedded: true, onClose: () => setSettingsOpen(false), showToast })), conflictMode && /* @__PURE__ */ import_react26.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react26.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react26.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react26.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} file(s) to resolve` : t2("ext.app.noConflictToResolve")), /* @__PURE__ */ import_react26.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react26.default.createElement(
+    ), settingsOpen && /* @__PURE__ */ import_react27.default.createElement("div", { className: "gv-settings-overlay" }, /* @__PURE__ */ import_react27.default.createElement(SettingsModal, { embedded: true, onClose: () => setSettingsOpen(false), showToast })), conflictMode && /* @__PURE__ */ import_react27.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react27.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react27.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react27.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} file(s) to resolve` : t2("ext.app.noConflictToResolve")), /* @__PURE__ */ import_react27.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react27.default.createElement(
       "button",
       {
         className: "gv-cb-btn gv-cb-continue",
@@ -69687,7 +69867,7 @@ ${lineStrings.join("\n")}
         onClick: () => handleConflictFinish(conflictMode === "merge" ? "merge" : "rebase")
       },
       "Continuer"
-    ), /* @__PURE__ */ import_react26.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react26.default.createElement("div", { className: "app-body", ref: appBodyRef }, !stacked && /* @__PURE__ */ import_react26.default.createElement(ActivityRail, { active: activeView, onSelect: handleSelectView }), activeView && !stacked && /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, /* @__PURE__ */ import_react26.default.createElement("div", { className: "gv-sidepanel", style: { width: sideW } }, /* @__PURE__ */ import_react26.default.createElement(
+    ), /* @__PURE__ */ import_react27.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react27.default.createElement("div", { className: "app-body", ref: appBodyRef }, !stacked && /* @__PURE__ */ import_react27.default.createElement(ActivityRail, { active: activeView, onSelect: handleSelectView }), activeView && !stacked && /* @__PURE__ */ import_react27.default.createElement(import_react27.default.Fragment, null, /* @__PURE__ */ import_react27.default.createElement("div", { className: "gv-sidepanel", style: { width: sideW } }, /* @__PURE__ */ import_react27.default.createElement(
       Sidebar,
       {
         view: activeView,
@@ -69743,7 +69923,7 @@ ${lineStrings.join("\n")}
         showConfirm,
         embedded: true
       }
-    )), /* @__PURE__ */ import_react26.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeSide })), /* @__PURE__ */ import_react26.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react26.default.createElement(
+    )), /* @__PURE__ */ import_react27.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeSide })), /* @__PURE__ */ import_react27.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react27.default.createElement(
       CommitGraph,
       {
         commits,
@@ -69796,7 +69976,7 @@ ${lineStrings.join("\n")}
         nativeContextMenu: true,
         onNativeMenuTarget: (hash) => window.gitAPI.setLastMenuHash(hash)
       }
-    )), showRight && /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, !stacked && /* @__PURE__ */ import_react26.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react26.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: effRightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react26.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react26.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react26.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react26.default.createElement(
+    )), showRight && /* @__PURE__ */ import_react27.default.createElement(import_react27.default.Fragment, null, !stacked && /* @__PURE__ */ import_react27.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react27.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: effRightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react27.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react27.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react27.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react27.default.createElement(
       RightPanel,
       {
         embedded: true,
@@ -69828,9 +70008,10 @@ ${lineStrings.join("\n")}
         onConflictAbort: handleConflictAbort,
         onOpenResolver: handleOpenResolver,
         onOpenFileDiff: handleOpenFileDiff,
-        onOpenStagingEditor: (f) => window.gitAPI.openStagingEditor(f)
+        onOpenStagingEditor: (f) => window.gitAPI.openStagingEditor(f),
+        branchStrip: branchStripProps
       }
-    )))), issueModalBranch && /* @__PURE__ */ import_react26.default.createElement(
+    )))), issueModalBranch && /* @__PURE__ */ import_react27.default.createElement(
       AssociateIssueModal,
       {
         branch: issueModalBranch,
@@ -69846,33 +70027,33 @@ ${lineStrings.join("\n")}
   var boot = window.__GV_BOOT__;
   function ConflictTab({ file }) {
     const toast = useToast();
-    const showToast = (0, import_react26.useCallback)((msg, type) => {
+    const showToast = (0, import_react27.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const close = (0, import_react26.useCallback)(() => {
+    const close = (0, import_react27.useCallback)(() => {
       window.gitAPI.closeSelf();
     }, []);
-    return /* @__PURE__ */ import_react26.default.createElement(ConflictResolver, { file, onFinish: close, onAbort: close, showToast });
+    return /* @__PURE__ */ import_react27.default.createElement(ConflictResolver, { file, onFinish: close, onAbort: close, showToast });
   }
   function InteractiveRebaseTab({ baseHash }) {
     const toast = useToast();
-    const showToast = (0, import_react26.useCallback)((msg, type) => {
+    const showToast = (0, import_react27.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const close = (0, import_react26.useCallback)(() => {
+    const close = (0, import_react27.useCallback)(() => {
       window.gitAPI.closeSelf();
     }, []);
-    return /* @__PURE__ */ import_react26.default.createElement(InteractiveRebase, { embedded: true, baseHash, onClose: close, onSuccess: () => {
+    return /* @__PURE__ */ import_react27.default.createElement(InteractiveRebase, { embedded: true, baseHash, onClose: close, onSuccess: () => {
     }, showToast });
   }
   import_client.default.createRoot(document.getElementById("root")).render(
-    /* @__PURE__ */ import_react26.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react26.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react26.default.createElement(ToastProvider, null, boot?.mode === "stage" && boot.file ? /* @__PURE__ */ import_react26.default.createElement(StagingEditor, { file: boot.file }) : boot?.mode === "conflict" && boot.file ? /* @__PURE__ */ import_react26.default.createElement(ConflictTab, { file: boot.file }) : boot?.mode === "history" && boot.file ? /* @__PURE__ */ import_react26.default.createElement(FileHistory, { file: boot.file }) : boot?.mode === "compare" ? /* @__PURE__ */ import_react26.default.createElement(CompareView, { initialA: boot.refA, initialB: boot.refB }) : boot?.mode === "compareWorking" && boot.hash ? /* @__PURE__ */ import_react26.default.createElement(CompareWorkingView, { hash: boot.hash }) : boot?.mode === "github" ? /* @__PURE__ */ import_react26.default.createElement(GitHubPanel, { repoPath: "." }) : boot?.mode === "rebase" ? /* @__PURE__ */ import_react26.default.createElement(RebaseProgress, null) : boot?.mode === "todo" ? /* @__PURE__ */ import_react26.default.createElement(RebaseTodoApp, null) : boot?.mode === "plan" && boot.baseHash ? /* @__PURE__ */ import_react26.default.createElement(InteractiveRebaseTab, { baseHash: boot.baseHash }) : boot?.mode === "commitMsg" ? /* @__PURE__ */ import_react26.default.createElement(CommitMsgEditorView, { boot }) : /* @__PURE__ */ import_react26.default.createElement(VertexApp, null))))
+    /* @__PURE__ */ import_react27.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react27.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react27.default.createElement(ToastProvider, null, boot?.mode === "stage" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(StagingEditor, { file: boot.file }) : boot?.mode === "conflict" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(ConflictTab, { file: boot.file }) : boot?.mode === "history" && boot.file ? /* @__PURE__ */ import_react27.default.createElement(FileHistory, { file: boot.file }) : boot?.mode === "compare" ? /* @__PURE__ */ import_react27.default.createElement(CompareView, { initialA: boot.refA, initialB: boot.refB }) : boot?.mode === "compareWorking" && boot.hash ? /* @__PURE__ */ import_react27.default.createElement(CompareWorkingView, { hash: boot.hash }) : boot?.mode === "github" ? /* @__PURE__ */ import_react27.default.createElement(GitHubPanel, { repoPath: "." }) : boot?.mode === "rebase" ? /* @__PURE__ */ import_react27.default.createElement(RebaseProgress, null) : boot?.mode === "todo" ? /* @__PURE__ */ import_react27.default.createElement(RebaseTodoApp, null) : boot?.mode === "plan" && boot.baseHash ? /* @__PURE__ */ import_react27.default.createElement(InteractiveRebaseTab, { baseHash: boot.baseHash }) : boot?.mode === "commitMsg" ? /* @__PURE__ */ import_react27.default.createElement(CommitMsgEditorView, { boot }) : /* @__PURE__ */ import_react27.default.createElement(VertexApp, null))))
   );
 })();
 /*! Bundled license information:
