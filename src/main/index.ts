@@ -2267,6 +2267,25 @@ ipcMain.handle('github:clone', async (_e, cloneUrl: string, repoName: string) =>
   }
 })
 
+// Clone to an explicit location (no native dialog) with Shallow/Sparse options —
+// used by the GitKraken-style Clone modal.
+ipcMain.handle('git:clone-to', async (_e, opts: { url: string; location: string; name: string; shallow?: boolean; sparse?: boolean }) => {
+  try {
+    const target = pathJoin(opts.location, opts.name)
+    const args: string[] = []
+    if (opts.shallow) args.push('--depth', '1')
+    if (opts.sparse) args.push('--sparse')
+    // Embed the token for github.com HTTPS so private repos clone, then scrub it.
+    const token = readSettings().githubToken
+    let url = opts.url
+    const isGh = /^https:\/\/github\.com\//.test(url)
+    if (token && isGh) url = url.replace('https://', `https://${token}@`)
+    await simpleGit().clone(url, target, args)
+    if (token && isGh) { try { await simpleGit(target).remote(['set-url', 'origin', opts.url]) } catch { /* keep */ } }
+    return openRepoAt(target)
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:get-user', async () => {
   const token = readSettings().githubToken
   if (!token) return { user: null }
