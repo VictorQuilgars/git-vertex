@@ -89,10 +89,6 @@
   letter-spacing: 0.06em;
 }
 
-/* Named workspace group heading — accent-colored to stand out from RÉCENTS */
-.sb-workspace-label { color: var(--accent, #58a6ff); }
-.sb-workspace-label::before { content: '⬚ '; }
-
 .sb-recent-item {
   padding: 4px 8px !important;
   gap: 0 !important;
