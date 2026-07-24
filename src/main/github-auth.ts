@@ -4,7 +4,9 @@ const CLIENT_ID  = import.meta.env.VITE_GITHUB_CLIENT_ID as string
 const PROXY_URL  = import.meta.env.VITE_GITHUB_PROXY_URL as string
 
 const REDIRECT_URI = 'gitgui://callback'
-const SCOPE        = 'repo user'
+// `gist` is required to create the secret gists behind "Share Patch as Link".
+// Existing tokens minted before this scope was added must reconnect.
+const SCOPE        = 'repo user gist'
 
 
 let pendingState: string | null = null
