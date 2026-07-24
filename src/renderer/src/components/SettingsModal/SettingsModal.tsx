@@ -501,11 +501,13 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     {githubLoading ? t('settings.github.connecting') : t('settings.github.login')}
                   </button>
                 )}
-                {!githubUser && embedded && (
-                  // No OAuth callback flow inside the VS Code panel — manual
-                  // Personal Access Token entry instead.
-                  <div className="stg-field">
-                    <label>Personal Access Token</label>
+                {/* Manual Personal Access Token — the only path inside the VS
+                    Code panel (no OAuth callback there), and a fallback on
+                    desktop when OAuth is unavailable (e.g. a dev build with no
+                    client id) or to grant an extra scope like `gist`. */}
+                {!githubUser && (
+                  <div className="stg-field" style={{ marginTop: embedded ? 0 : 12 }}>
+                    <label>{t('settings.github.pat')}</label>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input
                         type={showToken ? 'text' : 'password'}
@@ -517,9 +519,10 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       />
                       <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} onClick={() => setShowToken(v => !v)}>{showToken ? '🙈' : '👁'}</button>
                       <button className="stg-save" onClick={async () => { await saveGithub(); if (githubToken.trim()) fetchGithubUser() }}>
-                        Enregistrer
+                        {t('settings.save')}
                       </button>
                     </div>
+                    <p className="stg-desc" style={{ marginTop: 6 }}>{t('settings.github.patHint')}</p>
                   </div>
                 )}
               </div>
