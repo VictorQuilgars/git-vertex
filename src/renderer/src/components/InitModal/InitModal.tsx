@@ -83,7 +83,7 @@ export default function InitModal({ onClose, onCreated, showToast }: Props) {
       <div className="init-modal" onClick={e => e.stopPropagation()}>
         <div className="init-head">
           <span className="init-title">{t('init.title')}</span>
-          <button className="init-close" onClick={onClose}>✕</button>
+          <button className="init-close" title={t('common.close')} onClick={onClose}>✕</button>
         </div>
         <div className="init-body">
           <nav className="init-nav">

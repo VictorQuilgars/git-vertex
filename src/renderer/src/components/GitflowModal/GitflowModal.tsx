@@ -101,7 +101,7 @@ export default function GitflowModal({ onClose, onSuccess, showToast, showPrompt
       <div className="gf-modal">
         <div className="gf-head">
           <span className="gf-title">⑂ Gitflow</span>
-          <button className="gf-close" onClick={onClose}>×</button>
+          <button className="gf-close" title={t('common.close')} onClick={onClose}>×</button>
         </div>
 
         {loading ? (

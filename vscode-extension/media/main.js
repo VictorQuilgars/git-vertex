@@ -60174,6 +60174,11 @@ Ce fichier n'est pas suivi par Git \u2014 il sera perdu.`,
     "panel.loading": "Chargement\u2026",
     "panel.noDiff": "Aucun diff",
     "panel.close": "Fermer",
+    "common.close": "Fermer",
+    "common.clearSearch": "Effacer la recherche",
+    "common.clearFilter": "Effacer le filtre",
+    "common.moreActions": "Plus d'actions",
+    "common.dismiss": "Ignorer",
     "panel.fileHistory": (name) => `Historique \u2014 ${name}`,
     "panel.noHistory": "Aucun commit trouv\xE9",
     "panel.loadingBlame": "Chargement du blame\u2026",
@@ -61212,6 +61217,11 @@ This file is not tracked by Git \u2014 it will be lost.`,
     "panel.loading": "Loading\u2026",
     "panel.noDiff": "No diff",
     "panel.close": "Close",
+    "common.close": "Close",
+    "common.clearSearch": "Clear search",
+    "common.clearFilter": "Clear filter",
+    "common.moreActions": "More actions",
+    "common.dismiss": "Dismiss",
     "panel.fileHistory": (name) => `History \u2014 ${name}`,
     "panel.noHistory": "No commits found",
     "panel.loadingBlame": "Loading blame\u2026",
@@ -61969,6 +61979,7 @@ Commits beyond this point will be lost for that branch.`,
     return (0, import_react3.useContext)(ToastContext);
   }
   function ToastProvider({ children }) {
+    const { t: tr } = useLang();
     const [toasts, setToasts] = (0, import_react3.useState)([]);
     const counter = (0, import_react3.useRef)(0);
     const addToast = (0, import_react3.useCallback)((message, type, action, sticky) => {
@@ -62007,6 +62018,7 @@ Commits beyond this point will be lost for that branch.`,
           "button",
           {
             className: "toast-dismiss",
+            title: tr("common.dismiss"),
             onClick: () => setToasts((prev) => prev.filter((x) => x.id !== t2.id)),
             children: "\xD7"
           }
@@ -62413,7 +62425,7 @@ Commits beyond this point will be lost for that branch.`,
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("input", { type: "text", placeholder: "Rechercher\u2026", value: p.searchQuery, onChange: (e) => p.onSearch(e.target.value) }),
         p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: `gvt-search-count${p.searchMatches === 0 ? " gvt-search-count--none" : ""}`, children: p.searchMatches }),
-        p.searchQuery && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "gvt-search-clear", onClick: () => p.onSearch(""), children: "\xD7" })
+        p.searchQuery && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "gvt-search-clear", title: t2("common.clearSearch"), onClick: () => p.onSearch(""), children: "\xD7" })
       ] })
     ] });
   }
@@ -65664,7 +65676,7 @@ Commits beyond this point will be lost for that branch.`,
     return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "fh-overlay", onClick: (e) => e.target === e.currentTarget && onClose(), children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "fh-modal", children: [
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "fh-header", children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "fh-title", children: t2("panel.fileHistory", filepath.split("/").pop() ?? "") }),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "fh-close", onClick: onClose, children: "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "fh-close", title: t2("common.close"), onClick: onClose, children: "\xD7" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "fh-path", children: filepath }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "fh-list", children: [
@@ -67910,7 +67922,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
             onChange: (e) => setBranchFilter(e.target.value)
           }
         ),
-        branchFilter && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("button", { className: "sb-filter-clear", onClick: () => setBranchFilter(""), children: "\xD7" })
+        branchFilter && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("button", { className: "sb-filter-clear", title: t2("common.clearFilter"), onClick: () => setBranchFilter(""), children: "\xD7" })
       ] }),
       repoPath && /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "sb-sections", children: [
         view === "overview" && (() => {
@@ -68488,7 +68500,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
               "depuis ",
               /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("code", { children: baseHash.slice(0, 7) })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { className: "ir-close", onClick: onClose, children: "\xD7" })
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { className: "ir-close", title: t2("common.close"), onClick: onClose, children: "\xD7" })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "ir-hint", children: t2("ir.hint") }),
           fromPlan && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "ir-plan-banner", children: t2("ir.planBanner") }),
@@ -70066,7 +70078,7 @@ ${lineStrings.join("\n")}
           "\u{1F4AC} ",
           aiExplanation
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("button", { className: "mt-ai-explain-close", onClick: () => setAiExplanation(null), children: "\u2715" })
+        /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("button", { className: "mt-ai-explain-close", title: t2("common.dismiss"), onClick: () => setAiExplanation(null), children: "\u2715" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "mt-main", children: [
         /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "mt-top", children: [

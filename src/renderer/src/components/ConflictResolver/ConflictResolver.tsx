@@ -601,7 +601,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
       {aiExplanation && (
         <div className="mt-ai-explain">
           <span className="mt-ai-explain-text">💬 {aiExplanation}</span>
-          <button className="mt-ai-explain-close" onClick={() => setAiExplanation(null)}>✕</button>
+          <button className="mt-ai-explain-close" title={t('common.dismiss')} onClick={() => setAiExplanation(null)}>✕</button>
         </div>
       )}
 

@@ -331,7 +331,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
                   <td className="lp-col-action" onClick={e => e.stopPropagation()}>
                     <div className="lp-split">
                       <button className="lp-split-main" onClick={() => onOpenRepo(en.wip.path)}>{t('launchpad.viewRepo')}</button>
-                      <button className="lp-split-caret" onClick={() => setMenuKey(menuKey === `wip-${en.wip.path}` ? null : `wip-${en.wip.path}`)}>▾</button>
+                      <button className="lp-split-caret" title={t('common.moreActions')} onClick={() => setMenuKey(menuKey === `wip-${en.wip.path}` ? null : `wip-${en.wip.path}`)}>▾</button>
                       {menuKey === `wip-${en.wip.path}` && (
                         <div className="lp-menu">
                           <button onClick={() => { onOpenRepo(en.wip.path); setMenuKey(null) }}>{t('launchpad.viewRepo')}</button>
@@ -387,7 +387,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
                     <td className="lp-col-action" onClick={e => e.stopPropagation()}>
                       <div className="lp-split">
                         <button className="lp-split-main" onClick={() => viewRepo(r.repo, r.repoUrl)} title={isLocal ? t('launchpad.openRepo') : t('launchpad.openRepoGh')}>{t('launchpad.viewRepo')}</button>
-                        <button className="lp-split-caret" onClick={() => setMenuKey(menuKey === key ? null : key)}>▾</button>
+                        <button className="lp-split-caret" title={t('common.moreActions')} onClick={() => setMenuKey(menuKey === key ? null : key)}>▾</button>
                         {menuKey === key && (
                           <div className="lp-menu">
                             <button onClick={() => { openExt(r.url); setMenuKey(null) }}>{t('launchpad.openIn')}</button>

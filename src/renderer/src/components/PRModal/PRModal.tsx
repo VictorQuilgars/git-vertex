@@ -56,7 +56,7 @@ export default function PRModal({ owner, repo, currentBranch, onClose, showToast
           </svg>
           <span className="pr-header-title">{t('pr.title')}</span>
           <div className="pr-repo-badge">{owner}/{repo}</div>
-          <button className="pr-close" onClick={onClose}>×</button>
+          <button className="pr-close" title={t('common.close')} onClick={onClose}>×</button>
         </div>
 
         {createdUrl ? (

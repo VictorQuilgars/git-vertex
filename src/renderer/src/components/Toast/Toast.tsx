@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
 import './Toast.css'
+import { useLang } from '../../i18n/LanguageContext'
 
 interface ToastAction {
   label: string
@@ -36,6 +37,7 @@ export function useToast() {
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const { t: tr } = useLang()  // `t` is already the toast item in the map below
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const counter = useRef(0)
 
@@ -80,6 +82,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             ))}
             <button
               className="toast-dismiss"
+              title={tr('common.dismiss')}
               onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
             >×</button>
           </div>

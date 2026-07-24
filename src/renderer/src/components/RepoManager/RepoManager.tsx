@@ -188,7 +188,7 @@ export default function RepoManager({
             <div className="rm-details-actions">
               <button className="rm-btn" onClick={() => onOpenRepo(details.path)}>{t('repomgmt.openRepo')}</button>
               {details.fullname && <button className="rm-btn" onClick={() => window.gitAPI.openExternal(`https://github.com/${details.fullname}`)}>{t('repomgmt.openGithub')}</button>}
-              <button className="rm-details-close" onClick={() => setDetails(null)}>✕</button>
+              <button className="rm-details-close" title={t('common.close')} onClick={() => setDetails(null)}>✕</button>
             </div>
           </div>
           <div className="rm-details-body">
@@ -228,7 +228,7 @@ function WorkspaceModal({ recentRepos, info, onClose, onCreate }: {
   return (
     <div className="rm-modal-backdrop" onClick={onClose}>
       <div className="rm-modal" onClick={e => e.stopPropagation()}>
-        <div className="rm-modal-head">{t('repomgmt.newWorkspace')}<button className="rm-details-close" onClick={onClose}>✕</button></div>
+        <div className="rm-modal-head">{t('repomgmt.newWorkspace')}<button className="rm-details-close" title={t('common.close')} onClick={onClose}>✕</button></div>
         <input className="rm-modal-input" autoFocus value={name} onChange={e => setName(e.target.value)} placeholder={t('repomgmt.wsName')} />
         <div className="rm-modal-desc">{t('repomgmt.wsPick')}</div>
         <div className="rm-modal-list">

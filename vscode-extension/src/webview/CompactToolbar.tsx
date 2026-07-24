@@ -255,7 +255,7 @@ export default function CompactToolbar(p: Props) {
             {p.searchMatches}
           </span>
         )}
-        {p.searchQuery && <button className="gvt-search-clear" onClick={() => p.onSearch('')}>×</button>}
+        {p.searchQuery && <button className="gvt-search-clear" title={t('common.clearSearch')} onClick={() => p.onSearch('')}>×</button>}
       </div>
     </div>
   )
