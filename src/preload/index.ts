@@ -17,6 +17,10 @@ const gitAPI = {
   openRepo: () => ipcRenderer.invoke('git:open-repo'),
   setRepo: (path: string) => ipcRenderer.invoke('git:set-repo', path),
   initRepo: (dir: string) => ipcRenderer.invoke('git:init-repo', dir),
+  initAdvanced: (opts: any) => ipcRenderer.invoke('git:init-advanced', opts),
+  listGitignoreTemplates: () => ipcRenderer.invoke('github:list-gitignore-templates'),
+  listLicenses: () => ipcRenderer.invoke('github:list-licenses'),
+  githubCreateRepo: (opts: any) => ipcRenderer.invoke('github:create-repo', opts),
   getRecentRepos: () => ipcRenderer.invoke('app:get-recent-repos'),
   getWorkspaces: () => ipcRenderer.invoke('app:get-workspaces'),
   setRepoWorkspace: (path: string, workspace: string) => ipcRenderer.invoke('app:set-repo-workspace', path, workspace),
@@ -184,10 +188,13 @@ const gitAPI = {
   githubCloseIssue: (owner: string, repo: string, number: number) => ipcRenderer.invoke('github:close-issue', owner, repo, number),
   githubShareWipPatch: (repoPath: string) => ipcRenderer.invoke('github:share-wip-patch', repoPath),
   scanLocalRepos: (force?: boolean) => ipcRenderer.invoke('git:scan-local-repos', force),
+  openPathInEditor: (dir: string) => ipcRenderer.invoke('app:open-path-in-editor', dir),
+  readReadme: (dir: string) => ipcRenderer.invoke('git:read-readme', dir),
   githubGetIssue: (owner: string, repo: string, number: number) =>
     ipcRenderer.invoke('github:get-issue', owner, repo, number),
   githubListRepos: () => ipcRenderer.invoke('github:list-repos'),
   githubClone: (cloneUrl: string, repoName: string) => ipcRenderer.invoke('github:clone', cloneUrl, repoName),
+  cloneTo: (opts: any) => ipcRenderer.invoke('git:clone-to', opts),
   // GitHub OAuth
   githubStartAuth: () => ipcRenderer.invoke('github:start-auth'),
   githubDisconnect: () => ipcRenderer.invoke('github:disconnect'),
@@ -211,6 +218,8 @@ const gitAPI = {
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
   openDownloadedUpdate: () => ipcRenderer.invoke('updater:open-downloaded'),
   installManual: () => ipcRenderer.invoke('updater:install-manual'),
+  isFullscreen: () => ipcRenderer.invoke('app:is-fullscreen'),
+  onFullscreenChanged: (cb: (fs: boolean) => void) => subscribe('app:fullscreen-changed', (fs) => cb(fs)),
 }
 
 contextBridge.exposeInMainWorld('gitAPI', gitAPI)
