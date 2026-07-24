@@ -760,20 +760,6 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                   </div>
                 )}
 
-                <div className="stg-about-env">
-                  <h3 className="stg-about-env-title">{t('settings.about.env')}</h3>
-                  <div className="stg-about-env-grid">
-                    <span className="stg-about-env-key">Git Vertex</span>
-                    <span className="stg-about-env-val">{appInfo?.version ?? '—'}</span>
-                    <span className="stg-about-env-key">Electron</span>
-                    <span className="stg-about-env-val">{appInfo?.electron ?? '—'}</span>
-                    <span className="stg-about-env-key">Node.js</span>
-                    <span className="stg-about-env-val">{appInfo?.node ?? '—'}</span>
-                    <span className="stg-about-env-key">Chrome</span>
-                    <span className="stg-about-env-val">{appInfo?.chrome ?? '—'}</span>
-                  </div>
-                </div>
-
                 <div className="stg-about-update">
                   {updateReady ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.18.2
+
+### Changed
+- Removed the **Environment** block (Electron / Node.js / Chrome versions) from Settings → About.
+
 ## 1.18.1
 
 ### Changed
