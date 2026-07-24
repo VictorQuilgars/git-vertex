@@ -1426,6 +1426,36 @@ ipcMain.handle('app:open-in-editor', async (_e, filepath: string) => {
   }
 })
 
+// Open an arbitrary repo folder in the external editor (Repository Management —
+// not tied to the currently-open repo, unlike app:open-in-editor).
+ipcMain.handle('app:open-path-in-editor', async (_e, dir: string) => {
+  const editor = (readSettings().externalEditor ?? '').trim()
+  if (!editor) {
+    const err = await shell.openPath(dir)
+    return err ? { success: false, error: err } : { success: true }
+  }
+  try {
+    const { spawn } = await import('child_process')
+    const parts = editor.split(' ').filter(Boolean)
+    const child = spawn(parts[0], [...parts.slice(1), dir], { cwd: dir, detached: true, stdio: 'ignore' })
+    child.on('error', () => {})
+    child.unref()
+    return { success: true }
+  } catch (e: any) { return { success: false, error: e.message } }
+})
+
+// Read a repo's README (first match) for the Repository Management details panel.
+ipcMain.handle('git:read-readme', async (_e, dir: string) => {
+  try {
+    const { readFileSync } = await import('fs')
+    for (const n of ['README.md', 'README.MD', 'Readme.md', 'readme.md', 'README', 'README.txt', 'README.rst']) {
+      const p = join(dir, n)
+      if (existsSync(p)) return { content: readFileSync(p, 'utf-8'), name: n }
+    }
+    return { content: null }
+  } catch (e: any) { return { error: e.message } }
+})
+
 // Open the system terminal at the repository root.
 ipcMain.handle('app:open-terminal', async () => {
   if (!gitService) return { success: false, error: 'No repo open' }
