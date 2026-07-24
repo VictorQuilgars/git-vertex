@@ -1463,7 +1463,7 @@ exit 0
     const fs = await import('fs')
     const path = await import('path')
     const os = await import('os')
-    const tmpFile = path.join(os.tmpdir(), `git-gui-patch-${Date.now()}.patch`)
+    const tmpFile = path.join(os.tmpdir(), `git-vertex-patch-${Date.now()}.patch`)
     try {
       fs.writeFileSync(tmpFile, patch)
       const args = ['apply', '--cached']

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import hljs from 'highlight.js'
 import { useLang } from '../../i18n/LanguageContext'
+import { useSettings } from '../../contexts/SettingsContext'
 import './CenterFileDiff.css'
 
 export type CenterDiffTarget =
@@ -107,6 +108,9 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
   onChangeArea?: (area: 'staged' | 'unstaged') => void
 }) {
   const { t } = useLang()
+  const { get } = useSettings()
+  const externalDiffTool = get('externalDiffTool', '')
+  const [externalDiffBusy, setExternalDiffBusy] = useState(false)
   const [hunks, setHunks] = useState<DiffHunk[]>([])
   const [loading, setLoading] = useState(true)
   const [showFullFile, setShowFullFile] = useState(false)
@@ -226,6 +230,28 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
     setSelectedLines(new Set())
   }, [selectedLines, hunks, filePath, isStaged, onStaged, wholeFile])
 
+  // External diff tool (v1.20.0): dump both revisions to temp files and spawn
+  // the configured tool. "left" is always the previous/HEAD version, "right"
+  // the one being viewed (the commit itself, or the current working copy).
+  const openExternalDiff = useCallback(async () => {
+    setExternalDiffBusy(true)
+    try {
+      const [leftRes, rightRes] = target.type === 'commit'
+        ? await Promise.all([
+            window.gitAPI.getFileAtCommit(`${target.commitHash}^`, filePath),
+            window.gitAPI.getFileAtCommit(target.commitHash, filePath),
+          ])
+        : await Promise.all([
+            window.gitAPI.getFileAtCommit('HEAD', filePath),
+            window.gitAPI.getFileContent(filePath),
+          ])
+      const r = await (window.gitAPI as any).openExternalDiff(leftRes.content ?? '', rightRes.content ?? '', filePath)
+      if (!r.success) console.error('[external diff]', r.error)
+    } finally {
+      setExternalDiffBusy(false)
+    }
+  }, [target, filePath])
+
   const areaLabel =
     target.type === 'working'
       ? (target.area === 'staged' ? t('cfd.staged') : t('cfd.unstaged'))
@@ -276,6 +302,11 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
             title={showFullFile ? t('cfd.showChangesOnly') : t('cfd.showFullFile')}
           >
             {showFullFile ? t('cfd.fileBtn') : '◇ Diff'}
+          </button>
+        )}
+        {externalDiffTool && (
+          <button className="cfd-toggle" disabled={externalDiffBusy} onClick={openExternalDiff} title={t('cfd.externalDiffTitle')}>
+            ↗
           </button>
         )}
       </div>

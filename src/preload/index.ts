@@ -175,6 +175,13 @@ const gitAPI = {
   openExternal: (url: string) => ipcRenderer.invoke('app:open-external', url),
   openInEditor: (filepath: string) => ipcRenderer.invoke('app:open-in-editor', filepath),
   openTerminal: () => ipcRenderer.invoke('app:open-terminal'),
+  // External diff/merge tools & SSH keys (v1.20.0)
+  sshBrowseKey: (kind: 'private' | 'public') => ipcRenderer.invoke('app:ssh-browse-key', kind),
+  sshGenerateKey: (passphrase?: string) => ipcRenderer.invoke('app:ssh-generate-key', passphrase),
+  openExternalDiff: (leftContent: string, rightContent: string, filename: string) =>
+    ipcRenderer.invoke('app:open-external-diff', leftContent, rightContent, filename),
+  openExternalMerge: (filepath: string) => ipcRenderer.invoke('app:open-external-merge', filepath),
+  readTempFile: (absPath: string) => ipcRenderer.invoke('app:read-temp-file', absPath),
   // GitHub
   githubDetectRepo: () => ipcRenderer.invoke('github:detect-repo'),
   githubDetectRepoAt: (path: string) => ipcRenderer.invoke('github:detect-repo-at', path),

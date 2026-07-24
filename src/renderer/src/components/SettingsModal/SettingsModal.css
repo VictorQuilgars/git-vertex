@@ -75,12 +75,12 @@
 .stg-nav-item {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   background: transparent;
   border: none;
   border-left: 2px solid transparent;
   color: #8b949e;
-  font-size: 12.5px;
+  font-size: 13.5px;
   padding: 8px 18px;
   text-align: left;
   cursor: pointer;
@@ -93,7 +93,14 @@
   font-weight: 600;
   border-left: 2px solid var(--accent,#58a6ff);
 }
-.stg-nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.stg-nav-icon {
+  width: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+}
 
 /* ── Accent swatches ─────────────────────────────────────────── */
 .stg-swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
