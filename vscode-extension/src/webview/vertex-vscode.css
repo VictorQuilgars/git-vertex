@@ -130,6 +130,15 @@
 
 /* Branch selector */
 .gvt-branch-wrap { position: relative; margin-left: 4px; }
+/* "⋮" opening the unified branch menu (v1.21.0) — sits right against the
+   branch chip so it reads as part of the same control. */
+.gvt-branch-menu-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 22px; margin-left: 1px;
+  background: none; border: none; border-radius: 5px;
+  color: #8b949e; cursor: pointer; flex-shrink: 0;
+}
+.gvt-branch-menu-btn:hover { background: #30363d; color: #c9d1d9; }
 .gvt-branch {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 8px; height: 22px;

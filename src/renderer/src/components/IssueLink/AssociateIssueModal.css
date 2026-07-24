@@ -1,0 +1,96 @@
+/* Associate Issue with Branch (v1.21.0) — reuses .dlg-overlay from Dialog.css
+   so the backdrop and stacking match every other modal. */
+.aim-box {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  width: min(460px, 92vw);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  gap: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.aim-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.aim-title { font-size: 13px; font-weight: 600; color: #c9d1d9; }
+.aim-branch {
+  font-size: 11px;
+  color: #58a6ff;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.aim-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: #8b949e;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.aim-unlink {
+  background: none;
+  border: none;
+  color: #f85149;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.aim-unlink:hover { background: #f8514922; }
+.aim-search {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-size: 12px;
+  padding: 6px 9px;
+  outline: none;
+}
+.aim-search:focus { border-color: #58a6ff; }
+.aim-search::placeholder { color: #484f58; }
+.aim-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.aim-msg { padding: 10px 4px; font-size: 11px; color: #484f58; font-style: italic; }
+.aim-msg--err { color: #f85149; font-style: normal; }
+.aim-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #c9d1d9;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 8px;
+  width: 100%;
+}
+.aim-item:hover { background: #21262d; }
+.aim-num { flex-shrink: 0; color: #8b949e; font-size: 11px; }
+.aim-item-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aim-item--manual { color: #58a6ff; }
+.aim-actions { display: flex; justify-content: flex-end; }
+.aim-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 12px;
+}
+.aim-btn:hover { background: #30363d; }

@@ -20,6 +20,8 @@ import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import Launchpad from './components/Launchpad/Launchpad'
 import RepoManager from './components/RepoManager/RepoManager'
+import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
+import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
 import InitModal from './components/InitModal/InitModal'
 import PRModal from './components/PRModal/PRModal'
 import GitflowModal from './components/GitflowModal/GitflowModal'
@@ -260,6 +262,9 @@ export default function App() {
   // muted branches are excluded from the --all view.
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
   const [mutedBranches, setMutedBranches] = useState<Set<string>>(new Set())
+  // Favorites / graph pins / linked issues, per repo (v1.21.0).
+  const branchMeta = useBranchMeta(repoPath)
+  const [issueModalBranch, setIssueModalBranch] = useState<string | null>(null)
   const [extendedSearch, setExtendedSearch] = useState(false)
   const [extendedSearchHashes, setExtendedSearchHashes] = useState<Set<string>>(new Set())
   const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
@@ -1294,6 +1299,16 @@ export default function App() {
     window.gitAPI.openExternal(`https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/commit/${hash}`)
   }
 
+  // Same as above one level up: /tree/<branch>. Existed for commits only until
+  // v1.21.0, which is why "Open Branch on Remote" was nowhere to be found.
+  const handleOpenBranchOnRemote = (name: string) => {
+    if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    const short = name.replace(/^remotes\/[^/]+\//, '')
+    window.gitAPI.openExternal(
+      `https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/tree/${short.split('/').map(encodeURIComponent).join('/')}`
+    )
+  }
+
   // Drag branch A onto a target. `targetBranch` (B) is set when the drop landed
   // on a branch tip, which is the only case that offers "merge". Direction
   // follows the gesture: merge A INTO B, rebase A ONTO B, reset A to the target.
@@ -1830,6 +1845,14 @@ export default function App() {
                   return next
                 })
               }}
+              onFetch={handleFetch}
+              onPull={handlePull}
+              isFavorite={branchMeta.isFavorite}
+              isPinned={branchMeta.isPinned}
+              issueFor={branchMeta.issueFor}
+              onToggleFavorite={branchMeta.toggleFavorite}
+              onOpenBranchOnRemote={handleOpenBranchOnRemote}
+              onAssociateIssue={setIssueModalBranch}
               showToast={showToast}
               showPrompt={showPrompt}
               showConfirm={showConfirm}
@@ -2205,6 +2228,18 @@ export default function App() {
           from={comparePair.from}
           to={comparePair.to}
           onClose={() => setComparePair(null)}
+        />
+      )}
+
+      {issueModalBranch && (
+        <AssociateIssueModal
+          branch={issueModalBranch}
+          current={branchMeta.issueFor(issueModalBranch)}
+          onPick={(issue: LinkedIssue | null) => {
+            branchMeta.setIssue(issueModalBranch, issue)
+            setIssueModalBranch(null)
+          }}
+          onClose={() => setIssueModalBranch(null)}
         />
       )}
 

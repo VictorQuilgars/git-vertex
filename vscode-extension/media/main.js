@@ -59731,7 +59731,7 @@
   window.appInfo = { platform: "vscode" };
 
   // src/webview/app.tsx
-  var import_react24 = __toESM(require_react());
+  var import_react26 = __toESM(require_react());
   var import_client = __toESM(require_client());
 
   // ../src/renderer/src/contexts/SettingsContext.tsx
@@ -59944,6 +59944,16 @@
     "gitflow.notInit": "Gitflow n'est pas initialis\xE9 dans ce d\xE9p\xF4t.",
     "cp.empty": "Aucune commande trouv\xE9e",
     "dlg.hint": "\u2318/Ctrl + Entr\xE9e pour valider \u2014 1\u02B3\u1D49 ligne : titre, puis ligne vide, puis description",
+    "dlg.cancel": "Annuler",
+    "issue.assoc.title": "Associer une issue \xE0 la branche",
+    "issue.assoc.searchPlaceholder": "Rechercher une issue (num\xE9ro ou titre)\u2026",
+    "issue.assoc.loading": "Chargement des issues\u2026",
+    "issue.assoc.empty": "Aucune issue ne correspond",
+    "issue.assoc.noGithub": "Aucun d\xE9p\xF4t GitHub d\xE9tect\xE9 pour ce dossier",
+    "issue.assoc.loadFailed": "Impossible de charger les issues (jeton GitHub manquant ?)",
+    "issue.assoc.currentlyLinked": (n) => `Actuellement li\xE9e \xE0 l'issue #${n}`,
+    "issue.assoc.unlink": "Retirer le lien",
+    "issue.assoc.linkNumber": (n) => `Lier \xE0 l'issue #${n}`,
     "diff.empty": "Aucun changement d\xE9tect\xE9",
     "fh.noBlame": "Blame indisponible \xE0 cette r\xE9vision",
     "rp.allResolved": "Tous les conflits sont r\xE9solus",
@@ -60433,6 +60443,20 @@ Cette action est irr\xE9versible.`,
     "sb.branch.rebaseOnto": (b) => `\u2935 Rebaser "${b}" dessus`,
     "sb.branch.compareWith": (b) => `\u21C4 Comparer avec "${b}"`,
     "sb.branch.setUpstream": "\u{1F517} D\xE9finir l'upstream (origin)",
+    "sb.branch.checkout": "\u2713 Checkout",
+    "sb.branch.fetch": "\u21BB Fetch",
+    "sb.branch.pull": "\u2B07 Pull",
+    "sb.branch.push": "\u2B06 Push",
+    "sb.branch.openOnRemote": "\u2197 Ouvrir la branche sur GitHub",
+    "sb.branch.associateIssue": "\u{1F517} Associer une issue\u2026",
+    "sb.branch.issueLinked": (n) => `\u{1F517} Issue #${n} \u2014 changer\u2026`,
+    "sb.branch.favorite": "\u2605 Ajouter aux favoris",
+    "sb.branch.unfavorite": "\u2605 Retirer des favoris",
+    "sb.branch.favoriteFlag": "Favorite",
+    "sb.branch.pin": "\u{1F4CC} \xC9pingler sur le bord du graphe",
+    "sb.branch.unpin": "\u{1F4CC} Ne plus \xE9pingler",
+    "sb.branch.pinFlag": "\xC9pingl\xE9e",
+    "sb.branch.menu": "Actions sur la branche",
     "sb.branch.solo": "\u{1F441} Solo (afficher seule)",
     "sb.branch.unsolo": "\u{1F441} Annuler le solo",
     "sb.branch.mute": "\u{1F507} Masquer du graphe",
@@ -60952,6 +60976,16 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "gitflow.notInit": "Gitflow is not initialized in this repository.",
     "cp.empty": "No command found",
     "dlg.hint": "\u2318/Ctrl + Enter to confirm \u2014 1st line: title, then blank line, then description",
+    "dlg.cancel": "Cancel",
+    "issue.assoc.title": "Associate an issue with the branch",
+    "issue.assoc.searchPlaceholder": "Search an issue (number or title)\u2026",
+    "issue.assoc.loading": "Loading issues\u2026",
+    "issue.assoc.empty": "No matching issue",
+    "issue.assoc.noGithub": "No GitHub repository detected for this folder",
+    "issue.assoc.loadFailed": "Could not load issues (missing GitHub token?)",
+    "issue.assoc.currentlyLinked": (n) => `Currently linked to issue #${n}`,
+    "issue.assoc.unlink": "Remove link",
+    "issue.assoc.linkNumber": (n) => `Link to issue #${n}`,
     "diff.empty": "No changes detected",
     "fh.noBlame": "Blame unavailable at this revision",
     "rp.allResolved": "All conflicts are resolved",
@@ -61439,6 +61473,20 @@ This action is irreversible.`,
     "sb.branch.rebaseOnto": (b) => `\u2935 Rebase "${b}" onto this`,
     "sb.branch.compareWith": (b) => `\u21C4 Compare with "${b}"`,
     "sb.branch.setUpstream": "\u{1F517} Set upstream (origin)",
+    "sb.branch.checkout": "\u2713 Checkout",
+    "sb.branch.fetch": "\u21BB Fetch",
+    "sb.branch.pull": "\u2B07 Pull",
+    "sb.branch.push": "\u2B06 Push",
+    "sb.branch.openOnRemote": "\u2197 Open Branch on Remote",
+    "sb.branch.associateIssue": "\u{1F517} Associate Issue\u2026",
+    "sb.branch.issueLinked": (n) => `\u{1F517} Issue #${n} \u2014 change\u2026`,
+    "sb.branch.favorite": "\u2605 Add to Favorites",
+    "sb.branch.unfavorite": "\u2605 Remove from Favorites",
+    "sb.branch.favoriteFlag": "Favorite",
+    "sb.branch.pin": "\u{1F4CC} Pin to Graph Edge",
+    "sb.branch.unpin": "\u{1F4CC} Unpin from Graph Edge",
+    "sb.branch.pinFlag": "Pinned",
+    "sb.branch.menu": "Branch actions",
     "sb.branch.solo": "\u{1F441} Solo (show only this)",
     "sb.branch.unsolo": "\u{1F441} Clear solo",
     "sb.branch.mute": "\u{1F507} Hide from graph",
@@ -61901,9 +61949,197 @@ Commits beyond this point will be lost for that branch.`,
   }
 
   // src/webview/CompactToolbar.tsx
+  var import_react5 = __toESM(require_react());
+
+  // ../src/renderer/src/components/ContextMenu/ContextMenu.tsx
   var import_react4 = __toESM(require_react());
+  var import_react_dom = __toESM(require_react_dom());
+  var OPEN_DELAY = 200;
+  var CLOSE_DELAY = 220;
+  function ContextMenu({ x, y, items, onClose }) {
+    const ref = (0, import_react4.useRef)(null);
+    const subRef = (0, import_react4.useRef)(null);
+    const timer = (0, import_react4.useRef)();
+    const [sub, setSub] = (0, import_react4.useState)(null);
+    (0, import_react4.useEffect)(() => {
+      const onMouseDown = (e) => {
+        const t2 = e.target;
+        if (ref.current?.contains(t2) || subRef.current?.contains(t2))
+          return;
+        onClose();
+      };
+      const onKeyDown = (e) => {
+        if (e.key === "Escape")
+          onClose();
+      };
+      document.addEventListener("mousedown", onMouseDown);
+      document.addEventListener("keydown", onKeyDown);
+      return () => {
+        document.removeEventListener("mousedown", onMouseDown);
+        document.removeEventListener("keydown", onKeyDown);
+      };
+    }, [onClose]);
+    (0, import_react4.useEffect)(() => {
+      if (!ref.current)
+        return;
+      const rect = ref.current.getBoundingClientRect();
+      const vw = window.innerWidth, vh = window.innerHeight, M = 4;
+      let left = x;
+      if (x + rect.width > vw)
+        left = vw - rect.width - M;
+      left = Math.max(M, left);
+      let top = y;
+      if (y + rect.height > vh)
+        top = vh - rect.height - M;
+      top = Math.max(M, top);
+      ref.current.style.left = `${left}px`;
+      ref.current.style.top = `${top}px`;
+    }, [x, y]);
+    const openSub = (i, el) => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => {
+        const r = el.getBoundingClientRect();
+        setSub({ i, x: r.right - 3, y: r.top - 4 });
+      }, OPEN_DELAY);
+    };
+    const closeSubSoon = () => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setSub(null), CLOSE_DELAY);
+    };
+    const row = (item, i, close) => /* @__PURE__ */ import_react4.default.createElement(
+      "button",
+      {
+        key: i,
+        className: `ctx-item${item.danger ? " ctx-danger" : ""}${item.disabled ? " ctx-disabled" : ""}`,
+        disabled: item.disabled,
+        onMouseEnter: (e) => {
+          item.submenu?.length ? openSub(i, e.currentTarget) : (clearTimeout(timer.current), setSub(null));
+        },
+        onClick: () => {
+          if (item.disabled || item.submenu?.length)
+            return;
+          item.action?.();
+          close();
+        }
+      },
+      item.checked !== void 0 && /* @__PURE__ */ import_react4.default.createElement("span", { className: "ctx-check" }, item.checked ? "\u2713" : ""),
+      /* @__PURE__ */ import_react4.default.createElement("span", { className: "ctx-label" }, item.label),
+      !!item.submenu?.length && /* @__PURE__ */ import_react4.default.createElement("span", { className: "ctx-chevron" }, "\u203A")
+    );
+    const openItem = sub != null ? items[sub.i] : null;
+    const subItems = openItem && !("separator" in openItem) ? openItem.submenu : void 0;
+    const menu = /* @__PURE__ */ import_react4.default.createElement(import_react4.default.Fragment, null, /* @__PURE__ */ import_react4.default.createElement("div", { ref, className: "ctx-menu", style: { position: "fixed", left: x, top: y, zIndex: 9999 } }, items.map((item, i) => "separator" in item ? /* @__PURE__ */ import_react4.default.createElement("div", { key: i, className: "ctx-sep" }) : row(item, i, onClose))), subItems && sub && /* @__PURE__ */ import_react4.default.createElement(
+      "div",
+      {
+        ref: subRef,
+        className: "ctx-menu",
+        style: { position: "fixed", left: sub.x, top: sub.y, zIndex: 1e4 },
+        onMouseEnter: () => clearTimeout(timer.current),
+        onMouseLeave: closeSubSoon
+      },
+      subItems.map((item, i) => "separator" in item ? /* @__PURE__ */ import_react4.default.createElement("div", { key: i, className: "ctx-sep" }) : row(item, i, onClose))
+    ));
+    return (0, import_react_dom.createPortal)(menu, document.body);
+  }
+
+  // ../src/renderer/src/components/ContextMenu/branchMenu.ts
+  function buildBranchMenu(target, state, actions, t2) {
+    const { current, remote } = target;
+    const sections = [];
+    const navigate = [];
+    if (!current && actions.onCheckout)
+      navigate.push({ label: t2("sb.branch.checkout"), action: actions.onCheckout });
+    sections.push(navigate);
+    const sync = [];
+    if (current) {
+      if (actions.onFetch)
+        sync.push({ label: t2("sb.branch.fetch"), action: actions.onFetch });
+      if (actions.onPull)
+        sync.push({ label: t2("sb.branch.pull"), action: actions.onPull });
+    }
+    if (!remote && actions.onPush)
+      sync.push({ label: t2("sb.branch.push"), action: actions.onPush });
+    if (!remote && actions.onSetUpstream)
+      sync.push({ label: t2("sb.branch.setUpstream"), action: actions.onSetUpstream });
+    sections.push(sync);
+    const integrate = [];
+    if (!current) {
+      if (actions.onMerge)
+        integrate.push({ label: t2("sb.branch.mergeInto", state.currentBranch), action: actions.onMerge });
+      if (actions.onRebaseOnto)
+        integrate.push({ label: t2("sb.branch.rebaseOnto", state.currentBranch), action: actions.onRebaseOnto });
+      if (actions.onCompare)
+        integrate.push({ label: t2("sb.branch.compareWith", state.currentBranch), action: actions.onCompare });
+    }
+    sections.push(integrate);
+    const track = [];
+    if (actions.onOpenOnRemote)
+      track.push({ label: t2("sb.branch.openOnRemote"), action: actions.onOpenOnRemote });
+    if (actions.onAssociateIssue) {
+      track.push({
+        label: state.issue ? t2("sb.branch.issueLinked", state.issue.number) : t2("sb.branch.associateIssue"),
+        action: actions.onAssociateIssue
+      });
+    }
+    sections.push(track);
+    const view = [];
+    if (actions.onToggleFavorite) {
+      view.push({
+        label: state.favorite ? t2("sb.branch.unfavorite") : t2("sb.branch.favorite"),
+        action: actions.onToggleFavorite,
+        checked: !!state.favorite
+      });
+    }
+    if (actions.onTogglePin) {
+      view.push({
+        label: state.pinned ? t2("sb.branch.unpin") : t2("sb.branch.pin"),
+        action: actions.onTogglePin,
+        checked: !!state.pinned
+      });
+    }
+    if (actions.onToggleSolo) {
+      view.push({
+        label: state.soloed ? t2("sb.branch.unsolo") : t2("sb.branch.solo"),
+        action: actions.onToggleSolo,
+        checked: !!state.soloed
+      });
+    }
+    if (actions.onToggleMute) {
+      view.push({
+        label: state.muted ? t2("sb.branch.unmute") : t2("sb.branch.mute"),
+        action: actions.onToggleMute,
+        checked: !!state.muted
+      });
+    }
+    sections.push(view);
+    const edit = [];
+    if (actions.onCopyName)
+      edit.push({ label: t2("sb.copyName"), action: actions.onCopyName });
+    if (!remote && actions.onRename)
+      edit.push({ label: t2("sb.rename"), action: actions.onRename });
+    sections.push(edit);
+    const destroy = [];
+    if (!current && !remote && actions.onDelete) {
+      destroy.push({ label: t2("sb.delete"), action: actions.onDelete, danger: true });
+    }
+    if (remote && actions.onDeleteRemote) {
+      destroy.push({ label: t2("sb.branch.deleteRemote"), action: actions.onDeleteRemote, danger: true });
+    }
+    sections.push(destroy);
+    const out = [];
+    for (const section of sections) {
+      if (!section.length)
+        continue;
+      if (out.length)
+        out.push({ separator: true });
+      out.push(...section);
+    }
+    return out;
+  }
+
+  // src/webview/CompactToolbar.tsx
   function IconBtn({ title, onClick, disabled, active, badge, hideNarrow, children }) {
-    return /* @__PURE__ */ import_react4.default.createElement(
+    return /* @__PURE__ */ import_react5.default.createElement(
       "button",
       {
         className: `gvt-btn${active ? " gvt-btn--active" : ""}${hideNarrow ? " gvt-hide-narrow" : ""}`,
@@ -61912,11 +62148,11 @@ Commits beyond this point will be lost for that branch.`,
         disabled
       },
       children,
-      badge != null && badge > 0 && /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-badge" }, badge)
+      badge != null && badge > 0 && /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-badge" }, badge)
     );
   }
   function TextBtn({ title, label, onClick, disabled, count, children }) {
-    return /* @__PURE__ */ import_react4.default.createElement("button", { className: "gvt-tbtn", title, onClick, disabled }, children, /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-tbtn-label" }, label), count != null && count > 0 && /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-tbtn-count" }, count));
+    return /* @__PURE__ */ import_react5.default.createElement("button", { className: "gvt-tbtn", title, onClick, disabled }, children, /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-tbtn-label" }, label), count != null && count > 0 && /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-tbtn-count" }, count));
   }
   function relTime(d, lang, t2) {
     if (!d)
@@ -61932,9 +62168,10 @@ Commits beyond this point will be lost for that branch.`,
   }
   function CompactToolbar(p) {
     const { t: t2, lang } = useLang();
-    const [branchOpen, setBranchOpen] = (0, import_react4.useState)(false);
-    const branchRef = (0, import_react4.useRef)(null);
-    (0, import_react4.useEffect)(() => {
+    const [branchOpen, setBranchOpen] = (0, import_react5.useState)(false);
+    const [branchMenu, setBranchMenu] = (0, import_react5.useState)(null);
+    const branchRef = (0, import_react5.useRef)(null);
+    (0, import_react5.useEffect)(() => {
       if (!branchOpen)
         return;
       const onDown = (e) => {
@@ -61945,7 +62182,33 @@ Commits beyond this point will be lost for that branch.`,
       return () => document.removeEventListener("mousedown", onDown);
     }, [branchOpen]);
     const locals = p.branches.filter((b) => !b.remote && !b.name.includes("HEAD"));
-    return /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt" }, /* @__PURE__ */ import_react4.default.createElement("svg", { className: "gvt-logo", viewBox: "0 0 512 512", width: "16", height: "16", "aria-hidden": true }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "148", y1: "82", x2: "256", y2: "422", stroke: "#3fb950", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" })), p.onToggleSidebar && /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Afficher/masquer le panneau lat\xE9ral", onClick: p.onToggleSidebar, active: p.sidebarOpen }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0zM1.5 1.75v12.5c0 .138.112.25.25.25H6V1.5H1.75a.25.25 0 0 0-.25.25zM7.5 1.5v13h6.75a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H7.5z" }))), p.repoName && /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-repo" }, p.repoName), /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-wrap", ref: branchRef }, /* @__PURE__ */ import_react4.default.createElement("button", { className: "gvt-branch", title: "Changer de branche", onClick: () => setBranchOpen((o) => !o) }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-branch-name" }, p.branch || "\u2014"), /* @__PURE__ */ import_react4.default.createElement("svg", { width: "8", height: "8", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z" }))), branchOpen && /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-menu" }, locals.length === 0 && /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-branch-empty" }, "Aucune branche locale"), locals.map((b) => /* @__PURE__ */ import_react4.default.createElement(
+    const branchMenuItems = buildBranchMenu(
+      { name: p.branch, display: p.branch, current: true, remote: false },
+      {
+        currentBranch: p.branch,
+        soloed: p.soloBranch === p.branch,
+        muted: p.mutedBranches?.has(p.branch),
+        favorite: p.isFavorite?.(p.branch),
+        pinned: p.isPinned?.(p.branch),
+        issue: p.issueFor?.(p.branch)
+      },
+      {
+        onFetch: p.onFetch,
+        onPull: p.onPull,
+        onPush: p.onPush,
+        onSetUpstream: p.onSetUpstream && (() => p.onSetUpstream(p.branch)),
+        onOpenOnRemote: p.onOpenBranchOnRemote && (() => p.onOpenBranchOnRemote(p.branch)),
+        onAssociateIssue: p.onAssociateIssue && (() => p.onAssociateIssue(p.branch)),
+        onToggleFavorite: p.onToggleFavorite && (() => p.onToggleFavorite(p.branch)),
+        onTogglePin: p.onTogglePin && (() => p.onTogglePin(p.branch)),
+        onToggleSolo: p.onToggleSolo && (() => p.onToggleSolo(p.branch)),
+        onToggleMute: p.onToggleMute && (() => p.onToggleMute(p.branch)),
+        onCopyName: () => navigator.clipboard.writeText(p.branch),
+        onRename: p.onRenameBranch && (() => p.onRenameBranch(p.branch))
+      },
+      t2
+    );
+    return /* @__PURE__ */ import_react5.default.createElement("div", { className: "gvt" }, /* @__PURE__ */ import_react5.default.createElement("svg", { className: "gvt-logo", viewBox: "0 0 512 512", width: "16", height: "16", "aria-hidden": true }, /* @__PURE__ */ import_react5.default.createElement("line", { x1: "148", y1: "82", x2: "256", y2: "422", stroke: "#3fb950", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "40", strokeLinecap: "round" }), /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" })), p.onToggleSidebar && /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "Afficher/masquer le panneau lat\xE9ral", onClick: p.onToggleSidebar, active: p.sidebarOpen }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0zM1.5 1.75v12.5c0 .138.112.25.25.25H6V1.5H1.75a.25.25 0 0 0-.25.25zM7.5 1.5v13h6.75a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H7.5z" }))), p.repoName && /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-repo" }, p.repoName), /* @__PURE__ */ import_react5.default.createElement("div", { className: "gvt-branch-wrap", ref: branchRef }, /* @__PURE__ */ import_react5.default.createElement("button", { className: "gvt-branch", title: "Changer de branche", onClick: () => setBranchOpen((o) => !o) }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" })), /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-branch-name" }, p.branch || "\u2014"), /* @__PURE__ */ import_react5.default.createElement("svg", { width: "8", height: "8", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z" }))), branchOpen && /* @__PURE__ */ import_react5.default.createElement("div", { className: "gvt-branch-menu" }, locals.length === 0 && /* @__PURE__ */ import_react5.default.createElement("div", { className: "gvt-branch-empty" }, "Aucune branche locale"), locals.map((b) => /* @__PURE__ */ import_react5.default.createElement(
       "button",
       {
         key: b.name,
@@ -61956,9 +62219,28 @@ Commits beyond this point will be lost for that branch.`,
             p.onCheckout(b.name);
         }
       },
-      /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-branch-tick" }, b.current ? "\u2713" : ""),
-      /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-branch-label" }, b.name)
-    )))), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-spring" }), /* @__PURE__ */ import_react4.default.createElement(TextBtn, { title: p.lastFetch ? `Fetch \xB7 ${relTime(p.lastFetch, lang, t2)}` : "Fetch", label: "Fetch", onClick: p.onFetch, disabled: p.loading }, /* @__PURE__ */ import_react4.default.createElement("svg", { className: p.loading ? "gvt-spin" : "", width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" }))), /* @__PURE__ */ import_react4.default.createElement(
+      /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-branch-tick" }, b.current ? "\u2713" : ""),
+      /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-branch-label" }, b.name)
+    )))), branchMenuItems.length > 0 && /* @__PURE__ */ import_react5.default.createElement(
+      "button",
+      {
+        className: "gvt-branch-menu-btn",
+        title: t2("sb.branch.menu"),
+        onClick: (e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setBranchMenu({ x: r.left, y: r.bottom + 3 });
+        }
+      },
+      /* @__PURE__ */ import_react5.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z" }))
+    ), branchMenu && /* @__PURE__ */ import_react5.default.createElement(
+      ContextMenu,
+      {
+        x: branchMenu.x,
+        y: branchMenu.y,
+        items: branchMenuItems,
+        onClose: () => setBranchMenu(null)
+      }
+    ), /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-spring" }), /* @__PURE__ */ import_react5.default.createElement(TextBtn, { title: p.lastFetch ? `Fetch \xB7 ${relTime(p.lastFetch, lang, t2)}` : "Fetch", label: "Fetch", onClick: p.onFetch, disabled: p.loading }, /* @__PURE__ */ import_react5.default.createElement("svg", { className: p.loading ? "gvt-spin" : "", width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" }))), /* @__PURE__ */ import_react5.default.createElement(
       TextBtn,
       {
         title: p.behind ? lang === "fr" ? `Pull \u2014 ${p.behind} commit(s) en retard` : `Pull \u2014 ${p.behind} commit(s) behind` : "Pull",
@@ -61967,8 +62249,8 @@ Commits beyond this point will be lost for that branch.`,
         disabled: p.loading,
         count: p.behind
       },
-      /* @__PURE__ */ import_react4.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "7 10 12 15 17 10" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "3 21 21 21" }))
-    ), /* @__PURE__ */ import_react4.default.createElement(
+      /* @__PURE__ */ import_react5.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "7 10 12 15 17 10" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "3 21 21 21" }))
+    ), /* @__PURE__ */ import_react5.default.createElement(
       TextBtn,
       {
         title: p.ahead ? lang === "fr" ? `Push \u2014 ${p.ahead} commit(s) en avance` : `Push \u2014 ${p.ahead} commit(s) ahead` : "Push",
@@ -61977,12 +62259,12 @@ Commits beyond this point will be lost for that branch.`,
         disabled: p.loading,
         count: p.ahead
       },
-      /* @__PURE__ */ import_react4.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "21", x2: "12", y2: "9" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "7 14 12 9 17 14" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "3 3 21 3" }))
-    ), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-sep" }), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Nouvelle branche", onClick: p.onNewBranch }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Stash", onClick: p.onStash }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12h-6l-2 3h-4l-2-3H2" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Pop stash", onClick: p.onPop, disabled: p.stashCount === 0, badge: p.stashCount }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M12 4v8" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "8 8 12 4 16 8" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Annuler la derni\xE8re action", onClick: p.onUndo }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "9 14 4 9 9 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M20 20v-7a4 4 0 0 0-4-4H4" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "R\xE9tablir la derni\xE8re action annul\xE9e", onClick: p.onRedo }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "15 14 20 9 15 4" }), /* @__PURE__ */ import_react4.default.createElement("path", { d: "M4 20v-7a4 4 0 0 1 4-4h12" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Terminal", onClick: p.onTerminal, hideNarrow: true }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "4 17 10 11 4 5" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "12", y1: "19", x2: "20", y2: "19" }))), /* @__PURE__ */ import_react4.default.createElement("span", { className: "gvt-sep" }), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Afficher toutes les branches", onClick: p.onToggleAllBranches, active: p.showAllBranches }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z" }))), /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "Ouvrir dans Git Vertex Desktop", onClick: p.onOpenDesktop, hideNarrow: true }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" }), /* @__PURE__ */ import_react4.default.createElement("polyline", { points: "15 3 21 3 21 9" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "10", y1: "14", x2: "21", y2: "3" }))), p.onSettings && /* @__PURE__ */ import_react4.default.createElement(IconBtn, { title: "R\xE9glages (identit\xE9, GitHub, IA\u2026)", onClick: p.onSettings }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react4.default.createElement("path", { d: "M8 0a8.2 8.2 0 0 1 .701.031C9.444.095 9.99.645 10.16 1.29l.288 1.107c.018.066.079.158.212.224.231.114.454.243.668.386.123.082.233.09.299.071l1.103-.303c.644-.176 1.392.021 1.82.63.27.385.506.792.704 1.218.315.675.111 1.422-.364 1.891l-.814.806c-.049.048-.098.147-.088.294.016.257.016.515 0 .772-.01.147.038.246.088.294l.814.806c.475.469.679 1.216.364 1.891a7.977 7.977 0 0 1-.704 1.217c-.428.61-1.176.807-1.82.63l-1.102-.302c-.067-.019-.177-.011-.3.071a5.909 5.909 0 0 1-.668.386c-.133.066-.194.158-.211.224l-.29 1.106c-.168.646-.715 1.196-1.458 1.26a8.006 8.006 0 0 1-1.402 0c-.743-.064-1.289-.614-1.458-1.26l-.289-1.106c-.018-.066-.079-.158-.212-.224a5.738 5.738 0 0 1-.668-.386c-.123-.082-.233-.09-.299-.071l-1.103.303c-.644.176-1.392-.021-1.82-.63a8.12 8.12 0 0 1-.704-1.218c-.315-.675-.111-1.422.363-1.891l.815-.806c.05-.048.098-.147.088-.294a6.214 6.214 0 0 1 0-.772c.01-.147-.038-.246-.088-.294l-.815-.806C.635 6.045.431 5.298.746 4.623a7.92 7.92 0 0 1 .704-1.217c.428-.61 1.176-.807 1.82-.63l1.102.302c.067.019.177.011.3-.071.214-.143.437-.272.668-.386.133-.066.194-.158.211-.224l.29-1.106C6.009.645 6.556.095 7.299.03 7.53.01 7.764 0 8 0Zm-.571 1.525c-.036.003-.108.036-.137.146l-.289 1.105c-.147.561-.549.967-.998 1.189-.173.086-.34.183-.5.29-.417.278-.97.423-1.529.27l-1.103-.303c-.109-.03-.175.016-.195.045-.22.312-.412.644-.573.99-.014.031-.021.11.059.19l.815.806c.411.406.562.957.53 1.456a4.709 4.709 0 0 0 0 .582c.032.499-.119 1.05-.53 1.456l-.815.806c-.081.08-.073.159-.059.19.162.346.353.677.573.989.02.03.085.076.195.046l1.102-.303c.56-.153 1.113-.008 1.53.27.161.107.328.204.501.29.447.222.85.629.997 1.189l.289 1.105c.029.109.101.143.137.146a6.6 6.6 0 0 0 1.142 0c.036-.003.108-.036.137-.146l.289-1.105c.147-.561.549-.967.998-1.189.173-.086.34-.183.5-.29.417-.278.97-.423 1.529-.27l1.103.303c.109.029.175-.016.195-.045.22-.313.411-.644.573-.99.014-.031.021-.11-.059-.19l-.815-.806c-.411-.406-.562-.957-.53-1.456a4.709 4.709 0 0 0 0-.582c-.032-.499.119-1.05.53-1.456l.815-.806c.081-.08.073-.159.059-.19a6.464 6.464 0 0 0-.573-.989c-.02-.03-.085-.076-.195-.046l-1.102.303c-.56.153-1.113.008-1.53-.27a4.44 4.44 0 0 0-.501-.29c-.447-.222-.85-.629-.997-1.189l-.289-1.105c-.029-.11-.101-.143-.137-.146a6.6 6.6 0 0 0-1.142 0ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM9.5 8a1.5 1.5 0 1 0-3.001.001A1.5 1.5 0 0 0 9.5 8Z" }))), /* @__PURE__ */ import_react4.default.createElement("div", { className: "gvt-search" }, /* @__PURE__ */ import_react4.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react4.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react4.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" })), /* @__PURE__ */ import_react4.default.createElement("input", { type: "text", placeholder: "Rechercher\u2026", value: p.searchQuery, onChange: (e) => p.onSearch(e.target.value) }), p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && /* @__PURE__ */ import_react4.default.createElement("span", { className: `gvt-search-count${p.searchMatches === 0 ? " gvt-search-count--none" : ""}` }, p.searchMatches), p.searchQuery && /* @__PURE__ */ import_react4.default.createElement("button", { className: "gvt-search-clear", onClick: () => p.onSearch("") }, "\xD7")));
+      /* @__PURE__ */ import_react5.default.createElement("svg", { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "21", x2: "12", y2: "9" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "7 14 12 9 17 14" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "3 3 21 3" }))
+    ), /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-sep" }), /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "Nouvelle branche", onClick: p.onNewBranch }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z" }))), /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "Stash", onClick: p.onStash }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M22 12h-6l-2 3h-4l-2-3H2" }), /* @__PURE__ */ import_react5.default.createElement("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" }))), /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "Pop stash", onClick: p.onPop, disabled: p.stashCount === 0, badge: p.stashCount }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 4v8" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "8 8 12 4 16 8" }), /* @__PURE__ */ import_react5.default.createElement("path", { d: "M22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6" }))), /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "Annuler la derni\xE8re action", onClick: p.onUndo }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "9 14 4 9 9 4" }), /* @__PURE__ */ import_react5.default.createElement("path", { d: "M20 20v-7a4 4 0 0 0-4-4H4" }))), /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "R\xE9tablir la derni\xE8re action annul\xE9e", onClick: p.onRedo }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "15 14 20 9 15 4" }), /* @__PURE__ */ import_react5.default.createElement("path", { d: "M4 20v-7a4 4 0 0 1 4-4h12" }))), /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "Terminal", onClick: p.onTerminal, hideNarrow: true }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "4 17 10 11 4 5" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "19", x2: "20", y2: "19" }))), /* @__PURE__ */ import_react5.default.createElement("span", { className: "gvt-sep" }), /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "Afficher toutes les branches", onClick: p.onToggleAllBranches, active: p.showAllBranches }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z" }))), /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "Ouvrir dans Git Vertex Desktop", onClick: p.onOpenDesktop, hideNarrow: true }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "15 3 21 3 21 9" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "10", y1: "14", x2: "21", y2: "3" }))), p.onSettings && /* @__PURE__ */ import_react5.default.createElement(IconBtn, { title: "R\xE9glages (identit\xE9, GitHub, IA\u2026)", onClick: p.onSettings }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M8 0a8.2 8.2 0 0 1 .701.031C9.444.095 9.99.645 10.16 1.29l.288 1.107c.018.066.079.158.212.224.231.114.454.243.668.386.123.082.233.09.299.071l1.103-.303c.644-.176 1.392.021 1.82.63.27.385.506.792.704 1.218.315.675.111 1.422-.364 1.891l-.814.806c-.049.048-.098.147-.088.294.016.257.016.515 0 .772-.01.147.038.246.088.294l.814.806c.475.469.679 1.216.364 1.891a7.977 7.977 0 0 1-.704 1.217c-.428.61-1.176.807-1.82.63l-1.102-.302c-.067-.019-.177-.011-.3.071a5.909 5.909 0 0 1-.668.386c-.133.066-.194.158-.211.224l-.29 1.106c-.168.646-.715 1.196-1.458 1.26a8.006 8.006 0 0 1-1.402 0c-.743-.064-1.289-.614-1.458-1.26l-.289-1.106c-.018-.066-.079-.158-.212-.224a5.738 5.738 0 0 1-.668-.386c-.123-.082-.233-.09-.299-.071l-1.103.303c-.644.176-1.392-.021-1.82-.63a8.12 8.12 0 0 1-.704-1.218c-.315-.675-.111-1.422.363-1.891l.815-.806c.05-.048.098-.147.088-.294a6.214 6.214 0 0 1 0-.772c.01-.147-.038-.246-.088-.294l-.815-.806C.635 6.045.431 5.298.746 4.623a7.92 7.92 0 0 1 .704-1.217c.428-.61 1.176-.807 1.82-.63l1.102.302c.067.019.177.011.3-.071.214-.143.437-.272.668-.386.133-.066.194-.158.211-.224l.29-1.106C6.009.645 6.556.095 7.299.03 7.53.01 7.764 0 8 0Zm-.571 1.525c-.036.003-.108.036-.137.146l-.289 1.105c-.147.561-.549.967-.998 1.189-.173.086-.34.183-.5.29-.417.278-.97.423-1.529.27l-1.103-.303c-.109-.03-.175.016-.195.045-.22.312-.412.644-.573.99-.014.031-.021.11.059.19l.815.806c.411.406.562.957.53 1.456a4.709 4.709 0 0 0 0 .582c.032.499-.119 1.05-.53 1.456l-.815.806c-.081.08-.073.159-.059.19.162.346.353.677.573.989.02.03.085.076.195.046l1.102-.303c.56-.153 1.113-.008 1.53.27.161.107.328.204.501.29.447.222.85.629.997 1.189l.289 1.105c.029.109.101.143.137.146a6.6 6.6 0 0 0 1.142 0c.036-.003.108-.036.137-.146l.289-1.105c.147-.561.549-.967.998-1.189.173-.086.34-.183.5-.29.417-.278.97-.423 1.529-.27l1.103.303c.109.029.175-.016.195-.045.22-.313.411-.644.573-.99.014-.031.021-.11-.059-.19l-.815-.806c-.411-.406-.562-.957-.53-1.456a4.709 4.709 0 0 0 0-.582c-.032-.499.119-1.05.53-1.456l.815-.806c.081-.08.073-.159.059-.19a6.464 6.464 0 0 0-.573-.989c-.02-.03-.085-.076-.195-.046l-1.102.303c-.56.153-1.113.008-1.53-.27a4.44 4.44 0 0 0-.501-.29c-.447-.222-.85-.629-.997-1.189l-.289-1.105c-.029-.11-.101-.143-.137-.146a6.6 6.6 0 0 0-1.142 0ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM9.5 8a1.5 1.5 0 1 0-3.001.001A1.5 1.5 0 0 0 9.5 8Z" }))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "gvt-search" }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "11", cy: "11", r: "8" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" })), /* @__PURE__ */ import_react5.default.createElement("input", { type: "text", placeholder: "Rechercher\u2026", value: p.searchQuery, onChange: (e) => p.onSearch(e.target.value) }), p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && /* @__PURE__ */ import_react5.default.createElement("span", { className: `gvt-search-count${p.searchMatches === 0 ? " gvt-search-count--none" : ""}` }, p.searchMatches), p.searchQuery && /* @__PURE__ */ import_react5.default.createElement("button", { className: "gvt-search-clear", onClick: () => p.onSearch("") }, "\xD7")));
   }
 
   // ../src/renderer/src/components/SettingsModal/SettingsModal.tsx
-  var import_react5 = __toESM(require_react());
+  var import_react6 = __toESM(require_react());
 
   // ../resources/icon.png
   var icon_default = "data:image/png;base64,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";
@@ -61990,7 +62272,7 @@ Commits beyond this point will be lost for that branch.`,
   // ../src/renderer/src/components/SettingsModal/SettingsModal.tsx
   var DESKTOP_ONLY_SECTIONS = ["externalTools", "ssh", "about"];
   function NavIcon({ children }) {
-    return /* @__PURE__ */ import_react5.default.createElement(
+    return /* @__PURE__ */ import_react6.default.createElement(
       "svg",
       {
         width: "16",
@@ -62006,30 +62288,30 @@ Commits beyond this point will be lost for that branch.`,
       children
     );
   }
-  var IconIdentity = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "8", r: "3.3" }), /* @__PURE__ */ import_react5.default.createElement("path", { d: "M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2" }));
-  var IconAppearance = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("line", { x1: "4", y1: "20", x2: "4", y2: "14" }), /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "4", cy: "11", r: "2" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "4", y1: "8", x2: "4", y2: "4" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "20", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "9", r: "2" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "6", x2: "12", y2: "4" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "20", y1: "20", x2: "20", y2: "16" }), /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "20", cy: "13", r: "2" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "20", y1: "10", x2: "20", y2: "4" }));
-  var IconGraph = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "3" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "2", x2: "12", y2: "9" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "15", x2: "12", y2: "22" }));
-  var IconShield = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z" }));
-  var IconGithubMark = () => /* @__PURE__ */ import_react5.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" }));
-  var IconSparkle = () => /* @__PURE__ */ import_react5.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" }));
-  var IconActivity = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "3 12 8 12 10 6 14 18 16 12 21 12" }));
-  var IconTool = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" }));
-  var IconInfo = () => /* @__PURE__ */ import_react5.default.createElement(NavIcon, null, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "16", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "8", x2: "12.01", y2: "8" }));
+  var IconIdentity = () => /* @__PURE__ */ import_react6.default.createElement(NavIcon, null, /* @__PURE__ */ import_react6.default.createElement("circle", { cx: "12", cy: "8", r: "3.3" }), /* @__PURE__ */ import_react6.default.createElement("path", { d: "M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2" }));
+  var IconAppearance = () => /* @__PURE__ */ import_react6.default.createElement(NavIcon, null, /* @__PURE__ */ import_react6.default.createElement("line", { x1: "4", y1: "20", x2: "4", y2: "14" }), /* @__PURE__ */ import_react6.default.createElement("circle", { cx: "4", cy: "11", r: "2" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "4", y1: "8", x2: "4", y2: "4" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "20", x2: "12", y2: "12" }), /* @__PURE__ */ import_react6.default.createElement("circle", { cx: "12", cy: "9", r: "2" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "6", x2: "12", y2: "4" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "20", y1: "20", x2: "20", y2: "16" }), /* @__PURE__ */ import_react6.default.createElement("circle", { cx: "20", cy: "13", r: "2" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "20", y1: "10", x2: "20", y2: "4" }));
+  var IconGraph = () => /* @__PURE__ */ import_react6.default.createElement(NavIcon, null, /* @__PURE__ */ import_react6.default.createElement("circle", { cx: "12", cy: "12", r: "3" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "2", x2: "12", y2: "9" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "15", x2: "12", y2: "22" }));
+  var IconShield = () => /* @__PURE__ */ import_react6.default.createElement(NavIcon, null, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z" }));
+  var IconGithubMark = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" }));
+  var IconSparkle = () => /* @__PURE__ */ import_react6.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "currentColor", "aria-hidden": "true" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z" }));
+  var IconActivity = () => /* @__PURE__ */ import_react6.default.createElement(NavIcon, null, /* @__PURE__ */ import_react6.default.createElement("polyline", { points: "3 12 8 12 10 6 14 18 16 12 21 12" }));
+  var IconTool = () => /* @__PURE__ */ import_react6.default.createElement(NavIcon, null, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" }));
+  var IconInfo = () => /* @__PURE__ */ import_react6.default.createElement(NavIcon, null, /* @__PURE__ */ import_react6.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "16", x2: "12", y2: "12" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "8", x2: "12.01", y2: "8" }));
   var NAV_GROUPS = [
     { group: "settings.grp.general", items: [
-      { id: "git", icon: /* @__PURE__ */ import_react5.default.createElement(IconIdentity, null), label: "settings.sec.identity" },
-      { id: "appearance", icon: /* @__PURE__ */ import_react5.default.createElement(IconAppearance, null), label: "settings.sec.appearance" },
-      { id: "graph", icon: /* @__PURE__ */ import_react5.default.createElement(IconGraph, null), label: "settings.sec.graph" },
-      { id: "ssh", icon: /* @__PURE__ */ import_react5.default.createElement(IconShield, null), label: "settings.sec.ssh" }
+      { id: "git", icon: /* @__PURE__ */ import_react6.default.createElement(IconIdentity, null), label: "settings.sec.identity" },
+      { id: "appearance", icon: /* @__PURE__ */ import_react6.default.createElement(IconAppearance, null), label: "settings.sec.appearance" },
+      { id: "graph", icon: /* @__PURE__ */ import_react6.default.createElement(IconGraph, null), label: "settings.sec.graph" },
+      { id: "ssh", icon: /* @__PURE__ */ import_react6.default.createElement(IconShield, null), label: "settings.sec.ssh" }
     ] },
     { group: "settings.grp.integrations", items: [
-      { id: "github", icon: /* @__PURE__ */ import_react5.default.createElement(IconGithubMark, null), label: "settings.sec.github" },
-      { id: "ai", icon: /* @__PURE__ */ import_react5.default.createElement(IconSparkle, null), label: "settings.sec.ai" }
+      { id: "github", icon: /* @__PURE__ */ import_react6.default.createElement(IconGithubMark, null), label: "settings.sec.github" },
+      { id: "ai", icon: /* @__PURE__ */ import_react6.default.createElement(IconSparkle, null), label: "settings.sec.ai" }
     ] },
     { group: "settings.grp.system", items: [
-      { id: "notifications", icon: /* @__PURE__ */ import_react5.default.createElement(IconActivity, null), label: "settings.sec.behavior" },
-      { id: "externalTools", icon: /* @__PURE__ */ import_react5.default.createElement(IconTool, null), label: "settings.sec.externalTools" },
-      { id: "about", icon: /* @__PURE__ */ import_react5.default.createElement(IconInfo, null), label: "settings.sec.about" }
+      { id: "notifications", icon: /* @__PURE__ */ import_react6.default.createElement(IconActivity, null), label: "settings.sec.behavior" },
+      { id: "externalTools", icon: /* @__PURE__ */ import_react6.default.createElement(IconTool, null), label: "settings.sec.externalTools" },
+      { id: "about", icon: /* @__PURE__ */ import_react6.default.createElement(IconInfo, null), label: "settings.sec.about" }
     ] }
   ];
   var ACCENT_PRESETS = [
@@ -62050,53 +62332,53 @@ Commits beyond this point will be lost for that branch.`,
   function SettingsModal({ onClose, showToast, onUpdateFound, embedded = false }) {
     const { t: t2, lang, setLang } = useLang();
     const { get, getBool, set } = useSettings();
-    const [section, setSection] = (0, import_react5.useState)("git");
+    const [section, setSection] = (0, import_react6.useState)("git");
     const navGroups = embedded ? NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !DESKTOP_ONLY_SECTIONS.includes(i.id)) })).filter((g) => g.items.length > 0) : NAV_GROUPS;
-    const [gitUserName, setGitUserName] = (0, import_react5.useState)("");
-    const [gitUserEmail, setGitUserEmail] = (0, import_react5.useState)("");
-    const [githubToken, setGithubToken] = (0, import_react5.useState)("");
-    const [showToken, setShowToken] = (0, import_react5.useState)(false);
-    const [githubUser, setGithubUser] = (0, import_react5.useState)(null);
-    const [githubLoading, setGithubLoading] = (0, import_react5.useState)(false);
-    const [appInfo, setAppInfo] = (0, import_react5.useState)(null);
-    const [updateStatus, setUpdateStatus] = (0, import_react5.useState)("idle");
-    const [updateVersion, setUpdateVersion] = (0, import_react5.useState)(null);
-    const [updateReady, setUpdateReady] = (0, import_react5.useState)(false);
-    const [downloadProgress, setDownloadProgress] = (0, import_react5.useState)(null);
-    const [updateError, setUpdateError] = (0, import_react5.useState)(null);
-    const checkHadError = import_react5.default.useRef(false);
-    const [aiProvider, setAiProvider] = (0, import_react5.useState)("groq");
-    const [aiKeys, setAiKeys] = (0, import_react5.useState)({ anthropic: "", google: "", groq: "", openai: "" });
-    const [aiModels, setAiModels] = (0, import_react5.useState)({
+    const [gitUserName, setGitUserName] = (0, import_react6.useState)("");
+    const [gitUserEmail, setGitUserEmail] = (0, import_react6.useState)("");
+    const [githubToken, setGithubToken] = (0, import_react6.useState)("");
+    const [showToken, setShowToken] = (0, import_react6.useState)(false);
+    const [githubUser, setGithubUser] = (0, import_react6.useState)(null);
+    const [githubLoading, setGithubLoading] = (0, import_react6.useState)(false);
+    const [appInfo, setAppInfo] = (0, import_react6.useState)(null);
+    const [updateStatus, setUpdateStatus] = (0, import_react6.useState)("idle");
+    const [updateVersion, setUpdateVersion] = (0, import_react6.useState)(null);
+    const [updateReady, setUpdateReady] = (0, import_react6.useState)(false);
+    const [downloadProgress, setDownloadProgress] = (0, import_react6.useState)(null);
+    const [updateError, setUpdateError] = (0, import_react6.useState)(null);
+    const checkHadError = import_react6.default.useRef(false);
+    const [aiProvider, setAiProvider] = (0, import_react6.useState)("groq");
+    const [aiKeys, setAiKeys] = (0, import_react6.useState)({ anthropic: "", google: "", groq: "", openai: "" });
+    const [aiModels, setAiModels] = (0, import_react6.useState)({
       anthropic: "claude-haiku-4-5-20251001",
       google: "gemini-2.0-flash",
       groq: "llama-3.3-70b-versatile",
       openai: "gpt-4o-mini"
     });
-    const [liveModels, setLiveModels] = (0, import_react5.useState)({ anthropic: null, google: null, groq: null, openai: null });
-    const [loadingModels, setLoadingModels] = (0, import_react5.useState)(false);
-    const [modelsError, setModelsError] = (0, import_react5.useState)(null);
-    const [showKey, setShowKey] = (0, import_react5.useState)(false);
-    const [showTuto, setShowTuto] = (0, import_react5.useState)(false);
-    const [notifyFetch, setNotifyFetch] = (0, import_react5.useState)(true);
-    const [notifyCommit, setNotifyCommit] = (0, import_react5.useState)(false);
-    const [notifyUpdate, setNotifyUpdate] = (0, import_react5.useState)(true);
-    const [autoStash, setAutoStash] = (0, import_react5.useState)(false);
-    const [warnBeforeConflict, setWarnBeforeConflict] = (0, import_react5.useState)(true);
-    const [gpgSign, setGpgSign] = (0, import_react5.useState)(false);
-    const [profiles, setProfiles] = (0, import_react5.useState)([]);
-    const [externalEditor, setExternalEditor] = (0, import_react5.useState)("");
-    const [defaultBranchName, setDefaultBranchName] = (0, import_react5.useState)("");
-    const [autoFetchInterval, setAutoFetchInterval] = (0, import_react5.useState)("0");
-    const [autoUpdateSubmodules, setAutoUpdateSubmodules] = (0, import_react5.useState)(false);
-    const [externalDiffTool, setExternalDiffTool] = (0, import_react5.useState)("");
-    const [externalMergeTool, setExternalMergeTool] = (0, import_react5.useState)("");
-    const [externalTerminal, setExternalTerminal] = (0, import_react5.useState)("");
-    const [sshUseAgent, setSshUseAgent] = (0, import_react5.useState)(false);
-    const [sshPrivateKey, setSshPrivateKey] = (0, import_react5.useState)("");
-    const [sshPublicKey, setSshPublicKey] = (0, import_react5.useState)("");
-    const [sshGenerating, setSshGenerating] = (0, import_react5.useState)(false);
-    const [sshPassphrase, setSshPassphrase] = (0, import_react5.useState)("");
+    const [liveModels, setLiveModels] = (0, import_react6.useState)({ anthropic: null, google: null, groq: null, openai: null });
+    const [loadingModels, setLoadingModels] = (0, import_react6.useState)(false);
+    const [modelsError, setModelsError] = (0, import_react6.useState)(null);
+    const [showKey, setShowKey] = (0, import_react6.useState)(false);
+    const [showTuto, setShowTuto] = (0, import_react6.useState)(false);
+    const [notifyFetch, setNotifyFetch] = (0, import_react6.useState)(true);
+    const [notifyCommit, setNotifyCommit] = (0, import_react6.useState)(false);
+    const [notifyUpdate, setNotifyUpdate] = (0, import_react6.useState)(true);
+    const [autoStash, setAutoStash] = (0, import_react6.useState)(false);
+    const [warnBeforeConflict, setWarnBeforeConflict] = (0, import_react6.useState)(true);
+    const [gpgSign, setGpgSign] = (0, import_react6.useState)(false);
+    const [profiles, setProfiles] = (0, import_react6.useState)([]);
+    const [externalEditor, setExternalEditor] = (0, import_react6.useState)("");
+    const [defaultBranchName, setDefaultBranchName] = (0, import_react6.useState)("");
+    const [autoFetchInterval, setAutoFetchInterval] = (0, import_react6.useState)("0");
+    const [autoUpdateSubmodules, setAutoUpdateSubmodules] = (0, import_react6.useState)(false);
+    const [externalDiffTool, setExternalDiffTool] = (0, import_react6.useState)("");
+    const [externalMergeTool, setExternalMergeTool] = (0, import_react6.useState)("");
+    const [externalTerminal, setExternalTerminal] = (0, import_react6.useState)("");
+    const [sshUseAgent, setSshUseAgent] = (0, import_react6.useState)(false);
+    const [sshPrivateKey, setSshPrivateKey] = (0, import_react6.useState)("");
+    const [sshPublicKey, setSshPublicKey] = (0, import_react6.useState)("");
+    const [sshGenerating, setSshGenerating] = (0, import_react6.useState)(false);
+    const [sshPassphrase, setSshPassphrase] = (0, import_react6.useState)("");
     const fetchModels = async (provider, key) => {
       if (!key)
         return;
@@ -62120,7 +62402,7 @@ Commits beyond this point will be lost for that branch.`,
       const r = await window.gitAPI.githubGetUser();
       setGithubUser(r.user ?? null);
     };
-    (0, import_react5.useEffect)(() => {
+    (0, import_react6.useEffect)(() => {
       ;
       window.gitAPI.appGetInfo().then((info) => setAppInfo(info));
       window.gitAPI.gitGetGlobalConfig().then((r) => {
@@ -62278,16 +62560,16 @@ Commits beyond this point will be lost for that branch.`,
         await window.gitAPI.settingsSet("groqApiKey", aiKeys.groq);
       showToast(t2("toast.aiSaved"));
     };
-    return /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-page" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-header" }, /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-back", onClick: onClose, title: t2("settings.back") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "15 18 9 12 15 6" })), t2("settings.back")), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-title" }, t2("settings.title"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-body" }, /* @__PURE__ */ import_react5.default.createElement("nav", { className: "stg-nav" }, navGroups.map((grp) => /* @__PURE__ */ import_react5.default.createElement("div", { key: grp.group, className: "stg-nav-group" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-nav-group-label" }, t2(grp.group)), grp.items.map((item) => /* @__PURE__ */ import_react5.default.createElement(
+    return /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-page" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-header" }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-back", onClick: onClose, title: t2("settings.back") }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react6.default.createElement("polyline", { points: "15 18 9 12 15 6" })), t2("settings.back")), /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-title" }, t2("settings.title"))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-body" }, /* @__PURE__ */ import_react6.default.createElement("nav", { className: "stg-nav" }, navGroups.map((grp) => /* @__PURE__ */ import_react6.default.createElement("div", { key: grp.group, className: "stg-nav-group" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-nav-group-label" }, t2(grp.group)), grp.items.map((item) => /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         key: item.id,
         className: `stg-nav-item ${section === item.id ? "active" : ""}`,
         onClick: () => setSection(item.id)
       },
-      /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-nav-icon" }, item.icon),
-      /* @__PURE__ */ import_react5.default.createElement("span", null, t2(item.label))
-    ))))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-content" }, section === "git" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.git.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.git.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.git.name")), /* @__PURE__ */ import_react5.default.createElement(
+      /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-nav-icon" }, item.icon),
+      /* @__PURE__ */ import_react6.default.createElement("span", null, t2(item.label))
+    ))))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-content" }, section === "git" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title" }, t2("settings.git.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.git.desc")), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.git.name")), /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62295,7 +62577,7 @@ Commits beyond this point will be lost for that branch.`,
         onChange: (e) => setGitUserName(e.target.value),
         placeholder: t2("settings.git.name.placeholder")
       }
-    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.git.email")), /* @__PURE__ */ import_react5.default.createElement(
+    )), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.git.email")), /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62304,10 +62586,10 @@ Commits beyond this point will be lost for that branch.`,
         onChange: (e) => setGitUserEmail(e.target.value),
         placeholder: t2("settings.git.email.placeholder")
       }
-    )), /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-save", onClick: saveGit }, t2("settings.save")), /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-save", style: { background: "#21262d", color: "#c9d1d9" }, onClick: saveCurrentAsProfile }, "+ Enregistrer comme profil")), profiles.length > 0 && /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.profiles.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.profiles.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-profiles" }, profiles.map((p, i) => {
+    )), /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-save", onClick: saveGit }, t2("settings.save")), /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-save", style: { background: "#21262d", color: "#c9d1d9" }, onClick: saveCurrentAsProfile }, "+ Enregistrer comme profil")), profiles.length > 0 && /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.profiles.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.profiles.desc")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-profiles" }, profiles.map((p, i) => {
       const active = p.name === gitUserName.trim() && p.email === gitUserEmail.trim();
-      return /* @__PURE__ */ import_react5.default.createElement("div", { key: i, className: `stg-profile ${active ? "active" : ""}` }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-profile-info" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-profile-name" }, p.name), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-profile-email" }, p.email)), active ? /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-profile-badge" }, t2("settings.profiles.active")) : /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-profile-apply", onClick: () => applyProfile(p) }, t2("settings.profiles.use")), /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-profile-del", onClick: () => deleteProfile(i), title: t2("settings.profiles.delete") }, "\u2715"));
-    }))), /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.gpg.title")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+      return /* @__PURE__ */ import_react6.default.createElement("div", { key: i, className: `stg-profile ${active ? "active" : ""}` }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-profile-info" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-profile-name" }, p.name), /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-profile-email" }, p.email)), active ? /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-profile-badge" }, t2("settings.profiles.active")) : /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-profile-apply", onClick: () => applyProfile(p) }, t2("settings.profiles.use")), /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-profile-del", onClick: () => deleteProfile(i), title: t2("settings.profiles.delete") }, "\u2715"));
+    }))), /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.gpg.title")), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62317,9 +62599,9 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("gpgSign", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.gpg.label"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.gpg.hint"))))), section === "appearance" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.appearance.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.appearance.desc")), /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 8 } }, t2("settings.accent.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.accent.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-swatches" }, ACCENT_PRESETS.map((c) => {
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.gpg.label"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.gpg.hint"))))), section === "appearance" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title" }, t2("settings.appearance.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.appearance.desc")), /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 8 } }, t2("settings.accent.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.accent.desc")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-swatches" }, ACCENT_PRESETS.map((c) => {
       const active = get("accentColor", "#58a6ff").toLowerCase() === c.value.toLowerCase();
-      return /* @__PURE__ */ import_react5.default.createElement(
+      return /* @__PURE__ */ import_react6.default.createElement(
         "button",
         {
           key: c.value,
@@ -62328,16 +62610,16 @@ Commits beyond this point will be lost for that branch.`,
           title: t2(c.key),
           onClick: () => set("accentColor", c.value)
         },
-        active && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-swatch-check" }, "\u2713")
+        active && /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-swatch-check" }, "\u2713")
       );
-    }), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-swatch-custom", title: t2("settings.color.custom") }, /* @__PURE__ */ import_react5.default.createElement(
+    }), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-swatch-custom", title: t2("settings.color.custom") }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "color",
         value: get("accentColor", "#58a6ff"),
         onChange: (e) => set("accentColor", e.target.value)
       }
-    ))), /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.date.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.date.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-segment" }, /* @__PURE__ */ import_react5.default.createElement(
+    ))), /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.date.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.date.desc")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-segment" }, /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: `stg-segment-btn ${get("dateFormat", "relative") === "relative" ? "active" : ""}`,
@@ -62345,8 +62627,8 @@ Commits beyond this point will be lost for that branch.`,
       },
       t2("settings.date.relative"),
       " ",
-      /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-segment-hint" }, t2("settings.date.relativeHint"))
-    ), /* @__PURE__ */ import_react5.default.createElement(
+      /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-segment-hint" }, t2("settings.date.relativeHint"))
+    ), /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: `stg-segment-btn ${get("dateFormat", "relative") === "absolute" ? "active" : ""}`,
@@ -62354,33 +62636,33 @@ Commits beyond this point will be lost for that branch.`,
       },
       t2("settings.date.absolute"),
       " ",
-      /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-segment-hint" }, t2("settings.date.absoluteHint"))
-    ))), section === "graph" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.graph.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.graph.desc")), [
+      /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-segment-hint" }, t2("settings.date.absoluteHint"))
+    ))), section === "graph" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title" }, t2("settings.graph.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.graph.desc")), [
       ["graphShowAvatars", "settings.graph.avatars", "settings.graph.avatarsHint"],
       ["graphShowAuthor", "settings.graph.author", "settings.graph.authorHint"],
       ["graphShowDate", "settings.graph.date", "settings.graph.dateHint"],
       ["graphShowSha", "settings.graph.sha", "settings.graph.shaHint"],
       ["graphShowStats", "settings.graph.stats", "settings.graph.statsHint"]
-    ].map(([key, labelKey, descKey]) => /* @__PURE__ */ import_react5.default.createElement("label", { key, className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ].map(([key, labelKey, descKey]) => /* @__PURE__ */ import_react6.default.createElement("label", { key, className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
         checked: getBool(key, true),
         onChange: (e) => set(key, String(e.target.checked))
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2(labelKey), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, "\u2014 ", t2(descKey))))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2(labelKey), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, "\u2014 ", t2(descKey))))), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
         checked: getBool("graphCompactColumns", false),
         onChange: (e) => set("graphCompactColumns", String(e.target.checked))
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.graph.compact"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.graph.compactHint")))), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc", style: { marginTop: 12 } }, t2("settings.graph.tip"))), section === "github" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.github.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.github.desc")), githubUser && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-gh-connected" }, /* @__PURE__ */ import_react5.default.createElement("img", { className: "stg-gh-avatar", src: githubUser.avatar, alt: githubUser.login }), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-gh-info" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-gh-login" }, githubUser.login), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-gh-status" }, t2("settings.github.connected"))), /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-gh-disconnect", onClick: embedded ? async () => {
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.graph.compact"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.graph.compactHint")))), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc", style: { marginTop: 12 } }, t2("settings.graph.tip"))), section === "github" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title" }, t2("settings.github.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.github.desc")), githubUser && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-gh-connected" }, /* @__PURE__ */ import_react6.default.createElement("img", { className: "stg-gh-avatar", src: githubUser.avatar, alt: githubUser.login }), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-gh-info" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-gh-login" }, githubUser.login), /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-gh-status" }, t2("settings.github.connected"))), /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-gh-disconnect", onClick: embedded ? async () => {
       await window.gitAPI.settingsSet("githubToken", "");
       setGithubToken("");
       setGithubUser(null);
       showToast(t2("toast.githubDisconnected"));
-    } : handleGithubDisconnect }, t2("settings.github.disconnect"))), !githubUser && !embedded && /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-gh-login-btn", onClick: handleGithubLogin, disabled: githubLoading }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), githubLoading ? t2("settings.github.connecting") : t2("settings.github.login")), !githubUser && embedded && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("label", null, t2("settings.github.pat")), /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    } : handleGithubDisconnect }, t2("settings.github.disconnect"))), !githubUser && !embedded && /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-gh-login-btn", onClick: handleGithubLogin, disabled: githubLoading }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), githubLoading ? t2("settings.github.connecting") : t2("settings.github.login")), !githubUser && embedded && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-field" }, /* @__PURE__ */ import_react6.default.createElement("label", null, t2("settings.github.pat")), /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: showToken ? "text" : "password",
@@ -62390,11 +62672,11 @@ Commits beyond this point will be lost for that branch.`,
         style: { flex: 1 },
         spellCheck: false
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-save", style: { background: "#21262d", color: "#c9d1d9" }, onClick: () => setShowToken((v) => !v) }, showToken ? "\u{1F648}" : "\u{1F441}"), /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-save", onClick: async () => {
+    ), /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-save", style: { background: "#21262d", color: "#c9d1d9" }, onClick: () => setShowToken((v) => !v) }, showToken ? "\u{1F648}" : "\u{1F441}"), /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-save", onClick: async () => {
       await saveGithub();
       if (githubToken.trim())
         fetchGithubUser();
-    } }, t2("settings.save"))), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc", style: { marginTop: 6 } }, t2("settings.github.patHint")))), section === "ai" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.ai.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.ai.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-providers" }, AI_PROVIDERS.map((p) => /* @__PURE__ */ import_react5.default.createElement(
+    } }, t2("settings.save"))), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc", style: { marginTop: 6 } }, t2("settings.github.patHint")))), section === "ai" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title" }, t2("settings.ai.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.ai.desc")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-providers" }, AI_PROVIDERS.map((p) => /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         key: p.id,
@@ -62409,18 +62691,18 @@ Commits beyond this point will be lost for that branch.`,
             fetchModels(p.id, aiKeys[p.id]);
         }
       },
-      /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-provider-name" }, p.label),
-      /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-provider-model" }, aiModels[p.id])
-    ))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-field", style: { marginTop: 16 } }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-model-header" }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.ai.model", AI_PROVIDERS.find((p) => p.id === aiProvider)?.label ?? "")), liveModels[aiProvider] && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-model-count" }, t2("settings.ai.modelsCount", liveModels[aiProvider].length))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-input-row" }, liveModels[aiProvider] ? /* @__PURE__ */ import_react5.default.createElement(
+      /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-provider-name" }, p.label),
+      /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-provider-model" }, aiModels[p.id])
+    ))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-field", style: { marginTop: 16 } }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-model-header" }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.ai.model", AI_PROVIDERS.find((p) => p.id === aiProvider)?.label ?? "")), liveModels[aiProvider] && /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-model-count" }, t2("settings.ai.modelsCount", liveModels[aiProvider].length))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-input-row" }, liveModels[aiProvider] ? /* @__PURE__ */ import_react6.default.createElement(
       "select",
       {
         className: "stg-input stg-mono",
         value: aiModels[aiProvider],
         onChange: (e) => setAiModels((m) => ({ ...m, [aiProvider]: e.target.value }))
       },
-      liveModels[aiProvider].map((m) => /* @__PURE__ */ import_react5.default.createElement("option", { key: m, value: m }, m)),
-      !liveModels[aiProvider].includes(aiModels[aiProvider]) && /* @__PURE__ */ import_react5.default.createElement("option", { value: aiModels[aiProvider] }, aiModels[aiProvider], " ", t2("settings.ai.custom"))
-    ) : /* @__PURE__ */ import_react5.default.createElement(
+      liveModels[aiProvider].map((m) => /* @__PURE__ */ import_react6.default.createElement("option", { key: m, value: m }, m)),
+      !liveModels[aiProvider].includes(aiModels[aiProvider]) && /* @__PURE__ */ import_react6.default.createElement("option", { value: aiModels[aiProvider] }, aiModels[aiProvider], " ", t2("settings.ai.custom"))
+    ) : /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input stg-mono",
@@ -62428,7 +62710,7 @@ Commits beyond this point will be lost for that branch.`,
         onChange: (e) => setAiModels((m) => ({ ...m, [aiProvider]: e.target.value })),
         placeholder: AI_PROVIDERS.find((p) => p.id === aiProvider)?.defaultModel
       }
-    ), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: "stg-load-models",
@@ -62437,7 +62719,7 @@ Commits beyond this point will be lost for that branch.`,
         title: t2("settings.ai.reloadModels")
       },
       loadingModels ? "\u2026" : "\u27F3"
-    )), liveModels[aiProvider] && /* @__PURE__ */ import_react5.default.createElement(
+    )), liveModels[aiProvider] && /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input stg-mono stg-model-custom",
@@ -62445,7 +62727,7 @@ Commits beyond this point will be lost for that branch.`,
         onChange: (e) => setAiModels((m) => ({ ...m, [aiProvider]: e.target.value })),
         placeholder: t2("settings.ai.customPlaceholder")
       }
-    ), modelsError && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-models-error" }, modelsError)), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.ai.apiKey", AI_PROVIDERS.find((p) => p.id === aiProvider)?.label ?? "")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-input-row" }, /* @__PURE__ */ import_react5.default.createElement(
+    ), modelsError && /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-models-error" }, modelsError)), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.ai.apiKey", AI_PROVIDERS.find((p) => p.id === aiProvider)?.label ?? "")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-input-row" }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input stg-mono",
@@ -62458,7 +62740,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: aiProvider === "anthropic" ? "sk-ant-..." : aiProvider === "google" ? "AIza..." : aiProvider === "openai" ? "sk-..." : "gsk_..."
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-eye", onClick: () => setShowKey((v) => !v), title: showKey ? t2("settings.ai.hide") : t2("settings.ai.show") }, showKey ? "\u{1F648}" : "\u{1F441}"))), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-eye", onClick: () => setShowKey((v) => !v), title: showKey ? t2("settings.ai.hide") : t2("settings.ai.show") }, showKey ? "\u{1F648}" : "\u{1F441}"))), /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: "stg-tuto-toggle",
@@ -62468,7 +62750,7 @@ Commits beyond this point will be lost for that branch.`,
       " ",
       t2("settings.ai.howToKey"),
       AI_PROVIDERS.find((p) => p.id === aiProvider)?.label
-    ), showTuto && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-tuto" }, /* @__PURE__ */ import_react5.default.createElement("ol", { className: "stg-tuto-steps" }, t2(`settings.ai.tuto.${aiProvider}`).map((s, i) => /* @__PURE__ */ import_react5.default.createElement("li", { key: i }, s)))), /* @__PURE__ */ import_react5.default.createElement("button", { className: "stg-save", onClick: saveAI }, t2("settings.save"))), section === "notifications" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.behavior.title")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), showTuto && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-tuto" }, /* @__PURE__ */ import_react6.default.createElement("ol", { className: "stg-tuto-steps" }, t2(`settings.ai.tuto.${aiProvider}`).map((s, i) => /* @__PURE__ */ import_react6.default.createElement("li", { key: i }, s)))), /* @__PURE__ */ import_react6.default.createElement("button", { className: "stg-save", onClick: saveAI }, t2("settings.save"))), section === "notifications" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title" }, t2("settings.behavior.title")), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62478,7 +62760,7 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("autoStash", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.behavior.autostash"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.autostashHint")))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.behavior.autostash"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.autostashHint")))), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62488,7 +62770,7 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("warnBeforeConflict", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.behavior.warnConflict"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.warnConflictHint")))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.general.defaultBranch"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.defaultBranchHint"))), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.behavior.warnConflict"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.warnConflictHint")))), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.general.defaultBranch"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.defaultBranchHint"))), /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62499,7 +62781,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "main"
       }
-    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.general.autoFetch"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.autoFetchHint"))), /* @__PURE__ */ import_react5.default.createElement(
+    )), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.general.autoFetch"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.autoFetchHint"))), /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62514,7 +62796,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "0"
       }
-    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement(
+    )), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62524,7 +62806,7 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("autoUpdateSubmodules", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.general.autoSubmodules"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.autoSubmodulesHint")))), !embedded && /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, null, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 16 } }, t2("settings.notifications.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.notifications.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.general.autoSubmodules"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.general.autoSubmodulesHint")))), !embedded && /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 16 } }, t2("settings.notifications.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.notifications.desc")), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62534,7 +62816,7 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("notifyFetch", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.notifications.fetch"))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.notifications.fetch"))), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62544,7 +62826,7 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("notifyCommit", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.notifications.commit"))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.notifications.commit"))), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62554,7 +62836,7 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("notifyUpdate", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.notifications.update"))))), section === "externalTools" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.externalTools.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.externalTools.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.behavior.externalEditor"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.externalEditorHintPre"), /* @__PURE__ */ import_react5.default.createElement("code", null, "code"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "code --wait"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "subl"), ", ", /* @__PURE__ */ import_react5.default.createElement("code", null, "meld"), t2("settings.behavior.externalEditorHintPost"))), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.notifications.update"))))), section === "externalTools" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title" }, t2("settings.externalTools.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.externalTools.desc")), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field" }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.behavior.externalEditor"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.behavior.externalEditorHintPre"), /* @__PURE__ */ import_react6.default.createElement("code", null, "code"), ", ", /* @__PURE__ */ import_react6.default.createElement("code", null, "code --wait"), ", ", /* @__PURE__ */ import_react6.default.createElement("code", null, "subl"), ", ", /* @__PURE__ */ import_react6.default.createElement("code", null, "meld"), t2("settings.behavior.externalEditorHintPost"))), /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62565,7 +62847,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "code"
       }
-    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.externalTools.diffTool"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.diffToolHint"))), /* @__PURE__ */ import_react5.default.createElement(
+    )), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.externalTools.diffTool"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.diffToolHint"))), /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62576,7 +62858,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "opendiff"
       }
-    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.externalTools.mergeTool"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.mergeToolHint"))), /* @__PURE__ */ import_react5.default.createElement(
+    )), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.externalTools.mergeTool"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.mergeToolHint"))), /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62587,7 +62869,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "opendiff -merge"
       }
-    )), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.externalTools.terminal"), " ", /* @__PURE__ */ import_react5.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.terminalHint"))), /* @__PURE__ */ import_react5.default.createElement(
+    )), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { marginTop: 12 } }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.externalTools.terminal"), " ", /* @__PURE__ */ import_react6.default.createElement("span", { style: { color: "#8b949e", fontSize: 12 } }, t2("settings.externalTools.terminalHint"))), /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62598,7 +62880,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "iTerm"
       }
-    ))), section === "ssh" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title" }, t2("settings.ssh.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.ssh.desc")), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ))), section === "ssh" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title" }, t2("settings.ssh.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.ssh.desc")), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { flexDirection: "row", alignItems: "center", gap: 10 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         type: "checkbox",
@@ -62608,7 +62890,7 @@ Commits beyond this point will be lost for that branch.`,
           await window.gitAPI.settingsSet("sshUseAgent", String(e.target.checked));
         }
       }
-    ), /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.ssh.useAgent"))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.ssh.privateKey")), /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.ssh.useAgent"))), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 } }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.ssh.privateKey")), /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62620,7 +62902,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "~/.ssh/id_ed25519"
       }
-    ), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: "stg-save",
@@ -62635,7 +62917,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       },
       t2("settings.ssh.browse")
-    ))), /* @__PURE__ */ import_react5.default.createElement("label", { className: "stg-field", style: { marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 } }, /* @__PURE__ */ import_react5.default.createElement("span", null, t2("settings.ssh.publicKey")), /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ))), /* @__PURE__ */ import_react6.default.createElement("label", { className: "stg-field", style: { marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 } }, /* @__PURE__ */ import_react6.default.createElement("span", null, t2("settings.ssh.publicKey")), /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62647,7 +62929,7 @@ Commits beyond this point will be lost for that branch.`,
         },
         placeholder: "~/.ssh/id_ed25519.pub"
       }
-    ), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: "stg-save",
@@ -62662,7 +62944,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       },
       t2("settings.ssh.browse")
-    ))), /* @__PURE__ */ import_react5.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.ssh.generate.title")), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.ssh.generate.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-field" }, /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    ))), /* @__PURE__ */ import_react6.default.createElement("h2", { className: "stg-section-title", style: { marginTop: 20 } }, t2("settings.ssh.generate.title")), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.ssh.generate.desc")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-field" }, /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react6.default.createElement(
       "input",
       {
         className: "stg-input",
@@ -62671,7 +62953,7 @@ Commits beyond this point will be lost for that branch.`,
         onChange: (e) => setSshPassphrase(e.target.value),
         placeholder: t2("settings.ssh.generate.passphrase")
       }
-    ), /* @__PURE__ */ import_react5.default.createElement(
+    ), /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: "stg-save",
@@ -62692,7 +62974,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       },
       sshGenerating ? t2("settings.ssh.generate.busy") : t2("settings.ssh.generate.button")
-    )))), section === "about" && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-hero" }, /* @__PURE__ */ import_react5.default.createElement("img", { src: icon_default, className: "stg-about-icon", alt: "Git Vertex", onError: (e) => e.currentTarget.style.display = "none" }), /* @__PURE__ */ import_react5.default.createElement("div", null, /* @__PURE__ */ import_react5.default.createElement("h1", { className: "stg-about-name" }, "Git Vertex"), /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-version" }, "v", appInfo?.version ?? "\u2014"))), /* @__PURE__ */ import_react5.default.createElement("p", { className: "stg-desc" }, t2("settings.about.desc")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-links" }, /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), t2("settings.about.sourceCode")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/releases") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ import_react5.default.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), t2("settings.about.releases")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/issues") }, /* @__PURE__ */ import_react5.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react5.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "8", x2: "12", y2: "12" }), /* @__PURE__ */ import_react5.default.createElement("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" })), t2("settings.about.reportBug"))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-author" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t2("settings.about.createdBy")), /* @__PURE__ */ import_react5.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars") }, "Victor Quilgars")), ENABLED_LANGS.length > 1 && /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-lang" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-label" }, t2("settings.about.language")), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-lang-btns" }, ENABLED_LANGS.map((l) => /* @__PURE__ */ import_react5.default.createElement("button", { key: l, className: `stg-lang-btn ${lang === l ? "active" : ""}`, onClick: () => setLang(l) }, l === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F1EC}\u{1F1E7}", " ", t2(`settings.lang.${l}`))))), /* @__PURE__ */ import_react5.default.createElement("div", { className: "stg-about-update" }, updateReady ? /* @__PURE__ */ import_react5.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react5.default.createElement(
+    )))), section === "about" && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-section" }, /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-about-hero" }, /* @__PURE__ */ import_react6.default.createElement("img", { src: icon_default, className: "stg-about-icon", alt: "Git Vertex", onError: (e) => e.currentTarget.style.display = "none" }), /* @__PURE__ */ import_react6.default.createElement("div", null, /* @__PURE__ */ import_react6.default.createElement("h1", { className: "stg-about-name" }, "Git Vertex"), /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-about-version" }, "v", appInfo?.version ?? "\u2014"))), /* @__PURE__ */ import_react6.default.createElement("p", { className: "stg-desc" }, t2("settings.about.desc")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-about-links" }, /* @__PURE__ */ import_react6.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex") }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "currentColor" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" })), t2("settings.about.sourceCode")), /* @__PURE__ */ import_react6.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/releases") }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ import_react6.default.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), t2("settings.about.releases")), /* @__PURE__ */ import_react6.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars/git-vertex/issues") }, /* @__PURE__ */ import_react6.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, /* @__PURE__ */ import_react6.default.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "8", x2: "12", y2: "12" }), /* @__PURE__ */ import_react6.default.createElement("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" })), t2("settings.about.reportBug"))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-about-author" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-about-label" }, t2("settings.about.createdBy")), /* @__PURE__ */ import_react6.default.createElement("a", { className: "stg-about-link", onClick: () => window.gitAPI.openExternal?.("https://github.com/VictorQuilgars") }, "Victor Quilgars")), ENABLED_LANGS.length > 1 && /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-about-lang" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-about-label" }, t2("settings.about.language")), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-lang-btns" }, ENABLED_LANGS.map((l) => /* @__PURE__ */ import_react6.default.createElement("button", { key: l, className: `stg-lang-btn ${lang === l ? "active" : ""}`, onClick: () => setLang(l) }, l === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F1EC}\u{1F1E7}", " ", t2(`settings.lang.${l}`))))), /* @__PURE__ */ import_react6.default.createElement("div", { className: "stg-about-update" }, updateReady ? /* @__PURE__ */ import_react6.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: "stg-about-install-btn",
@@ -62706,7 +62988,7 @@ Commits beyond this point will be lost for that branch.`,
       },
       "\u{1F680} Installer et relancer v",
       updateVersion
-    )) : /* @__PURE__ */ import_react5.default.createElement(
+    )) : /* @__PURE__ */ import_react6.default.createElement(
       "button",
       {
         className: "stg-about-check-btn",
@@ -62746,7 +63028,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       },
       updateStatus === "checking" ? t2("settings.update.checking") : t2("settings.update.check")
-    ), !updateReady && updateStatus === "up-to-date" && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-update-ok" }, t2("settings.update.upToDate")), !updateReady && updateStatus === "available" && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-update-new" }, downloadProgress !== null ? t2("settings.update.downloading", downloadProgress) : t2("settings.update.starting", updateVersion ?? "")), updateStatus === "error" && /* @__PURE__ */ import_react5.default.createElement("span", { className: "stg-about-update-err", title: updateError ?? "" }, "\u2717 ", updateError ?? t2("settings.update.unknownErr")))))));
+    ), !updateReady && updateStatus === "up-to-date" && /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-about-update-ok" }, t2("settings.update.upToDate")), !updateReady && updateStatus === "available" && /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-about-update-new" }, downloadProgress !== null ? t2("settings.update.downloading", downloadProgress) : t2("settings.update.starting", updateVersion ?? "")), updateStatus === "error" && /* @__PURE__ */ import_react6.default.createElement("span", { className: "stg-about-update-err", title: updateError ?? "" }, "\u2717 ", updateError ?? t2("settings.update.unknownErr")))))));
   }
 
   // ../src/renderer/src/components/CommitGraph/CommitGraph.tsx
@@ -62904,97 +63186,6 @@ Commits beyond this point will be lost for that branch.`,
       result.push({ ...c, row: r, lane, color, edges, ownerTip: owner.get(c.hash) });
     }
     return result;
-  }
-
-  // ../src/renderer/src/components/ContextMenu/ContextMenu.tsx
-  var import_react6 = __toESM(require_react());
-  var import_react_dom = __toESM(require_react_dom());
-  var OPEN_DELAY = 200;
-  var CLOSE_DELAY = 220;
-  function ContextMenu({ x, y, items, onClose }) {
-    const ref = (0, import_react6.useRef)(null);
-    const subRef = (0, import_react6.useRef)(null);
-    const timer = (0, import_react6.useRef)();
-    const [sub, setSub] = (0, import_react6.useState)(null);
-    (0, import_react6.useEffect)(() => {
-      const onMouseDown = (e) => {
-        const t2 = e.target;
-        if (ref.current?.contains(t2) || subRef.current?.contains(t2))
-          return;
-        onClose();
-      };
-      const onKeyDown = (e) => {
-        if (e.key === "Escape")
-          onClose();
-      };
-      document.addEventListener("mousedown", onMouseDown);
-      document.addEventListener("keydown", onKeyDown);
-      return () => {
-        document.removeEventListener("mousedown", onMouseDown);
-        document.removeEventListener("keydown", onKeyDown);
-      };
-    }, [onClose]);
-    (0, import_react6.useEffect)(() => {
-      if (!ref.current)
-        return;
-      const rect = ref.current.getBoundingClientRect();
-      const vw = window.innerWidth, vh = window.innerHeight, M = 4;
-      let left = x;
-      if (x + rect.width > vw)
-        left = vw - rect.width - M;
-      left = Math.max(M, left);
-      let top = y;
-      if (y + rect.height > vh)
-        top = vh - rect.height - M;
-      top = Math.max(M, top);
-      ref.current.style.left = `${left}px`;
-      ref.current.style.top = `${top}px`;
-    }, [x, y]);
-    const openSub = (i, el) => {
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => {
-        const r = el.getBoundingClientRect();
-        setSub({ i, x: r.right - 3, y: r.top - 4 });
-      }, OPEN_DELAY);
-    };
-    const closeSubSoon = () => {
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setSub(null), CLOSE_DELAY);
-    };
-    const row = (item, i, close) => /* @__PURE__ */ import_react6.default.createElement(
-      "button",
-      {
-        key: i,
-        className: `ctx-item${item.danger ? " ctx-danger" : ""}${item.disabled ? " ctx-disabled" : ""}`,
-        disabled: item.disabled,
-        onMouseEnter: (e) => {
-          item.submenu?.length ? openSub(i, e.currentTarget) : (clearTimeout(timer.current), setSub(null));
-        },
-        onClick: () => {
-          if (item.disabled || item.submenu?.length)
-            return;
-          item.action?.();
-          close();
-        }
-      },
-      item.checked !== void 0 && /* @__PURE__ */ import_react6.default.createElement("span", { className: "ctx-check" }, item.checked ? "\u2713" : ""),
-      /* @__PURE__ */ import_react6.default.createElement("span", { className: "ctx-label" }, item.label),
-      !!item.submenu?.length && /* @__PURE__ */ import_react6.default.createElement("span", { className: "ctx-chevron" }, "\u203A")
-    );
-    const openItem = sub != null ? items[sub.i] : null;
-    const subItems = openItem && !("separator" in openItem) ? openItem.submenu : void 0;
-    const menu = /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("div", { ref, className: "ctx-menu", style: { position: "fixed", left: x, top: y, zIndex: 9999 } }, items.map((item, i) => "separator" in item ? /* @__PURE__ */ import_react6.default.createElement("div", { key: i, className: "ctx-sep" }) : row(item, i, onClose))), subItems && sub && /* @__PURE__ */ import_react6.default.createElement(
-      "div",
-      {
-        ref: subRef,
-        className: "ctx-menu",
-        style: { position: "fixed", left: sub.x, top: sub.y, zIndex: 1e4 },
-        onMouseEnter: () => clearTimeout(timer.current),
-        onMouseLeave: closeSubSoon
-      },
-      subItems.map((item, i) => "separator" in item ? /* @__PURE__ */ import_react6.default.createElement("div", { key: i, className: "ctx-sep" }) : row(item, i, onClose))
-    ));
-    return (0, import_react_dom.createPortal)(menu, document.body);
   }
 
   // ../src/renderer/src/utils/aiAvatars.ts
@@ -64082,7 +64273,7 @@ Commits beyond this point will be lost for that branch.`,
         { label: t2("graph.drop.reset", d.branch, short), action: () => onBranchDrop?.(d.branch, d.hash, "reset"), danger: true }
       ];
     }, [onBranchDrop, t2, localBranchAt]);
-    const buildBranchMenu = (0, import_react8.useCallback)((pref) => {
+    const buildBranchMenu2 = (0, import_react8.useCallback)((pref) => {
       const items = [];
       const name = pref.branchName;
       if (pref.cls === "rc-tag") {
@@ -64460,7 +64651,7 @@ Commits beyond this point will be lost for that branch.`,
         onClose: () => setDrop(null)
       }
     ), branchCtx && (() => {
-      const items = buildBranchMenu(branchCtx.pref);
+      const items = buildBranchMenu2(branchCtx.pref);
       if (items.length === 0) {
         return null;
       }
@@ -65431,6 +65622,7 @@ ${line.date}`
       {
         className: "st-filter-clear",
         title: t2("panel.filter.clear"),
+        "aria-label": t2("panel.filter.clear"),
         onClick: () => {
           setFileFilter("");
           filterRef.current?.focus();
@@ -65497,6 +65689,7 @@ ${line.date}`
       {
         className: "st-filter-clear",
         title: t2("panel.filter.clear"),
+        "aria-label": t2("panel.filter.clear"),
         onClick: () => {
           setFileFilter("");
           filterRef.current?.focus();
@@ -65896,33 +66089,37 @@ Signed-off-by: ` : full;
       /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" }))
     )), open && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-section-body" }, children));
   }
-  function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, onToggleSolo, onToggleMute, ahead = 0, behind = 0, gone = false }) {
+  function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, ahead = 0, behind = 0, gone = false }) {
     const [hover, setHover] = (0, import_react10.useState)(false);
     const [ctx, setCtx] = (0, import_react10.useState)(null);
     const lastClickTime = (0, import_react10.useRef)(0);
     const { t: t2 } = useLang();
     const display = remote ? name.replace(/^remotes\/[^/]+\//, "") : name;
-    const menuItems = [
-      ...!current ? [{ label: "\u2713 Checkout", action: onCheckout }] : [],
-      ...!current && onMerge ? [{ label: t2("sb.branch.mergeInto", currentBranch), action: onMerge }] : [],
-      ...!current && onRebaseOnto ? [{ label: t2("sb.branch.rebaseOnto", currentBranch), action: onRebaseOnto }] : [],
-      ...!current && onCompare ? [{ label: t2("sb.branch.compareWith", currentBranch), action: onCompare }] : [],
-      { separator: true },
-      ...!remote && onPush ? [{ label: "\u2B06 Push", action: onPush }] : [],
-      ...!remote && onSetUpstream ? [{ label: t2("sb.branch.setUpstream"), action: onSetUpstream }] : [],
-      { label: t2("sb.copyName"), action: () => navigator.clipboard.writeText(display) },
-      ...onToggleSolo ? [{ label: soloed ? t2("sb.branch.unsolo") : t2("sb.branch.solo"), action: onToggleSolo }] : [],
-      ...onToggleMute ? [{ label: muted ? t2("sb.branch.unmute") : t2("sb.branch.mute"), action: onToggleMute }] : [],
-      ...!remote && onRename ? [{ label: t2("sb.rename"), action: onRename }] : [],
-      ...!current && !remote && onDelete ? [
-        { separator: true },
-        { label: t2("sb.delete"), action: onDelete, danger: true }
-      ] : [],
-      ...remote && onDeleteRemote ? [
-        { separator: true },
-        { label: t2("sb.branch.deleteRemote"), action: onDeleteRemote, danger: true }
-      ] : []
-    ];
+    const menuItems = buildBranchMenu(
+      { name, display, current, remote: !!remote },
+      { currentBranch, soloed, muted, pinned, favorite, issue },
+      {
+        onCheckout: current ? void 0 : onCheckout,
+        onFetch,
+        onPull,
+        onPush,
+        onSetUpstream,
+        onMerge,
+        onRebaseOnto,
+        onCompare,
+        onOpenOnRemote,
+        onAssociateIssue,
+        onToggleFavorite,
+        onTogglePin,
+        onToggleSolo,
+        onToggleMute,
+        onCopyName: () => navigator.clipboard.writeText(display),
+        onRename,
+        onDelete,
+        onDeleteRemote
+      },
+      t2
+    );
     const handleMouseDown = (e) => {
       if (current)
         return;
@@ -65952,20 +66149,24 @@ Signed-off-by: ` : full;
       /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-name" }, display),
       (ahead > 0 || behind > 0) && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track", title: t2("sb.branch.trackTitle", ahead, behind) }, ahead > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track-ahead" }, "\u2191", ahead), behind > 0 && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track-behind" }, "\u2193", behind)),
       gone && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-track sb-track-gone", title: t2("sb.branch.goneTitle") }, "\u2702"),
+      favorite && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag sb-branch-star", title: t2("sb.branch.favoriteFlag") }, "\u2605"),
+      pinned && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.pinFlag") }, "\u{1F4CC}"),
+      issue && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag", title: issue.title || `#${issue.number}` }, "#", issue.number),
       soloed && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.soloFlag") }, "\u{1F441}"),
       muted && /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-branch-flag", title: t2("sb.branch.mutedFlag") }, "\u{1F507}"),
       current && /* @__PURE__ */ import_react10.default.createElement("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "#3fb950", className: "current-check" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" })),
-      hover && !current && onDelete && /* @__PURE__ */ import_react10.default.createElement(
+      hover && menuItems.length > 0 && /* @__PURE__ */ import_react10.default.createElement(
         "button",
         {
-          className: "sb-delete-btn",
-          title: t2("sb.deleteTitle"),
+          className: "sb-branch-menu-btn",
+          title: t2("sb.branch.menu"),
           onClick: (e) => {
             e.stopPropagation();
-            onDelete();
+            const r = e.currentTarget.getBoundingClientRect();
+            setCtx({ x: r.right, y: r.bottom + 2 });
           }
         },
-        /* @__PURE__ */ import_react10.default.createElement("svg", { width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z" }))
+        /* @__PURE__ */ import_react10.default.createElement("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z" }))
       )
     ), ctx && menuItems.length > 0 && /* @__PURE__ */ import_react10.default.createElement(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) }));
   }
@@ -66148,6 +66349,15 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     mutedBranches,
     onToggleSolo,
     onToggleMute,
+    onFetch,
+    onPull,
+    isFavorite,
+    isPinned,
+    issueFor,
+    onToggleFavorite,
+    onTogglePin,
+    onOpenBranchOnRemote,
+    onAssociateIssue,
     showToast,
     showPrompt,
     showConfirm,
@@ -66299,7 +66509,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
       document.addEventListener("mousedown", handler);
       return () => document.removeEventListener("mousedown", handler);
     }, []);
-    const localBranches = branches.filter((b) => !b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()));
+    const localBranches = branches.filter((b) => !b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase())).sort((a, b) => Number(isFavorite?.(b.name) ?? false) - Number(isFavorite?.(a.name) ?? false));
     const remoteBranches = branches.filter((b) => b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()));
     const otherRecents = recentRepos.filter((r) => r !== repoPath);
     return /* @__PURE__ */ import_react10.default.createElement("div", { className: "sidebar" }, !embedded && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-repo-area", ref: repoMenuRef }, /* @__PURE__ */ import_react10.default.createElement("button", { className: "sb-repo-btn", onClick: () => setRepoMenuOpen((o) => !o) }, /* @__PURE__ */ import_react10.default.createElement("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "#3fb950" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z" })), /* @__PURE__ */ import_react10.default.createElement("span", { className: "sb-repo-name" }, repoName || t2("sb.openRepo")), /* @__PURE__ */ import_react10.default.createElement("svg", { width: "10", height: "10", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z" }))), repoMenuOpen && /* @__PURE__ */ import_react10.default.createElement("div", { className: "sb-repo-dropdown" }, /* @__PURE__ */ import_react10.default.createElement(
@@ -66374,10 +66584,19 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         onRebaseOnto: !b.current ? () => onRebaseOnto(b.name) : void 0,
         onPush: () => onPushBranch(b.name),
         onSetUpstream: () => onSetUpstream(b.name),
+        onFetch: b.current ? onFetch : void 0,
+        onPull: b.current ? onPull : void 0,
         soloed: soloBranch === b.name,
         muted: mutedBranches.has(b.name),
         onToggleSolo: () => onToggleSolo(b.name),
         onToggleMute: () => onToggleMute(b.name),
+        favorite: isFavorite?.(b.name),
+        pinned: isPinned?.(b.name),
+        issue: issueFor?.(b.name),
+        onToggleFavorite: onToggleFavorite && (() => onToggleFavorite(b.name)),
+        onTogglePin: onTogglePin && (() => onTogglePin(b.name)),
+        onOpenOnRemote: onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name)),
+        onAssociateIssue: onAssociateIssue && (() => onAssociateIssue(b.name)),
         ahead: b.ahead,
         behind: b.behind,
         gone: b.gone
@@ -66398,7 +66617,12 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         soloed: soloBranch === b.name,
         muted: mutedBranches.has(b.name),
         onToggleSolo: () => onToggleSolo(b.name),
-        onToggleMute: () => onToggleMute(b.name)
+        onToggleMute: () => onToggleMute(b.name),
+        favorite: isFavorite?.(b.name),
+        pinned: isPinned?.(b.name),
+        onToggleFavorite: onToggleFavorite && (() => onToggleFavorite(b.name)),
+        onTogglePin: onTogglePin && (() => onTogglePin(b.name)),
+        onOpenOnRemote: onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))
       }
     ))), show("tags") && /* @__PURE__ */ import_react10.default.createElement(
       Section,
@@ -68581,8 +68805,146 @@ ${lineStrings.join("\n")}
     ))), !noRepo && !noAuth && /* @__PURE__ */ React.createElement("div", { className: "ghp-tabs" }, /* @__PURE__ */ React.createElement("button", { className: `ghp-tab ${tab === "prs" ? "active" : ""}`, onClick: () => setTab("prs") }, /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z" })), t2("gh.panel.tabPRs"), prs.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ghp-count" }, prs.length)), /* @__PURE__ */ React.createElement("button", { className: `ghp-tab ${tab === "issues" ? "active" : ""}`, onClick: () => setTab("issues") }, /* @__PURE__ */ React.createElement("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor" }, /* @__PURE__ */ React.createElement("path", { d: "M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" }), /* @__PURE__ */ React.createElement("path", { d: "M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" })), t2("gh.panel.tabIssues"), issues.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ghp-count" }, issues.length))), /* @__PURE__ */ React.createElement("div", { className: "ghp-body" }, noRepo && /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.noRepo")), noAuth && /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.noAuth")), error && /* @__PURE__ */ React.createElement("div", { className: "ghp-state ghp-err" }, error), !noRepo && !noAuth && !error && loading && /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.loading")), !noRepo && !noAuth && !error && !loading && tab === "prs" && (prs.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.noPRs")) : prs.map((pr) => /* @__PURE__ */ React.createElement(PRItem, { key: pr.number, pr, lang }))), !noRepo && !noAuth && !error && !loading && tab === "issues" && (issues.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "ghp-state" }, t2("gh.panel.noIssues")) : issues.map((issue) => /* @__PURE__ */ React.createElement(IssueItem, { key: issue.number, issue, lang })))));
   }
 
-  // src/webview/CommitMsgEditorView.tsx
+  // ../src/renderer/src/components/IssueLink/AssociateIssueModal.tsx
   var import_react23 = __toESM(require_react());
+  function AssociateIssueModal({ branch, current, onPick, onClose }) {
+    const { t: t2 } = useLang();
+    const [issues, setIssues] = (0, import_react23.useState)(null);
+    const [error, setError] = (0, import_react23.useState)(null);
+    const [query, setQuery] = (0, import_react23.useState)("");
+    (0, import_react23.useEffect)(() => {
+      let alive = true;
+      (async () => {
+        try {
+          const detected = await window.gitAPI.githubDetectRepo();
+          if (!detected?.owner) {
+            if (alive)
+              setError(t2("issue.assoc.noGithub"));
+            return;
+          }
+          const res = await window.gitAPI.githubListIssues(detected.owner, detected.repo);
+          if (!alive)
+            return;
+          const list = res?.issues ?? res ?? [];
+          setIssues(Array.isArray(list) ? list : []);
+        } catch {
+          if (alive)
+            setError(t2("issue.assoc.loadFailed"));
+        }
+      })();
+      return () => {
+        alive = false;
+      };
+    }, [t2]);
+    const shown = (0, import_react23.useMemo)(() => {
+      const q = query.trim().toLowerCase();
+      if (!q || !issues)
+        return issues ?? [];
+      return issues.filter((i) => String(i.number).includes(q) || i.title?.toLowerCase().includes(q));
+    }, [issues, query]);
+    const manualNumber = /^#?(\d{1,6})$/.exec(query.trim())?.[1];
+    const canUseManual = manualNumber && !shown.some((i) => i.number === Number(manualNumber));
+    const pick = (issue) => onPick({
+      number: issue.number,
+      title: issue.title,
+      url: issue.html_url ?? issue.url
+    });
+    return /* @__PURE__ */ React.createElement("div", { className: "dlg-overlay", onMouseDown: onClose }, /* @__PURE__ */ React.createElement("div", { className: "aim-box", onMouseDown: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "aim-head" }, /* @__PURE__ */ React.createElement("span", { className: "aim-title" }, t2("issue.assoc.title")), /* @__PURE__ */ React.createElement("code", { className: "aim-branch" }, branch)), current && /* @__PURE__ */ React.createElement("div", { className: "aim-current" }, /* @__PURE__ */ React.createElement("span", null, t2("issue.assoc.currentlyLinked", current.number)), /* @__PURE__ */ React.createElement("button", { className: "aim-unlink", onClick: () => onPick(null) }, t2("issue.assoc.unlink"))), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        className: "aim-search",
+        autoFocus: true,
+        placeholder: t2("issue.assoc.searchPlaceholder"),
+        value: query,
+        onChange: (e) => setQuery(e.target.value),
+        onKeyDown: (e) => {
+          if (e.key === "Escape")
+            onClose();
+        }
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "aim-list" }, error && /* @__PURE__ */ React.createElement("div", { className: "aim-msg aim-msg--err" }, error), !error && issues === null && /* @__PURE__ */ React.createElement("div", { className: "aim-msg" }, t2("issue.assoc.loading")), !error && issues !== null && shown.length === 0 && !canUseManual && /* @__PURE__ */ React.createElement("div", { className: "aim-msg" }, t2("issue.assoc.empty")), shown.map((i) => /* @__PURE__ */ React.createElement("button", { key: i.number, className: "aim-item", onClick: () => pick(i) }, /* @__PURE__ */ React.createElement("span", { className: "aim-num" }, "#", i.number), /* @__PURE__ */ React.createElement("span", { className: "aim-item-title" }, i.title))), canUseManual && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "aim-item aim-item--manual",
+        onClick: () => onPick({ number: Number(manualNumber) })
+      },
+      t2("issue.assoc.linkNumber", Number(manualNumber))
+    )), /* @__PURE__ */ React.createElement("div", { className: "aim-actions" }, /* @__PURE__ */ React.createElement("button", { className: "aim-btn", onClick: onClose }, t2("dlg.cancel")))));
+  }
+
+  // ../src/renderer/src/hooks/useBranchMeta.ts
+  var import_react24 = __toESM(require_react());
+  var EMPTY = { favorites: [], pinned: [], issues: {} };
+  var keyFor = (repoPath) => repoPath ? `gv-branch-meta:${repoPath}` : null;
+  function read(repoPath) {
+    const key = keyFor(repoPath);
+    if (!key)
+      return EMPTY;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw)
+        return EMPTY;
+      const parsed = JSON.parse(raw);
+      return {
+        favorites: Array.isArray(parsed?.favorites) ? parsed.favorites : [],
+        pinned: Array.isArray(parsed?.pinned) ? parsed.pinned : [],
+        issues: parsed?.issues && typeof parsed.issues === "object" ? parsed.issues : {}
+      };
+    } catch {
+      return EMPTY;
+    }
+  }
+  function write(repoPath, meta) {
+    const key = keyFor(repoPath);
+    if (!key)
+      return;
+    try {
+      localStorage.setItem(key, JSON.stringify(meta));
+    } catch {
+    }
+  }
+  function useBranchMeta(repoPath) {
+    const [meta, setMeta] = (0, import_react24.useState)(() => read(repoPath));
+    (0, import_react24.useEffect)(() => {
+      setMeta(read(repoPath));
+    }, [repoPath]);
+    const update = (0, import_react24.useCallback)((fn) => {
+      setMeta((prev) => {
+        const next = fn(prev);
+        write(repoPath, next);
+        return next;
+      });
+    }, [repoPath]);
+    const toggleFavorite = (0, import_react24.useCallback)((branch) => {
+      update((m) => ({
+        ...m,
+        favorites: m.favorites.includes(branch) ? m.favorites.filter((b) => b !== branch) : [...m.favorites, branch]
+      }));
+    }, [update]);
+    const togglePin = (0, import_react24.useCallback)((branch) => {
+      update((m) => ({
+        ...m,
+        pinned: m.pinned.includes(branch) ? m.pinned.filter((b) => b !== branch) : [...m.pinned, branch]
+      }));
+    }, [update]);
+    const setIssue = (0, import_react24.useCallback)((branch, issue) => {
+      update((m) => {
+        const issues = { ...m.issues };
+        if (issue)
+          issues[branch] = issue;
+        else
+          delete issues[branch];
+        return { ...m, issues };
+      });
+    }, [update]);
+    const isFavorite = (0, import_react24.useCallback)((branch) => meta.favorites.includes(branch), [meta.favorites]);
+    const isPinned = (0, import_react24.useCallback)((branch) => meta.pinned.includes(branch), [meta.pinned]);
+    const issueFor = (0, import_react24.useCallback)((branch) => meta.issues[branch] ?? null, [meta.issues]);
+    return { meta, toggleFavorite, togglePin, setIssue, isFavorite, isPinned, issueFor };
+  }
+
+  // src/webview/CommitMsgEditorView.tsx
+  var import_react25 = __toESM(require_react());
   function titleFor(boot2) {
     if (boot2.action === "reword")
       return "\u270F\uFE0F Reword \u2014 reformuler le message";
@@ -68592,9 +68954,9 @@ ${lineStrings.join("\n")}
   }
   function CommitMsgEditorView({ boot: boot2 }) {
     const { t: t2 } = useLang();
-    const [text, setText] = (0, import_react23.useState)(boot2.initialMessage ?? "");
-    const [saving, setSaving] = (0, import_react23.useState)(false);
-    const handleSave = (0, import_react23.useCallback)(async () => {
+    const [text, setText] = (0, import_react25.useState)(boot2.initialMessage ?? "");
+    const [saving, setSaving] = (0, import_react25.useState)(false);
+    const handleSave = (0, import_react25.useCallback)(async () => {
       setSaving(true);
       try {
         await window.gitAPI.commitMsgSave(text);
@@ -68602,14 +68964,14 @@ ${lineStrings.join("\n")}
         setSaving(false);
       }
     }, [text]);
-    const handleKeyDown = (0, import_react23.useCallback)((e) => {
+    const handleKeyDown = (0, import_react25.useCallback)((e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
         e.preventDefault();
         void handleSave();
       }
     }, [handleSave]);
     const hasStep = typeof boot2.stepCurrent === "number" && typeof boot2.stepTotal === "number";
-    return /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-title" }, titleFor(boot2))), (hasStep || boot2.subject) && /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-header-refs" }, hasStep && /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-ref-chip" }, boot2.stepCurrent, "/", boot2.stepTotal, " commits"), boot2.subject && /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-ref-onto", style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, boot2.subject))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { flex: 1, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 } }, /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-msg-editor-label" }, "Message de commit"), /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-page" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-header" }, /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-header-top" }, /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-title" }, titleFor(boot2))), (hasStep || boot2.subject) && /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-header-refs" }, hasStep && /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-ref-chip" }, boot2.stepCurrent, "/", boot2.stepTotal, " commits"), boot2.subject && /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-ref-onto", style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, boot2.subject))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { flex: 1, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 } }, /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-msg-editor-label" }, "Message de commit"), /* @__PURE__ */ import_react25.default.createElement(
       "textarea",
       {
         className: "rp-msg-textarea",
@@ -68620,7 +68982,7 @@ ${lineStrings.join("\n")}
         spellCheck: false,
         autoFocus: true
       }
-    )), /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-legend" }, t2("ext.commit.help")), /* @__PURE__ */ import_react23.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react23.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react23.default.createElement(
+    )), /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-legend" }, t2("ext.commit.help")), /* @__PURE__ */ import_react25.default.createElement("div", { className: "rp-footer" }, /* @__PURE__ */ import_react25.default.createElement("span", { className: "rp-footer-spring" }), /* @__PURE__ */ import_react25.default.createElement(
       "button",
       {
         className: "rp-btn rp-btn--continue",
@@ -68637,45 +68999,47 @@ ${lineStrings.join("\n")}
   function VertexApp() {
     const { t: t2 } = useLang();
     const toast = useToast();
-    const showToast = (0, import_react24.useCallback)((msg, type) => {
+    const showToast = (0, import_react26.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const [commits, setCommits] = (0, import_react24.useState)([]);
-    const [branches, setBranches] = (0, import_react24.useState)([]);
-    const [currentBranch, setCurrentBranch] = (0, import_react24.useState)("");
-    const [compareBaseHash, setCompareBaseHash] = (0, import_react24.useState)(null);
-    const [repoName, setRepoName] = (0, import_react24.useState)("");
-    const [selectedCommit, setSelectedCommit] = (0, import_react24.useState)(null);
-    const [wipCount, setWipCount] = (0, import_react24.useState)(0);
-    const [conflictFiles, setConflictFiles] = (0, import_react24.useState)([]);
-    const [conflictMode, setConflictMode] = (0, import_react24.useState)(null);
-    const [searchQuery, setSearchQuery] = (0, import_react24.useState)("");
-    const [searchMatches, setSearchMatches] = (0, import_react24.useState)(-1);
-    const [rightW, setRightW] = (0, import_react24.useState)(380);
-    const [showAllBranches, setShowAllBranches] = (0, import_react24.useState)(true);
-    const [stashCount, setStashCount] = (0, import_react24.useState)(0);
-    const [stashes, setStashes] = (0, import_react24.useState)([]);
-    const [tags, setTags] = (0, import_react24.useState)([]);
-    const [soloBranch, setSoloBranch] = (0, import_react24.useState)(null);
-    const [mutedBranches, setMutedBranches] = (0, import_react24.useState)(/* @__PURE__ */ new Set());
-    const [activeView, setActiveView] = (0, import_react24.useState)(null);
-    const [sideW, setSideW] = (0, import_react24.useState)(240);
-    const lastViewRef = (0, import_react24.useRef)("overview");
-    const [settingsOpen, setSettingsOpen] = (0, import_react24.useState)(false);
-    const [loading, setLoading] = (0, import_react24.useState)(false);
-    const [lastFetch, setLastFetch] = (0, import_react24.useState)(null);
-    const [tracking, setTracking] = (0, import_react24.useState)({ ahead: 0, behind: 0 });
-    const isLoadingRef = (0, import_react24.useRef)(false);
-    const showAllRef = (0, import_react24.useRef)(showAllBranches);
+    const [commits, setCommits] = (0, import_react26.useState)([]);
+    const [branches, setBranches] = (0, import_react26.useState)([]);
+    const [currentBranch, setCurrentBranch] = (0, import_react26.useState)("");
+    const [compareBaseHash, setCompareBaseHash] = (0, import_react26.useState)(null);
+    const [repoName, setRepoName] = (0, import_react26.useState)("");
+    const [selectedCommit, setSelectedCommit] = (0, import_react26.useState)(null);
+    const [wipCount, setWipCount] = (0, import_react26.useState)(0);
+    const [conflictFiles, setConflictFiles] = (0, import_react26.useState)([]);
+    const [conflictMode, setConflictMode] = (0, import_react26.useState)(null);
+    const [searchQuery, setSearchQuery] = (0, import_react26.useState)("");
+    const [searchMatches, setSearchMatches] = (0, import_react26.useState)(-1);
+    const [rightW, setRightW] = (0, import_react26.useState)(380);
+    const [showAllBranches, setShowAllBranches] = (0, import_react26.useState)(true);
+    const [stashCount, setStashCount] = (0, import_react26.useState)(0);
+    const [stashes, setStashes] = (0, import_react26.useState)([]);
+    const [tags, setTags] = (0, import_react26.useState)([]);
+    const [soloBranch, setSoloBranch] = (0, import_react26.useState)(null);
+    const [mutedBranches, setMutedBranches] = (0, import_react26.useState)(/* @__PURE__ */ new Set());
+    const branchMeta = useBranchMeta(repoName || "repo");
+    const [issueModalBranch, setIssueModalBranch] = (0, import_react26.useState)(null);
+    const [activeView, setActiveView] = (0, import_react26.useState)(null);
+    const [sideW, setSideW] = (0, import_react26.useState)(240);
+    const lastViewRef = (0, import_react26.useRef)("overview");
+    const [settingsOpen, setSettingsOpen] = (0, import_react26.useState)(false);
+    const [loading, setLoading] = (0, import_react26.useState)(false);
+    const [lastFetch, setLastFetch] = (0, import_react26.useState)(null);
+    const [tracking, setTracking] = (0, import_react26.useState)({ ahead: 0, behind: 0 });
+    const isLoadingRef = (0, import_react26.useRef)(false);
+    const showAllRef = (0, import_react26.useRef)(showAllBranches);
     showAllRef.current = showAllBranches;
-    const soloRef = (0, import_react24.useRef)(soloBranch);
+    const soloRef = (0, import_react26.useRef)(soloBranch);
     soloRef.current = soloBranch;
-    const mutedRef = (0, import_react24.useRef)(mutedBranches);
+    const mutedRef = (0, import_react26.useRef)(mutedBranches);
     mutedRef.current = mutedBranches;
-    const loadRepoData = (0, import_react24.useCallback)(async (silent = false) => {
+    const loadRepoData = (0, import_react26.useCallback)(async (silent = false) => {
       if (isLoadingRef.current)
         return;
       isLoadingRef.current = true;
@@ -68736,10 +69100,10 @@ ${lineStrings.join("\n")}
           setLoading(false);
       }
     }, []);
-    (0, import_react24.useEffect)(() => {
+    (0, import_react26.useEffect)(() => {
       loadRepoData();
     }, [loadRepoData]);
-    (0, import_react24.useEffect)(() => {
+    (0, import_react26.useEffect)(() => {
       window.gitAPI.settingsGetAll().then((s) => {
         const v = s?.sidebarView;
         if (v && RAIL_VIEWS.includes(v)) {
@@ -68755,7 +69119,7 @@ ${lineStrings.join("\n")}
       }).catch(() => {
       });
     }, []);
-    const handleSelectView = (0, import_react24.useCallback)((v) => {
+    const handleSelectView = (0, import_react26.useCallback)((v) => {
       setActiveView((cur) => {
         const next = cur === v ? null : v;
         if (next)
@@ -68764,14 +69128,14 @@ ${lineStrings.join("\n")}
         return next;
       });
     }, []);
-    const handleToggleSidebar = (0, import_react24.useCallback)(() => {
+    const handleToggleSidebar = (0, import_react26.useCallback)(() => {
       setActiveView((cur) => {
         const next = cur ? null : lastViewRef.current;
         void window.gitAPI.settingsSet("sidebarView", next ?? "");
         return next;
       });
     }, []);
-    (0, import_react24.useEffect)(() => {
+    (0, import_react26.useEffect)(() => {
       const handler = () => loadRepoData(true);
       window.gitAPI.onRepoChanged(handler);
       window.gitAPI.onWorkingChanged(handler);
@@ -68780,14 +69144,14 @@ ${lineStrings.join("\n")}
         window.gitAPI.offWorkingChanged(handler);
       };
     }, [loadRepoData]);
-    (0, import_react24.useEffect)(() => {
+    (0, import_react26.useEffect)(() => {
       if (!selectedCommit || selectedCommit.hash === "__WIP__")
         return;
       const still = commits.find((c) => c.hash === selectedCommit.hash);
       if (!still)
         setSelectedCommit(null);
     }, [commits]);
-    const doUndo = (0, import_react24.useCallback)(async () => {
+    const doUndo = (0, import_react26.useCallback)(async () => {
       const r = await window.gitAPI.undoLastAction();
       if (r && r.success === false)
         toast.error(r.error ?? "Impossible d'annuler");
@@ -68795,7 +69159,7 @@ ${lineStrings.join("\n")}
         toast.success(t2("ext.app.undoOk"));
       await loadRepoData();
     }, [toast, loadRepoData]);
-    const runOp = (0, import_react24.useCallback)(async (label, op, undoable = false) => {
+    const runOp = (0, import_react26.useCallback)(async (label, op, undoable = false) => {
       const r = await op();
       if (r && r.success === false)
         showToast(r.error ?? `${label} a \xE9chou\xE9`, "err");
@@ -68807,7 +69171,7 @@ ${lineStrings.join("\n")}
         showToast(`\u2713 ${label}`);
       await loadRepoData();
     }, [showToast, toast, doUndo, loadRepoData]);
-    const guardConflict = (0, import_react24.useCallback)(async (predict, op) => {
+    const guardConflict = (0, import_react26.useCallback)(async (predict, op) => {
       const settings = await window.gitAPI.settingsGetAll().catch(() => ({}));
       if (settings?.warnBeforeConflict === "false") {
         await op();
@@ -68833,46 +69197,46 @@ ${lineStrings.join("\n")}
         // sticky — a go/no-go decision must not silently time out
       );
     }, [toast]);
-    const handleCheckout = (0, import_react24.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
-    const handleCherryPick = (0, import_react24.useCallback)((hash) => guardConflict(
+    const handleCheckout = (0, import_react26.useCallback)((ref) => runOp("Checkout", () => window.gitAPI.checkout(ref)), [runOp]);
+    const handleCherryPick = (0, import_react26.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictConflicts(hash, "HEAD", `${hash}^`),
       // base = commit's parent
       () => runOp("Cherry-pick", () => window.gitAPI.cherryPick(hash))
     ), [runOp, guardConflict]);
-    const handleRevert = (0, import_react24.useCallback)((hash) => guardConflict(
+    const handleRevert = (0, import_react26.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictConflicts(`${hash}^`, "HEAD", hash),
       // apply the inverse
       () => runOp("Revert", () => window.gitAPI.revert(hash))
     ), [runOp, guardConflict]);
-    const handleReset = (0, import_react24.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
-    const handleCreateTag = (0, import_react24.useCallback)(async (hash) => {
+    const handleReset = (0, import_react26.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
+    const handleCreateTag = (0, import_react26.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom du tag");
       if (name)
         runOp(t2("ext.app.tagCreated"), () => window.gitAPI.createTag(name, hash));
     }, [runOp]);
-    const handleCreateBranchAt = (0, import_react24.useCallback)(async (hash) => {
+    const handleCreateBranchAt = (0, import_react26.useCallback)(async (hash) => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp(t2("ext.app.branchCreated"), () => window.gitAPI.createBranchAt(name, hash, true));
     }, [runOp]);
-    const handleDropCommit = (0, import_react24.useCallback)(async (hash) => {
+    const handleDropCommit = (0, import_react26.useCallback)(async (hash) => {
       const ok = await window.gitAPI.uiConfirm(`Delete commit ${hash.slice(0, 7)}? This rewrites history.`);
       if (!ok)
         return;
       setSelectedCommit(null);
       await runOp(t2("ext.app.commitDeleted"), () => window.gitAPI.dropCommit(hash), true);
     }, [runOp]);
-    const handleMoveCommit = (0, import_react24.useCallback)((hash, direction) => runOp(t2("ext.app.commitMoved"), () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
-    const handleMergeBranch = (0, import_react24.useCallback)((name) => guardConflict(
+    const handleMoveCommit = (0, import_react26.useCallback)((hash, direction) => runOp(t2("ext.app.commitMoved"), () => window.gitAPI.moveCommit(hash, direction), true), [runOp]);
+    const handleMergeBranch = (0, import_react26.useCallback)((name) => guardConflict(
       () => window.gitAPI.predictConflicts(name),
       () => runOp(`Merge ${name}`, () => window.gitAPI.merge(name), true)
     ), [runOp, guardConflict]);
-    const handleRebaseCurrentOnto = (0, import_react24.useCallback)((name) => guardConflict(
+    const handleRebaseCurrentOnto = (0, import_react26.useCallback)((name) => guardConflict(
       () => window.gitAPI.predictRebaseConflicts(name),
       // accurate per-commit replay
       () => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true)
     ), [runOp, guardConflict]);
-    const handleRewordCommit = (0, import_react24.useCallback)(async (hash) => {
+    const handleRewordCommit = (0, import_react26.useCallback)(async (hash) => {
       const current = commits.find((c) => c.hash === hash);
       if (!current)
         return;
@@ -68896,13 +69260,13 @@ ${lineStrings.join("\n")}
       const sequence = seq.commits.map((c) => ({ action: c.hash === current.hash ? "reword" : "pick", hash: c.hash }));
       await runOp(t2("ext.app.msgModified"), () => window.gitAPI.interactiveRebase(sequence, [newMsg]));
     }, [runOp, commits, currentBranch, showToast]);
-    const handleRebaseCurrentOntoCommit = (0, import_react24.useCallback)((hash) => guardConflict(
+    const handleRebaseCurrentOntoCommit = (0, import_react26.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictRebaseConflicts(hash),
       // accurate per-commit replay
       () => runOp(`Rebase sur ${hash.slice(0, 7)}`, () => window.gitAPI.rebaseOnto(hash), true)
     ), [runOp, guardConflict]);
-    const handlePushToCommit = (0, import_react24.useCallback)((hash) => runOp(`Push to ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp]);
-    const handleCreatePatch = (0, import_react24.useCallback)(async (hash) => {
+    const handlePushToCommit = (0, import_react26.useCallback)((hash) => runOp(`Push to ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp]);
+    const handleCreatePatch = (0, import_react26.useCallback)(async (hash) => {
       const res = await window.gitAPI.createPatch(hash);
       if (res.error) {
         showToast(res.error, "err");
@@ -68914,7 +69278,7 @@ ${lineStrings.join("\n")}
       else if (!r.canceled)
         showToast(r.error ?? "\xC9chec", "err");
     }, [showToast]);
-    const handleCopyPatch = (0, import_react24.useCallback)(async (hash) => {
+    const handleCopyPatch = (0, import_react26.useCallback)(async (hash) => {
       const res = await window.gitAPI.createPatch(hash);
       if (res.error) {
         showToast(res.error, "err");
@@ -68923,7 +69287,7 @@ ${lineStrings.join("\n")}
       navigator.clipboard.writeText(res.patch);
       showToast(t2("ext.app.patchCopiedOk"));
     }, [showToast]);
-    const handleCreateWorktreeAt = (0, import_react24.useCallback)(async (hash) => {
+    const handleCreateWorktreeAt = (0, import_react26.useCallback)(async (hash) => {
       const dirPath = await window.gitAPI.selectDirectory("Emplacement du nouveau worktree");
       if (!dirPath)
         return;
@@ -68936,7 +69300,7 @@ ${lineStrings.join("\n")}
       else
         showToast(r.error ?? "\xC9chec", "err");
     }, [showToast]);
-    const handleOpenCommitOnRemote = (0, import_react24.useCallback)(async (hash) => {
+    const handleOpenCommitOnRemote = (0, import_react26.useCallback)(async (hash) => {
       const detected = await window.gitAPI.githubDetectRepo();
       if (!detected?.owner) {
         showToast(t2("ext.app.noGithub"), "err");
@@ -68944,7 +69308,18 @@ ${lineStrings.join("\n")}
       }
       window.gitAPI.openExternal(`https://github.com/${detected.owner}/${detected.repo}/commit/${hash}`);
     }, [showToast]);
-    (0, import_react24.useEffect)(() => {
+    const handleOpenBranchOnRemote = (0, import_react26.useCallback)(async (name) => {
+      const detected = await window.gitAPI.githubDetectRepo();
+      if (!detected?.owner) {
+        showToast(t2("ext.app.noGithub"), "err");
+        return;
+      }
+      const short = name.replace(/^remotes\/[^/]+\//, "");
+      window.gitAPI.openExternal(
+        `https://github.com/${detected.owner}/${detected.repo}/tree/${short.split("/").map(encodeURIComponent).join("/")}`
+      );
+    }, [showToast]);
+    (0, import_react26.useEffect)(() => {
       const onMenuAction = (action, hash) => {
         const commit = commits.find((c) => c.hash === hash);
         switch (action) {
@@ -69051,35 +69426,35 @@ ${lineStrings.join("\n")}
       handleOpenCommitOnRemote,
       showToast
     ]);
-    const handleRenameBranch = (0, import_react24.useCallback)(async (name) => {
+    const handleRenameBranch = (0, import_react26.useCallback)(async (name) => {
       const newName = await window.gitAPI.uiPrompt("Nouveau nom de branche", name);
       if (newName && newName !== name)
         runOp(t2("ext.app.branchRenamed"), () => window.gitAPI.renameBranch(name, newName));
     }, [runOp]);
-    const handleDeleteBranch = (0, import_react24.useCallback)(async (name) => {
+    const handleDeleteBranch = (0, import_react26.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer la branche "${name}" ?`)) {
         runOp(t2("ext.app.branchDeleted"), () => window.gitAPI.deleteBranch(name));
       }
     }, [runOp]);
-    const handlePushBranch = (0, import_react24.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
-    const handleSetUpstream = (0, import_react24.useCallback)((name) => runOp(t2("ext.app.upstreamSet"), () => window.gitAPI.setUpstream(name)), [runOp]);
-    const handleDeleteRemoteBranch = (0, import_react24.useCallback)(async (ref) => {
+    const handlePushBranch = (0, import_react26.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
+    const handleSetUpstream = (0, import_react26.useCallback)((name) => runOp(t2("ext.app.upstreamSet"), () => window.gitAPI.setUpstream(name)), [runOp]);
+    const handleDeleteRemoteBranch = (0, import_react26.useCallback)(async (ref) => {
       if (await window.gitAPI.uiConfirm(`Supprimer la branche distante "${ref}" ?`)) {
         runOp(t2("ext.app.remoteBranchDeleted"), () => window.gitAPI.deleteRemoteBranch(ref));
       }
     }, [runOp]);
-    const handlePushTag = (0, import_react24.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
-    const handleDeleteTag = (0, import_react24.useCallback)(async (name) => {
+    const handlePushTag = (0, import_react26.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
+    const handleDeleteTag = (0, import_react26.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le tag "${name}" ?`)) {
         runOp(t2("ext.app.tagDeleted"), () => window.gitAPI.deleteTag(name));
       }
     }, [runOp]);
-    const handleDeleteRemoteTag = (0, import_react24.useCallback)(async (name) => {
+    const handleDeleteRemoteTag = (0, import_react26.useCallback)(async (name) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le tag distant "${name}" ?`)) {
         runOp(t2("ext.app.remoteTagDeleted"), () => window.gitAPI.deleteRemoteTag(name));
       }
     }, [runOp]);
-    const loadStashes = (0, import_react24.useCallback)(async () => {
+    const loadStashes = (0, import_react26.useCallback)(async () => {
       try {
         const st = await window.gitAPI.getStashes();
         setStashes(st?.stashes ?? []);
@@ -69087,29 +69462,29 @@ ${lineStrings.join("\n")}
       } catch {
       }
     }, []);
-    const showPrompt = (0, import_react24.useCallback)(async (msg, def) => {
+    const showPrompt = (0, import_react26.useCallback)(async (msg, def) => {
       const r = await window.gitAPI.uiPrompt(msg, def);
       return r ?? null;
     }, []);
-    const showConfirm = (0, import_react24.useCallback)((msg) => window.gitAPI.uiConfirm(msg), []);
-    const handleApplyStash = (0, import_react24.useCallback)((index) => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.applyStash(index)), [runOp]);
-    const handlePopStashIndex = (0, import_react24.useCallback)((index) => runOp(t2("ext.app.stashPopped"), () => window.gitAPI.popStash(index)), [runOp]);
-    const handleDropStash = (0, import_react24.useCallback)(async (index) => {
+    const showConfirm = (0, import_react26.useCallback)((msg) => window.gitAPI.uiConfirm(msg), []);
+    const handleApplyStash = (0, import_react26.useCallback)((index) => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.applyStash(index)), [runOp]);
+    const handlePopStashIndex = (0, import_react26.useCallback)((index) => runOp(t2("ext.app.stashPopped"), () => window.gitAPI.popStash(index)), [runOp]);
+    const handleDropStash = (0, import_react26.useCallback)(async (index) => {
       if (await window.gitAPI.uiConfirm(`Supprimer le stash @{${index}} ?`)) {
         runOp(t2("ext.app.stashDropped"), () => window.gitAPI.dropStash(index));
       }
     }, [runOp]);
-    const handleCreateTagPrompt = (0, import_react24.useCallback)(async () => {
+    const handleCreateTagPrompt = (0, import_react26.useCallback)(async () => {
       const name = await window.gitAPI.uiPrompt("Nom du tag (sur HEAD)");
       if (name)
         runOp(t2("ext.app.tagCreated"), () => window.gitAPI.createTag(name));
     }, [runOp]);
-    const handleSelectCommitByHash = (0, import_react24.useCallback)((hash) => {
+    const handleSelectCommitByHash = (0, import_react26.useCallback)((hash) => {
       const found = commits.find((c) => c.hash === hash || c.hash.startsWith(hash));
       if (found)
         setSelectedCommit(found);
     }, [commits]);
-    const handleToggleSolo = (0, import_react24.useCallback)((name) => {
+    const handleToggleSolo = (0, import_react26.useCallback)((name) => {
       setSoloBranch((prev) => {
         const next = prev === name ? null : name;
         soloRef.current = next;
@@ -69117,7 +69492,7 @@ ${lineStrings.join("\n")}
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const handleToggleMute = (0, import_react24.useCallback)((name) => {
+    const handleToggleMute = (0, import_react26.useCallback)((name) => {
       setMutedBranches((prev) => {
         const next = new Set(prev);
         if (next.has(name))
@@ -69129,7 +69504,7 @@ ${lineStrings.join("\n")}
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const handleBranchDrop = (0, import_react24.useCallback)(async (branch, hash, action, targetBranch) => {
+    const handleBranchDrop = (0, import_react26.useCallback)(async (branch, hash, action, targetBranch) => {
       if (action === "merge" && !targetBranch)
         return;
       if (action === "reset") {
@@ -69149,7 +69524,7 @@ ${lineStrings.join("\n")}
         run
       );
     }, [runOp, guardConflict]);
-    const handleConflictFinish = (0, import_react24.useCallback)(async (action, message) => {
+    const handleConflictFinish = (0, import_react26.useCallback)(async (action, message) => {
       const mode = conflictMode ?? action;
       let r;
       if (mode === "rebase")
@@ -69166,7 +69541,7 @@ ${lineStrings.join("\n")}
         showToast(mode === "rebase" ? t2("ext.app.rebaseContinued") : t2("ext.app.conflictsResolved"));
       await loadRepoData();
     }, [conflictMode, showToast, loadRepoData]);
-    const handleConflictAbort = (0, import_react24.useCallback)(async () => {
+    const handleConflictAbort = (0, import_react26.useCallback)(async () => {
       if (conflictMode === "merge")
         await window.gitAPI.abortMerge();
       else if (conflictMode === "cherry-pick")
@@ -69178,41 +69553,41 @@ ${lineStrings.join("\n")}
       showToast(t2("ext.app.opAborted"));
       await loadRepoData();
     }, [conflictMode, showToast, loadRepoData]);
-    const handleOpenResolver = (0, import_react24.useCallback)((file) => {
+    const handleOpenResolver = (0, import_react26.useCallback)((file) => {
       window.gitAPI.openConflictResolver(file);
     }, []);
-    const handleOpenFileDiff = (0, import_react24.useCallback)((target) => {
+    const handleOpenFileDiff = (0, import_react26.useCallback)((target) => {
       window.gitAPI.openDiff(target);
     }, []);
-    const handleFetch = (0, import_react24.useCallback)(async () => {
+    const handleFetch = (0, import_react26.useCallback)(async () => {
       await runOp("Fetch", () => window.gitAPI.fetch());
       setLastFetch(/* @__PURE__ */ new Date());
     }, [runOp]);
-    const handleOpenDesktop = (0, import_react24.useCallback)(() => window.gitAPI.openDesktop(), []);
-    const handlePull = (0, import_react24.useCallback)(() => guardConflict(
+    const handleOpenDesktop = (0, import_react26.useCallback)(() => window.gitAPI.openDesktop(), []);
+    const handlePull = (0, import_react26.useCallback)(() => guardConflict(
       () => window.gitAPI.predictConflicts("@{u}"),
       // merge of the already-known upstream tip (pre-fetch)
       () => runOp("Pull", () => window.gitAPI.pull())
     ), [runOp, guardConflict]);
-    const handlePush = (0, import_react24.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
-    const handleUndo = (0, import_react24.useCallback)(() => runOp(t2("ext.app.undone"), () => window.gitAPI.undoLastAction()), [runOp]);
-    const handleRedo = (0, import_react24.useCallback)(() => runOp(t2("ext.app.redone"), () => window.gitAPI.redoLastAction()), [runOp]);
-    const handleStash = (0, import_react24.useCallback)(() => runOp(t2("ext.app.stashCreated"), () => window.gitAPI.createStash()), [runOp]);
-    const handlePop = (0, import_react24.useCallback)(() => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.popStash(0)), [runOp]);
-    const handleTerminal = (0, import_react24.useCallback)(() => window.gitAPI.openTerminal(), []);
-    const handleNewBranch = (0, import_react24.useCallback)(async () => {
+    const handlePush = (0, import_react26.useCallback)(() => runOp("Push", () => window.gitAPI.push()), [runOp]);
+    const handleUndo = (0, import_react26.useCallback)(() => runOp(t2("ext.app.undone"), () => window.gitAPI.undoLastAction()), [runOp]);
+    const handleRedo = (0, import_react26.useCallback)(() => runOp(t2("ext.app.redone"), () => window.gitAPI.redoLastAction()), [runOp]);
+    const handleStash = (0, import_react26.useCallback)(() => runOp(t2("ext.app.stashCreated"), () => window.gitAPI.createStash()), [runOp]);
+    const handlePop = (0, import_react26.useCallback)(() => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.popStash(0)), [runOp]);
+    const handleTerminal = (0, import_react26.useCallback)(() => window.gitAPI.openTerminal(), []);
+    const handleNewBranch = (0, import_react26.useCallback)(async () => {
       const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
       if (name)
         runOp(t2("ext.app.branchCreated"), () => window.gitAPI.createBranch(name));
     }, [runOp]);
-    const handleToggleAllBranches = (0, import_react24.useCallback)(() => {
+    const handleToggleAllBranches = (0, import_react26.useCallback)(() => {
       setShowAllBranches((v) => {
         showAllRef.current = !v;
         return !v;
       });
       setTimeout(() => loadRepoData(), 0);
     }, [loadRepoData]);
-    const startResizeRight = (0, import_react24.useCallback)((e) => {
+    const startResizeRight = (0, import_react26.useCallback)((e) => {
       e.preventDefault();
       const startX = e.clientX;
       const startW = rightW;
@@ -69231,7 +69606,7 @@ ${lineStrings.join("\n")}
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     }, [rightW]);
-    const startResizeSide = (0, import_react24.useCallback)((e) => {
+    const startResizeSide = (0, import_react26.useCallback)((e) => {
       e.preventDefault();
       const startX = e.clientX;
       const startW = sideW;
@@ -69249,17 +69624,17 @@ ${lineStrings.join("\n")}
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     }, [sideW]);
-    const [viewportW, setViewportW] = (0, import_react24.useState)(window.innerWidth);
-    (0, import_react24.useEffect)(() => {
+    const [viewportW, setViewportW] = (0, import_react26.useState)(window.innerWidth);
+    (0, import_react26.useEffect)(() => {
       const onResize = () => setViewportW(window.innerWidth);
       window.addEventListener("resize", onResize);
       return () => window.removeEventListener("resize", onResize);
     }, []);
     const stacked = viewportW < 640;
-    const appBodyRef = (0, import_react24.useRef)(null);
+    const appBodyRef = (0, import_react26.useRef)(null);
     const effRightW = Math.min(rightW, Math.max(320, viewportW - 340));
     const showRight = !!selectedCommit || !!conflictMode;
-    return /* @__PURE__ */ import_react24.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react24.default.createElement(
+    return /* @__PURE__ */ import_react26.default.createElement("div", { className: "app gv-app" }, /* @__PURE__ */ import_react26.default.createElement(
       CompactToolbar,
       {
         repoName,
@@ -69289,9 +69664,21 @@ ${lineStrings.join("\n")}
         onRefresh: loadRepoData,
         sidebarOpen: activeView !== null,
         onToggleSidebar: handleToggleSidebar,
-        onSettings: () => setSettingsOpen(true)
+        onSettings: () => setSettingsOpen(true),
+        onSetUpstream: handleSetUpstream,
+        onRenameBranch: handleRenameBranch,
+        onOpenBranchOnRemote: handleOpenBranchOnRemote,
+        onAssociateIssue: setIssueModalBranch,
+        onToggleFavorite: branchMeta.toggleFavorite,
+        onToggleSolo: handleToggleSolo,
+        onToggleMute: handleToggleMute,
+        isFavorite: branchMeta.isFavorite,
+        isPinned: branchMeta.isPinned,
+        issueFor: branchMeta.issueFor,
+        soloBranch,
+        mutedBranches
       }
-    ), settingsOpen && /* @__PURE__ */ import_react24.default.createElement("div", { className: "gv-settings-overlay" }, /* @__PURE__ */ import_react24.default.createElement(SettingsModal, { embedded: true, onClose: () => setSettingsOpen(false), showToast })), conflictMode && /* @__PURE__ */ import_react24.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react24.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react24.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react24.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} file(s) to resolve` : t2("ext.app.noConflictToResolve")), /* @__PURE__ */ import_react24.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react24.default.createElement(
+    ), settingsOpen && /* @__PURE__ */ import_react26.default.createElement("div", { className: "gv-settings-overlay" }, /* @__PURE__ */ import_react26.default.createElement(SettingsModal, { embedded: true, onClose: () => setSettingsOpen(false), showToast })), conflictMode && /* @__PURE__ */ import_react26.default.createElement("div", { className: "gv-conflict-banner" }, /* @__PURE__ */ import_react26.default.createElement("span", { className: "gv-cb-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ import_react26.default.createElement("span", { className: "gv-cb-text" }, /* @__PURE__ */ import_react26.default.createElement("strong", null, conflictMode), " en cours", conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} file(s) to resolve` : t2("ext.app.noConflictToResolve")), /* @__PURE__ */ import_react26.default.createElement("span", { className: "gv-cb-spring" }), /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         className: "gv-cb-btn gv-cb-continue",
@@ -69300,7 +69687,7 @@ ${lineStrings.join("\n")}
         onClick: () => handleConflictFinish(conflictMode === "merge" ? "merge" : "rebase")
       },
       "Continuer"
-    ), /* @__PURE__ */ import_react24.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react24.default.createElement("div", { className: "app-body", ref: appBodyRef }, !stacked && /* @__PURE__ */ import_react24.default.createElement(ActivityRail, { active: activeView, onSelect: handleSelectView }), activeView && !stacked && /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, /* @__PURE__ */ import_react24.default.createElement("div", { className: "gv-sidepanel", style: { width: sideW } }, /* @__PURE__ */ import_react24.default.createElement(
+    ), /* @__PURE__ */ import_react26.default.createElement("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort }, "Abandonner")), /* @__PURE__ */ import_react26.default.createElement("div", { className: "app-body", ref: appBodyRef }, !stacked && /* @__PURE__ */ import_react26.default.createElement(ActivityRail, { active: activeView, onSelect: handleSelectView }), activeView && !stacked && /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, /* @__PURE__ */ import_react26.default.createElement("div", { className: "gv-sidepanel", style: { width: sideW } }, /* @__PURE__ */ import_react26.default.createElement(
       Sidebar,
       {
         view: activeView,
@@ -69343,12 +69730,20 @@ ${lineStrings.join("\n")}
         mutedBranches,
         onToggleSolo: handleToggleSolo,
         onToggleMute: handleToggleMute,
+        onFetch: handleFetch,
+        onPull: handlePull,
+        isFavorite: branchMeta.isFavorite,
+        isPinned: branchMeta.isPinned,
+        issueFor: branchMeta.issueFor,
+        onToggleFavorite: branchMeta.toggleFavorite,
+        onOpenBranchOnRemote: handleOpenBranchOnRemote,
+        onAssociateIssue: setIssueModalBranch,
         showToast,
         showPrompt,
         showConfirm,
         embedded: true
       }
-    )), /* @__PURE__ */ import_react24.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeSide })), /* @__PURE__ */ import_react24.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react24.default.createElement(
+    )), /* @__PURE__ */ import_react26.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeSide })), /* @__PURE__ */ import_react26.default.createElement("div", { className: "app-center", style: { flex: 1, display: stacked && showRight ? "none" : "flex", minWidth: 0, overflow: "hidden" } }, /* @__PURE__ */ import_react26.default.createElement(
       CommitGraph,
       {
         commits,
@@ -69401,7 +69796,7 @@ ${lineStrings.join("\n")}
         nativeContextMenu: true,
         onNativeMenuTarget: (hash) => window.gitAPI.setLastMenuHash(hash)
       }
-    )), showRight && /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, !stacked && /* @__PURE__ */ import_react24.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react24.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: effRightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react24.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react24.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react24.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react24.default.createElement(
+    )), showRight && /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, !stacked && /* @__PURE__ */ import_react26.default.createElement("div", { className: "resize-handle", onMouseDown: startResizeRight }), /* @__PURE__ */ import_react26.default.createElement("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: effRightW } }, stacked && !conflictMode && /* @__PURE__ */ import_react26.default.createElement("div", { className: "gv-stacked-bar" }, /* @__PURE__ */ import_react26.default.createElement("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null) }, "\u2190 Graphe"), selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ import_react26.default.createElement("span", { className: "gv-stacked-title" }, selectedCommit.shortHash, " \u2014 ", selectedCommit.message)), /* @__PURE__ */ import_react26.default.createElement(
       RightPanel,
       {
         embedded: true,
@@ -69435,38 +69830,49 @@ ${lineStrings.join("\n")}
         onOpenFileDiff: handleOpenFileDiff,
         onOpenStagingEditor: (f) => window.gitAPI.openStagingEditor(f)
       }
-    )))));
+    )))), issueModalBranch && /* @__PURE__ */ import_react26.default.createElement(
+      AssociateIssueModal,
+      {
+        branch: issueModalBranch,
+        current: branchMeta.issueFor(issueModalBranch),
+        onPick: (issue) => {
+          branchMeta.setIssue(issueModalBranch, issue);
+          setIssueModalBranch(null);
+        },
+        onClose: () => setIssueModalBranch(null)
+      }
+    ));
   }
   var boot = window.__GV_BOOT__;
   function ConflictTab({ file }) {
     const toast = useToast();
-    const showToast = (0, import_react24.useCallback)((msg, type) => {
+    const showToast = (0, import_react26.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const close = (0, import_react24.useCallback)(() => {
+    const close = (0, import_react26.useCallback)(() => {
       window.gitAPI.closeSelf();
     }, []);
-    return /* @__PURE__ */ import_react24.default.createElement(ConflictResolver, { file, onFinish: close, onAbort: close, showToast });
+    return /* @__PURE__ */ import_react26.default.createElement(ConflictResolver, { file, onFinish: close, onAbort: close, showToast });
   }
   function InteractiveRebaseTab({ baseHash }) {
     const toast = useToast();
-    const showToast = (0, import_react24.useCallback)((msg, type) => {
+    const showToast = (0, import_react26.useCallback)((msg, type) => {
       if (type === "err")
         toast.error(msg);
       else
         toast.success(msg);
     }, [toast]);
-    const close = (0, import_react24.useCallback)(() => {
+    const close = (0, import_react26.useCallback)(() => {
       window.gitAPI.closeSelf();
     }, []);
-    return /* @__PURE__ */ import_react24.default.createElement(InteractiveRebase, { embedded: true, baseHash, onClose: close, onSuccess: () => {
+    return /* @__PURE__ */ import_react26.default.createElement(InteractiveRebase, { embedded: true, baseHash, onClose: close, onSuccess: () => {
     }, showToast });
   }
   import_client.default.createRoot(document.getElementById("root")).render(
-    /* @__PURE__ */ import_react24.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react24.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react24.default.createElement(ToastProvider, null, boot?.mode === "stage" && boot.file ? /* @__PURE__ */ import_react24.default.createElement(StagingEditor, { file: boot.file }) : boot?.mode === "conflict" && boot.file ? /* @__PURE__ */ import_react24.default.createElement(ConflictTab, { file: boot.file }) : boot?.mode === "history" && boot.file ? /* @__PURE__ */ import_react24.default.createElement(FileHistory, { file: boot.file }) : boot?.mode === "compare" ? /* @__PURE__ */ import_react24.default.createElement(CompareView, { initialA: boot.refA, initialB: boot.refB }) : boot?.mode === "compareWorking" && boot.hash ? /* @__PURE__ */ import_react24.default.createElement(CompareWorkingView, { hash: boot.hash }) : boot?.mode === "github" ? /* @__PURE__ */ import_react24.default.createElement(GitHubPanel, { repoPath: "." }) : boot?.mode === "rebase" ? /* @__PURE__ */ import_react24.default.createElement(RebaseProgress, null) : boot?.mode === "todo" ? /* @__PURE__ */ import_react24.default.createElement(RebaseTodoApp, null) : boot?.mode === "plan" && boot.baseHash ? /* @__PURE__ */ import_react24.default.createElement(InteractiveRebaseTab, { baseHash: boot.baseHash }) : boot?.mode === "commitMsg" ? /* @__PURE__ */ import_react24.default.createElement(CommitMsgEditorView, { boot }) : /* @__PURE__ */ import_react24.default.createElement(VertexApp, null))))
+    /* @__PURE__ */ import_react26.default.createElement(SettingsProvider, null, /* @__PURE__ */ import_react26.default.createElement(LanguageProvider, null, /* @__PURE__ */ import_react26.default.createElement(ToastProvider, null, boot?.mode === "stage" && boot.file ? /* @__PURE__ */ import_react26.default.createElement(StagingEditor, { file: boot.file }) : boot?.mode === "conflict" && boot.file ? /* @__PURE__ */ import_react26.default.createElement(ConflictTab, { file: boot.file }) : boot?.mode === "history" && boot.file ? /* @__PURE__ */ import_react26.default.createElement(FileHistory, { file: boot.file }) : boot?.mode === "compare" ? /* @__PURE__ */ import_react26.default.createElement(CompareView, { initialA: boot.refA, initialB: boot.refB }) : boot?.mode === "compareWorking" && boot.hash ? /* @__PURE__ */ import_react26.default.createElement(CompareWorkingView, { hash: boot.hash }) : boot?.mode === "github" ? /* @__PURE__ */ import_react26.default.createElement(GitHubPanel, { repoPath: "." }) : boot?.mode === "rebase" ? /* @__PURE__ */ import_react26.default.createElement(RebaseProgress, null) : boot?.mode === "todo" ? /* @__PURE__ */ import_react26.default.createElement(RebaseTodoApp, null) : boot?.mode === "plan" && boot.baseHash ? /* @__PURE__ */ import_react26.default.createElement(InteractiveRebaseTab, { baseHash: boot.baseHash }) : boot?.mode === "commitMsg" ? /* @__PURE__ */ import_react26.default.createElement(CommitMsgEditorView, { boot }) : /* @__PURE__ */ import_react26.default.createElement(VertexApp, null))))
   );
 })();
 /*! Bundled license information:

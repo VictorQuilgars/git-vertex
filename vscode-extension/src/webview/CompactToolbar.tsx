@@ -2,6 +2,8 @@
 // Logo + repo name + branch selector on the left; compact icon actions on the right.
 import React, { useState, useRef, useEffect } from 'react'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
+import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
+import { buildBranchMenu } from '../../../src/renderer/src/components/ContextMenu/branchMenu'
 import type { BranchInfo } from '../../../src/renderer/src/types'
 
 interface Props {
@@ -33,6 +35,26 @@ interface Props {
   onSettings?: () => void
   sidebarOpen?: boolean
   onToggleSidebar?: () => void
+  // ── Unified branch menu (v1.21.0) ──
+  // The "⋮" next to the branch selector gathers what used to be split between
+  // this toolbar (Fetch/Pull/Push) and the sidebar's right-click menu.
+  onMergeBranch?: (name: string) => void
+  onRebaseOnto?: (name: string) => void
+  onCompareBranch?: (name: string) => void
+  onSetUpstream?: (name: string) => void
+  onRenameBranch?: (name: string) => void
+  onDeleteBranch?: (name: string) => void
+  onOpenBranchOnRemote?: (name: string) => void
+  onAssociateIssue?: (name: string) => void
+  onToggleFavorite?: (name: string) => void
+  onTogglePin?: (name: string) => void
+  onToggleSolo?: (name: string) => void
+  onToggleMute?: (name: string) => void
+  isFavorite?: (name: string) => boolean
+  isPinned?: (name: string) => boolean
+  issueFor?: (name: string) => { number: number; title?: string } | null
+  soloBranch?: string | null
+  mutedBranches?: Set<string>
 }
 
 function IconBtn({ title, onClick, disabled, active, badge, hideNarrow, children }: {
@@ -77,6 +99,7 @@ function relTime(d: Date | null, lang: string, t: (k: string) => string): string
 export default function CompactToolbar(p: Props) {
   const { t, lang } = useLang()
   const [branchOpen, setBranchOpen] = useState(false)
+  const [branchMenu, setBranchMenu] = useState<{ x: number; y: number } | null>(null)
   const branchRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -89,6 +112,34 @@ export default function CompactToolbar(p: Props) {
   }, [branchOpen])
 
   const locals = p.branches.filter(b => !b.remote && !b.name.includes('HEAD'))
+
+  // Menu for the checked-out branch — the one the toolbar is showing.
+  const branchMenuItems = buildBranchMenu(
+    { name: p.branch, display: p.branch, current: true, remote: false },
+    {
+      currentBranch: p.branch,
+      soloed: p.soloBranch === p.branch,
+      muted: p.mutedBranches?.has(p.branch),
+      favorite: p.isFavorite?.(p.branch),
+      pinned: p.isPinned?.(p.branch),
+      issue: p.issueFor?.(p.branch),
+    },
+    {
+      onFetch: p.onFetch,
+      onPull: p.onPull,
+      onPush: p.onPush,
+      onSetUpstream: p.onSetUpstream && (() => p.onSetUpstream!(p.branch)),
+      onOpenOnRemote: p.onOpenBranchOnRemote && (() => p.onOpenBranchOnRemote!(p.branch)),
+      onAssociateIssue: p.onAssociateIssue && (() => p.onAssociateIssue!(p.branch)),
+      onToggleFavorite: p.onToggleFavorite && (() => p.onToggleFavorite!(p.branch)),
+      onTogglePin: p.onTogglePin && (() => p.onTogglePin!(p.branch)),
+      onToggleSolo: p.onToggleSolo && (() => p.onToggleSolo!(p.branch)),
+      onToggleMute: p.onToggleMute && (() => p.onToggleMute!(p.branch)),
+      onCopyName: () => navigator.clipboard.writeText(p.branch),
+      onRename: p.onRenameBranch && (() => p.onRenameBranch!(p.branch)),
+    },
+    t
+  )
 
   return (
     <div className="gvt">
@@ -126,6 +177,21 @@ export default function CompactToolbar(p: Props) {
           </div>
         )}
       </div>
+      {branchMenuItems.length > 0 && (
+        <button className="gvt-branch-menu-btn" title={t('sb.branch.menu')}
+          onClick={e => {
+            const r = e.currentTarget.getBoundingClientRect()
+            setBranchMenu({ x: r.left, y: r.bottom + 3 })
+          }}>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z"/>
+          </svg>
+        </button>
+      )}
+      {branchMenu && (
+        <ContextMenu x={branchMenu.x} y={branchMenu.y} items={branchMenuItems}
+          onClose={() => setBranchMenu(null)} />
+      )}
 
       <span className="gvt-spring" />
 

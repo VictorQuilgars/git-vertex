@@ -25,6 +25,8 @@ import FileHistory from '../../../src/renderer/src/components/FileHistory/FileHi
 import CompareView from '../../../src/renderer/src/components/CompareView/CompareView'
 import CompareWorkingView from './CompareWorkingView'
 import GitHubPanel from '../../../src/renderer/src/components/GitHubPanel/GitHubPanel'
+import AssociateIssueModal from '../../../src/renderer/src/components/IssueLink/AssociateIssueModal'
+import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
 import CommitMsgEditorView from './CommitMsgEditorView'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
 
@@ -61,6 +63,10 @@ function VertexApp() {
   const [tags, setTags] = useState<{ name: string; hash: string }[]>([])
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
   const [mutedBranches, setMutedBranches] = useState<Set<string>>(new Set())
+  // Favorites / graph pins / linked issues (v1.21.0). The panel is always the
+  // workspace repo, so the repo name is a stable enough storage key.
+  const branchMeta = useBranchMeta(repoName || 'repo')
+  const [issueModalBranch, setIssueModalBranch] = useState<string | null>(null)
   // The activity rail is always visible; `activeView` is the section its
   // resizable side-panel shows, or null when collapsed (only the rail). Closed
   // by default so the first thing a new user sees is the commit graph. The
@@ -343,6 +349,17 @@ function VertexApp() {
     window.gitAPI.openExternal(`https://github.com/${detected.owner}/${detected.repo}/commit/${hash}`)
   }, [showToast])
 
+  // Same trick one level up: /tree/<branch> instead of /commit/<hash>. This
+  // existed for commits only until v1.21.0.
+  const handleOpenBranchOnRemote = useCallback(async (name: string) => {
+    const detected = await window.gitAPI.githubDetectRepo()
+    if (!detected?.owner) { showToast(t('ext.app.noGithub'), 'err'); return }
+    const short = name.replace(/^remotes\/[^/]+\//, '')
+    window.gitAPI.openExternal(
+      `https://github.com/${detected.owner}/${detected.repo}/tree/${short.split('/').map(encodeURIComponent).join('/')}`
+    )
+  }, [showToast])
+
   // Dispatches actions chosen from the NATIVE commit context menu (see
   // package.json contributes.menus["webview/context"] + extension.ts) — the
   // host posts { action, hash } here after the user picks an item, and we
@@ -619,6 +636,18 @@ function VertexApp() {
         sidebarOpen={activeView !== null}
         onToggleSidebar={handleToggleSidebar}
         onSettings={() => setSettingsOpen(true)}
+        onSetUpstream={handleSetUpstream}
+        onRenameBranch={handleRenameBranch}
+        onOpenBranchOnRemote={handleOpenBranchOnRemote}
+        onAssociateIssue={setIssueModalBranch}
+        onToggleFavorite={branchMeta.toggleFavorite}
+        onToggleSolo={handleToggleSolo}
+        onToggleMute={handleToggleMute}
+        isFavorite={branchMeta.isFavorite}
+        isPinned={branchMeta.isPinned}
+        issueFor={branchMeta.issueFor}
+        soloBranch={soloBranch}
+        mutedBranches={mutedBranches}
       />
       {settingsOpen && (
         <div className="gv-settings-overlay">
@@ -692,6 +721,14 @@ function VertexApp() {
             mutedBranches={mutedBranches}
             onToggleSolo={handleToggleSolo}
             onToggleMute={handleToggleMute}
+            onFetch={handleFetch}
+            onPull={handlePull}
+            isFavorite={branchMeta.isFavorite}
+            isPinned={branchMeta.isPinned}
+            issueFor={branchMeta.issueFor}
+            onToggleFavorite={branchMeta.toggleFavorite}
+            onOpenBranchOnRemote={handleOpenBranchOnRemote}
+            onAssociateIssue={setIssueModalBranch}
             showToast={showToast}
             showPrompt={showPrompt}
             showConfirm={showConfirm}
@@ -792,6 +829,17 @@ function VertexApp() {
           </>
         )}
       </div>
+      {issueModalBranch && (
+        <AssociateIssueModal
+          branch={issueModalBranch}
+          current={branchMeta.issueFor(issueModalBranch)}
+          onPick={(issue: LinkedIssue | null) => {
+            branchMeta.setIssue(issueModalBranch, issue)
+            setIssueModalBranch(null)
+          }}
+          onClose={() => setIssueModalBranch(null)}
+        />
+      )}
     </div>
   )
 }
