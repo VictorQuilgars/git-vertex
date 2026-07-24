@@ -1865,6 +1865,37 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
   } catch (e: any) { return { error: e.message } }
 })
 
+// User-centric Launchpad feed: one GitHub search across ALL of the user's
+// repos (not just the recent/local ones), GitKraken-style. `q` is a GitHub
+// issue-search query, e.g. "is:open is:pr author:@me".
+ipcMain.handle('github:search-issues', async (_e, q: string) => {
+  const token = readSettings().githubToken
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
+      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
+    )
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any
+    return {
+      items: (data.items ?? []).map((x: any) => ({
+        type: x.pull_request ? 'pr' : 'issue',
+        number: x.number,
+        title: x.title,
+        draft: x.draft ?? false,
+        author: x.user?.login ?? '',
+        createdAt: x.created_at,
+        comments: x.comments ?? 0,
+        labels: (x.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        url: x.html_url,
+        // repository_url is like https://api.github.com/repos/<owner>/<repo>
+        repo: (x.repository_url ?? '').split('/').slice(-2).join('/'),
+      })),
+    }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:get-issue', async (_e, owner: string, repo: string, number: number) => {
   const token = readSettings().githubToken
   const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }

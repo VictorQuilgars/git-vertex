@@ -18,7 +18,6 @@ interface Row {
   labels: Label[]
   url: string
   repoLabel: string   // owner/repo the item belongs to
-  repoPath?: string   // local path (for "open repo"), when known
 }
 
 interface Props {
@@ -26,7 +25,6 @@ interface Props {
   // { repoPath: workspaceName } — the Launchpad owns workspace assignment now.
   workspaces: Record<string, string>
   onSetWorkspace: (path: string, name: string) => Promise<void> | void
-  onOpenRepo: (path: string) => void
 }
 
 function timeAgo(dateStr: string, lang: string): string {
@@ -39,7 +37,7 @@ function timeAgo(dateStr: string, lang: string): string {
   return `${Math.floor(diff / 31536000)}${lang === 'fr' ? 'an' : 'y'}`
 }
 
-export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onOpenRepo }: Props) {
+export default function Launchpad({ recentRepos, workspaces, onSetWorkspace }: Props) {
   const { t, lang } = useLang()
   const [tab, setTab] = useState<'prs' | 'issues' | 'all'>('prs')
   const [wsFilter, setWsFilter] = useState<string>('')   // '' = all recent repos
@@ -64,52 +62,34 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
     setLoading(true)
     setNoAuth(false)
     try {
-      // Resolve every distinct GitHub repo behind the scoped paths.
-      const detected = await Promise.all(scopedPaths.map(async p => ({
-        path: p,
-        ...(await (window.gitAPI as any).githubDetectRepoAt(p).catch(() => ({ owner: null }))),
-      })))
-      const seen = new Set<string>()
-      const targets: { owner: string; repo: string; path: string }[] = []
-      for (const d of detected) {
-        if (!d?.owner) continue
-        const key = `${d.owner}/${d.repo}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        targets.push({ owner: d.owner, repo: d.repo, path: d.path })
+      // User-centric feed (GitKraken-style): a single GitHub search over ALL of
+      // the user's repos, not just the recent/local ones.
+      const query =
+        tab === 'prs'    ? 'is:open is:pr author:@me'    :
+        tab === 'issues' ? 'is:open is:issue author:@me' :
+                           'is:open author:@me'
+      const res = await (window.gitAPI as any).githubSearchIssues(query)
+      if (res.error === 'not_authenticated') { setNoAuth(true); setRows([]); return }
+      let items: Row[] = (res.items ?? []).map((x: any) => ({ ...x, repoLabel: x.repo }))
+
+      // Optional workspace scoping: keep only items whose repo belongs to a repo
+      // assigned to the selected workspace (resolved from its local paths).
+      if (wsFilter) {
+        const detected = await Promise.all(scopedPaths.map(p =>
+          (window.gitAPI as any).githubDetectRepoAt(p).catch(() => ({ owner: null }))
+        ))
+        const allowed = new Set(detected.filter(d => d?.owner).map(d => `${d.owner}/${d.repo}`))
+        items = items.filter(i => allowed.has(i.repoLabel))
       }
 
-      const wantPRs = tab === 'prs' || tab === 'all'
-      const wantIssues = tab === 'issues' || tab === 'all'
-      const collected: Row[] = []
-      let sawAuthError = false
-
-      await Promise.all(targets.map(async tgt => {
-        const label = `${tgt.owner}/${tgt.repo}`
-        if (wantPRs) {
-          const res = await (window.gitAPI as any).githubListPRs(tgt.owner, tgt.repo)
-          if (res.error === 'not_authenticated') { sawAuthError = true; return }
-          for (const p of (res.prs ?? [])) collected.push({ type: 'pr', repoLabel: label, repoPath: tgt.path, ...p })
-        }
-        if (wantIssues) {
-          const res = await (window.gitAPI as any).githubListIssues(tgt.owner, tgt.repo)
-          if (res.error === 'not_authenticated') { sawAuthError = true; return }
-          for (const i of (res.issues ?? [])) collected.push({ type: 'issue', repoLabel: label, repoPath: tgt.path, comments: 0, ...i })
-        }
-      }))
-
-      if (sawAuthError && collected.length === 0) { setNoAuth(true); setRows([]); return }
-      collected.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      setRows(collected)
+      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      setRows(items)
     } finally {
       setLoading(false)
     }
-  }, [scopedPaths, tab])
+  }, [tab, wsFilter, scopedPaths])
 
   useEffect(() => { load() }, [load])
-
-  const prCount = rows.filter(r => r.type === 'pr').length
-  const issueCount = rows.filter(r => r.type === 'issue').length
 
   return (
     <div className="lp-page">
@@ -129,13 +109,13 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
       <div className="lp-toolbar">
         <div className="lp-tabs">
           <button className={`lp-tab ${tab === 'prs' ? 'active' : ''}`} onClick={() => setTab('prs')}>
-            {t('launchpad.tab.prs')}{tab !== 'issues' && prCount > 0 && <span className="lp-count">{prCount}</span>}
+            {t('launchpad.tab.prs')}{tab === 'prs' && !loading && rows.length > 0 && <span className="lp-count">{rows.length}</span>}
           </button>
           <button className={`lp-tab ${tab === 'issues' ? 'active' : ''}`} onClick={() => setTab('issues')}>
-            {t('launchpad.tab.issues')}{tab !== 'prs' && issueCount > 0 && <span className="lp-count">{issueCount}</span>}
+            {t('launchpad.tab.issues')}{tab === 'issues' && !loading && rows.length > 0 && <span className="lp-count">{rows.length}</span>}
           </button>
           <button className={`lp-tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>
-            {t('launchpad.tab.all')}{tab === 'all' && rows.length > 0 && <span className="lp-count">{rows.length}</span>}
+            {t('launchpad.tab.all')}{tab === 'all' && !loading && rows.length > 0 && <span className="lp-count">{rows.length}</span>}
           </button>
         </div>
         <div style={{ flex: 1 }} />
@@ -184,7 +164,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
               {tab === 'prs' ? t('launchpad.empty.prs') : tab === 'issues' ? t('launchpad.empty.issues') : t('launchpad.empty.all')}
             </div>
             <div className="lp-empty-hint">
-              {scopedPaths.length === 0 ? t('launchpad.noRepos') : t('launchpad.emptyHint')}
+              {wsFilter ? t('launchpad.emptyWorkspace') : t('launchpad.emptyHint')}
             </div>
           </div>
         ) : (
@@ -223,11 +203,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
                     </div>
                   </td>
                   <td className="lp-col-repo">
-                    {r.repoPath ? (
-                      <button className="lp-repo-link" onClick={e => { e.stopPropagation(); onOpenRepo(r.repoPath!) }} title={t('launchpad.openRepo')}>
-                        {r.repoLabel}
-                      </button>
-                    ) : <span className="lp-repo-name">{r.repoLabel}</span>}
+                    <span className="lp-repo-name" title={r.repoLabel}>{r.repoLabel}</span>
                   </td>
                   <td className="lp-col-action">
                     <button className="lp-view" onClick={e => { e.stopPropagation(); window.gitAPI.openExternal(r.url) }}>
