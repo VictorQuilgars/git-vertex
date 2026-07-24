@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { BranchInfo } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import { useLang } from '../../i18n/LanguageContext'
 import './Sidebar.css'
 
@@ -56,6 +57,19 @@ interface SidebarProps {
   mutedBranches: Set<string>
   onToggleSolo: (name: string) => void
   onToggleMute: (name: string) => void
+  // Sync actions for the checked-out branch. They live on the toolbar too, but
+  // the unified menu (v1.21.0) is meant to be the one place that has everything.
+  onFetch?: () => void
+  onPull?: () => void
+  // Branch metadata git has no concept of (v1.21.0) — supplied by
+  // useBranchMeta in the host. Omitted ⇒ the matching menu rows disappear.
+  isFavorite?: (name: string) => boolean
+  isPinned?: (name: string) => boolean
+  issueFor?: (name: string) => { number: number; title?: string } | null
+  onToggleFavorite?: (name: string) => void
+  onTogglePin?: (name: string) => void
+  onOpenBranchOnRemote?: (name: string) => void
+  onAssociateIssue?: (name: string) => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   showPrompt: (msg: string, defaultValue?: string) => Promise<string | null>
   showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
@@ -117,41 +131,45 @@ interface BranchItemProps {
   onSetUpstream?: () => void
   soloed?: boolean
   muted?: boolean
+  pinned?: boolean
+  favorite?: boolean
+  issue?: { number: number; title?: string } | null
+  onFetch?: () => void
+  onPull?: () => void
   onToggleSolo?: () => void
   onToggleMute?: () => void
+  onTogglePin?: () => void
+  onToggleFavorite?: () => void
+  onOpenOnRemote?: () => void
+  onAssociateIssue?: () => void
   ahead?: number
   behind?: number
   gone?: boolean
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, onToggleSolo, onToggleMute, ahead = 0, behind = 0, gone = false }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, ahead = 0, behind = 0, gone = false }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
   const { t } = useLang()
   const display = remote ? name.replace(/^remotes\/[^/]+\//, '') : name
 
-  const menuItems: MenuItemDef[] = [
-    ...(!current ? [{ label: '✓ Checkout', action: onCheckout }] : []),
-    ...(!current && onMerge ? [{ label: t('sb.branch.mergeInto', currentBranch), action: onMerge }] : []),
-    ...(!current && onRebaseOnto ? [{ label: t('sb.branch.rebaseOnto', currentBranch), action: onRebaseOnto }] : []),
-    ...(!current && onCompare ? [{ label: t('sb.branch.compareWith', currentBranch), action: onCompare }] : []),
-    { separator: true as const },
-    ...(!remote && onPush ? [{ label: '⬆ Push', action: onPush }] : []),
-    ...(!remote && onSetUpstream ? [{ label: t('sb.branch.setUpstream'), action: onSetUpstream }] : []),
-    { label: t('sb.copyName'), action: () => navigator.clipboard.writeText(display) },
-    ...(onToggleSolo ? [{ label: soloed ? t('sb.branch.unsolo') : t('sb.branch.solo'), action: onToggleSolo }] : []),
-    ...(onToggleMute ? [{ label: muted ? t('sb.branch.unmute') : t('sb.branch.mute'), action: onToggleMute }] : []),
-    ...(!remote && onRename ? [{ label: t('sb.rename'), action: onRename }] : []),
-    ...((!current && !remote && onDelete) ? [
-      { separator: true as const },
-      { label: t('sb.delete'), action: onDelete, danger: true },
-    ] : []),
-    ...((remote && onDeleteRemote) ? [
-      { separator: true as const },
-      { label: t('sb.branch.deleteRemote'), action: onDeleteRemote, danger: true },
-    ] : []),
-  ]
+  // Same builder the toolbars use — right-click here and the ⋮ button up there
+  // now offer the identical menu (v1.21.0).
+  const menuItems: MenuItemDef[] = buildBranchMenu(
+    { name, display, current, remote: !!remote },
+    { currentBranch, soloed, muted, pinned, favorite, issue },
+    {
+      onCheckout: current ? undefined : onCheckout,
+      onFetch, onPull,
+      onPush, onSetUpstream, onMerge, onRebaseOnto, onCompare,
+      onOpenOnRemote, onAssociateIssue, onToggleFavorite, onTogglePin,
+      onToggleSolo, onToggleMute,
+      onCopyName: () => navigator.clipboard.writeText(display),
+      onRename, onDelete, onDeleteRemote,
+    },
+    t
+  )
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (current) return
@@ -187,6 +205,9 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
           </span>
         )}
         {gone && <span className="sb-track sb-track-gone" title={t('sb.branch.goneTitle')}>✂</span>}
+        {favorite && <span className="sb-branch-flag sb-branch-star" title={t('sb.branch.favoriteFlag')}>★</span>}
+        {pinned && <span className="sb-branch-flag" title={t('sb.branch.pinFlag')}>📌</span>}
+        {issue && <span className="sb-branch-flag" title={issue.title || `#${issue.number}`}>#{issue.number}</span>}
         {soloed && <span className="sb-branch-flag" title={t('sb.branch.soloFlag')}>👁</span>}
         {muted && <span className="sb-branch-flag" title={t('sb.branch.mutedFlag')}>🔇</span>}
         {current && (
@@ -194,11 +215,18 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
             <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
           </svg>
         )}
-        {hover && !current && onDelete && (
-          <button className="sb-delete-btn" title={t('sb.deleteTitle')}
-            onClick={e => { e.stopPropagation(); onDelete() }}>
-            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/>
+        {/* Hover affordance for the whole menu rather than the lone delete
+            cross it replaces — right-click was the only way in before, which
+            is what made every other branch action invisible (v1.21.0). */}
+        {hover && menuItems.length > 0 && (
+          <button className="sb-branch-menu-btn" title={t('sb.branch.menu')}
+            onClick={e => {
+              e.stopPropagation()
+              const r = e.currentTarget.getBoundingClientRect()
+              setCtx({ x: r.right, y: r.bottom + 2 })
+            }}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z"/>
             </svg>
           </button>
         )}
@@ -441,6 +469,9 @@ export default function Sidebar({
   onCreateTag, onDeleteTag, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
+  onFetch, onPull,
+  isFavorite, isPinned, issueFor, onToggleFavorite, onTogglePin,
+  onOpenBranchOnRemote, onAssociateIssue,
   showToast, showPrompt, showConfirm, embedded = false, view,
 }: SidebarProps) {
   // In single-view mode a section is shown when it matches the active view.
@@ -587,9 +618,13 @@ export default function Sidebar({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // Favorites float to the top of LOCAL — the whole point of starring a branch
+  // is not to hunt for it in a long list (v1.21.0). Order is otherwise
+  // untouched, so unstarred branches keep the ordering git gave us.
   const localBranches = branches
     .filter(b => !b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+    .sort((a, b) => Number(isFavorite?.(b.name) ?? false) - Number(isFavorite?.(a.name) ?? false))
   const remoteBranches = branches
     .filter(b => b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
@@ -742,10 +777,19 @@ export default function Sidebar({
                 onRebaseOnto={!b.current ? () => onRebaseOnto(b.name) : undefined}
                 onPush={() => onPushBranch(b.name)}
                 onSetUpstream={() => onSetUpstream(b.name)}
+                onFetch={b.current ? onFetch : undefined}
+                onPull={b.current ? onPull : undefined}
                 soloed={soloBranch === b.name}
                 muted={mutedBranches.has(b.name)}
                 onToggleSolo={() => onToggleSolo(b.name)}
                 onToggleMute={() => onToggleMute(b.name)}
+                favorite={isFavorite?.(b.name)}
+                pinned={isPinned?.(b.name)}
+                issue={issueFor?.(b.name)}
+                onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
+                onTogglePin={onTogglePin && (() => onTogglePin(b.name))}
+                onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
+                onAssociateIssue={onAssociateIssue && (() => onAssociateIssue(b.name))}
                 ahead={b.ahead}
                 behind={b.behind}
                 gone={b.gone}
@@ -773,6 +817,11 @@ export default function Sidebar({
                   muted={mutedBranches.has(b.name)}
                   onToggleSolo={() => onToggleSolo(b.name)}
                   onToggleMute={() => onToggleMute(b.name)}
+                  favorite={isFavorite?.(b.name)}
+                  pinned={isPinned?.(b.name)}
+                  onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
+                  onTogglePin={onTogglePin && (() => onTogglePin(b.name))}
+                  onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
                 />
               ))}
             </Section>

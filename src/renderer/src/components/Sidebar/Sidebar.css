@@ -305,6 +305,23 @@
 }
 .sb-delete-btn:hover { opacity: 1; background: #f8514922; }
 
+/* Hover "⋮" opening the unified branch menu (v1.21.0) — replaces the delete
+   cross that used to sit here; Delete now lives inside the menu. */
+.sb-branch-menu-btn {
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+.sb-branch-menu-btn:hover { opacity: 1; background: #30363d; color: #c9d1d9; }
+.sb-branch-star { color: #d29922; }
+
 /* ── No repo / recent ─────────────────────────────────────── */
 .sb-no-repo {
   flex: 1;
