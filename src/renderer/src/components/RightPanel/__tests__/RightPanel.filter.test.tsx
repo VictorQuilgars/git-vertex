@@ -24,6 +24,7 @@ function renderStaging(overrides: Record<string, any> = {}, props: Record<string
       selectedCommit={{ hash: '__WIP__' } as any}
       onCommitSuccess={() => {}}
       showToast={() => {}}
+      onSelectCommit={() => {}}
       currentBranch="main"
       embedded
       {...props}

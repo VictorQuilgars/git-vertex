@@ -473,13 +473,48 @@ export class GitService {
 
   // ── Working tree / staging ─────────────────────────────────
 
+  // `git diff --numstat` reports a rename as either "old => new" or
+  // "dir/{old => new}/file" — both name the *new* path once expanded, which is
+  // the one the status list keys on.
+  private static numstatPath(raw: string): string {
+    if (!raw.includes('=>')) return raw
+    const braced = /^(.*)\{(.*) => (.*)\}(.*)$/.exec(raw)
+    if (braced) return `${braced[1]}${braced[3]}${braced[4]}`.replace(/\/{2,}/g, '/')
+    return raw.split('=>').pop()!.trim()
+  }
+
+  /** Per-path added/removed line counts. Binary files are omitted (git prints "-"). */
+  private async numstat(args: string[]): Promise<Map<string, { additions: number; deletions: number }>> {
+    const out = new Map<string, { additions: number; deletions: number }>()
+    try {
+      const raw = await this.git.raw(['diff', '--numstat', ...args])
+      for (const line of raw.split('\n')) {
+        if (!line.trim()) continue
+        const [a, d, ...rest] = line.split('\t')
+        const path = rest.join('\t').trim()
+        if (!path || a === '-' || d === '-') continue
+        out.set(GitService.numstatPath(path), { additions: Number(a) || 0, deletions: Number(d) || 0 })
+      }
+    } catch {
+      // No stats is a degraded display, never a reason to fail the whole status.
+    }
+    return out
+  }
+
   async getWorkingChanges(): Promise<{
-    staged: { path: string; status: string }[]
-    unstaged: { path: string; status: string }[]
+    staged: { path: string; status: string; additions?: number; deletions?: number }[]
+    unstaged: { path: string; status: string; additions?: number; deletions?: number }[]
     untracked: string[]
   }> {
     try {
-      const status = await this.git.status()
+      // Two extra diffs so each section reports its own counts. Untracked files
+      // get none: git diff cannot see them, and stat-ing each one would mean a
+      // subprocess per file.
+      const [status, stagedStats, unstagedStats] = await Promise.all([
+        this.git.status(),
+        this.numstat(['--cached']),
+        this.numstat([]),
+      ])
 
       // Build a set of staged paths for dedup
       const stagedPaths = new Set<string>([
@@ -501,7 +536,7 @@ export class GitService {
         if (index && index !== ' ' && index !== '?' && !seen.has(path)) {
           seen.add(path)
           const s = index === 'A' ? 'A' : index === 'D' ? 'D' : index === 'R' ? 'R' : index === 'C' ? 'C' : 'M'
-          staged.push({ path, status: s })
+          staged.push({ path, status: s, ...stagedStats.get(path) })
         }
       }
 
@@ -515,7 +550,7 @@ export class GitService {
         if (working && working !== ' ' && working !== '?' && !seenU.has(path)) {
           seenU.add(path)
           const s = working === 'D' ? 'D' : working === 'A' ? 'A' : '!'
-          unstaged.push({ path, status: s === '!' ? 'M' : s })
+          unstaged.push({ path, status: s === '!' ? 'M' : s, ...unstagedStats.get(path) })
         }
         // Conflicted
         if (working === 'U' || index === 'U') {

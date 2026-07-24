@@ -26,7 +26,9 @@ export interface FileChange {
   path: string; status: string; additions: number; deletions: number
 }
 
-export interface WorkingFile { path: string; status: string }
+// additions/deletions come from `git diff --numstat` (v1.22.0). Absent for
+// untracked files and for binaries, where git reports no line counts.
+export interface WorkingFile { path: string; status: string; additions?: number; deletions?: number }
 
 export interface WorkingChanges {
   staged: WorkingFile[]; unstaged: WorkingFile[]; untracked: string[]

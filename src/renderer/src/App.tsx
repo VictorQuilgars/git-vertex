@@ -1299,6 +1299,41 @@ export default function App() {
     window.gitAPI.openExternal(`https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/commit/${hash}`)
   }
 
+  // Branch strip above the staging file list (v1.22.0) — same actions as the
+  // toolbar and the ⋮ menu, just brought next to the files they apply to.
+  const branchStripProps = {
+    branch: currentBranch,
+    ahead: tracking.ahead,
+    behind: tracking.behind,
+    onPush: handlePush,
+    onPull: handlePull,
+    onFetch: handleFetch,
+    issue: branchMeta.issueFor(currentBranch),
+    onAssociateIssue: () => setIssueModalBranch(currentBranch),
+    onOpenIssue: (n: number) => {
+      if (githubOwnerRepo) {
+        window.gitAPI.openExternal(`https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/issues/${n}`)
+      }
+    },
+    menuState: {
+      soloed: soloBranch === currentBranch,
+      muted: mutedBranches.has(currentBranch),
+      favorite: branchMeta.isFavorite(currentBranch),
+    },
+    menuActions: {
+      onFetch: handleFetch,
+      onPull: handlePull,
+      onPush: handlePush,
+      onSetUpstream: () => handleSetUpstream(currentBranch),
+      onOpenOnRemote: () => handleOpenBranchOnRemote(currentBranch),
+      onAssociateIssue: () => setIssueModalBranch(currentBranch),
+      onToggleFavorite: () => branchMeta.toggleFavorite(currentBranch),
+      onToggleSolo: () => setSoloBranch(prev => prev === currentBranch ? null : currentBranch),
+      onCopyName: () => navigator.clipboard.writeText(currentBranch),
+      onRename: () => handleRenameBranch(currentBranch),
+    },
+  }
+
   // Same as above one level up: /tree/<branch>. Existed for commits only until
   // v1.21.0, which is why "Open Branch on Remote" was nowhere to be found.
   const handleOpenBranchOnRemote = (name: string) => {
@@ -2100,6 +2135,7 @@ export default function App() {
                 onRewordWithMessage={(hash, msg) => handleRewordCommit(hash, msg)}
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}
+                branchStrip={branchStripProps}
               />
             </div>
           </>

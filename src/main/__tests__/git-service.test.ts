@@ -1190,6 +1190,85 @@ describe('GitService', () => {
   })
 
   // ─────────────────────────────────────────────────────────────────────
+  // Per-file line counts (v1.22.0)
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('getWorkingChanges — additions/deletions', () => {
+    const commitBase = (name: string, content: string) => {
+      fs.writeFileSync(path.join(tempDir, name), content)
+      execSync(`cd ${tempDir} && git add ${name} && git commit -m base`)
+    }
+
+    test('reports added and removed line counts for an unstaged change', async () => {
+      commitBase('a.txt', 'one\ntwo\nthree\n')
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'one\nTWO\nthree\nfour\n')
+
+      const r = await git.getWorkingChanges()
+      const f = r.unstaged.find(x => x.path === 'a.txt')
+      expect(f).toBeDefined()
+      // "two" → "TWO" is one line replaced, plus one line appended.
+      expect(f!.additions).toBe(2)
+      expect(f!.deletions).toBe(1)
+    })
+
+    test('staged and unstaged counts are reported per section, not merged', async () => {
+      commitBase('b.txt', 'one\n')
+      // Stage one added line, then add a second one only in the working tree.
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'one\ntwo\n')
+      execSync(`cd ${tempDir} && git add b.txt`)
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'one\ntwo\nthree\n')
+
+      const r = await git.getWorkingChanges()
+      expect(r.staged.find(x => x.path === 'b.txt')).toMatchObject({ additions: 1, deletions: 0 })
+      expect(r.unstaged.find(x => x.path === 'b.txt')).toMatchObject({ additions: 1, deletions: 0 })
+    })
+
+    test('a deleted file counts every line as removed', async () => {
+      commitBase('c.txt', 'one\ntwo\n')
+      fs.unlinkSync(path.join(tempDir, 'c.txt'))
+
+      const r = await git.getWorkingChanges()
+      expect(r.unstaged.find(x => x.path === 'c.txt')).toMatchObject({ additions: 0, deletions: 2 })
+    })
+
+    test('binary files carry no counts rather than zeroes', async () => {
+      commitBase('keep.txt', 'x\n')
+      fs.writeFileSync(path.join(tempDir, 'bin.dat'), Buffer.from([0, 1, 2, 0, 3]))
+      execSync(`cd ${tempDir} && git add bin.dat && git commit -m bin`)
+      fs.writeFileSync(path.join(tempDir, 'bin.dat'), Buffer.from([0, 9, 9, 0, 4, 5]))
+
+      const r = await git.getWorkingChanges()
+      const f = r.unstaged.find(x => x.path === 'bin.dat')
+      expect(f).toBeDefined()
+      // git prints "-" for binaries; the UI must be able to tell "unknown"
+      // apart from a genuine zero-line change.
+      expect(f!.additions).toBeUndefined()
+      expect(f!.deletions).toBeUndefined()
+    })
+
+    test('untracked files are listed but carry no counts', async () => {
+      commitBase('keep.txt', 'x\n')
+      fs.writeFileSync(path.join(tempDir, 'fresh.txt'), 'a\nb\n')
+
+      const r = await git.getWorkingChanges()
+      expect(r.untracked.some(p => p.includes('fresh.txt'))).toBe(true)
+    })
+
+    test('a staged rename is keyed on the new path', async () => {
+      commitBase('old.txt', 'one\ntwo\nthree\n')
+      execSync(`cd ${tempDir} && git mv old.txt new.txt`)
+
+      const r = await git.getWorkingChanges()
+      const f = r.staged.find(x => x.path === 'new.txt')
+      expect(f).toBeDefined()
+      // Pure rename: no content change, so zero on both sides — but present,
+      // which is what proves the "old => new" path form was parsed.
+      expect(f!.additions).toBe(0)
+      expect(f!.deletions).toBe(0)
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
   // Regression coverage for handled edge cases (matrix fixes)
   // ─────────────────────────────────────────────────────────────────────
 
