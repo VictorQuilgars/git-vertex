@@ -755,6 +755,7 @@ const IcoTrash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="cu
 const IcoSpark = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>)
 const IcoSort = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z"/></svg>)
 const IcoPathView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z"/></svg>)
+const IcoSearch = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>)
 const IcoTreeView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z"/></svg>)
 const IcoCommit = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg>)
 const IcoStash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z"/></svg>)
@@ -862,6 +863,10 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const [amendFiles, setAmendFiles] = useState<FileChange[]>([])
   const [treeMode, setTreeMode] = useState(() => localStorage.getItem('st-tree-mode') === 'true')
   const [sortAsc, setSortAsc] = useState(true)
+  // Purely a view lens over the file lists — never changes what gets staged or
+  // committed, so counts and the master checkbox stay on the unfiltered set.
+  const [fileFilter, setFileFilter] = useState('')
+  const [filterOpen, setFilterOpen] = useState(false)
   const [unstagedOpen, setUnstagedOpen] = useState(true)
   const [stagedOpen, setStagedOpen] = useState(true)
   const [optionsOpen, setOptionsOpen] = useState(false)
@@ -869,6 +874,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const [committing, setCommitting] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
+  const filterRef = useRef<HTMLInputElement>(null)
   const [formHeight, setFormHeight] = useState(() => parseInt(localStorage.getItem('st-form-h') || '300'))
   const dragRef = useRef<{ y: number; h: number } | null>(null)
 
@@ -1053,9 +1059,21 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 
   const toggleTree = () => setTreeMode(v => { localStorage.setItem('st-tree-mode', String(!v)); return !v })
 
-  const sortedStaged = sortFiles(changes.staged)
-  const sortedUnstaged = sortFiles(changes.unstaged)
-  const sortedUntracked = sortFiles(changes.untracked.map(p => ({ path: p }))).map(x => x.path)
+  // Closing the filter always clears it — leaving a hidden active filter behind
+  // would silently hide files with no visible reason why.
+  const closeFilter = () => { setFilterOpen(false); setFileFilter('') }
+  const toggleFilter = () => { if (filterOpen) closeFilter(); else setFilterOpen(true) }
+  useEffect(() => { if (filterOpen) filterRef.current?.focus() }, [filterOpen])
+
+  // Case-insensitive substring match on the full path, so "src/ma" and "test"
+  // both work. An empty filter matches everything.
+  const filterNeedle = fileFilter.trim().toLowerCase()
+  const matchFilter = (path: string) => !filterNeedle || path.toLowerCase().includes(filterNeedle)
+
+  const sortedStaged = sortFiles(changes.staged).filter(f => matchFilter(f.path))
+  const sortedUnstaged = sortFiles(changes.unstaged).filter(f => matchFilter(f.path))
+  const sortedUntracked = sortFiles(changes.untracked.map(p => ({ path: p })))
+    .map(x => x.path).filter(matchFilter)
 
   const stagedTree = buildTree(sortedStaged.map(f => ({ path: f.path, status: f.status })))
   const unstagedTree = buildTree([
@@ -1080,9 +1098,18 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     return sortFiles([...m.values()])
   })()
   const stateByPath = new Map<string, StageState>(mergedFiles.map(f => [f.path, f.state]))
-  const mergedTree = buildTree(mergedFiles.map(f => ({ path: f.path, status: f.status })))
+  // Rows/tree render the filtered view; allStaged/noneStaged below stay on the
+  // full set so the master checkbox keeps reflecting the real repo state.
+  const visibleFiles = mergedFiles.filter(f => matchFilter(f.path))
+  const mergedTree = buildTree(visibleFiles.map(f => ({ path: f.path, status: f.status })))
   const allStaged = mergedFiles.length > 0 && mergedFiles.every(f => f.state === 'staged')
   const noneStaged = mergedFiles.every(f => f.state === 'unstaged')
+  const visibleAmendOnly = amendOnly.filter(f => matchFilter(f.path))
+  // Something is staged/changed but the filter hides all of it — say so rather
+  // than showing the same "no changes" text as a clean tree.
+  const filterHidesAll = !!filterNeedle
+    && mergedFiles.length + amendOnly.length > 0
+    && visibleFiles.length + visibleAmendOnly.length === 0
   const stageOne = (paths: string[]) => handle(() => window.gitAPI.stage(paths))
   const unstageOne = (paths: string[]) => handle(() => window.gitAPI.unstage(paths))
   const discardOne = async (path: string) => {
@@ -1142,16 +1169,32 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
               {totalChanged} {totalChanged === 1 ? t('panel.fileChange') : t('panel.fileChanges')}
             </span>
             <div className="stx-spring" />
+            <button className={`st2-icon-btn stx-tool ${filterOpen || fileFilter ? 'active' : ''}`}
+              title={t('panel.filter')} onClick={() => toggleFilter()}><IcoSearch /></button>
             <button className="st2-icon-btn stx-tool" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}><IcoSort /></button>
             <button className={`st2-icon-btn stx-tool ${!treeMode ? 'active' : ''}`} title={t('panel.view.path')} onClick={() => treeMode && toggleTree()}><IcoPathView /></button>
             <button className={`st2-icon-btn stx-tool ${treeMode ? 'active' : ''}`} title={t('panel.view.tree')} onClick={() => !treeMode && toggleTree()}><IcoTreeView /></button>
           </div>
+          {filterOpen && (
+            <div className="st-filter">
+              <input ref={filterRef} type="text" className="st-filter-input"
+                placeholder={t('panel.filter.placeholder')} value={fileFilter}
+                onChange={e => setFileFilter(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); closeFilter() } }} />
+              {fileFilter && (
+                <button className="st-filter-clear" title={t('panel.filter.clear')} aria-label={t('panel.filter.clear')}
+                  onClick={() => { setFileFilter(''); filterRef.current?.focus() }}>×</button>
+              )}
+            </div>
+          )}
           <div className="st2-file-list stx-list">
-            {mergedFiles.length === 0 && amendOnly.length === 0
+            {filterHidesAll
+              ? <div className="st-empty">{t('panel.filter.noMatch', fileFilter.trim())}</div>
+              : visibleFiles.length === 0 && visibleAmendOnly.length === 0
               ? <div className="st-empty">{t('panel.noChanges')}</div>
               : treeMode
                 ? mergedTree.map(node => <CheckTreeRow key={node.fullPath} node={node} depth={0} ctx={stageCtx} />)
-                : mergedFiles.map(f => {
+                : visibleFiles.map(f => {
                     const staged = f.state === 'staged'
                     const isSelected = selectedDiff?.path === f.path
                     return (
@@ -1168,7 +1211,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                     )
                   })
             }
-            {amendOnly.map(f => (
+            {visibleAmendOnly.map(f => (
               <div key={f.path} className="stx-row st-amend-file" title={t('panel.amendBadge.tooltip')}>
                 <span className="stx-check-spacer" />
                 <StatusBadge status={f.status} />
@@ -1186,6 +1229,10 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
         <button className="st2-icon-btn st2-sort" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}>
           <IcoSort />
         </button>
+        <button className={`st2-icon-btn st2-sort ${filterOpen || fileFilter ? 'active' : ''}`}
+          title={t('panel.filter')} onClick={() => toggleFilter()}>
+          <IcoSearch />
+        </button>
         <div className="st2-seg">
           <button className={`st2-seg-btn ${!treeMode ? 'active' : ''}`} onClick={() => treeMode && toggleTree()}>
             <IcoPathView /> {t('panel.view.path')}
@@ -1195,6 +1242,18 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           </button>
         </div>
       </div>
+      {filterOpen && (
+        <div className="st-filter">
+          <input ref={filterRef} type="text" className="st-filter-input"
+            placeholder={t('panel.filter.placeholder')} value={fileFilter}
+            onChange={e => setFileFilter(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); closeFilter() } }} />
+          {fileFilter && (
+            <button className="st-filter-clear" title={t('panel.filter.clear')} aria-label={t('panel.filter.clear')}
+              onClick={() => { setFileFilter(''); filterRef.current?.focus() }}>×</button>
+          )}
+        </div>
+      )}
 
       {/* ── File lists ── */}
       <div className="st2-lists">
@@ -1216,6 +1275,8 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
             <div className="st2-file-list">
               {totalUnstaged === 0
                 ? <div className="st-empty">{t('panel.noChanges')}</div>
+                : sortedUnstaged.length + sortedUntracked.length === 0
+                ? <div className="st-empty">{t('panel.filter.noMatch', fileFilter.trim())}</div>
                 : treeMode
                   ? unstagedTree.map(node => (
                       <TreeFileRow key={node.fullPath} node={node} depth={0}
@@ -1287,6 +1348,8 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
             <div className="st2-file-list">
               {stagedCount === 0
                 ? <div className="st-empty">{t('panel.noStaged')}</div>
+                : sortedStaged.length + visibleAmendOnly.length === 0
+                ? <div className="st-empty">{t('panel.filter.noMatch', fileFilter.trim())}</div>
                 : treeMode
                   ? stagedTree.map(node => (
                       <TreeFileRow key={node.fullPath} node={node} depth={0}
@@ -1310,7 +1373,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                           </div>
                         )
                       })}
-                      {amendOnly.map(f => {
+                      {visibleAmendOnly.map(f => {
                         const meta = STATUS_META[f.status] ?? STATUS_META['?']
                         return (
                           <div key={f.path} className="st-file-row st-amend-file" title={t('panel.amendBadge.tooltip')}>
