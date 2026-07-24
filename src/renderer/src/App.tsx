@@ -762,6 +762,7 @@ export default function App() {
   const openHomeTab = useCallback(() => {
     if (conflictResolverFile || rebaseHash) return
     setWhatsNewActive(false)
+    setRepoMgmtOpen(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     const id = newTabId('home')
     setTabs(prev => [...prev, { id, kind: 'home' }])
@@ -774,6 +775,7 @@ export default function App() {
     if (conflictResolverFile || rebaseHash) return
     setWhatsNewActive(false)
     setSettingsOpen(false)
+    setRepoMgmtOpen(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setTabs(prev => {
       const existing = prev.find(tb => tb.kind === 'launchpad')
@@ -787,6 +789,7 @@ export default function App() {
 
   const switchTab = useCallback(async (tab: AppTab) => {
     setWhatsNewActive(false)   // clicking a tab leaves the what's-new view (tab stays open)
+    setRepoMgmtOpen(false)
     if (tab.id === activeTabId) return
     if (conflictResolverFile || rebaseHash) return
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
@@ -1597,7 +1600,7 @@ export default function App() {
           )}
           {whatsNew && (
             <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title={t('tabs.whatsNew')}
-              onClick={() => { setSettingsOpen(false); setWhatsNewActive(true) }}>
+              onClick={() => { setSettingsOpen(false); setRepoMgmtOpen(false); setWhatsNewActive(true) }}>
               <span className="app-tab-icon app-tab-icon--tool">✨</span>
               <span className="app-tab-name">{t('tabs.whatsNew')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
@@ -1628,14 +1631,14 @@ export default function App() {
               )}
             </button>
             <button className={`app-tb-icon ${settingsOpen ? 'active' : ''}`}
-              title={t('settings.title')} onClick={() => setSettingsOpen(v => !v)}>
+              title={t('settings.title')} onClick={() => { setRepoMgmtOpen(false); setSettingsOpen(v => !v) }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                 <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.376l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.318z"/>
               </svg>
             </button>
             <button className="app-profile-chip" title={githubUser?.login ?? t('settings.profile')}
-              onClick={() => { setSettingsOpen(true) }}>
+              onClick={() => { setRepoMgmtOpen(false); setSettingsOpen(true) }}>
               {githubUser?.avatar
                 ? <img className="app-profile-avatar" src={githubUser.avatar} alt={githubUser.login} />
                 : <span className="app-profile-avatar app-profile-avatar--fallback">{(githubUser?.login ?? '?').slice(0, 1).toUpperCase()}</span>}
