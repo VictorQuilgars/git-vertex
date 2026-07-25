@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.21.1': `## What's new in 1.21.1
+
+### ♿ Accessibility
+- Every **icon-only button** now carries an accessible label, so screen readers announce what it does instead of reading an unlabelled control. A test guards this from now on: a new unlabelled button fails the build.
+`,
   '1.21.0': `## What's new in 1.21.0
 
 ### 🌿 Branch strip in the changes panel
