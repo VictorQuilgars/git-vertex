@@ -145,14 +145,20 @@ interface BranchItemProps {
   ahead?: number
   behind?: number
   gone?: boolean
+  // Set when another remote also has a branch with this same short name —
+  // disambiguates "main" vs "main" by showing "origin/main" / "archive/main"
+  // instead of collapsing both to a bare "main".
+  showRemotePrefix?: boolean
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, ahead = 0, behind = 0, gone = false }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
   const { t } = useLang()
-  const display = remote ? name.replace(/^remotes\/[^/]+\//, '') : name
+  const display = remote
+    ? (showRemotePrefix ? name.replace(/^remotes\//, '') : name.replace(/^remotes\/[^/]+\//, ''))
+    : name
 
   // Same builder the toolbars use — right-click here and the ⋮ button up there
   // now offer the identical menu (v1.21.0).
@@ -628,6 +634,13 @@ export default function Sidebar({
   const remoteBranches = branches
     .filter(b => b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+  // Same short name under more than one remote ("main" on both origin and
+  // archive) → prefix those with their remote name so they're tellable apart.
+  const remoteShortNameCounts = new Map<string, number>()
+  for (const b of remoteBranches) {
+    const short = b.name.replace(/^remotes\/[^/]+\//, '')
+    remoteShortNameCounts.set(short, (remoteShortNameCounts.get(short) ?? 0) + 1)
+  }
 
   const otherRecents = recentRepos.filter(r => r !== repoPath)
 
@@ -807,6 +820,7 @@ export default function Sidebar({
                   name={b.name}
                   current={false}
                   remote={true}
+                  showRemotePrefix={(remoteShortNameCounts.get(b.name.replace(/^remotes\/[^/]+\//, '')) ?? 0) > 1}
                   currentBranch={currentBranch}
                   onCheckout={() => {
                     const localName = b.name.replace(/^remotes\/[^/]+\//, '')
