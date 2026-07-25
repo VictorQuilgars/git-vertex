@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useLang } from '../../i18n/LanguageContext'
 import './CommandPalette.css'
 
 export interface PaletteCommand {
@@ -14,6 +15,7 @@ interface CommandPaletteProps {
 }
 
 export default function CommandPalette({ commands, onClose }: CommandPaletteProps) {
+  const { t } = useLang()
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -65,7 +67,7 @@ export default function CommandPalette({ commands, onClose }: CommandPaletteProp
           <input
             ref={inputRef}
             className="cp-input"
-            placeholder={title || t('cp.search')}
+            placeholder={t('cp.search')}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
