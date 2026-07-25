@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.21.1
+
+### Fixed
+- **Accessibility** — every icon-only button now carries an accessible label, so screen readers announce what it does instead of reading an unlabelled control. A test now fails the build if a new unlabelled button slips in.
+
 ## 1.21.0
 
 ### Added
