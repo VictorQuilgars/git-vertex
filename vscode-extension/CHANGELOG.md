@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.20.0
+
+### Added
+- **Inline blame** — the line the cursor sits on now ends with who last changed it, how long ago, and the start of that commit message. Blame was only reachable through the File History tab until now, never in the editor itself. Hovering the annotation gives the full message, the author's date and the sha, with links to the file's history and to copy the sha.
+- **Unsaved edits are blamed too** — lines you have just typed read "You, uncommitted changes" instead of staying attributed to whoever wrote what used to be on that line.
+- **File blame annotations** — *Git Vertex: Toggle File Blame Annotations*, also in the editor tab's right-click menu, annotates every line at once and colors the gutter by age: hot for what changed recently, cold for what nobody has touched in months.
+- **Git CodeLens** above the file, and above each class, function and method: the most recent commit for that range and how many people wrote it, clicking through to the file history.
+- **Toggles and settings** — *Toggle Line Blame*, *Toggle File Blame* and *Toggle Git CodeLens* in the command palette, plus settings for the annotation format, message length, whitespace handling (`git blame -w`), the file-size cutoff, the heatmap threshold and which scopes get a CodeLens.
+
 ## 1.19.1
 
 ### Added
