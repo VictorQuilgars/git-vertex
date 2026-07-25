@@ -2,6 +2,22 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.23.0': `## What's new in 1.23.0
+
+### 🏷 Tags you can actually check out
+- **Double-click a tag** in the sidebar, or pick **Checkout** from its context menu. Before, double-clicking a tag simply did nothing. HEAD ends up detached — the message says so.
+
+### 🧹 Prune, in one gesture
+- **Prune stale refs** on a remote's context menu clears tracking refs for branches that no longer exist upstream — then offers to delete the local branches those refs left stranded.
+
+### 📦 Stash, in parts
+- The **+** on the stash section now asks what to take: **everything**, the **index only**, or **only what isn't staged**.
+- **Rename a stash** from its context menu. git has no rename, so the entry is re-stored under its new label and moves to the top of the stack.
+
+### 🌐 A default remote, per repository
+- Mark a remote as the default from its context menu — it carries a **default** badge, and push, pull, branch publishing and tag actions all target it instead of assuming \`origin\`.
+- Stored as \`gitvertex.defaultRemote\` in the repository's own git config, so it stays readable from the command line.
+`,
   '1.22.0': `## What's new in 1.22.0
 
 ### ⬇️ Pull, your way

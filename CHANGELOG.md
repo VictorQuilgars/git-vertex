@@ -1,5 +1,19 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.23.0
+
+### Added
+- **Check out a tag** — double-click it in the sidebar, or pick Checkout from its context menu. HEAD ends up detached, which the confirmation message spells out.
+- **Prune stale tracking refs** from a remote's context menu. Pruning the remote also leaves local branches whose upstream is gone, so the same action offers to delete those in one go.
+- **Partial stashes** — the **+** on the stash section asks what to take: everything, the index only, or only what isn't staged.
+- **Rename a stash** from its context menu. git has no rename, so the entry is re-stored under the new label and moves to the top of the stack — the prompt says so.
+- **Default remote, per repository** — mark one from its context menu (it then carries a badge) and push, pull, branch publishing and tag actions all target it. Stored as `gitvertex.defaultRemote` in the repository's own git config, so it stays readable from the command line.
+
+### Fixed
+- **Double-clicking a tag did nothing** — unlike a branch or a commit row — and no menu entry offered checkout either, so the action was unreachable from the UI.
+- With several remotes configured, push, branch publishing and tag actions silently assumed `origin` instead of the repository's chosen remote.
+- The stash list showed the commit subject rather than the reflog message, so a renamed stash would have kept its old label.
+
 ## 1.22.0
 
 ### Added
