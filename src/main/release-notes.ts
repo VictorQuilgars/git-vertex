@@ -2,6 +2,18 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.19.0': `## What's new in 1.19.0
+
+### ⚙️ Settings: General, External Tools, SSH
+- New **Behavior** options: default branch name, auto-fetch interval, and auto-update-submodules.
+- Dedicated **external diff / merge / terminal** tool settings.
+- **SSH key management**, wired to \`core.sshCommand\`.
+- Sober line icons replace colored emoji in the Settings navigation.
+
+### 🐛 Fixed
+- A Settings navigation label collision (two items both named "General").
+- The default branch name wasn't applied when the Init modal opened before settings finished loading.
+`,
   '1.18.2': `## What's new in 1.18.2
 
 ### 🧹 Settings cleanup

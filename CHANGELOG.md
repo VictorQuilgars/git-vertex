@@ -1,5 +1,17 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.19.0
+
+### Added
+- **Settings: General, External Tools, SSH** — new Behavior options (default branch name, auto-fetch interval, auto-update-submodules); dedicated external diff/merge/terminal tool settings; SSH key management wired to `core.sshCommand`.
+
+### Changed
+- Sober line icons replace colored emoji in the Settings navigation.
+
+### Fixed
+- A Settings navigation label collision (two items both named "General").
+- The default branch name wasn't applied when the Init modal opened before settings finished loading.
+
 ## 1.18.2
 
 ### Changed
