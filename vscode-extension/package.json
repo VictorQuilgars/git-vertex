@@ -89,6 +89,24 @@
         "icon": "$(history)"
       },
       {
+        "command": "gitVertex.toggleLineBlame",
+        "title": "Git Vertex: Toggle Line Blame Annotation",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "gitVertex.toggleFileBlame",
+        "title": "Git Vertex: Toggle File Blame Annotations",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "gitVertex.toggleCodeLens",
+        "title": "Git Vertex: Toggle Git CodeLens"
+      },
+      {
+        "command": "gitVertex.blame.copyHash",
+        "title": "Git Vertex: Copy Commit SHA"
+      },
+      {
         "command": "gitVertex.compare",
         "title": "Git Vertex: Compare References",
         "icon": "$(git-compare)"
@@ -239,6 +257,11 @@
           "command": "gitVertex.fileHistory",
           "when": "resourceScheme == file",
           "group": "1_diff@99"
+        },
+        {
+          "command": "gitVertex.toggleFileBlame",
+          "when": "resourceScheme == file",
+          "group": "1_diff@100"
         }
       ],
       "scm/title": [
@@ -274,6 +297,19 @@
         },
         {
           "command": "gitVertex.compare"
+        },
+        {
+          "command": "gitVertex.toggleLineBlame"
+        },
+        {
+          "command": "gitVertex.toggleFileBlame"
+        },
+        {
+          "command": "gitVertex.toggleCodeLens"
+        },
+        {
+          "command": "gitVertex.blame.copyHash",
+          "when": "false"
         },
         {
           "command": "gitVertex.openGitHub"
@@ -545,6 +581,18 @@
         "priority": "default"
       }
     ],
+    "colors": [
+      {
+        "id": "gitVertex.blameForeground",
+        "description": "Color of the inline blame annotation.",
+        "defaults": {
+          "dark": "editorCodeLens.foreground",
+          "light": "editorCodeLens.foreground",
+          "highContrast": "editorCodeLens.foreground",
+          "highContrastLight": "editorCodeLens.foreground"
+        }
+      }
+    ],
     "configurationDefaults": {
       "workbench.editorAssociations": {
         "**/git-rebase-todo": "gitVertex.rebaseTodoEditor",
@@ -568,6 +616,61 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically open the Rebase tab when a rebase is detected (started from Git Vertex, the terminal, or any external tool)."
+        },
+        "gitVertex.blame.line.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Annotate the line the cursor is on with its last commit (author, age, message)."
+        },
+        "gitVertex.blame.line.format": {
+          "type": "string",
+          "default": "${author}, ${ago} • ${message}",
+          "markdownDescription": "Format of the annotation. Available tokens: `${author}`, `${ago}`, `${date}`, `${message}`, `${hash}`."
+        },
+        "gitVertex.blame.messageLength": {
+          "type": "number",
+          "default": 60,
+          "description": "Maximum number of characters of the commit message shown in an annotation. 0 shows it in full."
+        },
+        "gitVertex.blame.ignoreWhitespace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ignore whitespace-only changes when blaming (git blame -w), so re-indenting a file doesn't reassign its lines."
+        },
+        "gitVertex.blame.maxFileLines": {
+          "type": "number",
+          "default": 20000,
+          "description": "Skip blame annotations for files longer than this. 0 disables the limit."
+        },
+        "gitVertex.blame.heatmap.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show an age heatmap in the gutter while file blame annotations are on."
+        },
+        "gitVertex.blame.heatmap.ageThresholdDays": {
+          "type": "number",
+          "default": 90,
+          "description": "Age, in days, at which a line is drawn as fully cold in the heatmap."
+        },
+        "gitVertex.codeLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Git CodeLens above the file and its containers (classes, functions, methods)."
+        },
+        "gitVertex.codeLens.scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "document",
+              "containers"
+            ]
+          },
+          "default": [
+            "document",
+            "containers"
+          ],
+          "description": "Where Git CodeLens appears: at the top of the file, above containers, or both."
         },
         "gitVertex.aiProvider": {
           "type": "string",

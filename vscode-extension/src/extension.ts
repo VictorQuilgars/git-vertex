@@ -9,6 +9,8 @@ import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVert
 import { RebaseTodoEditor, isRebaseTodoEditorOpenFor, setOnRebaseTodoEditorClosed } from './panel/RebaseTodoEditor'
 import { ConflictEditor } from './panel/ConflictEditor'
 import { CommitMsgEditor } from './panel/CommitMsgEditor'
+import { InlineBlameController } from './blame/inlineBlame'
+import { BlameCodeLensProvider } from './blame/codeLens'
 import { execSync } from 'child_process'
 
 let statusBar: GitVertexStatusBar | null = null
@@ -252,11 +254,21 @@ export function activate(context: vscode.ExtensionContext): void {
     )
   )
 
+  // Inline blame annotations + Git CodeLens (they share one blame cache).
+  const blame = new InlineBlameController()
+  const codeLens = new BlameCodeLensProvider(blame)
+  context.subscriptions.push(
+    blame,
+    codeLens,
+    vscode.languages.registerCodeLensProvider({ scheme: 'file' }, codeLens),
+  )
+
   // Resolve initial repo and inject into provider
   const repoRoot = resolveRepoRoot()
   if (repoRoot) {
     provider.setRepo(repoRoot)
     setupRebaseWatch(context, repoRoot)
+    blame.watch(repoRoot)
   }
 
   // Initial refresh
@@ -269,7 +281,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       refreshStatusBar()
       const root = resolveRepoRoot()
-      if (root) { provider.setRepo(root); setEditorRepo(root); setupRebaseWatch(context, root) }
+      if (root) { provider.setRepo(root); setEditorRepo(root); setupRebaseWatch(context, root); blame.watch(root) }
     }),
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('gitVertex')) refreshStatusBar()
@@ -324,9 +336,22 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!root) { vscode.window.showWarningMessage('No Git repository found for this workspace.'); return }
       openGitVertexCompareTab(context.extensionUri, context.globalState, root)
     }),
-    // File history / blame tab for the given (or active) file.
-    vscode.commands.registerCommand('gitVertex.fileHistory', (uri?: vscode.Uri) => {
-      const target = uri ?? vscode.window.activeTextEditor?.document.uri
+    // Toggle the end-of-line blame annotation on the cursor's line.
+    vscode.commands.registerCommand('gitVertex.toggleLineBlame', () => blame.toggleLineBlame()),
+    // Annotate every line of the active file (with the age heatmap).
+    vscode.commands.registerCommand('gitVertex.toggleFileBlame', () => blame.toggleFileBlame()),
+    vscode.commands.registerCommand('gitVertex.toggleCodeLens', () => codeLens.toggle()),
+    // Invoked from the blame hover, never from the palette.
+    vscode.commands.registerCommand('gitVertex.blame.copyHash', async (hash?: string) => {
+      if (!hash) return
+      await vscode.env.clipboard.writeText(hash)
+      vscode.window.setStatusBarMessage(`Git Vertex: copied ${hash.slice(0, 8)}`, 2000)
+    }),
+    // File history / blame tab for the given (or active) file. The uri arrives
+    // as a string when the blame hover's command link invokes it.
+    vscode.commands.registerCommand('gitVertex.fileHistory', (uri?: vscode.Uri | string) => {
+      const given = typeof uri === 'string' ? vscode.Uri.parse(uri) : uri
+      const target = given ?? vscode.window.activeTextEditor?.document.uri
       if (!target || target.scheme !== 'file') {
         vscode.window.showWarningMessage('Ouvrez un fichier pour afficher son historique.')
         return
