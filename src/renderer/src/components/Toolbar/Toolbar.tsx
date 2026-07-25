@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import './Toolbar.css'
 import { useLang } from '../../i18n/LanguageContext'
+import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import { PullMode } from '../../types'
 
 interface ToolbarProps {
   repoPath: string | null
@@ -15,6 +17,8 @@ interface ToolbarProps {
   onPush: () => void
   onPushModal: () => void
   onPull: () => void
+  pullMode: PullMode
+  onSetPullMode: (mode: PullMode) => void
   onCreateBranch: () => void
   onStash?: () => void
   onPop?: () => void
@@ -62,7 +66,7 @@ function TBtn({ icon, label, onClick, disabled, title, accent }: {
 
 export default function Toolbar({
   repoPath, currentBranch, showAllBranches, searchQuery, searchMatches, onSearch,
-  onUndo, onRedo, onFetch, onPush, onPull, onCreateBranch,
+  onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
   onStash, onPop, onTerminal, stashCount = 0,
   onToggleAllBranches, loading,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
@@ -73,6 +77,17 @@ export default function Toolbar({
   const { t } = useLang()
   const isMac = (window as any).appInfo?.platform === 'darwin'
   const disabled = !repoPath || loading
+  const pullChevRef = useRef<HTMLButtonElement>(null)
+  const [pullMenuPos, setPullMenuPos] = useState<{ x: number; y: number } | null>(null)
+
+  const pullMenuItems: MenuItemDef[] = [
+    { label: t('toolbar.pull.modeFetch'), checked: pullMode === 'fetch', action: () => onSetPullMode('fetch') },
+    { label: t('toolbar.pull.modeFf'), checked: pullMode === 'ff', action: () => onSetPullMode('ff') },
+    { label: t('toolbar.pull.modeFfOnly'), checked: pullMode === 'ff-only', action: () => onSetPullMode('ff-only') },
+    { label: t('toolbar.pull.modeRebase'), checked: pullMode === 'rebase', action: () => onSetPullMode('rebase') },
+  ]
+  const runDefault = () => (pullMode === 'fetch' ? onFetch() : onPull())
+  const defaultLabel = pullMode === 'fetch' ? 'Fetch' : 'Pull'
 
   return (
     <div className="toolbar">
@@ -93,17 +108,25 @@ export default function Toolbar({
 
         <div className="tb-group-sep" />
 
-        {/* Pull — split: main pulls, chevron fetches */}
+        {/* Pull — split: main button runs the selected default (fetch or one
+            of the pull strategies), chevron opens the mode picker. */}
         <div className={`tb-cell tb-cell-split ${disabled ? 'tb-cell-disabled' : ''}`}>
-          <span className="tb-cell-label">Pull</span>
+          <span className="tb-cell-label">{defaultLabel}</span>
           <div className="tb-cell-split-row">
-            <button className="tb-split-icon" disabled={disabled} onClick={onPull} title={t('toolbar.pull.tooltip')}>
+            <button className="tb-split-icon" disabled={disabled} onClick={runDefault} title={t('toolbar.pull.tooltip')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="3" x2="12" y2="15"/><polyline points="7 10 12 15 17 10"/></svg>
             </button>
-            <button className="tb-split-chev" disabled={disabled} onClick={onFetch} title={t('toolbar.fetch.tooltip')}>
+            <button ref={pullChevRef} className="tb-split-chev" disabled={disabled} title={t('toolbar.pull.menuTitle')}
+              onClick={() => {
+                const r = pullChevRef.current?.getBoundingClientRect()
+                if (r) setPullMenuPos({ x: r.left, y: r.bottom + 4 })
+              }}>
               <svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor"><path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"/></svg>
             </button>
           </div>
+          {pullMenuPos && (
+            <ContextMenu x={pullMenuPos.x} y={pullMenuPos.y} items={pullMenuItems} onClose={() => setPullMenuPos(null)} />
+          )}
         </div>
 
         <TBtn label="Push" title={t('toolbar.push.tooltip')} disabled={disabled} onClick={onPush} accent="green"

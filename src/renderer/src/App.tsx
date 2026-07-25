@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { CommitNode, BranchInfo, FileChange } from './types'
+import { CommitNode, BranchInfo, FileChange, PullMode } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
@@ -298,6 +298,19 @@ export default function App() {
   useEffect(() => { localStorage.setItem('app-right-w', String(rightW)) }, [rightW])
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
+  // Default action bound to the toolbar's split Pull button, set from its
+  // dropdown menu and persisted so it survives restarts.
+  const [pullMode, setPullModeState] = useState<PullMode>('ff')
+  useEffect(() => {
+    window.gitAPI.settingsGetAll().then(s => {
+      const saved = s?.pullMode as PullMode | undefined
+      if (saved === 'fetch' || saved === 'ff' || saved === 'ff-only' || saved === 'rebase') setPullModeState(saved)
+    }).catch(() => {})
+  }, [])
+  const handleSetPullMode = (mode: PullMode) => {
+    setPullModeState(mode)
+    window.gitAPI.settingsSet('pullMode', mode)
+  }
   const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
   const [githubUser, setGithubUser] = useState<{ login: string; avatar: string } | null>(null)
   const [rebaseHash, setRebaseHash] = useState<string | null>(null)
@@ -974,7 +987,7 @@ export default function App() {
       () => window.gitAPI.predictConflicts('@{u}'),
       async () => {
         setLoading(true)
-        const r = await window.gitAPI.pull()
+        const r = await window.gitAPI.pull(pullMode === 'fetch' ? undefined : pullMode)
         if (r.success) { showToast(t('toast.pullOk')); await loadRepoData() }
         else showToast(t('toast.pullErr', r.error ?? ''), 'err')
         setLoading(false)
@@ -1717,6 +1730,8 @@ export default function App() {
         onPush={handlePush}
         onPushModal={handlePushModal}
         onPull={handlePull}
+        pullMode={pullMode}
+        onSetPullMode={handleSetPullMode}
         onCreateBranch={handleCreateBranch}
         onStash={handleStash}
         onPop={handlePop}

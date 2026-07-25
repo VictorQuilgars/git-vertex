@@ -1,3 +1,7 @@
+// Default action bound to the toolbar's split Pull button — set from its
+// dropdown, persisted as the `pullMode` setting.
+export type PullMode = 'fetch' | 'ff' | 'ff-only' | 'rebase'
+
 export interface CommitNode {
   hash: string; shortHash: string; message: string
   author: string; authorEmail: string; date: string
@@ -74,7 +78,7 @@ declare global {
       fetch: () => Promise<R>
       push: () => Promise<R & { setUpstream?: boolean }>
       pushTo: (remote: string, branch: string, setUpstream: boolean, force?: boolean) => Promise<R>
-      pull: () => Promise<R>
+      pull: (mode?: PullMode) => Promise<R>
       // Staging & commit
       getWorkingChanges: () => Promise<WorkingChanges>
       getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => Promise<{ diff: string }>

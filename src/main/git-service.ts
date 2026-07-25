@@ -432,9 +432,10 @@ export class GitService {
     }
   }
 
-  async pull(): Promise<{ success: boolean; error?: string }> {
+  async pull(mode: 'ff' | 'ff-only' | 'rebase' = 'ff'): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.git.pull()
+      const args = mode === 'ff-only' ? ['--ff-only'] : mode === 'rebase' ? ['--rebase'] : []
+      await this.git.pull(args)
       // pull runs a merge internally — conflicts may be left without throwing.
       if (await this.hasUnmergedPaths()) {
         return { success: false, error: 'Pull produced merge conflicts — resolve them before continuing' }

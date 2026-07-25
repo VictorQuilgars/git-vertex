@@ -4,6 +4,11 @@ const fr = {
   // Toolbar
   'toolbar.fetch.tooltip': 'Fetch — récupère les refs distants',
   'toolbar.pull.tooltip': 'Pull — intègre les commits distants',
+  'toolbar.pull.menuTitle': 'Choisir l\'opération par défaut de ce bouton',
+  'toolbar.pull.modeFetch': 'Fetch All',
+  'toolbar.pull.modeFf': 'Pull (fast-forward si possible)',
+  'toolbar.pull.modeFfOnly': 'Pull (fast-forward uniquement)',
+  'toolbar.pull.modeRebase': 'Pull (rebase)',
   'toolbar.push.tooltip': 'Push — envoie les commits locaux (push direct si upstream configuré)',
   'toolbar.pushModal.tooltip': 'Choisir remote / branche upstream',
   'toolbar.newBranch.tooltip': 'Nouvelle branche',
@@ -1082,6 +1087,11 @@ const en: typeof fr = {
   // Toolbar
   'toolbar.fetch.tooltip': 'Fetch — retrieves remote refs',
   'toolbar.pull.tooltip': 'Pull — integrates remote commits',
+  'toolbar.pull.menuTitle': 'Choose this button\'s default operation',
+  'toolbar.pull.modeFetch': 'Fetch All',
+  'toolbar.pull.modeFf': 'Pull (fast-forward if possible)',
+  'toolbar.pull.modeFfOnly': 'Pull (fast-forward only)',
+  'toolbar.pull.modeRebase': 'Pull (rebase)',
   'toolbar.push.tooltip': 'Push — sends local commits (direct push if upstream configured)',
   'toolbar.pushModal.tooltip': 'Choose remote / upstream branch',
   'toolbar.newBranch.tooltip': 'New branch',
