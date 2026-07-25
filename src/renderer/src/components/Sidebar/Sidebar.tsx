@@ -74,6 +74,9 @@ interface SidebarProps {
   showToast: (msg: string, type?: 'ok' | 'err') => void
   showPrompt: (msg: string, defaultValue?: string) => Promise<string | null>
   showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
+  // Branch/commit state lives in the host, so actions that invalidate it
+  // (prune) ask for a reload instead of trying to patch it locally.
+  onRefresh?: () => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
   embedded?: boolean
@@ -352,10 +355,11 @@ function ReflogItem({ entry, onSelect }: { entry: ReflogEntry; onSelect: () => v
 
 // ── Remote item ───────────────────────────────────────────────────
 function RemoteItem({
-  remote, onFetch, onRename, onRemove, onCopyUrl
+  remote, onFetch, onPrune, onRename, onRemove, onCopyUrl
 }: {
   remote: RemoteEntry
   onFetch: () => void
+  onPrune: () => void
   onRename: () => void
   onRemove: () => void
   onCopyUrl: () => void
@@ -364,6 +368,7 @@ function RemoteItem({
   const { t } = useLang()
   const menuItems: MenuItemDef[] = [
     { label: t('sb.remote.fetch'), action: onFetch },
+    { label: t('sb.remote.prune'), action: onPrune },
     { label: t('sb.remote.copyUrl'), action: onCopyUrl },
     { label: t('sb.rename'), action: onRename },
     { separator: true },
@@ -497,7 +502,7 @@ export default function Sidebar({
   onFetch, onPull,
   isFavorite, isPinned, issueFor, onToggleFavorite, onTogglePin,
   onOpenBranchOnRemote, onAssociateIssue,
-  showToast, showPrompt, showConfirm, embedded = false, view,
+  showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
 }: SidebarProps) {
   // In single-view mode a section is shown when it matches the active view.
   // Without a view (desktop) every section renders (classic stacked layout).
@@ -622,6 +627,28 @@ export default function Sidebar({
     } else {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
+  }
+
+  // Pruning the remote is only half the cleanup: once its tracking refs go,
+  // the local branches that pointed at them read as "gone" and are usually
+  // dead too — so offer to sweep them in the same gesture rather than leaving
+  // the user to hunt for them one by one (v1.23.0).
+  const handlePruneRemote = async (name: string) => {
+    const r = await window.gitAPI.pruneRemote(name)
+    if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
+
+    const pruned = r.pruned ?? []
+    showToast(pruned.length ? t('sb.remote.pruneOk', name, pruned.length) : t('sb.remote.pruneNone', name))
+    onRefresh?.()
+
+    const { branches: gone } = await window.gitAPI.getGoneBranches()
+    if (gone.length === 0) return
+    const ok = await showConfirm(t('sb.branch.pruneGoneConfirm', gone.length, gone.join(', ')), true)
+    if (!ok) return
+    const d = await window.gitAPI.pruneGoneBranches(gone)
+    if (d.success) showToast(t('sb.branch.pruneGoneOk', d.deleted.length))
+    else showToast(t('toast.err', d.error ?? ''), 'err')
+    onRefresh?.()
   }
 
   const handleFetchRemote = async (name: string) => {
@@ -886,6 +913,7 @@ export default function Sidebar({
                     key={r.name}
                     remote={r}
                     onFetch={() => handleFetchRemote(r.name)}
+                    onPrune={() => handlePruneRemote(r.name)}
                     onRename={() => handleRenameRemote(r.name)}
                     onRemove={() => handleRemoveRemote(r.name)}
                     onCopyUrl={() => navigator.clipboard.writeText(r.fetchUrl)}

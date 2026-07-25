@@ -1342,6 +1342,80 @@ describe('GitService', () => {
     })
   })
 
+  describe('prune (v1.23.0)', () => {
+    // Sets up a bare "origin" with an extra branch, clones its refs down, then
+    // deletes that branch on the remote — leaving exactly the stale state
+    // prune is meant to clear.
+    function setupStaleRemote() {
+      const remoteDir = `${tempDir}-remote.git`
+      execSync(`git init --bare -b main ${remoteDir}`)
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      execSync(`cd ${tempDir} && git remote add origin ${remoteDir}`)
+      execSync(`cd ${tempDir} && git push -u origin main`)
+      execSync(`cd ${tempDir} && git checkout -q -b doomed`)
+      execSync(`cd ${tempDir} && git push -u origin doomed`)
+      execSync(`cd ${tempDir} && git checkout -q main`)
+      // Branch disappears from the remote; our tracking ref survives.
+      execSync(`cd ${remoteDir} && git branch -D doomed`)
+      return remoteDir
+    }
+
+    test('pruneRemote drops the stale tracking ref and names it', async () => {
+      const remoteDir = setupStaleRemote()
+
+      const before = await git.getBranches()
+      expect(before.branches.some(b => b.name === 'remotes/origin/doomed')).toBe(true)
+
+      const r = await git.pruneRemote('origin')
+      expect(r.success).toBe(true)
+      expect(r.pruned).toEqual(['origin/doomed'])
+
+      const after = await git.getBranches()
+      expect(after.branches.some(b => b.name === 'remotes/origin/doomed')).toBe(false)
+      execSync(`rm -rf ${remoteDir}`)
+    })
+
+    test('pruneRemote is a no-op when nothing is stale', async () => {
+      const remoteDir = `${tempDir}-remote.git`
+      execSync(`git init --bare -b main ${remoteDir}`)
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      execSync(`cd ${tempDir} && git remote add origin ${remoteDir}`)
+      execSync(`cd ${tempDir} && git push -u origin main`)
+
+      const r = await git.pruneRemote('origin')
+      expect(r.success).toBe(true)
+      expect(r.pruned).toEqual([])
+      execSync(`rm -rf ${remoteDir}`)
+    })
+
+    test('getGoneBranches reports local branches whose upstream vanished', async () => {
+      const remoteDir = setupStaleRemote()
+      // The upstream only reads as "gone" once the tracking ref is pruned.
+      await git.pruneRemote('origin')
+
+      const { branches } = await git.getGoneBranches()
+      expect(branches).toEqual(['doomed'])
+      execSync(`rm -rf ${remoteDir}`)
+    })
+
+    test('pruneGoneBranches deletes them and never the checked-out one', async () => {
+      const remoteDir = setupStaleRemote()
+      await git.pruneRemote('origin')
+
+      // Ask it to delete the current branch too — it must refuse that one.
+      const r = await git.pruneGoneBranches(['doomed', 'main'])
+      expect(r.success).toBe(true)
+      expect(r.deleted).toEqual(['doomed'])
+
+      const after = await git.getBranches()
+      expect(after.branches.some(b => b.name === 'doomed')).toBe(false)
+      expect(after.branches.some(b => b.name === 'main')).toBe(true)
+      execSync(`rm -rf ${remoteDir}`)
+    })
+  })
+
   describe('stash apply conflict detection', () => {
     test('reports a conflict instead of a false success', async () => {
       fs.writeFileSync(path.join(tempDir, 'f.txt'), 'base\n')

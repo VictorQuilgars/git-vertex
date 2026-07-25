@@ -2047,6 +2047,62 @@ exit 0
     }
   }
 
+  // Drops remote-tracking refs whose branch no longer exists on the remote.
+  // The names come from diffing for-each-ref before/after rather than parsing
+  // `prune --dry-run`: that output is translated ("[élaguerait]" under a French
+  // locale), so matching on "[would prune]" would silently report nothing.
+  async pruneRemote(name: string): Promise<{ success: boolean; pruned?: string[]; error?: string }> {
+    const listRefs = async () => {
+      const out = await this.git.raw([
+        'for-each-ref', `refs/remotes/${name}`, '--format=%(refname:short)',
+      ])
+      return out.split('\n').map(l => l.trim()).filter(Boolean)
+    }
+    try {
+      const before = await listRefs()
+      await this.git.raw(['remote', 'prune', name])
+      const after = new Set(await listRefs())
+      return { success: true, pruned: before.filter(r => !after.has(r)) }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Local branches whose upstream is gone — `git branch --prune` doesn't
+  // exist, so this is the list a caller needs before deleting anything.
+  async getGoneBranches(): Promise<{ branches: string[] }> {
+    try {
+      const out = await this.git.raw([
+        'for-each-ref', 'refs/heads', '--format=%(refname:short)|%(upstream:track)',
+      ])
+      const branches = out
+        .split('\n')
+        .map(l => l.split('|'))
+        .filter(([name, track]) => name && track?.includes('gone'))
+        .map(([name]) => name)
+      return { branches }
+    } catch {
+      return { branches: [] }
+    }
+  }
+
+  // Deletes them with -D: their upstream is gone, so git's -d merge check has
+  // nothing left to compare against and would refuse every one of them.
+  async pruneGoneBranches(names: string[]): Promise<{ success: boolean; deleted: string[]; error?: string }> {
+    const deleted: string[] = []
+    const current = (await this.getBranches()).branches.find(b => b.current)?.name
+    for (const name of names) {
+      if (name === current) continue   // git refuses to delete the checked-out branch
+      try {
+        await this.git.branch(['-D', name])
+        deleted.push(name)
+      } catch (e: any) {
+        return { success: false, deleted, error: e.message }
+      }
+    }
+    return { success: true, deleted }
+  }
+
   // ── Gitflow (implemented manually, no git-flow dependency) ──
 
   private async localBranchNames(): Promise<string[]> {

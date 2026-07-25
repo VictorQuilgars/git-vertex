@@ -152,6 +152,9 @@ const gitAPI = {
   removeRemote: (name: string) => ipcRenderer.invoke('git:remove-remote', name),
   renameRemote: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-remote', oldName, newName),
   fetchRemote: (name: string) => ipcRenderer.invoke('git:fetch-remote', name),
+  pruneRemote: (name: string) => ipcRenderer.invoke('git:prune-remote', name),
+  getGoneBranches: () => ipcRenderer.invoke('git:get-gone-branches'),
+  pruneGoneBranches: (names: string[]) => ipcRenderer.invoke('git:prune-gone-branches', names),
   // Gitflow
   gitflowStatus: () => ipcRenderer.invoke('git:gitflow-status'),
   gitflowInit: () => ipcRenderer.invoke('git:gitflow-init'),

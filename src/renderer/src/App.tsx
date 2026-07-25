@@ -1888,6 +1888,7 @@ export default function App() {
               onCreateTag={handleCreateTag}
               onDeleteTag={handleDeleteTag}
               onCheckoutTag={handleCheckoutTag}
+              onRefresh={loadRepoData}
               onPushTag={handlePushTag}
               onDeleteRemoteTag={handleDeleteRemoteTag}
               onSelectCommit={(hash) => {

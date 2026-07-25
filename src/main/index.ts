@@ -1077,6 +1077,21 @@ ipcMain.handle('git:fetch-remote', async (_event, name: string) => {
   return gitService.fetchRemote(name)
 })
 
+ipcMain.handle('git:prune-remote', async (_event, name: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.pruneRemote(name)
+})
+
+ipcMain.handle('git:get-gone-branches', async () => {
+  if (!gitService) return { branches: [] }
+  return gitService.getGoneBranches()
+})
+
+ipcMain.handle('git:prune-gone-branches', async (_event, names: string[]) => {
+  if (!gitService) return { success: false, deleted: [], error: 'No repo open' }
+  return gitService.pruneGoneBranches(names)
+})
+
 // ── IPC: Gitflow ───────────────────────────────────────────
 ipcMain.handle('git:gitflow-status', async () => {
   if (!gitService) return { initialized: false, mainBranch: 'main', features: [], releases: [], hotfixes: [] }

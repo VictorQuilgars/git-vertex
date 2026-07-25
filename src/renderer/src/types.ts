@@ -79,6 +79,9 @@ declare global {
       push: () => Promise<R & { setUpstream?: boolean }>
       pushTo: (remote: string, branch: string, setUpstream: boolean, force?: boolean) => Promise<R>
       pull: (mode?: PullMode) => Promise<R>
+      pruneRemote: (name: string) => Promise<R & { pruned?: string[] }>
+      getGoneBranches: () => Promise<{ branches: string[] }>
+      pruneGoneBranches: (names: string[]) => Promise<R & { deleted: string[] }>
       // Staging & commit
       getWorkingChanges: () => Promise<WorkingChanges>
       getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => Promise<{ diff: string }>
