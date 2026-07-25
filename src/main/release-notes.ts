@@ -2,6 +2,18 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.21.0': `## What's new in 1.21.0
+
+### 🌿 Branch strip in the changes panel
+- The branch name, **publish**, **fetch** and the branch menu now sit right above the file list — no more reaching for the toolbar while you work in the staging area.
+- **Associate an issue** is offered inline when none is linked yet.
+
+### 📊 A denser file list
+- **Per-file line counts** (\`+N −M\`) on every changed file. Untracked and binary files stay blank — git reports no counts for them.
+- **"N staged"** badge in the header, alongside the total.
+- **Stash** and **Discard all** now reachable straight from the staging header.
+- **Open changes** on a file row for a direct diff, and **copy the list** of changed files.
+`,
   '1.20.0': `## What's new in 1.20.0
 
 ### 🌿 One menu for every branch action
