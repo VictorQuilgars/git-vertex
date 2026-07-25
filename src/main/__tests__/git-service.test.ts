@@ -13,7 +13,10 @@ describe('GitService', () => {
   beforeEach(() => {
     tempDir = `/tmp/git-test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     fs.mkdirSync(tempDir, { recursive: true })
-    execSync(`cd ${tempDir} && git init`)
+    // -b main: the suite checks out `main` in a dozen places. Without this it
+    // only passes on machines where init.defaultBranch is set to main, and
+    // fails everywhere git still defaults to master (CI runners included).
+    execSync(`cd ${tempDir} && git init -b main`)
     execSync(`cd ${tempDir} && git config user.email "test@test.com"`)
     execSync(`cd ${tempDir} && git config user.name "Test User"`)
     git = new GitService(tempDir)
