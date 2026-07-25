@@ -1024,6 +1024,15 @@ export default function App() {
     }
   }
 
+  // Checking out a tag detaches HEAD — git's own behaviour, but silent enough
+  // that the toast says so explicitly rather than leaving the user wondering
+  // why the branch indicator changed (v1.23.0).
+  const handleCheckoutTag = async (name: string) => {
+    const r = await window.gitAPI.checkout(name)
+    if (r.success) { showToast(t('toast.tagCheckedOut', name)); await loadRepoData() }
+    else showToast(t('toast.checkoutErr', r.error ?? ''), 'err')
+  }
+
   const handleCreateBranch = useCallback(async () => {
     const name = await showPrompt(t('prompt.newBranch'))
     if (!name) return
@@ -1878,6 +1887,7 @@ export default function App() {
               onRefreshStashes={loadStashes}
               onCreateTag={handleCreateTag}
               onDeleteTag={handleDeleteTag}
+              onCheckoutTag={handleCheckoutTag}
               onPushTag={handlePushTag}
               onDeleteRemoteTag={handleDeleteRemoteTag}
               onSelectCommit={(hash) => {
