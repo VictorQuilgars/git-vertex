@@ -2,6 +2,15 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.22.0': `## What's new in 1.22.0
+
+### ⬇️ Pull, your way
+- The chevron next to **Pull** now opens a menu — **Fetch All**, **Pull (fast-forward if possible)**, **Pull (fast-forward only)**, **Pull (rebase)**. Whichever you pick becomes the main button's action, and is remembered across restarts.
+
+### 🐛 Fixed
+- The **command palette** (⌘P) crashed to a black screen every single time it was opened.
+- Branches sharing a name across remotes now show their prefix (**origin/main**, **archive/main**) instead of two identical rows — and only when the name actually collides.
+`,
   '1.21.1': `## What's new in 1.21.1
 
 ### ♿ Accessibility
