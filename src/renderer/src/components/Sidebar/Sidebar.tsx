@@ -49,6 +49,7 @@ interface SidebarProps {
   onRefreshStashes: () => void
   onCreateTag: () => void
   onDeleteTag: (name: string) => void
+  onCheckoutTag: (name: string) => void
   onPushTag: (name: string) => void
   onDeleteRemoteTag: (name: string) => void
   onSelectCommit: (hash: string) => void
@@ -286,12 +287,15 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview }: {
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-function TagItem({ tag, onDelete, onPush, onDeleteRemote }: {
-  tag: TagEntry; onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
+function TagItem({ tag, onCheckout, onDelete, onPush, onDeleteRemote }: {
+  tag: TagEntry; onCheckout?: () => void
+  onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const lastClickTime = useRef(0)
   const { t } = useLang()
   const menuItems: MenuItemDef[] = [
+    ...(onCheckout ? [{ label: t('sb.tag.checkout'), action: onCheckout }] : []),
     { label: t('sb.copyName'), action: () => navigator.clipboard.writeText(tag.name) },
     { label: t('sb.tag.push'), action: onPush },
     { separator: true },
@@ -299,12 +303,27 @@ function TagItem({ tag, onDelete, onPush, onDeleteRemote }: {
     { label: t('sb.tag.deleteRemote'), action: onDeleteRemote, danger: true },
   ]
 
+  // Same 400ms double-click detection as BranchItem — checking out a tag
+  // detaches HEAD, which is what git does and what the toast spells out.
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!onCheckout) return
+    const now = Date.now()
+    if (now - lastClickTime.current < 400) {
+      e.preventDefault()
+      onCheckout()
+      lastClickTime.current = 0
+    } else {
+      lastClickTime.current = now
+    }
+  }
+
   return (
     <>
       <div
         className="sb-tag-item"
+        onMouseDown={handleMouseDown}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
-        title={`${tag.name} → ${tag.hash}`}
+        title={onCheckout ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`}
       >
         <span className="sb-tag-icon">🏷</span>
         <span className="sb-tag-name">{tag.name}</span>
@@ -472,7 +491,7 @@ export default function Sidebar({
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
-  onCreateTag, onDeleteTag, onPushTag, onDeleteRemoteTag,
+  onCreateTag, onDeleteTag, onCheckoutTag, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
   onFetch, onPull,
@@ -848,7 +867,8 @@ export default function Sidebar({
             {tags.length === 0
               ? <div className="sb-empty">{t('sb.noTag')}</div>
               : tags.map(t => (
-                  <TagItem key={t.name} tag={t} onDelete={() => onDeleteTag(t.name)}
+                  <TagItem key={t.name} tag={t} onCheckout={() => onCheckoutTag(t.name)}
+                    onDelete={() => onDeleteTag(t.name)}
                     onPush={() => onPushTag(t.name)} onDeleteRemote={() => onDeleteRemoteTag(t.name)} />
                 ))
             }
