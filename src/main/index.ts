@@ -1086,6 +1086,16 @@ ipcMain.handle('git:fetch-remote', async (_event, name: string) => {
   return gitService.fetchRemote(name)
 })
 
+ipcMain.handle('git:get-default-remote', async () => {
+  if (!gitService) return { remote: null, explicit: false }
+  return gitService.getDefaultRemote()
+})
+
+ipcMain.handle('git:set-default-remote', async (_event, name: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.setDefaultRemote(name)
+})
+
 ipcMain.handle('git:prune-remote', async (_event, name: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.pruneRemote(name)

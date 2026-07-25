@@ -359,9 +359,11 @@ function ReflogItem({ entry, onSelect }: { entry: ReflogEntry; onSelect: () => v
 
 // ── Remote item ───────────────────────────────────────────────────
 function RemoteItem({
-  remote, onFetch, onPrune, onRename, onRemove, onCopyUrl
+  remote, isDefault, onSetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl
 }: {
   remote: RemoteEntry
+  isDefault: boolean
+  onSetDefault: () => void
   onFetch: () => void
   onPrune: () => void
   onRename: () => void
@@ -373,6 +375,8 @@ function RemoteItem({
   const menuItems: MenuItemDef[] = [
     { label: t('sb.remote.fetch'), action: onFetch },
     { label: t('sb.remote.prune'), action: onPrune },
+    // checked (not just disabled) so the current default is visible at a glance
+    { label: t('sb.remote.setDefault'), action: onSetDefault, checked: isDefault },
     { label: t('sb.remote.copyUrl'), action: onCopyUrl },
     { label: t('sb.rename'), action: onRename },
     { separator: true },
@@ -390,7 +394,10 @@ function RemoteItem({
           <path d="M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2ZM1.5 12.251c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V5.809L8.38 9.397a.75.75 0 0 1-.76 0L1.5 5.809v6.442Zm13-8.181v-.32a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25v.32L8 7.88Z"/>
         </svg>
         <div className="sb-remote-info">
-          <span className="sb-remote-name">{remote.name}</span>
+          <span className="sb-remote-name">
+            {remote.name}
+            {isDefault && <span className="sb-remote-default" title={t('sb.remote.defaultFlag')}>{t('sb.remote.defaultBadge')}</span>}
+          </span>
           <span className="sb-remote-url">{remote.fetchUrl}</span>
         </div>
       </div>
@@ -514,6 +521,9 @@ export default function Sidebar({
   const show = (v: SidebarView) => !single || view === v
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
+  // Which remote push/pull target by default — resolved by the service, so it
+  // reflects the explicit choice or the origin/first-remote fallback.
+  const [defaultRemote, setDefaultRemote] = useState<string | null>(null)
   const [submodules, setSubmodules] = useState<SubmoduleEntry[]>([])
   const [worktrees, setWorktrees] = useState<WorktreeEntry[]>([])
   // Running AI agents (Claude Code, aider…) keyed by their cwd — matched
@@ -532,6 +542,7 @@ export default function Sidebar({
     if (!repoPath) return
     window.gitAPI.getReflog().then(r => setReflog(r.entries ?? []))
     window.gitAPI.getRemotes().then(r => setRemotes(r.remotes ?? []))
+    window.gitAPI.getDefaultRemote?.().then(r => setDefaultRemote(r?.remote ?? null)).catch(() => {})
     window.gitAPI.getSubmodules().then(r => setSubmodules(r.submodules ?? []))
     window.gitAPI.getWorkingChanges?.()
       .then(w => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length }))
@@ -675,6 +686,13 @@ export default function Sidebar({
     if (d.success) showToast(t('sb.branch.pruneGoneOk', d.deleted.length))
     else showToast(t('toast.err', d.error ?? ''), 'err')
     onRefresh?.()
+  }
+
+  const handleSetDefaultRemote = async (name: string) => {
+    const r = await window.gitAPI.setDefaultRemote(name)
+    if (!r.success) { showToast(t('toast.err', r.error ?? ''), 'err'); return }
+    setDefaultRemote(name)
+    showToast(t('sb.remote.defaultSet', name))
   }
 
   const handleFetchRemote = async (name: string) => {
@@ -938,6 +956,8 @@ export default function Sidebar({
                   <RemoteItem
                     key={r.name}
                     remote={r}
+                    isDefault={defaultRemote === r.name}
+                    onSetDefault={() => handleSetDefaultRemote(r.name)}
                     onFetch={() => handleFetchRemote(r.name)}
                     onPrune={() => handlePruneRemote(r.name)}
                     onRename={() => handleRenameRemote(r.name)}
