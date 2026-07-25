@@ -1,5 +1,16 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.21.0
+
+### Added
+- **Branch strip inside the changes panel** — the branch name, publish, fetch and the branch menu now sit directly above the file list, instead of living only in the toolbar, out of sight while you work in the staging area.
+- **Per-file line counts** — every changed file shows its own `+N −M`, from `git diff --numstat`. Untracked and binary files stay without counters, since git reports none for them.
+- **"N staged" badge** in the files header, alongside the total change count.
+- **Stash** and **Discard all** reachable from the staging header — Discard all previously sat in the topbar, which the compact layout hides exactly when room is short.
+- **Copy the list of changed files**.
+- **Open changes** on a file row — a direct diff, next to the existing hunk editor.
+- **Associate an issue** is now offered inline under the branch strip when none is linked, instead of being buried in the menu.
+
 ## 1.20.0
 
 ### Added
