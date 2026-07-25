@@ -509,6 +509,20 @@
   color: #e6edf3;
   font-weight: 500;
 }
+/* Marks the remote push/pull target by default — quiet enough not to compete
+   with the remote name it sits next to. */
+.sb-remote-default {
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 500;
+  color: #58a6ff;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+}
 .sb-remote-url {
   font-size: 10px;
   color: #484f58;

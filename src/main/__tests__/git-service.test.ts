@@ -1342,6 +1342,70 @@ describe('GitService', () => {
     })
   })
 
+  describe('default remote (v1.23.0)', () => {
+    function addRemotes(...names: string[]) {
+      for (const n of names) execSync(`cd ${tempDir} && git remote add ${n} /tmp/${n}.git`)
+    }
+
+    test('falls back to origin when nothing was chosen', async () => {
+      addRemotes('upstream', 'origin')
+      const r = await git.getDefaultRemote()
+      expect(r).toEqual({ remote: 'origin', explicit: false })
+    })
+
+    test('falls back to the only remote when it is not named origin', async () => {
+      addRemotes('upstream')
+      const r = await git.getDefaultRemote()
+      expect(r).toEqual({ remote: 'upstream', explicit: false })
+    })
+
+    test('an explicit choice wins over origin', async () => {
+      addRemotes('origin', 'fork')
+      expect((await git.setDefaultRemote('fork')).success).toBe(true)
+
+      const r = await git.getDefaultRemote()
+      expect(r).toEqual({ remote: 'fork', explicit: true })
+    })
+
+    test('it is stored in the repo config, not app settings', async () => {
+      addRemotes('origin', 'fork')
+      await git.setDefaultRemote('fork')
+      const raw = execSync(`cd ${tempDir} && git config --local --get gitvertex.defaultRemote`).toString()
+      expect(raw.trim()).toBe('fork')
+    })
+
+    test('a stale choice is ignored once that remote is gone', async () => {
+      addRemotes('origin', 'fork')
+      await git.setDefaultRemote('fork')
+      execSync(`cd ${tempDir} && git remote remove fork`)
+
+      const r = await git.getDefaultRemote()
+      expect(r).toEqual({ remote: 'origin', explicit: false })
+    })
+
+    test('reports no remote rather than guessing one', async () => {
+      const r = await git.getDefaultRemote()
+      expect(r).toEqual({ remote: null, explicit: false })
+    })
+
+    test('setUpstream targets the chosen remote', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const forkDir = `${tempDir}-fork.git`
+      execSync(`git init --bare -b main ${forkDir}`)
+      execSync(`cd ${tempDir} && git remote add origin /tmp/nowhere.git`)
+      execSync(`cd ${tempDir} && git remote add fork ${forkDir}`)
+      await git.setDefaultRemote('fork')
+      const branch = (await git.getTracking()).branch ?? 'main'
+      execSync(`cd ${tempDir} && git push fork ${branch}`)
+
+      const r = await git.setUpstream(branch)
+      expect(r.success).toBe(true)
+      expect((await git.getTracking()).upstream).toBe(`fork/${branch}`)
+      execSync(`rm -rf ${forkDir}`)
+    })
+  })
+
   describe('partial stash and rename (v1.23.0)', () => {
     // one staged file, one unstaged file, on top of a committed baseline
     function setupMixedTree() {

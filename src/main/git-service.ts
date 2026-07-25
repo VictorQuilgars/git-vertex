@@ -422,7 +422,9 @@ export class GitService {
         try {
           const status = await this.git.status()
           const branch = status.current ?? 'main'
-          await this.git.raw(['push', '--set-upstream', 'origin', branch])
+          const { remote } = await this.getDefaultRemote()
+          if (!remote) return { success: false, error: 'No remote configured' }
+          await this.git.raw(['push', '--set-upstream', remote, branch])
           return { success: true, setUpstream: true }
         } catch (e2: any) {
           return { success: false, error: e2.message }
@@ -1047,10 +1049,12 @@ export class GitService {
     }
   }
 
-  // Push a specific local branch to origin
+  // Push a specific local branch to the repo's default remote
   async pushBranch(branch: string): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.git.raw(['push', '--set-upstream', 'origin', branch])
+      const { remote } = await this.getDefaultRemote()
+      if (!remote) return { success: false, error: 'No remote configured' }
+      await this.git.raw(['push', '--set-upstream', remote, branch])
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message ?? String(e) }
@@ -1094,7 +1098,8 @@ export class GitService {
   async deleteRemoteBranch(branch: string): Promise<{ success: boolean; error?: string }> {
     try {
       const m = branch.match(/^remotes\/([^/]+)\/(.+)$/)
-      const remote = m ? m[1] : 'origin'
+      const remote = m ? m[1] : (await this.getDefaultRemote()).remote
+      if (!remote) return { success: false, error: 'No remote configured' }
       const name = m ? m[2] : branch
       await this.git.raw(['push', remote, '--delete', name])
       return { success: true }
@@ -1165,17 +1170,45 @@ export class GitService {
     }
   }
 
-  // Set the upstream of a local branch. Defaults to <remote>/<branch>, preferring
-  // origin but falling back to the only/first configured remote so repos whose
-  // remote isn't named "origin" still work. An explicit `upstream` overrides all.
+  // Which remote an action targets when nothing says otherwise. Stored in the
+  // repo's own git config rather than the app settings, so it is per-repo by
+  // nature and stays readable from the command line (v1.23.0).
+  // Order: explicit choice → origin → the only/first remote.
+  async getDefaultRemote(): Promise<{ remote: string | null; explicit: boolean }> {
+    let remotes: string[] = []
+    try {
+      remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
+    } catch {
+      return { remote: null, explicit: false }
+    }
+    if (remotes.length === 0) return { remote: null, explicit: false }
+    try {
+      const chosen = (await this.git.raw(['config', '--local', '--get', 'gitvertex.defaultRemote'])).trim()
+      // A remote that has since been renamed or removed must not win.
+      if (chosen && remotes.includes(chosen)) return { remote: chosen, explicit: true }
+    } catch { /* unset — git exits 1, which simple-git throws on */ }
+    return { remote: remotes.includes('origin') ? 'origin' : remotes[0], explicit: false }
+  }
+
+  async setDefaultRemote(name: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['config', '--local', 'gitvertex.defaultRemote', name])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Set the upstream of a local branch. Defaults to <remote>/<branch> using the
+  // repo's default remote, so repos whose remote isn't named "origin" — or that
+  // have several — still work. An explicit `upstream` overrides all.
   async setUpstream(branch: string, upstream?: string): Promise<{ success: boolean; error?: string }> {
     try {
       let target = upstream
       if (!target) {
-        const remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
-        if (remotes.length === 0) return { success: false, error: 'No remote configured' }
-        const preferred = remotes.includes('origin') ? 'origin' : remotes[0]
-        target = `${preferred}/${branch}`
+        const { remote } = await this.getDefaultRemote()
+        if (!remote) return { success: false, error: 'No remote configured' }
+        target = `${remote}/${branch}`
       }
       await this.git.raw(['branch', `--set-upstream-to=${target}`, branch])
       return { success: true }
@@ -1226,11 +1259,13 @@ export class GitService {
 
   // Push a single tag to a remote (default origin). Uses the fully-qualified
   // refspec so a tag and branch sharing a name can't be confused.
-  async pushTag(name: string, remote = 'origin'): Promise<{ success: boolean; error?: string }> {
+  async pushTag(name: string, remote?: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(name, 'tag')
     if (bad) return { success: false, error: bad }
     try {
-      await this.git.raw(['push', remote, `refs/tags/${name}`])
+      const target = remote ?? (await this.getDefaultRemote()).remote
+      if (!target) return { success: false, error: 'No remote configured' }
+      await this.git.raw(['push', target, `refs/tags/${name}`])
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -1238,11 +1273,13 @@ export class GitService {
   }
 
   // Delete a tag on a remote (default origin) via the empty-source refspec.
-  async deleteRemoteTag(name: string, remote = 'origin'): Promise<{ success: boolean; error?: string }> {
+  async deleteRemoteTag(name: string, remote?: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(name, 'tag')
     if (bad) return { success: false, error: bad }
     try {
-      await this.git.raw(['push', remote, `:refs/tags/${name}`])
+      const target = remote ?? (await this.getDefaultRemote()).remote
+      if (!target) return { success: false, error: 'No remote configured' }
+      await this.git.raw(['push', target, `:refs/tags/${name}`])
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }

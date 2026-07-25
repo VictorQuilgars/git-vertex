@@ -83,6 +83,8 @@ declare global {
       pushTo: (remote: string, branch: string, setUpstream: boolean, force?: boolean) => Promise<R>
       pull: (mode?: PullMode) => Promise<R>
       pruneRemote: (name: string) => Promise<R & { pruned?: string[] }>
+      getDefaultRemote: () => Promise<{ remote: string | null; explicit: boolean }>
+      setDefaultRemote: (name: string) => Promise<R>
       getGoneBranches: () => Promise<{ branches: string[] }>
       pruneGoneBranches: (names: string[]) => Promise<R & { deleted: string[] }>
       // Staging & commit
