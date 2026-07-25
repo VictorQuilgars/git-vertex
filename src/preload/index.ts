@@ -91,7 +91,9 @@ const gitAPI = {
   pushTag: (name: string, remote?: string) => ipcRenderer.invoke('git:push-tag', name, remote),
   deleteRemoteTag: (name: string, remote?: string) => ipcRenderer.invoke('git:delete-remote-tag', name, remote),
   // Stash operations
-  createStash: (message?: string) => ipcRenderer.invoke('git:create-stash', message),
+  createStash: (message?: string, opts?: { scope?: 'all' | 'staged' | 'unstaged'; paths?: string[] }) =>
+    ipcRenderer.invoke('git:create-stash', message, opts),
+  renameStash: (index: number, message: string) => ipcRenderer.invoke('git:rename-stash', index, message),
   applyStash: (index: number) => ipcRenderer.invoke('git:apply-stash', index),
   popStash: (index: number) => ipcRenderer.invoke('git:pop-stash', index),
   stashDiff: (index: number) => ipcRenderer.invoke('git:stash-diff', index),

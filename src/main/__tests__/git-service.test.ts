@@ -1342,6 +1342,100 @@ describe('GitService', () => {
     })
   })
 
+  describe('partial stash and rename (v1.23.0)', () => {
+    // one staged file, one unstaged file, on top of a committed baseline
+    function setupMixedTree() {
+      fs.writeFileSync(path.join(tempDir, 'staged.txt'), 'base\n')
+      fs.writeFileSync(path.join(tempDir, 'unstaged.txt'), 'base\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "baseline"`)
+      fs.writeFileSync(path.join(tempDir, 'staged.txt'), 'staged change\n')
+      execSync(`cd ${tempDir} && git add staged.txt`)
+      fs.writeFileSync(path.join(tempDir, 'unstaged.txt'), 'unstaged change\n')
+    }
+    const read = (f: string) => fs.readFileSync(path.join(tempDir, f), 'utf8')
+
+    test("scope 'staged' stashes the index and leaves unstaged work alone", async () => {
+      setupMixedTree()
+
+      const r = await git.createStash('only staged', { scope: 'staged' })
+      expect(r.success).toBe(true)
+
+      expect(read('staged.txt')).toBe('base\n')              // rolled back
+      expect(read('unstaged.txt')).toBe('unstaged change\n') // untouched
+    })
+
+    test("scope 'unstaged' keeps the index intact", async () => {
+      setupMixedTree()
+
+      const r = await git.createStash('only unstaged', { scope: 'unstaged' })
+      expect(r.success).toBe(true)
+
+      const status = await git.getStatus()
+      expect(status.staged).toContain('staged.txt')
+      expect(read('staged.txt')).toBe('staged change\n')
+      expect(read('unstaged.txt')).toBe('base\n')            // rolled back
+    })
+
+    test('a pathspec stashes only the files named', async () => {
+      setupMixedTree()
+
+      const r = await git.createStash('just one file', { paths: ['unstaged.txt'] })
+      expect(r.success).toBe(true)
+
+      expect(read('unstaged.txt')).toBe('base\n')            // rolled back
+      expect(read('staged.txt')).toBe('staged change\n')     // untouched
+    })
+
+    test('an untracked file is still swept into a full stash', async () => {
+      setupMixedTree()
+      fs.writeFileSync(path.join(tempDir, 'brand-new.txt'), 'new\n')
+
+      const r = await git.createStash('everything')
+      expect(r.success).toBe(true)
+      expect(fs.existsSync(path.join(tempDir, 'brand-new.txt'))).toBe(false)
+    })
+
+    test('renameStash changes the label and keeps the contents', async () => {
+      setupMixedTree()
+      await git.createStash('typo in the mesage')
+
+      const r = await git.renameStash(0, 'fixed message')
+      expect(r.success).toBe(true)
+
+      const { stashes } = await git.getStashes()
+      expect(stashes).toHaveLength(1)
+      expect(stashes[0].message).toContain('fixed message')
+      expect(stashes[0].message).not.toContain('typo')
+
+      // and it still restores the same work
+      await git.popStash(0)
+      expect(read('unstaged.txt')).toBe('unstaged change\n')
+    })
+
+    test('renameStash renames the right entry when several are stacked', async () => {
+      setupMixedTree()
+      await git.createStash('first')
+      fs.writeFileSync(path.join(tempDir, 'unstaged.txt'), 'second round\n')
+      await git.createStash('second')
+
+      // stash@{1} is "first" — the older one
+      const r = await git.renameStash(1, 'first renamed')
+      expect(r.success).toBe(true)
+
+      const { stashes } = await git.getStashes()
+      expect(stashes).toHaveLength(2)
+      const labels = stashes.map(s => s.message).join(' | ')
+      expect(labels).toContain('first renamed')
+      expect(labels).toContain('second')
+    })
+
+    test('renameStash reports a missing index instead of throwing', async () => {
+      const r = await git.renameStash(7, 'nope')
+      expect(r.success).toBe(false)
+      expect(r.error).toBeTruthy()
+    })
+  })
+
   describe('prune (v1.23.0)', () => {
     // Sets up a bare "origin" with an extra branch, clones its refs down, then
     // deletes that branch on the remote — leaving exactly the stale state

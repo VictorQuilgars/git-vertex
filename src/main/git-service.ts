@@ -461,7 +461,10 @@ export class GitService {
 
   async getStashes(): Promise<{ stashes: { index: number; message: string }[] }> {
     try {
-      const result = await this.git.raw(['stash', 'list', '--pretty=format:%gd: %s'])
+      // %gs (reflog subject), not %s (commit subject): it is what `git stash
+      // list` shows natively, and the only one `stash store -m` can rewrite —
+      // renaming a stash leaves the underlying commit subject untouched.
+      const result = await this.git.raw(['stash', 'list', '--pretty=format:%gd: %gs'])
       const stashes = result.trim().split('\n').filter(Boolean).map((line, i) => ({
         index: i,
         message: line
@@ -1248,11 +1251,47 @@ export class GitService {
 
   // ── Stash operations ───────────────────────────────────────
 
-  async createStash(message?: string): Promise<{ success: boolean; error?: string }> {
+  // scope 'staged'   → only what is in the index (--staged, git ≥ 2.35)
+  // scope 'unstaged' → everything, then the index is restored (--keep-index),
+  //                    which leaves the staged work in place as if untouched
+  // paths            → only those files, whatever their staged state
+  // Untracked files are swept in for a full stash only: --include-untracked
+  // conflicts with --staged, and a pathspec already says what to take.
+  async createStash(
+    message?: string,
+    opts?: { scope?: 'all' | 'staged' | 'unstaged'; paths?: string[] },
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      const args = ['stash', 'push', '--include-untracked']
+      const scope = opts?.scope ?? 'all'
+      const paths = opts?.paths ?? []
+      const args = ['stash', 'push']
+      if (scope === 'staged') args.push('--staged')
+      else if (scope === 'unstaged') args.push('--keep-index')
+      if (scope !== 'staged' && paths.length === 0) args.push('--include-untracked')
       if (message) args.push('-m', message)
+      if (paths.length > 0) args.push('--', ...paths)
       await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // git has no rename: re-store the same commit under a new message and drop
+  // the old entry. The stash is a stack, so the renamed one comes back at the
+  // top — index 0 — rather than keeping its old position.
+  async renameStash(index: number, message: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const sha = (await this.git.raw(['rev-parse', `stash@{${index}}`])).trim()
+      if (!sha) return { success: false, error: `No stash at index ${index}` }
+      await this.git.raw(['stash', 'drop', `stash@{${index}}`])
+      try {
+        await this.git.raw(['stash', 'store', '-m', message, sha])
+      } catch (e: any) {
+        // Put it back unnamed rather than losing the work outright.
+        await this.git.raw(['stash', 'store', sha]).catch(() => {})
+        return { success: false, error: e.message }
+      }
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }

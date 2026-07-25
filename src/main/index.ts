@@ -864,9 +864,18 @@ ipcMain.handle('git:delete-remote-tag', async (_event, name: string, remote?: st
 })
 
 // ── IPC: Stash operations ──────────────────────────────────
-ipcMain.handle('git:create-stash', async (_event, message?: string) => {
+ipcMain.handle('git:create-stash', async (
+  _event,
+  message?: string,
+  opts?: { scope?: 'all' | 'staged' | 'unstaged'; paths?: string[] },
+) => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  return gitService.createStash(message)
+  return gitService.createStash(message, opts)
+})
+
+ipcMain.handle('git:rename-stash', async (_event, index: number, message: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.renameStash(index, message)
 })
 
 ipcMain.handle('git:apply-stash', async (_event, index: number) => {
