@@ -1,5 +1,14 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.22.0
+
+### Added
+- **Pull button dropdown** — the chevron next to Pull now opens a menu: **Fetch All**, **Pull (fast-forward if possible)**, **Pull (fast-forward only)**, **Pull (rebase)**. Whichever you pick becomes what the main button does, and is remembered across restarts. Pull previously always ran a bare `git pull`, leaving the strategy up to your git config.
+
+### Fixed
+- **The command palette (⌘P) crashed to a black screen** every time it was opened — an internationalization pass had left it referencing undefined variables, and no error boundary caught the render crash.
+- **Branches sharing a name across remotes** were both shown under their bare name, so `origin/main` and `archive/main` appeared as two indistinguishable rows. They now show their remote prefix, but only when the name actually collides.
+
 ## 1.21.1
 
 ### Fixed
