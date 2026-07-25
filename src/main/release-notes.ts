@@ -2,6 +2,17 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.20.0': `## What's new in 1.20.0
+
+### 🌿 One menu for every branch action
+- Checkout, fetch, pull, push, upstream, rebase onto, compare, rename, delete, solo/mute — all in a **single menu**, reachable from a **⋮** button on hover and from right-click, in the sidebar and next to the toolbar's branch selector. No more hunting across three different places.
+- **Open branch on remote** — jump to the branch page on GitHub.
+- **Favorite branches** — star the ones you visit often; they float to the top of the list.
+- **Associate an issue** with a branch; its number shows as a badge next to it.
+
+### 🔍 Filter the staging list
+- A search box over the changed files, in both list and tree view. It is a display lens only — counters, the master checkbox and staging actions still act on the full set.
+`,
   '1.19.0': `## What's new in 1.19.0
 
 ### ⚙️ Settings: General, External Tools, SSH

@@ -1,5 +1,14 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.20.0
+
+### Added
+- **Unified branch menu** — every branch action (checkout, fetch, pull, push, upstream, rebase onto, compare, rename, delete, solo/mute…) now lives in one menu, reachable both from a **⋮** button on hover and from right-click, in the sidebar and next to the toolbar's branch selector. These actions used to be scattered across three separate places.
+- **Open branch on remote** — jump straight to the branch page on GitHub; previously only possible from a commit.
+- **Favorite branches** — star the ones you visit often and they float to the top of the LOCAL list.
+- **Associate an issue with a branch** — link a GitHub issue to a branch; its number then shows as a badge next to it.
+- **Filter the staging file list** — a search box over the changed files, in both list and tree view. It is a display lens only: counters, the master checkbox and staging actions still act on the full set.
+
 ## 1.19.0
 
 ### Added
