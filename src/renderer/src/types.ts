@@ -2,6 +2,9 @@
 // dropdown, persisted as the `pullMode` setting.
 export type PullMode = 'fetch' | 'ff' | 'ff-only' | 'rebase'
 
+// What a stash takes: everything, only the index, or only what isn't staged.
+export type StashScope = 'all' | 'staged' | 'unstaged'
+
 export interface CommitNode {
   hash: string; shortHash: string; message: string
   author: string; authorEmail: string; date: string
@@ -110,7 +113,8 @@ declare global {
       pushTag: (name: string, remote?: string) => Promise<R>
       deleteRemoteTag: (name: string, remote?: string) => Promise<R>
       // Stash
-      createStash: (message?: string) => Promise<R>
+      createStash: (message?: string, opts?: { scope?: StashScope; paths?: string[] }) => Promise<R>
+      renameStash: (index: number, message: string) => Promise<R>
       applyStash: (index: number) => Promise<R>
       popStash: (index: number) => Promise<R>
       dropStash: (index: number) => Promise<R>

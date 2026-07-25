@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { BranchInfo } from '../../types'
+import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import { useLang } from '../../i18n/LanguageContext'
@@ -41,7 +41,7 @@ interface SidebarProps {
   onPushBranch: (name: string) => void
   onDeleteRemoteBranch: (name: string) => void
   onSetUpstream: (name: string) => void
-  onCreateStash: () => void
+  onCreateStash: (scope?: StashScope) => void
   onApplyStash: (index: number) => void
   onPopStash: (index: number) => void
   onDropStash: (index: number) => void
@@ -91,7 +91,9 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }
   count?: number
   children: React.ReactNode
   defaultOpen?: boolean
-  onAdd?: () => void
+  // The event is handed over so a section can anchor a menu to the + button
+  // (the stash one offers a scope) instead of acting straight away.
+  onAdd?: (e: React.MouseEvent) => void
   addLabel?: string
 }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -106,7 +108,7 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }
         {count !== undefined && <span className="sb-section-count">{count}</span>}
         {onAdd && (
           <button className="sb-add-btn" title={addLabel ?? t('sb.add')}
-            onClick={e => { e.stopPropagation(); onAdd() }}>
+            onClick={e => { e.stopPropagation(); onAdd(e) }}>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
             </svg>
@@ -249,12 +251,13 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
 }
 
 // ── Stash item ────────────────────────────────────────────────────
-function StashItem({ stash, onApply, onPop, onDrop, onPreview }: {
+function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename }: {
   stash: StashEntry
   onApply: () => void
   onPop: () => void
   onDrop: () => void
   onPreview?: () => void
+  onRename?: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -264,6 +267,7 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview }: {
     ...(onPreview ? [{ label: t('sb.stash.preview'), action: onPreview }] : []),
     { label: t('sb.stash.applyKeep'), action: onApply },
     { label: t('sb.stash.applyPop'), action: onPop },
+    ...(onRename ? [{ label: t('sb.stash.rename'), action: onRename }] : []),
     { separator: true },
     { label: t('sb.delete'), action: onDrop, danger: true },
   ]
@@ -629,6 +633,28 @@ export default function Sidebar({
     }
   }
 
+  // The + on the stash section offers a scope rather than always taking
+  // everything: stashing only the index (or only what isn't staged) is a
+  // routine move git supports natively (v1.23.0).
+  const [stashMenu, setStashMenu] = useState<{ x: number; y: number } | null>(null)
+  const stashScopeItems: MenuItemDef[] = [
+    { label: t('sb.stash.scopeAll'), action: () => onCreateStash('all') },
+    { label: t('sb.stash.scopeStaged'), action: () => onCreateStash('staged') },
+    { label: t('sb.stash.scopeUnstaged'), action: () => onCreateStash('unstaged') },
+  ]
+
+  // git has no `stash rename`, so this re-stores the entry under a new label —
+  // which moves it to the top of the stack. Say so rather than let the list
+  // reorder itself unexplained (v1.23.0).
+  const handleRenameStash = async (index: number, current: string) => {
+    const label = current.replace(/^stash@\{\d+\}: /, '')
+    const next = await showPrompt(t('sb.stash.renamePrompt'), label)
+    if (!next || next === label) return
+    const r = await window.gitAPI.renameStash(index, next)
+    if (r.success) { showToast(t('sb.stash.renamed')); onRefreshStashes() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
   // Pruning the remote is only half the cleanup: once its tracking refs go,
   // the local branches that pointed at them read as "gone" and are usually
   // dead too — so offer to sweep them in the same gesture rather than leaving
@@ -979,7 +1005,10 @@ export default function Sidebar({
             title="STASH"
             count={stashes.length}
             defaultOpen={single}
-            onAdd={onCreateStash}
+            onAdd={e => {
+              const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+              setStashMenu({ x: r.left, y: r.bottom + 4 })
+            }}
             addLabel={t('sb.stash.create')}
           >
             {stashes.length === 0
@@ -992,6 +1021,7 @@ export default function Sidebar({
                     onPop={() => onPopStash(s.index)}
                     onDrop={() => onDropStash(s.index)}
                     onPreview={onPreviewStash ? () => onPreviewStash(s.index, s.message) : undefined}
+                    onRename={() => handleRenameStash(s.index, s.message)}
                   />
                 ))
             }
@@ -999,6 +1029,11 @@ export default function Sidebar({
           )}
 
         </div>
+      )}
+
+      {stashMenu && (
+        <ContextMenu x={stashMenu.x} y={stashMenu.y} items={stashScopeItems}
+          onClose={() => setStashMenu(null)} />
       )}
 
       {/* ── Empty state ── */}

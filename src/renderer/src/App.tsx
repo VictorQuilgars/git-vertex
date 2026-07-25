@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { CommitNode, BranchInfo, FileChange, PullMode } from './types'
+import { CommitNode, BranchInfo, FileChange, PullMode, StashScope } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
@@ -1454,10 +1454,10 @@ export default function App() {
   }
 
   // ── Stash operations ───────────────────────────────────────
-  const handleCreateStash = async () => {
+  const handleCreateStash = async (scope: StashScope = 'all') => {
     const message = await showPrompt(t('prompt.stashMessage'))
     if (message === null) return
-    const r = await window.gitAPI.createStash(message || undefined)
+    const r = await window.gitAPI.createStash(message || undefined, scope === 'all' ? undefined : { scope })
     if (r.success) { showToast(t('toast.stashCreated')); await Promise.all([loadStashes(), loadRepoData()]) }
     else showToast(t('toast.stashErr', r.error ?? ''), 'err')
   }
