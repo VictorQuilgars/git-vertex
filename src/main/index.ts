@@ -650,9 +650,9 @@ ipcMain.handle('git:push-to', async (_e, remote: string, branch: string, setUpst
   return gitService.pushTo(remote, branch, setUpstream, force)
 })
 
-ipcMain.handle('git:pull', async () => {
+ipcMain.handle('git:pull', async (_event, mode?: 'ff' | 'ff-only' | 'rebase') => {
   if (!gitService) return { success: false, error: 'No repo open' }
-  const r = await gitService.pull()
+  const r = await gitService.pull(mode)
   if (r.success) await maybeUpdateSubmodules()
   return r
 })

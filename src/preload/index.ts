@@ -46,7 +46,7 @@ const gitAPI = {
   fetch: () => ipcRenderer.invoke('git:fetch'),
   push: () => ipcRenderer.invoke('git:push'),
   pushTo: (remote: string, branch: string, setUpstream: boolean, force?: boolean) => ipcRenderer.invoke('git:push-to', remote, branch, setUpstream, force),
-  pull: () => ipcRenderer.invoke('git:pull'),
+  pull: (mode?: 'ff' | 'ff-only' | 'rebase') => ipcRenderer.invoke('git:pull', mode),
   // Staging & commit
   getWorkingChanges: () => ipcRenderer.invoke('git:get-working-changes'),
   getLastCommitMessage: () => ipcRenderer.invoke('git:get-last-commit-message'),
