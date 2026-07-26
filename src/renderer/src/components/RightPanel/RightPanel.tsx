@@ -369,6 +369,10 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 }) {
   const { t } = useLang()
   const [files, setFiles] = useState<FileChange[]>([])
+  // Distinguishes "still fetching" from "fetched, and there is nothing" — a
+  // merge commit legitimately lists no file, and showing "Loading…" for it
+  // leaves the panel looking hung for as long as the commit stays selected.
+  const [filesLoading, setFilesLoading] = useState(true)
   const [body, setBody] = useState('')
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [view, setView] = useState<'files' | 'blame'>('files')
@@ -411,13 +415,14 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
     setFiles([]); setBody(''); setSelectedFile(null); setView('files')
     setAmendEditing(false); setAmendMsg(''); setAmendLoading(false)
     setAiMenu(null); setAiExplanation(null); setCachedExplanation(null); setExplOpen(false)
+    setFilesLoading(true)
     Promise.all([
       window.gitAPI.getCommitFiles(commit.hash),
       (window.gitAPI as any).getCommitBody(commit.hash),
     ]).then(([fr, br]: any[]) => {
       setFiles(fr.files ?? [])
       setBody(br.body ?? '')
-    })
+    }).finally(() => setFilesLoading(false))
     // Cached AI explanation for this commit, if any — kept behind a small
     // reveal button, never auto-shown.
     ;(window.gitAPI as any).aiGetExplanations?.()
@@ -730,7 +735,11 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                     )
                   })
               }
-              {files.length === 0 && <div className="rp-empty">{t('panel.loading')}</div>}
+              {files.length === 0 && (
+                <div className="rp-empty">
+                  {filesLoading ? t('panel.loading') : t('panel.noFileChanged')}
+                </div>
+              )}
             </div>
           )}
 
