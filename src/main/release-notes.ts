@@ -2,6 +2,22 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.24.0': `## What's new in 1.24.0
+
+### 🌍 English, everywhere
+- French had survived in the **interactive rebase editor**, the commit detail, the file history, the conflict panel, the branch comparison and the graph's column menu — even though the app ships English-only. All of it goes through the translations now.
+- **Dates read in English too**: \`Jun 10, 2026\` instead of \`10 juin 2026\`, which appeared whatever the interface language.
+
+### 🔤 Three things that displayed nothing
+- The PR modal's **Close** button, the Command Palette's **"no matching command"** line and the toast after **aborting a merge** all asked for a translation that had never been written, so they rendered empty.
+- The **file history** crashed outright when a blame pane had nothing to show.
+
+### 🔒 git's output no longer depends on your system language
+- Every git call runs with a fixed locale. Its error messages reach the interface in English, and nothing in the app matches a translated sentence any more.
+
+### ⚠️ A notice when git is too old
+- Predicting conflicts before a merge, rebase, cherry-pick or revert needs **git 2.40** (\`merge-tree --merge-base\`). On an older git — macOS still ships 2.39 — that prediction quietly returned nothing and the warning never appeared. The app now says so once. Everything else works from git 2.28 on.
+`,
   '1.23.0': `## What's new in 1.23.0
 
 ### 🏷 Tags you can actually check out

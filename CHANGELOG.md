@@ -1,5 +1,18 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.24.0
+
+### Changed
+- **The interface is English throughout.** French had survived in the interactive rebase editor ("Lancer le rebase", "Annuler", "depuis"), the commit detail, the file history, the conflict panel, the branch comparison and the graph's column menu — even though the app has shipped English-only for a while. Dates follow: they were formatted in French (`10 juin 2026`) whatever the interface language, and now read `Jun 10, 2026`.
+
+### Fixed
+- **Three buttons and messages rendered empty.** The PR modal's Close button, the Command Palette's "no matching command" line and the toast after aborting a merge all looked up a translation that had never been defined, so they displayed nothing at all.
+- **The file history crashed** as soon as a blame pane had nothing to show — it called the translation helper without it being in scope.
+- **git's output no longer depends on your system language.** Every git invocation now runs with a fixed locale, so its error messages reach the interface in English, and no part of the app matches a translated string any more. One such match had shipped: the "no upstream branch" detection tested a French sentence, which was dead code anyway.
+
+### Added
+- **A one-time notice when git is too old** for conflict prediction. That feature needs `git merge-tree --merge-base=…`, added in git 2.40; on an older git — macOS still ships 2.39 — the prediction silently returned nothing, so the warning before a merge, rebase, cherry-pick or revert simply never appeared and nothing said why. Everything else works from git 2.28 on.
+
 ## 1.23.0
 
 ### Added
