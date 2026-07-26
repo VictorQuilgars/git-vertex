@@ -698,6 +698,7 @@
   },
   "scripts": {
     "compile": "tsc -p ./ && node build-webview.js",
+    "vscode:prepublish": "npm run compile",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "test": "node ./out/test/runTests.js",
