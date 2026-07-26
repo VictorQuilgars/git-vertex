@@ -6,6 +6,12 @@ extension. Commit graph, staging, branches — all from the keyboard.
 Built with [Ink](https://github.com/vadimdemedes/ink) (React for the terminal) and
 reuses the same `GitService` logic (vendored, Node-pure) as the rest of the project.
 
+## Requirements
+
+**git 2.40 or newer is recommended** (2.28 minimum). Conflict prediction before a
+merge or rebase needs `git merge-tree --merge-base=…` (git 2.40); below that the
+operation runs without its warning. Everything else works from 2.28 on.
+
 ## Install & run
 
 Published on npm — no clone needed:

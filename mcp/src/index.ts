@@ -38,15 +38,43 @@ const nfc = (p: string) => p.normalize('NFC')
 // locale, "dangling commit" becomes "objet commit fantôme" and the parse
 // silently finds nothing. Force LC_ALL=C on every git invocation so the output
 // we read is always the stable English form, whatever the user's locale.
-// (execFile fully replaces the child env, so we spread process.env here;
-// simple-git gets the name/value form below, which merges rather than replaces
-// — passing a full env object trips its GIT_EDITOR safety guard.)
+// For the execFile calls only. This comment used to claim that simple-git's
+// .env(name, value) "merges rather than replaces" — it does not: it REPLACES the
+// child environment, so the instance below ran git without $HOME and could not
+// read ~/.gitconfig (a plain "fatal: $HOME not set" on anything needing the
+// global config: identity, credential helper, safe.directory). Handing it a full
+// environment object instead is no better — @simple-git/argv-parser screens
+// EDITOR, PAGER, GIT_ASKPASS and ~19 other variables and refuses the call. So
+// simple-git gets no environment, and the wording-sensitive commands (fsck) go
+// through execFile with this.
 const C_LOCALE_ENV = { ...process.env, LC_ALL: 'C' }
+
+// simple-git gets an allow-list rather than the object above: it screens the
+// environment it is handed and refuses the call on sight of EDITOR, PAGER,
+// GIT_ASKPASS and ~19 others (@simple-git/argv-parser). Without a pinned locale
+// here, checkIsRepo() on a non-repository rejects with git's *translated* error
+// and the clean "Not a git repository" below never gets a chance to be thrown.
+const SIMPLE_GIT_ENV_KEYS = [
+  'HOME', 'PATH', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'SSH_AUTH_SOCK', 'XDG_CONFIG_HOME',
+  'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM',
+  'SystemRoot', 'APPDATA', 'LOCALAPPDATA', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH',
+  'ProgramData', 'ComSpec', 'PATHEXT', 'TEMP', 'TMP',
+]
+
+function simpleGitEnv(): Record<string, string> {
+  const env: Record<string, string> = {}
+  for (const key of SIMPLE_GIT_ENV_KEYS) {
+    const value = process.env[key]
+    if (value !== undefined) env[key] = value
+  }
+  env.LC_ALL = 'C'
+  return env
+}
 
 async function openRepo(repo?: string): Promise<{ git: SimpleGit; root: string }> {
   const base = nfc(path.resolve(repo || process.env.GV_REPO || process.cwd()))
   const cached = gitCache.get(base)
-  const git: SimpleGit = cached ?? simpleGit(base).env('LC_ALL', 'C')
+  const git: SimpleGit = cached ?? simpleGit(base).env(simpleGitEnv())
   if (!cached) gitCache.set(base, git)
   const isRepo = await git.checkIsRepo()
   if (!isRepo) throw new Error(`Not a git repository: ${base}`)

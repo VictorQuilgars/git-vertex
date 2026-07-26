@@ -1063,11 +1063,11 @@ export default function CommitGraph({
 
   // Right-click on the header bar — choose which columns show.
   const buildHeaderMenuItems = useCallback((): MenuItemDef[] => [
-    { label: 'Avatars des auteurs', checked: showAvatars, action: () => set('graphShowAvatars', showAvatars ? 'false' : 'true') },
-    { label: 'Auteur', checked: showAuthor, action: () => set('graphShowAuthor', showAuthor ? 'false' : 'true') },
-    { label: 'Date', checked: showDate, action: () => set('graphShowDate', showDate ? 'false' : 'true') },
+    { label: t('graph.col.avatars'), checked: showAvatars, action: () => set('graphShowAvatars', showAvatars ? 'false' : 'true') },
+    { label: t('graph.col.author'), checked: showAuthor, action: () => set('graphShowAuthor', showAuthor ? 'false' : 'true') },
+    { label: t('graph.col.date'), checked: showDate, action: () => set('graphShowDate', showDate ? 'false' : 'true') },
     { label: 'SHA', checked: showSha, action: () => set('graphShowSha', showSha ? 'false' : 'true') },
-    { label: 'Ajouts / suppressions', checked: showStats, action: () => set('graphShowStats', showStats ? 'false' : 'true') },
+    { label: t('graph.col.stats'), checked: showStats, action: () => set('graphShowStats', showStats ? 'false' : 'true') },
     { separator: true },
     { label: t('graph.menu.compactCols'), checked: compactColumns, action: () => set('graphCompactColumns', compactColumns ? 'false' : 'true') },
     { separator: true },

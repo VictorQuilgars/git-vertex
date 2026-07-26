@@ -65,9 +65,9 @@ async function throwHttpError(provider: string, res: Response): Promise<never> {
   const retryAfterMs = ra ? (isNaN(Number(ra)) ? undefined : Number(ra) * 1000) : undefined
   const label = provider.charAt(0).toUpperCase() + provider.slice(1)
   let msg: string
-  if (res.status === 429) msg = `${label} : quota ou limite de débit atteint (429)${detail ? ` — ${detail}` : ''}. Attendez un peu ou changez de modèle/fournisseur.`
-  else if (res.status === 503 || res.status === 529) msg = `${label} : modèle surchargé (${res.status})${detail ? ` — ${detail}` : ''}. Réessayez dans quelques instants ou changez de modèle.`
-  else if (res.status === 401 || res.status === 403) msg = `${label} : clé API refusée (${res.status})${detail ? ` — ${detail}` : ''}.`
+  if (res.status === 429) msg = `${label}: quota or rate limit reached (429)${detail ? ` — ${detail}` : ''}. Wait a moment or switch model/provider.`
+  else if (res.status === 503 || res.status === 529) msg = `${label}: model overloaded (${res.status})${detail ? ` — ${detail}` : ''}. Try again shortly or switch model.`
+  else if (res.status === 401 || res.status === 403) msg = `${label}: API key rejected (${res.status})${detail ? ` — ${detail}` : ''}.`
   else msg = `${label} HTTP ${res.status}${detail ? ` — ${detail}` : ''}`
   throw new AIHttpError(msg, res.status, retryAfterMs)
 }
@@ -125,11 +125,11 @@ export async function runAIPrompt(cfg: AIConfig, prompt: string, maxTokens = 512
       await new Promise(r => setTimeout(r, Math.min(wait, 15000)))
     }
   }
-  return { error: 'Le modèle a retourné une réponse vide après 3 tentatives' }
+  return { error: 'The model returned an empty response after 3 attempts' }
 }
 
 export const truncateDiff = (diff: string, max = 6000) =>
-  diff.length > max ? diff.slice(0, max) + '\n... [diff tronqué]' : diff
+  diff.length > max ? diff.slice(0, max) + '\n... [diff truncated]' : diff
 
 // Live model list per provider — mirrors the desktop's ai:list-provider-models
 // (Groq's audio-only whisper models filtered out, OpenAI trimmed to chat models).
@@ -170,31 +170,31 @@ export async function listProviderModels(provider: string, apiKey: string): Prom
 // ── Feature prompts (kept in sync with the desktop app's src/main/index.ts) ──
 
 export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string) {
-  if (!stagedDiff.trim()) return { error: 'Aucun changement indexé à analyser' }
+  if (!stagedDiff.trim()) return { error: 'No staged change to analyse' }
   const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${truncateDiff(stagedDiff)}\n\`\`\``
   const r = await runAIPrompt(cfg, prompt)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
 export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string) {
-  if (!diff.trim()) return { error: 'Ce commit ne contient aucun changement à analyser (commit de merge ?)' }
+  if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
   const r = await runAIPrompt(cfg, prompt)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
 export async function aiExplainCommit(cfg: AIConfig, diff: string, subject: string) {
-  if (!diff.trim()) return { error: 'Ce commit ne contient aucun changement à analyser (commit de merge ?)' }
-  const prompt = `Tu es un expert Git. Explique en français, simplement et concrètement, ce que fait ce commit : quels fichiers/comportements changent et pourquoi c'est probablement fait. 3 à 6 phrases maximum, pas de liste à puces, pas de préambule.\n\nMessage du commit : ${subject}\n\nDiff :\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
+  if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
+  const prompt = `You are a Git expert. Explain simply and concretely, in English, what this commit does: which files and behaviours change, and why it was probably done. 3 to 6 sentences maximum, no bullet list, no preamble.\n\nCommit message: ${subject}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
   const r = await runAIPrompt(cfg, prompt, 768)
   return r.error ? { error: r.error } : { explanation: r.text }
 }
 
 const AI_CONFLICT_MAX_CHARS = 24000
 export async function aiResolveConflict(cfg: AIConfig, filepath: string, content: string, instruction?: string) {
-  if (!/^<{7}/m.test(content)) return { error: 'Aucun marqueur de conflit trouvé dans ce fichier' }
+  if (!/^<{7}/m.test(content)) return { error: 'No conflict marker found in this file' }
   if (content.length > AI_CONFLICT_MAX_CHARS) {
-    return { error: `Fichier trop long pour la résolution IA (${content.length} caractères, max ${AI_CONFLICT_MAX_CHARS})` }
+    return { error: `File too long for AI resolution (${content.length} characters, max ${AI_CONFLICT_MAX_CHARS})` }
   }
   const extra = instruction?.trim()
     ? `\n\nUser guidance (follow it when choosing between sides): ${instruction.trim()}`
@@ -206,7 +206,7 @@ CRITICAL formatting rules:
 - No conflict markers, no code fences, no commentary inside the file.
 
 Reply in EXACTLY this format:
-EXPLANATION: <1 à 3 phrases en français expliquant quels côtés tu as choisis et pourquoi>
+EXPLANATION: <1 to 3 sentences in English explaining which sides you kept and why>
 ===FILE===
 <the complete resolved file content, every line>
 
@@ -224,7 +224,7 @@ ${content}`
   }
   const fenced = resolution.match(/^```[a-zA-Z]*\n([\s\S]*?)\n?```\s*$/)
   if (fenced) resolution = fenced[1]
-  if (/^[<=>]{7}/m.test(resolution)) return { error: "La proposition de l'IA contient encore des marqueurs de conflit — réessayez, éventuellement avec une instruction plus précise" }
+  if (/^[<=>]{7}/m.test(resolution)) return { error: 'The AI proposal still contains conflict markers — try again, possibly with a more precise instruction' }
   return { resolution, explanation }
 }
 

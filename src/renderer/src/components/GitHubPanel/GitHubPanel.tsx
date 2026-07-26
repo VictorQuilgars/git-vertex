@@ -34,27 +34,14 @@ interface Props {
   repoPath: string | null
 }
 
-function timeAgo(dateStr: string, lang: string, t: (k: string) => string): string {
+function timeAgo(dateStr: string, t: (key: any, ...args: any[]) => string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
   if (diff < 60) return t('github.justNow')
-  if (diff < 3600) {
-    const m = Math.floor(diff / 60)
-    return lang === 'fr' ? `${m} min` : `${m}m`
-  }
-  if (diff < 86400) {
-    const h = Math.floor(diff / 3600)
-    return lang === 'fr' ? `${h} h` : `${h}h`
-  }
-  if (diff < 2592000) {
-    const d = Math.floor(diff / 86400)
-    return lang === 'fr' ? `${d} j` : `${d}d`
-  }
-  if (diff < 31536000) {
-    const mo = Math.floor(diff / 2592000)
-    return lang === 'fr' ? `${mo} mois` : `${mo}mo`
-  }
-  const y = Math.floor(diff / 31536000)
-  return lang === 'fr' ? `${y} an${y > 1 ? 's' : ''}` : `${y}y`
+  if (diff < 3600) return t('time.min', Math.floor(diff / 60))
+  if (diff < 86400) return t('time.hour', Math.floor(diff / 3600))
+  if (diff < 2592000) return t('time.day', Math.floor(diff / 86400))
+  if (diff < 31536000) return t('time.month', Math.floor(diff / 2592000))
+  return t('time.year', Math.floor(diff / 31536000))
 }
 
 function LabelChip({ label }: { label: Label }) {
@@ -68,7 +55,7 @@ function LabelChip({ label }: { label: Label }) {
   )
 }
 
-function PRItem({ pr, lang }: { pr: PR; lang: string }) {
+function PRItem({ pr }: { pr: PR }) {
   const { t } = useLang()
   return (
     <div className="ghp-item" onClick={() => window.gitAPI.openExternal(pr.url)} title={t('gh.panel.openIn')}>
@@ -87,7 +74,7 @@ function PRItem({ pr, lang }: { pr: PR; lang: string }) {
         <span className="ghp-dot">·</span>
         <span className="ghp-author">@{pr.author}</span>
         <span className="ghp-dot">·</span>
-        <span className="ghp-time">{timeAgo(pr.createdAt, lang, t)}</span>
+        <span className="ghp-time">{timeAgo(pr.createdAt, t)}</span>
         {pr.comments > 0 && (
           <>
             <span className="ghp-dot">·</span>
@@ -109,7 +96,7 @@ function PRItem({ pr, lang }: { pr: PR; lang: string }) {
   )
 }
 
-function IssueItem({ issue, lang }: { issue: Issue; lang: string }) {
+function IssueItem({ issue }: { issue: Issue }) {
   const { t } = useLang()
   return (
     <div className="ghp-item" onClick={() => window.gitAPI.openExternal(issue.url)} title={t('gh.panel.openIn')}>
@@ -121,7 +108,7 @@ function IssueItem({ issue, lang }: { issue: Issue; lang: string }) {
       <div className="ghp-item-meta">
         <span className="ghp-author">@{issue.author}</span>
         <span className="ghp-dot">·</span>
-        <span className="ghp-time">{timeAgo(issue.createdAt, lang, t)}</span>
+        <span className="ghp-time">{timeAgo(issue.createdAt, t)}</span>
         {issue.comments > 0 && (
           <>
             <span className="ghp-dot">·</span>
@@ -144,7 +131,7 @@ function IssueItem({ issue, lang }: { issue: Issue; lang: string }) {
 }
 
 export default function GitHubPanel({ repoPath }: Props) {
-  const { t, lang } = useLang()
+  const { t } = useLang()
   const [tab, setTab] = useState<'prs' | 'issues'>('prs')
   const [owner, setOwner] = useState<string | null>(null)
   const [repo, setRepo] = useState<string | null>(null)
@@ -243,13 +230,13 @@ export default function GitHubPanel({ repoPath }: Props) {
         {!noRepo && !noAuth && !error && !loading && tab === 'prs' && (
           prs.length === 0
             ? <div className="ghp-state">{t('gh.panel.noPRs')}</div>
-            : prs.map(pr => <PRItem key={pr.number} pr={pr} lang={lang} />)
+            : prs.map(pr => <PRItem key={pr.number} pr={pr} />)
         )}
 
         {!noRepo && !noAuth && !error && !loading && tab === 'issues' && (
           issues.length === 0
             ? <div className="ghp-state">{t('gh.panel.noIssues')}</div>
-            : issues.map(issue => <IssueItem key={issue.number} issue={issue} lang={lang} />)
+            : issues.map(issue => <IssueItem key={issue.number} issue={issue} />)
         )}
       </div>
     </div>

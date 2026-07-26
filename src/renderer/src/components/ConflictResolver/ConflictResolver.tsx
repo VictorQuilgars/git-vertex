@@ -442,7 +442,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
     }
     const r = await window.gitAPI.resolveConflict(file, currentOutput)
     if (r.success) { showToast(t('cr.fileResolved', file)); onFinish() }
-    else showToast(`Erreur: ${r.error}`, 'err')
+    else showToast(t('cr.error', r.error), 'err')
   }
 
   const handleScroll = (source: 'ours' | 'theirs') => {
@@ -482,7 +482,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
       )
     })
 
-  if (loading) return <div className="mt-container"><div className="mt-loading">Chargement…</div></div>
+  if (loading) return <div className="mt-container"><div className="mt-loading">{t('cr.loading')}</div></div>
 
   const conflictChunks = chunks.filter(c => c.type === 'conflict')
   const resolvedCount = conflictChunks.filter(c => (selections[c.id] ?? []).length > 0 || c.base.length > 0).length

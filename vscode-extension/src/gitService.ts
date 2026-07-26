@@ -4,6 +4,74 @@
 import simpleGit, { SimpleGit, BranchSummary } from 'simple-git'
 import { CommitNode, BranchInfo, FileChange, WorkingChanges, RebaseState, RebaseStep } from './types'
 
+// git localizes its messages, and the raw commands below have their stderr both
+// surfaced to an English-only UI and, in places, matched by wording. Pin the
+// locale so what we read and what the user sees is always the stable English
+// form, whatever their system language.
+//
+// child_process only — do NOT hand this to simple-git. Its .env(name, value)
+// form *replaces* the child environment instead of adding to it (git then loses
+// $HOME, and with it ~/.gitconfig: no identity, no credential helper), while a
+// full environment object trips @simple-git/argv-parser's vulnerability guard as
+// soon as the machine has EDITOR, VISUAL, PAGER, GIT_ASKPASS or any of the ~19
+// other variables it screens — which is most developer machines.
+export function gitEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
+  return { ...process.env, LC_ALL: 'C', ...extra }
+}
+
+// simple-git is a different matter: it screens the environment it is given and
+// refuses the call as soon as it sees EDITOR, VISUAL, PAGER, GIT_ASKPASS or any
+// of ~19 other variables (@simple-git/argv-parser), while its .env(name, value)
+// form replaces the environment outright — git then loses $HOME and with it
+// ~/.gitconfig: no identity, no credential helper. So hand it an explicit
+// allow-list instead. simple-git only ever runs plain git commands, never an
+// editor, so a trimmed environment is safe here.
+//
+// The trade-off: the variables it screens (GIT_SSH_COMMAND, GIT_ASKPASS, …)
+// cannot be forwarded at all — passing them is precisely what it refuses. Git's
+// own configuration still applies, since $HOME is kept: core.sshCommand,
+// ~/.ssh/config and credential.helper all keep working.
+const SIMPLE_GIT_ENV_KEYS = [
+  'HOME', 'PATH', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'SSH_AUTH_SOCK', 'XDG_CONFIG_HOME',
+  'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM',
+  // Windows needs these for git to find its config and run at all
+  'SystemRoot', 'APPDATA', 'LOCALAPPDATA', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH',
+  'ProgramData', 'ComSpec', 'PATHEXT', 'TEMP', 'TMP',
+]
+
+function simpleGitEnv(): Record<string, string> {
+  const env: Record<string, string> = {}
+  for (const key of SIMPLE_GIT_ENV_KEYS) {
+    const value = process.env[key]
+    if (value !== undefined) env[key] = value
+  }
+  env.LC_ALL = 'C'
+  return env
+}
+
+// The conflict prediction runs `git merge-tree --write-tree --merge-base=<commit>`,
+// and --merge-base only landed in git 2.40. Older git makes that call fail, the
+// prediction comes back empty and the operation proceeds — so the "a conflict is
+// expected" warning silently never shows. macOS still ships 2.39.
+export const MIN_GIT_FOR_CONFLICT_PREDICTION = '2.40'
+
+// Accepts vendor suffixes, e.g. "git version 2.39.3 (Apple Git-146)".
+export function parseGitVersion(output: string): string | null {
+  const m = /git version (\d+)\.(\d+)(?:\.(\d+))?/.exec(output)
+  return m ? `${m[1]}.${m[2]}.${m[3] ?? '0'}` : null
+}
+
+export function isGitVersionAtLeast(version: string, minimum: string): boolean {
+  const have = version.split('.').map(n => parseInt(n, 10) || 0)
+  const want = minimum.split('.').map(n => parseInt(n, 10) || 0)
+  for (let i = 0; i < Math.max(have.length, want.length); i++) {
+    const a = have[i] ?? 0
+    const b = want[i] ?? 0
+    if (a !== b) return a > b
+  }
+  return true
+}
+
 export class GitService {
   private git: SimpleGit
   public repoPath: string
@@ -15,7 +83,7 @@ export class GitService {
 
   constructor(repoPath: string) {
     this.repoPath = repoPath
-    this.git = simpleGit(repoPath)
+    this.git = simpleGit(repoPath).env(simpleGitEnv())
   }
 
   async checkRepo(): Promise<void> {
@@ -321,7 +389,7 @@ export class GitService {
     if (reverse) args.push('--reverse')
     args.push('-')
     return new Promise(resolve => {
-      const child = cp.execFile('git', args, { cwd: this.repoPath }, (err, _out, stderr) => {
+      const child = cp.execFile('git', args, { cwd: this.repoPath, env: gitEnv() }, (err, _out, stderr) => {
         if (err) resolve({ success: false, error: (stderr || err.message || '').trim() })
         else resolve({ success: true })
       })
@@ -336,7 +404,7 @@ export class GitService {
   private execRaw(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
     const cp = require('child_process') as typeof import('child_process')
     return new Promise(resolve => {
-      cp.execFile('git', args, { cwd: this.repoPath, maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+      cp.execFile('git', args, { cwd: this.repoPath, env: gitEnv(), maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
         const code = err && typeof (err as NodeJS.ErrnoException & { code?: unknown }).code === 'number'
           ? (err as unknown as { code: number }).code
           : (err ? 1 : 0)
@@ -673,7 +741,7 @@ export class GitService {
         } else if (line.startsWith('author ')) {
           cur.author = line.slice(7)
         } else if (line.startsWith('author-time ')) {
-          cur.date = new Date(parseInt(line.slice(12), 10) * 1000).toLocaleDateString()
+          cur.date = new Date(parseInt(line.slice(12), 10) * 1000).toLocaleDateString('en-US')
         } else if (line.startsWith('\t')) {
           lineNum++
           lines.push({
@@ -1169,7 +1237,7 @@ export class GitService {
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
-        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile },
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile }),
         timeout: 30000
       })
       return { success: true }
@@ -1191,7 +1259,7 @@ export class GitService {
     if (bad) return { success: false, error: bad }
     try {
       const picks = await this.buildPickSequence(`${hash}^`)
-      if (picks.length === 0) return { success: false, error: 'Commit introuvable' }
+      if (picks.length === 0) return { success: false, error: 'Commit not found' }
       const sequence = picks.map(p => ({
         action: p.hash.startsWith(hash) || hash.startsWith(p.hash) ? 'drop' : 'pick',
         hash: p.hash
@@ -1210,10 +1278,10 @@ export class GitService {
       const base = direction === 'down' ? `${hash}^^` : `${hash}^`
       const picks = await this.buildPickSequence(base)
       const idx = picks.findIndex(p => p.hash.startsWith(hash) || hash.startsWith(p.hash))
-      if (idx === -1) return { success: false, error: 'Commit introuvable' }
+      if (idx === -1) return { success: false, error: 'Commit not found' }
       const swapWith = direction === 'up' ? idx + 1 : idx - 1
       if (swapWith < 0 || swapWith >= picks.length) {
-        return { success: false, error: 'Move impossible' }
+        return { success: false, error: 'Cannot move that commit' }
       }
       const reordered = [...picks]
       ;[reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]]
@@ -1246,7 +1314,7 @@ export class GitService {
     const { promisify } = await import('util')
     const execFileAsync = promisify(execFile)
     await execFileAsync('git', ['-C', this.repoPath, ...args], {
-      env: { ...process.env, GIT_EDITOR: gitEditor },
+      env: gitEnv({ GIT_EDITOR: gitEditor }),
       timeout: 30000,
     })
   }
@@ -1328,7 +1396,7 @@ exit 0
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
-        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: editor.gitEditor },
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: editor.gitEditor }),
         timeout: 30000
       })
       return { success: true }
@@ -1466,7 +1534,7 @@ exit 0
     const fs = require('fs') as typeof import('fs')
     const path = require('path') as typeof import('path')
     const dir = path.join(this.gitDirPath(), 'rebase-merge')
-    if (!fs.existsSync(dir)) return { success: false, error: 'Aucun rebase interactif en cours' }
+    if (!fs.existsSync(dir)) return { success: false, error: 'No interactive rebase in progress' }
     try {
       const lines = steps.map(s => (s.hash ? `${s.action} ${s.hash}` : s.action))
       fs.writeFileSync(path.join(dir, 'git-rebase-todo'), lines.join('\n') + '\n')

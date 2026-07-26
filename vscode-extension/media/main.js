@@ -59847,6 +59847,11 @@
     // Toolbar
     "toolbar.fetch.tooltip": "Fetch \u2014 r\xE9cup\xE8re les refs distants",
     "toolbar.pull.tooltip": "Pull \u2014 int\xE8gre les commits distants",
+    "toolbar.pull.menuTitle": "Choisir l'op\xE9ration par d\xE9faut de ce bouton",
+    "toolbar.pull.modeFetch": "Fetch All",
+    "toolbar.pull.modeFf": "Pull (fast-forward si possible)",
+    "toolbar.pull.modeFfOnly": "Pull (fast-forward uniquement)",
+    "toolbar.pull.modeRebase": "Pull (rebase)",
     "toolbar.push.tooltip": "Push \u2014 envoie les commits locaux (push direct si upstream configur\xE9)",
     "toolbar.pushModal.tooltip": "Choisir remote / branche upstream",
     "toolbar.newBranch.tooltip": "Nouvelle branche",
@@ -59983,6 +59988,7 @@
     "whatsnew.intro": "Retrouvez les nouveaut\xE9s, am\xE9liorations et corrections de Git Vertex, version apr\xE8s version.",
     "gitflow.loading": "Chargement\u2026",
     "gitflow.notInit": "Gitflow n'est pas initialis\xE9 dans ce d\xE9p\xF4t.",
+    "cp.search": "Rechercher une commande\u2026",
     "cp.empty": "Aucune commande trouv\xE9e",
     "dlg.hint": "\u2318/Ctrl + Entr\xE9e pour valider \u2014 1\u02B3\u1D49 ligne : titre, puis ligne vide, puis description",
     "dlg.cancel": "Annuler",
@@ -60525,15 +60531,28 @@ Cette action est irr\xE9versible.`,
     "sb.stash.preview": "\u{1F441} Aper\xE7u du contenu",
     "sb.stash.applyKeep": "\u25B6 Appliquer (garder)",
     "sb.stash.applyPop": "\u25B6 Appliquer (pop)",
+    "sb.stash.scopeAll": "Tout (y compris non suivis)",
+    "sb.stash.scopeStaged": "Fichiers index\xE9s seulement",
+    "sb.stash.scopeUnstaged": "Fichiers non index\xE9s seulement",
+    "sb.stash.rename": "\u270E Renommer",
+    "sb.stash.renamePrompt": "Nouveau nom du stash (il remontera en haut de la pile) :",
+    "sb.stash.renamed": "\u2713 Stash renomm\xE9",
     "sb.stash.title": (m) => `${m} \u2014 clic : aper\xE7u`,
     "sb.stash.create": "Cr\xE9er un stash",
     "sb.noStash": "Aucun stash",
+    "sb.tag.checkout": "\u21AA Checkout (HEAD d\xE9tach\xE9)",
+    "sb.tag.hint": (name, hash) => `${name} \u2192 ${hash} \u2014 double-clic : checkout (HEAD d\xE9tach\xE9)`,
     "sb.tag.push": "\u2B06 Pousser le tag",
     "sb.tag.deleteLocal": "\u{1F5D1} Supprimer (local)",
     "sb.tag.deleteRemote": "\u{1F5D1} Supprimer (distant)",
     "sb.newTag": "Nouveau tag",
     "sb.noTag": "Aucun tag",
     "sb.remote.fetch": "\u2B07 Fetch ce remote",
+    "sb.remote.prune": "\u{1F9F9} Nettoyer les r\xE9fs obsol\xE8tes",
+    "sb.remote.setDefault": "Remote par d\xE9faut",
+    "sb.remote.defaultBadge": "d\xE9faut",
+    "sb.remote.defaultFlag": "Remote vis\xE9 par d\xE9faut pour push / pull / tags",
+    "sb.remote.defaultSet": (n) => `\u2713 "${n}" est le remote par d\xE9faut`,
     "sb.remote.copyUrl": "\u{1F4CB} Copier l'URL",
     "sb.remote.namePrompt": "Nom du remote :",
     "sb.remote.urlPrompt": "URL du remote :",
@@ -60543,6 +60562,12 @@ Cette action est irr\xE9versible.`,
     "sb.remote.removed": (n) => `Remote "${n}" supprim\xE9`,
     "sb.remote.renamed": (n) => `\u2713 Remote renomm\xE9 en "${n}"`,
     "sb.remote.fetchOk": (n) => `\u2713 Fetch "${n}" r\xE9ussi`,
+    "sb.remote.pruneOk": (n, c) => `\u2713 ${n} : ${c} r\xE9f${c > 1 ? "s" : ""} de suivi obsol\xE8te${c > 1 ? "s" : ""} supprim\xE9e${c > 1 ? "s" : ""}`,
+    "sb.remote.pruneNone": (n) => `${n} : aucune r\xE9f obsol\xE8te`,
+    "sb.branch.pruneGoneConfirm": (c, names) => `${c} branche${c > 1 ? "s" : ""} locale${c > 1 ? "s" : ""} n'${c > 1 ? "ont" : "a"} plus d'upstream : ${names}.
+
+Les supprimer ?`,
+    "sb.branch.pruneGoneOk": (c) => `\u2713 ${c} branche${c > 1 ? "s" : ""} locale${c > 1 ? "s" : ""} supprim\xE9e${c > 1 ? "s" : ""}`,
     "sb.addRemote": "Ajouter un remote",
     "sb.noRemote": "Aucun remote",
     "sb.sub.init": "\u2B07 Initialiser",
@@ -60727,6 +60752,7 @@ Cette action est irr\xE9versible.`,
     "toast.pullOk": "Pull r\xE9ussi \u2713",
     "toast.pullErr": (e) => `Pull \xE9chou\xE9 : ${e}`,
     "toast.checkoutOk": (name) => `\u2713 Checkout "${name}"`,
+    "toast.tagCheckedOut": (name) => `\u2713 Tag "${name}" \u2014 HEAD d\xE9tach\xE9, cr\xE9ez une branche pour committer`,
     "toast.checkoutErr": (e) => `Checkout \xE9chou\xE9 : ${e}`,
     "toast.branchCreated": (name) => `\u2713 Branche "${name}" cr\xE9\xE9e`,
     "toast.branchCreatedCheckout": (name) => `\u2713 Branche "${name}" cr\xE9\xE9e + checkout`,
@@ -60886,12 +60912,157 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "issue.merged": "Merg\xE9",
     "issue.loading": "Chargement\u2026",
     "graph.emptyRepo": "D\xE9p\xF4t sans commit \u2014 ajoutez ou modifiez des fichiers, ils appara\xEEtront ici pour cr\xE9er votre premier commit",
-    "toast.undo": "Annuler"
+    "toast.undo": "Annuler",
+    // ── i18n sweep: strings that used to be hardcoded in the components ──
+    "toast.gitTooOld": (version, minimum) => `git ${version} d\xE9tect\xE9 \u2014 la pr\xE9diction de conflit avant merge/rebase n\xE9cessite git ${minimum} ou plus. Mettez git \xE0 jour pour l'activer.`,
+    "bc.title": "Comparaison :",
+    "bc.loading": "Chargement\u2026",
+    "bc.in": "Dans",
+    "bc.butNotIn": "mais pas dans",
+    "bc.noCommit": "Aucun commit",
+    "tabs.rebase": "Rebase interactif",
+    "cfd.backToGraph": "Retour au graphe",
+    "cfd.back": "\u2190 Retour",
+    "cfd.applyLines": (action, n) => `${action} ${n} ligne${n > 1 ? "s" : ""}`,
+    "cfd.applyHunk": (action) => `${action} le bloc`,
+    "cfd.applyHunkTitle": (action) => `${action} ce bloc`,
+    "cfd.loadError": "Erreur : impossible de charger le fichier",
+    "graph.col.avatars": "Avatars des auteurs",
+    "graph.col.author": "Auteur",
+    "graph.col.date": "Date",
+    "graph.col.stats": "Ajouts / suppressions",
+    "cp.error": (e) => `Erreur : ${e}`,
+    "cp.msgRequired": "Le message de commit est requis",
+    "cr.error": (e) => `Erreur : ${e}`,
+    "cr.loading": "Chargement\u2026",
+    "dv.loading": "Chargement du diff\u2026",
+    "fh.title": "\u{1F558} Historique",
+    "fh.openNativeDiff": "Ouvrir le diff natif VS Code",
+    "fh.nativeDiff": "\u2197 Diff natif",
+    "fh.loading": "Chargement\u2026",
+    "fh.noHistory": "Aucun historique pour ce fichier",
+    "fh.commitCount": (n) => `${n} commit${n > 1 ? "s" : ""}`,
+    "fh.viewCommit": (h) => `Voir ${h}`,
+    "ir.from": "depuis",
+    "ir.cancel": "Annuler",
+    "ir.running": "Rebase en cours\u2026",
+    "ir.start": (n) => `\u26A1 Lancer le rebase (${n} commits)`,
+    "rp.folderAction": (action) => `${action} dossier`,
+    "rp.viewChanges": "Voir les changements",
+    "rp.allFiles": "Tous les fichiers",
+    "rp.hunkEditor": "\xC9diteur de staging (par bloc)",
+    "rp.failed": "\xC9chec",
+    "rp.conflictsInProgress": "Conflits en cours :",
+    "rp.conflictedFiles": "Fichiers en conflit",
+    "rp.abortMode": (mode) => `Annuler le ${mode}`,
+    "rp.inProgress": "En cours\u2026",
+    "cme.title": "\u270F\uFE0F Reword \u2014 reformuler le message",
+    "cme.save": "Enregistrer",
+    "cw.noDiff": "Aucune diff\xE9rence avec le r\xE9pertoire de travail",
+    "rt.title": "\u26A1 Rebase interactif",
+    "rt.loading": "Chargement\u2026",
+    "rt.readError": "Impossible de lire le fichier de rebase",
+    "rt.abortConfirm": "Abandonner le rebase interactif ?",
+    "gvt.toggleSidebar": "Afficher/masquer le panneau lat\xE9ral",
+    "gvt.switchBranch": "Changer de branche",
+    "gvt.pull": (n) => `Pull \u2014 ${n} commit(s) en retard`,
+    "gvt.push": (n) => `Push \u2014 ${n} commit(s) en avance`,
+    "gvt.undo": "Annuler la derni\xE8re action",
+    "gvt.allBranches": "Afficher toutes les branches",
+    "gvt.openDesktop": "Ouvrir dans Git Vertex Desktop",
+    "gvt.settings": "R\xE9glages (identit\xE9, GitHub, IA\u2026)",
+    "gvt.search": "Rechercher\u2026",
+    "ext.app.undoFailed": "Impossible d'annuler",
+    "ext.app.opFailed": (label) => `${label} a \xE9chou\xE9`,
+    "ext.app.undo": "Annuler",
+    "ext.app.continue": "Continuer",
+    "ext.app.dontAskAgain": "Ne plus me le demander",
+    "ext.app.failed": "\xC9chec",
+    "ext.app.tagName": "Nom du tag",
+    "ext.app.tagNameHead": "Nom du tag (sur HEAD)",
+    "ext.app.newBranchName": "Nom de la nouvelle branche",
+    "ext.app.newBranchNameDetached": "Nom de la nouvelle branche (laisser vide = detached)",
+    "ext.app.renameBranchPrompt": "Nouveau nom de branche",
+    "ext.app.newCommitMsg": "Nouveau message de commit",
+    "ext.app.worktreePath": "Emplacement du nouveau worktree",
+    "ext.app.rebaseOnto": (target) => `Rebase sur ${target}`,
+    "ext.app.tagPushed": (name) => `Tag ${name} pouss\xE9`,
+    "ext.app.confirmDeleteBranch": (name) => `Supprimer la branche "${name}" ?`,
+    "ext.app.confirmDeleteRemoteBranch": (ref) => `Supprimer la branche distante "${ref}" ?`,
+    "ext.app.confirmDeleteTag": (name) => `Supprimer le tag "${name}" ?`,
+    "ext.app.confirmDeleteRemoteTag": (name) => `Supprimer le tag distant "${name}" ?`,
+    "ext.app.confirmDropStash": (index) => `Supprimer le stash @{${index}} ?`,
+    "cme.titlePlain": "\u{1F4DD} Message de commit",
+    "dlg.confirm": "Confirmer",
+    "cfd.hunk": "Bloc",
+    "rp.sort": "Trier",
+    "settings.saveAsProfile": "+ Enregistrer comme profil",
+    "settings.installAndRestart": (v) => `\u{1F680} Installer et relancer v${v}`,
+    "rt.abort": "Abandonner",
+    "rt.start": "\u26A1 Lancer le rebase",
+    "ext.app.inProgress": "en cours",
+    "ext.app.abort": "Abandonner",
+    "ext.app.backToGraph": "\u2190 Graphe",
+    // ── keys the code already referenced but nobody had defined ──
+    "toast.mergeAborted": "\u2713 Merge abandonn\xE9",
+    "cp.empty": "Aucune commande correspondante",
+    "pr.close": "Fermer",
+    "ext.commit.squashMsg": "\u{1F500} Squash \u2014 message combin\xE9",
+    "ext.commit.help": "\u2318/Ctrl + Entr\xE9e pour enregistrer et fermer \u2014 git retire lui-m\xEAme ses lignes de commentaire #",
+    "ext.commit.save": "Enregistrer et fermer",
+    "ext.compare.workingDir": "r\xE9pertoire de travail",
+    "ext.rebase.empty": "Aucun commit \xE0 rebaser",
+    "ext.rebase.drag": "Glisser pour r\xE9ordonner",
+    "ext.rebase.help": "Glissez pour r\xE9ordonner \xB7 Changez l'action avec le menu d\xE9roulant \xB7 Lancez le rebase quand le plan est bon",
+    "ext.app.undoOk": "\u2713 Derni\xE8re action annul\xE9e",
+    "ext.app.undone": "Annul\xE9",
+    "ext.app.redone": "R\xE9tabli",
+    "ext.app.tagCreated": "Tag cr\xE9\xE9",
+    "ext.app.tagDeleted": "Tag supprim\xE9",
+    "ext.app.remoteTagDeleted": "Tag distant supprim\xE9",
+    "ext.app.branchCreated": "Branche cr\xE9\xE9e",
+    "ext.app.branchRenamed": "Branche renomm\xE9e",
+    "ext.app.branchDeleted": "Branche supprim\xE9e",
+    "ext.app.remoteBranchDeleted": "Branche distante supprim\xE9e",
+    "ext.app.branchReset": "Branche r\xE9initialis\xE9e",
+    "ext.app.upstreamSet": "Branche amont d\xE9finie",
+    "ext.app.commitDeleted": "Commit supprim\xE9",
+    "ext.app.commitMoved": "Commit d\xE9plac\xE9",
+    "ext.app.commitSelected": "Commit s\xE9lectionn\xE9 pour comparaison",
+    "ext.app.msgModified": "Message de commit modifi\xE9",
+    "ext.app.noRewordFirst": "Le premier commit de l'historique ne peut pas \xEAtre reformul\xE9",
+    "ext.app.patchSavedOk": "Patch enregistr\xE9",
+    "ext.app.patchCopiedOk": "Patch copi\xE9 dans le presse-papiers",
+    "ext.app.worktreeCreatedOk": "Worktree cr\xE9\xE9",
+    "ext.app.noGithub": "Ce d\xE9p\xF4t n'a pas de remote GitHub",
+    "ext.app.stashCreated": "Stash cr\xE9\xE9",
+    "ext.app.stashApplied": "Stash appliqu\xE9",
+    "ext.app.stashPopped": "Stash appliqu\xE9 et retir\xE9",
+    "ext.app.stashDropped": "Stash supprim\xE9",
+    "ext.app.rebaseDone": "Rebase effectu\xE9",
+    "ext.app.rebaseContinued": "Rebase continu\xE9",
+    "ext.app.mergeDone": "Merge effectu\xE9",
+    "ext.app.conflictsResolved": "Conflits r\xE9solus",
+    "ext.app.opAborted": "Op\xE9ration abandonn\xE9e",
+    "ext.app.noConflictToResolve": " \u2014 plus aucun fichier \xE0 r\xE9soudre",
+    "ext.app.resolveFirst": "R\xE9solvez d'abord les conflits restants",
+    "ext.app.continueOp": "Continuer l'op\xE9ration",
+    "time.now": "\xE0 l'instant",
+    "time.min": (n) => `${n} min`,
+    "time.hour": (n) => `${n} h`,
+    "time.day": (n) => `${n} j`,
+    "time.month": (n) => `${n} mois`,
+    "time.year": (n) => `${n} an${n > 1 ? "s" : ""}`
   };
   var en = {
     // Toolbar
     "toolbar.fetch.tooltip": "Fetch \u2014 retrieves remote refs",
     "toolbar.pull.tooltip": "Pull \u2014 integrates remote commits",
+    "toolbar.pull.menuTitle": "Choose this button's default operation",
+    "toolbar.pull.modeFetch": "Fetch All",
+    "toolbar.pull.modeFf": "Pull (fast-forward if possible)",
+    "toolbar.pull.modeFfOnly": "Pull (fast-forward only)",
+    "toolbar.pull.modeRebase": "Pull (rebase)",
     "toolbar.push.tooltip": "Push \u2014 sends local commits (direct push if upstream configured)",
     "toolbar.pushModal.tooltip": "Choose remote / upstream branch",
     "toolbar.newBranch.tooltip": "New branch",
@@ -61028,6 +61199,7 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "whatsnew.intro": "Discover what's new, improved, and fixed in Git Vertex, release after release.",
     "gitflow.loading": "Loading\u2026",
     "gitflow.notInit": "Gitflow is not initialized in this repository.",
+    "cp.search": "Search for a command\u2026",
     "cp.empty": "No command found",
     "dlg.hint": "\u2318/Ctrl + Enter to confirm \u2014 1st line: title, then blank line, then description",
     "dlg.cancel": "Cancel",
@@ -61568,15 +61740,28 @@ This action is irreversible.`,
     "sb.stash.preview": "\u{1F441} Preview contents",
     "sb.stash.applyKeep": "\u25B6 Apply (keep)",
     "sb.stash.applyPop": "\u25B6 Apply (pop)",
+    "sb.stash.scopeAll": "Everything (untracked included)",
+    "sb.stash.scopeStaged": "Staged files only",
+    "sb.stash.scopeUnstaged": "Unstaged files only",
+    "sb.stash.rename": "\u270E Rename",
+    "sb.stash.renamePrompt": "New stash name (it will move to the top of the stack):",
+    "sb.stash.renamed": "\u2713 Stash renamed",
     "sb.stash.title": (m) => `${m} \u2014 click: preview`,
     "sb.stash.create": "Create a stash",
     "sb.noStash": "No stash",
+    "sb.tag.checkout": "\u21AA Checkout (detached HEAD)",
+    "sb.tag.hint": (name, hash) => `${name} \u2192 ${hash} \u2014 double-click: checkout (detached HEAD)`,
     "sb.tag.push": "\u2B06 Push tag",
     "sb.tag.deleteLocal": "\u{1F5D1} Delete (local)",
     "sb.tag.deleteRemote": "\u{1F5D1} Delete (remote)",
     "sb.newTag": "New tag",
     "sb.noTag": "No tag",
     "sb.remote.fetch": "\u2B07 Fetch this remote",
+    "sb.remote.prune": "\u{1F9F9} Prune stale refs",
+    "sb.remote.setDefault": "Default remote",
+    "sb.remote.defaultBadge": "default",
+    "sb.remote.defaultFlag": "The remote push / pull / tags target by default",
+    "sb.remote.defaultSet": (n) => `\u2713 "${n}" is now the default remote`,
     "sb.remote.copyUrl": "\u{1F4CB} Copy URL",
     "sb.remote.namePrompt": "Remote name:",
     "sb.remote.urlPrompt": "Remote URL:",
@@ -61586,6 +61771,12 @@ This action is irreversible.`,
     "sb.remote.removed": (n) => `Remote "${n}" removed`,
     "sb.remote.renamed": (n) => `\u2713 Remote renamed to "${n}"`,
     "sb.remote.fetchOk": (n) => `\u2713 Fetch "${n}" successful`,
+    "sb.remote.pruneOk": (n, c) => `\u2713 ${n}: ${c} stale tracking ref${c > 1 ? "s" : ""} removed`,
+    "sb.remote.pruneNone": (n) => `${n}: no stale refs`,
+    "sb.branch.pruneGoneConfirm": (c, names) => `${c} local branch${c > 1 ? "es have" : " has"} no upstream left: ${names}.
+
+Delete ${c > 1 ? "them" : "it"}?`,
+    "sb.branch.pruneGoneOk": (c) => `\u2713 ${c} local branch${c > 1 ? "es" : ""} deleted`,
     "sb.addRemote": "Add a remote",
     "sb.noRemote": "No remote",
     "sb.sub.init": "\u2B07 Initialize",
@@ -61770,6 +61961,7 @@ This action is irreversible.`,
     "toast.pullOk": "Pull successful \u2713",
     "toast.pullErr": (e) => `Pull failed: ${e}`,
     "toast.checkoutOk": (name) => `\u2713 Checkout "${name}"`,
+    "toast.tagCheckedOut": (name) => `\u2713 Tag "${name}" \u2014 detached HEAD, create a branch to commit`,
     "toast.checkoutErr": (e) => `Checkout failed: ${e}`,
     "toast.branchCreated": (name) => `\u2713 Branch "${name}" created`,
     "toast.branchCreatedCheckout": (name) => `\u2713 Branch "${name}" created + checkout`,
@@ -61929,7 +62121,147 @@ Commits beyond this point will be lost for that branch.`,
     "issue.merged": "Merged",
     "issue.loading": "Loading\u2026",
     "graph.emptyRepo": "No commits yet \u2014 add or edit files and they will show up here so you can create your first commit",
-    "toast.undo": "Undo"
+    "toast.undo": "Undo",
+    // ── i18n sweep: strings that used to be hardcoded in the components ──
+    "toast.gitTooOld": (version, minimum) => `git ${version} detected \u2014 predicting conflicts before a merge or rebase needs git ${minimum} or newer. Update git to enable it.`,
+    "bc.title": "Comparison:",
+    "bc.loading": "Loading\u2026",
+    "bc.in": "In",
+    "bc.butNotIn": "but not in",
+    "bc.noCommit": "No commit",
+    "tabs.rebase": "Interactive rebase",
+    "cfd.backToGraph": "Back to the graph",
+    "cfd.back": "\u2190 Back",
+    "cfd.applyLines": (action, n) => `${action} ${n} line${n > 1 ? "s" : ""}`,
+    "cfd.applyHunk": (action) => `${action} hunk`,
+    "cfd.applyHunkTitle": (action) => `${action} this hunk`,
+    "cfd.loadError": "Error: could not load the file",
+    "graph.col.avatars": "Author avatars",
+    "graph.col.author": "Author",
+    "graph.col.date": "Date",
+    "graph.col.stats": "Additions / deletions",
+    "cp.error": (e) => `Error: ${e}`,
+    "cp.msgRequired": "A commit message is required",
+    "cr.error": (e) => `Error: ${e}`,
+    "cr.loading": "Loading\u2026",
+    "dv.loading": "Loading diff\u2026",
+    "fh.title": "\u{1F558} History",
+    "fh.openNativeDiff": "Open the native VS Code diff",
+    "fh.nativeDiff": "\u2197 Native diff",
+    "fh.loading": "Loading\u2026",
+    "fh.noHistory": "No history for this file",
+    "fh.commitCount": (n) => `${n} commit${n > 1 ? "s" : ""}`,
+    "fh.viewCommit": (h) => `View ${h}`,
+    "ir.from": "from",
+    "ir.cancel": "Cancel",
+    "ir.running": "Rebasing\u2026",
+    "ir.start": (n) => `\u26A1 Start rebase (${n} commits)`,
+    "rp.folderAction": (action) => `${action} folder`,
+    "rp.viewChanges": "View changes",
+    "rp.allFiles": "All files",
+    "rp.hunkEditor": "Staging editor (by hunk)",
+    "rp.failed": "Failed",
+    "rp.conflictsInProgress": "Conflicts in progress:",
+    "rp.conflictedFiles": "Conflicted files",
+    "rp.abortMode": (mode) => `Abort ${mode}`,
+    "rp.inProgress": "In progress\u2026",
+    "cme.title": "\u270F\uFE0F Reword \u2014 rewrite the message",
+    "cme.save": "Save",
+    "cw.noDiff": "No difference with the working tree",
+    "rt.title": "\u26A1 Interactive rebase",
+    "rt.loading": "Loading\u2026",
+    "rt.readError": "Could not read the rebase file",
+    "rt.abortConfirm": "Abort the interactive rebase?",
+    "gvt.toggleSidebar": "Show/hide the side panel",
+    "gvt.switchBranch": "Switch branch",
+    "gvt.pull": (n) => `Pull \u2014 ${n} commit(s) behind`,
+    "gvt.push": (n) => `Push \u2014 ${n} commit(s) ahead`,
+    "gvt.undo": "Undo the last action",
+    "gvt.allBranches": "Show all branches",
+    "gvt.openDesktop": "Open in Git Vertex Desktop",
+    "gvt.settings": "Settings (identity, GitHub, AI\u2026)",
+    "gvt.search": "Search\u2026",
+    "ext.app.undoFailed": "Cannot undo",
+    "ext.app.opFailed": (label) => `${label} failed`,
+    "ext.app.undo": "Undo",
+    "ext.app.continue": "Continue",
+    "ext.app.dontAskAgain": "Don't ask again",
+    "ext.app.failed": "Failed",
+    "ext.app.tagName": "Tag name",
+    "ext.app.tagNameHead": "Tag name (on HEAD)",
+    "ext.app.newBranchName": "New branch name",
+    "ext.app.newBranchNameDetached": "New branch name (leave empty = detached)",
+    "ext.app.renameBranchPrompt": "New branch name",
+    "ext.app.newCommitMsg": "New commit message",
+    "ext.app.worktreePath": "New worktree location",
+    "ext.app.rebaseOnto": (target) => `Rebase onto ${target}`,
+    "ext.app.tagPushed": (name) => `Tag ${name} pushed`,
+    "ext.app.confirmDeleteBranch": (name) => `Delete branch "${name}"?`,
+    "ext.app.confirmDeleteRemoteBranch": (ref) => `Delete remote branch "${ref}"?`,
+    "ext.app.confirmDeleteTag": (name) => `Delete tag "${name}"?`,
+    "ext.app.confirmDeleteRemoteTag": (name) => `Delete remote tag "${name}"?`,
+    "ext.app.confirmDropStash": (index) => `Delete stash @{${index}}?`,
+    "cme.titlePlain": "\u{1F4DD} Commit message",
+    "dlg.confirm": "Confirm",
+    "cfd.hunk": "Hunk",
+    "rp.sort": "Sort",
+    "settings.saveAsProfile": "+ Save as profile",
+    "settings.installAndRestart": (v) => `\u{1F680} Install and restart v${v}`,
+    "rt.abort": "Abort",
+    "rt.start": "\u26A1 Start rebase",
+    "ext.app.inProgress": "in progress",
+    "ext.app.abort": "Abort",
+    "ext.app.backToGraph": "\u2190 Graph",
+    // ── keys the code already referenced but nobody had defined ──
+    "toast.mergeAborted": "\u2713 Merge aborted",
+    "cp.empty": "No matching command",
+    "pr.close": "Close",
+    "ext.commit.squashMsg": "\u{1F500} Squash \u2014 combined message",
+    "ext.commit.help": "\u2318/Ctrl + Enter to save and close \u2014 git strips its own # comment lines",
+    "ext.commit.save": "Save and close",
+    "ext.compare.workingDir": "working tree",
+    "ext.rebase.empty": "No commit to rebase",
+    "ext.rebase.drag": "Drag to reorder",
+    "ext.rebase.help": "Drag to reorder \xB7 Change the action with the dropdown \xB7 Start the rebase when the plan is right",
+    "ext.app.undoOk": "\u2713 Last action undone",
+    "ext.app.undone": "Undone",
+    "ext.app.redone": "Redone",
+    "ext.app.tagCreated": "Tag created",
+    "ext.app.tagDeleted": "Tag deleted",
+    "ext.app.remoteTagDeleted": "Remote tag deleted",
+    "ext.app.branchCreated": "Branch created",
+    "ext.app.branchRenamed": "Branch renamed",
+    "ext.app.branchDeleted": "Branch deleted",
+    "ext.app.remoteBranchDeleted": "Remote branch deleted",
+    "ext.app.branchReset": "Branch reset",
+    "ext.app.upstreamSet": "Upstream set",
+    "ext.app.commitDeleted": "Commit dropped",
+    "ext.app.commitMoved": "Commit moved",
+    "ext.app.commitSelected": "Commit selected for compare",
+    "ext.app.msgModified": "Commit message updated",
+    "ext.app.noRewordFirst": "The first commit of the history cannot be reworded",
+    "ext.app.patchSavedOk": "Patch saved",
+    "ext.app.patchCopiedOk": "Patch copied to the clipboard",
+    "ext.app.worktreeCreatedOk": "Worktree created",
+    "ext.app.noGithub": "This repository has no GitHub remote",
+    "ext.app.stashCreated": "Stash created",
+    "ext.app.stashApplied": "Stash applied",
+    "ext.app.stashPopped": "Stash popped",
+    "ext.app.stashDropped": "Stash dropped",
+    "ext.app.rebaseDone": "Rebase done",
+    "ext.app.rebaseContinued": "Rebase continued",
+    "ext.app.mergeDone": "Merge done",
+    "ext.app.conflictsResolved": "Conflicts resolved",
+    "ext.app.opAborted": "Operation aborted",
+    "ext.app.noConflictToResolve": " \u2014 no file left to resolve",
+    "ext.app.resolveFirst": "Resolve the remaining conflicts first",
+    "ext.app.continueOp": "Continue the operation",
+    "time.now": "now",
+    "time.min": (n) => `${n}m`,
+    "time.hour": (n) => `${n}h`,
+    "time.day": (n) => `${n}d`,
+    "time.month": (n) => `${n}mo`,
+    "time.year": (n) => `${n}y`
   };
   var translations = { fr, en };
 
@@ -62306,16 +62638,16 @@ Commits beyond this point will be lost for that branch.`,
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("line", { x1: "364", y1: "82", x2: "256", y2: "422", stroke: "#58a6ff", strokeWidth: "40", strokeLinecap: "round" }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("circle", { cx: "256", cy: "422", r: "34", fill: "#3fb950" })
       ] }),
-      p.onToggleSidebar && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: "Afficher/masquer le panneau lat\xE9ral", onClick: p.onToggleSidebar, active: p.sidebarOpen, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0zM1.5 1.75v12.5c0 .138.112.25.25.25H6V1.5H1.75a.25.25 0 0 0-.25.25zM7.5 1.5v13h6.75a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H7.5z" }) }) }),
+      p.onToggleSidebar && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: t2("gvt.toggleSidebar"), onClick: p.onToggleSidebar, active: p.sidebarOpen, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0zM1.5 1.75v12.5c0 .138.112.25.25.25H6V1.5H1.75a.25.25 0 0 0-.25.25zM7.5 1.5v13h6.75a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H7.5z" }) }) }),
       p.repoName && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "gvt-repo", children: p.repoName }),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "gvt-branch-wrap", ref: branchRef, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("button", { className: "gvt-branch", title: "Changer de branche", onClick: () => setBranchOpen((o) => !o), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("button", { className: "gvt-branch", title: t2("gvt.switchBranch"), onClick: () => setBranchOpen((o) => !o), children: [
           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" }) }),
           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "gvt-branch-name", children: p.branch || "\u2014" }),
           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "8", height: "8", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z" }) })
         ] }),
         branchOpen && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "gvt-branch-menu", children: [
-          locals.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "gvt-branch-empty", children: "Aucune branche locale" }),
+          locals.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "gvt-branch-empty", children: t2("sb.noLocalBranch") }),
           locals.map((b) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
             "button",
             {
@@ -62360,7 +62692,7 @@ Commits beyond this point will be lost for that branch.`,
       /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
         TextBtn,
         {
-          title: p.behind ? lang === "fr" ? `Pull \u2014 ${p.behind} commit(s) en retard` : `Pull \u2014 ${p.behind} commit(s) behind` : "Pull",
+          title: p.behind ? t2("gvt.pull", p.behind) : "Pull",
           label: "Pull",
           onClick: p.onPull,
           disabled: p.loading,
@@ -62375,7 +62707,7 @@ Commits beyond this point will be lost for that branch.`,
       /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
         TextBtn,
         {
-          title: p.ahead ? lang === "fr" ? `Push \u2014 ${p.ahead} commit(s) en avance` : `Push \u2014 ${p.ahead} commit(s) ahead` : "Push",
+          title: p.ahead ? t2("gvt.push", p.ahead) : "Push",
           label: "Push",
           onClick: p.onPush,
           disabled: p.loading,
@@ -62388,7 +62720,7 @@ Commits beyond this point will be lost for that branch.`,
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "gvt-sep" }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: "Nouvelle branche", onClick: p.onNewBranch, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z" }) }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: t2("sb.newBranch"), onClick: p.onNewBranch, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z" }) }) }),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: "Stash", onClick: p.onStash, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M22 12h-6l-2 3h-4l-2-3H2" }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" })
@@ -62398,11 +62730,11 @@ Commits beyond this point will be lost for that branch.`,
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("polyline", { points: "8 8 12 4 16 8" }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6" })
       ] }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: "Annuler la derni\xE8re action", onClick: p.onUndo, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: t2("gvt.undo"), onClick: p.onUndo, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("polyline", { points: "9 14 4 9 9 4" }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M20 20v-7a4 4 0 0 0-4-4H4" })
       ] }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: "R\xE9tablir la derni\xE8re action annul\xE9e", onClick: p.onRedo, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: t2("toolbar.redo.tooltip"), onClick: p.onRedo, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("polyline", { points: "15 14 20 9 15 4" }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M4 20v-7a4 4 0 0 1 4-4h12" })
       ] }) }),
@@ -62411,19 +62743,19 @@ Commits beyond this point will be lost for that branch.`,
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("line", { x1: "12", y1: "19", x2: "20", y2: "19" })
       ] }) }),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "gvt-sep" }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: "Afficher toutes les branches", onClick: p.onToggleAllBranches, active: p.showAllBranches, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z" }) }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: "Ouvrir dans Git Vertex Desktop", onClick: p.onOpenDesktop, hideNarrow: true, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: t2("gvt.allBranches"), onClick: p.onToggleAllBranches, active: p.showAllBranches, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z" }) }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: t2("gvt.openDesktop"), onClick: p.onOpenDesktop, hideNarrow: true, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("polyline", { points: "15 3 21 3 21 9" }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("line", { x1: "10", y1: "14", x2: "21", y2: "3" })
       ] }) }),
-      p.onSettings && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: "R\xE9glages (identit\xE9, GitHub, IA\u2026)", onClick: p.onSettings, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M8 0a8.2 8.2 0 0 1 .701.031C9.444.095 9.99.645 10.16 1.29l.288 1.107c.018.066.079.158.212.224.231.114.454.243.668.386.123.082.233.09.299.071l1.103-.303c.644-.176 1.392.021 1.82.63.27.385.506.792.704 1.218.315.675.111 1.422-.364 1.891l-.814.806c-.049.048-.098.147-.088.294.016.257.016.515 0 .772-.01.147.038.246.088.294l.814.806c.475.469.679 1.216.364 1.891a7.977 7.977 0 0 1-.704 1.217c-.428.61-1.176.807-1.82.63l-1.102-.302c-.067-.019-.177-.011-.3.071a5.909 5.909 0 0 1-.668.386c-.133.066-.194.158-.211.224l-.29 1.106c-.168.646-.715 1.196-1.458 1.26a8.006 8.006 0 0 1-1.402 0c-.743-.064-1.289-.614-1.458-1.26l-.289-1.106c-.018-.066-.079-.158-.212-.224a5.738 5.738 0 0 1-.668-.386c-.123-.082-.233-.09-.299-.071l-1.103.303c-.644.176-1.392-.021-1.82-.63a8.12 8.12 0 0 1-.704-1.218c-.315-.675-.111-1.422.363-1.891l.815-.806c.05-.048.098-.147.088-.294a6.214 6.214 0 0 1 0-.772c.01-.147-.038-.246-.088-.294l-.815-.806C.635 6.045.431 5.298.746 4.623a7.92 7.92 0 0 1 .704-1.217c.428-.61 1.176-.807 1.82-.63l1.102.302c.067.019.177.011.3-.071.214-.143.437-.272.668-.386.133-.066.194-.158.211-.224l.29-1.106C6.009.645 6.556.095 7.299.03 7.53.01 7.764 0 8 0Zm-.571 1.525c-.036.003-.108.036-.137.146l-.289 1.105c-.147.561-.549.967-.998 1.189-.173.086-.34.183-.5.29-.417.278-.97.423-1.529.27l-1.103-.303c-.109-.03-.175.016-.195.045-.22.312-.412.644-.573.99-.014.031-.021.11.059.19l.815.806c.411.406.562.957.53 1.456a4.709 4.709 0 0 0 0 .582c.032.499-.119 1.05-.53 1.456l-.815.806c-.081.08-.073.159-.059.19.162.346.353.677.573.989.02.03.085.076.195.046l1.102-.303c.56-.153 1.113-.008 1.53.27.161.107.328.204.501.29.447.222.85.629.997 1.189l.289 1.105c.029.109.101.143.137.146a6.6 6.6 0 0 0 1.142 0c.036-.003.108-.036.137-.146l.289-1.105c.147-.561.549-.967.998-1.189.173-.086.34-.183.5-.29.417-.278.97-.423 1.529-.27l1.103.303c.109.029.175-.016.195-.045.22-.313.411-.644.573-.99.014-.031.021-.11-.059-.19l-.815-.806c-.411-.406-.562-.957-.53-1.456a4.709 4.709 0 0 0 0-.582c-.032-.499.119-1.05.53-1.456l.815-.806c.081-.08.073-.159.059-.19a6.464 6.464 0 0 0-.573-.989c-.02-.03-.085-.076-.195-.046l-1.102.303c-.56.153-1.113.008-1.53-.27a4.44 4.44 0 0 0-.501-.29c-.447-.222-.85-.629-.997-1.189l-.289-1.105c-.029-.11-.101-.143-.137-.146a6.6 6.6 0 0 0-1.142 0ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM9.5 8a1.5 1.5 0 1 0-3.001.001A1.5 1.5 0 0 0 9.5 8Z" }) }) }),
+      p.onSettings && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBtn, { title: t2("gvt.settings"), onClick: p.onSettings, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M8 0a8.2 8.2 0 0 1 .701.031C9.444.095 9.99.645 10.16 1.29l.288 1.107c.018.066.079.158.212.224.231.114.454.243.668.386.123.082.233.09.299.071l1.103-.303c.644-.176 1.392.021 1.82.63.27.385.506.792.704 1.218.315.675.111 1.422-.364 1.891l-.814.806c-.049.048-.098.147-.088.294.016.257.016.515 0 .772-.01.147.038.246.088.294l.814.806c.475.469.679 1.216.364 1.891a7.977 7.977 0 0 1-.704 1.217c-.428.61-1.176.807-1.82.63l-1.102-.302c-.067-.019-.177-.011-.3.071a5.909 5.909 0 0 1-.668.386c-.133.066-.194.158-.211.224l-.29 1.106c-.168.646-.715 1.196-1.458 1.26a8.006 8.006 0 0 1-1.402 0c-.743-.064-1.289-.614-1.458-1.26l-.289-1.106c-.018-.066-.079-.158-.212-.224a5.738 5.738 0 0 1-.668-.386c-.123-.082-.233-.09-.299-.071l-1.103.303c-.644.176-1.392-.021-1.82-.63a8.12 8.12 0 0 1-.704-1.218c-.315-.675-.111-1.422.363-1.891l.815-.806c.05-.048.098-.147.088-.294a6.214 6.214 0 0 1 0-.772c.01-.147-.038-.246-.088-.294l-.815-.806C.635 6.045.431 5.298.746 4.623a7.92 7.92 0 0 1 .704-1.217c.428-.61 1.176-.807 1.82-.63l1.102.302c.067.019.177.011.3-.071.214-.143.437-.272.668-.386.133-.066.194-.158.211-.224l.29-1.106C6.009.645 6.556.095 7.299.03 7.53.01 7.764 0 8 0Zm-.571 1.525c-.036.003-.108.036-.137.146l-.289 1.105c-.147.561-.549.967-.998 1.189-.173.086-.34.183-.5.29-.417.278-.97.423-1.529.27l-1.103-.303c-.109-.03-.175.016-.195.045-.22.312-.412.644-.573.99-.014.031-.021.11.059.19l.815.806c.411.406.562.957.53 1.456a4.709 4.709 0 0 0 0 .582c.032.499-.119 1.05-.53 1.456l-.815.806c-.081.08-.073.159-.059.19.162.346.353.677.573.989.02.03.085.076.195.046l1.102-.303c.56-.153 1.113-.008 1.53.27.161.107.328.204.501.29.447.222.85.629.997 1.189l.289 1.105c.029.109.101.143.137.146a6.6 6.6 0 0 0 1.142 0c.036-.003.108-.036.137-.146l.289-1.105c.147-.561.549-.967.998-1.189.173-.086.34-.183.5-.29.417-.278.97-.423 1.529-.27l1.103.303c.109.029.175-.016.195-.045.22-.313.411-.644.573-.99.014-.031.021-.11-.059-.19l-.815-.806c-.411-.406-.562-.957-.53-1.456a4.709 4.709 0 0 0 0-.582c-.032-.499.119-1.05.53-1.456l.815-.806c.081-.08.073-.159.059-.19a6.464 6.464 0 0 0-.573-.989c-.02-.03-.085-.076-.195-.046l-1.102.303c-.56.153-1.113.008-1.53-.27a4.44 4.44 0 0 0-.501-.29c-.447-.222-.85-.629-.997-1.189l-.289-1.105c-.029-.11-.101-.143-.137-.146a6.6 6.6 0 0 0-1.142 0ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM9.5 8a1.5 1.5 0 1 0-3.001.001A1.5 1.5 0 0 0 9.5 8Z" }) }) }),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "gvt-search", children: [
         /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("circle", { cx: "11", cy: "11", r: "8" }),
           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("input", { type: "text", placeholder: "Rechercher\u2026", value: p.searchQuery, onChange: (e) => p.onSearch(e.target.value) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("input", { type: "text", placeholder: t2("gvt.search"), value: p.searchQuery, onChange: (e) => p.onSearch(e.target.value) }),
         p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: `gvt-search-count${p.searchMatches === 0 ? " gvt-search-count--none" : ""}`, children: p.searchMatches }),
         p.searchQuery && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "gvt-search-clear", title: t2("common.clearSearch"), onClick: () => p.onSearch(""), children: "\xD7" })
       ] })
@@ -62804,7 +63136,7 @@ Commits beyond this point will be lost for that branch.`,
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "stg-save", onClick: saveGit, children: t2("settings.save") }),
-              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "stg-save", style: { background: "#21262d", color: "#c9d1d9" }, onClick: saveCurrentAsProfile, children: "+ Enregistrer comme profil" })
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "stg-save", style: { background: "#21262d", color: "#c9d1d9" }, onClick: saveCurrentAsProfile, children: t2("settings.saveAsProfile") })
             ] }),
             profiles.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
               /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("h2", { className: "stg-section-title", style: { marginTop: 20 }, children: t2("settings.profiles.title") }),
@@ -63502,7 +63834,7 @@ Commits beyond this point will be lost for that branch.`,
               ] }, l)) })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "stg-about-update", children: [
-              updateReady ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+              updateReady ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                 "button",
                 {
                   className: "stg-about-install-btn",
@@ -63513,10 +63845,7 @@ Commits beyond this point will be lost for that branch.`,
                       window.gitAPI.installUpdate?.();
                     }
                   },
-                  children: [
-                    "\u{1F680} Installer et relancer v",
-                    updateVersion
-                  ]
+                  children: t2("settings.installAndRestart", updateVersion)
                 }
               ) }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                 "button",
@@ -64935,11 +65264,11 @@ Commits beyond this point will be lost for that branch.`,
       onDeleteRemoteTag
     ]);
     const buildHeaderMenuItems = (0, import_react8.useCallback)(() => [
-      { label: "Avatars des auteurs", checked: showAvatars, action: () => set("graphShowAvatars", showAvatars ? "false" : "true") },
-      { label: "Auteur", checked: showAuthor, action: () => set("graphShowAuthor", showAuthor ? "false" : "true") },
-      { label: "Date", checked: showDate, action: () => set("graphShowDate", showDate ? "false" : "true") },
+      { label: t2("graph.col.avatars"), checked: showAvatars, action: () => set("graphShowAvatars", showAvatars ? "false" : "true") },
+      { label: t2("graph.col.author"), checked: showAuthor, action: () => set("graphShowAuthor", showAuthor ? "false" : "true") },
+      { label: t2("graph.col.date"), checked: showDate, action: () => set("graphShowDate", showDate ? "false" : "true") },
       { label: "SHA", checked: showSha, action: () => set("graphShowSha", showSha ? "false" : "true") },
-      { label: "Ajouts / suppressions", checked: showStats, action: () => set("graphShowStats", showStats ? "false" : "true") },
+      { label: t2("graph.col.stats"), checked: showStats, action: () => set("graphShowStats", showStats ? "false" : "true") },
       { separator: true },
       { label: t2("graph.menu.compactCols"), checked: compactColumns, action: () => set("graphCompactColumns", compactColumns ? "false" : "true") },
       { separator: true },
@@ -65567,7 +65896,7 @@ Commits beyond this point will be lost for that branch.`,
           "button",
           {
             className: `st-action ${actionIcon === "+" ? "st-stage" : "st-unstage"}`,
-            title: `${actionTitle} dossier`,
+            title: t("rp.folderAction", actionTitle),
             onClick: (e) => {
               e.stopPropagation();
               onAction(allPaths(node));
@@ -65647,9 +65976,9 @@ Commits beyond this point will be lost for that branch.`,
       fontSize: size * 0.38
     }, children: initials2(name) });
   }
-  function fmtDate2(s) {
+  function fmtDate2(s, locale) {
     try {
-      return new Date(s).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+      return new Date(s).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
     } catch {
       return s;
     }
@@ -65692,7 +66021,7 @@ Commits beyond this point will be lost for that branch.`,
             /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "fh-meta", children: [
               c.author,
               " \xB7 ",
-              fmtDate2(c.date)
+              fmtDate2(c.date, t2("graph.dateLocale"))
             ] })
           ] })
         ] }, c.hash))
@@ -65880,7 +66209,7 @@ ${line.date}`,
     return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "rp-content", children: [
       wipCount != null && wipCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "cd-wip-banner", children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: t2("rp2.wipCount", wipCount) }),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "cd-view-change-btn", onClick: onViewWip, children: "Voir les changements" })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "cd-view-change-btn", onClick: onViewWip, children: t2("rp.viewChanges") })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "cd-top-row", children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "cd-hash-info", children: [
@@ -66011,7 +66340,7 @@ ${line.date}`,
               /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "cd-author-name", children: commit.author }),
               /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "cd-author-meta", children: [
                 "authored ",
-                fmtDate2(commit.date)
+                fmtDate2(commit.date, t2("graph.dateLocale"))
               ] })
             ] }),
             parentShort && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("button", { className: "cd-parent-btn", onClick: () => onSelectCommit(commit.parents[0]), children: [
@@ -66055,7 +66384,7 @@ ${line.date}`,
             ] });
           })(),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "cd-files-bar", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "cd-sort-btn", title: "Trier", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("path", { d: "M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z" }) }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "cd-sort-btn", title: t2("rp.sort"), children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("svg", { width: "13", height: "13", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("path", { d: "M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z" }) }) }),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "cd-view-toggle", children: [
               /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("button", { className: `cd-view-btn ${!cdTreeMode ? "active" : ""}`, onClick: () => {
                 setView("files");
@@ -66075,7 +66404,7 @@ ${line.date}`,
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "cd-viewall", children: [
               /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("input", { type: "checkbox", checked: viewAll, onChange: (e) => setViewAll(e.target.checked) }),
-              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: "Tous les fichiers" })
+              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: t2("rp.allFiles") })
             ] })
           ] }),
           view === "files" && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "rp-file-list", children: [
@@ -66816,7 +67145,7 @@ ${line.date}`,
                       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "st-badge", style: { color: meta.color }, children: meta.label }),
                       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "st-path", title: f.path, children: f.path }),
                       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(DiffStat, { additions: f.additions, deletions: f.deletions }),
-                      onOpenStagingEditor && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "st-action st-hunk-editor", title: "\xC9diteur de staging (par bloc)", onClick: (e) => {
+                      onOpenStagingEditor && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "st-action st-hunk-editor", title: t2("rp.hunkEditor"), onClick: (e) => {
                         e.stopPropagation();
                         onOpenStagingEditor(f.path);
                       }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(IcoHunks, {}) }),
@@ -66904,7 +67233,7 @@ ${line.date}`,
                       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "st-badge", style: { color: meta.color }, children: meta.label }),
                       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "st-path", title: f.path, children: f.path }),
                       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(DiffStat, { additions: f.additions, deletions: f.deletions }),
-                      onOpenStagingEditor && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "st-action st-hunk-editor", title: "\xC9diteur de staging (par bloc)", onClick: (e) => {
+                      onOpenStagingEditor && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "st-action st-hunk-editor", title: t2("rp.hunkEditor"), onClick: (e) => {
                         e.stopPropagation();
                         onOpenStagingEditor(f.path);
                       }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(IcoHunks, {}) }),
@@ -67118,7 +67447,7 @@ Signed-off-by: ` : full;
     const markResolved = async (file) => {
       const r = await window.gitAPI.markResolved(file);
       if (r && r.success === false)
-        showToast(r.error ?? "\xC9chec", "err");
+        showToast(r.error ?? t2("rp.failed"), "err");
       else {
         showToast(t2("rp2.markedResolved", file));
         onCommitSuccess();
@@ -67135,13 +67464,15 @@ Signed-off-by: ` : full;
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "rp-conflict-header", children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "cr-warning", children: "\u26A0\uFE0F" }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "cr-title", children: [
-          "Conflits en cours : ",
+          t2("rp.conflictsInProgress"),
+          " ",
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("strong", { children: conflictMode })
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "rp-section", children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "rp-section-header", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "rp-section-title", children: [
-          "Fichiers en conflit (",
+          t2("rp.conflictedFiles"),
+          " (",
           conflictFiles.length,
           ")"
         ] }) }),
@@ -67202,12 +67533,13 @@ Signed-off-by: ` : full;
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "rp-section", children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "rp-section-header", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "rp-section-title", children: [
-          "Fichiers r\xE9solus (",
+          t2("rp.resolvedFiles"),
+          " (",
           resolvedFiles.length,
           ")"
         ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "rp-file-list", children: [
-          resolvedFiles.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "rp-empty", children: "Aucun fichier r\xE9solu" }),
+          resolvedFiles.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "rp-empty", children: t2("rp.noResolved") }),
           resolvedFiles.map((f) => /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "rp-file-row rp-file-resolved", children: [
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "rp-file-status", style: { color: "#3fb950" }, children: "\u2713" }),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "rp-file-path", children: f.path })
@@ -67225,16 +67557,13 @@ Signed-off-by: ` : full;
           }
         ),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "rp-commit-actions", style: { display: "flex", gap: 8, marginTop: 8 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "button",
             {
               className: "rp-btn rp-btn-abort",
               style: { flex: 1, backgroundColor: "#21262d", color: "#f85149" },
               onClick: onConflictAbort,
-              children: [
-                "Annuler le ",
-                conflictMode
-              ]
+              children: t2("rp.abortMode", conflictMode)
             }
           ),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
@@ -67244,7 +67573,7 @@ Signed-off-by: ` : full;
               style: { flex: 1, backgroundColor: allResolved ? "#2ea043" : "#21262d", color: allResolved ? "#fff" : "#8b949e" },
               disabled: !allResolved || !commitMsg.trim() || committing,
               onClick: doCommit,
-              children: committing ? "En cours\u2026" : "Commit & Merge"
+              children: committing ? t2("rp.inProgress") : "Commit & Merge"
             }
           )
         ] })
@@ -67340,7 +67669,7 @@ Signed-off-by: ` : full;
             title: addLabel ?? t2("sb.add"),
             onClick: (e) => {
               e.stopPropagation();
-              onAdd();
+              onAdd(e);
             },
             children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("svg", { width: "12", height: "12", viewBox: "0 0 16 16", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("path", { d: "M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" }) })
           }
@@ -67349,12 +67678,12 @@ Signed-off-by: ` : full;
       open && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "sb-section-body", children })
     ] });
   }
-  function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, ahead = 0, behind = 0, gone = false }) {
+  function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }) {
     const [hover, setHover] = (0, import_react11.useState)(false);
     const [ctx, setCtx] = (0, import_react11.useState)(null);
     const lastClickTime = (0, import_react11.useRef)(0);
     const { t: t2 } = useLang();
-    const display = remote ? name.replace(/^remotes\/[^/]+\//, "") : name;
+    const display = remote ? showRemotePrefix ? name.replace(/^remotes\//, "") : name.replace(/^remotes\/[^/]+\//, "") : name;
     const menuItems = buildBranchMenu(
       { name, display, current, remote: !!remote },
       { currentBranch, soloed, muted, pinned, favorite, issue },
@@ -67447,7 +67776,7 @@ Signed-off-by: ` : full;
       ctx && menuItems.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) })
     ] });
   }
-  function StashItem({ stash, onApply, onPop, onDrop, onPreview }) {
+  function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename }) {
     const [ctx, setCtx] = (0, import_react11.useState)(null);
     const { t: t2 } = useLang();
     const label = stash.message.replace(/^stash@\{\d+\}: /, "");
@@ -67455,6 +67784,7 @@ Signed-off-by: ` : full;
       ...onPreview ? [{ label: t2("sb.stash.preview"), action: onPreview }] : [],
       { label: t2("sb.stash.applyKeep"), action: onApply },
       { label: t2("sb.stash.applyPop"), action: onPop },
+      ...onRename ? [{ label: t2("sb.stash.rename"), action: onRename }] : [],
       { separator: true },
       { label: t2("sb.delete"), action: onDrop, danger: true }
     ];
@@ -67482,26 +67812,41 @@ Signed-off-by: ` : full;
       ctx && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ContextMenu, { x: ctx.x, y: ctx.y, items: menuItems, onClose: () => setCtx(null) })
     ] });
   }
-  function TagItem({ tag, onDelete, onPush, onDeleteRemote }) {
+  function TagItem({ tag, onCheckout, onDelete, onPush, onDeleteRemote }) {
     const [ctx, setCtx] = (0, import_react11.useState)(null);
+    const lastClickTime = (0, import_react11.useRef)(0);
     const { t: t2 } = useLang();
     const menuItems = [
+      ...onCheckout ? [{ label: t2("sb.tag.checkout"), action: onCheckout }] : [],
       { label: t2("sb.copyName"), action: () => navigator.clipboard.writeText(tag.name) },
       { label: t2("sb.tag.push"), action: onPush },
       { separator: true },
       { label: t2("sb.tag.deleteLocal"), action: onDelete, danger: true },
       { label: t2("sb.tag.deleteRemote"), action: onDeleteRemote, danger: true }
     ];
+    const handleMouseDown = (e) => {
+      if (!onCheckout)
+        return;
+      const now = Date.now();
+      if (now - lastClickTime.current < 400) {
+        e.preventDefault();
+        onCheckout();
+        lastClickTime.current = 0;
+      } else {
+        lastClickTime.current = now;
+      }
+    };
     return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
         "div",
         {
           className: "sb-tag-item",
+          onMouseDown: handleMouseDown,
           onContextMenu: (e) => {
             e.preventDefault();
             setCtx({ x: e.clientX, y: e.clientY });
           },
-          title: `${tag.name} \u2192 ${tag.hash}`,
+          title: onCheckout ? t2("sb.tag.hint", tag.name, tag.hash) : `${tag.name} \u2192 ${tag.hash}`,
           children: [
             /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "sb-tag-icon", children: "\u{1F3F7}" }),
             /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "sb-tag-name", children: tag.name }),
@@ -67524,7 +67869,10 @@ Signed-off-by: ` : full;
   }
   function RemoteItem({
     remote,
+    isDefault,
+    onSetDefault,
     onFetch,
+    onPrune,
     onRename,
     onRemove,
     onCopyUrl
@@ -67533,6 +67881,9 @@ Signed-off-by: ` : full;
     const { t: t2 } = useLang();
     const menuItems = [
       { label: t2("sb.remote.fetch"), action: onFetch },
+      { label: t2("sb.remote.prune"), action: onPrune },
+      // checked (not just disabled) so the current default is visible at a glance
+      { label: t2("sb.remote.setDefault"), action: onSetDefault, checked: isDefault },
       { label: t2("sb.remote.copyUrl"), action: onCopyUrl },
       { label: t2("sb.rename"), action: onRename },
       { separator: true },
@@ -67551,7 +67902,10 @@ Signed-off-by: ` : full;
           children: [
             /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("svg", { width: "11", height: "11", viewBox: "0 0 16 16", fill: "currentColor", className: "remote-icon", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("path", { d: "M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2ZM1.5 12.251c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V5.809L8.38 9.397a.75.75 0 0 1-.76 0L1.5 5.809v6.442Zm13-8.181v-.32a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25v.32L8 7.88Z" }) }),
             /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "sb-remote-info", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "sb-remote-name", children: remote.name }),
+              /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { className: "sb-remote-name", children: [
+                remote.name,
+                isDefault && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "sb-remote-default", title: t2("sb.remote.defaultFlag"), children: t2("sb.remote.defaultBadge") })
+              ] }),
               /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "sb-remote-url", children: remote.fetchUrl })
             ] })
           ]
@@ -67671,6 +68025,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     onRefreshStashes,
     onCreateTag,
     onDeleteTag,
+    onCheckoutTag,
     onPushTag,
     onDeleteRemoteTag,
     onSelectCommit,
@@ -67691,6 +68046,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     showToast,
     showPrompt,
     showConfirm,
+    onRefresh,
     embedded = false,
     view
   }) {
@@ -67698,6 +68054,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     const show = (v) => !single || view === v;
     const [reflog, setReflog] = (0, import_react11.useState)([]);
     const [remotes, setRemotes] = (0, import_react11.useState)([]);
+    const [defaultRemote, setDefaultRemote] = (0, import_react11.useState)(null);
     const [submodules, setSubmodules] = (0, import_react11.useState)([]);
     const [worktrees, setWorktrees] = (0, import_react11.useState)([]);
     const [agents, setAgents] = (0, import_react11.useState)([]);
@@ -67713,6 +68070,8 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         return;
       window.gitAPI.getReflog().then((r) => setReflog(r.entries ?? []));
       window.gitAPI.getRemotes().then((r) => setRemotes(r.remotes ?? []));
+      window.gitAPI.getDefaultRemote?.().then((r) => setDefaultRemote(r?.remote ?? null)).catch(() => {
+      });
       window.gitAPI.getSubmodules().then((r) => setSubmodules(r.submodules ?? []));
       window.gitAPI.getWorkingChanges?.().then((w) => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length })).catch(() => {
       });
@@ -67820,6 +68179,55 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         showToast(t2("toast.err", r.error ?? ""), "err");
       }
     };
+    const [stashMenu, setStashMenu] = (0, import_react11.useState)(null);
+    const stashScopeItems = [
+      { label: t2("sb.stash.scopeAll"), action: () => onCreateStash("all") },
+      { label: t2("sb.stash.scopeStaged"), action: () => onCreateStash("staged") },
+      { label: t2("sb.stash.scopeUnstaged"), action: () => onCreateStash("unstaged") }
+    ];
+    const handleRenameStash = async (index, current) => {
+      const label = current.replace(/^stash@\{\d+\}: /, "");
+      const next = await showPrompt(t2("sb.stash.renamePrompt"), label);
+      if (!next || next === label)
+        return;
+      const r = await window.gitAPI.renameStash(index, next);
+      if (r.success) {
+        showToast(t2("sb.stash.renamed"));
+        onRefreshStashes();
+      } else
+        showToast(t2("toast.err", r.error ?? ""), "err");
+    };
+    const handlePruneRemote = async (name) => {
+      const r = await window.gitAPI.pruneRemote(name);
+      if (!r.success) {
+        showToast(t2("toast.err", r.error ?? ""), "err");
+        return;
+      }
+      const pruned = r.pruned ?? [];
+      showToast(pruned.length ? t2("sb.remote.pruneOk", name, pruned.length) : t2("sb.remote.pruneNone", name));
+      onRefresh?.();
+      const { branches: gone } = await window.gitAPI.getGoneBranches();
+      if (gone.length === 0)
+        return;
+      const ok = await showConfirm(t2("sb.branch.pruneGoneConfirm", gone.length, gone.join(", ")), true);
+      if (!ok)
+        return;
+      const d = await window.gitAPI.pruneGoneBranches(gone);
+      if (d.success)
+        showToast(t2("sb.branch.pruneGoneOk", d.deleted.length));
+      else
+        showToast(t2("toast.err", d.error ?? ""), "err");
+      onRefresh?.();
+    };
+    const handleSetDefaultRemote = async (name) => {
+      const r = await window.gitAPI.setDefaultRemote(name);
+      if (!r.success) {
+        showToast(t2("toast.err", r.error ?? ""), "err");
+        return;
+      }
+      setDefaultRemote(name);
+      showToast(t2("sb.remote.defaultSet", name));
+    };
     const handleFetchRemote = async (name) => {
       const r = await window.gitAPI.fetchRemote(name);
       if (r.success)
@@ -67841,6 +68249,11 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
     }, []);
     const localBranches = branches.filter((b) => !b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase())).sort((a, b) => Number(isFavorite?.(b.name) ?? false) - Number(isFavorite?.(a.name) ?? false));
     const remoteBranches = branches.filter((b) => b.remote).filter((b) => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()));
+    const remoteShortNameCounts = /* @__PURE__ */ new Map();
+    for (const b of remoteBranches) {
+      const short = b.name.replace(/^remotes\/[^/]+\//, "");
+      remoteShortNameCounts.set(short, (remoteShortNameCounts.get(short) ?? 0) + 1);
+    }
     const otherRecents = recentRepos.filter((r) => r !== repoPath);
     return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "sidebar", children: [
       !embedded && /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "sb-repo-area", ref: repoMenuRef, children: [
@@ -68019,6 +68432,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
             name: b.name,
             current: false,
             remote: true,
+            showRemotePrefix: (remoteShortNameCounts.get(b.name.replace(/^remotes\/[^/]+\//, "")) ?? 0) > 1,
             currentBranch,
             onCheckout: () => {
               const localName = b.name.replace(/^remotes\/[^/]+\//, "");
@@ -68049,6 +68463,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
               TagItem,
               {
                 tag: t3,
+                onCheckout: () => onCheckoutTag(t3.name),
                 onDelete: () => onDeleteTag(t3.name),
                 onPush: () => onPushTag(t3.name),
                 onDeleteRemote: () => onDeleteRemoteTag(t3.name)
@@ -68069,7 +68484,10 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
               RemoteItem,
               {
                 remote: r,
+                isDefault: defaultRemote === r.name,
+                onSetDefault: () => handleSetDefaultRemote(r.name),
                 onFetch: () => handleFetchRemote(r.name),
+                onPrune: () => handlePruneRemote(r.name),
                 onRename: () => handleRenameRemote(r.name),
                 onRemove: () => handleRemoveRemote(r.name),
                 onCopyUrl: () => navigator.clipboard.writeText(r.fetchUrl)
@@ -68121,7 +68539,10 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
             title: "STASH",
             count: stashes.length,
             defaultOpen: single,
-            onAdd: onCreateStash,
+            onAdd: (e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              setStashMenu({ x: r.left, y: r.bottom + 4 });
+            },
             addLabel: t2("sb.stash.create"),
             children: stashes.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "sb-empty", children: t2("sb.noStash") }) : stashes.map((s) => /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
               StashItem,
@@ -68130,13 +68551,23 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
                 onApply: () => onApplyStash(s.index),
                 onPop: () => onPopStash(s.index),
                 onDrop: () => onDropStash(s.index),
-                onPreview: onPreviewStash ? () => onPreviewStash(s.index, s.message) : void 0
+                onPreview: onPreviewStash ? () => onPreviewStash(s.index, s.message) : void 0,
+                onRename: () => handleRenameStash(s.index, s.message)
               },
               s.index
             ))
           }
         )
       ] }),
+      stashMenu && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        ContextMenu,
+        {
+          x: stashMenu.x,
+          y: stashMenu.y,
+          items: stashScopeItems,
+          onClose: () => setStashMenu(null)
+        }
+      ),
       !repoPath && /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "sb-no-repo", children: [
         /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("button", { className: "sb-open-btn", onClick: onOpenRepo, children: t2("sb.openRepo") }),
         /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("button", { className: "sb-open-btn sb-clone-btn", onClick: onClone, children: [
@@ -68298,8 +68729,8 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         "button",
         {
           className: `gv-rail-btn ${activeHidden ? "gv-rail-btn--active" : ""}`,
-          title: label("rail.more", "Plus\u2026"),
-          "aria-label": label("rail.more", "Plus\u2026"),
+          title: label("rail.more", "More\u2026"),
+          "aria-label": label("rail.more", "More\u2026"),
           onClick: openMenu,
           children: I("M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM1.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z")
         }
@@ -68309,8 +68740,8 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
         "button",
         {
           className: "gv-rail-btn gv-rail-btn--soon",
-          title: label("rail.board", "Board (bient\xF4t)"),
-          "aria-label": label("rail.board", "Board (bient\xF4t)"),
+          title: label("rail.board", "Board (coming soon)"),
+          "aria-label": label("rail.board", "Board (coming soon)"),
           disabled: true,
           children: KANBAN_ICON
         }
@@ -68497,7 +68928,8 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
           /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "ir-header", children: [
             /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "ir-title", children: "\u26A1 Interactive Rebase" }),
             /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "ir-base", children: [
-              "depuis ",
+              t2("ir.from"),
+              " ",
               /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("code", { children: baseHash.slice(0, 7) })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { className: "ir-close", title: t2("common.close"), onClick: onClose, children: "\xD7" })
@@ -68575,14 +69007,14 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
             })()
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "ir-footer", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { className: "ir-cancel", onClick: onClose, children: "Annuler" }),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { className: "ir-cancel", onClick: onClose, children: t2("ir.cancel") }),
             /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
               "button",
               {
                 className: "ir-launch",
                 onClick: handleLaunch,
                 disabled: running || entries.length === 0,
-                children: running ? "Rebase en cours\u2026" : `\u26A1 Lancer le rebase (${entries.length} commits)`
+                children: running ? t2("ir.running") : t2("ir.start", entries.length)
               }
             )
           ] })
@@ -68833,7 +69265,7 @@ ${lineStrings.join("\n")}
     const actionLabel = isStaged ? t2("cfd.unstage") : t2("cfd.stage");
     return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: `cfd-container ${isStaged ? "cfd-staged-mode" : ""}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "cfd-header", children: [
-        onClose && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { className: "cfd-back", onClick: onClose, title: "Retour au graphe", children: "\u2190 Retour" }),
+        onClose && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { className: "cfd-back", onClick: onClose, title: t2("cfd.backToGraph"), children: t2("cfd.back") }),
         onChangeArea && isWorking ? /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "cfd-area-toggle", children: [
           /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { className: !isStaged ? "active" : "", onClick: () => onChangeArea("unstaged"), children: t2("cfd.unstaged") }),
           /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { className: isStaged ? "active" : "", onClick: () => onChangeArea("staged"), children: t2("cfd.staged") })
@@ -68841,11 +69273,7 @@ ${lineStrings.join("\n")}
         /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "cfd-filepath", children: filePath }),
         isWorking && selectedLines.size > 0 && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("button", { className: "cfd-apply-btn", onClick: applySelectedLines, children: [
           isStaged ? "\u25C2 " : "",
-          actionLabel,
-          " ",
-          selectedLines.size,
-          " ligne",
-          selectedLines.size > 1 ? "s" : "",
+          t2("cfd.applyLines", actionLabel, selectedLines.size),
           isStaged ? "" : " \u25B8"
         ] }),
         isWorking && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
@@ -68875,7 +69303,7 @@ ${lineStrings.join("\n")}
           /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("td", { className: "cfd-full-ln", children: i + 1 }),
           /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("td", { className: "cfd-full-lc", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("code", { className: "hljs", dangerouslySetInnerHTML: { __html: hl(line, lang) } }) })
         ] }, i)) }) }),
-        !fullLoading && !fullContent && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "cfd-loading", children: "Erreur : impossible de charger le fichier" })
+        !fullLoading && !fullContent && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "cfd-loading", children: t2("cfd.loadError") })
       ] }) : /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(import_jsx_runtime14.Fragment, { children: [
         loading && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "cfd-loading", children: t2("common.loading") }),
         !loading && hunks.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "cfd-loading", children: t2("compare.noDiff") }),
@@ -68894,7 +69322,8 @@ ${lineStrings.join("\n")}
                     title: allHunkSelected ? t2("cfd.deselectHunk") : t2("cfd.selectHunk"),
                     children: [
                       allHunkSelected ? "\u2611" : "\u2610",
-                      " Bloc"
+                      " ",
+                      t2("cfd.hunk")
                     ]
                   }
                 ),
@@ -68903,11 +69332,10 @@ ${lineStrings.join("\n")}
                   {
                     className: "cfd-hunk-apply",
                     onClick: () => applyHunk(hunk),
-                    title: `${actionLabel} ce bloc`,
+                    title: t2("cfd.applyHunkTitle", actionLabel),
                     children: [
                       isStaged ? "\u25C2 " : "",
-                      actionLabel,
-                      " le bloc",
+                      t2("cfd.applyHunk", actionLabel),
                       isStaged ? "" : " \u25B8"
                     ]
                   }
@@ -69400,7 +69828,7 @@ ${lineStrings.join("\n")}
         setEntries(parseTodo(r?.text ?? ""));
         setLoading(false);
       }).catch(() => {
-        setError("Impossible de lire le fichier de rebase");
+        setError(t2("rt.readError"));
         setLoading(false);
       });
       window.gitAPI.getRebaseState?.().then((s) => {
@@ -69465,13 +69893,13 @@ ${lineStrings.join("\n")}
       await window.gitAPI.todoSave(serializeTodo(entries));
     }, [entries]);
     const handleAbort = (0, import_react17.useCallback)(async () => {
-      const ok = await window.gitAPI.uiConfirm("Abandonner le rebase interactif ?");
+      const ok = await window.gitAPI.uiConfirm(t2("rt.abortConfirm"));
       if (ok)
         await window.gitAPI.todoAbort();
     }, []);
     return /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("div", { className: "rp-page", children: [
       /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("div", { className: "rp-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { className: "rp-header-top", children: /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("span", { className: "rp-title", children: "\u26A1 Rebase interactif" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { className: "rp-header-top", children: /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("span", { className: "rp-title", children: t2("rt.title") }) }),
         /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("div", { className: "rp-header-refs", children: [
           headName && /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("span", { className: "rp-ref-chip", children: [
             /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("span", { className: "rp-ref-icon", children: "\u2442" }),
@@ -69495,7 +69923,7 @@ ${lineStrings.join("\n")}
         /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("span", { className: "rp-banner-text", children: error })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("div", { className: "rp-steps", children: [
-        loading && /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { className: "rp-empty", children: "Chargement\u2026" }),
+        loading && /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { className: "rp-empty", children: t2("rt.loading") }),
         !loading && entries.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { className: "rp-empty", children: t2("ext.rebase.empty") }),
         entries.map((entry, i) => /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)(
           "div",
@@ -69543,9 +69971,9 @@ ${lineStrings.join("\n")}
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { className: "rp-legend", children: t2("ext.rebase.help") }),
       /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("div", { className: "rp-footer", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { className: "rp-btn rp-btn--abort", onClick: handleAbort, children: "Abandonner" }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { className: "rp-btn rp-btn--abort", onClick: handleAbort, children: t2("rt.abort") }),
         /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("span", { className: "rp-footer-spring" }),
-        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { className: "rp-btn rp-btn--continue", onClick: handleLaunch, disabled: loading || entries.length === 0, children: "\u26A1 Lancer le rebase" })
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { className: "rp-btn rp-btn--continue", onClick: handleLaunch, disabled: loading || entries.length === 0, children: t2("rt.start") })
       ] })
     ] });
   }
@@ -69932,7 +70360,7 @@ ${lineStrings.join("\n")}
         showToast(t2("cr.fileResolved", file));
         onFinish();
       } else
-        showToast(`Erreur: ${r.error}`, "err");
+        showToast(t2("cr.error", r.error), "err");
     };
     const handleScroll = (source) => {
       if (isSyncing.current)
@@ -69974,7 +70402,7 @@ ${lineStrings.join("\n")}
       ] }, i);
     });
     if (loading)
-      return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-container", children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-loading", children: "Chargement\u2026" }) });
+      return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-container", children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-loading", children: t2("cr.loading") }) });
     const conflictChunks = chunks.filter((c) => c.type === "conflict");
     const resolvedCount = conflictChunks.filter((c) => (selections[c.id] ?? []).length > 0 || c.base.length > 0).length;
     const totalConflicts = conflictChunks.length;
@@ -70298,7 +70726,7 @@ ${lineStrings.join("\n")}
             /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("div", { className: "commit-sub", children: [
               /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("span", { children: commit.author }),
               /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("span", { className: "dot", children: "\xB7" }),
-              /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("span", { children: new Date(commit.date).toLocaleString("fr-FR") })
+              /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("span", { children: new Date(commit.date).toLocaleString(t2("graph.dateLocale")) })
             ] })
           ] })
         ] }) : /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "commit-meta", children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "commit-title", children: headerLabel }) }),
@@ -70325,7 +70753,7 @@ ${lineStrings.join("\n")}
       ] }),
       loading ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("div", { className: "diff-loading", children: [
         /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "spinner" }),
-        /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("span", { children: "Chargement du diff\u2026" })
+        /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("span", { children: t2("dv.loading") })
       ] }) : /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(import_jsx_runtime19.Fragment, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(FileList, { files }),
         parsedDiff.length === 0 && !loading && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "diff-empty-inner", children: t2("diff.empty") }),
@@ -70359,6 +70787,7 @@ ${lineStrings.join("\n")}
     };
   }
   function FileHistory({ file }) {
+    const { t: t2 } = useLang();
     const [entries, setEntries] = (0, import_react20.useState)([]);
     const [selected, setSelected] = (0, import_react20.useState)(null);
     const [mode, setMode] = (0, import_react20.useState)("diff");
@@ -70402,17 +70831,13 @@ ${lineStrings.join("\n")}
     }, [entries]);
     const relDate = (iso) => {
       const d = new Date(iso);
-      return isNaN(d.getTime()) ? iso : d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+      return isNaN(d.getTime()) ? iso : d.toLocaleDateString(t2("graph.dateLocale"), { day: "numeric", month: "short", year: "numeric" });
     };
     return /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "fh-page", children: [
       /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "fh-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("span", { className: "fh-title", children: "\u{1F558} Historique" }),
+        /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("span", { className: "fh-title", children: t2("fh.title") }),
         /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("code", { className: "fh-file", children: file }),
-        /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("span", { className: "fh-count", children: [
-          entries.length,
-          " commit",
-          entries.length > 1 ? "s" : ""
-        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("span", { className: "fh-count", children: t2("fh.commitCount", entries.length) }),
         /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("span", { className: "fh-spring" }),
         /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "fh-toggle", children: [
           /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("button", { className: mode === "diff" ? "active" : "", onClick: () => setMode("diff"), children: "Diff" }),
@@ -70422,16 +70847,16 @@ ${lineStrings.join("\n")}
           "button",
           {
             className: "fh-native",
-            title: "Ouvrir le diff natif VS Code",
+            title: t2("fh.openNativeDiff"),
             onClick: () => api2.openDiff({ type: "commit", commitHash: selected.hash, filePath: file }),
-            children: "\u2197 Diff natif"
+            children: t2("fh.nativeDiff")
           }
         )
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "fh-body", children: [
         /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "fh-list", children: [
-          loadingList && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("div", { className: "fh-empty", children: "Chargement\u2026" }),
-          !loadingList && entries.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("div", { className: "fh-empty", children: "Aucun historique pour ce fichier" }),
+          loadingList && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("div", { className: "fh-empty", children: t2("fh.loading") }),
+          !loadingList && entries.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("div", { className: "fh-empty", children: t2("fh.noHistory") }),
           entries.map((e) => /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)(
             "button",
             {
@@ -70458,14 +70883,14 @@ ${lineStrings.join("\n")}
             loading: loadingPane
           }
         ) : /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "fh-blame", children: [
-          loadingPane && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("div", { className: "fh-empty", children: "Chargement\u2026" }),
-          !loadingPane && blame.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("div", { className: "fh-empty", children: t("fh.noBlame") }),
+          loadingPane && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("div", { className: "fh-empty", children: t2("fh.loading") }),
+          !loadingPane && blame.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("div", { className: "fh-empty", children: t2("fh.noBlame") }),
           !loadingPane && blame.map((l, i) => /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "fh-blame-line", children: [
             /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
               "button",
               {
                 className: "fh-blame-hash",
-                title: `Voir ${l.shortHash}`,
+                title: t2("fh.viewCommit", l.shortHash),
                 onClick: () => selectByHash(l.hash),
                 children: l.shortHash
               }
@@ -70613,7 +71038,7 @@ ${lineStrings.join("\n")}
         setLoading(false);
       });
     }, [hash]);
-    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { style: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }, children: !loading && diff.trim() === "" ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { style: { padding: 24, color: "#8b949e" }, children: "Aucune diff\xE9rence avec le r\xE9pertoire de travail" }) : /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { style: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }, children: !loading && diff.trim() === "" ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { style: { padding: 24, color: "#8b949e" }, children: t2("cw.noDiff") }) : /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
       DiffViewer,
       {
         commit: syntheticCommit(hash.slice(0, 7), t2("ext.compare.workingDir")),
@@ -70627,28 +71052,19 @@ ${lineStrings.join("\n")}
   // ../src/renderer/src/components/GitHubPanel/GitHubPanel.tsx
   var import_react23 = __toESM(require_react());
   var import_jsx_runtime23 = __toESM(require_jsx_runtime());
-  function timeAgo(dateStr, lang, t2) {
+  function timeAgo(dateStr, t2) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1e3);
     if (diff < 60)
       return t2("github.justNow");
-    if (diff < 3600) {
-      const m = Math.floor(diff / 60);
-      return lang === "fr" ? `${m} min` : `${m}m`;
-    }
-    if (diff < 86400) {
-      const h = Math.floor(diff / 3600);
-      return lang === "fr" ? `${h} h` : `${h}h`;
-    }
-    if (diff < 2592e3) {
-      const d = Math.floor(diff / 86400);
-      return lang === "fr" ? `${d} j` : `${d}d`;
-    }
-    if (diff < 31536e3) {
-      const mo = Math.floor(diff / 2592e3);
-      return lang === "fr" ? `${mo} mois` : `${mo}mo`;
-    }
-    const y = Math.floor(diff / 31536e3);
-    return lang === "fr" ? `${y} an${y > 1 ? "s" : ""}` : `${y}y`;
+    if (diff < 3600)
+      return t2("time.min", Math.floor(diff / 60));
+    if (diff < 86400)
+      return t2("time.hour", Math.floor(diff / 3600));
+    if (diff < 2592e3)
+      return t2("time.day", Math.floor(diff / 86400));
+    if (diff < 31536e3)
+      return t2("time.month", Math.floor(diff / 2592e3));
+    return t2("time.year", Math.floor(diff / 31536e3));
   }
   function LabelChip({ label }) {
     const bg = `#${label.color}22`;
@@ -70656,7 +71072,7 @@ ${lineStrings.join("\n")}
     const color = `#${label.color}`;
     return /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-label", style: { background: bg, borderColor: border, color }, children: label.name });
   }
-  function PRItem({ pr, lang }) {
+  function PRItem({ pr }) {
     const { t: t2 } = useLang();
     return /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { className: "ghp-item", onClick: () => window.gitAPI.openExternal(pr.url), title: t2("gh.panel.openIn"), children: [
       /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { className: "ghp-item-top", children: [
@@ -70683,7 +71099,7 @@ ${lineStrings.join("\n")}
           pr.author
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-dot", children: "\xB7" }),
-        /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-time", children: timeAgo(pr.createdAt, lang, t2) }),
+        /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-time", children: timeAgo(pr.createdAt, t2) }),
         pr.comments > 0 && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)(import_jsx_runtime23.Fragment, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-dot", children: "\xB7" }),
           /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("span", { className: "ghp-comments", children: [
@@ -70695,7 +71111,7 @@ ${lineStrings.join("\n")}
       pr.labels.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "ghp-labels", children: pr.labels.slice(0, 4).map((l) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(LabelChip, { label: l }, l.name)) })
     ] });
   }
-  function IssueItem({ issue, lang }) {
+  function IssueItem({ issue }) {
     const { t: t2 } = useLang();
     return /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { className: "ghp-item", onClick: () => window.gitAPI.openExternal(issue.url), title: t2("gh.panel.openIn"), children: [
       /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { className: "ghp-item-top", children: [
@@ -70712,7 +71128,7 @@ ${lineStrings.join("\n")}
           issue.author
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-dot", children: "\xB7" }),
-        /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-time", children: timeAgo(issue.createdAt, lang, t2) }),
+        /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-time", children: timeAgo(issue.createdAt, t2) }),
         issue.comments > 0 && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)(import_jsx_runtime23.Fragment, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "ghp-dot", children: "\xB7" }),
           /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("span", { className: "ghp-comments", children: [
@@ -70725,7 +71141,7 @@ ${lineStrings.join("\n")}
     ] });
   }
   function GitHubPanel({ repoPath }) {
-    const { t: t2, lang } = useLang();
+    const { t: t2 } = useLang();
     const [tab, setTab] = (0, import_react23.useState)("prs");
     const [owner, setOwner] = (0, import_react23.useState)(null);
     const [repo, setRepo] = (0, import_react23.useState)(null);
@@ -70825,8 +71241,8 @@ ${lineStrings.join("\n")}
         noAuth && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "ghp-state", children: t2("gh.panel.noAuth") }),
         error && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "ghp-state ghp-err", children: error }),
         !noRepo && !noAuth && !error && loading && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "ghp-state", children: t2("gh.panel.loading") }),
-        !noRepo && !noAuth && !error && !loading && tab === "prs" && (prs.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "ghp-state", children: t2("gh.panel.noPRs") }) : prs.map((pr) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(PRItem, { pr, lang }, pr.number))),
-        !noRepo && !noAuth && !error && !loading && tab === "issues" && (issues.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "ghp-state", children: t2("gh.panel.noIssues") }) : issues.map((issue) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(IssueItem, { issue, lang }, issue.number)))
+        !noRepo && !noAuth && !error && !loading && tab === "prs" && (prs.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "ghp-state", children: t2("gh.panel.noPRs") }) : prs.map((pr) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(PRItem, { pr }, pr.number))),
+        !noRepo && !noAuth && !error && !loading && tab === "issues" && (issues.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "ghp-state", children: t2("gh.panel.noIssues") }) : issues.map((issue) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(IssueItem, { issue }, issue.number)))
       ] })
     ] });
   }
@@ -70997,12 +71413,12 @@ ${lineStrings.join("\n")}
   // src/webview/CommitMsgEditorView.tsx
   var import_react26 = __toESM(require_react());
   var import_jsx_runtime25 = __toESM(require_jsx_runtime());
-  function titleFor(boot2) {
+  function titleFor(boot2, t2) {
     if (boot2.action === "reword")
-      return "\u270F\uFE0F Reword \u2014 reformuler le message";
+      return t2("cme.title");
     if (boot2.action === "squash")
-      return t("ext.commit.squashMsg");
-    return "\u{1F4DD} Message de commit";
+      return t2("ext.commit.squashMsg");
+    return t2("cme.titlePlain");
   }
   function CommitMsgEditorView({ boot: boot2 }) {
     const { t: t2 } = useLang();
@@ -71025,7 +71441,7 @@ ${lineStrings.join("\n")}
     const hasStep = typeof boot2.stepCurrent === "number" && typeof boot2.stepTotal === "number";
     return /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("div", { className: "rp-page", children: [
       /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("div", { className: "rp-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("div", { className: "rp-header-top", children: /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("span", { className: "rp-title", children: titleFor(boot2) }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("div", { className: "rp-header-top", children: /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("span", { className: "rp-title", children: titleFor(boot2, t2) }) }),
         (hasStep || boot2.subject) && /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("div", { className: "rp-header-refs", children: [
           hasStep && /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("span", { className: "rp-ref-chip", children: [
             boot2.stepCurrent,
@@ -71061,7 +71477,7 @@ ${lineStrings.join("\n")}
             disabled: saving || !text.trim(),
             onClick: handleSave,
             title: t2("ext.commit.save"),
-            children: saving ? "\u2026" : "Enregistrer"
+            children: saving ? "\u2026" : t2("cme.save")
           }
         )
       ] })
@@ -71229,7 +71645,7 @@ ${lineStrings.join("\n")}
     const doUndo = (0, import_react27.useCallback)(async () => {
       const r = await window.gitAPI.undoLastAction();
       if (r && r.success === false)
-        toast.error(r.error ?? "Impossible d'annuler");
+        toast.error(r.error ?? t2("ext.app.undoFailed"));
       else
         toast.success(t2("ext.app.undoOk"));
       await loadRepoData();
@@ -71237,9 +71653,9 @@ ${lineStrings.join("\n")}
     const runOp = (0, import_react27.useCallback)(async (label, op, undoable = false) => {
       const r = await op();
       if (r && r.success === false)
-        showToast(r.error ?? `${label} a \xE9chou\xE9`, "err");
+        showToast(r.error ?? t2("ext.app.opFailed", label), "err");
       else if (undoable)
-        toast.success(`\u2713 ${label}`, { label: "Annuler", onClick: () => {
+        toast.success(`\u2713 ${label}`, { label: t2("ext.app.undo"), onClick: () => {
           void doUndo();
         } });
       else
@@ -71260,10 +71676,10 @@ ${lineStrings.join("\n")}
       toast.error(
         `\u26A0 A conflict is expected on ${files.length} file(s). Continue?`,
         [
-          { label: "Continuer", onClick: () => {
+          { label: t2("ext.app.continue"), onClick: () => {
             void op();
           } },
-          { label: "Ne plus me le demander", onClick: () => {
+          { label: t2("ext.app.dontAskAgain"), onClick: () => {
             void window.gitAPI.settingsSet("warnBeforeConflict", "false");
             void op();
           } }
@@ -71285,12 +71701,12 @@ ${lineStrings.join("\n")}
     ), [runOp, guardConflict]);
     const handleReset = (0, import_react27.useCallback)((hash, mode) => runOp(`Reset --${mode}`, () => window.gitAPI.reset(hash, mode), true), [runOp]);
     const handleCreateTag = (0, import_react27.useCallback)(async (hash) => {
-      const name = await window.gitAPI.uiPrompt("Nom du tag");
+      const name = await window.gitAPI.uiPrompt(t2("ext.app.tagName"));
       if (name)
         runOp(t2("ext.app.tagCreated"), () => window.gitAPI.createTag(name, hash));
     }, [runOp]);
     const handleCreateBranchAt = (0, import_react27.useCallback)(async (hash) => {
-      const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
+      const name = await window.gitAPI.uiPrompt(t2("ext.app.newBranchName"));
       if (name)
         runOp(t2("ext.app.branchCreated"), () => window.gitAPI.createBranchAt(name, hash, true));
     }, [runOp]);
@@ -71309,7 +71725,7 @@ ${lineStrings.join("\n")}
     const handleRebaseCurrentOnto = (0, import_react27.useCallback)((name) => guardConflict(
       () => window.gitAPI.predictRebaseConflicts(name),
       // accurate per-commit replay
-      () => runOp(`Rebase sur ${name}`, () => window.gitAPI.rebaseOnto(name), true)
+      () => runOp(t2("ext.app.rebaseOnto", name), () => window.gitAPI.rebaseOnto(name), true)
     ), [runOp, guardConflict]);
     const handleRewordCommit = (0, import_react27.useCallback)(async (hash) => {
       const current = commits.find((c) => c.hash === hash);
@@ -71318,7 +71734,7 @@ ${lineStrings.join("\n")}
       const isHead = current.refs.some((r) => r.includes("HEAD ->") && r.includes(currentBranch));
       if (isHead) {
         const fullMsg = (await window.gitAPI.getLastCommitMessage()).message || current.message;
-        const newMsg2 = await window.gitAPI.uiPrompt("Nouveau message de commit", fullMsg);
+        const newMsg2 = await window.gitAPI.uiPrompt(t2("ext.app.newCommitMsg"), fullMsg);
         if (!newMsg2 || newMsg2 === fullMsg)
           return;
         await runOp(t2("ext.app.msgModified"), () => window.gitAPI.amendMessage(newMsg2));
@@ -71328,7 +71744,7 @@ ${lineStrings.join("\n")}
         showToast(t2("ext.app.noRewordFirst"), "err");
         return;
       }
-      const newMsg = await window.gitAPI.uiPrompt("Nouveau message de commit", current.message);
+      const newMsg = await window.gitAPI.uiPrompt(t2("ext.app.newCommitMsg"), current.message);
       if (!newMsg || newMsg === current.message)
         return;
       const seq = await window.gitAPI.getRebaseSequence(current.parents[0]);
@@ -71338,7 +71754,7 @@ ${lineStrings.join("\n")}
     const handleRebaseCurrentOntoCommit = (0, import_react27.useCallback)((hash) => guardConflict(
       () => window.gitAPI.predictRebaseConflicts(hash),
       // accurate per-commit replay
-      () => runOp(`Rebase sur ${hash.slice(0, 7)}`, () => window.gitAPI.rebaseOnto(hash), true)
+      () => runOp(t2("ext.app.rebaseOnto", hash.slice(0, 7)), () => window.gitAPI.rebaseOnto(hash), true)
     ), [runOp, guardConflict]);
     const handlePushToCommit = (0, import_react27.useCallback)((hash) => runOp(`Push to ${hash.slice(0, 7)}`, () => window.gitAPI.pushToCommit(hash)), [runOp]);
     const handleCreatePatch = (0, import_react27.useCallback)(async (hash) => {
@@ -71351,7 +71767,7 @@ ${lineStrings.join("\n")}
       if (r.success)
         showToast(t2("ext.app.patchSavedOk"));
       else if (!r.canceled)
-        showToast(r.error ?? "\xC9chec", "err");
+        showToast(r.error ?? t2("ext.app.failed"), "err");
     }, [showToast]);
     const handleCopyPatch = (0, import_react27.useCallback)(async (hash) => {
       const res = await window.gitAPI.createPatch(hash);
@@ -71363,17 +71779,17 @@ ${lineStrings.join("\n")}
       showToast(t2("ext.app.patchCopiedOk"));
     }, [showToast]);
     const handleCreateWorktreeAt = (0, import_react27.useCallback)(async (hash) => {
-      const dirPath = await window.gitAPI.selectDirectory("Emplacement du nouveau worktree");
+      const dirPath = await window.gitAPI.selectDirectory(t2("ext.app.worktreePath"));
       if (!dirPath)
         return;
-      const branch = await window.gitAPI.uiPrompt("Nom de la nouvelle branche (laisser vide = detached)", "");
+      const branch = await window.gitAPI.uiPrompt(t2("ext.app.newBranchNameDetached"), "");
       if (branch === null || branch === void 0)
         return;
       const r = await window.gitAPI.addWorktree(dirPath, hash, branch || void 0);
       if (r.success)
         showToast(t2("ext.app.worktreeCreatedOk"));
       else
-        showToast(r.error ?? "\xC9chec", "err");
+        showToast(r.error ?? t2("ext.app.failed"), "err");
     }, [showToast]);
     const handleOpenCommitOnRemote = (0, import_react27.useCallback)(async (hash) => {
       const detected = await window.gitAPI.githubDetectRepo();
@@ -71502,30 +71918,30 @@ ${lineStrings.join("\n")}
       showToast
     ]);
     const handleRenameBranch = (0, import_react27.useCallback)(async (name) => {
-      const newName = await window.gitAPI.uiPrompt("Nouveau nom de branche", name);
+      const newName = await window.gitAPI.uiPrompt(t2("ext.app.renameBranchPrompt"), name);
       if (newName && newName !== name)
         runOp(t2("ext.app.branchRenamed"), () => window.gitAPI.renameBranch(name, newName));
     }, [runOp]);
     const handleDeleteBranch = (0, import_react27.useCallback)(async (name) => {
-      if (await window.gitAPI.uiConfirm(`Supprimer la branche "${name}" ?`)) {
+      if (await window.gitAPI.uiConfirm(t2("ext.app.confirmDeleteBranch", name))) {
         runOp(t2("ext.app.branchDeleted"), () => window.gitAPI.deleteBranch(name));
       }
     }, [runOp]);
     const handlePushBranch = (0, import_react27.useCallback)((name) => runOp(`Push ${name}`, () => window.gitAPI.pushBranch(name)), [runOp]);
     const handleSetUpstream = (0, import_react27.useCallback)((name) => runOp(t2("ext.app.upstreamSet"), () => window.gitAPI.setUpstream(name)), [runOp]);
     const handleDeleteRemoteBranch = (0, import_react27.useCallback)(async (ref) => {
-      if (await window.gitAPI.uiConfirm(`Supprimer la branche distante "${ref}" ?`)) {
+      if (await window.gitAPI.uiConfirm(t2("ext.app.confirmDeleteRemoteBranch", ref))) {
         runOp(t2("ext.app.remoteBranchDeleted"), () => window.gitAPI.deleteRemoteBranch(ref));
       }
     }, [runOp]);
-    const handlePushTag = (0, import_react27.useCallback)((name) => runOp(`Tag ${name} pouss\xE9`, () => window.gitAPI.pushTag(name)), [runOp]);
+    const handlePushTag = (0, import_react27.useCallback)((name) => runOp(t2("ext.app.tagPushed", name), () => window.gitAPI.pushTag(name)), [runOp]);
     const handleDeleteTag = (0, import_react27.useCallback)(async (name) => {
-      if (await window.gitAPI.uiConfirm(`Supprimer le tag "${name}" ?`)) {
+      if (await window.gitAPI.uiConfirm(t2("ext.app.confirmDeleteTag", name))) {
         runOp(t2("ext.app.tagDeleted"), () => window.gitAPI.deleteTag(name));
       }
     }, [runOp]);
     const handleDeleteRemoteTag = (0, import_react27.useCallback)(async (name) => {
-      if (await window.gitAPI.uiConfirm(`Supprimer le tag distant "${name}" ?`)) {
+      if (await window.gitAPI.uiConfirm(t2("ext.app.confirmDeleteRemoteTag", name))) {
         runOp(t2("ext.app.remoteTagDeleted"), () => window.gitAPI.deleteRemoteTag(name));
       }
     }, [runOp]);
@@ -71545,12 +71961,12 @@ ${lineStrings.join("\n")}
     const handleApplyStash = (0, import_react27.useCallback)((index) => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.applyStash(index)), [runOp]);
     const handlePopStashIndex = (0, import_react27.useCallback)((index) => runOp(t2("ext.app.stashPopped"), () => window.gitAPI.popStash(index)), [runOp]);
     const handleDropStash = (0, import_react27.useCallback)(async (index) => {
-      if (await window.gitAPI.uiConfirm(`Supprimer le stash @{${index}} ?`)) {
+      if (await window.gitAPI.uiConfirm(t2("ext.app.confirmDropStash", index))) {
         runOp(t2("ext.app.stashDropped"), () => window.gitAPI.dropStash(index));
       }
     }, [runOp]);
     const handleCreateTagPrompt = (0, import_react27.useCallback)(async () => {
-      const name = await window.gitAPI.uiPrompt("Nom du tag (sur HEAD)");
+      const name = await window.gitAPI.uiPrompt(t2("ext.app.tagNameHead"));
       if (name)
         runOp(t2("ext.app.tagCreated"), () => window.gitAPI.createTag(name));
     }, [runOp]);
@@ -71611,7 +72027,7 @@ ${lineStrings.join("\n")}
       else
         r = await window.gitAPI.continueMerge(message);
       if (r && r.success === false)
-        showToast(r.error ?? "\xC9chec", "err");
+        showToast(r.error ?? t2("ext.app.failed"), "err");
       else
         showToast(mode === "rebase" ? t2("ext.app.rebaseContinued") : t2("ext.app.conflictsResolved"));
       await loadRepoData();
@@ -71651,7 +72067,7 @@ ${lineStrings.join("\n")}
     const handlePop = (0, import_react27.useCallback)(() => runOp(t2("ext.app.stashApplied"), () => window.gitAPI.popStash(0)), [runOp]);
     const handleTerminal = (0, import_react27.useCallback)(() => window.gitAPI.openTerminal(), []);
     const handleNewBranch = (0, import_react27.useCallback)(async () => {
-      const name = await window.gitAPI.uiPrompt("Nom de la nouvelle branche");
+      const name = await window.gitAPI.uiPrompt(t2("ext.app.newBranchName"));
       if (name)
         runOp(t2("ext.app.branchCreated"), () => window.gitAPI.createBranch(name));
     }, [runOp]);
@@ -71793,7 +72209,8 @@ ${lineStrings.join("\n")}
         /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("span", { className: "gv-cb-icon", children: "\u26A0\uFE0F" }),
         /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("span", { className: "gv-cb-text", children: [
           /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("strong", { children: conflictMode }),
-          " en cours",
+          " ",
+          t2("ext.app.inProgress"),
           conflictFiles.length > 0 ? ` \u2014 ${conflictFiles.length} file(s) to resolve` : t2("ext.app.noConflictToResolve")
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("span", { className: "gv-cb-spring" }),
@@ -71804,10 +72221,10 @@ ${lineStrings.join("\n")}
             disabled: conflictFiles.length > 0,
             title: conflictFiles.length > 0 ? t2("ext.app.resolveFirst") : t2("ext.app.continueOp"),
             onClick: () => handleConflictFinish(conflictMode === "merge" ? "merge" : "rebase"),
-            children: "Continuer"
+            children: t2("ext.app.continue")
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort, children: "Abandonner" })
+        /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("button", { className: "gv-cb-btn gv-cb-abort", onClick: handleConflictAbort, children: t2("ext.app.abort") })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("div", { className: "app-body", ref: appBodyRef, children: [
         !stacked && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(ActivityRail, { active: activeView, onSelect: handleSelectView }),
@@ -71929,7 +72346,7 @@ ${lineStrings.join("\n")}
           !stacked && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("div", { className: "resize-handle", onMouseDown: startResizeRight }),
           /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("div", { className: stacked ? "app-right gv-right-stacked" : "app-right", style: stacked ? void 0 : { width: effRightW }, children: [
             stacked && !conflictMode && /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("div", { className: "gv-stacked-bar", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null), children: "\u2190 Graphe" }),
+              /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("button", { className: "gv-stacked-back", onClick: () => setSelectedCommit(null), children: t2("ext.app.backToGraph") }),
               selectedCommit && selectedCommit.hash !== "__WIP__" && /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("span", { className: "gv-stacked-title", children: [
                 selectedCommit.shortHash,
                 " \u2014 ",
@@ -72032,7 +72449,7 @@ ${lineStrings.join("\n")}
       if (!this.state.error)
         return this.props.children;
       return /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("div", { style: { padding: 16, font: "12px var(--vscode-editor-font-family, monospace)", color: "#f85149" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("div", { style: { fontWeight: 600, marginBottom: 8 }, children: "Git Vertex \u2014 erreur de rendu" }),
+        /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("div", { style: { fontWeight: 600, marginBottom: 8 }, children: "Git Vertex \u2014 render error" }),
         /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("pre", { style: { whiteSpace: "pre-wrap", color: "#c9d1d9", margin: 0 }, children: [
           this.state.error.message,
           "\n\n",

@@ -72,7 +72,7 @@ export default function PRModal({ owner, repo, currentBranch, onClose, showToast
                 </svg>
                 {t('pr.openInBrowser')}
               </button>
-              <button className="pr-btn-secondary" onClick={onClose}>Fermer</button>
+              <button className="pr-btn-secondary" onClick={onClose}>{t('pr.close')}</button>
             </div>
           </div>
         ) : (
@@ -125,7 +125,7 @@ export default function PRModal({ owner, repo, currentBranch, onClose, showToast
             {error && <div className="pr-error">{error}</div>}
 
             <div className="pr-footer">
-              <button className="pr-btn-secondary" onClick={onClose}>Annuler</button>
+              <button className="pr-btn-secondary" onClick={onClose}>{t('dlg.cancel')}</button>
               <button
                 className="pr-btn-primary"
                 onClick={handleSubmit}

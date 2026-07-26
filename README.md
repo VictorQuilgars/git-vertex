@@ -61,6 +61,16 @@
 - [electron-vite](https://electron-vite.org/) for the build system
 - [simple-git](https://github.com/steveukx/git-js) for git operations
 
+## Requirements
+
+**git 2.40 or newer is recommended** (2.28 is the hard minimum).
+
+Everything works from 2.28 on, with one exception: predicting conflicts before a
+merge, rebase, cherry-pick or revert uses `git merge-tree --merge-base=…`, which
+landed in git 2.40. On an older git that prediction is simply unavailable — the
+operation still runs, it just runs without the warning, and the app tells you so
+once at startup. Worth knowing on macOS, whose bundled git is still 2.39.
+
 ## Getting started
 
 ```bash

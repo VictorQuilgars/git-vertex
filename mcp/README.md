@@ -8,6 +8,12 @@ with both sides labelled by branch and commit subject, surgical per-file
 resolution, continue/abort. Runs entirely on your machine over stdio. No
 cloud, no telemetry — and writes never touch history.
 
+## Requirements
+
+**git 2.28 or newer.** The server itself needs nothing more recent; the 2.40
+recommendation elsewhere in the project only applies to the conflict prediction,
+which lives in the app and the extension, not here.
+
 ## Install & connect
 
 ```bash

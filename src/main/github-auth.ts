@@ -26,13 +26,13 @@ export async function handleOAuthCallback(
   callbackUrl: string
 ): Promise<{ token: string } | { error: string }> {
   let url: URL
-  try { url = new URL(callbackUrl) } catch { return { error: 'URL de callback invalide' } }
+  try { url = new URL(callbackUrl) } catch { return { error: 'Invalid callback URL' } }
 
   const code  = url.searchParams.get('code')
   const state = url.searchParams.get('state')
 
-  if (!code)                  return { error: 'Aucun code dans le callback GitHub' }
-  if (state !== pendingState) return { error: 'State invalide — possible attaque CSRF' }
+  if (!code)                  return { error: 'No code in the GitHub callback' }
+  if (state !== pendingState) return { error: 'Invalid state — possible CSRF attack' }
   pendingState = null
 
   const res = await fetch(PROXY_URL, {

@@ -432,7 +432,7 @@ export class GitVertexHost implements vscode.Disposable {
       case 'selectDirectory': {
         const picked = await vscode.window.showOpenDialog({
           canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
-          title: args[0] ?? 'Choisir un dossier',
+          title: args[0] ?? 'Choose a folder',
         })
         return picked && picked.length > 0 ? picked[0].fsPath : null
       }
@@ -446,7 +446,7 @@ export class GitVertexHost implements vscode.Disposable {
       case 'openDesktop': {
         const cfg = vscode.workspace.getConfiguration('gitVertex')
         const appPath = (cfg.get<string>('appPath', '') || '').trim() || findAppPath()
-        if (!appPath) { vscode.window.showErrorMessage('Git Vertex desktop introuvable.'); return { success: false } }
+        if (!appPath) { vscode.window.showErrorMessage('Git Vertex desktop not found.'); return { success: false } }
         if (this._repoPath) launchApp(appPath, this._repoPath)
         return { success: true }
       }
@@ -686,7 +686,7 @@ export function openGitVertexRebaseTab(
 
   rebasePanel = vscode.window.createWebviewPanel(
     REBASE_VIEW_TYPE,
-    'Rebase en cours',
+    'Rebase in progress',
     { viewColumn: vscode.ViewColumn.Active, preserveFocus: options?.preserveFocus ?? false },
     {
       enableScripts: true,
@@ -738,7 +738,7 @@ export function openGitVertexRebasePlanTab(
 
   const panel = vscode.window.createWebviewPanel(
     PLAN_VIEW_TYPE,
-    `Rebase interactif — ${baseHash.slice(0, 7)}`,
+    `Interactive rebase — ${baseHash.slice(0, 7)}`,
     vscode.ViewColumn.Active,
     {
       enableScripts: true,
@@ -816,7 +816,7 @@ export function openGitVertexCompareTab(
 
   const panel = vscode.window.createWebviewPanel(
     COMPARE_VIEW_TYPE,
-    refA && refB ? `Comparer — ${refA}..${refB}` : 'Comparer des références',
+    refA && refB ? `Compare — ${refA}..${refB}` : 'Compare references',
     vscode.ViewColumn.Active,
     {
       enableScripts: true,
@@ -853,7 +853,7 @@ export function openGitVertexFileHistoryTab(
 
   const panel = vscode.window.createWebviewPanel(
     HISTORY_VIEW_TYPE,
-    `Historique — ${file.split('/').pop()}`,
+    `History — ${file.split('/').pop()}`,
     vscode.ViewColumn.Active,
     {
       enableScripts: true,
@@ -890,7 +890,7 @@ export function openGitVertexCompareWorkingTab(
 
   const panel = vscode.window.createWebviewPanel(
     COMPARE_WORKING_VIEW_TYPE,
-    `Comparer — ${hash.slice(0, 7)} ↔ working tree`,
+    `Compare — ${hash.slice(0, 7)} ↔ working tree`,
     vscode.ViewColumn.Active,
     {
       enableScripts: true,

@@ -268,8 +268,8 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
     <div className={`cfd-container ${isStaged ? 'cfd-staged-mode' : ''}`}>
       <div className="cfd-header">
         {onClose && (
-          <button className="cfd-back" onClick={onClose} title="Retour au graphe">
-            ← Retour
+          <button className="cfd-back" onClick={onClose} title={t('cfd.backToGraph')}>
+            {t('cfd.back')}
           </button>
         )}
         {onChangeArea && isWorking ? (
@@ -283,7 +283,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
         <span className="cfd-filepath">{filePath}</span>
         {isWorking && selectedLines.size > 0 && (
           <button className="cfd-apply-btn" onClick={applySelectedLines}>
-            {isStaged ? '◂ ' : ''}{actionLabel} {selectedLines.size} ligne{selectedLines.size > 1 ? 's' : ''}{isStaged ? '' : ' ▸'}
+            {isStaged ? '◂ ' : ''}{t('cfd.applyLines', actionLabel, selectedLines.size)}{isStaged ? '' : ' ▸'}
           </button>
         )}
         {isWorking && (
@@ -329,7 +329,7 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
                 ))}
               </tbody></table>
             )}
-            {!fullLoading && !fullContent && <div className="cfd-loading">Erreur : impossible de charger le fichier</div>}
+            {!fullLoading && !fullContent && <div className="cfd-loading">{t('cfd.loadError')}</div>}
           </>
         ) : (
           <>
@@ -351,14 +351,14 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
                           onClick={() => toggleHunk(hunk)}
                           title={allHunkSelected ? t('cfd.deselectHunk') : t('cfd.selectHunk')}
                         >
-                          {allHunkSelected ? '☑' : '☐'} Bloc
+                          {allHunkSelected ? '☑' : '☐'} {t('cfd.hunk')}
                         </button>
                         <button
                           className="cfd-hunk-apply"
                           onClick={() => applyHunk(hunk)}
-                          title={`${actionLabel} ce bloc`}
+                          title={t('cfd.applyHunkTitle', actionLabel)}
                         >
-                          {isStaged ? '◂ ' : ''}{actionLabel} le bloc{isStaged ? '' : ' ▸'}
+                          {isStaged ? '◂ ' : ''}{t('cfd.applyHunk', actionLabel)}{isStaged ? '' : ' ▸'}
                         </button>
                       </div>
                     )}

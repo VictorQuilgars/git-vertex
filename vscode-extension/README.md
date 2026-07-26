@@ -2,6 +2,14 @@
 
 **A full Git GUI embedded directly in VS Code** — same visual design as Git Vertex Desktop, inspired by the best Git clients.
 
+## Requirements
+
+**git 2.40 or newer is recommended** (2.28 minimum). Everything works from 2.28
+on, except predicting conflicts before a merge, rebase, cherry-pick or revert:
+that uses `git merge-tree --merge-base=…`, added in git 2.40. On an older git the
+operation still runs, just without the warning — the extension says so once. Worth
+knowing on macOS, whose bundled git is still 2.39.
+
 ## Features
 
 ### Commit Graph

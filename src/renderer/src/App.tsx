@@ -40,6 +40,7 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
   onClose: () => void
   onSelectCommit: (hash: string) => void
 }) {
+  const { t } = useLang()
   const [data, setData] = useState<{
     ahead: { hash: string; shortHash: string; message: string }[]
     behind: { hash: string; shortHash: string; message: string }[]
@@ -57,19 +58,19 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
     <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bc-modal">
         <div className="bc-header">
-          <span className="bc-title">Comparaison : <code>{currentBranch}</code> ↔ <code>{otherBranch}</code></span>
+          <span className="bc-title">{t('bc.title')} <code>{currentBranch}</code> ↔ <code>{otherBranch}</code></span>
           <button className="bc-close" onClick={onClose}>×</button>
         </div>
         {loading ? (
-          <div className="bc-loading">Chargement…</div>
+          <div className="bc-loading">{t('bc.loading')}</div>
         ) : (
           <div className="bc-grid">
             <div className="bc-col">
               <div className="bc-col-header" style={{ color: '#58a6ff' }}>
-                Dans <code>{otherBranch}</code> mais pas dans <code>{currentBranch}</code> ({data.ahead.length})
+                {t('bc.in')} <code>{otherBranch}</code> {t('bc.butNotIn')} <code>{currentBranch}</code> ({data.ahead.length})
               </div>
               <div className="bc-list">
-                {data.ahead.length === 0 && <div className="bc-empty">Aucun commit</div>}
+                {data.ahead.length === 0 && <div className="bc-empty">{t('bc.noCommit')}</div>}
                 {data.ahead.map(c => (
                   <div key={c.hash} className="bc-row" onClick={() => { onSelectCommit(c.hash); onClose() }}>
                     <code className="bc-hash">{c.shortHash}</code>
@@ -80,10 +81,10 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
             </div>
             <div className="bc-col">
               <div className="bc-col-header" style={{ color: '#3fb950' }}>
-                Dans <code>{currentBranch}</code> mais pas dans <code>{otherBranch}</code> ({data.behind.length})
+                {t('bc.in')} <code>{currentBranch}</code> {t('bc.butNotIn')} <code>{otherBranch}</code> ({data.behind.length})
               </div>
               <div className="bc-list">
-                {data.behind.length === 0 && <div className="bc-empty">Aucun commit</div>}
+                {data.behind.length === 0 && <div className="bc-empty">{t('bc.noCommit')}</div>}
                 {data.behind.map(c => (
                   <div key={c.hash} className="bc-row" onClick={() => { onSelectCommit(c.hash); onClose() }}>
                     <code className="bc-hash">{c.shortHash}</code>
@@ -385,6 +386,23 @@ export default function App() {
     if (type === 'ok') toastApi.success(msg, action, sticky)
     else toastApi.error(msg, action, sticky)
   }, [toastApi])
+
+  // Tell the user once when their git is too old for the conflict prediction.
+  // It fails open — predictConflicts returns nothing and the operation proceeds —
+  // so the warning it is supposed to raise before a merge or rebase simply never
+  // appears, and nothing on screen says why.
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const settings = await window.gitAPI.settingsGetAll().catch(() => null)
+      if (cancelled || !settings || settings.gitVersionNoticeShown === 'true') return
+      const caps = await window.gitAPI.getGitCapabilities().catch(() => null)
+      if (cancelled || !caps?.version || caps.conflictPrediction) return
+      showToast(t('toast.gitTooOld', caps.version, caps.minimumForPrediction ?? '2.40'), 'err', undefined, true)
+      window.gitAPI.settingsSet('gitVersionNoticeShown', 'true')
+    })()
+    return () => { cancelled = true }
+  }, [showToast, t])
 
   // ── Load stashes ───────────────────────────────────────────
   const loadStashes = useCallback(async () => {
@@ -1663,9 +1681,9 @@ export default function App() {
             </div>
           ))}
           {rebaseHash && (
-            <div className="app-tab app-tab--tool active" title="Rebase interactif">
+            <div className="app-tab app-tab--tool active" title={t('tabs.rebase')}>
               <span className="app-tab-icon app-tab-icon--tool">⚡</span>
-              <span className="app-tab-name">Rebase interactif</span>
+              <span className="app-tab-name">{t('tabs.rebase')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); setRebaseHash(null) }}>×</button>
             </div>
