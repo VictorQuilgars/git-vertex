@@ -121,4 +121,5 @@ jobs:
           npm i -g git-vertex-mcp && gv-mcp
           \`\`\`
 
-          🔗 [npm](https://www.npmjs.com/package/git-vertex-mcp)"
+          🔗 [npm](https://www.npmjs.com/package/git-vertex-mcp)" \
+            --latest=false

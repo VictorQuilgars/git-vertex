@@ -123,4 +123,5 @@ jobs:
           npm i -g git-vertex-cli && gv
           \`\`\`
 
-          🔗 [npm](https://www.npmjs.com/package/git-vertex-cli)"
+          🔗 [npm](https://www.npmjs.com/package/git-vertex-cli)" \
+            --latest=false
