@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.21.0
+
+### Fixed
+- **Pull ignored the strategy you picked.** The chevron next to Pull offers Fetch All / fast-forward if possible / fast-forward only / rebase; the panel ran a plain `git pull` whatever you chose, so "fast-forward only" could still leave you with a merge commit.
+- **Partial stashes took everything.** The stash **+** menu asked whether to stash the index only, or only what isn't staged, then stashed the lot regardless — including your untracked files.
+- **Renaming a stash, pruning a remote, deleting the branches it leaves behind, and marking a default remote** did nothing at all: the menu entries were there, the operations behind them were not.
+- **A renamed stash kept its old label** — the list read the commit subject instead of the reflog message.
+- **A stash's diff came back empty**, though the code to produce it was there: the panel asked for `stashDiff` while the service called it `getStashDiff`.
+- **Push, publishing a branch, setting upstream and pushing or deleting a tag all assumed `origin`**, ignoring the repository's chosen default remote.
+- **External diff/merge tools and SSH key browse/generate** did nothing from Settings — they had no implementation on the extension side.
+
 ## 1.20.0
 
 ### Added

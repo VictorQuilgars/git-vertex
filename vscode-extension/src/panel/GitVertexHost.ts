@@ -10,12 +10,25 @@
 import * as vscode from 'vscode'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as os from 'os'
+import { execFile, spawn } from 'child_process'
+import { promisify } from 'util'
 import { GitService } from '../gitService'
+import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
 import { githubListPRs, githubListIssues } from '../githubApi'
 import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
+
+// An external diff/merge tool outlives the call that opened it: detached and
+// unref'd so it doesn't die with the extension host, with its error swallowed
+// (a missing binary is reported by the tool setting, not by a crash here).
+function spawnDetached(inv: { cmd: string; args: string[] }): void {
+  const child = spawn(inv.cmd, inv.args, { detached: true, stdio: 'ignore' })
+  child.on('error', () => { /* tool not found — nothing to clean up */ })
+  child.unref()
+}
 
 // Shared webview skeleton: loads the single React bundle (media/main.js) and
 // optionally injects a window.__GV_BOOT__ payload so the bundle can render a
@@ -259,6 +272,82 @@ export class GitVertexHost implements vscode.Disposable {
         await this._state.update('gvSettings', all)
         return { success: true }
       }
+      // ── Settings: external tools & SSH keys (v1.19.0 app-side) ──
+      // Not git operations, so they can't reach GitService's reflective
+      // forwarding — they need the extension host's own shell (dialogs, spawn,
+      // the gvSettings memento) exactly like the desktop uses Electron's.
+      case 'openExternalDiff': {
+        const tool = (this._state.get<Record<string, string>>('gvSettings', {}).externalDiffTool ?? '').trim()
+        if (!tool) return { success: false, error: 'No external diff tool configured' }
+        try {
+          const safeName = safeTempFileName(String(args[2] ?? 'file'))
+          const tmp = path.join(os.tmpdir(), `git-vertex-diff-${Date.now()}`)
+          fs.mkdirSync(tmp, { recursive: true })
+          const leftPath = path.join(tmp, `left-${safeName}`)
+          const rightPath = path.join(tmp, `right-${safeName}`)
+          fs.writeFileSync(leftPath, args[0] ?? '')
+          fs.writeFileSync(rightPath, args[1] ?? '')
+          const inv = buildToolInvocation(tool, leftPath, rightPath)
+          if (!inv) return { success: false, error: 'No external diff tool configured' }
+          spawnDetached(inv)
+          return { success: true }
+        } catch (e: any) {
+          return { success: false, error: e.message }
+        }
+      }
+      case 'openExternalMerge': {
+        const tool = (this._state.get<Record<string, string>>('gvSettings', {}).externalMergeTool ?? '').trim()
+        if (!tool) return { success: false, error: 'No external merge tool configured' }
+        if (!svc || !this._repoPath) return { success: false, error: 'No repo open' }
+        try {
+          const filepath = String(args[0] ?? '')
+          const versions = await svc.getConflictVersions(filepath)
+          const safeName = safeTempFileName(filepath)
+          const tmp = path.join(os.tmpdir(), `git-vertex-merge-${Date.now()}`)
+          fs.mkdirSync(tmp, { recursive: true })
+          const oursPath = path.join(tmp, `ours-${safeName}`)
+          const theirsPath = path.join(tmp, `theirs-${safeName}`)
+          const mergedPath = path.join(tmp, `merged-${safeName}`)
+          fs.writeFileSync(oursPath, versions.ours ?? '')
+          fs.writeFileSync(theirsPath, versions.theirs ?? '')
+          // The merged file starts as the conflicted working copy, so the tool
+          // opens on the markers the user is actually looking at.
+          const abs = path.isAbsolute(filepath) ? filepath : path.join(this._repoPath, filepath)
+          try { fs.copyFileSync(abs, mergedPath) } catch { fs.writeFileSync(mergedPath, '') }
+          const inv = buildToolInvocation(tool, oursPath, theirsPath, mergedPath)
+          if (!inv) return { success: false, error: 'No external merge tool configured' }
+          spawnDetached(inv)
+          return { success: true, mergedPath }
+        } catch (e: any) {
+          return { success: false, error: e.message }
+        }
+      }
+      // Reads back the merged file once the user has saved in the external tool.
+      case 'readTempFile': {
+        try { return { content: fs.readFileSync(String(args[0]), 'utf-8') } }
+        catch (e: any) { return { error: e.message } }
+      }
+      case 'sshBrowseKey': {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectFolders: false,
+          canSelectMany: false,
+          title: args[0] === 'private' ? 'Select the SSH private key' : 'Select the SSH public key',
+          defaultUri: vscode.Uri.file(path.join(os.homedir(), '.ssh')),
+        })
+        return { path: picked?.[0]?.fsPath ?? null }
+      }
+      case 'sshGenerateKey': {
+        try {
+          const sshDir = path.join(os.homedir(), '.ssh')
+          fs.mkdirSync(sshDir, { recursive: true })
+          const base = findAvailableKeyPath(sshDir)
+          await promisify(execFile)('ssh-keygen', ['-t', 'ed25519', '-f', base, '-N', String(args[0] ?? '')])
+          return { privateKey: base, publicKey: `${base}.pub` }
+        } catch (e: any) {
+          return { error: e.message }
+        }
+      }
       case 'appGetInfo': return { platform: process.platform, version: '1.5.0' }
       case 'openExternal': { vscode.env.openExternal(vscode.Uri.parse(args[0])); return { success: true } }
       case 'openInEditor': {
@@ -482,6 +571,10 @@ export class GitVertexHost implements vscode.Disposable {
       // The renderer calls `resolveConflictSide` (desktop preload name); the
       // service method is `resolveConflictWithSide`.
       case 'resolveConflictSide': return svc.resolveConflictWithSide(args[0], args[1])
+      // Same shape: preload says `stashDiff`, the service says `getStashDiff`.
+      // Reflective forwarding matches on the preload name, so without this
+      // alias the stash diff answered not-implemented while the code existed.
+      case 'stashDiff': return svc.getStashDiff(args[0])
       case 'todoGet':
         if (this._rebaseTodo) return { text: this._rebaseTodo.document.getText() }
         break
