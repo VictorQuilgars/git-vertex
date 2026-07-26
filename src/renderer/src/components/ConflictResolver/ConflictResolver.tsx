@@ -176,6 +176,8 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
 
   const oursRef = React.useRef<HTMLDivElement>(null)
   const theirsRef = React.useRef<HTMLDivElement>(null)
+  // The merged output's line-number gutter, kept in step with its text column.
+  const outputNumbersRef = React.useRef<HTMLDivElement>(null)
   const isSyncing = React.useRef(false)
 
   // Raw on-disk content behind the chunks currently displayed, so a watcher
@@ -623,7 +625,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
             )}
           </div>
           <div className="mt-output-wrapper">
-            <div className="mt-output-line-numbers">
+            <div className="mt-output-line-numbers" ref={outputNumbersRef}>
               {(manualOutput !== null ? manualOutput.split('\n') : outputLines).map((_, i) => (
                 <div key={i} className="mt-line-num">{i + 1}</div>
               ))}
@@ -638,7 +640,16 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
                 autoFocus
               />
             ) : (
-              <div className="mt-output-lines">
+              <div
+                className="mt-output-lines"
+                onScroll={e => {
+                  // Only this column scrolls; drag the gutter along or the
+                  // numbers stop matching the lines they belong to.
+                  if (outputNumbersRef.current) {
+                    outputNumbersRef.current.scrollTop = e.currentTarget.scrollTop
+                  }
+                }}
+              >
                 {outputLines.map((l, i) => (
                   <div key={i} className={`mt-line mt-output-line mt-output-line--${l.source}`}>
                     <span className="mt-line-content">{l.text || ' '}</span>

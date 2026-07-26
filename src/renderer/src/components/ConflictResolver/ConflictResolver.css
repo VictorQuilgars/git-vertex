@@ -422,6 +422,11 @@
   background: #0d1117;
   color: #6e7681;
   user-select: none;
+  /* The gutter is scrolled from JS to follow .mt-output-lines (it cannot share
+     that element's scrollbar: the text scrolls horizontally too, and the numbers
+     must not slide out sideways with it). `visible` would pin scrollTop at 0,
+     leaving the numbers behind as soon as the output is taller than the pane. */
+  overflow-y: hidden;
 }
 .mt-output-line-numbers .mt-line-num {
   padding-right: 8px;

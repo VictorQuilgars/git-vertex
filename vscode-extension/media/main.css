@@ -5792,6 +5792,7 @@
   background: #0d1117;
   color: #6e7681;
   user-select: none;
+  overflow-y: hidden;
 }
 .mt-output-line-numbers .mt-line-num {
   padding-right: 8px;

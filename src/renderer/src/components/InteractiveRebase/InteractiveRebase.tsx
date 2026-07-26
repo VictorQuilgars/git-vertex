@@ -219,7 +219,7 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
               {msgGroup && (
                 <div className="ir-msg-editor">
                   <span className="ir-msg-editor-label">
-                    Message final ({msgGroup.memberIndexes.length} commit{msgGroup.memberIndexes.length > 1 ? 's' : ''})
+                    {t('ir.finalMessage', msgGroup.memberIndexes.length)}
                   </span>
                   <textarea
                     className="ir-msg-textarea"

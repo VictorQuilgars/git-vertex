@@ -60178,6 +60178,7 @@ Ce fichier n'est pas suivi par Git \u2014 il sera perdu.`,
     "panel.history": "Historique de ce fichier",
     "panel.noFiles": (n) => `${n} fichier${n !== 1 ? "s" : ""}`,
     "panel.loading": "Chargement\u2026",
+    "panel.noFileChanged": "Aucun fichier modifi\xE9 \u2014 les commits de fusion n'en listent aucun.",
     "panel.noDiff": "Aucun diff",
     "panel.close": "Fermer",
     "common.close": "Fermer",
@@ -60946,6 +60947,7 @@ Les commits au-del\xE0 seront perdus pour cette branche.`,
     "ir.from": "depuis",
     "ir.cancel": "Annuler",
     "ir.running": "Rebase en cours\u2026",
+    "ir.finalMessage": (n) => `Message final (${n} commit${n > 1 ? "s" : ""})`,
     "ir.start": (n) => `\u26A1 Lancer le rebase (${n} commits)`,
     "rp.folderAction": (action) => `${action} dossier`,
     "rp.viewChanges": "Voir les changements",
@@ -61387,6 +61389,7 @@ This file is not tracked by Git \u2014 it will be lost.`,
     "panel.history": "File history",
     "panel.noFiles": (n) => `${n} file${n !== 1 ? "s" : ""}`,
     "panel.loading": "Loading\u2026",
+    "panel.noFileChanged": "No file changed \u2014 merge commits do not list any.",
     "panel.noDiff": "No diff",
     "panel.close": "Close",
     "common.close": "Close",
@@ -62155,6 +62158,7 @@ Commits beyond this point will be lost for that branch.`,
     "ir.from": "from",
     "ir.cancel": "Cancel",
     "ir.running": "Rebasing\u2026",
+    "ir.finalMessage": (n) => `Final message (${n} commit${n > 1 ? "s" : ""})`,
     "ir.start": (n) => `\u26A1 Start rebase (${n} commits)`,
     "rp.folderAction": (action) => `${action} folder`,
     "rp.viewChanges": "View changes",
@@ -66096,6 +66100,7 @@ ${line.date}`,
   function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordWithMessage, showToast }) {
     const { t: t2 } = useLang();
     const [files, setFiles] = (0, import_react10.useState)([]);
+    const [filesLoading, setFilesLoading] = (0, import_react10.useState)(true);
     const [body, setBody] = (0, import_react10.useState)("");
     const [selectedFile, setSelectedFile] = (0, import_react10.useState)(null);
     const [view, setView] = (0, import_react10.useState)("files");
@@ -66142,13 +66147,14 @@ ${line.date}`,
       setAiExplanation(null);
       setCachedExplanation(null);
       setExplOpen(false);
+      setFilesLoading(true);
       Promise.all([
         window.gitAPI.getCommitFiles(commit.hash),
         window.gitAPI.getCommitBody(commit.hash)
       ]).then(([fr2, br]) => {
         setFiles(fr2.files ?? []);
         setBody(br.body ?? "");
-      });
+      }).finally(() => setFilesLoading(false));
       window.gitAPI.aiGetExplanations?.().then((r) => {
         const e = r?.explanations?.[commit.hash];
         if (e)
@@ -66458,7 +66464,7 @@ ${line.date}`,
                 i
               );
             }),
-            files.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "rp-empty", children: t2("panel.loading") })
+            files.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "rp-empty", children: filesLoading ? t2("panel.loading") : t2("panel.noFileChanged") })
           ] }),
           fileHistoryPath && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             FileHistoryModal,
@@ -68984,13 +68990,7 @@ ${agents.map((a) => `\u25CF ${a.name} (pid ${a.pid})`).join("\n")}` : wt.path,
                     }
                   ),
                   msgGroup && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "ir-msg-editor", children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "ir-msg-editor-label", children: [
-                      "Message final (",
-                      msgGroup.memberIndexes.length,
-                      " commit",
-                      msgGroup.memberIndexes.length > 1 ? "s" : "",
-                      ")"
-                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "ir-msg-editor-label", children: t2("ir.finalMessage", msgGroup.memberIndexes.length) }),
                     /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                       "textarea",
                       {
@@ -70100,6 +70100,7 @@ ${lineStrings.join("\n")}
     };
     const oursRef = import_react18.default.useRef(null);
     const theirsRef = import_react18.default.useRef(null);
+    const outputNumbersRef = import_react18.default.useRef(null);
     const isSyncing = import_react18.default.useRef(false);
     const loadedRawRef = import_react18.default.useRef(null);
     const userEditedRef = import_react18.default.useRef(false);
@@ -70520,7 +70521,7 @@ ${lineStrings.join("\n")}
             manualOutput !== null && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("button", { className: "mt-btn mt-btn-edit", onClick: () => setManualOutput(null), children: t2("cr.cancelEdit") })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "mt-output-wrapper", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-output-line-numbers", children: (manualOutput !== null ? manualOutput.split("\n") : outputLines).map((_, i) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-line-num", children: i + 1 }, i)) }),
+            /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-output-line-numbers", ref: outputNumbersRef, children: (manualOutput !== null ? manualOutput.split("\n") : outputLines).map((_, i) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-line-num", children: i + 1 }, i)) }),
             manualOutput !== null ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
               "textarea",
               {
@@ -70534,7 +70535,18 @@ ${lineStrings.join("\n")}
                 wrap: "off",
                 autoFocus: true
               }
-            ) : /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "mt-output-lines", children: outputLines.map((l, i) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: `mt-line mt-output-line mt-output-line--${l.source}`, children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "mt-line-content", children: l.text || " " }) }, i)) })
+            ) : /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+              "div",
+              {
+                className: "mt-output-lines",
+                onScroll: (e) => {
+                  if (outputNumbersRef.current) {
+                    outputNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
+                  }
+                },
+                children: outputLines.map((l, i) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: `mt-line mt-output-line mt-output-line--${l.source}`, children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "mt-line-content", children: l.text || " " }) }, i))
+              }
+            )
           ] })
         ] })
       ] })
