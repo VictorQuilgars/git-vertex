@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.22.0
+
+### Fixed
+- **Every message the panel raised after a git action was empty.** "Tag created", "Branch deleted", "Stash popped", "Rebase continued" — forty of them looked up translation keys that had never been defined, so each action ended with a toast containing nothing. The panel is bundled by esbuild, which type-checks nothing, so no build ever complained.
+- **The commit-message editor crashed on a squash step**, and the file history crashed on an empty blame pane: both called the translation helper where it was out of scope.
+- **French strings in an English panel** — the search box placeholder, the interactive rebase view ("Lancer le rebase", "Abandonner"), the conflict banner, the reword editor, the toolbar tooltips and every confirmation prompt ("Supprimer la branche …?").
+- **git's output no longer depends on your system language.** Every git invocation runs with a fixed locale, so errors surface in English rather than in the language of the machine.
+
+### Added
+- **A one-time notice when git is too old** for conflict prediction: it needs `git merge-tree --merge-base=…` (git 2.40), and below that the prediction returned nothing, so the warning before a merge or rebase never appeared. Everything else works from git 2.28 on.
+
 ## 1.21.0
 
 ### Fixed
