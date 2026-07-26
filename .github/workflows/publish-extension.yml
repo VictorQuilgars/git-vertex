@@ -159,6 +159,11 @@ jobs:
             echo "🔗 [Open VSX](https://open-vsx.org/extension/VictorQuilgars/git-vertex)"
           } > /tmp/release-notes.md
 
+      # --latest=false is load-bearing: the GitHub API defaults make_latest to
+      # true, so an extension release published after a desktop one would steal
+      # the "Latest" badge from the release that actually carries latest.yml /
+      # latest-mac.yml — the feed electron-updater reads. Happened on
+      # ext-v1.20.0 (26/07/2026) and had to be undone by hand.
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -166,4 +171,5 @@ jobs:
           gh release create "ext-v${{ env.VERSION }}" \
             "vscode-extension/git-vertex-${{ env.VERSION }}.vsix" \
             --title "Git Vertex VS Code Extension v${{ env.VERSION }}" \
-            --notes-file /tmp/release-notes.md
+            --notes-file /tmp/release-notes.md \
+            --latest=false
