@@ -254,7 +254,7 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel }
               <div className="commit-sub">
                 <span>{commit.author}</span>
                 <span className="dot">·</span>
-                <span>{new Date(commit.date).toLocaleString('fr-FR')}</span>
+                <span>{new Date(commit.date).toLocaleString(t('graph.dateLocale'))}</span>
               </div>
             </div>
           </>
@@ -285,7 +285,7 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel }
       {loading ? (
         <div className="diff-loading">
           <div className="spinner" />
-          <span>Chargement du diff…</span>
+          <span>{t('dv.loading')}</span>
         </div>
       ) : (
         <>

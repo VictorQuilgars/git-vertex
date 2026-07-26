@@ -152,11 +152,11 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
     if (!window.confirm(t('cp.discardConfirm', path))) return
     const result = await window.gitAPI.discardFile(path)
     if (result.success) await load()
-    else showToast(`Erreur : ${result.error}`, 'err')
+    else showToast(t('cp.error', result.error), 'err')
   }
 
   const handleCommit = async () => {
-    if (!commitMessage.trim()) { showToast('Le message de commit est requis', 'err'); return }
+    if (!commitMessage.trim()) { showToast(t('cp.msgRequired'), 'err'); return }
     if (changes.staged.length === 0 && !amend) { showToast(t('cp.noStaged'), 'err'); return }
     setCommitting(true)
     const result = await window.gitAPI.commit(commitMessage.trim(), amend)

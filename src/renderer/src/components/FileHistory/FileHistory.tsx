@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import DiffViewer from '../DiffViewer/DiffViewer'
 import type { CommitNode } from '../../types'
+import { useLang } from '../../i18n/LanguageContext'
 import './FileHistory.css'
 
 interface HistoryEntry {
@@ -36,6 +37,7 @@ function toCommitNode(e: HistoryEntry): CommitNode {
 }
 
 export default function FileHistory({ file }: { file: string }) {
+  const { t } = useLang()
   const [entries, setEntries] = useState<HistoryEntry[]>([])
   const [selected, setSelected] = useState<HistoryEntry | null>(null)
   const [mode, setMode] = useState<'diff' | 'blame'>('diff')
@@ -71,15 +73,15 @@ export default function FileHistory({ file }: { file: string }) {
 
   const relDate = (iso: string): string => {
     const d = new Date(iso)
-    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+    return isNaN(d.getTime()) ? iso : d.toLocaleDateString(t('graph.dateLocale'), { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
   return (
     <div className="fh-page">
       <div className="fh-header">
-        <span className="fh-title">🕘 Historique</span>
+        <span className="fh-title">{t('fh.title')}</span>
         <code className="fh-file">{file}</code>
-        <span className="fh-count">{entries.length} commit{entries.length > 1 ? 's' : ''}</span>
+        <span className="fh-count">{t('fh.commitCount', entries.length)}</span>
         <span className="fh-spring" />
         <div className="fh-toggle">
           <button className={mode === 'diff' ? 'active' : ''} onClick={() => setMode('diff')}>Diff</button>
@@ -88,18 +90,18 @@ export default function FileHistory({ file }: { file: string }) {
         {api.openDiff && selected && (
           <button
             className="fh-native"
-            title="Ouvrir le diff natif VS Code"
+            title={t('fh.openNativeDiff')}
             onClick={() => api.openDiff({ type: 'commit', commitHash: selected.hash, filePath: file })}
           >
-            ↗ Diff natif
+            {t('fh.nativeDiff')}
           </button>
         )}
       </div>
 
       <div className="fh-body">
         <div className="fh-list">
-          {loadingList && <div className="fh-empty">Chargement…</div>}
-          {!loadingList && entries.length === 0 && <div className="fh-empty">Aucun historique pour ce fichier</div>}
+          {loadingList && <div className="fh-empty">{t('fh.loading')}</div>}
+          {!loadingList && entries.length === 0 && <div className="fh-empty">{t('fh.noHistory')}</div>}
           {entries.map(e => (
             <button
               key={e.hash}
@@ -126,7 +128,7 @@ export default function FileHistory({ file }: { file: string }) {
             />
           ) : (
             <div className="fh-blame">
-              {loadingPane && <div className="fh-empty">Chargement…</div>}
+              {loadingPane && <div className="fh-empty">{t('fh.loading')}</div>}
               {!loadingPane && blame.length === 0 && (
                 <div className="fh-empty">{t('fh.noBlame')}</div>
               )}
@@ -134,7 +136,7 @@ export default function FileHistory({ file }: { file: string }) {
                 <div key={i} className="fh-blame-line">
                   <button
                     className="fh-blame-hash"
-                    title={`Voir ${l.shortHash}`}
+                    title={t('fh.viewCommit', l.shortHash)}
                     onClick={() => selectByHash(l.hash)}
                   >
                     {l.shortHash}

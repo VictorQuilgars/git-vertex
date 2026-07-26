@@ -64,7 +64,7 @@ export function formatAnnotation(
   const values: Record<string, string> = {
     author: isYou ? 'You' : line.author,
     ago: formatRelative(line.authorTime, opts.now),
-    date: new Date(line.authorTime * 1000).toLocaleDateString(),
+    date: new Date(line.authorTime * 1000).toLocaleDateString('en-US'),
     message: truncate(line.summary, opts.messageLength ?? 60),
     hash: line.shortHash,
   }

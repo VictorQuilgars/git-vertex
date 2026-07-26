@@ -51,6 +51,11 @@ declare global {
       openRepo: () => Promise<{ path?: string; name?: string; error?: string }>
       setRepo: (path: string) => Promise<{ path?: string; name?: string; error?: string }>
       getRecentRepos: () => Promise<string[]>
+      getGitCapabilities: () => Promise<{
+        version: string | null
+        conflictPrediction: boolean
+        minimumForPrediction?: string
+      }>
       removeRecentRepo: (path: string) => Promise<string[]>
       // Read
       getLog: (o?: { maxCount?: number; all?: boolean; refs?: string[] }) => Promise<{ commits?: CommitNode[]; error?: string }>

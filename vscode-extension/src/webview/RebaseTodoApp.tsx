@@ -86,7 +86,7 @@ export default function RebaseTodoApp() {
   useEffect(() => {
     window.gitAPI.todoGet()
       .then((r: { text: string }) => { setEntries(parseTodo(r?.text ?? '')); setLoading(false) })
-      .catch(() => { setError('Impossible de lire le fichier de rebase'); setLoading(false) })
+      .catch(() => { setError(t('rt.readError')); setLoading(false) })
     // Best-effort — only used for the same branch/onto ref chips the
     // "Rebase en cours" tab shows; harmless if this ever comes back empty.
     window.gitAPI.getRebaseState?.().then((s: any) => {
@@ -146,7 +146,7 @@ export default function RebaseTodoApp() {
   }, [entries])
 
   const handleAbort = useCallback(async () => {
-    const ok = await window.gitAPI.uiConfirm('Abandonner le rebase interactif ?')
+    const ok = await window.gitAPI.uiConfirm(t('rt.abortConfirm'))
     if (ok) await window.gitAPI.todoAbort()
   }, [])
 
@@ -154,7 +154,7 @@ export default function RebaseTodoApp() {
     <div className="rp-page">
       <div className="rp-header">
         <div className="rp-header-top">
-          <span className="rp-title">⚡ Rebase interactif</span>
+          <span className="rp-title">{t('rt.title')}</span>
         </div>
         <div className="rp-header-refs">
           {headName && <span className="rp-ref-chip"><span className="rp-ref-icon">⑂</span>{headName}</span>}
@@ -175,7 +175,7 @@ export default function RebaseTodoApp() {
       )}
 
       <div className="rp-steps">
-        {loading && <div className="rp-empty">Chargement…</div>}
+        {loading && <div className="rp-empty">{t('rt.loading')}</div>}
         {!loading && entries.length === 0 && <div className="rp-empty">{t('ext.rebase.empty')}</div>}
         {entries.map((entry, i) => (
           <div
@@ -221,10 +221,10 @@ export default function RebaseTodoApp() {
       </div>
 
       <div className="rp-footer">
-        <button className="rp-btn rp-btn--abort" onClick={handleAbort}>Abandonner</button>
+        <button className="rp-btn rp-btn--abort" onClick={handleAbort}>{t('rt.abort')}</button>
         <span className="rp-footer-spring" />
         <button className="rp-btn rp-btn--continue" onClick={handleLaunch} disabled={loading || entries.length === 0}>
-          ⚡ Lancer le rebase
+          {t('rt.start')}
         </button>
       </div>
     </div>

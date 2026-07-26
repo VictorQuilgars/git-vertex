@@ -165,7 +165,7 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
       <div className={embedded ? 'ir-panel ir-panel--embedded' : 'ir-panel'}>
         <div className="ir-header">
           <span className="ir-title">⚡ Interactive Rebase</span>
-          <span className="ir-base">depuis <code>{baseHash.slice(0, 7)}</code></span>
+          <span className="ir-base">{t('ir.from')} <code>{baseHash.slice(0, 7)}</code></span>
           <button className="ir-close" title={t('common.close')} onClick={onClose}>×</button>
         </div>
 
@@ -236,13 +236,13 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
         </div>
 
         <div className="ir-footer">
-          <button className="ir-cancel" onClick={onClose}>Annuler</button>
+          <button className="ir-cancel" onClick={onClose}>{t('ir.cancel')}</button>
           <button
             className="ir-launch"
             onClick={handleLaunch}
             disabled={running || entries.length === 0}
           >
-            {running ? 'Rebase en cours…' : `⚡ Lancer le rebase (${entries.length} commits)`}
+            {running ? t('ir.running') : t('ir.start', entries.length)}
           </button>
         </div>
       </div>

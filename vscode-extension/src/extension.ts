@@ -10,6 +10,7 @@ import { RebaseTodoEditor, isRebaseTodoEditorOpenFor, setOnRebaseTodoEditorClose
 import { ConflictEditor } from './panel/ConflictEditor'
 import { CommitMsgEditor } from './panel/CommitMsgEditor'
 import { InlineBlameController } from './blame/inlineBlame'
+import { gitEnv, parseGitVersion, isGitVersionAtLeast, MIN_GIT_FOR_CONFLICT_PREDICTION } from './gitService'
 import { BlameCodeLensProvider } from './blame/codeLens'
 import { execSync } from 'child_process'
 
@@ -120,20 +121,20 @@ async function toggleSequenceEditor(): Promise<void> {
     execSync('git config --global --unset sequence.editor')
     try { execSync('git config --global --unset core.editor') } catch { /* wasn't set */ }
     vscode.window.showInformationMessage(
-      'Git Vertex : sequence.editor et core.editor retirés — git réutilise son éditeur par défaut.')
+      'Git Vertex: sequence.editor and core.editor removed — git falls back to its own editor.')
     return
   }
   try {
     execSync('code --version', { stdio: 'ignore' })
   } catch {
     vscode.window.showErrorMessage(
-      'La commande "code" est introuvable dans le PATH. Installez-la via la palette : « Shell Command: Install \'code\' command in PATH ».')
+      'The "code" command is not on your PATH. Install it from the palette: "Shell Command: Install \'code\' command in PATH".')
     return
   }
   execSync('git config --global sequence.editor "code --wait"')
   execSync('git config --global core.editor "code --wait"')
   vscode.window.showInformationMessage(
-    'Les rebases interactifs (planification, reword, squash) s\'ouvriront maintenant dans l\'éditeur Git Vertex.')
+    'Interactive rebases (planning, reword, squash) will now open in the Git Vertex editor.')
 }
 
 // ── Rebase detection → auto-open the rebase tab ────────────────
@@ -157,9 +158,9 @@ function maybeSuggestSequenceEditor(context: vscode.ExtensionContext): void {
   if (current) return
   void context.globalState.update('gvSeqEditorPrompted', true)
   vscode.window.showInformationMessage(
-    'Ouvrir les prochains « git rebase -i » dans l\'éditeur visuel Git Vertex ?',
-    'Activer',
-  ).then(a => { if (a === 'Activer') void toggleSequenceEditor() })
+    'Open the next "git rebase -i" in the visual Git Vertex editor?',
+    'Enable',
+  ).then(a => { if (a === 'Enable') void toggleSequenceEditor() })
 }
 
 function rebaseInProgress(gitDir: string): boolean {
@@ -227,6 +228,26 @@ function setupRebaseWatch(context: vscode.ExtensionContext, repoRoot: string): v
 // ── Activation ────────────────────────────────────────────────
 // Open the changelog the first time a new version runs (like VS Code's own
 // release-notes tab). A fresh install just records the version, no tab.
+// Said once per install, then never again. The conflict prediction fails open on
+// an older git — the operation just proceeds without its warning — so without
+// this the user has a feature they believe in and never see run.
+async function notifyIfGitTooOld(context: vscode.ExtensionContext): Promise<void> {
+  if (context.globalState.get<boolean>('gvGitVersionNoticed')) return
+  try {
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const { stdout } = await promisify(execFile)('git', ['--version'], { env: gitEnv() })
+    const version = parseGitVersion(stdout)
+    // An unreadable version is not a reason to nag.
+    if (!version || isGitVersionAtLeast(version, MIN_GIT_FOR_CONFLICT_PREDICTION)) return
+    await context.globalState.update('gvGitVersionNoticed', true)
+    void vscode.window.showWarningMessage(
+      `Git Vertex: git ${version} detected — predicting conflicts before a merge or rebase ` +
+      `needs git ${MIN_GIT_FOR_CONFLICT_PREDICTION} or newer. Everything else works; update git to enable it.`,
+    )
+  } catch { /* no git on PATH, or it would not run — nothing useful to say */ }
+}
+
 async function showWhatsNewIfUpdated(context: vscode.ExtensionContext): Promise<void> {
   const current = (context.extension?.packageJSON?.version as string | undefined) ?? ''
   if (!current) return
@@ -241,6 +262,7 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBar = new GitVertexStatusBar('gitVertex.open')
 
   void showWhatsNewIfUpdated(context)
+  void notifyIfGitTooOld(context)
 
   // Create the WebviewViewProvider for the bottom panel
   const provider = new GitVertexViewProvider(context.extensionUri, context.globalState)
@@ -320,7 +342,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('gitVertex.setGithubToken', async () => {
       const token = await vscode.window.showInputBox({
-        prompt: 'GitHub Personal Access Token (repo scope) — laissez vide pour effacer',
+        prompt: 'GitHub Personal Access Token (repo scope) — leave empty to clear',
         password: true,
         ignoreFocusOut: true,
       })
@@ -328,7 +350,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const all = context.globalState.get<Record<string, string>>('gvSettings', {})
       all.githubToken = token
       await context.globalState.update('gvSettings', all)
-      vscode.window.showInformationMessage(token ? 'Token GitHub enregistré.' : 'Token GitHub effacé.')
+      vscode.window.showInformationMessage(token ? 'GitHub token saved.' : 'GitHub token cleared.')
     }),
     // Compare two refs (branches/tags) in a tab; refs are picked in the tab.
     vscode.commands.registerCommand('gitVertex.compare', () => {
@@ -353,11 +375,11 @@ export function activate(context: vscode.ExtensionContext): void {
       const given = typeof uri === 'string' ? vscode.Uri.parse(uri) : uri
       const target = given ?? vscode.window.activeTextEditor?.document.uri
       if (!target || target.scheme !== 'file') {
-        vscode.window.showWarningMessage('Ouvrez un fichier pour afficher son historique.')
+        vscode.window.showWarningMessage('Open a file to see its history.')
         return
       }
       const root = getRepoRootForFile(target.fsPath)
-      if (!root) { vscode.window.showWarningMessage('Ce fichier n\'est pas dans un dépôt Git.'); return }
+      if (!root) { vscode.window.showWarningMessage('This file is not inside a Git repository.'); return }
       const rel = path.relative(root, target.fsPath).split(path.sep).join('/')
       openGitVertexFileHistoryTab(context.extensionUri, context.globalState, root, rel)
     }),

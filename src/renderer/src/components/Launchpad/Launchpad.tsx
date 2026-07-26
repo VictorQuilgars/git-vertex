@@ -37,18 +37,18 @@ type Tab = 'prs' | 'issues' | 'wips' | 'all' | 'snoozed'
 const itemKey = (r: Row) => `${r.repo}#${r.number}`
 const loadSet = (k: string): Set<string> => { try { return new Set(JSON.parse(localStorage.getItem(k) || '[]')) } catch { return new Set() } }
 
-function timeAgo(dateStr: string, lang: string): string {
+function timeAgo(dateStr: string, t: (key: any, ...args: any[]) => string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (diff < 60) return lang === 'fr' ? "à l'instant" : 'now'
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`
-  if (diff < 2592000) return `${Math.floor(diff / 86400)}${lang === 'fr' ? 'j' : 'd'}`
-  if (diff < 31536000) return `${Math.floor(diff / 2592000)}${lang === 'fr' ? 'M' : 'mo'}`
-  return `${Math.floor(diff / 31536000)}${lang === 'fr' ? 'an' : 'y'}`
+  if (diff < 60) return t('time.now')
+  if (diff < 3600) return t('time.min', Math.floor(diff / 60))
+  if (diff < 86400) return t('time.hour', Math.floor(diff / 3600))
+  if (diff < 2592000) return t('time.day', Math.floor(diff / 86400))
+  if (diff < 31536000) return t('time.month', Math.floor(diff / 2592000))
+  return t('time.year', Math.floor(diff / 31536000))
 }
 
 export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onOpenRepo, showToast }: Props) {
-  const { t, lang } = useLang()
+  const { t } = useLang()
   const [tab, setTab] = useState<Tab>('issues')
   const [wsFilter, setWsFilter] = useState<string>('')
   const [labelFilter, setLabelFilter] = useState<string>('')
@@ -358,7 +358,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
                     </td>
                     <td className="lp-col-status">
                       <span className={`lp-dot ${r.draft ? 'draft' : r.type}`} />
-                      <span className="lp-age">{timeAgo(r.updatedAt ?? r.createdAt, lang)}</span>
+                      <span className="lp-age">{timeAgo(r.updatedAt ?? r.createdAt, t)}</span>
                     </td>
                     <td className="lp-col-item">
                       <div className="lp-item-top">

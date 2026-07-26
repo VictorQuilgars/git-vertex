@@ -143,8 +143,8 @@ export default function ActivityRail({
       {hidden.length > 0 && (
         <button
           className={`gv-rail-btn ${activeHidden ? 'gv-rail-btn--active' : ''}`}
-          title={label('rail.more', 'Plus…')}
-          aria-label={label('rail.more', 'Plus…')}
+          title={label('rail.more', 'More…')}
+          aria-label={label('rail.more', 'More…')}
           onClick={openMenu}
         >
           {I('M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM1.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z')}
@@ -153,8 +153,8 @@ export default function ActivityRail({
       <div className="gv-rail-spacer" />
       <button
         className="gv-rail-btn gv-rail-btn--soon"
-        title={label('rail.board', 'Board (bientôt)')}
-        aria-label={label('rail.board', 'Board (bientôt)')}
+        title={label('rail.board', 'Board (coming soon)')}
+        aria-label={label('rail.board', 'Board (coming soon)')}
         disabled
       >
         {KANBAN_ICON}

@@ -9,6 +9,37 @@ import * as nodePath from 'path'
 import * as nodeChildProcess from 'child_process'
 import { CommitNode, BranchInfo, FileChange, WorkingChanges } from './types.js'
 
+// git localizes its messages, and this file reads several of them by their
+// English wording — "[origin/x: gone]" becomes "[origin/x : disparue]" under a
+// French locale, and "ahead 2" becomes "en avance de 2", so the branch tracking
+// counters silently read zero. Pin the locale on every invocation.
+function gitEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
+  return { ...process.env, LC_ALL: 'C', ...extra }
+}
+
+// simple-git needs a different shape: it screens the environment it is handed and
+// refuses the call on sight of EDITOR, VISUAL, PAGER, GIT_ASKPASS or any of ~19
+// other variables (@simple-git/argv-parser), while its .env(name, value) form
+// replaces the environment outright — git then loses $HOME and with it
+// ~/.gitconfig. Hence an explicit allow-list. Git's own configuration still
+// applies (core.sshCommand, ~/.ssh/config, credential.helper), $HOME being kept.
+const SIMPLE_GIT_ENV_KEYS = [
+  'HOME', 'PATH', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'SSH_AUTH_SOCK', 'XDG_CONFIG_HOME',
+  'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM',
+  'SystemRoot', 'APPDATA', 'LOCALAPPDATA', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH',
+  'ProgramData', 'ComSpec', 'PATHEXT', 'TEMP', 'TMP',
+]
+
+function simpleGitEnv(): Record<string, string> {
+  const env: Record<string, string> = {}
+  for (const key of SIMPLE_GIT_ENV_KEYS) {
+    const value = process.env[key]
+    if (value !== undefined) env[key] = value
+  }
+  env.LC_ALL = 'C'
+  return env
+}
+
 export class GitService {
   private git: SimpleGit
   public repoPath: string
@@ -20,7 +51,7 @@ export class GitService {
 
   constructor(repoPath: string) {
     this.repoPath = repoPath
-    this.git = simpleGit(repoPath)
+    this.git = simpleGit(repoPath).env(simpleGitEnv())
   }
 
   async checkRepo(): Promise<void> {
@@ -239,7 +270,7 @@ export class GitService {
     if (reverse) args.push('--reverse')
     args.push('-')
     return new Promise(resolve => {
-      const child = cp.execFile('git', args, { cwd: this.repoPath }, (err, _out, stderr) => {
+      const child = cp.execFile('git', args, { cwd: this.repoPath, env: gitEnv() }, (err, _out, stderr) => {
         if (err) resolve({ success: false, error: (stderr || err.message || '').trim() })
         else resolve({ success: true })
       })
@@ -841,7 +872,7 @@ export class GitService {
       fs.chmodSync(scriptFile, 0o755)
 
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
-        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile },
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile }),
         timeout: 30000
       })
       return { success: true }
@@ -918,7 +949,7 @@ export class GitService {
     const { promisify } = await import('util')
     const execFileAsync = promisify(execFile)
     await execFileAsync('git', ['-C', this.repoPath, ...args], {
-      env: { ...process.env, GIT_EDITOR: 'true' },
+      env: gitEnv({ GIT_EDITOR: 'true' }),
       timeout: 30000,
     })
   }
@@ -960,7 +991,7 @@ export class GitService {
       // GIT_EDITOR=true accepts the default message for squash/fixup/reword
       // instead of opening an editor (which would hang in this headless call).
       await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
-        env: { ...process.env, GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: 'true' },
+        env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: 'true' }),
         timeout: 30000
       })
       return { success: true }

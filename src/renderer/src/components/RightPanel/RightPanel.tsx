@@ -166,7 +166,7 @@ function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect,
         )}
         {actionIcon && (
           <button className={`st-action ${actionIcon === '+' ? 'st-stage' : 'st-unstage'}`}
-            title={`${actionTitle} dossier`}
+            title={t('rp.folderAction', actionTitle)}
             onClick={e => { e.stopPropagation(); onAction(allPaths(node)) }}>
             {actionIcon}
           </button>
@@ -219,8 +219,8 @@ function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }: {
     </div>
   )
 }
-function fmtDate(s: string) {
-  try { return new Date(s).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) } catch { return s }
+function fmtDate(s: string, locale: string) {
+  try { return new Date(s).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) } catch { return s }
 }
 const STATUS_META: Record<string, { label: string; color: string }> = {
   M: { label: 'M', color: '#58a6ff' }, A: { label: 'A', color: '#3fb950' },
@@ -262,7 +262,7 @@ function FileHistoryModal({ filepath, onClose, onSelectCommit }: {
               <code className="fh-hash">{c.shortHash}</code>
               <div className="fh-info">
                 <span className="fh-msg">{c.message}</span>
-                <span className="fh-meta">{c.author} · {fmtDate(c.date)}</span>
+                <span className="fh-meta">{c.author} · {fmtDate(c.date, t('graph.dateLocale'))}</span>
               </div>
             </div>
           ))}
@@ -497,7 +497,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
       {wipCount != null && wipCount > 0 && (
         <div className="cd-wip-banner">
           <span>{t('rp2.wipCount', wipCount)}</span>
-          <button className="cd-view-change-btn" onClick={onViewWip}>Voir les changements</button>
+          <button className="cd-view-change-btn" onClick={onViewWip}>{t('rp.viewChanges')}</button>
         </div>
       )}
 
@@ -619,7 +619,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             <GravatarAvatar email={commit.authorEmail} name={commit.author} sha={commit.hash} size={36} radius={6} />
             <div className="cd-author-mid">
               <span className="cd-author-name">{commit.author}</span>
-              <span className="cd-author-meta">authored {fmtDate(commit.date)}</span>
+              <span className="cd-author-meta">authored {fmtDate(commit.date, t('graph.dateLocale'))}</span>
             </div>
             {parentShort && (
               <button className="cd-parent-btn" onClick={() => onSelectCommit(commit.parents[0])}>
@@ -673,7 +673,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 
           {/* Files bar */}
           <div className="cd-files-bar">
-            <button className="cd-sort-btn" title="Trier">
+            <button className="cd-sort-btn" title={t('rp.sort')}>
               <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z"/>
               </svg>
@@ -690,7 +690,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             </div>
             <label className="cd-viewall">
               <input type="checkbox" checked={viewAll} onChange={e => setViewAll(e.target.checked)} />
-              <span>Tous les fichiers</span>
+              <span>{t('rp.allFiles')}</span>
             </label>
           </div>
 
@@ -1356,7 +1356,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                             <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
                             <span className="st-path" title={f.path}>{f.path}</span>
                             <DiffStat additions={f.additions} deletions={f.deletions} />
-                            {onOpenStagingEditor && <button className="st-action st-hunk-editor" title="Éditeur de staging (par bloc)" onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
+                            {onOpenStagingEditor && <button className="st-action st-hunk-editor" title={t('rp.hunkEditor')} onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
                             <button className="st-action st-stage" title={t('panel.stage.file', f.path)} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.stage([f.path])) }}>+</button>
                             <button className="st-action st-discard" title={t('panel.discard')} onClick={async e => {
                               e.stopPropagation()
@@ -1430,7 +1430,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                             <span className="st-badge" style={{ color: meta.color }}>{meta.label}</span>
                             <span className="st-path" title={f.path}>{f.path}</span>
                             <DiffStat additions={f.additions} deletions={f.deletions} />
-                            {onOpenStagingEditor && <button className="st-action st-hunk-editor" title="Éditeur de staging (par bloc)" onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
+                            {onOpenStagingEditor && <button className="st-action st-hunk-editor" title={t('rp.hunkEditor')} onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
                             <button className="st-action st-unstage" title={t('panel.unstaged')} onClick={e => { e.stopPropagation(); handle(() => window.gitAPI.unstage([f.path])) }}>−</button>
                           </div>
                         )
@@ -1652,7 +1652,7 @@ function ConflictPanel({
   }
   const markResolved = async (file: string) => {
     const r = await window.gitAPI.markResolved(file)
-    if (r && r.success === false) showToast(r.error ?? 'Échec', 'err')
+    if (r && r.success === false) showToast(r.error ?? t('rp.failed'), 'err')
     else { showToast(t('rp2.markedResolved', file)); onCommitSuccess() }
   }
 
@@ -1670,12 +1670,12 @@ function ConflictPanel({
     <div className="rp-content rp-conflict-mode">
       <div className="rp-conflict-header">
         <span className="cr-warning">⚠️</span>
-        <span className="cr-title">Conflits en cours : <strong>{conflictMode}</strong></span>
+        <span className="cr-title">{t('rp.conflictsInProgress')} <strong>{conflictMode}</strong></span>
       </div>
 
       <div className="rp-section">
         <div className="rp-section-header">
-          <span className="rp-section-title">Fichiers en conflit ({conflictFiles.length})</span>
+          <span className="rp-section-title">{t('rp.conflictedFiles')} ({conflictFiles.length})</span>
         </div>
         <div className="rp-file-list">
           {conflictFiles.length === 0 && <div className="rp-empty">{t('rp.allResolved')}</div>}
@@ -1699,10 +1699,10 @@ function ConflictPanel({
 
       <div className="rp-section">
         <div className="rp-section-header">
-          <span className="rp-section-title">Fichiers résolus ({resolvedFiles.length})</span>
+          <span className="rp-section-title">{t('rp.resolvedFiles')} ({resolvedFiles.length})</span>
         </div>
         <div className="rp-file-list">
-          {resolvedFiles.length === 0 && <div className="rp-empty">Aucun fichier résolu</div>}
+          {resolvedFiles.length === 0 && <div className="rp-empty">{t('rp.noResolved')}</div>}
           {resolvedFiles.map(f => (
             <div key={f.path} className="rp-file-row rp-file-resolved">
               <span className="rp-file-status" style={{ color: '#3fb950' }}>✓</span>
@@ -1725,7 +1725,7 @@ function ConflictPanel({
             style={{ flex: 1, backgroundColor: '#21262d', color: '#f85149' }}
             onClick={onConflictAbort}
           >
-            Annuler le {conflictMode}
+            {t('rp.abortMode', conflictMode)}
           </button>
           <button
             className="rp-btn rp-btn-commit"
@@ -1733,7 +1733,7 @@ function ConflictPanel({
             disabled={!allResolved || !commitMsg.trim() || committing}
             onClick={doCommit}
           >
-            {committing ? 'En cours…' : 'Commit & Merge'}
+            {committing ? t('rp.inProgress') : 'Commit & Merge'}
           </button>
         </div>
       </div>

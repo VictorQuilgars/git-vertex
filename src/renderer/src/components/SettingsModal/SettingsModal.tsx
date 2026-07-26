@@ -432,7 +432,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="stg-save" onClick={saveGit}>{t('settings.save')}</button>
                   <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} onClick={saveCurrentAsProfile}>
-                    + Enregistrer comme profil
+                    {t('settings.saveAsProfile')}
                   </button>
                 </div>
 
@@ -1027,7 +1027,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                           }
                         }}
                       >
-                        🚀 Installer et relancer v{updateVersion}
+                        {t('settings.installAndRestart', updateVersion)}
                       </button>
                     </div>
                   ) : (

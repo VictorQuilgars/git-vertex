@@ -13,6 +13,9 @@ import {
   resolveTerminalLaunch, findAvailableKeyPath, safeTempFileName, updateSubmodulesIfEnabled,
 } from './settings-helpers'
 import { getRecentRepos, addRecentRepo, removeRecentRepo, getWorkspaces, setRepoWorkspace } from './recent-repos'
+import {
+  simpleGitEnv, gitEnv, parseGitVersion, isGitVersionAtLeast, MIN_GIT_FOR_CONFLICT_PREDICTION,
+} from './git-service'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 import { splashHtml } from './splash'
 import iconPng from '../../resources/icon.png?asset'
@@ -411,6 +414,28 @@ async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; name?: 
 // ── IPC: Repo management ──────────────────────────────────────
 ipcMain.handle('app:is-fullscreen', () => mainWindow?.isFullScreen() ?? false)
 
+// What the installed git can do. Only used for the startup notice today: a git
+// older than MIN_GIT_FOR_CONFLICT_PREDICTION makes the pre-merge/rebase warning
+// a no-op, and a feature that silently never runs is worse than one the user
+// knows is missing. Probing failures answer "capable" so a missing or unusual
+// git never produces a nag.
+ipcMain.handle('app:git-capabilities', async () => {
+  try {
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const { stdout } = await promisify(execFile)('git', ['--version'], { env: gitEnv() })
+    const version = parseGitVersion(stdout)
+    if (!version) return { version: null, conflictPrediction: true }
+    return {
+      version,
+      conflictPrediction: isGitVersionAtLeast(version, MIN_GIT_FOR_CONFLICT_PREDICTION),
+      minimumForPrediction: MIN_GIT_FOR_CONFLICT_PREDICTION,
+    }
+  } catch {
+    return { version: null, conflictPrediction: true }
+  }
+})
+
 ipcMain.handle('app:get-recent-repos', () => getRecentRepos())
 
 ipcMain.handle('app:remove-recent-repo', (_event, path: string) => removeRecentRepo(path))
@@ -437,7 +462,7 @@ ipcMain.handle('git:set-repo', async (_event, repoPath: string) => {
 // then open it. Idempotent if the directory is already a repo.
 ipcMain.handle('git:init-repo', async (_event, dir: string) => {
   try {
-    await simpleGit(dir).init(['-b', readSettings().defaultBranchName?.trim() || 'main'])
+    await simpleGit(dir).env(simpleGitEnv()).init(['-b', readSettings().defaultBranchName?.trim() || 'main'])
     return openRepoAt(dir)
   } catch (e: any) {
     return { error: e.message }
@@ -452,7 +477,7 @@ ipcMain.handle('git:init-advanced', async (_e, opts: { location: string; name: s
     const { mkdirSync, writeFileSync } = await import('fs')
     const target = join(opts.location, opts.name)
     mkdirSync(target, { recursive: true })
-    await simpleGit(target).init(['-b', opts.branch?.trim() || 'main'])
+    await simpleGit(target).env(simpleGitEnv()).init(['-b', opts.branch?.trim() || 'main'])
     const token = readSettings().githubToken
     const ghHeaders: Record<string, string> = { Accept: 'application/vnd.github+json' }
     if (token) ghHeaders.Authorization = `Bearer ${token}`
@@ -523,9 +548,9 @@ ipcMain.handle('github:create-repo', async (_e, opts: { name: string; descriptio
       try {
         // Clone over HTTPS with the token so private repos work.
         const authUrl = d.clone_url.replace('https://', `https://${token}@`)
-        await simpleGit().clone(authUrl, target)
+        await simpleGit().env(simpleGitEnv()).clone(authUrl, target)
         // Rewrite origin without the embedded token.
-        await simpleGit(target).remote(['set-url', 'origin', d.clone_url])
+        await simpleGit(target).env(simpleGitEnv()).remote(['set-url', 'origin', d.clone_url])
         const opened = await openRepoAt(target)
         return { ...opened, htmlUrl: d.html_url, fullName: d.full_name }
       } catch (e: any) { return { error: e.message, htmlUrl: d.html_url } }
@@ -537,7 +562,7 @@ ipcMain.handle('github:create-repo', async (_e, opts: { name: string; descriptio
 ipcMain.handle('app:select-directory', async (_event, title?: string) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory', 'createDirectory'],
-    title: title ?? 'Choisir un dossier'
+    title: title ?? 'Choose a folder'
   })
   if (result.canceled || result.filePaths.length === 0) return { path: null }
   return { path: result.filePaths[0] }
@@ -795,7 +820,7 @@ ipcMain.handle('git:create-patch', async (_event, hash: string) => {
 ipcMain.handle('dialog:save-patch', async (_event, content: string, suggestedName: string) => {
   if (!mainWindow) return { success: false, error: 'No window' }
   const result = await dialog.showSaveDialog(mainWindow, {
-    title: 'Enregistrer le patch',
+    title: 'Save the patch',
     defaultPath: suggestedName,
     filters: [{ name: 'Patch files', extensions: ['patch'] }],
   })
@@ -1461,7 +1486,7 @@ ipcMain.handle('ai:search-commits', async (_e, query: string) => {
     // 300-commit/24k-chars first version did exactly that).
     index = await git.raw(['log', '--all', '--max-count=200', '--date=short', '--pretty=format:%h|%an|%ad|%s'])
     index = index.split('\n').map(l => l.length > 90 ? l.slice(0, 90) : l).join('\n')
-  } catch { return { error: "Impossible de lire l'historique" } }
+  } catch { return { error: 'Could not read the history' } }
   if (!index.trim()) return { hashes: [] }
 
   const today = new Date().toISOString().slice(0, 10)
@@ -1557,7 +1582,7 @@ ipcMain.handle('settings:set', (_e, key: string, value: string) => {
 ipcMain.handle('app:ssh-browse-key', async (_e, kind: 'private' | 'public') => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile'],
-    title: kind === 'private' ? 'Choisir la clé privée SSH' : 'Choisir la clé publique SSH',
+    title: kind === 'private' ? 'Choose the SSH private key' : 'Choose the SSH public key',
     defaultPath: join(os.homedir(), '.ssh'),
   })
   if (result.canceled || result.filePaths.length === 0) return { path: null }
@@ -2001,14 +2026,14 @@ ipcMain.handle('updater:install-manual', async () => {
 
     const entries = fs.readdirSync(tempDir)
     const appBundle = entries.find(f => f.endsWith('.app'))
-    if (!appBundle) return { error: '.app introuvable dans le ZIP' }
+    if (!appBundle) return { error: '.app not found in the ZIP' }
     const newAppPath = pathJoin(tempDir, appBundle)
 
     try { await exec('xattr', ['-dr', 'com.apple.quarantine', newAppPath]) } catch { /* ignore */ }
 
     const exePath = app.getPath('exe')
     const match = exePath.match(/^(.*\.app)/)
-    if (!match) return { error: 'Impossible de localiser le bundle courant' }
+    if (!match) return { error: 'Could not locate the current bundle' }
     const currentAppPath = match[1]
     const appParentDir = pathJoin(currentAppPath, '..')
 
@@ -2436,7 +2461,7 @@ ipcMain.handle('github:clone', async (_e, cloneUrl: string, repoName: string) =>
   const parentDir = result.filePaths[0]
   const targetPath = pathJoin(parentDir, repoName)
   try {
-    const sg = simpleGit()
+    const sg = simpleGit().env(simpleGitEnv())
     await sg.clone(cloneUrl, targetPath)
     return openRepoAt(targetPath)
   } catch (e: any) {
@@ -2457,8 +2482,8 @@ ipcMain.handle('git:clone-to', async (_e, opts: { url: string; location: string;
     let url = opts.url
     const isGh = /^https:\/\/github\.com\//.test(url)
     if (token && isGh) url = url.replace('https://', `https://${token}@`)
-    await simpleGit().clone(url, target, args)
-    if (token && isGh) { try { await simpleGit(target).remote(['set-url', 'origin', opts.url]) } catch { /* keep */ } }
+    await simpleGit().env(simpleGitEnv()).clone(url, target, args)
+    if (token && isGh) { try { await simpleGit(target).env(simpleGitEnv()).remote(['set-url', 'origin', opts.url]) } catch { /* keep */ } }
     return openRepoAt(target)
   } catch (e: any) { return { error: e.message } }
 })

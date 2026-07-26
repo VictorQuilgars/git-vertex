@@ -270,7 +270,7 @@ export class InlineBlameController implements vscode.Disposable {
     const date = new Date(line.authorTime * 1000)
     const author = line.authorMail ? `${line.author} <${line.authorMail}>` : line.author
     md.appendMarkdown(`**${line.summary}**\n\n`)
-    md.appendMarkdown(`${author} — ${date.toLocaleString()} _(${formatRelative(line.authorTime)})_\n\n`)
+    md.appendMarkdown(`${author} — ${date.toLocaleString('en-US')} _(${formatRelative(line.authorTime)})_\n\n`)
 
     const fileArgs = encodeURIComponent(JSON.stringify([document.uri.toString()]))
     const hashArgs = encodeURIComponent(JSON.stringify([line.hash]))

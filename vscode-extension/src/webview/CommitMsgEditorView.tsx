@@ -18,10 +18,10 @@ interface CommitMsgBoot {
   stepTotal?: number
 }
 
-function titleFor(boot: CommitMsgBoot): string {
-  if (boot.action === 'reword') return '✏️ Reword — reformuler le message'
+function titleFor(boot: CommitMsgBoot, t: (key: any, ...args: any[]) => string): string {
+  if (boot.action === 'reword') return t('cme.title')
   if (boot.action === 'squash') return t('ext.commit.squashMsg')
-  return '📝 Message de commit'
+  return t('cme.titlePlain')
 }
 
 export default function CommitMsgEditorView({ boot }: { boot: CommitMsgBoot }) {
@@ -52,7 +52,7 @@ export default function CommitMsgEditorView({ boot }: { boot: CommitMsgBoot }) {
     <div className="rp-page">
       <div className="rp-header">
         <div className="rp-header-top">
-          <span className="rp-title">{titleFor(boot)}</span>
+          <span className="rp-title">{titleFor(boot, t)}</span>
         </div>
         {(hasStep || boot.subject) && (
           <div className="rp-header-refs">
@@ -89,7 +89,7 @@ export default function CommitMsgEditorView({ boot }: { boot: CommitMsgBoot }) {
           onClick={handleSave}
           title={t('ext.commit.save')}
         >
-          {saving ? '…' : 'Enregistrer'}
+          {saving ? '…' : t('cme.save')}
         </button>
       </div>
     </div>
