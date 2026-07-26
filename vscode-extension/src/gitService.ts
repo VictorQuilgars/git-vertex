@@ -517,9 +517,12 @@ export class GitService {
     }
   }
 
-  async pull(): Promise<{ success: boolean; error?: string }> {
+  // The mode comes from the Pull split-button (v1.22.0). Dropping it here used
+  // to silently run a bare `git pull` whatever the user picked.
+  async pull(mode: 'ff' | 'ff-only' | 'rebase' = 'ff'): Promise<{ success: boolean; error?: string }> {
     try {
-      await this.git.pull()
+      const args = mode === 'ff-only' ? ['--ff-only'] : mode === 'rebase' ? ['--rebase'] : []
+      await this.git.pull(args)
       if (await this.hasUnmergedPaths()) {
         return { success: false, error: 'Pull produced merge conflicts' }
       }
@@ -539,7 +542,9 @@ export class GitService {
         try {
           const status = await this.git.status()
           const branch = status.current ?? 'main'
-          await this.git.raw(['push', '--set-upstream', 'origin', branch])
+          const { remote } = await this.getDefaultRemote()
+          if (!remote) return { success: false, error: 'No remote configured' }
+          await this.git.raw(['push', '--set-upstream', remote, branch])
           return { success: true }
         } catch (e2: any) {
           return { success: false, error: e2.message }
@@ -689,11 +694,48 @@ export class GitService {
 
   // ── Stashes / tags ─────────────────────────────────────────────
 
-  async createStash(message?: string): Promise<{ success: boolean; error?: string }> {
+  // scope 'staged'   → only what is in the index (--staged, git ≥ 2.35)
+  // scope 'unstaged' → everything, then the index is restored (--keep-index),
+  //                    which leaves the staged work in place as if untouched
+  // paths            → only those files, whatever their staged state
+  // Untracked files are swept in for a full stash only: --include-untracked
+  // conflicts with --staged, and a pathspec already says what to take.
+  // Without opts this stashed everything, whatever the picker asked for.
+  async createStash(
+    message?: string,
+    opts?: { scope?: 'all' | 'staged' | 'unstaged'; paths?: string[] },
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      const args = ['stash', 'push', '--include-untracked']
+      const scope = opts?.scope ?? 'all'
+      const paths = opts?.paths ?? []
+      const args = ['stash', 'push']
+      if (scope === 'staged') args.push('--staged')
+      else if (scope === 'unstaged') args.push('--keep-index')
+      if (scope !== 'staged' && paths.length === 0) args.push('--include-untracked')
       if (message) args.push('-m', message)
+      if (paths.length > 0) args.push('--', ...paths)
       await this.git.raw(args)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // git has no rename: re-store the same commit under a new message and drop
+  // the old entry. The stash is a stack, so the renamed one comes back at the
+  // top — index 0 — rather than keeping its old position.
+  async renameStash(index: number, message: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const sha = (await this.git.raw(['rev-parse', `stash@{${index}}`])).trim()
+      if (!sha) return { success: false, error: `No stash at index ${index}` }
+      await this.git.raw(['stash', 'drop', `stash@{${index}}`])
+      try {
+        await this.git.raw(['stash', 'store', '-m', message, sha])
+      } catch (e: any) {
+        // Put it back unnamed rather than losing the work outright.
+        await this.git.raw(['stash', 'store', sha]).catch(() => {})
+        return { success: false, error: e.message }
+      }
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -772,7 +814,9 @@ export class GitService {
 
   async getStashes(): Promise<{ stashes: { index: number; message: string }[] }> {
     try {
-      const out = await this.git.raw(['stash', 'list', '--pretty=format:%gd|%s'])
+      // %gs (reflog subject), not %s (commit subject): `stash store -m` only
+      // rewrites the reflog, so a renamed stash would keep its old label.
+      const out = await this.git.raw(['stash', 'list', '--pretty=format:%gd|%gs'])
       const stashes = out.trim().split('\n').filter(Boolean).map((line, i) => {
         const [, message] = line.split('|')
         return { index: i, message: message || `stash@{${i}}` }
@@ -997,15 +1041,19 @@ export class GitService {
     catch (e: any) { return { success: false, error: e.message } }
   }
 
-  async pushTag(name: string, remote = 'origin'): Promise<{ success: boolean; error?: string }> {
+  async pushTag(name: string, remote?: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(name, 'tag'); if (bad) return { success: false, error: bad }
-    try { await this.git.raw(['push', remote, `refs/tags/${name}`]); return { success: true } }
+    const target = remote ?? (await this.getDefaultRemote()).remote
+    if (!target) return { success: false, error: 'No remote configured' }
+    try { await this.git.raw(['push', target, `refs/tags/${name}`]); return { success: true } }
     catch (e: any) { return { success: false, error: e.message } }
   }
 
-  async deleteRemoteTag(name: string, remote = 'origin'): Promise<{ success: boolean; error?: string }> {
+  async deleteRemoteTag(name: string, remote?: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(name, 'tag'); if (bad) return { success: false, error: bad }
-    try { await this.git.raw(['push', remote, `:refs/tags/${name}`]); return { success: true } }
+    const target = remote ?? (await this.getDefaultRemote()).remote
+    if (!target) return { success: false, error: 'No remote configured' }
+    try { await this.git.raw(['push', target, `:refs/tags/${name}`]); return { success: true } }
     catch (e: any) { return { success: false, error: e.message } }
   }
 
@@ -1501,7 +1549,9 @@ exit 0
   }
 
   async pushBranch(branch: string): Promise<{ success: boolean; error?: string }> {
-    try { await this.git.raw(['push', '--set-upstream', 'origin', branch]); return { success: true } }
+    const { remote } = await this.getDefaultRemote()
+    if (!remote) return { success: false, error: 'No remote configured' }
+    try { await this.git.raw(['push', '--set-upstream', remote, branch]); return { success: true } }
     catch (e: any) { return { success: false, error: e.message ?? String(e) } }
   }
 
@@ -1551,7 +1601,8 @@ exit 0
   async deleteRemoteBranch(branch: string): Promise<{ success: boolean; error?: string }> {
     try {
       const m = branch.match(/^remotes\/([^/]+)\/(.+)$/)
-      const remote = m ? m[1] : 'origin'
+      const remote = m ? m[1] : (await this.getDefaultRemote()).remote
+      if (!remote) return { success: false, error: 'No remote configured' }
       const name = m ? m[2] : branch
       await this.git.raw(['push', remote, '--delete', name])
       return { success: true }
@@ -1562,10 +1613,9 @@ exit 0
     try {
       let target = upstream
       if (!target) {
-        const remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
-        if (remotes.length === 0) return { success: false, error: 'No remote configured' }
-        const preferred = remotes.includes('origin') ? 'origin' : remotes[0]
-        target = `${preferred}/${branch}`
+        const { remote } = await this.getDefaultRemote()
+        if (!remote) return { success: false, error: 'No remote configured' }
+        target = `${remote}/${branch}`
       }
       await this.git.raw(['branch', `--set-upstream-to=${target}`, branch])
       return { success: true }
@@ -1616,6 +1666,92 @@ exit 0
   async renameRemote(oldName: string, newName: string): Promise<{ success: boolean; error?: string }> {
     try { await this.git.raw(['remote', 'rename', oldName, newName]); return { success: true } }
     catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  // Which remote an action targets when nothing says otherwise. Stored in the
+  // repo's own git config rather than extension settings, so it is per-repo by
+  // nature, stays readable from the command line, and is the very value the
+  // desktop app reads (v1.23.0).
+  // Order: explicit choice → origin → the only/first remote.
+  async getDefaultRemote(): Promise<{ remote: string | null; explicit: boolean }> {
+    let remotes: string[] = []
+    try {
+      remotes = (await this.git.raw(['remote'])).trim().split('\n').map(r => r.trim()).filter(Boolean)
+    } catch {
+      return { remote: null, explicit: false }
+    }
+    if (remotes.length === 0) return { remote: null, explicit: false }
+    try {
+      const chosen = (await this.git.raw(['config', '--local', '--get', 'gitvertex.defaultRemote'])).trim()
+      // A remote that has since been renamed or removed must not win.
+      if (chosen && remotes.includes(chosen)) return { remote: chosen, explicit: true }
+    } catch { /* unset — git exits 1, which simple-git throws on */ }
+    return { remote: remotes.includes('origin') ? 'origin' : remotes[0], explicit: false }
+  }
+
+  async setDefaultRemote(name: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['config', '--local', 'gitvertex.defaultRemote', name])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Drops remote-tracking refs whose branch no longer exists on the remote.
+  // The names come from diffing for-each-ref before/after rather than parsing
+  // `prune --dry-run`: that output is translated ("[élaguerait]" under a French
+  // locale), so matching on "[would prune]" would silently report nothing.
+  async pruneRemote(name: string): Promise<{ success: boolean; pruned?: string[]; error?: string }> {
+    const listRefs = async (): Promise<string[]> => {
+      const out = await this.git.raw([
+        'for-each-ref', `refs/remotes/${name}`, '--format=%(refname:short)',
+      ])
+      return out.split('\n').map(l => l.trim()).filter(Boolean)
+    }
+    try {
+      const before = await listRefs()
+      await this.git.raw(['remote', 'prune', name])
+      const after = new Set(await listRefs())
+      return { success: true, pruned: before.filter(r => !after.has(r)) }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // Local branches whose upstream is gone — `git branch --prune` doesn't
+  // exist, so this is the list a caller needs before deleting anything.
+  async getGoneBranches(): Promise<{ branches: string[] }> {
+    try {
+      const out = await this.git.raw([
+        'for-each-ref', 'refs/heads', '--format=%(refname:short)|%(upstream:track)',
+      ])
+      const branches = out
+        .split('\n')
+        .map(l => l.split('|'))
+        .filter(([name, track]) => name && track?.includes('gone'))
+        .map(([name]) => name)
+      return { branches }
+    } catch {
+      return { branches: [] }
+    }
+  }
+
+  // Deletes them with -D: their upstream is gone, so git's -d merge check has
+  // nothing left to compare against and would refuse every one of them.
+  async pruneGoneBranches(names: string[]): Promise<{ success: boolean; deleted: string[]; error?: string }> {
+    const deleted: string[] = []
+    const current = (await this.getBranches()).branches.find(b => b.current)?.name
+    for (const name of names) {
+      if (name === current) continue   // git refuses to delete the checked-out branch
+      try {
+        await this.git.branch(['-D', name])
+        deleted.push(name)
+      } catch (e: any) {
+        return { success: false, deleted, error: e.message }
+      }
+    }
+    return { success: true, deleted }
   }
 
   async fetchRemote(name: string): Promise<{ success: boolean; error?: string }> {
