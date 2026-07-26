@@ -1,6 +1,6 @@
 {
   "name": "git-vertex-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Git Vertex — terminal UI (TUI) Git client. Commit graph, staging, branches, all from the keyboard.",
   "type": "module",
   "bin": {
