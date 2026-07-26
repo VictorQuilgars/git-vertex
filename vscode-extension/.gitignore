@@ -2,5 +2,11 @@ node_modules/
 out/
 .vscode-test/
 *.vsix
+# Webview bundle — the other half of what `npm run compile` writes (the first
+# half, out/, is already ignored above). vsce rebuilds it through
+# vscode:prepublish before packaging, so a committed copy is never the one that
+# ships; it only produced diff noise every time anything was built.
+media/main.js
+media/main.css
 media/*.map
 .env.publish
