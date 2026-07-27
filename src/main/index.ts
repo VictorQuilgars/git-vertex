@@ -174,6 +174,12 @@ function createWindow(): void {
     // the taskbar/title-bar showing the default Electron logo); Linux uses the
     // PNG. macOS ignores this and takes the icon from the app bundle.
     icon: process.platform === 'win32' ? iconIco : iconPng,
+    // Off unless GV_SCREENSHOTS=1, which only an external capture pipeline
+    // sets. macOS clamps a window to the display's work area, so automated
+    // captures would come out at whatever height the operator's menu bar and
+    // Dock leave over — a different size on every machine. This lets such a
+    // run pin one canvas size instead.
+    enableLargerThanScreen: process.env.GV_SCREENSHOTS === '1',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
