@@ -30,3 +30,6 @@ docs-private/
 
 # IDE local config
 vscode-extension/.vscode/
+
+# Downloaded by @vscode/test-electron, a devDependency of vscode-extension
+.vscode-test/
