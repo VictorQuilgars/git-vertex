@@ -1,5 +1,12 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.24.1
+
+### Fixed
+- **The line numbers beside the merged output were wrong** in the conflict resolver as soon as that output ran past the pane. Only its text column scrolled; the gutter stayed pinned at the top, so every number faced the wrong line — in the one place where you check a merge before saving it. It now follows the text, the way the two source panes already follow each other.
+- **Selecting a merge commit left the detail panel reading "Loading…"** for as long as it stayed selected. git lists no file for a merge, and the empty result was rendered as if the list were still loading. Empty and loading are separate states now, and the empty one says why there is nothing to show.
+- **A French label in the interactive rebase** — the line above the message box when squashing or rewording a commit — in an interface that ships in English.
+
 ## 1.24.0
 
 ### Changed
