@@ -1406,6 +1406,53 @@ describe('GitService', () => {
     })
   })
 
+  describe('default branch', () => {
+    // A remote with main + a topic branch, wired up as origin.
+    function setupRemote(): string {
+      const bare = `${tempDir}-origin.git`
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      execSync(`git init --bare -b main ${bare}`)
+      execSync(`cd ${tempDir} && git remote add origin ${bare}`)
+      execSync(`cd ${tempDir} && git push origin HEAD:main && git push origin HEAD:feature`)
+      execSync(`cd ${tempDir} && git fetch origin`)
+      return bare
+    }
+
+    test('reads what the remote says its HEAD is', async () => {
+      const bare = setupRemote()
+      execSync(`cd ${tempDir} && git remote set-head origin main`)
+
+      expect(await git.getDefaultBranch()).toEqual({ branch: 'main' })
+      execSync(`rm -rf ${bare}`)
+    })
+
+    test('falls back to a published main when origin/HEAD was never set', async () => {
+      const bare = setupRemote()
+      execSync(`cd ${tempDir} && git remote set-head origin --delete`)
+
+      expect(await git.getDefaultBranch()).toEqual({ branch: 'main' })
+      execSync(`rm -rf ${bare}`)
+    })
+
+    test('reports none rather than guessing when the remote has neither main nor master', async () => {
+      const bare = `${tempDir}-origin.git`
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      execSync(`git init --bare -b trunk ${bare}`)
+      execSync(`cd ${tempDir} && git remote add origin ${bare}`)
+      execSync(`cd ${tempDir} && git push origin HEAD:trunk && git fetch origin`)
+      execSync(`cd ${tempDir} && git remote set-head origin --delete`)
+
+      expect(await git.getDefaultBranch()).toEqual({ branch: null })
+      execSync(`rm -rf ${bare}`)
+    })
+
+    test('reports none without a remote at all', async () => {
+      expect(await git.getDefaultBranch()).toEqual({ branch: null })
+    })
+  })
+
   describe('partial stash and rename (v1.23.0)', () => {
     // one staged file, one unstaged file, on top of a committed baseline
     function setupMixedTree() {

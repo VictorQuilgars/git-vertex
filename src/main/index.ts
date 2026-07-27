@@ -720,9 +720,9 @@ ipcMain.handle('git:commit', async (_event, message: string, amend = false) => {
   return result
 })
 
-ipcMain.handle('git:get-last-commit-message', async () => {
+ipcMain.handle('git:get-last-commit-message', async (_event, ref?: string) => {
   if (!gitService) return { message: '' }
-  return gitService.getLastCommitMessage()
+  return gitService.getLastCommitMessage(ref)
 })
 
 ipcMain.handle('git:get-working-file-diff', async (_event, filepath: string, staged: boolean) => {
@@ -1120,6 +1120,11 @@ ipcMain.handle('git:fetch-remote', async (_event, name: string) => {
 ipcMain.handle('git:get-default-remote', async () => {
   if (!gitService) return { remote: null, explicit: false }
   return gitService.getDefaultRemote()
+})
+
+ipcMain.handle('git:get-default-branch', async () => {
+  if (!gitService) return { branch: null }
+  return gitService.getDefaultBranch()
 })
 
 ipcMain.handle('git:set-default-remote', async (_event, name: string) => {
@@ -2406,7 +2411,19 @@ ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title
       body: JSON.stringify({ title, body, head, base }),
     })
     const data = await res.json() as any
-    if (!res.ok) return { error: data.message ?? `HTTP ${res.status}` }
+    if (!res.ok) {
+      // A rejected PR comes back as a bare "Validation Failed"; everything that
+      // tells you what to fix ("No commits between main and x", an unpublished
+      // head branch) is in the errors array. Surface that instead.
+      const detail = Array.isArray(data.errors)
+        ? data.errors
+            .map((e: any) => e.message ?? (e.field ? `${e.field}: ${e.code}` : null))
+            .filter(Boolean)
+            .join(' — ')
+        : ''
+      const msg = data.message ?? `HTTP ${res.status}`
+      return { error: detail ? `${msg} (${detail})` : msg }
+    }
     return { url: data.html_url, number: data.number }
   } catch (e: any) { return { error: e.message } }
 })

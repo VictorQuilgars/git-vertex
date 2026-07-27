@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { LayoutCommit, computeGraphLayout } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import type { PRIntent } from '../ContextMenu/prIntent'
 import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -414,6 +415,10 @@ interface CommitGraphProps {
   onDeleteBranch?: (name: string) => void
   onPushBranch?: (name: string) => void
   onSetUpstream?: (name: string) => void
+  // The pull request a branch chip should offer, or null for none — the rules
+  // live in prIntentFor. Omitted when the repo has no GitHub remote.
+  prIntentFor?: (branchRef: string) => PRIntent | null
+  onCreatePR?: (intent: PRIntent) => void
   onDeleteRemoteBranch?: (ref: string) => void
   onPushTag?: (name: string) => void
   onDeleteTag?: (name: string) => void
@@ -467,7 +472,7 @@ export default function CommitGraph({
   onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
   conflictMode = null, githubRepo = null, loading = false, onSearchMatches,
   onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch,
-  onPushBranch, onSetUpstream, onDeleteRemoteBranch, onPushTag, onDeleteTag,
+  onPushBranch, onSetUpstream, prIntentFor, onCreatePR, onDeleteRemoteBranch, onPushTag, onDeleteTag,
   onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch,
   onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false,
   onNativeMenuTarget,
@@ -869,6 +874,20 @@ export default function CommitGraph({
     )
   }, [])
 
+  // The "start a Pull Request" row, pointing whichever way prIntentFor decided
+  // — from this branch, or into it, depending on where you are standing.
+  const prRow = useCallback((branchRef: string, isCurrent: boolean): MenuItemDef | null => {
+    if (!prIntentFor || !onCreatePR) return null
+    const intent = prIntentFor(branchRef)
+    if (!intent) return null
+    return {
+      label: intent.baseLabel && !isCurrent
+        ? t('sb.branch.startPRTo', intent.head, intent.baseLabel)
+        : t('sb.branch.startPR', intent.head),
+      action: () => onCreatePR(intent),
+    }
+  }, [prIntentFor, onCreatePR, t])
+
   // Branch operations for a local branch, shared by the branch chip and the
   // menu of the commit that is its tip — so both offer the exact same actions
   // (another tool behaviour: right-clicking a branch name == its tip commit).
@@ -881,9 +900,11 @@ export default function CommitGraph({
     if (!isHead && onDeleteBranch) items.push({ label: t('graph.menu.deleteBranchNamed', display), action: () => onDeleteBranch(name), danger: true })
     if (onPushBranch) items.push({ label: t('graph.menu.pushBranch'), action: () => onPushBranch(name) })
     if (onSetUpstream) items.push({ label: t('graph.menu.setUpstream'), action: () => onSetUpstream(name) })
+    const pr = prRow(name, isHead)
+    if (pr) items.push(pr)
     items.push({ label: t('graph.menu.copyBranchName'), action: () => navigator.clipboard.writeText(name) })
     return items
-  }, [onCheckoutBranch, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, currentBranch])
+  }, [onCheckoutBranch, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, prRow, currentBranch])
 
   const buildMenuItems = useCallback((commit: LayoutCommit, branchName?: string): MenuItemDef[] => {
     const isHead = commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
@@ -1037,6 +1058,8 @@ export default function CommitGraph({
 
     if (pref.cls === 'rc-remote' && name) {
       if (onCheckoutBranch) items.push({ label: '✓ Checkout', action: () => onCheckoutBranch(name) })
+      const remotePr = prRow(name, false)
+      if (remotePr) items.push(remotePr)
       if (onDeleteRemoteBranch) items.push({ label: t('graph.menu.deleteRemoteBranch'), action: () => onDeleteRemoteBranch(name), danger: true })
       items.push({ label: t('graph.menu.copyName'), action: () => navigator.clipboard.writeText(pref.display) })
       return items
@@ -1050,6 +1073,8 @@ export default function CommitGraph({
     if (items.length) items.push({ separator: true })
     if (onPushBranch) items.push({ label: '⬆ Push', action: () => onPushBranch(name) })
     if (onSetUpstream) items.push({ label: t('graph.menu.setUpstream'), action: () => onSetUpstream(name) })
+    const localPr = prRow(name, !!pref.isHead)
+    if (localPr) items.push(localPr)
     if (onRenameBranch) items.push({ label: t('graph.menu.rename'), action: () => onRenameBranch(name) })
     items.push({ label: t('graph.menu.copyName'), action: () => navigator.clipboard.writeText(name) })
     if (!pref.isHead && onDeleteBranch) {
@@ -1058,7 +1083,7 @@ export default function CommitGraph({
     }
     return items
   }, [currentBranch, onCheckoutBranch, onMergeBranch, onRebaseCurrentOnto, onPushBranch,
-      onSetUpstream, onRenameBranch, onDeleteBranch, onDeleteRemoteBranch,
+      onSetUpstream, prRow, onRenameBranch, onDeleteBranch, onDeleteRemoteBranch,
       onPushTag, onDeleteTag, onDeleteRemoteTag])
 
   // Right-click on the header bar — choose which columns show.

@@ -18,6 +18,7 @@ const allActions = (): BranchMenuActions => ({
   onOpenOnRemote: jest.fn(), onAssociateIssue: jest.fn(), onToggleFavorite: jest.fn(),
   onTogglePin: jest.fn(), onToggleSolo: jest.fn(), onToggleMute: jest.fn(),
   onCopyName: jest.fn(), onRename: jest.fn(), onDelete: jest.fn(), onDeleteRemote: jest.fn(),
+  onCreatePR: jest.fn(),
 })
 
 describe('buildBranchMenu (v1.21.0)', () => {
@@ -111,6 +112,49 @@ describe('buildBranchMenu (v1.21.0)', () => {
         expect(doubled).toBe(false)
       }
     }
+  })
+
+  test('the pull request row on the current branch names it as the head', () => {
+    const items = buildBranchMenu(
+      local({
+        name: 'feature/x', display: 'feature/x', current: true,
+        pr: { head: 'feature/x', baseLabel: 'origin/main' },
+      }),
+      { currentBranch: 'feature/x' }, allActions(), t
+    )
+    // The base is the default branch and stays implicit on your own row.
+    expect(labels(items)).toContain('sb.branch.startPR(feature/x)')
+  })
+
+  test('another row spells out both ends of the request', () => {
+    const items = buildBranchMenu(
+      local({ name: 'main', display: 'main', pr: { head: 'feature/x', baseLabel: 'origin/main' } }),
+      { currentBranch: 'feature/x' }, allActions(), t
+    )
+    expect(labels(items)).toContain('sb.branch.startPRTo(feature/x,origin/main)')
+  })
+
+  test('the head is whatever the intent says, not the branch you are on', () => {
+    // Standing on the default branch, the row you clicked becomes the head.
+    const items = buildBranchMenu(
+      local({ name: 'feature/x', display: 'feature/x', pr: { head: 'feature/x', baseLabel: 'origin/main' } }),
+      { currentBranch: 'main' }, allActions(), t
+    )
+    expect(labels(items)).toContain('sb.branch.startPRTo(feature/x,origin/main)')
+  })
+
+  test('no pull request row without an intent, however many handlers are wired', () => {
+    const l = labels(buildBranchMenu(local(), { currentBranch: 'main' }, allActions(), t))
+    expect(l.some(x => x.startsWith('sb.branch.startPR'))).toBe(false)
+  })
+
+  test('no pull request row when the caller cannot open one', () => {
+    const { onCreatePR: _drop, ...noPR } = allActions()
+    const items = buildBranchMenu(
+      local({ pr: { head: 'feature/x', baseLabel: 'origin/main' } }),
+      { currentBranch: 'main' }, noPR, t
+    )
+    expect(labels(items).some(x => x.startsWith('sb.branch.startPR'))).toBe(false)
   })
 
   test('clicking a row runs exactly the handler the caller passed', () => {
