@@ -18,6 +18,12 @@ export interface BranchMenuTarget {
   display: string
   current: boolean
   remote: boolean
+  /**
+   * The pull request this row would open, as decided by `prIntentFor` — which
+   * way round it points depends on where you are standing. Absent means the
+   * row offers none, and no amount of handlers brings it back.
+   */
+  pr?: { head: string; baseLabel: string | null }
 }
 
 export interface BranchMenuState {
@@ -40,6 +46,8 @@ export interface BranchMenuActions {
   onRebaseOnto?: () => void
   onCompare?: () => void
   onSetUpstream?: () => void
+  /** Opens the PR composer on `target.pr`. Needs that intent to show a row. */
+  onCreatePR?: () => void
   onOpenOnRemote?: () => void
   onAssociateIssue?: () => void
   onToggleFavorite?: () => void
@@ -82,6 +90,19 @@ export function buildBranchMenu(
   }
   if (!remote && actions.onPush) sync.push({ label: t('sb.branch.push'), action: actions.onPush })
   if (!remote && actions.onSetUpstream) sync.push({ label: t('sb.branch.setUpstream'), action: actions.onSetUpstream })
+  // A pull request starts with a push — GitHub cannot see a branch it has never
+  // received — so the row says so and the composer does it. Which branch the
+  // request runs from is `prIntentFor`'s call, not this row's: it names whatever
+  // head that returned, and says nothing when it returned nothing.
+  if (actions.onCreatePR && target.pr) {
+    const { head, baseLabel } = target.pr
+    sync.push({
+      label: baseLabel && !current
+        ? t('sb.branch.startPRTo', head, baseLabel)
+        : t('sb.branch.startPR', head),
+      action: actions.onCreatePR,
+    })
+  }
   sections.push(sync)
 
   // ── Integrate into the current branch ──

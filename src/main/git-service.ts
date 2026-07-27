@@ -690,9 +690,13 @@ export class GitService {
     }
   }
 
-  async getLastCommitMessage(): Promise<{ message: string }> {
+  // `ref` lets a caller ask about a branch it is not standing on — the PR
+  // composer prefills its title from the branch being proposed, which is not
+  // always HEAD.
+  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string }> {
+    const bad = this.assertRef(ref, 'ref'); if (bad) return { message: '' }
     try {
-      const msg = await this.git.raw(['log', '-1', '--pretty=format:%B', 'HEAD'])
+      const msg = await this.git.raw(['log', '-1', '--pretty=format:%B', ref])
       return { message: msg.trim() }
     } catch {
       return { message: '' }
@@ -1257,6 +1261,29 @@ export class GitService {
       if (chosen && remotes.includes(chosen)) return { remote: chosen, explicit: true }
     } catch { /* unset — git exits 1, which simple-git throws on */ }
     return { remote: remotes.includes('origin') ? 'origin' : remotes[0], explicit: false }
+  }
+
+  // The branch everything else merges into — what a pull request lands on by
+  // default. `<remote>/HEAD` is what clone sets from the server, so it is the
+  // repo's own answer rather than a guess; a repo cloned before git started
+  // writing it (or with the ref pruned) falls back to whatever the remote has.
+  async getDefaultBranch(): Promise<{ branch: string | null }> {
+    const { remote } = await this.getDefaultRemote()
+    if (!remote) return { branch: null }
+    try {
+      const ref = (await this.git.raw(['symbolic-ref', '--short', `refs/remotes/${remote}/HEAD`])).trim()
+      const prefix = `${remote}/`
+      if (ref.startsWith(prefix)) return { branch: ref.slice(prefix.length) }
+    } catch { /* <remote>/HEAD not set — git exits 1, which simple-git throws on */ }
+    for (const candidate of ['main', 'master']) {
+      try {
+        // `--quiet` makes a miss exit 1 with no output, which simple-git
+        // resolves rather than throws — so the sha is the real answer here.
+        const sha = await this.git.raw(['rev-parse', '--verify', '--quiet', `refs/remotes/${remote}/${candidate}`])
+        if (sha.trim()) return { branch: candidate }
+      } catch { /* not on this remote */ }
+    }
+    return { branch: null }
   }
 
   async setDefaultRemote(name: string): Promise<{ success: boolean; error?: string }> {

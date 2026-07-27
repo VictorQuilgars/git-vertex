@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
+import type { PRIntent } from '../ContextMenu/prIntent'
 import { useLang } from '../../i18n/LanguageContext'
 import './Sidebar.css'
 
@@ -71,6 +72,11 @@ interface SidebarProps {
   onTogglePin?: (name: string) => void
   onOpenBranchOnRemote?: (name: string) => void
   onAssociateIssue?: (name: string) => void
+  // The pull request a branch row should offer, or null for none — the rules
+  // live in prIntentFor, the host just supplies the answer. Omitted when the
+  // repo has no GitHub remote.
+  prIntentFor?: (branchRef: string) => PRIntent | null
+  onCreatePR?: (intent: PRIntent) => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   showPrompt: (msg: string, defaultValue?: string) => Promise<string | null>
   showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
@@ -148,6 +154,9 @@ interface BranchItemProps {
   onToggleFavorite?: () => void
   onOpenOnRemote?: () => void
   onAssociateIssue?: () => void
+  /** The pull request this row offers, if any — see prIntentFor. */
+  pr?: PRIntent | null
+  onCreatePR?: (intent: PRIntent) => void
   ahead?: number
   behind?: number
   gone?: boolean
@@ -157,7 +166,7 @@ interface BranchItemProps {
   showRemotePrefix?: boolean
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -169,12 +178,14 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   // Same builder the toolbars use — right-click here and the ⋮ button up there
   // now offer the identical menu (v1.21.0).
   const menuItems: MenuItemDef[] = buildBranchMenu(
-    { name, display, current, remote: !!remote },
+    { name, display, current, remote: !!remote, pr: pr ?? undefined },
     { currentBranch, soloed, muted, pinned, favorite, issue },
     {
       onCheckout: current ? undefined : onCheckout,
       onFetch, onPull,
-      onPush, onSetUpstream, onMerge, onRebaseOnto, onCompare,
+      onPush, onSetUpstream,
+      onCreatePR: pr && onCreatePR ? () => onCreatePR(pr) : undefined,
+      onMerge, onRebaseOnto, onCompare,
       onOpenOnRemote, onAssociateIssue, onToggleFavorite, onTogglePin,
       onToggleSolo, onToggleMute,
       onCopyName: () => navigator.clipboard.writeText(display),
@@ -512,7 +523,7 @@ export default function Sidebar({
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
   onFetch, onPull,
   isFavorite, isPinned, issueFor, onToggleFavorite, onTogglePin,
-  onOpenBranchOnRemote, onAssociateIssue,
+  onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
 }: SidebarProps) {
   // In single-view mode a section is shown when it matches the active view.
@@ -893,6 +904,8 @@ export default function Sidebar({
                 onTogglePin={onTogglePin && (() => onTogglePin(b.name))}
                 onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
                 onAssociateIssue={onAssociateIssue && (() => onAssociateIssue(b.name))}
+                pr={prIntentFor?.(b.name)}
+                onCreatePR={onCreatePR}
                 ahead={b.ahead}
                 behind={b.behind}
                 gone={b.gone}
@@ -926,6 +939,8 @@ export default function Sidebar({
                   onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
                   onTogglePin={onTogglePin && (() => onTogglePin(b.name))}
                   onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
+                  pr={prIntentFor?.(b.name)}
+                  onCreatePR={onCreatePR}
                 />
               ))}
             </Section>

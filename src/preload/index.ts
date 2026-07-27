@@ -50,7 +50,7 @@ const gitAPI = {
   pull: (mode?: 'ff' | 'ff-only' | 'rebase') => ipcRenderer.invoke('git:pull', mode),
   // Staging & commit
   getWorkingChanges: () => ipcRenderer.invoke('git:get-working-changes'),
-  getLastCommitMessage: () => ipcRenderer.invoke('git:get-last-commit-message'),
+  getLastCommitMessage: (ref?: string) => ipcRenderer.invoke('git:get-last-commit-message', ref),
   getWorkingFileDiff: (filepath: string, staged: boolean) => ipcRenderer.invoke('git:get-working-file-diff', filepath, staged),
   stage: (files: string[]) => ipcRenderer.invoke('git:stage', files),
   stageAll: () => ipcRenderer.invoke('git:stage-all'),
@@ -157,6 +157,7 @@ const gitAPI = {
   fetchRemote: (name: string) => ipcRenderer.invoke('git:fetch-remote', name),
   pruneRemote: (name: string) => ipcRenderer.invoke('git:prune-remote', name),
   getDefaultRemote: () => ipcRenderer.invoke('git:get-default-remote'),
+  getDefaultBranch: () => ipcRenderer.invoke('git:get-default-branch'),
   setDefaultRemote: (name: string) => ipcRenderer.invoke('git:set-default-remote', name),
   getGoneBranches: () => ipcRenderer.invoke('git:get-gone-branches'),
   pruneGoneBranches: (names: string[]) => ipcRenderer.invoke('git:prune-gone-branches', names),

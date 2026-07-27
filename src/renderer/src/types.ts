@@ -89,6 +89,7 @@ declare global {
       pull: (mode?: PullMode) => Promise<R>
       pruneRemote: (name: string) => Promise<R & { pruned?: string[] }>
       getDefaultRemote: () => Promise<{ remote: string | null; explicit: boolean }>
+      getDefaultBranch: () => Promise<{ branch: string | null }>
       setDefaultRemote: (name: string) => Promise<R>
       getGoneBranches: () => Promise<{ branches: string[] }>
       pruneGoneBranches: (names: string[]) => Promise<R & { deleted: string[] }>
@@ -112,7 +113,7 @@ declare global {
       diffCommitToWorking: (hash: string) => Promise<{ diff: string }>
       diffBetweenCommits: (fromHash: string, toHash: string) => Promise<{ diff: string; error?: string }>
       filesBetweenCommits: (fromHash: string, toHash: string) => Promise<{ files: FileChange[]; error?: string }>
-      getLastCommitMessage: () => Promise<{ message: string }>
+      getLastCommitMessage: (ref?: string) => Promise<{ message: string }>
       getUpstream: () => Promise<{ upstream: string | null }>
       // Tags
       createTag: (name: string, hash?: string, message?: string) => Promise<R>

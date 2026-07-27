@@ -24,6 +24,7 @@ import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
 import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
 import InitModal from './components/InitModal/InitModal'
 import PRModal from './components/PRModal/PRModal'
+import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
 import CenterFileDiff, { CenterDiffTarget } from './components/CenterFileDiff/CenterFileDiff'
@@ -337,6 +338,12 @@ export default function App() {
   const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
   const [githubOwnerRepo, setGithubOwnerRepo] = useState<{ owner: string; repo: string } | null>(null)
   const [prModalOpen, setPrModalOpen] = useState(false)
+  // Which pull request the composer is opening — head, base and whether the
+  // head still has to be pushed. Decided by prIntentFor, never by the composer.
+  const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
+  // Branch everything merges into (origin/HEAD). Drives which pull requests
+  // make sense at all, so it is loaded with the repo rather than on demand.
+  const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
   // Update overlay state machine: available → downloading → installing.
   const [updatePhase, setUpdatePhase] = useState<'idle' | 'available' | 'downloading' | 'installing'>('idle')
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
@@ -655,6 +662,8 @@ export default function App() {
       setGithubRepoUrl(null)
       setGithubOwnerRepo(null)
     }
+    const d = await (window.gitAPI as any).getDefaultBranch?.()
+    setDefaultBranch(d?.branch ?? null)
   }, [])
 
   const applyRepo = useCallback(async (res: { path?: string; name?: string; error?: string }) => {
@@ -791,6 +800,7 @@ export default function App() {
     setCommits([])
     setGithubRepoUrl(null)
     setGithubOwnerRepo(null)
+    setDefaultBranch(null)
     setActiveView('git')
   }, [])
 
@@ -1334,10 +1344,30 @@ export default function App() {
     else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
+  // Which pull request a branch row offers — see prIntent.ts for the rules.
+  // Handed to every surface that shows branch actions so they all agree.
+  const prIntentFor = useCallback(
+    (branchRef: string) =>
+      githubOwnerRepo ? computePRIntent(branchRef, { currentBranch, defaultBranch, branches }) : null,
+    [githubOwnerRepo, currentBranch, defaultBranch, branches]
+  )
+
+  // The push itself happens in the composer, right before the GitHub call.
+  const handleStartPR = (intent: PRIntent) => {
+    if (!githubOwnerRepo) { showToast(t('pr.noRemote'), 'err'); return }
+    setPrIntent(intent)
+    setPrModalOpen(true)
+  }
+
   const handleOpenCommitOnRemote = (hash: string) => {
     if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
     window.gitAPI.openExternal(`https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/commit/${hash}`)
   }
+
+  // The pull request the checked-out branch offers — null on the default
+  // branch, which is where requests land rather than start. Both the toolbar
+  // button and the branch strip follow it.
+  const currentBranchPR = prIntentFor(currentBranch)
 
   // Branch strip above the staging file list (v1.22.0) — same actions as the
   // toolbar and the ⋮ menu, just brought next to the files they apply to.
@@ -1349,6 +1379,7 @@ export default function App() {
     onPull: handlePull,
     onFetch: handleFetch,
     issue: branchMeta.issueFor(currentBranch),
+    pr: currentBranchPR,
     onAssociateIssue: () => setIssueModalBranch(currentBranch),
     onOpenIssue: (n: number) => {
       if (githubOwnerRepo) {
@@ -1365,6 +1396,7 @@ export default function App() {
       onPull: handlePull,
       onPush: handlePush,
       onSetUpstream: () => handleSetUpstream(currentBranch),
+      onCreatePR: currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined,
       onOpenOnRemote: () => handleOpenBranchOnRemote(currentBranch),
       onAssociateIssue: () => setIssueModalBranch(currentBranch),
       onToggleFavorite: () => branchMeta.toggleFavorite(currentBranch),
@@ -1778,7 +1810,7 @@ export default function App() {
         onSettings={() => setSettingsOpen(v => !v)}
         settingsOpen={settingsOpen}
         githubRepoUrl={githubRepoUrl}
-        onCreatePR={githubOwnerRepo ? () => setPrModalOpen(true) : undefined}
+        onCreatePR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
         onGitflow={repoPath ? () => setGitflowOpen(true) : undefined}
       />
       )}
@@ -1932,6 +1964,8 @@ export default function App() {
               onToggleFavorite={branchMeta.toggleFavorite}
               onOpenBranchOnRemote={handleOpenBranchOnRemote}
               onAssociateIssue={setIssueModalBranch}
+              prIntentFor={prIntentFor}
+              onCreatePR={handleStartPR}
               showToast={showToast}
               showPrompt={showPrompt}
               showConfirm={showConfirm}
@@ -2123,6 +2157,8 @@ export default function App() {
               onCheckoutBranch={handleCheckout}
               onMergeBranch={handleMergeBranch}
               onRebaseCurrentOnto={handleRebaseOnto}
+              prIntentFor={prIntentFor}
+              onCreatePR={handleStartPR}
               onInteractiveRebase={(hash) => setRebaseHash(hash)}
               onCheckoutCommit={handleCheckout}
               onRewordCommit={handleRewordCommit}
@@ -2208,12 +2244,13 @@ export default function App() {
       )}
 
       {/* PR Modal */}
-      {prModalOpen && githubOwnerRepo && (
+      {prModalOpen && githubOwnerRepo && prIntent && (
         <PRModal
           owner={githubOwnerRepo.owner}
           repo={githubOwnerRepo.repo}
-          currentBranch={currentBranch}
-          onClose={() => setPrModalOpen(false)}
+          intent={prIntent}
+          onClose={() => { setPrModalOpen(false); setPrIntent(null) }}
+          onPushed={loadRepoData}
           showToast={showToast}
         />
       )}

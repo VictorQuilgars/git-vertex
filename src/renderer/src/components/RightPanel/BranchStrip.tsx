@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import ContextMenu from '../ContextMenu/ContextMenu'
 import { buildBranchMenu, type BranchMenuActions, type BranchMenuState } from '../ContextMenu/branchMenu'
+import type { PRIntent } from '../ContextMenu/prIntent'
 import { useLang } from '../../i18n/LanguageContext'
 import './BranchStrip.css'
 
@@ -26,6 +27,8 @@ export interface BranchStripProps {
   issue?: { number: number; title?: string } | null
   onAssociateIssue?: () => void
   onOpenIssue?: (number: number) => void
+  /** The pull request this branch offers, if any — see prIntentFor. */
+  pr?: PRIntent | null
   /** Everything else lands in the ⋮ menu. */
   menuState?: Partial<BranchMenuState>
   menuActions?: BranchMenuActions
@@ -43,7 +46,7 @@ export default function BranchStrip(p: BranchStripProps) {
 
   const items = p.menuActions
     ? buildBranchMenu(
-        { name: p.branch, display: p.branch, current: true, remote: false },
+        { name: p.branch, display: p.branch, current: true, remote: false, pr: p.pr ?? undefined },
         { currentBranch: p.branch, issue: p.issue, ...p.menuState },
         p.menuActions,
         t
