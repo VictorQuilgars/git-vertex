@@ -2,6 +2,17 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.24.1': `## What's new in 1.24.1
+
+### 🔢 Line numbers that follow the merged output
+- In the **conflict resolver**, only the text of the merged output scrolled — the gutter beside it stayed pinned at the top. Past the height of the pane, every number faced the wrong line, right where you check a merge before saving it. The gutter now follows the text, like the two source panes already follow each other.
+
+### 🔀 Merge commits no longer load forever
+- Selecting a **merge commit** left the detail panel on *Loading…* for as long as it stayed selected. git lists no file for a merge, and that empty answer was shown as if it were still loading. The panel now says there is nothing to list, and why.
+
+### 🇫🇷 One last French label
+- The line above the message box when **squashing or rewording** a commit in the interactive rebase was still in French.
+`,
   '1.24.0': `## What's new in 1.24.0
 
 ### 🌍 English, everywhere
