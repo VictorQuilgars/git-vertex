@@ -3,6 +3,7 @@ import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
+import { publishedNameFor } from '../ContextMenu/branchRefs'
 import { useLang } from '../../i18n/LanguageContext'
 import './Sidebar.css'
 
@@ -59,17 +60,14 @@ interface SidebarProps {
   mutedBranches: Set<string>
   onToggleSolo: (name: string) => void
   onToggleMute: (name: string) => void
-  // Sync actions for the checked-out branch. They live on the toolbar too, but
-  // the unified menu (v1.21.0) is meant to be the one place that has everything.
-  onFetch?: () => void
+  // Pull for the checked-out branch. Fetch is deliberately absent: it acts on
+  // the repo, not on the branch you right-clicked, and lives on the toolbar.
   onPull?: () => void
   // Branch metadata git has no concept of (v1.21.0) — supplied by
   // useBranchMeta in the host. Omitted ⇒ the matching menu rows disappear.
   isFavorite?: (name: string) => boolean
-  isPinned?: (name: string) => boolean
   issueFor?: (name: string) => { number: number; title?: string } | null
   onToggleFavorite?: (name: string) => void
-  onTogglePin?: (name: string) => void
   onOpenBranchOnRemote?: (name: string) => void
   onAssociateIssue?: (name: string) => void
   // The pull request a branch row should offer, or null for none — the rules
@@ -77,6 +75,9 @@ interface SidebarProps {
   // repo has no GitHub remote.
   prIntentFor?: (branchRef: string) => PRIntent | null
   onCreatePR?: (intent: PRIntent) => void
+  onCopyBranchLink?: (name: string) => void
+  /** Deletes the local branch and its published counterpart together. */
+  onDeleteBranchBoth?: (name: string, remoteName: string) => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   showPrompt: (msg: string, defaultValue?: string) => Promise<string | null>
   showConfirm: (msg: string, danger?: boolean) => Promise<boolean>
@@ -143,20 +144,21 @@ interface BranchItemProps {
   onSetUpstream?: () => void
   soloed?: boolean
   muted?: boolean
-  pinned?: boolean
   favorite?: boolean
   issue?: { number: number; title?: string } | null
-  onFetch?: () => void
   onPull?: () => void
   onToggleSolo?: () => void
   onToggleMute?: () => void
-  onTogglePin?: () => void
   onToggleFavorite?: () => void
   onOpenOnRemote?: () => void
   onAssociateIssue?: () => void
   /** The pull request this row offers, if any — see prIntentFor. */
   pr?: PRIntent | null
   onCreatePR?: (intent: PRIntent) => void
+  /** `origin/x` when the remote holds this branch — gates the remote-side rows. */
+  publishedAs?: string
+  onCopyLink?: () => void
+  onDeleteBoth?: () => void
   ahead?: number
   behind?: number
   gone?: boolean
@@ -166,7 +168,7 @@ interface BranchItemProps {
   showRemotePrefix?: boolean
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, pinned, favorite, issue, onFetch, onPull, onToggleSolo, onToggleMute, onTogglePin, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, favorite, issue, onPull, onToggleSolo, onToggleMute, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -178,18 +180,19 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   // Same builder the toolbars use — right-click here and the ⋮ button up there
   // now offer the identical menu (v1.21.0).
   const menuItems: MenuItemDef[] = buildBranchMenu(
-    { name, display, current, remote: !!remote, pr: pr ?? undefined },
-    { currentBranch, soloed, muted, pinned, favorite, issue },
+    { name, display, current, remote: !!remote, pr: pr ?? undefined, publishedAs },
+    { currentBranch, soloed, muted, favorite, issue },
     {
       onCheckout: current ? undefined : onCheckout,
-      onFetch, onPull,
+      onPull,
       onPush, onSetUpstream,
       onCreatePR: pr && onCreatePR ? () => onCreatePR(pr) : undefined,
       onMerge, onRebaseOnto, onCompare,
-      onOpenOnRemote, onAssociateIssue, onToggleFavorite, onTogglePin,
+      onOpenOnRemote, onAssociateIssue, onToggleFavorite,
       onToggleSolo, onToggleMute,
       onCopyName: () => navigator.clipboard.writeText(display),
-      onRename, onDelete, onDeleteRemote,
+      onCopyLink,
+      onRename, onDelete, onDeleteRemote, onDeleteBoth,
     },
     t
   )
@@ -229,7 +232,6 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
         )}
         {gone && <span className="sb-track sb-track-gone" title={t('sb.branch.goneTitle')}>✂</span>}
         {favorite && <span className="sb-branch-flag sb-branch-star" title={t('sb.branch.favoriteFlag')}>★</span>}
-        {pinned && <span className="sb-branch-flag" title={t('sb.branch.pinFlag')}>📌</span>}
         {issue && <span className="sb-branch-flag" title={issue.title || `#${issue.number}`}>#{issue.number}</span>}
         {soloed && <span className="sb-branch-flag" title={t('sb.branch.soloFlag')}>👁</span>}
         {muted && <span className="sb-branch-flag" title={t('sb.branch.mutedFlag')}>🔇</span>}
@@ -521,9 +523,10 @@ export default function Sidebar({
   onCreateTag, onDeleteTag, onCheckoutTag, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
-  onFetch, onPull,
-  isFavorite, isPinned, issueFor, onToggleFavorite, onTogglePin,
+  onPull,
+  isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
+  onCopyBranchLink, onDeleteBranchBoth,
   showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
 }: SidebarProps) {
   // In single-view mode a section is shown when it matches the active view.
@@ -891,21 +894,28 @@ export default function Sidebar({
                 onRebaseOnto={!b.current ? () => onRebaseOnto(b.name) : undefined}
                 onPush={() => onPushBranch(b.name)}
                 onSetUpstream={() => onSetUpstream(b.name)}
-                onFetch={b.current ? onFetch : undefined}
                 onPull={b.current ? onPull : undefined}
                 soloed={soloBranch === b.name}
                 muted={mutedBranches.has(b.name)}
                 onToggleSolo={() => onToggleSolo(b.name)}
                 onToggleMute={() => onToggleMute(b.name)}
                 favorite={isFavorite?.(b.name)}
-                pinned={isPinned?.(b.name)}
                 issue={issueFor?.(b.name)}
                 onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
-                onTogglePin={onTogglePin && (() => onTogglePin(b.name))}
                 onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
                 onAssociateIssue={onAssociateIssue && (() => onAssociateIssue(b.name))}
                 pr={prIntentFor?.(b.name)}
                 onCreatePR={onCreatePR}
+                publishedAs={publishedNameFor(b.name, branches) ?? undefined}
+                onCopyLink={onCopyBranchLink && (() => onCopyBranchLink(b.name))}
+                onDeleteRemote={() => {
+                  const published = publishedNameFor(b.name, branches)
+                  if (published) onDeleteRemoteBranch(`remotes/${published}`)
+                }}
+                onDeleteBoth={onDeleteBranchBoth && (() => {
+                  const published = publishedNameFor(b.name, branches)
+                  if (published) onDeleteBranchBoth(b.name, published)
+                })}
                 ahead={b.ahead}
                 behind={b.behind}
                 gone={b.gone}
@@ -935,12 +945,12 @@ export default function Sidebar({
                   onToggleSolo={() => onToggleSolo(b.name)}
                   onToggleMute={() => onToggleMute(b.name)}
                   favorite={isFavorite?.(b.name)}
-                  pinned={isPinned?.(b.name)}
                   onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
-                  onTogglePin={onTogglePin && (() => onTogglePin(b.name))}
                   onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
                   pr={prIntentFor?.(b.name)}
                   onCreatePR={onCreatePR}
+                  publishedAs={b.name.replace(/^remotes\//, '')}
+                  onCopyLink={onCopyBranchLink && (() => onCopyBranchLink(b.name))}
                 />
               ))}
             </Section>

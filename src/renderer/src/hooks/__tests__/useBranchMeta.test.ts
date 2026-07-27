@@ -9,7 +9,6 @@ describe('useBranchMeta (v1.21.0)', () => {
   test('starts empty for an unknown repo', () => {
     const { result } = renderHook(() => useBranchMeta('/repo/a'))
     expect(result.current.isFavorite('main')).toBe(false)
-    expect(result.current.isPinned('main')).toBe(false)
     expect(result.current.issueFor('main')).toBeNull()
   })
 
@@ -42,15 +41,15 @@ describe('useBranchMeta (v1.21.0)', () => {
 
   test('switching repos swaps the whole set', () => {
     const first = renderHook(() => useBranchMeta('/repo/a'))
-    act(() => first.result.current.togglePin('main'))
+    act(() => first.result.current.setIssue('main', { number: 7 }))
     first.unmount()
 
     const { result, rerender } = renderHook(({ repo }) => useBranchMeta(repo), {
       initialProps: { repo: '/repo/a' },
     })
-    expect(result.current.isPinned('main')).toBe(true)
+    expect(result.current.issueFor('main')).toEqual({ number: 7 })
     rerender({ repo: '/repo/b' })
-    expect(result.current.isPinned('main')).toBe(false)
+    expect(result.current.issueFor('main')).toBeNull()
   })
 
   test('an issue can be linked, replaced and cleared', () => {

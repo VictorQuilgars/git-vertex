@@ -24,6 +24,12 @@ export interface BranchMenuTarget {
    * row offers none, and no amount of handlers brings it back.
    */
   pr?: { head: string; baseLabel: string | null }
+  /**
+   * How the remote names this branch (`origin/main`), or absent when it has
+   * never been pushed. Decides whether the remote half of the delete group and
+   * the branch link are offered at all.
+   */
+  publishedAs?: string
 }
 
 export interface BranchMenuState {
@@ -31,7 +37,6 @@ export interface BranchMenuState {
   currentBranch: string
   soloed?: boolean
   muted?: boolean
-  pinned?: boolean
   favorite?: boolean
   /** Issue currently linked to this branch, if any. */
   issue?: { number: number; title?: string } | null
@@ -39,7 +44,6 @@ export interface BranchMenuState {
 
 export interface BranchMenuActions {
   onCheckout?: () => void
-  onFetch?: () => void
   onPull?: () => void
   onPush?: () => void
   onMerge?: () => void
@@ -51,28 +55,61 @@ export interface BranchMenuActions {
   onOpenOnRemote?: () => void
   onAssociateIssue?: () => void
   onToggleFavorite?: () => void
-  onTogglePin?: () => void
   onToggleSolo?: () => void
   onToggleMute?: () => void
   onCopyName?: () => void
+  /** Copies the branch's URL on the forge, next to opening it. */
+  onCopyLink?: () => void
   onRename?: () => void
   onDelete?: () => void
   onDeleteRemote?: () => void
+  /** Deletes the local branch and its published counterpart in one go. */
+  onDeleteBoth?: () => void
 }
 
 /** Loose `t` signature so callers can pass `useLang().t` without coupling. */
 type T = (key: any, ...args: any[]) => string
 
 /**
- * Builds the branch menu. Sections are separated in a fixed order — navigate,
- * sync, integrate, track, view, edit, destroy — so the same action always sits
- * in the same place whichever surface opened the menu.
+ * Rows contributed by a caller that shows this menu on a branch *and* on the
+ * commit it points at — the graph. They are merged into the matching branch
+ * block rather than appended after it, so "copy something" is one place in the
+ * menu and not two twenty rows apart.
+ */
+export interface BranchMenuExtras {
+  /** The whole commit section, separators included, placed after the branch. */
+  commit?: MenuItemDef[]
+  /** Joins "Open Branch on Remote" — e.g. opening the commit. */
+  openRemote?: MenuItemDef[]
+  /** Joins the Copy submenu — sha, message, link to the commit. */
+  copy?: MenuItemDef[]
+  /** Joins the Compare submenu — working tree, select for compare. */
+  compare?: MenuItemDef[]
+  /** Ways of exporting the diff, kept behind their own row. */
+  exports?: MenuItemDef[]
+}
+
+/**
+ * Builds the branch menu, in blocks that answer one question each:
+ *
+ *   go there        checkout
+ *   sync it         pull / push / upstream / pull request
+ *   fold it in      merge / rebase
+ *   change it       rename / delete
+ *   (the commit it points at, when the caller has one)
+ *   look at it      open on remote / copy / compare / export / issue / display
+ *
+ * Order is fixed so an action sits in the same place whichever surface opened
+ * the menu. What is flat and what is behind a submenu is deliberate: the daily
+ * actions are one click, and only variants of a single idea — five ways to copy
+ * a name, three to export a diff — fold away.
  */
 export function buildBranchMenu(
   target: BranchMenuTarget,
   state: BranchMenuState,
   actions: BranchMenuActions,
-  t: T
+  t: T,
+  extras: BranchMenuExtras = {}
 ): MenuItemDef[] {
   const { current, remote } = target
   const sections: MenuItemDef[][] = []
@@ -83,11 +120,12 @@ export function buildBranchMenu(
   sections.push(navigate)
 
   // ── Sync — only meaningful on the branch you are actually on ──
+  //
+  // No Fetch: it acts on the whole repo, not on the branch you right-clicked,
+  // and it already has the toolbar and the Pull split-button. It was the one
+  // row here that did not answer "what can I do to this branch".
   const sync: MenuItemDef[] = []
-  if (current) {
-    if (actions.onFetch) sync.push({ label: t('sb.branch.fetch'), action: actions.onFetch })
-    if (actions.onPull) sync.push({ label: t('sb.branch.pull'), action: actions.onPull })
-  }
+  if (current && actions.onPull) sync.push({ label: t('sb.branch.pull'), action: actions.onPull })
   if (!remote && actions.onPush) sync.push({ label: t('sb.branch.push'), action: actions.onPush })
   if (!remote && actions.onSetUpstream) sync.push({ label: t('sb.branch.setUpstream'), action: actions.onSetUpstream })
   // A pull request starts with a push — GitHub cannot see a branch it has never
@@ -105,75 +143,118 @@ export function buildBranchMenu(
   }
   sections.push(sync)
 
-  // ── Integrate into the current branch ──
+  // ── Fold this branch into the one you are on ──
   const integrate: MenuItemDef[] = []
   if (!current) {
     if (actions.onMerge) integrate.push({ label: t('sb.branch.mergeInto', state.currentBranch), action: actions.onMerge })
     if (actions.onRebaseOnto) integrate.push({ label: t('sb.branch.rebaseOnto', state.currentBranch), action: actions.onRebaseOnto })
-    if (actions.onCompare) integrate.push({ label: t('sb.branch.compareWith', state.currentBranch), action: actions.onCompare })
   }
   sections.push(integrate)
 
-  // ── Tracking / outside links ──
-  const track: MenuItemDef[] = []
-  if (actions.onOpenOnRemote) track.push({ label: t('sb.branch.openOnRemote'), action: actions.onOpenOnRemote })
+  // ── Change the branch itself ──
+  //
+  // Rename and delete are the branch's own lifecycle, so they sit together
+  // rather than at opposite ends of the menu.
+  const edit: MenuItemDef[] = []
+  if (!remote && actions.onRename) edit.push({ label: t('sb.rename'), action: actions.onRename })
+  if (!current && !remote) {
+    const ends: MenuItemDef[] = []
+    if (actions.onDelete) {
+      ends.push({ label: t('sb.branch.deleteNamed', target.display), action: actions.onDelete, danger: true })
+    }
+    if (target.publishedAs && actions.onDeleteRemote) {
+      ends.push({ label: t('sb.branch.deleteRemoteNamed', target.publishedAs), action: actions.onDeleteRemote, danger: true })
+    }
+    if (target.publishedAs && actions.onDelete && actions.onDeleteBoth) {
+      ends.push({
+        label: t('sb.branch.deleteBoth', target.display, target.publishedAs),
+        action: actions.onDeleteBoth,
+        danger: true,
+      })
+    }
+    // Which end to delete is a choice, not three separate actions — and the
+    // dropdown puts a deliberate step between the cursor and the half that the
+    // remote cannot give back. An unpublished branch has no choice to make, so
+    // it keeps its single flat row.
+    if (ends.length === 1) edit.push(ends[0])
+    else if (ends.length > 1) edit.push({ label: t('sb.delete'), submenu: ends, danger: true })
+  }
+  if (remote && actions.onDeleteRemote) {
+    edit.push({ label: t('sb.branch.deleteRemote'), action: actions.onDeleteRemote, danger: true })
+  }
+  sections.push(edit)
+
+  // ── Everything about the commit this branch points at ──
+  sections.push(extras.commit ?? [])
+
+  // ── Look at it: on the forge, on the clipboard, against something else ──
+  const inspect: MenuItemDef[] = []
+  if (actions.onOpenOnRemote) inspect.push({ label: t('sb.branch.openOnRemote'), action: actions.onOpenOnRemote })
+  inspect.push(...(extras.openRemote ?? []))
+  if (actions.onCopyName) inspect.push({ label: t('sb.copyName'), action: actions.onCopyName })
+  // Every other "copy the identity of this thing" in one place — the branch's
+  // URL next to the commit's sha — instead of a branch Copy near the top and a
+  // commit Copy near the bottom.
+  const copies: MenuItemDef[] = []
+  if (target.publishedAs && actions.onCopyLink) {
+    copies.push({ label: t('sb.branch.copyLink', target.publishedAs), action: actions.onCopyLink })
+  }
+  copies.push(...(extras.copy ?? []))
+  if (copies.length) inspect.push({ label: t('sb.branch.copyMenu'), submenu: copies })
+  const compares: MenuItemDef[] = []
+  if (!current && actions.onCompare) {
+    compares.push({ label: t('sb.branch.compareWith', state.currentBranch), action: actions.onCompare })
+  }
+  compares.push(...(extras.compare ?? []))
+  if (compares.length) inspect.push({ label: t('sb.branch.compareMenu'), submenu: compares })
+  if (extras.exports?.length) inspect.push({ label: t('graph.menu.patchMenu'), submenu: extras.exports })
   if (actions.onAssociateIssue) {
-    track.push({
+    inspect.push({
       label: state.issue
         ? t('sb.branch.issueLinked', state.issue.number)
         : t('sb.branch.associateIssue'),
       action: actions.onAssociateIssue,
     })
   }
-  sections.push(track)
 
-  // ── Graph view toggles ──
-  const view: MenuItemDef[] = []
+  // Four rows that only change how the graph looks, folded behind one — they
+  // are the least-reached-for entries in a menu this long, and their state
+  // stays visible as checkmarks once it is open.
+  const toggles: MenuItemDef[] = []
   if (actions.onToggleFavorite) {
-    view.push({
+    toggles.push({
       label: state.favorite ? t('sb.branch.unfavorite') : t('sb.branch.favorite'),
       action: actions.onToggleFavorite,
       checked: !!state.favorite,
     })
   }
-  if (actions.onTogglePin) {
-    view.push({
-      label: state.pinned ? t('sb.branch.unpin') : t('sb.branch.pin'),
-      action: actions.onTogglePin,
-      checked: !!state.pinned,
-    })
-  }
   if (actions.onToggleSolo) {
-    view.push({
+    toggles.push({
       label: state.soloed ? t('sb.branch.unsolo') : t('sb.branch.solo'),
       action: actions.onToggleSolo,
       checked: !!state.soloed,
     })
   }
   if (actions.onToggleMute) {
-    view.push({
+    toggles.push({
       label: state.muted ? t('sb.branch.unmute') : t('sb.branch.mute'),
       action: actions.onToggleMute,
       checked: !!state.muted,
     })
   }
-  sections.push(view)
-
-  // ── Edit ──
-  const edit: MenuItemDef[] = []
-  if (actions.onCopyName) edit.push({ label: t('sb.copyName'), action: actions.onCopyName })
-  if (!remote && actions.onRename) edit.push({ label: t('sb.rename'), action: actions.onRename })
-  sections.push(edit)
-
-  // ── Destroy — always last, always separated ──
-  const destroy: MenuItemDef[] = []
-  if (!current && !remote && actions.onDelete) {
-    destroy.push({ label: t('sb.delete'), action: actions.onDelete, danger: true })
+  // A branch that is soloed, hidden or starred says so on the parent row, or
+  // folding them away would hide the fact that they are on. Only when one is —
+  // an unticked `checked` still reserves its slot and leaves the row visibly
+  // indented against its neighbours.
+  const anyToggleOn = !!(state.favorite || state.soloed || state.muted)
+  if (toggles.length) {
+    inspect.push({
+      label: t('sb.branch.viewMenu'),
+      submenu: toggles,
+      ...(anyToggleOn ? { checked: true } : {}),
+    })
   }
-  if (remote && actions.onDeleteRemote) {
-    destroy.push({ label: t('sb.branch.deleteRemote'), action: actions.onDeleteRemote, danger: true })
-  }
-  sections.push(destroy)
+  sections.push(inspect)
 
   // Join non-empty sections with a single separator each — no leading, trailing
   // or doubled separators however few sections a caller ends up with.

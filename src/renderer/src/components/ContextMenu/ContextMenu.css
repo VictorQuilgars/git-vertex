@@ -4,7 +4,7 @@
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   min-width: 200px;
-  padding: 4px;
+  padding: 3px;
   user-select: none;
   animation: ctx-appear 0.08s ease;
   /* Stay within the viewport — scroll if taller than the available height
@@ -36,12 +36,16 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 6px 12px;
+  /* Tight on purpose: this menu carries every branch AND commit action, so a
+     couple of pixels per row decide whether it needs scrolling. 4px keeps the
+     rows comfortably clickable (~23px tall) without the list running off. */
+  padding: 4px 10px;
   background: none;
   border: none;
   border-radius: 5px;
   color: #c9d1d9;
   font-size: 12px;
+  line-height: 15px;
   text-align: left;
   cursor: pointer;
   transition: background 0.08s, color 0.08s;
@@ -83,5 +87,5 @@
 .ctx-sep {
   height: 1px;
   background: #30363d;
-  margin: 4px 0;
+  margin: 3px 0;
 }
