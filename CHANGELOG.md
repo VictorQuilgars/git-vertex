@@ -1,5 +1,26 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.25.0
+
+### Added
+- **Start a pull request from the branch you are looking at.** It lives in the branch menu now — in the sidebar, on a graph chip, above the staging files — and the row says which way it runs: *Push "feature/x" and start a Pull Request to origin/main*. Which branch is the source and which is the target is worked out rather than assumed: the target must already exist on the remote, nothing is ever proposed *out of* the default branch, and right-clicking another branch while you are standing on the trunk makes that branch the source rather than the target. Where no sensible request exists, no row appears.
+- **Copy the link to a branch or to a commit** — the entries that only knew how to open them in a browser now have a counterpart that puts the URL on the clipboard.
+- **Create an annotated tag** from a commit, alongside the lightweight one.
+- **Delete both ends of a branch** — the local one, its published counterpart, or the pair in a single confirmation. Reaching the remote side used to mean finding its row in the REMOTE section.
+
+### Fixed
+- **Creating a pull request never worked.** GitHub cannot open a request on a branch it has never received, and the app sent one without pushing first, so on an unpublished branch the answer was a bare *Validation Failed* with nothing saying what to do. The branch is now pushed as part of the action — the menu row says so, and the composer says so again before you confirm. When GitHub still refuses, the reason comes through: the useful half of its answer was in a field the app never read, so *Validation Failed* now reads *Validation Failed (No commits between main and feature/x)*.
+
+### Changed
+- **The branch menu is one menu, wherever you open it.** The graph built its own, shorter version: a chip offered checkout, merge and rebase while push, rename, delete, compare and the rest never appeared, even though the app could do all of them. Chips and sidebar rows now show the same thing.
+- **It is grouped by what an action is for** — go there, sync it, fold it in, change it, the commit it points at, look at it — instead of by which part of the code produced the row, which had scattered the same idea across the list. Copying and comparing are one entry each, holding both the branch's and the commit's variants.
+- **It fits on the screen.** Rows are 23px instead of 27, and only variants of a single idea fold away, so every daily action stays one click. The menu had reached the point of scrolling.
+
+### Removed
+- **Fetch** leaves the branch menu: it acts on the repository, not on the branch you right-clicked, and it already has the toolbar and the Pull split-button.
+- **Pin to Graph Edge** never pinned anything. The set of pinned branches was stored and read back to draw a checkmark and a badge; no layout code had ever heard of it. Favorites already covers keeping a branch in view.
+- **Switch to Commit** and **Cherry-pick** no longer show on the tip of the branch you are on — there they would detach HEAD where you already are, or pick a commit onto itself. Cherry-pick had been sitting there permanently greyed out.
+
 ## 1.24.1
 
 ### Fixed

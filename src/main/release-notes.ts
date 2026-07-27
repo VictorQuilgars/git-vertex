@@ -2,6 +2,28 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.25.0': `## What's new in 1.25.0
+
+### 🔀 Pull requests, from the branch you are looking at
+- The action lives in the **branch menu** now — sidebar, graph chip, or above the staging files — and the row spells out which way it runs: *Push "feature/x" and start a Pull Request to origin/main*.
+- Which branch is the source and which is the target is **worked out, not assumed**: the target must already exist on the remote, nothing is ever proposed *out of* the default branch, and right-clicking another branch while you stand on the trunk makes that branch the source. Where no sensible request exists, no row appears.
+- **It also used to not work at all.** GitHub cannot open a request on a branch it has never received, and the app never pushed first — an unpublished branch got a bare *Validation Failed*. The push is now part of the action, and when GitHub still refuses it says why: *Validation Failed (No commits between main and feature/x)*.
+
+### 🧭 One branch menu, wherever you open it
+- The graph used to build its own shorter version — a chip offered checkout, merge and rebase while **push, rename, delete and compare never appeared**, though the app could do all of them. Chips and sidebar rows now show the same menu.
+- It is grouped by what an action is *for* — go there, sync it, fold it in, change it, the commit it points at, look at it — instead of by which part of the code emitted the row. **Copy** and **Compare** are one entry each now, rather than one near the top and another twenty rows below.
+- Rows are **23px instead of 27**, and only variants of a single idea fold away, so every daily action stays one click. The menu had reached the point of scrolling.
+
+### ➕ Three things that were missing
+- **Copy the link** to a branch or to a commit, next to the entries that only knew how to open them.
+- **Create an annotated tag** from a commit, alongside the lightweight one.
+- **Delete both ends of a branch** — local, published, or the pair in one confirmation. The remote side used to mean hunting down its row in the REMOTE section.
+
+### 🧹 Three rows that could not do anything
+- **Fetch** left the branch menu: it acts on the repository, not the branch you right-clicked.
+- **Pin to Graph Edge** never pinned anything — the state was stored and read back to draw a badge, and no layout code ever looked. Favorites already keeps a branch in view.
+- **Switch to Commit** and **Cherry-pick** no longer show on the tip of the branch you are on, where they would detach HEAD where you already are, or pick a commit onto itself.
+`,
   '1.24.1': `## What's new in 1.24.1
 
 ### 🔢 Line numbers that follow the merged output
