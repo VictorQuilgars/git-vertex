@@ -47,11 +47,9 @@ interface Props {
   onOpenBranchOnRemote?: (name: string) => void
   onAssociateIssue?: (name: string) => void
   onToggleFavorite?: (name: string) => void
-  onTogglePin?: (name: string) => void
   onToggleSolo?: (name: string) => void
   onToggleMute?: (name: string) => void
   isFavorite?: (name: string) => boolean
-  isPinned?: (name: string) => boolean
   issueFor?: (name: string) => { number: number; title?: string } | null
   soloBranch?: string | null
   mutedBranches?: Set<string>
@@ -121,18 +119,15 @@ export default function CompactToolbar(p: Props) {
       soloed: p.soloBranch === p.branch,
       muted: p.mutedBranches?.has(p.branch),
       favorite: p.isFavorite?.(p.branch),
-      pinned: p.isPinned?.(p.branch),
       issue: p.issueFor?.(p.branch),
     },
     {
-      onFetch: p.onFetch,
       onPull: p.onPull,
       onPush: p.onPush,
       onSetUpstream: p.onSetUpstream && (() => p.onSetUpstream!(p.branch)),
       onOpenOnRemote: p.onOpenBranchOnRemote && (() => p.onOpenBranchOnRemote!(p.branch)),
       onAssociateIssue: p.onAssociateIssue && (() => p.onAssociateIssue!(p.branch)),
       onToggleFavorite: p.onToggleFavorite && (() => p.onToggleFavorite!(p.branch)),
-      onTogglePin: p.onTogglePin && (() => p.onTogglePin!(p.branch)),
       onToggleSolo: p.onToggleSolo && (() => p.onToggleSolo!(p.branch)),
       onToggleMute: p.onToggleMute && (() => p.onToggleMute!(p.branch)),
       onCopyName: () => navigator.clipboard.writeText(p.branch),

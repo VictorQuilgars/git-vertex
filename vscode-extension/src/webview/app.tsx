@@ -627,7 +627,6 @@ function VertexApp() {
       favorite: branchMeta.isFavorite(currentBranch),
     },
     menuActions: {
-      onFetch: handleFetch,
       onPull: handlePull,
       onPush: handlePush,
       onSetUpstream: () => handleSetUpstream(currentBranch),
@@ -680,7 +679,6 @@ function VertexApp() {
         onToggleSolo={handleToggleSolo}
         onToggleMute={handleToggleMute}
         isFavorite={branchMeta.isFavorite}
-        isPinned={branchMeta.isPinned}
         issueFor={branchMeta.issueFor}
         soloBranch={soloBranch}
         mutedBranches={mutedBranches}
@@ -760,7 +758,6 @@ function VertexApp() {
             onFetch={handleFetch}
             onPull={handlePull}
             isFavorite={branchMeta.isFavorite}
-            isPinned={branchMeta.isPinned}
             issueFor={branchMeta.issueFor}
             onToggleFavorite={branchMeta.toggleFavorite}
             onOpenBranchOnRemote={handleOpenBranchOnRemote}

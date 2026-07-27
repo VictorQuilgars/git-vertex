@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.23.0
+
+### Changed
+- **One branch menu, in blocks that each answer one question.** Right-clicking a branch used to give a different, shorter menu depending on where you clicked, and the order followed which part of the code emitted a row rather than what the row does — so the same idea sat in two places, "Copy name" near the top and "Copy" twenty rows below it. The menu is now grouped: go there, sync it, fold it in, change it, look at it. Copying and comparing are one entry each.
+- **The rows are tighter** — 23px instead of 27 — so a long menu no longer needs scrolling to reach its end.
+- **Deleting a branch offers both of its ends**: the local one, the published one, or the pair, behind a single Delete entry rather than three rows sitting under your cursor.
+
+### Removed
+- **Fetch** is gone from the branch menu. It acts on the whole repository, not on the branch you right-clicked, and it already has the toolbar.
+- **Pin to Graph Edge** is gone, because it never did anything: the pinned branches were stored and read back to draw a checkmark and a badge, and no layout code ever looked at them. Favorites already keeps a branch in view.
+- **Switch to Commit** and **Cherry-pick** no longer appear on the tip of the branch you are on, where they would detach HEAD where you already are, or pick a commit onto itself. Cherry-pick used to sit there permanently greyed out.
+
 ## 1.22.1
 
 ### Fixed
