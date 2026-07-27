@@ -1,5 +1,9 @@
-// Per-repo, per-branch metadata that git itself has no concept of: favorites,
-// graph-edge pins and the issue a branch is working on (v1.21.0).
+// Per-repo, per-branch metadata that git itself has no concept of: favorites
+// and the issue a branch is working on (v1.21.0).
+//
+// It also carried a `pinned` set until nothing was found to read it: the menu
+// row said "Pin to Graph Edge" and the layout never looked. Old entries in
+// localStorage keep the key; it is simply ignored.
 //
 // Deliberately renderer-side localStorage rather than settings.json over IPC:
 // it is view state, it is worthless without the repo it describes, and keeping
@@ -15,11 +19,10 @@ export interface LinkedIssue {
 
 export interface BranchMeta {
   favorites: string[]
-  pinned: string[]
   issues: Record<string, LinkedIssue>
 }
 
-const EMPTY: BranchMeta = { favorites: [], pinned: [], issues: {} }
+const EMPTY: BranchMeta = { favorites: [], issues: {} }
 
 const keyFor = (repoPath: string | null) => repoPath ? `gv-branch-meta:${repoPath}` : null
 
@@ -33,7 +36,6 @@ function read(repoPath: string | null): BranchMeta {
     // Tolerate anything hand-edited or written by an older shape.
     return {
       favorites: Array.isArray(parsed?.favorites) ? parsed.favorites : [],
-      pinned: Array.isArray(parsed?.pinned) ? parsed.pinned : [],
       issues: parsed?.issues && typeof parsed.issues === 'object' ? parsed.issues : {},
     }
   } catch {
@@ -75,15 +77,6 @@ export function useBranchMeta(repoPath: string | null) {
     }))
   }, [update])
 
-  const togglePin = useCallback((branch: string) => {
-    update(m => ({
-      ...m,
-      pinned: m.pinned.includes(branch)
-        ? m.pinned.filter(b => b !== branch)
-        : [...m.pinned, branch],
-    }))
-  }, [update])
-
   /** Passing null clears the link. */
   const setIssue = useCallback((branch: string, issue: LinkedIssue | null) => {
     update(m => {
@@ -95,8 +88,7 @@ export function useBranchMeta(repoPath: string | null) {
   }, [update])
 
   const isFavorite = useCallback((branch: string) => meta.favorites.includes(branch), [meta.favorites])
-  const isPinned = useCallback((branch: string) => meta.pinned.includes(branch), [meta.pinned])
   const issueFor = useCallback((branch: string) => meta.issues[branch] ?? null, [meta.issues])
 
-  return { meta, toggleFavorite, togglePin, setIssue, isFavorite, isPinned, issueFor }
+  return { meta, toggleFavorite, setIssue, isFavorite, issueFor }
 }

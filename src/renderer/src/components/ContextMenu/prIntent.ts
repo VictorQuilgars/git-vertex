@@ -23,6 +23,7 @@
 // The head is pushed before the pull request is opened whenever it is a local
 // branch the remote has not caught up with — hence `needsPush`.
 import type { BranchInfo } from '../../types'
+import { remoteNames, shortName } from './branchRefs'
 
 export interface PRIntent {
   /** Branch the pull request comes from. */
@@ -45,18 +46,6 @@ export interface PRContext {
 
 const remoteName = (ref: string): string | null => ref.match(/^remotes\/([^/]+)\//)?.[1] ?? null
 
-// Branch lists name a remote ref `remotes/origin/x`; the graph reads its refs
-// straight out of git's decorations, where the same branch is `origin/x`. Both
-// have to resolve to `x` — but only when that first segment really is a remote,
-// or a local `feat/x` would lose its `feat/`.
-const shortName = (ref: string, remotes: Set<string>): string => {
-  const full = ref.match(/^remotes\/([^/]+)\/(.+)$/)
-  if (full && remotes.has(full[1])) return full[2]
-  const decorated = ref.match(/^([^/]+)\/(.+)$/)
-  if (decorated && remotes.has(decorated[1])) return decorated[2]
-  return ref.replace(/^remotes\/[^/]+\//, '')
-}
-
 /**
  * The pull request a branch row should offer, or `null` when it should offer
  * none. `targetRef` is the row's ref as git names it (`main`, `remotes/origin/main`).
@@ -66,11 +55,7 @@ export function prIntentFor(targetRef: string, ctx: PRContext): PRIntent | null 
   if (!currentBranch) return null   // detached HEAD — nothing to propose
 
   // Short name → the remote holding it, for every branch the remote has.
-  const remotes = new Set<string>()
-  for (const b of branches) {
-    const r = b.remote ? remoteName(b.name) : null
-    if (r) remotes.add(r)
-  }
+  const remotes = remoteNames(branches)
   const published = new Map<string, string>()
   const locals = new Map<string, BranchInfo>()
   for (const b of branches) {

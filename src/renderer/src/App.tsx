@@ -25,6 +25,8 @@ import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
 import InitModal from './components/InitModal/InitModal'
 import PRModal from './components/PRModal/PRModal'
 import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
+import { canonicalRef, publishedNameFor } from './components/ContextMenu/branchRefs'
+import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu/branchMenu'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
 import CenterFileDiff, { CenterDiffTarget } from './components/CenterFileDiff/CenterFileDiff'
@@ -1081,6 +1083,20 @@ export default function App() {
     else showToast(t('toast.err', r.error ?? ''), 'err')
   }
 
+  // Abandoning a branch means both ends of it. One confirmation, and the local
+  // side goes first so a remote that refuses (protected branch) leaves the pair
+  // visibly half-done rather than silently dropping the local work.
+  const handleDeleteBranchBoth = async (name: string, remoteName: string) => {
+    const ok = await showConfirm(t('prompt.deleteBoth', name, remoteName), true)
+    if (!ok) return
+    const local = await window.gitAPI.deleteBranch(name)
+    if (!local.success) { showToast(t('toast.err', local.error ?? ''), 'err'); return }
+    const remote = await window.gitAPI.deleteRemoteBranch(`remotes/${remoteName}`)
+    if (remote.success) showToast(t('toast.branchesDeleted', name, remoteName))
+    else showToast(t('toast.err', remote.error ?? ''), 'err')
+    await loadRepoData()
+  }
+
   // Warn (per the user's `warnBeforeConflict` setting) before an operation that
   // is predicted to conflict. `predict` returns the files that would clash —
   // empty means clean OR the prediction couldn't run, and either way we don't
@@ -1369,6 +1385,77 @@ export default function App() {
   // button and the branch strip follow it.
   const currentBranchPR = prIntentFor(currentBranch)
 
+  const handleCopyBranchLink = (name: string) => {
+    if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    const short = name.replace(/^remotes\/[^/]+\//, '')
+    navigator.clipboard.writeText(
+      `https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/tree/${short.split('/').map(encodeURIComponent).join('/')}`
+    )
+    showToast(t('toast.linkCopied'))
+  }
+
+  const handleCopyCommitLink = (hash: string) => {
+    if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    navigator.clipboard.writeText(
+      `https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/commit/${hash}`
+    )
+    showToast(t('toast.linkCopied'))
+  }
+
+  // Every branch action, wired to the state that only lives here, for any
+  // surface that cannot assemble the menu itself. The graph used to build its
+  // own thin version and so quietly lacked Push, Rename, Delete and the rest;
+  // it now asks for this one instead.
+  const branchMenuItems = useCallback((
+    target: { name: string; display: string; current: boolean; remote: boolean },
+    extras?: BranchMenuExtras,
+  ): MenuItemDef[] => {
+    // A chip carries git's decoration (`origin/x`); handlers and branch
+    // metadata are keyed by the branch-list form (`remotes/origin/x`).
+    const ref = canonicalRef(target.name, branches)
+    const short = ref.replace(/^remotes\/[^/]+\//, '')
+    const publishedAs = publishedNameFor(ref, branches) ?? undefined
+    const pr = prIntentFor(ref)
+    return buildBranchMenu(
+      { ...target, name: ref, pr: pr ?? undefined, publishedAs },
+      {
+        currentBranch,
+        soloed: soloBranch === ref,
+        muted: mutedBranches.has(ref),
+        favorite: branchMeta.isFavorite(ref),
+        issue: branchMeta.issueFor(ref),
+      },
+      {
+        onCheckout: () => handleCheckout(target.remote ? short : ref),
+        onPull: handlePull,
+        onPush: () => handlePushBranch(ref),
+        onSetUpstream: () => handleSetUpstream(ref),
+        onCreatePR: pr ? () => handleStartPR(pr) : undefined,
+        onMerge: () => handleMergeBranch(ref),
+        onRebaseOnto: () => handleRebaseOnto(ref),
+        onCompare: () => setCompareBranchModal(ref),
+        onOpenOnRemote: () => handleOpenBranchOnRemote(ref),
+        onAssociateIssue: () => setIssueModalBranch(ref),
+        onToggleFavorite: () => branchMeta.toggleFavorite(ref),
+        onToggleSolo: () => setSoloBranch(prev => prev === ref ? null : ref),
+        onToggleMute: () => setMutedBranches(prev => {
+          const next = new Set(prev)
+          next.has(ref) ? next.delete(ref) : next.add(ref)
+          return next
+        }),
+        onCopyName: () => navigator.clipboard.writeText(target.display),
+        onCopyLink: () => handleCopyBranchLink(ref),
+        onRename: () => handleRenameBranch(ref),
+        onDelete: () => handleDeleteBranch(ref),
+        onDeleteRemote: () => handleDeleteRemoteBranch(target.remote ? ref : `remotes/${publishedAs}`),
+        onDeleteBoth: publishedAs ? () => handleDeleteBranchBoth(ref, publishedAs) : undefined,
+      },
+      t,
+      extras
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branches, currentBranch, soloBranch, mutedBranches, branchMeta, prIntentFor, githubOwnerRepo, t])
+
   // Branch strip above the staging file list (v1.22.0) — same actions as the
   // toolbar and the ⋮ menu, just brought next to the files they apply to.
   const branchStripProps = {
@@ -1392,7 +1479,6 @@ export default function App() {
       favorite: branchMeta.isFavorite(currentBranch),
     },
     menuActions: {
-      onFetch: handleFetch,
       onPull: handlePull,
       onPush: handlePush,
       onSetUpstream: () => handleSetUpstream(currentBranch),
@@ -1468,6 +1554,19 @@ export default function App() {
     if (!name) return
     const message = await showPrompt(t('prompt.tagMessage'))
     const r = await window.gitAPI.createTag(name, hash, message || undefined)
+    if (r.success) { showToast(t('toast.tagCreated', name)); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
+  // An annotated tag is its own git object — it carries an author, a date and a
+  // message, which is what release tooling reads. The message is therefore
+  // required here, unlike the lightweight tag above where it is optional.
+  const handleCreateAnnotatedTagAtCommit = async (hash: string) => {
+    const name = await showPrompt(t('prompt.tagName'))
+    if (!name) return
+    const message = await showPrompt(t('prompt.annotatedTagMessage'))
+    if (!message) return
+    const r = await window.gitAPI.createTag(name, hash, message)
     if (r.success) { showToast(t('toast.tagCreated', name)); await loadRepoData() }
     else showToast(t('toast.err', r.error ?? ''), 'err')
   }
@@ -1956,16 +2055,16 @@ export default function App() {
                   return next
                 })
               }}
-              onFetch={handleFetch}
               onPull={handlePull}
               isFavorite={branchMeta.isFavorite}
-              isPinned={branchMeta.isPinned}
               issueFor={branchMeta.issueFor}
               onToggleFavorite={branchMeta.toggleFavorite}
               onOpenBranchOnRemote={handleOpenBranchOnRemote}
               onAssociateIssue={setIssueModalBranch}
               prIntentFor={prIntentFor}
               onCreatePR={handleStartPR}
+              onCopyBranchLink={githubOwnerRepo ? handleCopyBranchLink : undefined}
+              onDeleteBranchBoth={handleDeleteBranchBoth}
               showToast={showToast}
               showPrompt={showPrompt}
               showConfirm={showConfirm}
@@ -2159,6 +2258,9 @@ export default function App() {
               onRebaseCurrentOnto={handleRebaseOnto}
               prIntentFor={prIntentFor}
               onCreatePR={handleStartPR}
+              branchMenuItems={branchMenuItems}
+              onCopyCommitLink={githubOwnerRepo ? handleCopyCommitLink : undefined}
+              onCreateAnnotatedTag={handleCreateAnnotatedTagAtCommit}
               onInteractiveRebase={(hash) => setRebaseHash(hash)}
               onCheckoutCommit={handleCheckout}
               onRewordCommit={handleRewordCommit}
