@@ -1,1 +1,37 @@
-* @VictorQuilgars
+# Who has to approve a change before it can reach main.
+#
+# The ruleset on main requires a review from a code owner of every path a pull
+# request touches, and the most specific matching pattern wins. That is what
+# lets review of ordinary code be delegated while two categories stay with the
+# maintainer alone:
+#
+#   - The four version files. Bumping one IS the release trigger: merging that
+#     change publishes to npm, to the VS Code Marketplace and to the auto-update
+#     feed, using the maintainer's tokens. Reviewing code is one thing; shipping
+#     it under someone else's name is another.
+#
+#   - .github/ and scripts/. A workflow runs with the repository's secrets, and
+#     it sources scripts/products.sh and scripts/changelog-section.sh — so
+#     editing either is arbitrary code execution with those secrets. This is the
+#     line that matters most on a public repository.
+#
+# To let someone review and merge ordinary changes, add them to the first line.
+# They need write access as well, or GitHub cannot request a review from them:
+#
+#   gh api -X PUT repos/VictorQuilgars/git-vertex/collaborators/<login> \
+#     -f permission=push
+#
+# Contributors need none of this: anyone can fork, fix, run the products locally
+# (see CONTRIBUTING.md) and open a pull request.
+
+*                               @VictorQuilgars
+
+# The release triggers — maintainer only.
+/package.json                   @VictorQuilgars
+/vscode-extension/package.json  @VictorQuilgars
+/cli/package.json               @VictorQuilgars
+/mcp/package.json               @VictorQuilgars
+
+# Anything that runs in CI, with the repository's secrets — maintainer only.
+/.github/                       @VictorQuilgars
+/scripts/                       @VictorQuilgars

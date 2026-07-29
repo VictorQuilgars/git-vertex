@@ -34,7 +34,7 @@
       "provider": "github",
       "owner": "VictorQuilgars",
       "repo": "git-vertex",
-      "releaseType": "release"
+      "releaseType": "draft"
     },
     "protocols": [
       {

@@ -1,81 +1,60 @@
 name: Publish CLI to npm
 
-# Runs on every push to main. Publishes git-vertex-cli to npm only when the
-# version in cli/package.json is higher than the last cli-v* tag — so bumping
-# the version and pushing is all you need to trigger a release.
+# Bump the version in cli/package.json, push to main, and this publishes.
+# `paths` is that package.json alone: ordinary work under cli/ does not start
+# this workflow, and a bump of another product cannot reach it.
+#
+# Whether the push is a release is decided by _release-gate.yml, shared with the
+# other three products — including the requirement that cli/CHANGELOG.md carry
+# an entry for the version. The release body used to be a generic blurb hard
+# coded below, identical from one version to the next.
 #
 # Requires an NPM_TOKEN repository secret (an npm automation token with publish
-# rights). Add it in GitHub → Settings → Secrets and variables → Actions.
+# rights), shared with publish-mcp.yml.
 
 on:
   push:
     branches: [main]
     paths:
-      - 'cli/**'
-      - '!cli/node_modules/**'
-  # Manual trigger from the Actions tab ("Run workflow") — publishes the current
-  # cli/package.json version if it isn't already released.
+      - 'cli/package.json'
   workflow_dispatch:
 
 permissions:
-  contents: write   # to create tags and GitHub Releases
+  contents: write   # to create the tag and the GitHub Release
 
 jobs:
-  check-version:
-    name: Check if version is new
-    runs-on: ubuntu-latest
-    outputs:
-      should_publish: ${{ steps.check.outputs.should_publish }}
-      version: ${{ steps.check.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Compare version with last release tag
-        id: check
-        run: |
-          VERSION=$(node -p "require('./cli/package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if git tag --list "cli-v${VERSION}" | grep -q .; then
-            echo "ℹ️  cli-v${VERSION} already released — skipping."
-            echo "should_publish=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "🚀 New version cli-v${VERSION} detected — will publish."
-            echo "should_publish=true" >> "$GITHUB_OUTPUT"
-          fi
+  gate:
+    uses: ./.github/workflows/_release-gate.yml
+    with:
+      product: cli
 
   test:
     name: Typecheck
-    needs: check-version
-    if: needs.check-version.outputs.should_publish == 'true'
+    needs: gate
+    if: needs.gate.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: cli/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
         working-directory: cli
-
-      # No test suite yet in cli/ — typecheck is the minimal gate so a
-      # broken release can't ship silently.
-      - name: Typecheck
-        run: npm run typecheck
+      # No test suite under cli/ yet — a typecheck is the minimal gate so a
+      # broken release cannot ship silently.
+      - run: npm run typecheck
         working-directory: cli
 
   publish:
     name: Build & publish
-    needs: [check-version, test]
-    if: needs.check-version.outputs.should_publish == 'true'
+    needs: [gate, test]
+    if: needs.gate.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ needs.check-version.outputs.version }}
+      VERSION: ${{ needs.gate.outputs.version }}
+      TAG: ${{ needs.gate.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -86,42 +65,57 @@ jobs:
           cache: npm
           cache-dependency-path: cli/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
         working-directory: cli
 
-      - name: Build
-        run: npm run build
+      - run: npm run build
         working-directory: cli
 
+      # An npm version is immutable, so a re-run after a failure further down
+      # would otherwise die here on "cannot publish over an existing version"
+      # and never reach the release. Skipping what is already out makes the
+      # whole job safe to re-run.
       - name: Publish to npm
-        run: npm publish --access public
         working-directory: cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Create git tag cli-v${{ env.VERSION }}
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "cli-v${{ env.VERSION }}"
-          git push origin "cli-v${{ env.VERSION }}"
+          set -euo pipefail
+          NAME=$(node -p "require('./package.json').name")
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already on npm — skipping publish"
+          else
+            npm publish --access public
+          fi
 
+      - name: Build release notes from the changelog
+        run: |
+          {
+            echo "## Git Vertex CLI v${VERSION}"
+            echo
+            bash scripts/changelog-section.sh \
+              "${{ needs.gate.outputs.changelog }}" "$VERSION"
+            echo
+            echo "---"
+            echo
+            echo '```'
+            echo "npx git-vertex-cli"
+            echo "# or"
+            echo "npm i -g git-vertex-cli && gv"
+            echo '```'
+            echo
+            echo "🔗 [npm](https://www.npmjs.com/package/git-vertex-cli)"
+          } > /tmp/release-notes.md
+
+      # Creates the tag too, on the commit given by --target. --latest=false so
+      # this never steals the "Latest" badge from the desktop release carrying
+      # latest.yml, the feed electron-updater reads.
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "cli-v${{ env.VERSION }}" \
-            --title "Git Vertex CLI v${{ env.VERSION }}" \
-            --notes "## Git Vertex CLI v${{ env.VERSION }}
-
-          Terminal UI Git client.
-
-          \`\`\`
-          npx git-vertex-cli
-          # or
-          npm i -g git-vertex-cli && gv
-          \`\`\`
-
-          🔗 [npm](https://www.npmjs.com/package/git-vertex-cli)" \
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "Git Vertex CLI v${VERSION}" \
+            --notes-file /tmp/release-notes.md \
             --latest=false

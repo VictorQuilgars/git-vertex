@@ -1,0 +1,126 @@
+name: Release gate
+
+# The one place that answers "is this push a release, and of what?" — for all
+# four products. Called by release.yml, publish-extension.yml, publish-cli.yml
+# and publish-mcp.yml.
+#
+# It used to be copy-pasted in three of them, each with its own paths and its
+# own tag prefix, while the desktop app used a fourth mechanism entirely (a
+# hand-pushed tag). One of those copies drifted and ext-v1.23.0 got mirrored as
+# the wrong release. Everything below is read from scripts/products.sh, which
+# scripts/release.sh sources too — so the laptop and CI cannot disagree about
+# what a release of a given product requires.
+#
+# The rule, identical for the four: the version in the product's own
+# package.json is the truth. If no tag matches it yet, this push is a release.
+# That is also why the app no longer needs its old "does the tag match
+# package.json?" guard — the tag is derived from package.json instead of typed,
+# so the two can no longer diverge.
+
+on:
+  workflow_call:
+    inputs:
+      product:
+        description: app | ext | cli | mcp
+        required: true
+        type: string
+    outputs:
+      should_publish:
+        description: '"true" when the version in package.json has no tag yet'
+        value: ${{ jobs.gate.outputs.should_publish }}
+      version:
+        description: The version in the product's package.json
+        value: ${{ jobs.gate.outputs.version }}
+      tag:
+        description: The tag this release will carry (prefix + version)
+        value: ${{ jobs.gate.outputs.tag }}
+      changelog:
+        description: Path to the changelog holding this release's notes
+        value: ${{ jobs.gate.outputs.changelog }}
+      label:
+        description: How to name this product to a human
+        value: ${{ jobs.gate.outputs.label }}
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Is this a release?
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.check.outputs.should_publish }}
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
+      changelog: ${{ steps.check.outputs.changelog }}
+      label: ${{ steps.check.outputs.label }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The tags ARE the record of what has already been released, so the
+          # gate cannot answer its question on a shallow clone.
+          fetch-depth: 0
+
+      - name: Resolve version and tag
+        id: check
+        env:
+          PRODUCT: ${{ inputs.product }}
+        run: |
+          set -euo pipefail
+          source scripts/products.sh
+          product_meta "$PRODUCT"
+
+          VERSION=$(node -p "require('./$P_PKG').version")
+          TAG="$P_PREFIX$VERSION"
+
+          {
+            echo "version=$VERSION"
+            echo "tag=$TAG"
+            echo "changelog=$P_CHANGELOG"
+            echo "label=$P_LABEL"
+          } >> "$GITHUB_OUTPUT"
+
+          if git tag --list "$TAG" | grep -q .; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️  $TAG already exists — $P_LABEL $VERSION is released, nothing to do."
+            echo "    (bump $P_PKG and push to release the next one)"
+            exit 0
+          fi
+
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          echo "🚀 $P_LABEL $VERSION is new — will publish as $TAG."
+
+      # Both checks below run BEFORE any build or publish work, so a release
+      # missing its notes fails in thirty seconds instead of after a
+      # three-platform build — and, more to the point, before anything has been
+      # pushed to npm or a marketplace, where it could not be taken back.
+      - name: Verify the changelog carries an entry
+        if: steps.check.outputs.should_publish == 'true'
+        run: |
+          bash scripts/changelog-section.sh \
+            "${{ steps.check.outputs.changelog }}" \
+            "${{ steps.check.outputs.version }}" > /dev/null
+          echo "✓ ${{ steps.check.outputs.changelog }} has an entry for ${{ steps.check.outputs.version }}"
+
+      # The desktop app has a second file to keep in step: the in-app "What's
+      # new" tab, shown on first launch after an update. It is not the
+      # changelog and it is easy to forget, so a missing entry fails the release
+      # rather than shipping a blank tab to everyone who updates.
+      - name: Verify the in-app release notes exist
+        if: steps.check.outputs.should_publish == 'true'
+        env:
+          PRODUCT: ${{ inputs.product }}
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          set -euo pipefail
+          source scripts/products.sh
+          product_meta "$PRODUCT"
+          if [ -z "$P_NOTES" ]; then
+            echo "no in-app notes file for $P_LABEL — nothing to check"
+            exit 0
+          fi
+          if ! grep -qE "^[[:space:]]*'${VERSION//./\\.}':" "$P_NOTES"; then
+            echo "::error::No entry for $VERSION in $P_NOTES (RELEASE_NOTES). This feeds the app's in-app \"What's new\" tab — add a '$VERSION': ... entry before releasing."
+            exit 1
+          fi
+          echo "✓ $P_NOTES has an entry for $VERSION"
