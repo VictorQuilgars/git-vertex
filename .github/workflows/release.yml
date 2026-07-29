@@ -1,15 +1,50 @@
-name: Release
+name: Release desktop app
+
+# Same trigger as the other three products: bump the version in package.json,
+# push to main, and CI does the rest. This one used to be the odd one out — a
+# tag pushed by hand — which is also why it needed a guard checking that the tag
+# matched package.json. The tag is derived from package.json now, so that guard
+# has nothing left to catch and is gone.
+#
+# `paths` is package.json alone, deliberately: it is the only file whose change
+# can possibly be a release. A fix in src/** does not even start this workflow,
+# and a bump of cli/ or mcp/ cannot reach it. When it does start for another
+# reason — a dependency bump — the gate sees the version is already tagged and
+# stops before doing anything.
+#
+# The release is built as a DRAFT and only published once all three platforms
+# have uploaded. Two things depend on that:
+#   - The `release` webhook (which the homelab mirror listens to) fires on
+#     `published`. Creating the release up front meant it fired before a single
+#     installer existed, and the mirror had to retry for up to 30 minutes to
+#     catch up. It now fires once, with everything in place.
+#   - electron-updater reads latest.yml from the release carrying the "Latest"
+#     badge. A draft is invisible to it, so a build that fails half way can no
+#     longer offer users an update whose installer is missing.
+# electron-builder's own `releaseType` is set to "draft" in package.json for the
+# same reason — left at "release" it would publish the release itself, from
+# whichever platform finished first.
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    paths:
+      - 'package.json'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  gate:
+    uses: ./.github/workflows/_release-gate.yml
+    with:
+      product: app
+
   test:
+    name: Test
+    needs: gate
+    if: needs.gate.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,63 +55,53 @@ jobs:
       - run: npm ci
       - run: npm test
 
-  create-release:
-    needs: test
+  draft:
+    name: Create draft release
+    needs: [gate, test]
+    if: needs.gate.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.gate.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
-      # The tag must sit on a commit whose package.json already carries the
-      # matching version — no silent injection at build time. Fail loudly
-      # otherwise so a tag can never diverge from the sources it points to.
-      - name: Verify tag matches package.json version
+
+      - name: Build release notes from the changelog
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          PKG=$(node -p "require('./package.json').version")
-          if [ "$TAG" != "$PKG" ]; then
-            echo "::error::Tag v$TAG does not match package.json version $PKG. Bump package.json in the release commit before tagging."
-            exit 1
-          fi
-          echo "✓ tag v$TAG matches package.json $PKG"
-      # src/main/release-notes.ts feeds the app's own "What's new" tab (shown
-      # on first launch after an update) — separate from CHANGELOG.md and
-      # easy to forget. Fail if this version has no entry there.
-      - name: Verify in-app release notes exist
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          if ! grep -qE "^\s*'${TAG//./\\.}':" src/main/release-notes.ts; then
-            echo "::error::No entry for version $TAG in src/main/release-notes.ts (RELEASE_NOTES). This feeds the app's in-app \"What's new\" tab — add a '$TAG': ... entry before releasing."
-            exit 1
-          fi
-          echo "✓ src/main/release-notes.ts has an entry for $TAG"
-      # Release notes come from CHANGELOG.md, never a generic placeholder — a
-      # tag with no matching entry fails the release instead of shipping with
-      # "Release vX.Y.Z" as its only description.
-      - name: Extract changelog section for this version
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          awk -v ver="## $VERSION" '
-            $0 == ver { found=1; next }
-            found && /^## / { exit }
-            found { print }
-          ' CHANGELOG.md > /tmp/release-notes.md
-          sed -i -e '/./,$!d' /tmp/release-notes.md
-          if [ ! -s /tmp/release-notes.md ]; then
-            echo "::error::No changelog entry found for version $VERSION in CHANGELOG.md (expected a '## $VERSION' heading with content under it). Add one before releasing."
-            exit 1
-          fi
-          echo "Release notes for $VERSION:"
+          bash scripts/changelog-section.sh \
+            "${{ needs.gate.outputs.changelog }}" \
+            "${{ needs.gate.outputs.version }}" > /tmp/release-notes.md
           cat /tmp/release-notes.md
-      - name: Create GitHub Release
+
+      # --target pins the tag to the commit that triggered this run, so main
+      # moving on while the builds run cannot drag the tag with it. The tag
+      # itself is not created until the draft is published, at the very end.
+      #
+      # Idempotent, because a re-run after a failed build is the normal way to
+      # recover: the draft from the previous attempt is reused rather than
+      # colliding with `gh release create`.
+      - name: Create or reuse the draft
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
-            --notes-file /tmp/release-notes.md \
-            --latest
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "a release for $TAG already exists (previous run) — reusing it"
+            gh release edit "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "$TAG" \
+              --notes-file /tmp/release-notes.md
+          else
+            gh release create "$TAG" \
+              --draft \
+              --target "$GITHUB_SHA" \
+              --title "$TAG" \
+              --notes-file /tmp/release-notes.md
+          fi
 
   build-mac:
-    needs: create-release
+    name: Build macOS
+    needs: [gate, draft]
+    if: needs.gate.outputs.should_publish == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -85,7 +110,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Build & publish macOS
+      - name: Build & upload macOS
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
@@ -93,7 +118,9 @@ jobs:
         run: npm run package -- --mac --publish always
 
   build-win:
-    needs: create-release
+    name: Build Windows
+    needs: [gate, draft]
+    if: needs.gate.outputs.should_publish == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -102,7 +129,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Build & publish Windows
+      - name: Build & upload Windows
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
@@ -110,7 +137,9 @@ jobs:
         run: npm run package -- --win --publish always
 
   build-linux:
-    needs: create-release
+    name: Build Linux
+    needs: [gate, draft]
+    if: needs.gate.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -119,9 +148,49 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Build & publish Linux
+      - name: Build & upload Linux
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
           VITE_GITHUB_PROXY_URL: ${{ secrets.VITE_GITHUB_PROXY_URL }}
         run: npm run package -- --linux --publish always
+
+  publish:
+    name: Publish the release
+    needs: [gate, build-mac, build-win, build-linux]
+    if: needs.gate.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.gate.outputs.tag }}
+    steps:
+      # Refuse to publish a release missing an installer. The three build jobs
+      # succeeding is not quite the same claim: electron-builder can succeed and
+      # still have uploaded nothing usable, and this is the last moment where
+      # nothing is public yet.
+      - name: Check every installer made it
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          set -euo pipefail
+          NAMES=$(gh release view "$TAG" --json assets -q '.assets[].name')
+          echo "$NAMES"
+          missing=""
+          grep -qiE '\.dmg$'      <<<"$NAMES" || missing="$missing .dmg"
+          grep -qiE '\.exe$'      <<<"$NAMES" || missing="$missing .exe"
+          grep -qiE '\.AppImage$' <<<"$NAMES" || missing="$missing .AppImage"
+          grep -qiE '^latest.*\.yml$' <<<"$NAMES" || missing="$missing latest*.yml"
+          if [ -n "$missing" ]; then
+            echo "::error::$TAG is missing:$missing — leaving it as a draft. Re-run this workflow once the missing build succeeds."
+            exit 1
+          fi
+          echo "✓ every installer is on the release"
+
+      # Publishing the draft is what creates the tag, gives the release the
+      # "Latest" badge that electron-updater follows, and fires the single
+      # `release: published` webhook the homelab mirror is waiting for.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          gh release edit "$TAG" --draft=false --latest=true
+          echo "✓ $TAG published — tag created, mirror notified"

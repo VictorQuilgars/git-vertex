@@ -1,0 +1,97 @@
+name: CI
+
+# Runs on every pull request, and on every push to main.
+#
+# No secrets, and a read-only token — that is what makes it safe to run against
+# a pull request from a fork, whose code nobody has reviewed yet. A workflow
+# that needed secrets here would hand them to that code.
+#
+# It deliberately builds no installer. Every product runs from source in a
+# couple of commands (see CONTRIBUTING.md), so a contributor tests their change
+# by running it, not by downloading an artifact from a CI run. This answers one
+# narrower question: does the change keep the four products compiling and their
+# tests green?
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A pull request usually gets several pushes in a row. Only the last one is
+# worth a full run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Desktop app tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      # VITE_GITHUB_CLIENT_ID / VITE_GITHUB_PROXY_URL are absent here, as they
+      # are for anyone building from a fork. They only reach the bundle as
+      # undefined, which breaks GitHub sign-in at runtime and nothing at build
+      # time — so this still catches what it is meant to catch.
+      - run: npm run build
+
+  ext:
+    name: Extension compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: vscode-extension/package-lock.json
+      # The webview bundle imports desktop sources, so the root install is not
+      # optional.
+      - run: npm ci
+      - run: npm ci
+        working-directory: vscode-extension
+      - run: npm run compile
+        working-directory: vscode-extension
+      # The extension's own suite needs a display and is best-effort even in the
+      # publish workflow, so it is not a gate here either — `compile` is. Note
+      # that src/webview is outside tsc's reach, which is how 43 undefined
+      # translation keys once shipped: compiling is not the same as being right.
+
+  cli:
+    name: CLI typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci
+        working-directory: cli
+      - run: npm run typecheck
+        working-directory: cli
+
+  mcp:
+    name: MCP tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+        working-directory: mcp
+      - run: npm test
+        working-directory: mcp

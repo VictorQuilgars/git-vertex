@@ -15,6 +15,8 @@ out/
 .env
 .env.local
 .env.*
+# …except the template, which holds no value — only the names to fill in.
+!.env.example
 tsconfig.web.tsbuildinfo
 tsconfig.node.tsbuildinfo
 
@@ -28,8 +30,16 @@ graphify-out/
 # Notes privées (analyses concurrentielles, etc.)
 docs-private/
 
-# IDE local config
-vscode-extension/.vscode/
+# IDE local config — but not launch.json / tasks.json, which are how anyone runs
+# the extension at all (F5 → "Run Extension"), so they are project config rather
+# than a personal preference. launch.json's preLaunchTask is tasks.json's build
+# task, so the two only work as a pair.
+#
+# Note the `/*`: excluding the directory itself would stop git from descending
+# into it, and the negations below would never be reached.
+vscode-extension/.vscode/*
+!vscode-extension/.vscode/launch.json
+!vscode-extension/.vscode/tasks.json
 
 # Downloaded by @vscode/test-electron, a devDependency of vscode-extension
 .vscode-test/
