@@ -1,6 +1,6 @@
 {
   "name": "git-vertex-mcp",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Git Vertex — local MCP server exposing your Git repositories to AI agents (Claude Code, Cursor, Copilot…). Read-mostly (writes limited to conflict resolution, disable with --read-only), no cloud.",
   "type": "module",
   "bin": {
