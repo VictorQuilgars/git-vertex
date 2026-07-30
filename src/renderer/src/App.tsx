@@ -1262,6 +1262,30 @@ export default function App() {
   // interactive-rebase planner uses for squash/reword messages.
   // `presetMsg` (AI recompose) prefills the review prompt with a proposed
   // message instead of the current one — the user still reviews and confirms.
+  /**
+   * Put `message` on a commit that is not the tip, by replaying the range from
+   * its parent with a `reword` step. Every commit after it gets a new sha.
+   *
+   * Split out of handleRewordCommit so the commit panel's inline editor can
+   * apply what the user already typed, instead of opening a second prompt on
+   * top of the text they just wrote.
+   */
+  const applyReword = async (hash: string, message: string) => {
+    const current = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
+    if (!current || current.parents.length === 0) {
+      showToast(t('toast.err', t('toast.cannotRewordFirst')), 'err')
+      return
+    }
+    setLoading(true)
+    const seq = await window.gitAPI.getRebaseSequence(current.parents[0])
+    const sequence = seq.commits.map(c => ({ action: c.hash === current.hash ? 'reword' : 'pick', hash: c.hash }))
+    const r = await window.gitAPI.interactiveRebase(sequence, [message])
+    setLoading(false)
+    if (r.success) { showToast(t('toast.messageEdited')); await loadRepoData() }
+    else if ((r as { conflict?: boolean }).conflict) { showToast(r.error ?? t('toast.rebaseConflict'), 'err'); await loadRepoData() }
+    else showToast(t('toast.err', r.error ?? ''), 'err')
+  }
+
   const handleRewordCommit = async (hash: string, presetMsg?: string) => {
     const current = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
     if (!current) return
@@ -1283,14 +1307,7 @@ export default function App() {
     }
     const newMsg = await showPrompt(t('prompt.editMessage'), presetMsg ?? current.message, true)
     if (newMsg === null || newMsg.trim() === '' || newMsg === current.message) return
-    setLoading(true)
-    const seq = await window.gitAPI.getRebaseSequence(current.parents[0])
-    const sequence = seq.commits.map(c => ({ action: c.hash === current.hash ? 'reword' : 'pick', hash: c.hash }))
-    const r = await window.gitAPI.interactiveRebase(sequence, [newMsg])
-    setLoading(false)
-    if (r.success) { showToast(t('toast.messageEdited')); await loadRepoData() }
-    else if ((r as { conflict?: boolean }).conflict) { showToast(r.error ?? t('toast.rebaseConflict'), 'err'); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
+    await applyReword(hash, newMsg)
   }
 
   const handleDropCommit = async (hash: string) => {
@@ -2317,7 +2334,7 @@ export default function App() {
                 onOpenResolver={(file) => setConflictResolverFile(file)}
                 onOpenFileDiff={setCenterDiff}
                 githubRepo={githubOwnerRepo}
-                onRewordWithMessage={(hash, msg) => handleRewordCommit(hash, msg)}
+                onRewordMessage={applyReword}
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}
                 branchStrip={branchStripProps}

@@ -304,6 +304,23 @@ function VertexApp() {
   // through a targeted mini-rebase (pick everything, reword just that one),
   // reusing the same interactiveRebase(sequence, messages) infra the
   // interactive-rebase planner uses for squash/reword messages.
+  /**
+   * Put `message` on a commit that is not the tip, by replaying the range from
+   * its parent with a `reword` step. Split out so the commit panel's inline
+   * editor can apply what the user typed there, rather than opening a VS Code
+   * input box on top of the text they just wrote.
+   */
+  const applyReword = useCallback(async (hash: string, message: string) => {
+    const current = commits.find(c => c.hash === hash)
+    if (!current || current.parents.length === 0) {
+      showToast(t('ext.app.noRewordFirst'), 'err')
+      return
+    }
+    const seq = await window.gitAPI.getRebaseSequence(current.parents[0])
+    const sequence = seq.commits.map((c: { hash: string }) => ({ action: c.hash === current.hash ? 'reword' : 'pick', hash: c.hash }))
+    await runOp(t('ext.app.msgModified'), () => window.gitAPI.interactiveRebase(sequence, [message]))
+  }, [runOp, commits, showToast])
+
   const handleRewordCommit = useCallback(async (hash: string) => {
     const current = commits.find(c => c.hash === hash)
     if (!current) return
@@ -322,10 +339,8 @@ function VertexApp() {
     }
     const newMsg = await window.gitAPI.uiPrompt(t('ext.app.newCommitMsg'), current.message)
     if (!newMsg || newMsg === current.message) return
-    const seq = await window.gitAPI.getRebaseSequence(current.parents[0])
-    const sequence = seq.commits.map((c: { hash: string }) => ({ action: c.hash === current.hash ? 'reword' : 'pick', hash: c.hash }))
-    await runOp(t('ext.app.msgModified'), () => window.gitAPI.interactiveRebase(sequence, [newMsg]))
-  }, [runOp, commits, currentBranch, showToast])
+    await applyReword(hash, newMsg)
+  }, [runOp, commits, currentBranch, showToast, applyReword])
 
   const handleRebaseCurrentOntoCommit = useCallback((hash: string) => guardConflict(
     () => window.gitAPI.predictRebaseConflicts(hash),   // accurate per-commit replay
@@ -902,6 +917,7 @@ function VertexApp() {
                 onOpenResolver={handleOpenResolver}
                 onOpenFileDiff={handleOpenFileDiff}
                 onOpenStagingEditor={(f) => window.gitAPI.openStagingEditor(f)}
+                onRewordMessage={applyReword}
                 branchStrip={branchStripProps}
               />
             </div>

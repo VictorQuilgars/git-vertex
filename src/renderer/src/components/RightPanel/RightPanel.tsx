@@ -33,6 +33,14 @@ function hl(content: string, lang?: string): string {
 }
 
 // ── Diff parser ───────────────────────────────────────────────
+/**
+ * What editing a given commit's message would take, as git sees it.
+ * `isHead` means a plain `commit --amend`; otherwise `rewrites` is how many
+ * commits get a new sha when the range is replayed. `canReword: false` covers a
+ * root commit, a merge commit and anything outside HEAD's history.
+ */
+interface RewordPlan { canReword: boolean; isHead: boolean; rewrites: number; reason?: string }
+
 interface DiffLine { type: 'add' | 'remove' | 'context'; content: string; oldLine?: number; newLine?: number }
 interface DiffHunk { header: string; lines: DiffLine[] }
 interface FileDiff { from: string; to: string; hunks: DiffHunk[] }
@@ -354,7 +362,7 @@ function formatPath(path: string): { dir: string; name: string } {
 const MIN_MSG_H = 48
 const MAX_MSG_H = 400
 
-function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordWithMessage, showToast }: {
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
   wipCount?: number
@@ -362,9 +370,13 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   onOpenFileDiff?: (target: CenterDiffTarget) => void
   onAmendSuccess?: () => void
   githubRepo?: IssueRepo | null
-  // AI recompose on a non-HEAD commit: the host runs its reword flow
-  // (review prompt + targeted mini-rebase) with the AI proposal prefilled.
-  onRewordWithMessage?: (hash: string, message: string) => void
+  /**
+   * Apply a message to a commit that is NOT the tip — a replay of everything
+   * after it. The host owns it because it is a rebase: loading state, conflict
+   * reporting and the reload afterwards are all its business. Without this prop
+   * the message block stays editable only on the tip.
+   */
+  onRewordMessage?: (hash: string, message: string) => void | Promise<void>
   showToast?: (msg: string, type?: 'ok' | 'err') => void
 }) {
   const { t } = useLang()
@@ -383,6 +395,11 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   const [amendEditing, setAmendEditing] = useState(false)
   const [amendMsg, setAmendMsg] = useState('')
   const [amendLoading, setAmendLoading] = useState(false)
+  // Whether this commit's message can be edited at all, and what it would cost.
+  // Answered by git rather than guessed from refs: the old check read
+  // `refs.includes('HEAD')`, which is true only for the tip and says nothing
+  // about the commits behind it.
+  const [rewordPlan, setRewordPlan] = useState<RewordPlan | null>(null)
   // AI menu on the "Recompose commit with AI" button
   const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
   const [aiBusy, setAiBusy] = useState(false)
@@ -416,6 +433,12 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
     setAmendEditing(false); setAmendMsg(''); setAmendLoading(false)
     setAiMenu(null); setAiExplanation(null); setCachedExplanation(null); setExplOpen(false)
     setFilesLoading(true)
+    // Asked per commit, and only used to decide whether the message block is
+    // clickable — a host that does not implement it simply gets no editing.
+    setRewordPlan(null)
+    ;(window.gitAPI as any).getRewordPlan?.(commit.hash)
+      .then((p: RewordPlan) => setRewordPlan(p ?? null))
+      .catch(() => setRewordPlan(null))
     Promise.all([
       window.gitAPI.getCommitFiles(commit.hash),
       (window.gitAPI as any).getCommitBody(commit.hash),
@@ -432,6 +455,11 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 
   const parentShort = commit.parents?.[0]?.slice(0, 7) ?? null
   const isHeadCommit = commit.refs.some(r => r.includes('HEAD'))
+  // Editing the tip needs nothing from the host; editing anything older needs
+  // the host's reword handler, since it is a rebase. Both need git to have said
+  // yes — a merge commit, a root commit or a commit off HEAD's history cannot
+  // be reworded at all, and the block stays plain text for them.
+  const canEditMessage = !!rewordPlan?.canReword && (rewordPlan.isHead || !!onRewordMessage)
 
   // ── AI actions (Recompose / Explain) ──
   const runAiRecompose = useCallback(async () => {
@@ -442,16 +470,16 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
         showToast?.(r.error === 'NO_API_KEY' ? t('panel.aiNoKey') : r.error, 'err')
         return
       }
-      if (isHeadCommit) {
-        // HEAD: prefill the inline amend editor — the user reviews then confirms.
+      if (canEditMessage) {
+        // Prefill the inline editor and let the user review before confirming —
+        // the same gesture whether this is the tip or a commit ten back. It used
+        // to branch here, sending non-tip commits through a modal prompt.
         setAmendMsg(r.message)
         setAmendEditing(true)
-      } else if (onRewordWithMessage) {
-        // Any other commit: the host's reword flow (prompt + mini-rebase).
-        onRewordWithMessage(commit.hash, r.message)
       } else {
-        // No reword path available (e.g. VS Code host without the handler):
-        // at least surface the proposal.
+        // Nothing can be rewritten here (merge commit, root, another branch), so
+        // the proposal would have nowhere to go. Hand it over instead of
+        // dropping it.
         await navigator.clipboard.writeText(r.message)
         showToast?.(t('panel.aiCopied'), 'ok')
       }
@@ -461,7 +489,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
     } finally {
       setAiBusy(false)
     }
-  }, [commit.hash, isHeadCommit, onRewordWithMessage, showToast, t])
+  }, [commit.hash, canEditMessage, showToast, t])
 
   const runAiExplain = useCallback(async (force = false) => {
     setAiBusy(true)
@@ -558,14 +586,16 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
       <div className="cd-scroll">
         {/* Zone 1 — commit message (dark) */}
         <div
-          className={`cd-message-block${amendEditing ? ' cd-message-block--editing' : ''}${!amendEditing && isHeadCommit ? ' cd-message-block--amendable' : ''}`}
+          className={`cd-message-block${amendEditing ? ' cd-message-block--editing' : ''}${!amendEditing && canEditMessage ? ' cd-message-block--amendable' : ''}`}
           style={amendEditing ? undefined : { height: msgHeight, minHeight: MIN_MSG_H, maxHeight: MAX_MSG_H }}
-          onClick={!amendEditing && isHeadCommit ? () => {
+          onClick={!amendEditing && canEditMessage ? () => {
             const full = commit.message + (body ? '\n\n' + body : '')
             setAmendMsg(full)
             setAmendEditing(true)
           } : undefined}
-          title={!amendEditing && isHeadCommit ? t('panel.clickToAmend') : undefined}
+          title={!amendEditing && canEditMessage
+            ? (rewordPlan?.isHead ? t('panel.clickToAmend') : t('panel.clickToReword', rewordPlan?.rewrites ?? 0))
+            : undefined}
         >
           {amendEditing ? (
             <textarea
@@ -583,26 +613,48 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           )}
         </div>
 
-        {/* Amend action buttons */}
+        {/* Amend / reword action buttons */}
         {amendEditing && (
           <div className="cd-amend-actions">
+            {/* Rewording an older commit replays everything after it, which is a
+                different promise from amending the tip. The button says which
+                one you are about to do, and how many commits it moves. */}
+            {rewordPlan && !rewordPlan.isHead && (
+              <span className="cd-amend-warn" title={t('panel.rewordWarnTitle')}>
+                {t('panel.rewordWarn', rewordPlan.rewrites)}
+              </span>
+            )}
             <button
               className="cd-amend-confirm"
               disabled={amendLoading || !amendMsg.trim()}
               onClick={async () => {
+                const next = amendMsg.trim()
                 setAmendLoading(true)
                 try {
-                  await (window.gitAPI as any).amendMessage(amendMsg.trim())
+                  if (rewordPlan && !rewordPlan.isHead) {
+                    // Not the tip: the host replays the range with this message.
+                    // It owns the loading/toast/refresh cycle, so nothing here
+                    // reports success on its own.
+                    await onRewordMessage?.(commit.hash, next)
+                  } else {
+                    const r = await (window.gitAPI as any).amendMessage(next)
+                    if (r && r.success === false) {
+                      showToast?.(r.error ?? t('panel.amendFailed'), 'err')
+                      return
+                    }
+                    onAmendSuccess?.()
+                  }
                   setAmendEditing(false)
-                  onAmendSuccess?.()
-                } catch (err) {
-                  console.error('amend failed', err)
+                } catch (err: any) {
+                  showToast?.(err?.message ?? t('panel.amendFailed'), 'err')
                 } finally {
                   setAmendLoading(false)
                 }
               }}
             >
-              {amendLoading ? '…' : t('panel.amendConfirm')}
+              {amendLoading
+                ? '…'
+                : rewordPlan && !rewordPlan.isHead ? t('panel.rewordConfirm') : t('panel.amendConfirm')}
             </button>
             <button className="cd-amend-cancel" onClick={() => setAmendEditing(false)}>
               {t('panel.amendCancel')}
@@ -1767,7 +1819,8 @@ interface RightPanelProps {
   onOpenFileDiff?: (target: CenterDiffTarget) => void
   onOpenStagingEditor?: (file: string) => void
   githubRepo?: IssueRepo | null
-  onRewordWithMessage?: (hash: string, message: string) => void
+  /** Apply a message to a commit that is not the tip — see CommitDetail. */
+  onRewordMessage?: (hash: string, message: string) => void | Promise<void>
   // Agent-proposed commit (MCP propose_commit): message preloaded into the
   // form + proposed file list shown for one-click staging. Review only —
   // nothing is staged or committed until the user acts.
@@ -1784,7 +1837,7 @@ interface RightPanelProps {
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
-  onRewordWithMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
+  onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -1830,7 +1883,7 @@ export default function RightPanel({
           onOpenFileDiff={onOpenFileDiff}
           onAmendSuccess={onCommitSuccess}
           githubRepo={githubRepo}
-          onRewordWithMessage={onRewordWithMessage}
+          onRewordMessage={onRewordMessage}
           showToast={showToast}
         />
       ) : null}

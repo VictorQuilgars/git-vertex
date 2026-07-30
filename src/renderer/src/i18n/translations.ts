@@ -357,7 +357,12 @@ const fr = {
   'panel.noBlame': 'Aucune donnée de blame',
   'panel.copyHash': 'Copier le hash',
   'panel.clickToAmend': 'Cliquer pour modifier le message (amend)',
+  'panel.clickToReword': (n: number) => `Cliquer pour modifier le message — réécrit ${n} commit${n > 1 ? 's' : ''}`,
   'panel.amendConfirm': 'Update Message',
+  'panel.rewordConfirm': 'Rewrite Message',
+  'panel.rewordWarn': (n: number) => `${n} commit${n > 1 ? 's' : ''} seront réécrits`,
+  'panel.rewordWarnTitle': "Ce commit n'est pas le dernier : les commits suivants sont rejoués et changent de SHA. Si la branche est déjà publiée, il faudra un push forcé.",
+  'panel.amendFailed': 'Impossible de modifier le message.',
   'panel.amendCancel': 'Cancel Amend',
 
   // RightPanel — AI (recompose/explain)
@@ -1636,7 +1641,13 @@ const en: typeof fr = {
   'panel.noBlame': 'No blame data',
   'panel.copyHash': 'Copy hash',
   'panel.clickToAmend': 'Click to edit message (amend)',
+  // Not the tip: say the cost in the tooltip, before the click.
+  'panel.clickToReword': (n: number) => `Click to edit message — rewrites ${n} commit${n > 1 ? 's' : ''}`,
   'panel.amendConfirm': 'Update Message',
+  'panel.rewordConfirm': 'Rewrite Message',
+  'panel.rewordWarn': (n: number) => `${n} commit${n > 1 ? 's' : ''} will be rewritten`,
+  'panel.rewordWarnTitle': 'This is not the last commit: the ones after it are replayed and get new SHAs. If the branch is already published, it will need a force push.',
+  'panel.amendFailed': 'Could not update the message.',
   'panel.amendCancel': 'Cancel Amend',
 
   // RightPanel — AI (recompose/explain)
