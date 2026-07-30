@@ -52,10 +52,12 @@ product_meta() {
       P_NOTES=""
       P_LABEL="VS Code extension"
       P_WORKFLOW="publish-extension.yml"
-      # Not `npm test`: the extension's suite needs a display, so it is
-      # best-effort even in CI. Compiling is the real gate — with the caveat
-      # that src/webview is outside tsc's reach.
-      P_VERIFY="npm run compile"
+      # Not `npm test`: that one launches a real VS Code, which a headless
+      # runner cannot do. But "compile only" let the host-parity test sit red
+      # through two releases — getDefaultBranch shipped answering
+      # not-implemented in the panel. test:nodisplay runs every test whose
+      # source never imports `vscode`, which includes that guard.
+      P_VERIFY="npm run compile && npm run test:nodisplay"
       ;;
     cli)
       P_DIR="cli"

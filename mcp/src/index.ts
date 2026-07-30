@@ -17,7 +17,18 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 
-const VERSION = '0.4.0'
+// Read from package.json rather than kept in step by hand: this constant said
+// 0.4.0 while the package was 0.5.2, so every client — and the startup line on
+// stderr — was told the wrong version for three releases. `dist/` sits one level
+// under the package root, and package.json ships in `files`.
+const VERSION: string = (() => {
+  try {
+    const here = path.dirname(new URL(import.meta.url).pathname)
+    return JSON.parse(fs.readFileSync(path.join(here, '..', 'package.json'), 'utf8')).version
+  } catch {
+    return '0.0.0'
+  }
+})()
 const READ_ONLY = process.argv.includes('--read-only') || process.env.GV_MCP_READONLY === '1'
 
 // ── Repo resolution ────────────────────────────────────────────
@@ -536,11 +547,47 @@ server.tool(
 // Agents are excellent bisect drivers: they can build/test at each step,
 // judge the result, and iterate. One tool, one `action` per call.
 
+/**
+ * Has the session converged, and on which commit? Returns `null` while there is
+ * still something to test.
+ *
+ * git announces the answer in prose, and the wording depends on the git you run:
+ * 2.39 says `<sha> is the first bad commit`, 2.55 says
+ * `<sha> is the first 'bad' commit` — quoted, because bisect terms are
+ * configurable (`git bisect terms`). Measured on both binaries, same repo. So a
+ * client keying on either form works until git is upgraded under it, which is
+ * exactly how this project's own test for this tool went from green to red
+ * without a line of code changing. Same trap as matching a translated message.
+ *
+ * `rev-list --bisect-vars` emits shell assignments, which are never translated
+ * and never quoted: `bisect_all` is the number of candidates still in play, so
+ * `bisect_all=1` means the only one left is `refs/bisect/bad` itself. Verified
+ * over a full session: 14 → 7 → 3 → 2 → 1, and 1 appears exactly on the step
+ * where git prints its announcement (`bisect_nr=0` fires one step early, which
+ * is why it is not the signal used here).
+ */
+async function bisectCulprit(root: string, git: SimpleGit): Promise<string | null> {
+  // --quiet + --verify: a missing ref exits 1 with no output at all, so this
+  // stays silent when no session is running.
+  const bad = await execGit(root, ['rev-parse', '--verify', '--quiet', 'refs/bisect/bad'])
+  if (bad.code !== 0 || !bad.out) return null
+  const goods = await execGit(root, ['for-each-ref', '--format=%(refname)', 'refs/bisect/good-*'])
+  const goodRefs = goods.out.split('\n').map((s) => s.trim()).filter(Boolean)
+  // A session started with custom terms names its refs after those terms, so
+  // refs/bisect/bad or the good-* refs may be absent. Say nothing rather than
+  // guess: git's own output is still there.
+  if (goodRefs.length === 0) return null
+  const vars = await execGit(root, ['rev-list', '--bisect-vars', 'refs/bisect/bad', '--not', ...goodRefs])
+  if (!/^bisect_all=1$/m.test(vars.out)) return null
+  const desc = await git.raw(['log', '-1', '--pretty=format:%h — %s', 'refs/bisect/bad']).catch(() => '')
+  return desc.trim() || bad.out.trim()
+}
+
 server.tool(
   'git_bisect',
   READ_ONLY
     ? 'DISABLED (--read-only, except action "log"): would drive git bisect (checks out commits).'
-    : 'Drive a git bisect session to find the commit that introduced a bug. Actions: "start" (requires `good`; `bad` defaults to HEAD) checks out the midpoint; "good"/"bad"/"skip" mark the CURRENTLY checked-out commit and move to the next midpoint (output announces the culprit when found); "reset" ends the session and restores the original HEAD; "log" shows the session so far. Typical loop: start → [build/test → good|bad]… → culprit → reset. NOTE: start/good/bad/skip check out commits, so the working tree must be clean.',
+    : 'Drive a git bisect session to find the commit that introduced a bug. Actions: "start" (requires `good`; `bad` defaults to HEAD) checks out the midpoint; "good"/"bad"/"skip" mark the CURRENTLY checked-out commit and move to the next midpoint; "reset" ends the session and restores the original HEAD; "log" shows the session so far. While the search continues the output ends with `currently checked out: <sha> — <subject>` (the commit to test next); when it converges it ends with `first bad commit: <sha> — <subject>` instead — match that line rather than git\'s own prose, which quotes the configurable bisect term. Typical loop: start → [build/test → good|bad]… → culprit → reset. NOTE: start/good/bad/skip check out commits, so the working tree must be clean.',
   {
     repo: repoParam,
     action: z.enum(['start', 'good', 'bad', 'skip', 'reset', 'log']).describe('Bisect step to perform'),
@@ -562,8 +609,17 @@ server.tool(
       if (r.code !== 0 && action !== 'log') throw new Error(r.out || `git bisect ${action} failed`)
       let out = r.out
       if (action === 'good' || action === 'bad' || action === 'skip' || action === 'start') {
-        const cur = (await git.raw(['log', '-1', '--pretty=format:%h — %s']).catch(() => '')).trim()
-        if (cur) out += `\n\ncurrently checked out: ${cur}`
+        // Once converged, HEAD is still on the last commit *tested*, not on the
+        // culprit — reporting it as "currently checked out" next to the answer
+        // is how a caller ends up blaming the wrong commit. So it is one or the
+        // other: the answer, or where to test next.
+        const culprit = await bisectCulprit(root, git)
+        if (culprit) {
+          out += `\n\nfirst bad commit: ${culprit}\n(run action "reset" to end the session and restore the original HEAD)`
+        } else {
+          const cur = (await git.raw(['log', '-1', '--pretty=format:%h — %s']).catch(() => '')).trim()
+          if (cur) out += `\n\ncurrently checked out: ${cur}`
+        }
       }
       return text(truncate(out || `(bisect ${action}: done)`, 4000))
     } catch (e) { return errText(e) }

@@ -2,6 +2,17 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.26.0': `## What's new in 1.26.0
+
+### 🩺 The app now uses the same git as your terminal
+- Launched from the Dock or the Finder, an app does not inherit your shell's PATH — it gets the bare \`/usr/bin:/bin\`. So on macOS, Git Vertex was running **Apple's git 2.39** even for people whose terminal has Homebrew's newer one first, and nothing said so.
+- The login shell's PATH is now read back at startup, the git binary is resolved **once** to an absolute path, and every git call in the app uses that one.
+- This is what made the "git is too old" notice so confusing: it named a version you could not find, because \`git --version\` in your terminal answered something else entirely.
+
+### 📍 The notice now says which git
+- The warning and **Settings → Git** both show the path next to the version — *git 2.39.3 — /usr/bin/git* — plus how it was chosen. On a machine with two gits installed, the version alone points you at the wrong one.
+- **Settings → Git** also takes an explicit path if you want to force one, checked on the spot: no restart, and a binary that will not run says so instead of silently reverting.
+`,
   '1.25.0': `## What's new in 1.25.0
 
 ### 🔀 Pull requests, from the branch you are looking at

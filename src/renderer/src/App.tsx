@@ -407,7 +407,10 @@ export default function App() {
       if (cancelled || !settings || settings.gitVersionNoticeShown === 'true') return
       const caps = await window.gitAPI.getGitCapabilities().catch(() => null)
       if (cancelled || !caps?.version || caps.conflictPrediction) return
-      showToast(t('toast.gitTooOld', caps.version, caps.minimumForPrediction ?? '2.40'), 'err', undefined, true)
+      showToast(
+        t('toast.gitTooOld', caps.version, caps.minimumForPrediction ?? '2.40', caps.path ?? 'git'),
+        'err', undefined, true
+      )
       window.gitAPI.settingsSet('gitVersionNoticeShown', 'true')
     })()
     return () => { cancelled = true }

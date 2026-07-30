@@ -1,5 +1,12 @@
 # Changelog — Git Vertex MCP
 
+## 0.5.3
+
+### Fixed
+- **`git_bisect` never told you it had found the answer** in a way you could rely on. git announces it in prose, and the wording depends on the git you run: 2.39 says `<sha> is the first bad commit`, 2.55 says `<sha> is the first 'bad' commit` — quoted, because bisect terms are configurable. So a client keying on either string works until the day git is upgraded, with no change on its side. The tool now ends its output with a stable `first bad commit: <sha> — <subject>` line, derived from `rev-list --bisect-vars` (shell assignments: never translated, never quoted). The tool's own test suite was the first victim — it looped through every step of a bisect that converged perfectly and concluded it had not converged.
+- **A converged session also claimed a "currently checked out" commit** — which is the last commit *tested*, not the culprit, and one line above the answer. It is now one or the other: where to test next, or the answer.
+- **The server announced the wrong version to every client.** `VERSION` was a constant kept in step by hand and it had drifted: `serverInfo` and the startup line said `0.4.0` while the package was `0.5.2`. It is read from `package.json` now, and a test compares the two.
+
 ## 0.5.2
 
 ### Fixed
