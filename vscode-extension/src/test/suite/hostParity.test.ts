@@ -47,8 +47,11 @@ const DESKTOP_ONLY = new Set([
   // AI credentials: the extension reads its own gitVertex.ai* settings.
   'aiGetApiKey', 'aiSetApiKey', 'aiListModels',
   // The git-too-old notice is raised host-side at activation
-  // (notifyIfGitTooOld), so the panel never has to ask.
-  'getGitCapabilities',
+  // (notifyIfGitTooOld), so the panel never has to ask. Same for resolving
+  // which git binary to run: the extension inherits VS Code's environment,
+  // which already has the user's real PATH — the Finder-launch problem that
+  // src/main/git-binary.ts exists for cannot happen here.
+  'getGitCapabilities', 'resolveGitBinary',
 ])
 
 /**

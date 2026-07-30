@@ -546,6 +546,23 @@ const fr = {
   'settings.profiles.already': 'Profil déjà enregistré',
   'settings.profiles.saved': 'Profil enregistré ✓',
   'settings.profiles.applied': (name: string) => `Identité : ${name} ✓`,
+  // Settings — binaire git
+  'settings.gitBinary.title': 'Binaire git',
+  'settings.gitBinary.desc': 'Le git que l\'application exécute réellement. Lancée depuis le Finder, elle n\'hérite pas du PATH de votre terminal ; le PATH du shell de connexion est donc relu au démarrage.',
+  'settings.gitBinary.unknown': 'Résolution du binaire git…',
+  'settings.gitBinary.path': 'Chemin imposé (optionnel)',
+  'settings.gitBinary.path.placeholder': 'ex. /opt/homebrew/bin/git — vide = résolution automatique',
+  // Pas « Enregistrer » : la section en a déjà un pour l'identité, et deux
+  // boutons du même nom dans un même écran ne disent plus ce qu'ils font.
+  'settings.gitBinary.apply': 'Appliquer et vérifier',
+  'settings.gitBinary.checking': 'Vérification…',
+  'settings.gitBinary.failed': 'Impossible de résoudre le binaire git.',
+  'settings.gitBinary.applied': (version: string, path: string) => `git ${version} — ${path}`,
+  'settings.gitBinary.notRunnable': (path: string) => `${path} n'est pas exécutable.`,
+  'settings.gitBinary.source.setting': 'chemin imposé',
+  'settings.gitBinary.source.login-shell': 'PATH du shell de connexion',
+  'settings.gitBinary.source.process-path': 'PATH du processus',
+  'settings.gitBinary.source.not-found': 'introuvable',
   // Settings — GPG
   'settings.gpg.title': 'Signature GPG',
   'settings.gpg.label': 'Signer les commits (GPG)',
@@ -1121,8 +1138,8 @@ const fr = {
   'toast.undo': 'Annuler',
 
   // ── i18n sweep: strings that used to be hardcoded in the components ──
-  'toast.gitTooOld': (version: string, minimum: string) =>
-    `git ${version} détecté — la prédiction de conflit avant merge/rebase nécessite git ${minimum} ou plus. Mettez git à jour pour l'activer.`,
+  'toast.gitTooOld': (version: string, minimum: string, path: string) =>
+    `git ${version} détecté (${path}) — la prédiction de conflit avant merge/rebase nécessite git ${minimum} ou plus. Mettez git à jour, ou indiquez un autre binaire dans Réglages → Git.`,
   'bc.title': 'Comparaison :',
   'bc.loading': 'Chargement…',
   'bc.in': 'Dans',
@@ -1808,6 +1825,23 @@ const en: typeof fr = {
   'settings.profiles.already': 'Profile already saved',
   'settings.profiles.saved': 'Profile saved ✓',
   'settings.profiles.applied': (name: string) => `Identity: ${name} ✓`,
+  // Settings — git binary
+  'settings.gitBinary.title': 'git binary',
+  'settings.gitBinary.desc': 'The git this app actually runs. Launched from the Finder it does not inherit your terminal\'s PATH, so the login shell\'s PATH is read back at startup.',
+  'settings.gitBinary.unknown': 'Resolving the git binary…',
+  'settings.gitBinary.path': 'Force a path (optional)',
+  'settings.gitBinary.path.placeholder': 'e.g. /opt/homebrew/bin/git — empty resolves automatically',
+  // Not "Save": the section already has one for the identity, and two buttons
+  // with the same name in one screen stop saying what they do.
+  'settings.gitBinary.apply': 'Apply and check',
+  'settings.gitBinary.checking': 'Checking…',
+  'settings.gitBinary.failed': 'Could not resolve the git binary.',
+  'settings.gitBinary.applied': (version: string, path: string) => `git ${version} — ${path}`,
+  'settings.gitBinary.notRunnable': (path: string) => `${path} is not executable.`,
+  'settings.gitBinary.source.setting': 'forced path',
+  'settings.gitBinary.source.login-shell': 'login shell PATH',
+  'settings.gitBinary.source.process-path': 'process PATH',
+  'settings.gitBinary.source.not-found': 'not found',
   // Settings — GPG
   'settings.gpg.title': 'GPG signing',
   'settings.gpg.label': 'Sign commits (GPG)',
@@ -2383,8 +2417,10 @@ const en: typeof fr = {
   'toast.undo': 'Undo',
 
   // ── i18n sweep: strings that used to be hardcoded in the components ──
-  'toast.gitTooOld': (version: string, minimum: string) =>
-    `git ${version} detected — predicting conflicts before a merge or rebase needs git ${minimum} or newer. Update git to enable it.`,
+  // The path is the actionable half: on macOS there are usually two gits, and
+  // "git 2.39.3" alone sends you looking at the wrong one.
+  'toast.gitTooOld': (version: string, minimum: string, path: string) =>
+    `git ${version} detected (${path}) — predicting conflicts before a merge or rebase needs git ${minimum} or newer. Update git, or point at another binary in Settings → Git.`,
   'bc.title': 'Comparison:',
   'bc.loading': 'Loading…',
   'bc.in': 'In',

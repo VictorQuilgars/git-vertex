@@ -14,8 +14,10 @@ import {
 } from './settings-helpers'
 import { getRecentRepos, addRecentRepo, removeRecentRepo, getWorkspaces, setRepoWorkspace } from './recent-repos'
 import {
-  simpleGitEnv, gitEnv, parseGitVersion, isGitVersionAtLeast, MIN_GIT_FOR_CONFLICT_PREDICTION,
+  simpleGitEnv, gitEnv, gitBinary, makeSimpleGit,
+  parseGitVersion, isGitVersionAtLeast, MIN_GIT_FOR_CONFLICT_PREDICTION,
 } from './git-service'
+import { initGitBinary, gitBinaryReady } from './git-binary'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 import { splashHtml } from './splash'
 import iconPng from '../../resources/icon.png?asset'
@@ -58,9 +60,9 @@ async function applySshConfig(): Promise<void> {
   const exec = promisify(execFile)
   try {
     if (shouldUseSshCommand(s)) {
-      await exec('git', ['config', '--global', 'core.sshCommand', buildSshCommand(s.sshPrivateKey!)])
+      await exec(gitBinary(), ['config', '--global', 'core.sshCommand', buildSshCommand(s.sshPrivateKey!)])
     } else {
-      await exec('git', ['config', '--global', '--unset', 'core.sshCommand']).catch(() => {})
+      await exec(gitBinary(), ['config', '--global', '--unset', 'core.sshCommand']).catch(() => {})
     }
   } catch { /* best-effort */ }
 }
@@ -346,6 +348,16 @@ let downloadedUpdateFile: string | null = null
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.victor.gitvertex')
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
+
+  // Which git we run, resolved before the window can ask for anything. Launched
+  // from the Finder, this process has the truncated PATH
+  // (/usr/bin:/bin:/usr/sbin:/sbin) and would otherwise use Apple's git 2.39
+  // even for someone whose terminal has a newer one first. Not awaited: it
+  // spawns a login shell, which can take a second on a busy profile, and every
+  // git call falls back to the plain 'git' until it lands.
+  void initGitBinary(readSettings().gitBinaryPath)
+    .then(info => console.log(`[git] ${info.version ?? 'unknown version'} — ${info.path} (${info.source})`))
+
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -420,26 +432,41 @@ async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; name?: 
 // ── IPC: Repo management ──────────────────────────────────────
 ipcMain.handle('app:is-fullscreen', () => mainWindow?.isFullScreen() ?? false)
 
-// What the installed git can do. Only used for the startup notice today: a git
-// older than MIN_GIT_FOR_CONFLICT_PREDICTION makes the pre-merge/rebase warning
-// a no-op, and a feature that silently never runs is worse than one the user
-// knows is missing. Probing failures answer "capable" so a missing or unusual
-// git never produces a nag.
+// What the installed git can do. Drives the startup notice — a git older than
+// MIN_GIT_FOR_CONFLICT_PREDICTION makes the pre-merge/rebase warning a no-op,
+// and a feature that silently never runs is worse than one the user knows is
+// missing — and the Git section of Settings.
+//
+// `path` is part of the answer, not decoration: on a machine with both Apple's
+// git and Homebrew's, a version number alone sends you looking for a git you do
+// not have. Probing failures answer "capable" so a missing or unusual git never
+// produces a nag.
 ipcMain.handle('app:git-capabilities', async () => {
-  try {
-    const { execFile } = await import('child_process')
-    const { promisify } = await import('util')
-    const { stdout } = await promisify(execFile)('git', ['--version'], { env: gitEnv() })
-    const version = parseGitVersion(stdout)
-    if (!version) return { version: null, conflictPrediction: true }
-    return {
-      version,
-      conflictPrediction: isGitVersionAtLeast(version, MIN_GIT_FOR_CONFLICT_PREDICTION),
-      minimumForPrediction: MIN_GIT_FOR_CONFLICT_PREDICTION,
-    }
-  } catch {
-    return { version: null, conflictPrediction: true }
+  // Resolution may still be in flight at first paint (it spawns a login shell),
+  // and answering with the fallback would report the confusion we just fixed.
+  const { version, path, source, searchPath } = await gitBinaryReady()
+  if (!version) {
+    return { version: null, path, source, conflictPrediction: true, minimumForPrediction: MIN_GIT_FOR_CONFLICT_PREDICTION }
   }
+  return {
+    version,
+    path,
+    source,
+    // Shown in Settings so "why is it picking that one?" has an answer.
+    searchPath: searchPath ?? process.env.PATH ?? '',
+    conflictPrediction: isGitVersionAtLeast(version, MIN_GIT_FOR_CONFLICT_PREDICTION),
+    minimumForPrediction: MIN_GIT_FOR_CONFLICT_PREDICTION,
+  }
+})
+
+// Re-resolve after the gitBinaryPath setting changes, so Settings can show the
+// new version and path without a restart. Returns the same shape as
+// app:git-capabilities' probe for the caller to display.
+ipcMain.handle('app:resolve-git-binary', async (_e, explicitPath?: string) => {
+  const info = await initGitBinary(
+    explicitPath !== undefined ? explicitPath : readSettings().gitBinaryPath
+  )
+  return { version: info.version, path: info.path, source: info.source }
 })
 
 ipcMain.handle('app:get-recent-repos', () => getRecentRepos())
@@ -468,7 +495,7 @@ ipcMain.handle('git:set-repo', async (_event, repoPath: string) => {
 // then open it. Idempotent if the directory is already a repo.
 ipcMain.handle('git:init-repo', async (_event, dir: string) => {
   try {
-    await simpleGit(dir).env(simpleGitEnv()).init(['-b', readSettings().defaultBranchName?.trim() || 'main'])
+    await makeSimpleGit(dir).init(['-b', readSettings().defaultBranchName?.trim() || 'main'])
     return openRepoAt(dir)
   } catch (e: any) {
     return { error: e.message }
@@ -483,7 +510,7 @@ ipcMain.handle('git:init-advanced', async (_e, opts: { location: string; name: s
     const { mkdirSync, writeFileSync } = await import('fs')
     const target = join(opts.location, opts.name)
     mkdirSync(target, { recursive: true })
-    await simpleGit(target).env(simpleGitEnv()).init(['-b', opts.branch?.trim() || 'main'])
+    await makeSimpleGit(target).init(['-b', opts.branch?.trim() || 'main'])
     const token = readSettings().githubToken
     const ghHeaders: Record<string, string> = { Accept: 'application/vnd.github+json' }
     if (token) ghHeaders.Authorization = `Bearer ${token}`
@@ -503,7 +530,7 @@ ipcMain.handle('git:init-advanced', async (_e, opts: { location: string; name: s
       try {
         const { execFile } = await import('child_process')
         const { promisify } = await import('util')
-        await promisify(execFile)('git', ['-C', target, 'lfs', 'install'])
+        await promisify(execFile)(gitBinary(), ['-C', target, 'lfs', 'install'])
       } catch { /* lfs not installed — skip */ }
     }
     return openRepoAt(target)
@@ -554,9 +581,9 @@ ipcMain.handle('github:create-repo', async (_e, opts: { name: string; descriptio
       try {
         // Clone over HTTPS with the token so private repos work.
         const authUrl = d.clone_url.replace('https://', `https://${token}@`)
-        await simpleGit().env(simpleGitEnv()).clone(authUrl, target)
+        await makeSimpleGit().clone(authUrl, target)
         // Rewrite origin without the embedded token.
-        await simpleGit(target).env(simpleGitEnv()).remote(['set-url', 'origin', d.clone_url])
+        await makeSimpleGit(target).remote(['set-url', 'origin', d.clone_url])
         const opened = await openRepoAt(target)
         return { ...opened, htmlUrl: d.html_url, fullName: d.full_name }
       } catch (e: any) { return { error: e.message, htmlUrl: d.html_url } }
@@ -1684,7 +1711,7 @@ ipcMain.handle('git:get-global-config', async () => {
   const { promisify } = await import('util')
   const exec = promisify(execFile)
   const run = async (args: string[]) => {
-    try { const r = await exec('git', args); return r.stdout.trim() } catch { return '' }
+    try { const r = await exec(gitBinary(), args); return r.stdout.trim() } catch { return '' }
   }
   return {
     userName: await run(['config', '--global', 'user.name']),
@@ -1697,8 +1724,8 @@ ipcMain.handle('git:set-global-config', async (_e, userName: string, userEmail: 
   const { promisify } = await import('util')
   const exec = promisify(execFile)
   try {
-    if (userName) await exec('git', ['config', '--global', 'user.name', userName])
-    if (userEmail) await exec('git', ['config', '--global', 'user.email', userEmail])
+    if (userName) await exec(gitBinary(), ['config', '--global', 'user.name', userName])
+    if (userEmail) await exec(gitBinary(), ['config', '--global', 'user.email', userEmail])
     return { success: true }
   } catch (e: any) { return { success: false, error: e.message } }
 })
@@ -2113,7 +2140,7 @@ ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
     const { execFile } = await import('child_process')
     const { promisify } = await import('util')
     const exec = promisify(execFile)
-    const r = await exec('git', ['-C', repoPath, 'remote', 'get-url', 'origin'])
+    const r = await exec(gitBinary(), ['-C', repoPath, 'remote', 'get-url', 'origin'])
     const match = r.stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
     if (!match) return { owner: null, repo: null }
     return { owner: match[1], repo: match[2] }
@@ -2210,7 +2237,7 @@ ipcMain.handle('github:share-wip-patch', async (_e, repoPath: string) => {
     const { execFile } = await import('child_process')
     const { promisify } = await import('util')
     const exec = promisify(execFile)
-    const diff = await exec('git', ['-C', repoPath, 'diff', 'HEAD'], { maxBuffer: 20 * 1024 * 1024 })
+    const diff = await exec(gitBinary(), ['-C', repoPath, 'diff', 'HEAD'], { maxBuffer: 20 * 1024 * 1024 })
     const patch = diff.stdout
     if (!patch.trim()) return { error: 'no_changes' }
     const name = repoPath.split('/').pop() || 'wip'
@@ -2299,22 +2326,22 @@ ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
   const repos = await Promise.all(repoScanCache.paths.map(async p => {
     let changed = 0, added = 0, deleted = 0, branch = ''
     try {
-      const st = await exec('git', ['-C', p, 'status', '--porcelain'], { env })
+      const st = await exec(gitBinary(), ['-C', p, 'status', '--porcelain'], { env })
       changed = st.stdout.split('\n').filter(Boolean).length
     } catch { return null }   // not a real repo anymore — drop it
     // Line-level breakdown (tracked changes vs HEAD), GitKraken-style ✏ + −.
     try {
-      const ss = await exec('git', ['-C', p, 'diff', 'HEAD', '--shortstat'], { env })
+      const ss = await exec(gitBinary(), ['-C', p, 'diff', 'HEAD', '--shortstat'], { env })
       added = Number(ss.stdout.match(/(\d+) insertion/)?.[1] ?? 0)
       deleted = Number(ss.stdout.match(/(\d+) deletion/)?.[1] ?? 0)
     } catch { /* empty repo / no HEAD — leave 0 */ }
     try {
-      const b = await exec('git', ['-C', p, 'rev-parse', '--abbrev-ref', 'HEAD'])
+      const b = await exec(gitBinary(), ['-C', p, 'rev-parse', '--abbrev-ref', 'HEAD'])
       branch = b.stdout.trim()
     } catch { /* detached — leave blank */ }
     if (!fullnameCache.has(p)) {
       try {
-        const r = await exec('git', ['-C', p, 'remote', 'get-url', 'origin'])
+        const r = await exec(gitBinary(), ['-C', p, 'remote', 'get-url', 'origin'])
         const m = r.stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
         fullnameCache.set(p, m ? `${m[1]}/${m[2]}` : null)
       } catch { fullnameCache.set(p, null) }
@@ -2484,7 +2511,7 @@ ipcMain.handle('github:clone', async (_e, cloneUrl: string, repoName: string) =>
   const parentDir = result.filePaths[0]
   const targetPath = pathJoin(parentDir, repoName)
   try {
-    const sg = simpleGit().env(simpleGitEnv())
+    const sg = makeSimpleGit()
     await sg.clone(cloneUrl, targetPath)
     return openRepoAt(targetPath)
   } catch (e: any) {
@@ -2505,8 +2532,8 @@ ipcMain.handle('git:clone-to', async (_e, opts: { url: string; location: string;
     let url = opts.url
     const isGh = /^https:\/\/github\.com\//.test(url)
     if (token && isGh) url = url.replace('https://', `https://${token}@`)
-    await simpleGit().env(simpleGitEnv()).clone(url, target, args)
-    if (token && isGh) { try { await simpleGit(target).env(simpleGitEnv()).remote(['set-url', 'origin', opts.url]) } catch { /* keep */ } }
+    await makeSimpleGit().clone(url, target, args)
+    if (token && isGh) { try { await makeSimpleGit(target).remote(['set-url', 'origin', opts.url]) } catch { /* keep */ } }
     return openRepoAt(target)
   } catch (e: any) { return { error: e.message } }
 })

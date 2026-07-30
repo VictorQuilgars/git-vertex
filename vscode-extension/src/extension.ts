@@ -231,19 +231,32 @@ function setupRebaseWatch(context: vscode.ExtensionContext, repoRoot: string): v
 // Said once per install, then never again. The conflict prediction fails open on
 // an older git — the operation just proceeds without its warning — so without
 // this the user has a feature they believe in and never see run.
+// The desktop app has to recover the login shell's PATH itself (see
+// src/main/git-binary.ts) because Electron launched from the Finder does not
+// inherit it. Here it does: VS Code resolves the shell environment for the
+// extension host, so `git` is the same one the user's terminal finds — nothing
+// to correct. What was missing is the same thing that made the desktop notice
+// unactionable: WHICH git. On a machine with Apple's 2.39 and a newer Homebrew
+// build, a version number alone points you at the wrong one.
 async function notifyIfGitTooOld(context: vscode.ExtensionContext): Promise<void> {
   if (context.globalState.get<boolean>('gvGitVersionNoticed')) return
   try {
     const { execFile } = await import('child_process')
     const { promisify } = await import('util')
-    const { stdout } = await promisify(execFile)('git', ['--version'], { env: gitEnv() })
+    const exec = promisify(execFile)
+    const { stdout } = await exec('git', ['--version'], { env: gitEnv() })
     const version = parseGitVersion(stdout)
     // An unreadable version is not a reason to nag.
     if (!version || isGitVersionAtLeast(version, MIN_GIT_FOR_CONFLICT_PREDICTION)) return
+    const where = process.platform === 'win32' ? ['where', ['git.exe']] : ['/usr/bin/which', ['git']]
+    const path = await exec(where[0] as string, where[1] as string[], { env: gitEnv() })
+      .then(r => r.stdout.split(/\r?\n/).map(l => l.trim()).find(Boolean) ?? null)
+      .catch(() => null)
     await context.globalState.update('gvGitVersionNoticed', true)
     void vscode.window.showWarningMessage(
-      `Git Vertex: git ${version} detected — predicting conflicts before a merge or rebase ` +
-      `needs git ${MIN_GIT_FOR_CONFLICT_PREDICTION} or newer. Everything else works; update git to enable it.`,
+      `Git Vertex: git ${version} detected${path ? ` (${path})` : ''} — predicting conflicts before ` +
+      `a merge or rebase needs git ${MIN_GIT_FOR_CONFLICT_PREDICTION} or newer. Everything else works; ` +
+      `update git to enable it.`,
     )
   } catch { /* no git on PATH, or it would not run — nothing useful to say */ }
 }
