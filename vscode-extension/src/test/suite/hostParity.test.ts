@@ -57,8 +57,8 @@ const DESKTOP_ONLY = new Set([
  * never grow. See docs-private/gitvertex-plan-versions.md.
  */
 const KNOWN_GAPS = new Set([
-  // → "GitHub : au-delà du read-only"
-  'githubCreatePR', 'githubListBranches', 'githubSharePatch', 'githubShareWipPatch',
+  // → lot D, "GitHub : au-delà du read-only"
+  'githubSharePatch', 'githubShareWipPatch',
   'githubSearchIssues', 'githubCloseIssue', 'githubGetIssue', 'githubListRepos',
   'githubDetectRepoAt', 'githubStartAuth', 'githubDisconnect', 'githubGetToken',
   // → unclaimed: gitflow has no extension host implementation at all
@@ -127,12 +127,33 @@ suite('host parity — desktop preload vs extension host', () => {
       ...hostCases(fs.readFileSync(EXT_HOST, 'utf8')),
     ])
     for (const method of [
+      // ext-v1.21.0
       'getDefaultRemote', 'setDefaultRemote', 'pruneRemote', 'pruneGoneBranches',
       'getGoneBranches', 'renameStash', 'stashDiff',
       'openExternalDiff', 'openExternalMerge', 'readTempFile',
       'sshBrowseKey', 'sshGenerateKey',
+      // Pull requests in the panel: githubCreatePR and githubListBranches are
+      // what the composer calls, getDefaultBranch what decides the row exists.
+      'githubCreatePR', 'githubListBranches', 'getDefaultBranch',
     ]) {
       assert.ok(reachable.has(method), `${method} is not reachable from the webview`)
     }
+  })
+
+  // The signature half of the problem: a method can exist on both sides and
+  // still do the wrong thing quietly, which is worse than not-implemented.
+  // pull() ignoring its strategy and createStash() ignoring its scope both
+  // shipped that way. These are the arities the shared renderer relies on.
+  test('ported methods keep the signature the shared renderer calls', () => {
+    const service = fs.readFileSync(EXT_SERVICE, 'utf8')
+    const arityOf = (name: string): string | null =>
+      service.match(new RegExp(`^\\s{2}(?:async\\s+)?${name}\\s*\\(([^)]*)\\)`, 'm'))?.[1] ?? null
+
+    // getLastCommitMessage took no ref at all: the PR composer prefills its
+    // title from the head branch, which on the default branch is not HEAD.
+    assert.ok(/\bref\b/.test(arityOf('getLastCommitMessage') ?? ''),
+      'getLastCommitMessage must accept a ref, or it answers for HEAD whatever it is asked')
+    assert.ok(/\bmode\b/.test(arityOf('pull') ?? ''),
+      'pull must accept a mode, or the Pull split-button silently runs a bare git pull')
   })
 })
