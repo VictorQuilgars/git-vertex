@@ -162,6 +162,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ needs.gate.outputs.tag }}
+      # This is the one job with no `actions/checkout`, because it needs no file
+      # from the repository — only two API calls. But `gh` works out which
+      # repository it is talking to from the local git remote, so without this it
+      # dies on `fatal: not a git repository` and the finished release stays a
+      # draft. That is exactly how v1.26.0 failed: three green builds, all
+      # fifteen assets uploaded, and the last job unable to name the repo. Do not
+      # replace this with a checkout — cloning to call an API is the waste this
+      # avoids.
+      GH_REPO: ${{ github.repository }}
     steps:
       # Refuse to publish a release missing an installer. The three build jobs
       # succeeding is not quite the same claim: electron-builder can succeed and
