@@ -81,6 +81,19 @@ async function connect({ readOnly = false, env = {}, cwd = NOTAREPO, sampling = 
 const main = R('main')
 const c1 = await connect()
 
+// ── serverInfo ──
+// The version the server announces to every client was a hand-kept constant and
+// it drifted: it said 0.4.0 while the package was 0.5.2, for three releases.
+// It now comes from package.json, and this test is what keeps it honest.
+{
+  const pkg = JSON.parse(fs.readFileSync(path.join(HERE, '..', 'package.json'), 'utf8'))
+  const info = c1.getServerVersion()
+  record('serverInfo advertises the package version', 'initialize',
+    info?.version === pkg.version,
+    info?.version === pkg.version ? [] : [`advertised ${info?.version}, package is ${pkg.version}`],
+    JSON.stringify(info))
+}
+
 // ── tools/list ──
 {
   const { tools } = await c1.listTools()
@@ -284,18 +297,32 @@ await t(c1, 'git_bisect: start requires good', 'git_bisect', { repo: bi, action:
   const first = (await c1.callTool({ name: 'git_bisect', arguments: { repo: bi, action: 'start', good: (await import('node:child_process')).execSync('git -C ' + bi + ' rev-list --max-parents=0 HEAD').toString().trim() } }))
   const firstTxt = (first.content ?? []).map((c) => c.text).join('\n')
   record('git_bisect: start checks out midpoint', 'git_bisect', !first.isError && /currently checked out/.test(firstTxt), first.isError ? ['start failed'] : [], firstTxt)
+  // Break on the tool's OWN line, not on git's. git says
+  // `<sha> is the first 'bad' commit` — quoted, because the term is
+  // configurable — so the /first bad commit/ this test used to look for never
+  // matched: the loop ran all 10 iterations, `culprit` stayed empty and the
+  // failure reported an empty excerpt. The tool now emits a stable
+  // `first bad commit: <sha> — <subject>` line, which is what a client should
+  // key on. See bisectCulprit() in src/index.ts.
   let culprit = ''
   let steps = 0
   for (; steps < 10; steps++) {
     const bad = fs.existsSync(path.join(bi, 'bug.txt'))
     const res = await c1.callTool({ name: 'git_bisect', arguments: { repo: bi, action: bad ? 'bad' : 'good' } })
     const txt = (res.content ?? []).map((c) => c.text).join('\n')
-    if (/first bad commit/.test(txt)) { culprit = txt; break }
+    if (/^first bad commit: /m.test(txt)) { culprit = txt; break }
     if (res.isError) { culprit = 'ERROR: ' + txt; break }
   }
+  const announced = /^first bad commit: .*commit 10$/m.test(culprit)
   record('git_bisect: loop converges on "commit 10"', 'git_bisect',
-    /first bad commit/.test(culprit) && /commit 10/.test(culprit),
-    /commit 10/.test(culprit) ? [] : ['culprit not commit 10'], culprit)
+    announced && steps < 10,
+    announced ? [] : [culprit ? 'wrong culprit announced' : `never converged in ${steps} steps`], culprit)
+  // A converged session must not also claim a "currently checked out" commit:
+  // HEAD is still on the last commit TESTED (commit 9 here), and printing both
+  // is how a caller blames the wrong one.
+  record('git_bisect: converged output does not also point at HEAD', 'git_bisect',
+    !/currently checked out/.test(culprit),
+    /currently checked out/.test(culprit) ? ['announces the culprit AND a checked-out commit'] : [], culprit)
   await t(c1, 'git_bisect: log during session', 'git_bisect', { repo: bi, action: 'log' }, { expect: ['git bisect'] })
   await t(c1, 'git_bisect: reset restores HEAD', 'git_bisect', { repo: bi, action: 'reset' }, {})
   await t(c1, 'git_status: bisect repo back on main', 'git_status', { repo: bi }, { expect: ['branch: main'] })
