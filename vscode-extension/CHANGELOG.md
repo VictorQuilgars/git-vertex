@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.24.0
+
+### Added
+- **Start a pull request from the panel.** The row was in the branch menu the panel already shows — in the sidebar, on a graph chip, above the staging files, next to the branch selector — but it never appeared, because opening a request had no implementation on the extension side. It does now, and it works the way the desktop's does: the head branch is pushed as part of the action, which the row and the composer both say, and when GitHub refuses, its reason comes through instead of a bare *Validation Failed*.
+
+### Fixed
+- **The panel could not tell which branch a pull request should land on.** `getDefaultBranch` had no implementation here, so the rule that decides whether a request is offered at all — and which way it runs — had nothing to work with.
+- **The commit-message prefill asked for the wrong commit.** `getLastCommitMessage` ignored the branch it was given and always answered for `HEAD`, so a request started from a branch other than the checked-out one would be titled with the wrong commit's subject. It failed silently, which is the worse half of this class of bug.
+- **The guard that catches all of this now runs before a release.** The host-parity test compares every `window.gitAPI` method to what the extension host actually implements, and it had been failing for two releases without anyone seeing it: the full suite needs a real VS Code, so CI ran it best-effort and the release gate only compiled. Every test that runs in plain node — that one included — is now a blocking step.
+
 ## 1.23.0
 
 ### Changed

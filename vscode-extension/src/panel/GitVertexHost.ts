@@ -16,7 +16,7 @@ import { promisify } from 'util'
 import { GitService } from '../gitService'
 import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
-import { githubListPRs, githubListIssues } from '../githubApi'
+import { githubListPRs, githubListIssues, githubCreatePR, githubListBranches } from '../githubApi'
 import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
@@ -468,6 +468,9 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'githubListPRs': return githubListPRs(this._githubToken(), args[0], args[1])
       case 'githubListIssues': return githubListIssues(this._githubToken(), args[0], args[1])
+      case 'githubCreatePR':
+        return githubCreatePR(this._githubToken(), args[0], args[1], args[2], args[3], args[4], args[5])
+      case 'githubListBranches': return githubListBranches(this._githubToken(), args[0], args[1])
       // AI features — same pipeline as the desktop app, config from VS Code
       // settings (gitVertex.aiProvider/aiApiKey/aiModel) or shared gvSettings.
       // NO_API_KEY keeps the shared UI's "configure a key" toast working.

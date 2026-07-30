@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../../../src/renderer/src/components/ContextMenu/branchMenu'
+import type { PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import type { BranchInfo } from '../../../src/renderer/src/types'
 
 interface Props {
@@ -53,6 +54,9 @@ interface Props {
   issueFor?: (name: string) => { number: number; title?: string } | null
   soloBranch?: string | null
   mutedBranches?: Set<string>
+  /** The pull request the checked-out branch offers, if any — see prIntentFor. */
+  pr?: PRIntent | null
+  onCreatePR?: (intent: PRIntent) => void
 }
 
 function IconBtn({ title, onClick, disabled, active, badge, hideNarrow, children }: {
@@ -113,7 +117,7 @@ export default function CompactToolbar(p: Props) {
 
   // Menu for the checked-out branch — the one the toolbar is showing.
   const branchMenuItems = buildBranchMenu(
-    { name: p.branch, display: p.branch, current: true, remote: false },
+    { name: p.branch, display: p.branch, current: true, remote: false, pr: p.pr ?? undefined },
     {
       currentBranch: p.branch,
       soloed: p.soloBranch === p.branch,
@@ -132,6 +136,7 @@ export default function CompactToolbar(p: Props) {
       onToggleMute: p.onToggleMute && (() => p.onToggleMute!(p.branch)),
       onCopyName: () => navigator.clipboard.writeText(p.branch),
       onRename: p.onRenameBranch && (() => p.onRenameBranch!(p.branch)),
+      onCreatePR: p.pr && p.onCreatePR ? () => p.onCreatePR!(p.pr!) : undefined,
     },
     t
   )

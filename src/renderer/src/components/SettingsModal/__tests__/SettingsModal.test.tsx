@@ -134,3 +134,65 @@ describe('SettingsModal — SSH section (v1.20.0)', () => {
     await waitFor(() => expect(api.settingsSet).toHaveBeenCalledWith('sshPrivateKey', '/home/me/.ssh/custom_key'))
   })
 })
+
+// The git binary block. It exists because a version number on its own is not
+// actionable on a machine that has Apple's git and Homebrew's: the notice named
+// 2.39 while `git --version` in the user's terminal said something newer.
+describe('SettingsModal — git binary', () => {
+  test('shows the version AND the path of the git in use', async () => {
+    installMockGitAPI()
+    renderWithProviders(<SettingsModal onClose={() => {}} showToast={() => {}} />)
+    await waitFor(() => expect(screen.getByText('Identity & profiles')).toBeInTheDocument())
+
+    expect(await screen.findByText('git 2.50.0')).toBeInTheDocument()
+    expect(screen.getByText('/opt/homebrew/bin/git')).toBeInTheDocument()
+    // How it was chosen, or "why that one?" has no answer.
+    expect(screen.getByText(/login shell PATH/i)).toBeInTheDocument()
+  })
+
+  test('a forced path is persisted and re-resolved without a restart', async () => {
+    const api = installMockGitAPI({
+      resolveGitBinary: jest.fn().mockResolvedValue({
+        version: '2.51.0', path: '/custom/git', source: 'setting',
+      }),
+    })
+    renderWithProviders(<SettingsModal onClose={() => {}} showToast={() => {}} />)
+    await waitFor(() => expect(screen.getByText('Identity & profiles')).toBeInTheDocument())
+
+    await userEvent.type(await screen.findByPlaceholderText(/opt\/homebrew\/bin\/git/), '/custom/git')
+    await userEvent.click(screen.getByRole('button', { name: /apply and check/i }))
+
+    await waitFor(() => expect(api.settingsSet).toHaveBeenCalledWith('gitBinaryPath', '/custom/git'))
+    expect(api.resolveGitBinary).toHaveBeenCalledWith('/custom/git')
+    // The block must show what the app will actually use from now on.
+    expect(await screen.findByText('git 2.51.0')).toBeInTheDocument()
+    expect(screen.getByText('/custom/git')).toBeInTheDocument()
+  })
+
+  test('a path that will not run says so instead of reporting success', async () => {
+    const showToast = jest.fn()
+    installMockGitAPI({
+      resolveGitBinary: jest.fn().mockResolvedValue({
+        version: null, path: '/nope/git', source: 'setting',
+      }),
+    })
+    renderWithProviders(<SettingsModal onClose={() => {}} showToast={showToast} />)
+    await waitFor(() => expect(screen.getByText('Identity & profiles')).toBeInTheDocument())
+
+    await userEvent.type(await screen.findByPlaceholderText(/opt\/homebrew\/bin\/git/), '/nope/git')
+    await userEvent.click(screen.getByRole('button', { name: /apply and check/i }))
+
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('/nope/git is not executable.', 'err'))
+  })
+
+  test('embedded (VS Code host) does not show it at all', async () => {
+    installMockGitAPI()
+    renderWithProviders(<SettingsModal embedded onClose={() => {}} showToast={() => {}} />)
+    await waitFor(() => expect(screen.getByText('Identity & profiles')).toBeInTheDocument())
+
+    // VS Code hands the extension host a real shell environment, so there is
+    // nothing to correct and nothing to choose.
+    expect(screen.queryByText('git binary')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /apply and check/i })).not.toBeInTheDocument()
+  })
+})

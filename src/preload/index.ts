@@ -23,6 +23,7 @@ const gitAPI = {
   githubCreateRepo: (opts: any) => ipcRenderer.invoke('github:create-repo', opts),
   getRecentRepos: () => ipcRenderer.invoke('app:get-recent-repos'),
   getGitCapabilities: () => ipcRenderer.invoke('app:git-capabilities'),
+  resolveGitBinary: (explicitPath?: string) => ipcRenderer.invoke('app:resolve-git-binary', explicitPath),
   getWorkspaces: () => ipcRenderer.invoke('app:get-workspaces'),
   setRepoWorkspace: (path: string, workspace: string) => ipcRenderer.invoke('app:set-repo-workspace', path, workspace),
   removeRecentRepo: (path: string) => ipcRenderer.invoke('app:remove-recent-repo', path),
