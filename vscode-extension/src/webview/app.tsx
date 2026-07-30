@@ -26,6 +26,8 @@ import CompareView from '../../../src/renderer/src/components/CompareView/Compar
 import CompareWorkingView from './CompareWorkingView'
 import GitHubPanel from '../../../src/renderer/src/components/GitHubPanel/GitHubPanel'
 import AssociateIssueModal from '../../../src/renderer/src/components/IssueLink/AssociateIssueModal'
+import PRModal from '../../../src/renderer/src/components/PRModal/PRModal'
+import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
 import CommitMsgEditorView from './CommitMsgEditorView'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
@@ -67,6 +69,12 @@ function VertexApp() {
   // workspace repo, so the repo name is a stable enough storage key.
   const branchMeta = useBranchMeta(repoName || 'repo')
   const [issueModalBranch, setIssueModalBranch] = useState<string | null>(null)
+  // Pull requests. `githubRepo` is resolved once from the remote rather than
+  // per action (every handler used to call githubDetectRepo on its own), and
+  // `defaultBranch` is what prIntentFor needs to know which way a request runs.
+  const [githubRepo, setGithubRepo] = useState<{ owner: string; repo: string } | null>(null)
+  const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
+  const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
   // The activity rail is always visible; `activeView` is the section its
   // resizable side-panel shows, or null when collapsed (only the rail). Closed
   // by default so the first thing a new user sees is the commit graph. The
@@ -137,6 +145,16 @@ function VertexApp() {
         const info = await window.gitAPI.appGetInfo()
         if (info?.repoName) setRepoName(info.repoName)
       } catch { /* ignore */ }
+      // Both feed the "start a Pull Request" row: no GitHub remote or no known
+      // default branch means prIntentFor returns null and no row is offered.
+      try {
+        const d = await window.gitAPI.getDefaultBranch()
+        setDefaultBranch(d?.branch ?? null)
+      } catch { setDefaultBranch(null) }
+      try {
+        const gh = await window.gitAPI.githubDetectRepo()
+        setGithubRepo(gh?.owner ? { owner: gh.owner, repo: gh.repo } : null)
+      } catch { setGithubRepo(null) }
     } finally {
       isLoadingRef.current = false
       if (!silent) setLoading(false)
@@ -359,6 +377,25 @@ function VertexApp() {
       `https://github.com/${detected.owner}/${detected.repo}/tree/${short.split('/').map(encodeURIComponent).join('/')}`
     )
   }, [showToast])
+
+  // Which pull request a branch row offers — the rules live in prIntent.ts, and
+  // both products ask the same function so their menus agree. Null without a
+  // GitHub remote, which is what removes the row.
+  const prIntentFor = useCallback(
+    (branchRef: string) =>
+      githubRepo ? computePRIntent(branchRef, { currentBranch, defaultBranch, branches }) : null,
+    [githubRepo, currentBranch, defaultBranch, branches]
+  )
+
+  // The push itself happens in the composer, right before the GitHub call.
+  const handleStartPR = useCallback((intent: PRIntent) => {
+    if (!githubRepo) { showToast(t('pr.noRemote'), 'err'); return }
+    setPrIntent(intent)
+  }, [githubRepo, showToast, t])
+
+  // The pull request the checked-out branch offers — null on the default
+  // branch, where requests land rather than start.
+  const currentBranchPR = prIntentFor(currentBranch)
 
   // Dispatches actions chosen from the NATIVE commit context menu (see
   // package.json contributes.menus["webview/context"] + extension.ts) — the
@@ -621,6 +658,7 @@ function VertexApp() {
       const d = await window.gitAPI.githubDetectRepo()
       if (d?.owner) window.gitAPI.openExternal(`https://github.com/${d.owner}/${d.repo}/issues/${n}`)
     },
+    pr: currentBranchPR,
     menuState: {
       soloed: soloBranch === currentBranch,
       muted: mutedBranches.has(currentBranch),
@@ -637,6 +675,7 @@ function VertexApp() {
       onToggleMute: () => handleToggleMute(currentBranch),
       onCopyName: () => navigator.clipboard.writeText(currentBranch),
       onRename: () => handleRenameBranch(currentBranch),
+      onCreatePR: currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined,
     },
   }
 
@@ -682,6 +721,8 @@ function VertexApp() {
         issueFor={branchMeta.issueFor}
         soloBranch={soloBranch}
         mutedBranches={mutedBranches}
+        pr={currentBranchPR}
+        onCreatePR={handleStartPR}
       />
       {settingsOpen && (
         <div className="gv-settings-overlay">
@@ -762,6 +803,8 @@ function VertexApp() {
             onToggleFavorite={branchMeta.toggleFavorite}
             onOpenBranchOnRemote={handleOpenBranchOnRemote}
             onAssociateIssue={setIssueModalBranch}
+            prIntentFor={prIntentFor}
+            onCreatePR={handleStartPR}
             showToast={showToast}
             showPrompt={showPrompt}
             showConfirm={showConfirm}
@@ -806,6 +849,8 @@ function VertexApp() {
             onCopyPatch={handleCopyPatch}
             onCreateWorktreeAt={handleCreateWorktreeAt}
             onOpenCommitOnRemote={handleOpenCommitOnRemote}
+            prIntentFor={prIntentFor}
+            onCreatePR={handleStartPR}
             onCompareWorking={(hash) => window.gitAPI.openCompareWorkingTab(hash)}
             compareBaseHash={compareBaseHash}
             onSelectForCompare={(hash) => { setCompareBaseHash(hash); showToast(t('ext.app.commitSelected')) }}
@@ -872,6 +917,18 @@ function VertexApp() {
             setIssueModalBranch(null)
           }}
           onClose={() => setIssueModalBranch(null)}
+        />
+      )}
+      {prIntent && githubRepo && (
+        <PRModal
+          owner={githubRepo.owner}
+          repo={githubRepo.repo}
+          intent={prIntent}
+          // The composer pushes before creating, so ahead/behind and the
+          // branch's published state are both stale afterwards.
+          onPushed={() => loadRepoData(true)}
+          onClose={() => setPrIntent(null)}
+          showToast={showToast}
         />
       )}
     </div>
