@@ -1691,4 +1691,100 @@ describe('GitService', () => {
     })
   })
 
+  // ─────────────────────────────────────────────────────────────────────
+  // getRewordPlan — can this commit's message be edited, and at what cost?
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('getRewordPlan', () => {
+    const commit = (name: string) => {
+      fs.writeFileSync(path.join(tempDir, `${name}.txt`), `${name}\n`)
+      execSync(`cd ${tempDir} && git add . && git commit -m "${name}"`)
+      return execSync(`cd ${tempDir} && git rev-parse HEAD`).toString().trim()
+    }
+
+    test('the tip is an amend: one commit, nothing else moves', async () => {
+      commit('one')
+      const head = commit('two')
+      const plan = await git.getRewordPlan(head)
+      expect(plan).toEqual({ canReword: true, isHead: true, rewrites: 0 })
+    })
+
+    test('an older commit reports how many commits the replay rewrites', async () => {
+      const first = commit('one')
+      commit('two'); commit('three'); commit('four')
+      const plan = await git.getRewordPlan(first)
+      // one is the root, so it has no parent to rebase from…
+      expect(plan.canReword).toBe(false)
+      expect(plan.reason).toBe('root-commit')
+
+      const second = execSync(`cd ${tempDir} && git rev-parse HEAD~2`).toString().trim()
+      const p2 = await git.getRewordPlan(second)
+      expect(p2.canReword).toBe(true)
+      expect(p2.isHead).toBe(false)
+      // three and four come after it.
+      expect(p2.rewrites).toBe(2)
+    })
+
+    test('a short hash is accepted, like everywhere else in the UI', async () => {
+      commit('one')
+      const head = commit('two')
+      const plan = await git.getRewordPlan(head.slice(0, 7))
+      expect(plan.isHead).toBe(true)
+    })
+
+    test('the root commit is refused — there is no parent to rebase from', async () => {
+      const root = commit('one')
+      commit('two')
+      const plan = await git.getRewordPlan(root)
+      expect(plan).toMatchObject({ canReword: false, reason: 'root-commit' })
+    })
+
+    test('a merge commit behind the tip is refused — a linear replay drops a side', async () => {
+      commit('base')
+      execSync(`cd ${tempDir} && git checkout -q -b feature`)
+      commit('on-feature')
+      execSync(`cd ${tempDir} && git checkout -q main`)
+      commit('on-main')
+      execSync(`cd ${tempDir} && git merge --no-ff -m "merge feature" feature`)
+      const merge = execSync(`cd ${tempDir} && git rev-parse HEAD`).toString().trim()
+      // Move past it: at the tip a merge commit is amendable like any other,
+      // since `commit --amend` keeps both parents. It is the replay that cannot.
+      commit('after-merge')
+      const plan = await git.getRewordPlan(merge)
+      expect(plan).toMatchObject({ canReword: false, reason: 'merge-commit' })
+    })
+
+    test('a merge commit AT the tip is still amendable', async () => {
+      commit('base')
+      execSync(`cd ${tempDir} && git checkout -q -b feature`)
+      commit('on-feature')
+      execSync(`cd ${tempDir} && git checkout -q main`)
+      commit('on-main')
+      execSync(`cd ${tempDir} && git merge --no-ff -m "merge feature" feature`)
+      const merge = execSync(`cd ${tempDir} && git rev-parse HEAD`).toString().trim()
+      const plan = await git.getRewordPlan(merge)
+      expect(plan).toMatchObject({ canReword: true, isHead: true })
+    })
+
+    // The reword builds its sequence with `git log <parent>..HEAD`, so a commit
+    // that is not behind HEAD would produce a sequence not containing it and
+    // rewrite the wrong history. Refused before anything runs.
+    test('a commit on another branch is refused, not silently mis-rebased', async () => {
+      commit('base')
+      execSync(`cd ${tempDir} && git checkout -q -b other`)
+      const elsewhere = commit('only-on-other')
+      execSync(`cd ${tempDir} && git checkout -q main`)
+      commit('on-main')
+      const plan = await git.getRewordPlan(elsewhere)
+      expect(plan).toMatchObject({ canReword: false, reason: 'not-in-history' })
+    })
+
+    test('a hash that does not exist answers no rather than throwing', async () => {
+      commit('one')
+      const plan = await git.getRewordPlan('0'.repeat(40))
+      expect(plan.canReword).toBe(false)
+      expect(plan.reason).toBeTruthy()
+    })
+  })
+
 })

@@ -1,5 +1,15 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.27.0
+
+### Added
+- **Edit the message of any commit, not just the last one.** Clicking the message in the commit panel opened an editor when the commit was the tip of the branch, and did nothing at all otherwise — the text of a commit four back looked exactly the same, with no hint that anything was possible. It is now the same gesture everywhere: click, type, confirm. On the tip that is still `commit --amend`; behind it, the range is replayed with a reword step, which is what the context menu's *Edit message* already did through a modal prompt.
+- **The panel says what the edit costs before you start.** Hovering the message of an older commit reads *rewrites 4 commits*, and the confirm button says **Rewrite Message** rather than *Update Message*, with the count repeated beside it. Rewording anything but the tip gives every commit after it a new SHA, which needs a force push on a published branch — that was never stated anywhere.
+- **Commits that cannot be reworded no longer look like they can.** A merge commit behind the tip (a linear replay would drop one of its sides), the very first commit (no parent to rebase from) and a commit that is not in the current branch's history are all left as plain text. The last one mattered most: the reword builds its sequence with `git log <parent>..HEAD`, so a commit living only on another branch would have rewritten a range that does not contain it.
+
+### Changed
+- **Recompose a commit with AI now reviews in the same place.** It used to prefill the inline editor for the tip and open a modal prompt for anything else; both go through the inline editor now.
+
 ## 1.26.0
 
 ### Fixed

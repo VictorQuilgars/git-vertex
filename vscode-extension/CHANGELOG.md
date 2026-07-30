@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.25.0
+
+### Added
+- **Edit the message of any commit from the panel.** Clicking a commit's message opened an editor only when that commit was the tip of the branch; anywhere else it did nothing, and nothing said why. It is the same gesture everywhere now — click, type, confirm. On the tip that is `commit --amend`; behind it the range is replayed with a reword step, which the right-click *Edit message* already did through an input box.
+- **The cost is stated up front**: hovering an older commit's message reads *rewrites 4 commits*, and the confirm button says **Rewrite Message**, with the count beside it. Every commit after the edited one gets a new SHA — on a published branch that needs a force push.
+- A **merge commit** behind the tip, the **first commit**, and a commit **outside the current branch's history** stay plain text: the first two cannot be replayed, and the third would have rewritten a range that does not contain it.
+
+### Fixed
+- **The panel could not reword anything but the tip at all.** The shared commit detail asks the host to replay the range, and this side never provided one — so even the AI's *Recompose commit* fell back to copying its proposal to the clipboard instead of applying it.
+
 ## 1.24.0
 
 ### Added

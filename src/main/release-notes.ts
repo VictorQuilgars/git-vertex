@@ -2,6 +2,21 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  '1.27.0': `## What's new in 1.27.0
+
+### ✏️ Edit the message of any commit, not just the last one
+- Clicking a commit message in the panel opened an editor **only on the tip of the branch**. On a commit four back, the same text was dead — nothing said an edit was even possible. It is one gesture now, everywhere: click, type, confirm.
+- On the tip it is still \`commit --amend\`. Behind it, the range is replayed with a reword step — the same thing *Edit message* in the right-click menu already did, minus the modal prompt on top of the text you just wrote.
+
+### ⚠️ And it tells you what that costs
+- Hovering an older commit's message reads **rewrites 4 commits**, and the button says **Rewrite Message** instead of *Update Message*, with the count next to it. Rewording anything but the tip gives every commit after it a new SHA, and needs a force push on a branch you have already published.
+
+### 🚫 What it refuses, and why
+- A **merge commit** behind the tip: replaying it linearly would drop one of its two sides. (At the tip it stays editable — \`--amend\` keeps both parents.)
+- The **first commit** of the repository: there is no parent to replay from.
+- A commit **not in the current branch's history**: the replay is built from \`<parent>..HEAD\`, so it would have rewritten a range that does not even contain it.
+- In all three cases the message stays plain text rather than offering an edit that would fail, or quietly do the wrong thing.
+`,
   '1.26.0': `## What's new in 1.26.0
 
 ### 🩺 The app now uses the same git as your terminal

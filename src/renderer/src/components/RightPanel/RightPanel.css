@@ -212,6 +212,21 @@
   background: #0d1117;
   border-top: 1px solid #21262d;
   flex-shrink: 0;
+  /* The warning sits above the two buttons when the commit is not the tip. */
+  flex-wrap: wrap;
+}
+
+/* Rewording an older commit replays everything after it. Amber, not red: it is
+   a normal operation with a consequence, not a danger. */
+.cd-amend-warn {
+  flex-basis: 100%;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #d29922;
+  cursor: help;
+}
+.cd-amend-warn::before {
+  content: '⚠ ';
 }
 .cd-amend-confirm, .cd-amend-cancel {
   flex: 1;

@@ -705,6 +705,51 @@ export class GitService {
     }
   }
 
+  /**
+   * Can this commit's message be rewritten, and at what cost? Ported from
+   * src/main/git-service.ts — the shared commit panel asks before turning its
+   * message into an editable field, and needs the same answer in both products.
+   *
+   * Editing the tip is `commit --amend`. Editing anything older is a rebase,
+   * which gives every commit after it a new sha, so `rewrites` says how many
+   * before the user commits to it. A commit outside HEAD's history, a root
+   * commit and a merge commit are all refused here rather than discovered
+   * halfway through a rebase.
+   */
+  async getRewordPlan(hash: string): Promise<{
+    canReword: boolean; isHead: boolean; rewrites: number; reason?: string
+  }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { canReword: false, isHead: false, rewrites: 0, reason: bad }
+    try {
+      const head = (await this.git.raw(['rev-parse', 'HEAD'])).trim()
+      const full = (await this.git.raw(['rev-parse', '--verify', `${hash}^{commit}`])).trim()
+      if (full === head) return { canReword: true, isHead: true, rewrites: 0 }
+
+      // NOT `merge-base --is-ancestor`: it answers through its exit code and
+      // prints nothing, and simple-git only treats a non-zero exit as an error
+      // when stderr is non-empty (isTaskError) — so "no" resolved exactly like
+      // "yes" and every commit looked rewordable. Compare the merge base
+      // instead: it is an ancestor iff the base IS the commit. Unrelated
+      // histories make merge-base fail loudly, which the catch handles.
+      const mergeBase = (await this.git.raw(['merge-base', full, 'HEAD'])).trim()
+      if (mergeBase !== full) {
+        return { canReword: false, isHead: false, rewrites: 0, reason: 'not-in-history' }
+      }
+      const parents = (await this.git.raw(['rev-list', '--parents', '-n', '1', full])).trim().split(/\s+/)
+      if (parents.length < 2) {
+        return { canReword: false, isHead: false, rewrites: 0, reason: 'root-commit' }
+      }
+      if (parents.length > 2) {
+        return { canReword: false, isHead: false, rewrites: 0, reason: 'merge-commit' }
+      }
+      const count = (await this.git.raw(['rev-list', '--count', `${full}..HEAD`])).trim()
+      return { canReword: true, isHead: false, rewrites: parseInt(count, 10) || 0 }
+    } catch (e: any) {
+      return { canReword: false, isHead: false, rewrites: 0, reason: e.message }
+    }
+  }
+
   async getFileHistory(filepath: string): Promise<{ commits: { hash: string; shortHash: string; message: string; author: string; date: string }[] }> {
     try {
       const out = await this.git.raw([

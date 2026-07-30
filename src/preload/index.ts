@@ -63,6 +63,7 @@ const gitAPI = {
   revert: (hash: string) => ipcRenderer.invoke('git:revert', hash),
   reset: (hash: string, mode: 'soft' | 'mixed' | 'hard') => ipcRenderer.invoke('git:reset', hash, mode),
   amendMessage: (message: string) => ipcRenderer.invoke('git:amend-message', message),
+  getRewordPlan: (hash: string) => ipcRenderer.invoke('git:get-reword-plan', hash),
   dropCommit: (hash: string) => ipcRenderer.invoke('git:drop-commit', hash),
   moveCommit: (hash: string, direction: 'up' | 'down') => ipcRenderer.invoke('git:move-commit', hash, direction),
   diffCommitToWorking: (hash: string) => ipcRenderer.invoke('git:diff-commit-to-working', hash),

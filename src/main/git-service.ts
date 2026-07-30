@@ -857,6 +857,56 @@ export class GitService {
     }
   }
 
+  /**
+   * Can this commit's message be rewritten, and at what cost?
+   *
+   * Editing the tip is `commit --amend`: one commit, nothing else moves.
+   * Editing anything older is a rebase, which gives every commit after it a new
+   * sha — so the UI has to be able to say how many, before the user commits to
+   * it. `rewrites` is exactly that count, and 0 means the tip.
+   *
+   * The commit must be an ancestor of HEAD: the reword runs `git log <parent>..HEAD`
+   * to build its sequence, so a commit living only on another branch would
+   * produce a sequence that does not contain it and rewrite the wrong history.
+   * A root commit has no parent to rebase from. Both are refused here rather
+   * than discovered halfway through a rebase.
+   */
+  async getRewordPlan(hash: string): Promise<{
+    canReword: boolean; isHead: boolean; rewrites: number; reason?: string
+  }> {
+    const bad = this.assertRef(hash, 'commit')
+    if (bad) return { canReword: false, isHead: false, rewrites: 0, reason: bad }
+    try {
+      const head = (await this.git.raw(['rev-parse', 'HEAD'])).trim()
+      const full = (await this.git.raw(['rev-parse', '--verify', `${hash}^{commit}`])).trim()
+      if (full === head) return { canReword: true, isHead: true, rewrites: 0 }
+
+      // NOT `merge-base --is-ancestor`: it answers through its exit code and
+      // prints nothing, and simple-git only treats a non-zero exit as an error
+      // when stderr is non-empty (isTaskError) — so "no" resolved exactly like
+      // "yes" and every commit looked rewordable. Compare the merge base
+      // instead: it is an ancestor iff the base IS the commit. Unrelated
+      // histories make merge-base fail loudly, which the catch handles.
+      const mergeBase = (await this.git.raw(['merge-base', full, 'HEAD'])).trim()
+      if (mergeBase !== full) {
+        return { canReword: false, isHead: false, rewrites: 0, reason: 'not-in-history' }
+      }
+      const parents = (await this.git.raw(['rev-list', '--parents', '-n', '1', full])).trim().split(/\s+/)
+      if (parents.length < 2) {
+        return { canReword: false, isHead: false, rewrites: 0, reason: 'root-commit' }
+      }
+      // A merge commit cannot be replayed by the linear sequence the reword
+      // builds; git would drop one of its sides.
+      if (parents.length > 2) {
+        return { canReword: false, isHead: false, rewrites: 0, reason: 'merge-commit' }
+      }
+      const count = (await this.git.raw(['rev-list', '--count', `${full}..HEAD`])).trim()
+      return { canReword: true, isHead: false, rewrites: parseInt(count, 10) || 0 }
+    } catch (e: any) {
+      return { canReword: false, isHead: false, rewrites: 0, reason: e.message }
+    }
+  }
+
   // Diff between a commit and the current working directory
   async diffCommitToWorking(hash: string): Promise<{ diff: string }> {
     try {

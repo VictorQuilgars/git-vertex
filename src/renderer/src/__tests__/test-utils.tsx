@@ -50,6 +50,8 @@ export function createMockGitAPI(overrides: Record<string, any> = {}) {
     openExternalDiff: jest.fn().mockResolvedValue({ success: true }),
     readTempFile: jest.fn().mockResolvedValue({ content: '' }),
     openInEditor: jest.fn().mockResolvedValue({ success: true }),
+    // Author avatar — any test rendering a commit's detail hits this.
+    avatarResolve: jest.fn().mockResolvedValue(null),
     // Conflict resolver
     getConflictSides: jest.fn().mockResolvedValue({ ours: '', theirs: '' }),
     getConflictVersions: jest.fn().mockResolvedValue({ base: '', ours: '', theirs: '' }),
