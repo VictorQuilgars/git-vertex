@@ -1,4 +1,5 @@
 import simpleGit, { SimpleGit, LogResult, BranchSummary } from 'simple-git'
+import { getGitBinary, isSimpleGitSafeBinary } from './git-binary'
 
 export interface CommitNode {
   hash: string
@@ -45,8 +46,19 @@ export interface FileChange {
 // full environment object trips @simple-git/argv-parser's vulnerability guard as
 // soon as the machine has EDITOR, VISUAL, PAGER, GIT_ASKPASS or any of the ~19
 // other variables it screens — which is most developer machines.
+//
+// PATH is overridden with the login shell's when we managed to read it, so a
+// child process resolves the same git the user's terminal does — see
+// git-binary.ts. Callers that spawn git directly should use gitBinary() for the
+// command rather than the bare string 'git'.
 export function gitEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
-  return { ...process.env, LC_ALL: 'C', ...extra }
+  const { searchPath } = getGitBinary()
+  return { ...process.env, ...(searchPath ? { PATH: searchPath } : {}), LC_ALL: 'C', ...extra }
+}
+
+/** The git to invoke — an absolute path once resolved. */
+export function gitBinary(): string {
+  return getGitBinary().path
 }
 
 // simple-git is a different matter: it screens the environment it is given and
@@ -75,34 +87,32 @@ export function simpleGitEnv(): Record<string, string> {
     const value = process.env[key]
     if (value !== undefined) env[key] = value
   }
+  // Same substitution as gitEnv: PATH decides which git runs, and the process's
+  // own is the truncated one Electron gets from the Finder.
+  const { searchPath } = getGitBinary()
+  if (searchPath) env.PATH = searchPath
   env.LC_ALL = 'C'
   return env
 }
 
-// The conflict prediction shipped in v1.22 runs
-// `git merge-tree --write-tree --merge-base=<commit>`, and --merge-base only
-// landed in git 2.40. On anything older the call fails, predictConflicts returns
-// an empty list and the caller proceeds — so the "a conflict is expected"
-// warning silently never appears. macOS still ships 2.39, which makes that the
-// default experience for anyone without a newer git, hence the startup notice.
-export const MIN_GIT_FOR_CONFLICT_PREDICTION = '2.40'
-
-// Accepts the vendor suffixes too, e.g. "git version 2.39.3 (Apple Git-146)".
-export function parseGitVersion(output: string): string | null {
-  const m = /git version (\d+)\.(\d+)(?:\.(\d+))?/.exec(output)
-  return m ? `${m[1]}.${m[2]}.${m[3] ?? '0'}` : null
+/**
+ * A simple-git instance pinned to the resolved binary. `customBinary` is only
+ * applied when simple-git will accept the path — it validates against its own
+ * character allow-list and throws otherwise, and a path with a space in it
+ * (`C:\Program Files\Git\cmd\git.exe`) is exactly what it rejects. In that case
+ * the corrected PATH still gets us the right git; we just resolve it per call
+ * the way we always did.
+ */
+export function makeSimpleGit(repoPath?: string): SimpleGit {
+  const git = simpleGit(repoPath).env(simpleGitEnv())
+  const { path } = getGitBinary()
+  return path !== 'git' && isSimpleGitSafeBinary(path) ? git.customBinary(path) : git
 }
 
-export function isGitVersionAtLeast(version: string, minimum: string): boolean {
-  const have = version.split('.').map(n => parseInt(n, 10) || 0)
-  const want = minimum.split('.').map(n => parseInt(n, 10) || 0)
-  for (let i = 0; i < Math.max(have.length, want.length); i++) {
-    const a = have[i] ?? 0
-    const b = want[i] ?? 0
-    if (a !== b) return a > b
-  }
-  return true
-}
+// Version helpers live in git-version.ts (git-binary.ts needs them and this
+// module imports git-binary), and are re-exported so every existing importer of
+// git-service keeps working unchanged.
+export { MIN_GIT_FOR_CONFLICT_PREDICTION, parseGitVersion, isGitVersionAtLeast } from './git-version'
 
 export class GitService {
   private git: SimpleGit
@@ -116,7 +126,7 @@ export class GitService {
 
   constructor(repoPath: string) {
     this.repoPath = repoPath
-    this.git = simpleGit(repoPath).env(simpleGitEnv())
+    this.git = makeSimpleGit(repoPath)
   }
 
   async checkRepo(): Promise<void> {
@@ -889,7 +899,7 @@ export class GitService {
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
-      await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
+      await execFileAsync(gitBinary(), ['-C', this.repoPath, 'rebase', '-i', '--autostash', baseRef], {
         env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile }),
         timeout: 30000
       })
@@ -1019,7 +1029,7 @@ export class GitService {
   private async execRaw(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
     const { execFile } = await import('node:child_process')
     return new Promise(resolve => {
-      execFile('git', ['-C', this.repoPath, ...args], { env: gitEnv(), maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+      execFile(gitBinary(), ['-C', this.repoPath, ...args], { env: gitEnv(), maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
         const code = err && typeof (err as NodeJS.ErrnoException & { code?: unknown }).code === 'number'
           ? (err as unknown as { code: number }).code
           : (err ? 1 : 0)
@@ -1520,7 +1530,7 @@ export class GitService {
     const { execFile } = await import('child_process')
     const { promisify } = await import('util')
     const execFileAsync = promisify(execFile)
-    await execFileAsync('git', ['-C', this.repoPath, ...args], {
+    await execFileAsync(gitBinary(), ['-C', this.repoPath, ...args], {
       env: gitEnv({ GIT_EDITOR: gitEditor }),
       timeout: 30000,
     })
@@ -1601,7 +1611,7 @@ exit 0
       fs.writeFileSync(scriptFile, scriptContent, 'utf8')
       fs.chmodSync(scriptFile, 0o755)
 
-      await execFileAsync('git', ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
+      await execFileAsync(gitBinary(), ['-C', this.repoPath, 'rebase', '-i', '--autostash', sequence[0].hash + '^'], {
         env: gitEnv({ GIT_SEQUENCE_EDITOR: scriptFile, GIT_EDITOR: editor.gitEditor }),
         timeout: 30000
       })

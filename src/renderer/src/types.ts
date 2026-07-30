@@ -55,6 +55,17 @@ declare global {
         version: string | null
         conflictPrediction: boolean
         minimumForPrediction?: string
+        /** Absolute path of the git actually used, or 'git' if unresolved. */
+        path?: string
+        /** How that path was chosen — see git-binary.ts. */
+        source?: 'setting' | 'login-shell' | 'process-path' | 'not-found'
+        /** PATH the app searches, which is what explains `path`. */
+        searchPath?: string
+      }>
+      resolveGitBinary: (explicitPath?: string) => Promise<{
+        version: string | null
+        path: string
+        source: 'setting' | 'login-shell' | 'process-path' | 'not-found'
       }>
       removeRecentRepo: (path: string) => Promise<string[]>
       // Read

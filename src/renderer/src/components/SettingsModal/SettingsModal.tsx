@@ -138,6 +138,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   // Git config
   const [gitUserName, setGitUserName] = useState('')
   const [gitUserEmail, setGitUserEmail] = useState('')
+  // Which git the app runs. Desktop-only: inside VS Code the extension inherits
+  // a real shell environment, so there is nothing to pick or correct.
+  const [gitBinary, setGitBinary] = useState<{ version: string | null; path: string; source: string } | null>(null)
+  const [gitBinaryPath, setGitBinaryPath] = useState('')
+  const [gitBinaryBusy, setGitBinaryBusy] = useState(false)
 
   // GitHub
   const [githubToken, setGithubToken] = useState('')
@@ -224,6 +229,12 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       setGitUserName(r.userName ?? '')
       setGitUserEmail(r.userEmail ?? '')
     })
+    // Optional call: a host that does not answer it simply shows no git block.
+    if (!embedded) {
+      window.gitAPI.getGitCapabilities?.()
+        .then(caps => setGitBinary({ version: caps.version, path: caps.path ?? 'git', source: caps.source ?? 'process-path' }))
+        .catch(() => setGitBinary(null))
+    }
     window.gitAPI.settingsGetAll().then((s: any) => {
       const provider: AIProvider = (s.aiProvider as AIProvider) ?? 'groq'
       const keys = {
@@ -252,6 +263,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       setSshUseAgent(s.sshUseAgent === 'true')
       setSshPrivateKey(s.sshPrivateKey ?? '')
       setSshPublicKey(s.sshPublicKey ?? '')
+      setGitBinaryPath(s.gitBinaryPath ?? '')
       setAiProvider(provider)
       setAiKeys(keys)
       setAiModels(m => ({
@@ -457,6 +469,57 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                           </div>
                         )
                       })}
+                    </div>
+                  </>
+                )}
+
+                {/* Which git we run. Only meaningful on the desktop: launched
+                    from the Finder this process gets a truncated PATH, so a
+                    machine with both Apple's git and Homebrew's can end up on
+                    the older one without anything saying so. */}
+                {!embedded && (
+                  <>
+                    <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.gitBinary.title')}</h2>
+                    <p className="stg-desc">{t('settings.gitBinary.desc')}</p>
+                    <p className="stg-desc" style={{ color: '#c9d1d9' }}>
+                      {gitBinary
+                        ? <>
+                            <strong>git {gitBinary.version ?? '—'}</strong>
+                            {' — '}
+                            <code>{gitBinary.path}</code>
+                            <span style={{ color: '#8b949e' }}> ({t(`settings.gitBinary.source.${gitBinary.source}` as any)})</span>
+                          </>
+                        : t('settings.gitBinary.unknown')}
+                    </p>
+                    <label className="stg-field">
+                      <span>{t('settings.gitBinary.path')}</span>
+                      <input
+                        className="stg-input"
+                        value={gitBinaryPath}
+                        onChange={e => setGitBinaryPath(e.target.value)}
+                        placeholder={t('settings.gitBinary.path.placeholder')}
+                      />
+                    </label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        className="stg-save"
+                        disabled={gitBinaryBusy}
+                        onClick={async () => {
+                          setGitBinaryBusy(true)
+                          const value = gitBinaryPath.trim()
+                          await window.gitAPI.settingsSet('gitBinaryPath', value)
+                          // Re-resolve rather than restart: the answer shown here
+                          // must be the one the app will actually use.
+                          const r = await window.gitAPI.resolveGitBinary(value).catch(() => null)
+                          setGitBinaryBusy(false)
+                          if (!r) { showToast(t('settings.gitBinary.failed'), 'err'); return }
+                          setGitBinary(r)
+                          if (r.version) showToast(t('settings.gitBinary.applied', r.version, r.path))
+                          else showToast(t('settings.gitBinary.notRunnable', r.path), 'err')
+                        }}
+                      >
+                        {gitBinaryBusy ? t('settings.gitBinary.checking') : t('settings.gitBinary.apply')}
+                      </button>
                     </div>
                   </>
                 )}

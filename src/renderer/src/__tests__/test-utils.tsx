@@ -13,6 +13,14 @@ export function createMockGitAPI(overrides: Record<string, any> = {}) {
     settingsSet: jest.fn().mockResolvedValue({ success: true }),
     gitGetGlobalConfig: jest.fn().mockResolvedValue({ userName: '', userEmail: '' }),
     gitSetGlobalConfig: jest.fn().mockResolvedValue({ success: true }),
+    // Which git the app runs — Settings → Git shows the version AND the path,
+    // because a machine with two gits makes the version alone ambiguous.
+    getGitCapabilities: jest.fn().mockResolvedValue({
+      version: '2.50.0', path: '/opt/homebrew/bin/git', source: 'login-shell', conflictPrediction: true,
+    }),
+    resolveGitBinary: jest.fn().mockResolvedValue({
+      version: '2.50.0', path: '/opt/homebrew/bin/git', source: 'login-shell',
+    }),
     appGetInfo: jest.fn().mockResolvedValue({ version: '0.0.0', electron: '', node: '', chrome: '' }),
     checkForUpdates: jest.fn().mockResolvedValue({ dev: true }),
     installManual: jest.fn().mockResolvedValue({ success: true }),

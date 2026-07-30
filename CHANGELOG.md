@@ -1,5 +1,14 @@
 # Changelog — Git Vertex (desktop)
 
+## 1.26.0
+
+### Fixed
+- **The app ran a different git than your terminal.** Launched from the Dock or the Finder, it does not inherit the shell's PATH — it gets `/usr/bin:/bin:/usr/sbin:/sbin` — so on macOS it used Apple's git 2.39 even for someone whose terminal has Homebrew's newer one first on PATH. Every git call went through that resolution. The login shell's PATH is now read back at startup, the binary resolved once to an absolute path, and every call uses that one.
+- **The "git is too old" notice named a version you could not find.** It reported the git *the app* was using while `git --version` in the terminal answered something else, with nothing to reconcile the two. Both the notice and Settings → Git now show the path beside the version — *git 2.39.3 — /usr/bin/git* — and how it was chosen.
+
+### Added
+- **A git binary path in Settings → Git**, for forcing a specific one. It is checked when you apply it: the version and path shown update without a restart, and a binary that will not run says so instead of quietly falling back.
+
 ## 1.25.0
 
 ### Added
