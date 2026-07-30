@@ -702,6 +702,7 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "test": "node ./out/test/runTests.js",
+    "test:nodisplay": "node ./scripts/test-nodisplay.js",
     "package": "npm run compile && vsce package --no-dependencies",
     "lint": "eslint src --ext ts"
   },

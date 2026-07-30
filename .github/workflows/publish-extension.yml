@@ -62,6 +62,14 @@ jobs:
         run: npm run compile
         working-directory: vscode-extension
 
+      # Everything that runs in plain node — including the host-parity guard,
+      # which is the only thing that catches a window.gitAPI method the panel
+      # answers "not-implemented" for. This step BLOCKS: the step below cannot,
+      # and a red parity test went out in two releases because of it.
+      - name: Run display-free tests
+        run: npm run test:nodisplay
+        working-directory: vscode-extension
+
       - name: Run tests
         run: npm test
         working-directory: vscode-extension
