@@ -4,6 +4,15 @@
 export const RELEASE_NOTES: Record<string, string> = {
   '1.27.0': `## What's new in 1.27.0
 
+### 🎯 A double-click always lands on a branch
+- It used to check out a commit and **detach HEAD**. On a remote branch it looked like it worked, but the sidebar dropped the remote prefix and ran \`git checkout test\` — quietly taking you to the *local* branch of that name, three commits further on than the row you clicked.
+- git decides now: a local branch is switched to; a remote branch whose name is free locally gets the branch that **tracks** it, created without asking; anything else asks for a branch name at that commit, with an **empty field** — any suggestion would be a guess about what the branch is for.
+- **Detached HEAD is left to one place**, the context menu's *Check out this commit*, whose label says so. A tag cannot be checked out as a branch at all: its menu entry checks out the **commit** it points at.
+
+### 🖱️ Two things that fought the cursor
+- **The commit panel flashed open** when double-clicking a branch chip: the browser sends click, click, dblclick, and only the last was being stopped, so the first reached the row underneath.
+- **Submenus closed themselves under the cursor.** Reaching one of the three Reset modes made the submenu vanish, as if the pointer had left the menu — for two separate reasons, both fixed.
+
 ### ✏️ Edit the message of any commit, not just the last one
 - Clicking a commit message in the panel opened an editor **only on the tip of the branch**. On a commit four back, the same text was dead — nothing said an edit was even possible. It is one gesture now, everywhere: click, type, confirm.
 - On the tip it is still \`commit --amend\`. Behind it, the range is replayed with a reword step — the same thing *Edit message* in the right-click menu already did, minus the modal prompt on top of the text you just wrote.

@@ -78,12 +78,26 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
     timer.current = setTimeout(() => setSub(null), CLOSE_DELAY)
   }
 
-  const row = (item: MenuAction, i: number, close: () => void) => (
+  /**
+   * `inSub` is load-bearing: this same function renders the rows of the parent
+   * menu AND the rows of the open submenu. Without it, hovering an entry inside
+   * the submenu ran the "close the open submenu" branch — the submenu closing
+   * itself under the cursor, which is exactly what it looked like. The
+   * container's own onMouseEnter cleared the timer, then the row's re-armed it.
+   */
+  const row = (item: MenuAction, i: number, close: () => void, inSub = false) => (
     <button
       key={i}
       className={`ctx-item${item.danger ? ' ctx-danger' : ''}${item.disabled ? ' ctx-disabled' : ''}`}
       disabled={item.disabled}
-      onMouseEnter={e => { item.submenu?.length ? openSub(i, e.currentTarget) : (clearTimeout(timer.current), setSub(null)) }}
+      // Inside the submenu, hovering only keeps it alive. In the parent menu, a
+      // row without a submenu closes the open one on the same grace period as
+      // leaving it — never instantly, because reaching the second or third
+      // entry means moving right and down, which clips the row below on the way.
+      onMouseEnter={e => {
+        if (inSub) { clearTimeout(timer.current); return }
+        item.submenu?.length ? openSub(i, e.currentTarget) : closeSubSoon()
+      }}
       onClick={() => { if (item.disabled || item.submenu?.length) return; item.action?.(); close() }}
     >
       {item.checked !== undefined && <span className="ctx-check">{item.checked ? '✓' : ''}</span>}
@@ -108,7 +122,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
           onMouseEnter={() => clearTimeout(timer.current)}
           onMouseLeave={closeSubSoon}
         >
-          {subItems.map((item, i) => 'separator' in item ? <div key={i} className="ctx-sep" /> : row(item, i, onClose))}
+          {subItems.map((item, i) => 'separator' in item ? <div key={i} className="ctx-sep" /> : row(item, i, onClose, true))}
         </div>
       )}
     </>
