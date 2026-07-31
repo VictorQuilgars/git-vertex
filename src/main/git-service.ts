@@ -391,6 +391,117 @@ export class GitService {
     }
   }
 
+  /**
+   * What a double-click on `ref` should actually do.
+   *
+   * The rule: a double-click means "take me here", and it must always land on a
+   * LOCAL BRANCH. Detaching HEAD is reserved for the explicit "check out this
+   * commit" of the context menu — it is never something a double-click does by
+   * accident.
+   *
+   * Everything is decided from the COMMIT the clicked ref points at, which is
+   * what makes the interesting case work: double-clicking `origin/test` while a
+   * local `test` sits three commits ahead used to run `git checkout test` and
+   * quietly take you to the local branch instead of where you clicked.
+   *
+   *  - `checkout-local`   a local branch is already there → switch to it
+   *  - `create-tracking`  a remote branch is there and its short name is free →
+   *                       create the local branch that tracks it, no question
+   *  - `create-branch`    nothing usable there → the caller asks for a name
+   *  - `already-here`     the current branch is already on that commit
+   */
+  async getCheckoutPlan(ref: string): Promise<{
+    action: 'checkout-local' | 'create-tracking' | 'create-branch' | 'already-here'
+    branch?: string
+    remoteRef?: string
+    hash?: string
+    shortHash?: string
+    error?: string
+  }> {
+    const bad = this.assertRef(ref, 'reference')
+    if (bad) return { action: 'create-branch', error: bad }
+    try {
+      const hash = (await this.git.raw(['rev-parse', '--verify', `${ref}^{commit}`])).trim()
+      const shortHash = hash.slice(0, 7)
+      const refsAt = async (namespace: string): Promise<string[]> => {
+        const out = await this.git.raw(['for-each-ref', '--format=%(refname:short)', '--points-at', hash, namespace])
+        return out.split('\n').map(s => s.trim()).filter(Boolean)
+      }
+      const exists = async (fullRef: string): Promise<boolean> =>
+        // --quiet turns a miss into exit 1 with no output, which simple-git
+        // resolves rather than throws — so read the sha, not the exit code.
+        !!(await this.git.raw(['rev-parse', '--verify', '--quiet', fullRef]).catch(() => '')).trim()
+
+      // `git rev-parse --abbrev-ref HEAD` answers the literal "HEAD" when
+      // detached, which is not a branch name and must not match one.
+      const head = (await this.git.raw(['rev-parse', '--abbrev-ref', 'HEAD'])).trim()
+      const clicked = ref.replace(/^remotes\//, '')
+
+      // WHAT was clicked comes before WHERE it points. Double-clicking a branch
+      // that happens to sit on the current commit still means "put me on that
+      // branch" — answering "you are already here" would be about the commit,
+      // not about the row under the cursor.
+      if (await exists(`refs/heads/${clicked}`)) {
+        return clicked === head
+          ? { action: 'already-here', branch: clicked, hash, shortHash }
+          : { action: 'checkout-local', branch: clicked, hash, shortHash }
+      }
+
+      // A remote branch: its local counterpart is the thing to land on.
+      if (await exists(`refs/remotes/${clicked}`)) {
+        const short = clicked.replace(/^[^/]+\//, '')
+        const localHash = (await this.git.raw(['rev-parse', '--verify', '--quiet', `refs/heads/${short}`]).catch(() => '')).trim()
+        if (!localHash) {
+          return { action: 'create-tracking', branch: short, remoteRef: clicked, hash, shortHash }
+        }
+        // The name is taken. If the local branch is still on this commit it is
+        // what the user wants; if it has moved on, landing on it would be a
+        // different commit than the one clicked — the case that used to send
+        // you silently three commits ahead. Ask for a name instead.
+        if (localHash === hash) {
+          return short === head
+            ? { action: 'already-here', branch: short, hash, shortHash }
+            : { action: 'checkout-local', branch: short, hash, shortHash }
+        }
+        return { action: 'create-branch', hash, shortHash }
+      }
+
+      // A bare commit or a tag: nothing was clicked that names a branch, so the
+      // answer comes from what is at that commit.
+      const locals = await refsAt('refs/heads')
+      if (head !== 'HEAD' && locals.includes(head)) {
+        return { action: 'already-here', branch: head, hash, shortHash }
+      }
+      if (locals.length > 0) {
+        return { action: 'checkout-local', branch: locals[0], hash, shortHash }
+      }
+      for (const remoteRef of await refsAt('refs/remotes')) {
+        const short = remoteRef.replace(/^[^/]+\//, '')
+        if (!short || short === 'HEAD') continue
+        if (!(await exists(`refs/heads/${short}`))) {
+          return { action: 'create-tracking', branch: short, remoteRef, hash, shortHash }
+        }
+      }
+      return { action: 'create-branch', hash, shortHash }
+    } catch (e: any) {
+      return { action: 'create-branch', error: e.message }
+    }
+  }
+
+  /** Create a local branch tracking `remoteRef` (e.g. origin/futur) and switch to it. */
+  async checkoutTracking(remoteRef: string, localName: string): Promise<{ success: boolean; error?: string }> {
+    const badR = this.assertRef(remoteRef, 'remote branch'); if (badR) return { success: false, error: badR }
+    const badL = this.assertRef(localName, 'branch'); if (badL) return { success: false, error: badL }
+    try {
+      // Explicit rather than `git checkout <name>`: the DWIM form is ambiguous
+      // as soon as two remotes carry the same branch, and silently picks one.
+      await this.git.raw(['checkout', '-b', localName, '--track', remoteRef])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   async createBranch(name: string): Promise<{ success: boolean; error?: string }> {
     try {
       await this.git.checkoutLocalBranch(name)

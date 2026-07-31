@@ -51,7 +51,15 @@ interface SidebarProps {
   onRefreshStashes: () => void
   onCreateTag: () => void
   onDeleteTag: (name: string) => void
+  /** Menu entry on a tag: check out the commit it points at (detaches HEAD). */
   onCheckoutTag: (name: string) => void
+  /**
+   * Double-click on any row: take me to that point, landing on a local
+   * branch. The host decides how (getCheckoutPlan) — switch to a branch that
+   * is already there, create the one tracking a remote branch, or ask for a
+   * name. Falls back to a plain checkout when a host does not provide it.
+   */
+  onGoTo: (ref: string) => void
   onPushTag: (name: string) => void
   onDeleteRemoteTag: (name: string) => void
   onSelectCommit: (hash: string) => void
@@ -307,15 +315,23 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename }: {
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-function TagItem({ tag, onCheckout, onDelete, onPush, onDeleteRemote }: {
-  tag: TagEntry; onCheckout?: () => void
+function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote }: {
+  tag: TagEntry
+  /** Double-click: take me here, landing on a branch. Never detaches HEAD. */
+  onGoTo?: () => void
+  /** Menu only: check out the COMMIT the tag points at, detaching HEAD. */
+  onCheckoutCommit?: () => void
   onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
   const { t } = useLang()
   const menuItems: MenuItemDef[] = [
-    ...(onCheckout ? [{ label: t('sb.tag.checkout'), action: onCheckout }] : []),
+    // A tag is not a branch and cannot be checked out as one. What this does is
+    // check out the commit it points at, which detaches HEAD — so the label
+    // says commit, not tag, and it is the only entry in the sidebar that
+    // detaches anything.
+    ...(onCheckoutCommit ? [{ label: t('sb.tag.checkoutCommit'), action: onCheckoutCommit }] : []),
     { label: t('sb.copyName'), action: () => navigator.clipboard.writeText(tag.name) },
     { label: t('sb.tag.push'), action: onPush },
     { separator: true },
@@ -323,14 +339,16 @@ function TagItem({ tag, onCheckout, onDelete, onPush, onDeleteRemote }: {
     { label: t('sb.tag.deleteRemote'), action: onDeleteRemote, danger: true },
   ]
 
-  // Same 400ms double-click detection as BranchItem — checking out a tag
-  // detaches HEAD, which is what git does and what the toast spells out.
+  // Same 400ms double-click detection as BranchItem. It used to check the tag
+  // out and detach HEAD (v1.23.0); a double-click now means the same thing here
+  // as everywhere else — land on a branch — so it offers to create one at the
+  // tagged commit instead.
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!onCheckout) return
+    if (!onGoTo) return
     const now = Date.now()
     if (now - lastClickTime.current < 400) {
       e.preventDefault()
-      onCheckout()
+      onGoTo()
       lastClickTime.current = 0
     } else {
       lastClickTime.current = now
@@ -343,7 +361,7 @@ function TagItem({ tag, onCheckout, onDelete, onPush, onDeleteRemote }: {
         className="sb-tag-item"
         onMouseDown={handleMouseDown}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
-        title={onCheckout ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`}
+        title={onGoTo ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`}
       >
         <span className="sb-tag-icon">🏷</span>
         <span className="sb-tag-name">{tag.name}</span>
@@ -520,7 +538,7 @@ export default function Sidebar({
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
-  onCreateTag, onDeleteTag, onCheckoutTag, onPushTag, onDeleteRemoteTag,
+  onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, mutedBranches, onToggleSolo, onToggleMute,
   onPull,
@@ -886,7 +904,7 @@ export default function Sidebar({
                 name={b.name}
                 current={b.current}
                 currentBranch={currentBranch}
-                onCheckout={() => !b.current && onCheckout(b.name)}
+                onCheckout={() => !b.current && onGoTo(b.name)}
                 onDelete={() => onDeleteBranch(b.name)}
                 onMerge={() => onMergeBranch(b.name)}
                 onRename={() => onRenameBranch(b.name)}
@@ -935,10 +953,7 @@ export default function Sidebar({
                   remote={true}
                   showRemotePrefix={(remoteShortNameCounts.get(b.name.replace(/^remotes\/[^/]+\//, '')) ?? 0) > 1}
                   currentBranch={currentBranch}
-                  onCheckout={() => {
-                    const localName = b.name.replace(/^remotes\/[^/]+\//, '')
-                    onCheckout(localName)
-                  }}
+                  onCheckout={() => onGoTo(b.name)}
                   onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
                   soloed={soloBranch === b.name}
                   muted={mutedBranches.has(b.name)}
@@ -963,7 +978,9 @@ export default function Sidebar({
             {tags.length === 0
               ? <div className="sb-empty">{t('sb.noTag')}</div>
               : tags.map(t => (
-                  <TagItem key={t.name} tag={t} onCheckout={() => onCheckoutTag(t.name)}
+                  <TagItem key={t.name} tag={t}
+                    onGoTo={() => onGoTo(t.name)}
+                    onCheckoutCommit={() => onCheckoutTag(t.name)}
                     onDelete={() => onDeleteTag(t.name)}
                     onPush={() => onPushTag(t.name)} onDeleteRemote={() => onDeleteRemoteTag(t.name)} />
                 ))

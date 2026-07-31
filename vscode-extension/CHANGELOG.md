@@ -3,11 +3,14 @@
 ## 1.25.0
 
 ### Added
+- **A double-click always lands on a branch**, in the panel as on the desktop. Checking out a commit and detaching HEAD is no longer something a double-click does: a local branch is switched to, a remote branch with no local counterpart gets the branch that tracks it, and anything else asks for a branch name at that commit. Detaching HEAD is left to the context menu's **Check out this commit**, and a tag's menu entry now checks out the *commit* it points at.
 - **Edit the message of any commit from the panel.** Clicking a commit's message opened an editor only when that commit was the tip of the branch; anywhere else it did nothing, and nothing said why. It is the same gesture everywhere now — click, type, confirm. On the tip that is `commit --amend`; behind it the range is replayed with a reword step, which the right-click *Edit message* already did through an input box.
 - **The cost is stated up front**: hovering an older commit's message reads *rewrites 4 commits*, and the confirm button says **Rewrite Message**, with the count beside it. Every commit after the edited one gets a new SHA — on a published branch that needs a force push.
 - A **merge commit** behind the tip, the **first commit**, and a commit **outside the current branch's history** stay plain text: the first two cannot be replayed, and the third would have rewritten a range that does not contain it.
 
 ### Fixed
+- **The commit panel flashed open when double-clicking a branch chip** in the graph — the first of the two clicks reached the commit row underneath.
+- **Submenus closed themselves under the cursor**, making the Reset modes and the Delete variants unreachable.
 - **The panel could not reword anything but the tip at all.** The shared commit detail asks the host to replay the range, and this side never provided one — so even the AI's *Recompose commit* fell back to copying its proposal to the clipboard instead of applying it.
 
 ## 1.24.0

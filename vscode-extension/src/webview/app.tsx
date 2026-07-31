@@ -342,6 +342,40 @@ function VertexApp() {
     await applyReword(hash, newMsg)
   }, [runOp, commits, currentBranch, showToast, applyReword])
 
+  /**
+   * "Take me here" — the double-click on a branch row, a ref chip or a tag. It
+   * always lands on a LOCAL BRANCH: git decides which case applies
+   * (getCheckoutPlan) and this carries it out. Detaching HEAD is reserved for
+   * the context menu's explicit "check out this commit".
+   */
+  const handleGoTo = useCallback(async (ref: string) => {
+    const plan = await window.gitAPI.getCheckoutPlan(ref)
+    if (!plan || plan.error) { showToast(plan?.error ?? t('ext.app.failed'), 'err'); return }
+    switch (plan.action) {
+      case 'already-here':
+        showToast(t('ext.app.alreadyOnBranch', plan.branch))
+        return
+      case 'checkout-local':
+        await handleCheckout(plan.branch)
+        return
+      case 'create-tracking':
+        // A remote branch with no local counterpart: the branch that tracks it
+        // is unambiguous, so it is created without asking.
+        await runOp(t('ext.app.checkedOut', plan.branch), () =>
+          window.gitAPI.checkoutTracking(plan.remoteRef, plan.branch))
+        return
+      case 'create-branch': {
+        // Nothing to land on. Ask for a name, prefilled with nothing: a
+        // suggestion here would be a guess about what the branch is for.
+        const name = await window.gitAPI.uiPrompt(t('ext.app.branchHere', plan.shortHash), '')
+        if (!name || !name.trim()) return
+        await runOp(t('ext.app.checkedOut', name.trim()), () =>
+          window.gitAPI.createBranchAt(name.trim(), plan.hash, true))
+        return
+      }
+    }
+  }, [runOp, handleCheckout, showToast])
+
   const handleRebaseCurrentOntoCommit = useCallback((hash: string) => guardConflict(
     () => window.gitAPI.predictRebaseConflicts(hash),   // accurate per-commit replay
     () => runOp(t('ext.app.rebaseOnto', hash.slice(0, 7)), () => window.gitAPI.rebaseOnto(hash), true),
@@ -788,6 +822,7 @@ function VertexApp() {
             onSetRepo={() => {}}
             onRemoveRecent={() => {}}
             onCheckout={handleCheckout}
+            onGoTo={handleGoTo}
             onCreateBranch={handleNewBranch}
             onDeleteBranch={handleDeleteBranch}
             onMergeBranch={handleMergeBranch}
@@ -841,7 +876,7 @@ function VertexApp() {
             onReset={handleReset}
             onCreateTag={handleCreateTag}
             onCreateBranchAt={handleCreateBranchAt}
-            onCheckoutBranch={handleCheckout}
+            onCheckoutBranch={handleGoTo}
             onCheckoutCommit={handleCheckout}
             onRewordCommit={handleRewordCommit}
             onDropCommit={handleDropCommit}

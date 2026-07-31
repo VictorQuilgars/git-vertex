@@ -783,6 +783,16 @@ ipcMain.handle('git:amend-message', async (_event, message: string) => {
   return gitService.amendMessage(message)
 })
 
+ipcMain.handle('git:get-checkout-plan', async (_event, ref: string) => {
+  if (!gitService) return { action: 'create-branch', error: 'No repo open' }
+  return gitService.getCheckoutPlan(ref)
+})
+
+ipcMain.handle('git:checkout-tracking', async (_event, remoteRef: string, localName: string) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.checkoutTracking(remoteRef, localName)
+})
+
 ipcMain.handle('git:get-reword-plan', async (_event, hash: string) => {
   if (!gitService) return { canReword: false, isHead: false, rewrites: 0, reason: 'No repo open' }
   return gitService.getRewordPlan(hash)

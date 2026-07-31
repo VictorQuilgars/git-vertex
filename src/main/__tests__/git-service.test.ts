@@ -1787,4 +1787,122 @@ describe('GitService', () => {
     })
   })
 
+  // ─────────────────────────────────────────────────────────────────────
+  // getCheckoutPlan — a double-click must always land on a local branch
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('getCheckoutPlan', () => {
+    const commit = (name: string) => {
+      fs.writeFileSync(path.join(tempDir, `${name}.txt`), `${name}\n`)
+      execSync(`cd ${tempDir} && git add . && git commit -qm "${name}"`)
+      return execSync(`cd ${tempDir} && git rev-parse HEAD`).toString().trim()
+    }
+    // A real remote, so refs/remotes/* exist exactly as they do in the app.
+    const withRemote = () => {
+      const remote = `${tempDir}-remote`
+      execSync(`git init -q --bare -b main ${remote}`)
+      execSync(`cd ${tempDir} && git remote add origin ${remote}`)
+      return remote
+    }
+
+    test('the branch you are on says so instead of checking it out again', async () => {
+      commit('one')
+      const plan = await git.getCheckoutPlan('main')
+      expect(plan).toMatchObject({ action: 'already-here', branch: 'main' })
+    })
+
+    test('another local branch is checked out directly', async () => {
+      commit('one')
+      execSync(`cd ${tempDir} && git branch other`)
+      const plan = await git.getCheckoutPlan('other')
+      expect(plan).toMatchObject({ action: 'checkout-local', branch: 'other' })
+    })
+
+    // The headline case: a remote branch with no local counterpart creates the
+    // branch that tracks it, with no question asked.
+    test('a remote branch with a free name creates the tracking branch', async () => {
+      commit('one')
+      withRemote()
+      execSync(`cd ${tempDir} && git push -q origin main:futur`)
+      execSync(`cd ${tempDir} && git fetch -q origin`)
+      const plan = await git.getCheckoutPlan('remotes/origin/futur')
+      expect(plan).toMatchObject({ action: 'create-tracking', branch: 'futur', remoteRef: 'origin/futur' })
+    })
+
+    // The case that used to go wrong: `git checkout test` took you to the local
+    // branch, three commits further on, instead of where you clicked.
+    test('a remote branch whose local name is taken asks for a new name', async () => {
+      commit('one')
+      withRemote()
+      execSync(`cd ${tempDir} && git checkout -q -b test && git push -q origin test`)
+      const at = commit('ahead of the remote')
+      execSync(`cd ${tempDir} && git fetch -q origin`)
+      const plan = await git.getCheckoutPlan('remotes/origin/test')
+      expect(plan.action).toBe('create-branch')
+      // …and on the commit that was clicked, not the one the local branch is on.
+      expect(plan.hash).not.toBe(at)
+      expect(plan.shortHash).toHaveLength(7)
+    })
+
+    test('a bare commit in the middle of the history asks for a name', async () => {
+      commit('one'); commit('two'); commit('three')
+      const middle = execSync(`cd ${tempDir} && git rev-parse HEAD~1`).toString().trim()
+      const plan = await git.getCheckoutPlan(middle)
+      expect(plan).toMatchObject({ action: 'create-branch', hash: middle })
+    })
+
+    // A tag is not a branch and cannot be checked out as one. Double-clicking it
+    // resolves to its commit and offers a branch there.
+    test('a tag resolves to its commit and offers a branch', async () => {
+      commit('one'); commit('two')
+      const tagged = execSync(`cd ${tempDir} && git rev-parse HEAD~1`).toString().trim()
+      execSync(`cd ${tempDir} && git tag v1 ${tagged}`)
+      const plan = await git.getCheckoutPlan('v1')
+      expect(plan).toMatchObject({ action: 'create-branch', hash: tagged })
+    })
+
+    test('a tag on a commit carrying another branch checks that branch out', async () => {
+      commit('one')
+      execSync(`cd ${tempDir} && git branch release`)
+      execSync(`cd ${tempDir} && git tag v1`)
+      // Move off it, so the branch at the tag is not the current one.
+      commit('two')
+      const plan = await git.getCheckoutPlan('v1')
+      expect(plan).toMatchObject({ action: 'checkout-local', branch: 'release' })
+    })
+
+    test('clicking a branch on the commit you are already on still switches to it', async () => {
+      commit('one')
+      execSync(`cd ${tempDir} && git branch other`)
+      // main and other are the same commit; clicking `other` means `other`.
+      const plan = await git.getCheckoutPlan('other')
+      expect(plan).toMatchObject({ action: 'checkout-local', branch: 'other' })
+    })
+
+    test('an unknown ref answers create-branch with an error rather than throwing', async () => {
+      commit('one')
+      const plan = await git.getCheckoutPlan('no-such-ref')
+      expect(plan.action).toBe('create-branch')
+      expect(plan.error).toBeTruthy()
+    })
+  })
+
+  describe('checkoutTracking', () => {
+    test('creates the local branch, switches to it, and sets its upstream', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a\n')
+      execSync(`cd ${tempDir} && git add . && git commit -qm one`)
+      const remote = `${tempDir}-remote`
+      execSync(`git init -q --bare -b main ${remote}`)
+      execSync(`cd ${tempDir} && git remote add origin ${remote}`)
+      execSync(`cd ${tempDir} && git push -q origin main:futur && git fetch -q origin`)
+
+      const r = await git.checkoutTracking('origin/futur', 'futur')
+      expect(r.success).toBe(true)
+      expect(execSync(`cd ${tempDir} && git rev-parse --abbrev-ref HEAD`).toString().trim()).toBe('futur')
+      const upstream = execSync(`cd ${tempDir} && git rev-parse --abbrev-ref futur@{upstream}`).toString().trim()
+      expect(upstream).toBe('origin/futur')
+      execSync(`rm -rf ${remote}`)
+    })
+  })
+
 })
