@@ -32,7 +32,7 @@ function renderTags(overrides: Record<string, any> = {}) {
     'onOpenRepo', 'onClone', 'onSetRepo', 'onRemoveRecent', 'onCheckout', 'onCreateBranch',
     'onDeleteBranch', 'onMergeBranch', 'onRenameBranch', 'onRebaseOnto', 'onPushBranch',
     'onDeleteRemoteBranch', 'onSetUpstream', 'onCreateStash', 'onApplyStash', 'onPopStash',
-    'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag', 'onCheckoutTag',
+    'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag', 'onCheckoutTag', 'onGoTo',
     'onPushTag', 'onDeleteRemoteTag', 'onSelectCommit', 'onCompareBranch',
     'onToggleSolo', 'onToggleMute',
   ]) props[k] = jest.fn()
@@ -52,34 +52,43 @@ async function openTagsSection() {
 }
 
 describe('Sidebar — tags', () => {
-  test('double-clicking a tag checks it out', async () => {
+  // A tag is not a branch and can no longer be checked out as one. Double-click
+  // means the same thing on a tag as on any other row — take me there, landing
+  // on a branch — so it goes through the host's plan, which will offer to
+  // create one at the tagged commit. v1.23.0 detached HEAD here instead.
+  test('double-clicking a tag asks to go there, and never detaches HEAD', async () => {
     const props = renderTags()
     await openTagsSection()
 
     await userEvent.dblClick(screen.getByText('v1.22.0'))
 
-    expect(props.onCheckoutTag).toHaveBeenCalledWith('v1.22.0')
+    expect(props.onGoTo).toHaveBeenCalledWith('v1.22.0')
+    expect(props.onCheckoutTag).not.toHaveBeenCalled()
   })
 
-  test('a single click does not check out', async () => {
+  test('a single click does nothing', async () => {
     const props = renderTags()
     await openTagsSection()
 
     await userEvent.click(screen.getByText('v1.22.0'))
 
+    expect(props.onGoTo).not.toHaveBeenCalled()
     expect(props.onCheckoutTag).not.toHaveBeenCalled()
   })
 
-  test('the context menu offers checkout, and targets the right tag', async () => {
+  // The one remaining way to detach HEAD from the sidebar, and it is explicit:
+  // it says commit, because that is what it checks out.
+  test('the context menu checks out the commit, and targets the right tag', async () => {
     const props = renderTags()
     await openTagsSection()
 
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('v1.21.1') })
 
-    const entry = await screen.findByText(/Checkout/i)
+    const entry = await screen.findByText(/check out the commit/i)
     await userEvent.click(entry)
 
     expect(props.onCheckoutTag).toHaveBeenCalledWith('v1.21.1')
     expect(props.onCheckoutTag).toHaveBeenCalledTimes(1)
+    expect(props.onGoTo).not.toHaveBeenCalled()
   })
 })
