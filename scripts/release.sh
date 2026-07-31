@@ -82,6 +82,9 @@ NEW=$(node -e '
   else { console.error(`not a bump or a version: ${bump}`); process.exit(1) }
 ' "$CURRENT" "$BUMP")
 TAG="$MY_PREFIX$NEW"
+# One branch per release, named after what it releases: a leftover from an
+# aborted attempt is then obvious, and two products can be prepared at once.
+RELEASE_BRANCH="release/$PRODUCT-$NEW"
 
 say "${BOLD}Release $MY_LABEL $CURRENT → $NEW${OFF}  ${DIM}(tag $TAG)${OFF}"
 say ""
@@ -141,19 +144,20 @@ if [ -n "$MY_NOTES" ]; then
   ok "$MY_NOTES has an entry for $NEW"
 fi
 
-# Pushing main pushes everything on it. If an unpushed commit has already bumped
-# another product, that product would be released by this push too — which is
-# exactly what must not happen.
+# The release branch is cut from main, so whatever sits on main unpushed goes
+# into the pull request and lands on merge. If an unpushed commit has already
+# bumped another product, merging would release that one too — which is exactly
+# what must not happen. Checked here, while still on main, against origin.
 for other in $PRODUCTS; do
   [ "$other" = "$PRODUCT" ] && continue
   product_meta "$other"
   theirs_here=$(node -p "require('./$P_PKG').version")
   theirs_origin=$(git show "origin/main:$P_PKG" 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version" 2>/dev/null || echo "$theirs_here")
   if [ "$theirs_here" != "$theirs_origin" ]; then
-    die "an unpushed commit bumps $P_LABEL ($theirs_origin → $theirs_here). Pushing now would release it as well. Release it on its own first, or undo that bump."
+    die "an unpushed commit bumps $P_LABEL ($theirs_origin → $theirs_here). Merging this release would release it as well. Release it on its own first, or undo that bump."
   fi
 done
-ok "no other product would be released by this push"
+ok "no other product would be released by this merge"
 
 AHEAD=$(git rev-list --count origin/main..HEAD)
 [ "$AHEAD" = 0 ] || warn "$AHEAD unpushed commit(s) will go out with this release"
@@ -168,8 +172,9 @@ say ""
 say "${BOLD}This will${OFF}"
 say "  bump    $MY_PKG to $NEW"
 say "  commit  chore($PRODUCT): release $NEW"
-say "  push    origin main"
-say "  then    $MY_WORKFLOW tags $TAG, builds and publishes"
+say "  branch  $RELEASE_BRANCH"
+say "  open    a pull request into main"
+say "  then    ${BOLD}you merge it${OFF}, and $MY_WORKFLOW tags $TAG, builds and publishes"
 say ""
 
 if [ "$DRY_RUN" = 1 ]; then
@@ -186,6 +191,7 @@ fi
 
 # ── Go ──────────────────────────────────────────────────────────────────────
 say ""
+git checkout --quiet -b "$RELEASE_BRANCH"
 ( cd "$MY_DIR" && npm version "$NEW" --no-git-tag-version >/dev/null )
 ok "$MY_PKG is at $NEW"
 
@@ -199,9 +205,41 @@ git add -- "${TO_ADD[@]}"
 git commit --quiet -m "chore($PRODUCT): release $NEW"
 ok "committed"
 
-git push --quiet origin main
-ok "pushed"
+# The bump goes to main through a pull request, like everything else.
+#
+# It used to be pushed straight to main, which worked only because the owner's
+# admin role waived the branch rules — every release printed "Bypassed rule
+# violations: changes must be made through a pull request / 4 of 4 required
+# status checks are expected". Waiving the second line is the part that mattered:
+# a release could go out on a tree whose tests had never run on CI.
+#
+# A push cannot satisfy required status checks — at push time they have not run
+# on that commit — so the only way to have them bind is to stop pushing. The
+# release trigger does not care how the version file arrives on main: the
+# workflow watches that path, and the gate compares the version to the tags.
+# A merge commit changes it exactly like a direct push did.
+git push --quiet -u origin "HEAD:$RELEASE_BRANCH"
+ok "pushed $RELEASE_BRANCH"
+
+PR_URL=$(gh pr create --base main --head "$RELEASE_BRANCH" \
+  --title "chore($PRODUCT): release $NEW" \
+  --body "Bump $MY_PKG to \`$NEW\`.
+
+Merging this lands the new version on \`main\`, which is what \`$MY_WORKFLOW\`
+watches: it tags \`$TAG\`, builds and publishes. Nothing goes out before the merge.
+
+The changelog entry is in \`$MY_CHANGELOG\`.")
+ok "opened $PR_URL"
+
+# Back to main, with the release commit left on its branch: a working copy
+# sitting on a release branch is how the next release starts from the wrong base.
+git checkout --quiet main
 
 say ""
-say "${GREEN}${BOLD}$MY_LABEL $NEW is on its way.${OFF}"
-say "  gh run watch  ${DIM}# or:${OFF}  gh run list --workflow=$MY_WORKFLOW --limit 1"
+say "${GREEN}${BOLD}$MY_LABEL $NEW is ready to go out.${OFF}"
+say "  ${BOLD}Merge the pull request once its checks are green — that publishes it.${OFF}"
+say "  $PR_URL"
+say "  ${DIM}Checks:${OFF} gh pr checks --watch"
+say ""
+say "  ${DIM}Nothing is published yet, and nothing is tagged. To call it off:${OFF}"
+say "  ${DIM}gh pr close --delete-branch \$(basename \"$PR_URL\")${OFF}"
