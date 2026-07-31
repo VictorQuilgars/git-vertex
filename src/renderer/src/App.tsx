@@ -1028,6 +1028,77 @@ export default function App() {
     )
   }
 
+  /**
+   * Run something that moves HEAD, stashing the working tree around it when the
+   * Auto-stash setting is on. Every way of arriving on a branch goes through
+   * here — plain checkout, creating a tracking branch, creating a branch at a
+   * commit — so none of them can lose local changes the others protect.
+   */
+  const withAutoStash = async (
+    label: string,
+    run: () => Promise<{ success: boolean; error?: string }>,
+  ) => {
+    const settings = await window.gitAPI.settingsGetAll().catch(() => ({} as any))
+    let stashed = false
+    if (settings?.autoStash === 'true') {
+      const changes = await window.gitAPI.getWorkingChanges()
+      const hasChanges = (changes.staged?.length ?? 0) + (changes.unstaged?.length ?? 0) + (changes.untracked?.length ?? 0) > 0
+      if (hasChanges) {
+        const sr = await window.gitAPI.createStash('Auto-stash before checkout')
+        if (sr.success) { stashed = true; showToast(t('toast.autoStashed')) }
+      }
+    }
+    const r = await run()
+    if (r.success) {
+      if (stashed) {
+        const pr = await window.gitAPI.popStash(0)
+        if (pr.success) showToast(`${t('toast.checkoutOk', label)}${t('toast.stashRestoredSuffix')}`)
+        else showToast(`${t('toast.checkoutOk', label)}${t('toast.stashRestoreFailSuffix')}`, 'err')
+      } else {
+        showToast(t('toast.checkoutOk', label))
+      }
+      await loadRepoData()
+    } else {
+      if (stashed) await window.gitAPI.popStash(0)
+      showToast(t('toast.checkoutErr', r.error ?? ''), 'err')
+    }
+    return r
+  }
+
+  /**
+   * "Take me here" — the double-click on a branch row, a ref chip or a commit.
+   * It always lands on a LOCAL BRANCH: git decides which case applies
+   * (getCheckoutPlan) and this only carries it out. Detaching HEAD is reserved
+   * for the context menu's explicit "check out this commit".
+   */
+  const handleGoTo = async (ref: string) => {
+    const plan = await (window.gitAPI as any).getCheckoutPlan(ref)
+    if (!plan || plan.error) { showToast(t('toast.checkoutErr', plan?.error ?? ''), 'err'); return }
+    switch (plan.action) {
+      case 'already-here':
+        showToast(t('toast.alreadyOnBranch', plan.branch))
+        return
+      case 'checkout-local':
+        await handleCheckout(plan.branch)
+        return
+      case 'create-tracking':
+        // A remote branch with no local counterpart: the local branch that
+        // tracks it is unambiguous, so it is created without asking.
+        await withAutoStash(plan.branch, () =>
+          (window.gitAPI as any).checkoutTracking(plan.remoteRef, plan.branch))
+        return
+      case 'create-branch': {
+        // Nothing to land on. Ask for a name — deliberately empty: any
+        // suggestion here would be a guess about what this branch is for.
+        const name = await showPrompt(t('prompt.branchHere', plan.shortHash), '')
+        if (!name || !name.trim()) return
+        await withAutoStash(name.trim(), () =>
+          window.gitAPI.createBranchAt(name.trim(), plan.hash, true))
+        return
+      }
+    }
+  }
+
   const handleCheckout = async (name: string) => {
     // Auto-stash: if enabled and there are local changes, stash before checkout and pop after
     const settings = await window.gitAPI.settingsGetAll().catch(() => ({} as any))
@@ -2040,6 +2111,7 @@ export default function App() {
               onSetRepo={handleSetRepo}
               onRemoveRecent={handleRemoveRecent}
               onCheckout={handleCheckout}
+              onGoTo={handleGoTo}
               onCreateBranch={handleCreateBranch}
               onDeleteBranch={handleDeleteBranch}
               onMergeBranch={handleMergeBranch}
@@ -2273,7 +2345,7 @@ export default function App() {
               onReset={handleReset}
               onCreateTag={handleCreateTagAtCommit}
               onCreateBranchAt={handleCreateBranchAt}
-              onCheckoutBranch={handleCheckout}
+              onCheckoutBranch={handleGoTo}
               onMergeBranch={handleMergeBranch}
               onRebaseCurrentOnto={handleRebaseOnto}
               prIntentFor={prIntentFor}
