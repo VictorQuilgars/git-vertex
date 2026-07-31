@@ -16,8 +16,19 @@ scripts/release.sh <app|ext|cli|mcp> <patch|minor|major|X.Y.Z>
 ## How it works
 
 The version in a product's own `package.json` is the only truth. If no tag
-matches it, that version has not been released yet — so bumping it and pushing
-to main *is* the release. CI notices, creates the tag, builds and publishes.
+matches it, that version has not been released yet — so getting that bump onto
+main is what releases it. CI notices, creates the tag, builds and publishes.
+
+`release.sh` prepares the bump on a branch and opens a **pull request**.
+**Merging it is what publishes.** Nothing is tagged, built or uploaded before
+that, and closing the PR cancels the release with nothing to undo.
+
+It goes through a PR for one reason: a direct push cannot satisfy the required
+status checks, because at push time they have not run on that commit. Releases
+used to push to main and the branch rules were waived — every one of them
+printed `Bypassed rule violations: … 4 of 4 required status checks are
+expected`. A release could therefore go out on a tree CI had never seen. Now the
+checks bind, on the maintainer as on anyone else.
 
 There is no tag to type. There is no second mechanism for the desktop app, and
 no local publish script for the extension; both existed, and both were removed
@@ -55,6 +66,23 @@ current one, the tag is free locally *and* on the remote, no unpushed commit
 would release another product as a side effect, and the product's own tests
 pass. The CI gate repeats those checks — being told on your laptop is cheaper,
 because an npm version can never be replaced once published.
+
+## After you run it
+
+You are back on `main`, the bump sits on `release/<product>-<version>`, and a
+pull request is open. Its checks run like any other PR:
+
+```bash
+gh pr checks --watch     # then merge it — that is what publishes
+```
+
+Merging lands the new version on `main`, which is what that product's workflow
+watches. Closing the PR instead cancels the release: nothing was tagged, built
+or uploaded, and there is nothing to undo.
+
+Approving it is not required of the repository owner — the `review required`
+ruleset does not apply to them — but the status checks are, and they are the
+reason releases stopped pushing straight to main.
 
 ## What CI does
 
