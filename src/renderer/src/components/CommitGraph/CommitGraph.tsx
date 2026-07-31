@@ -372,6 +372,12 @@ function RefChip({ pref, laneColor, compact, onDoubleClick, onDragStartBranch, o
         onDragStartBranch?.(pref.branchName!)
       }}
       onDragEnd={() => onDragEndBranch?.()}
+      // A chip is about the BRANCH, so a click on it must not reach the commit
+      // row underneath. Without this, double-clicking a chip fired the row's
+      // onClick first and the detail panel flashed open on the way to the
+      // checkout — the browser sends click, click, dblclick, and only the last
+      // one was being stopped.
+      onClick={e => e.stopPropagation()}
       onDoubleClick={e => {
         e.stopPropagation()
         if (pref.cls !== 'rc-tag' && onDoubleClick && pref.branchName) {
