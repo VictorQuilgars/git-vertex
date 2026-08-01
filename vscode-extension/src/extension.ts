@@ -142,7 +142,7 @@ async function toggleSequenceEditor(): Promise<void> {
 // ── Rebase detection → auto-open the rebase tab ────────────────
 // Watches .git/rebase-merge + .git/rebase-apply so a rebase started ANYWHERE
 // (Git Vertex UI, integrated terminal, external CLI) pops the rebase tab,
-// another tool-style. Opens once per rebase; closing the tab doesn't re-open it.
+// Opens once per rebase; closing the tab doesn't re-open it.
 let rebaseWatcher: vscode.FileSystemWatcher | null = null
 let rebaseDebounce: NodeJS.Timeout | null = null
 let rebaseTabAutoOpened = false
@@ -453,7 +453,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // bottom panel; showQuickPick isn't a real context menu either. The native
   // one is drawn by VS Code itself, appears at the click position, and floats
   // above the whole window regardless of panel/tab size — exactly like
-  // another tool's own commit menu. Each command receives the row's
+  // a native commit menu. Each command receives the row's
   // data-vscode-context object (set in CommitGraph.tsx) as its argument and
   // just relays the chosen action + hash to the graph webview, which handles
   // it with the exact same functions the old HTML menu called.

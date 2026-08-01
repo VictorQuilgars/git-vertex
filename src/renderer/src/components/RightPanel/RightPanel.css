@@ -1066,7 +1066,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
-   another tool-style commit panel (StagingView, .st2)
+   Commit panel (StagingView, .st2)
    ════════════════════════════════════════════════════════════════ */
 .st2 {
   display: flex;

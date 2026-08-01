@@ -9,7 +9,7 @@
    available height is the viewport, so 100vh works, but force overflow hidden. */
 .gv-app.app { overflow: hidden; }
 
-/* ── Activity rail (another tool-style) ─────────────────────────── */
+/* ── Activity rail ───────────────────────────────────────────── */
 .gv-rail {
   display: flex;
   flex-direction: column;
@@ -64,7 +64,7 @@
 }
 .gv-sidepanel .sidebar { border-right: none; }
 
-/* ── Compact another tool-style toolbar ───────────────────────────── */
+/* ── Compact toolbar ───────────────────────────── */
 .gvt {
   display: flex;
   align-items: center;
@@ -121,7 +121,7 @@
 }
 .gvt-tbtn:hover:not(:disabled) { background: #21262d; color: #e6edf3; border-color: #30363d; }
 .gvt-tbtn:disabled { opacity: 0.4; cursor: default; }
-/* ahead/behind count badge on Pull / Push (another tool-style) */
+/* ahead/behind count badge on Pull / Push */
 .gvt-tbtn-count {
   min-width: 15px; height: 15px; line-height: 15px; padding: 0 4px;
   border-radius: 8px; background: #1f6feb; color: #fff;
@@ -213,7 +213,7 @@
   .gvt-branch-name { max-width: 70px; }
 }
 
-/* ── In-progress operation banner (another tool-style) ─────────────── */
+/* ── In-progress operation banner ────────────────────────────── */
 .gv-conflict-banner {
   display: flex; align-items: center; gap: 8px;
   flex-shrink: 0; height: 30px; padding: 0 10px;

@@ -5,7 +5,7 @@ import { DEFAULT_LINE_FORMAT, formatAnnotation, formatRelative } from './format'
 import { HEATMAP_BUCKETS, bucketColor, heatmapBucket, heatmapIcon } from './heatmap'
 import { getGitDir, getRepoRootForFile } from '../gitInfo'
 
-// End-of-line blame annotations, another tool-style: the current line always (when
+// End-of-line blame annotations: the current line always (when
 // enabled), the whole file on demand. Blame is computed per document *version*
 // and cached, so moving the cursor never re-runs git — only editing does.
 

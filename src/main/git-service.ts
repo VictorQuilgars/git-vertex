@@ -1306,7 +1306,7 @@ export class GitService {
   }
 
   // Push local history up to (and including) `hash` to the upstream remote
-  // branch, without pushing any later local commits — another tool' "Push to
+  // branch, without pushing any later local commits — the "push up to this
   // Commit". Requires an upstream to know which remote/branch to target.
   async pushToCommit(hash: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(hash, 'commit'); if (bad) return { success: false, error: bad }

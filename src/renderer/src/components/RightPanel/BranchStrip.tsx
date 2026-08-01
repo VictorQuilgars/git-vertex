@@ -2,7 +2,7 @@
 //
 // v1.21.0 gathered every branch action behind one "⋮", but left that ⋮ on the
 // toolbar and in the sidebar — i.e. out of view exactly while you are working
-// in the staging panel. another tool keeps the branch, its sync state and its
+// in the staging panel. The tools that do this keep the branch, its sync state and its
 // actions pinned above the file list; this is that strip.
 //
 // It owns no logic: the menu comes from buildBranchMenu, the actions come from
@@ -93,7 +93,7 @@ export default function BranchStrip(p: BranchStripProps) {
       </div>
 
       {/* Associate Issue as a visible call to action, not a menu entry —
-          another tool shows it in the panel and that is what makes it get used. */}
+          Showing it in the panel is what makes it get used. */}
       {p.onAssociateIssue && (
         <button
           className={`bstrip-issue${p.issue ? ' bstrip-issue--linked' : ''}`}

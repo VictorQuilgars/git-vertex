@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import './Launchpad.css'
 import { useLang } from '../../i18n/LanguageContext'
 
-// Full-page, user-centric Launchpad (another tool-style): one GitHub search over
+// Full-page, user-centric Launchpad: one GitHub search over
 // ALL of the user's repos — your open PRs and issues — plus a WIPs tab that
-// scans local repos for uncommitted work. ALL mixes WIPs + items, like another tool.
+// scans local repos for uncommitted work. ALL mixes WIPs + items.
 
 interface Label { name: string; color: string }
 interface Row {
@@ -63,7 +63,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
   const [error, setError] = useState<{ msg: string; retryIn?: number } | null>(null)
   const [manageOpen, setManageOpen] = useState(false)
   const [menuKey, setMenuKey] = useState<string | null>(null)
-  // Local, free pin/snooze state (another tool gates these behind a paid license).
+  // Local, free pin/snooze state (the paid tools gate these behind a licence).
   const [pinned, setPinned] = useState<Set<string>>(() => loadSet('lp-pinned'))
   const [snoozed, setSnoozed] = useState<Set<string>>(() => loadSet('lp-snoozed'))
   const togglePin = (k: string) => setPinned(prev => {

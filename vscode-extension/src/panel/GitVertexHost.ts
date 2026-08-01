@@ -754,7 +754,7 @@ export function setEditorRepo(repoPath: string): void {
 
 // ── Rebase tab (singleton WebviewPanel) ───────────────────────────
 // Opens the "rebase in progress" tool — auto-opened by the extension when a
-// rebase is detected (started from the UI, the CLI, anywhere), another tool-style.
+// rebase is detected (started from the UI, the CLI, anywhere).
 const REBASE_VIEW_TYPE = 'gitVertex.rebaseTab'
 let rebasePanel: vscode.WebviewPanel | undefined
 let rebaseHost: GitVertexHost | undefined
@@ -931,7 +931,7 @@ export function openGitVertexWhatsNewTab(
 }
 
 // ── Compare tabs (one WebviewPanel per ref pair) ──────────────────
-// another tool "Search & Compare"-style: ahead/behind commit lists + full diff
+// A "search & compare" view: ahead/behind commit lists + full diff
 // between two refs. Refs can be changed from inside the tab.
 const COMPARE_VIEW_TYPE = 'gitVertex.compare'
 const comparePanels = new Map<string, vscode.WebviewPanel>()
@@ -971,7 +971,7 @@ export function openGitVertexCompareTab(
 }
 
 // ── File history tabs (one WebviewPanel per file) ─────────────────
-// another tool-style visual file history: commit timeline + per-commit diff/blame.
+// Visual file history: commit timeline + per-commit diff/blame.
 const HISTORY_VIEW_TYPE = 'gitVertex.fileHistory'
 const historyPanels = new Map<string, vscode.WebviewPanel>()
 
