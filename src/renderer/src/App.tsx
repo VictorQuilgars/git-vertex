@@ -262,10 +262,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [searchMatches, setSearchMatches] = useState(-1)
   const [showAllBranches, setShowAllBranches] = useState<boolean>(true)
-  // Solo/mute branch filtering for the graph. Solo shows only one branch;
-  // muted branches are excluded from the --all view.
+  // Solo/hide branch filtering for the graph. Solo shows only one branch;
+  // hidden branches are excluded from the --all view.
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
-  const [mutedBranches, setMutedBranches] = useState<Set<string>>(new Set())
+  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set())
   // Favorites / graph pins / linked issues, per repo (v1.21.0).
   const branchMeta = useBranchMeta(repoPath)
   const [issueModalBranch, setIssueModalBranch] = useState<string | null>(null)
@@ -439,15 +439,15 @@ export default function App() {
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
-      // Branches first so we can compute solo/mute refs for the log query.
+      // Branches first so we can compute solo/hide refs for the log query.
       const branchRes = await window.gitAPI.getBranches()
       const refForGit = (n: string) => n.replace(/^remotes\//, '')
       let logOpts: { maxCount: number; all?: boolean; refs?: string[] } = { maxCount: 500, all: showAllBranches }
       if (soloBranch) {
         logOpts = { maxCount: 500, refs: [refForGit(soloBranch)] }
-      } else if (mutedBranches.size > 0 && branchRes.branches) {
+      } else if (hiddenBranches.size > 0 && branchRes.branches) {
         const visible = branchRes.branches
-          .filter((b: BranchInfo) => !mutedBranches.has(b.name))
+          .filter((b: BranchInfo) => !hiddenBranches.has(b.name))
           .map((b: BranchInfo) => refForGit(b.name))
         logOpts = { maxCount: 500, refs: visible.length ? visible : ['HEAD'] }
       }
@@ -479,7 +479,7 @@ export default function App() {
       if (!silent) setLoading(false)
       isLoadingRef.current = false
     }
-  }, [repoPath, showAllBranches, soloBranch, mutedBranches, loadStashes, loadTags])
+  }, [repoPath, showAllBranches, soloBranch, hiddenBranches, loadStashes, loadTags])
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
 
@@ -1512,7 +1512,7 @@ export default function App() {
       {
         currentBranch,
         soloed: soloBranch === ref,
-        muted: mutedBranches.has(ref),
+        hidden: hiddenBranches.has(ref),
         favorite: branchMeta.isFavorite(ref),
         issue: branchMeta.issueFor(ref),
       },
@@ -1529,7 +1529,7 @@ export default function App() {
         onAssociateIssue: () => setIssueModalBranch(ref),
         onToggleFavorite: () => branchMeta.toggleFavorite(ref),
         onToggleSolo: () => setSoloBranch(prev => prev === ref ? null : ref),
-        onToggleMute: () => setMutedBranches(prev => {
+        onToggleHide: () => setHiddenBranches(prev => {
           const next = new Set(prev)
           next.has(ref) ? next.delete(ref) : next.add(ref)
           return next
@@ -1545,7 +1545,7 @@ export default function App() {
       extras
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branches, currentBranch, soloBranch, mutedBranches, branchMeta, prIntentFor, githubOwnerRepo, t])
+  }, [branches, currentBranch, soloBranch, hiddenBranches, branchMeta, prIntentFor, githubOwnerRepo, t])
 
   // Branch strip above the staging file list (v1.22.0) — same actions as the
   // toolbar and the ⋮ menu, just brought next to the files they apply to.
@@ -1566,7 +1566,7 @@ export default function App() {
     },
     menuState: {
       soloed: soloBranch === currentBranch,
-      muted: mutedBranches.has(currentBranch),
+      hidden: hiddenBranches.has(currentBranch),
       favorite: branchMeta.isFavorite(currentBranch),
     },
     menuActions: {
@@ -2138,10 +2138,10 @@ export default function App() {
               }}
               onCompareBranch={(name) => setCompareBranchModal(name)}
               soloBranch={soloBranch}
-              mutedBranches={mutedBranches}
+              hiddenBranches={hiddenBranches}
               onToggleSolo={(name) => { setSoloBranch(prev => prev === name ? null : name) }}
-              onToggleMute={(name) => {
-                setMutedBranches(prev => {
+              onToggleHide={(name) => {
+                setHiddenBranches(prev => {
                   const next = new Set(prev)
                   next.has(name) ? next.delete(name) : next.add(name)
                   return next

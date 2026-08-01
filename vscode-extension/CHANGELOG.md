@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **The panel's context menu speaks the same language as the desktop app.** Its wording comes from the extension manifest, the desktop's from the shared string catalogue, and nothing kept the two in step — six actions had drifted, including the one that detaches HEAD (*Switch to Commit* here, *Check out this commit* there) and the three reset modes. A test now compares both catalogues.
+- Actions that open an input carry `…`; the ones that act immediately do not.
+
+### Fixed
+- **Two commands were both called "Open in Git Vertex"**, and the second was never filtered out of the command palette — so the palette listed the same name twice, for two entries that did the same thing when invoked without a file. The file-scoped one is now a context-menu action only, and a test fails on any two commands sharing a title.
+- **A command title leaked an implementation detail**: *Toggle Interactive Rebase Editor (sequence.editor + core.editor)*. The parenthetical named the two git config keys the command writes, which tells a user nothing about what will happen.
+
 ## 1.25.0
 
 ### Added
