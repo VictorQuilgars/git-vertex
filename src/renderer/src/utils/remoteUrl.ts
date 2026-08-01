@@ -47,6 +47,8 @@ const SHAPES: Record<HostKind, {
   file: (ref: string, p: string) => string
   /** Line anchor for a 1-based inclusive range — the part everyone spells differently. */
   lines: (from: number, to: number) => string
+  /** The repository's branch list page. */
+  branches: () => string
   compare: (a: string, b: string) => string
   pullRequest: (n: number) => string
   issue: (n: number) => string
@@ -56,6 +58,7 @@ const SHAPES: Record<HostKind, {
     branch: b => `/tree/${b}`,
     file: (ref, p) => `/blob/${ref}/${p}`,
     lines: (from, to) => from === to ? `#L${from}` : `#L${from}-L${to}`,
+    branches: () => '/branches',
     compare: (a, b) => `/compare/${a}...${b}`,
     pullRequest: n => `/pull/${n}`,
     issue: n => `/issues/${n}`,
@@ -65,6 +68,7 @@ const SHAPES: Record<HostKind, {
     branch: b => `/-/tree/${b}`,
     file: (ref, p) => `/-/blob/${ref}/${p}`,
     lines: (from, to) => from === to ? `#L${from}` : `#L${from}-${to}`,
+    branches: () => '/-/branches',
     compare: (a, b) => `/-/compare/${a}...${b}`,
     pullRequest: n => `/-/merge_requests/${n}`,
     issue: n => `/-/issues/${n}`,
@@ -74,6 +78,7 @@ const SHAPES: Record<HostKind, {
     branch: b => `/src/${b}`,
     file: (ref, p) => `/src/${ref}/${p}`,
     lines: (from, to) => from === to ? `#lines-${from}` : `#lines-${from}:${to}`,
+    branches: () => '/branches',
     compare: (a, b) => `/branches/compare/${b}%0D${a}`,
     pullRequest: n => `/pull-requests/${n}`,
     issue: n => `/issues/${n}`,
@@ -196,6 +201,9 @@ export const remoteUrl = {
 
   branch: (r: RemoteRepo, name: string): string =>
     r.base + SHAPES[r.kind].branch(encodeRef(shortBranch(name))),
+
+  /** The branch list, for "show me everything that exists over there". */
+  branches: (r: RemoteRepo): string => r.base + SHAPES[r.kind].branches(),
 
   /**
    * A file at a ref, optionally with a line range — the "share a link to these

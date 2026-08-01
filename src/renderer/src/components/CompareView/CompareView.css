@@ -140,3 +140,17 @@
   justify-content: center;
   color: #484f58;
 }
+
+/* "Copy link to this comparison" — a quiet action in the header, next to the
+   ahead/behind counts it describes. */
+.cv-copy-link {
+  margin-left: auto;
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cv-copy-link:hover { background: #30363d; border-color: #8b949e; }

@@ -53,6 +53,8 @@ export interface BranchMenuActions {
   /** Opens the PR composer on `target.pr`. Needs that intent to show a row. */
   onCreatePR?: () => void
   onOpenOnRemote?: () => void
+  /** The remote's branch list page — repo-level, not about the branch clicked. */
+  onOpenBranchesOnRemote?: () => void
   onAssociateIssue?: () => void
   onToggleFavorite?: () => void
   onToggleSolo?: () => void
@@ -190,6 +192,11 @@ export function buildBranchMenu(
   // ── Look at it: on the forge, on the clipboard, against something else ──
   const inspect: MenuItemDef[] = []
   if (actions.onOpenOnRemote) inspect.push({ label: t('sb.branch.openOnRemote'), action: actions.onOpenOnRemote })
+  // One level up from the branch: everything the remote has. Sits here because
+  // it is the only place in the UI already talking about "over there".
+  if (actions.onOpenBranchesOnRemote) {
+    inspect.push({ label: t('sb.branch.openBranchesOnRemote'), action: actions.onOpenBranchesOnRemote })
+  }
   inspect.push(...(extras.openRemote ?? []))
   if (actions.onCopyName) inspect.push({ label: t('sb.copyName'), action: actions.onCopyName })
   // Every other "copy the identity of this thing" in one place — the branch's

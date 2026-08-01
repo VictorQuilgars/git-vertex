@@ -443,6 +443,22 @@ function VertexApp() {
     showToast(t('toast.linkCopied'))
   }, [showToast, remoteRepo])
 
+  const handleOpenFileOnRemote = useCallback((hash: string, filePath: string) => {
+    if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
+    window.gitAPI.openExternal(remoteUrl.file(remoteRepo, hash, filePath))
+  }, [showToast, remoteRepo])
+
+  const handleCopyFileLink = useCallback((hash: string, filePath: string) => {
+    if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
+    navigator.clipboard.writeText(remoteUrl.file(remoteRepo, hash, filePath))
+    showToast(t('toast.linkCopied'))
+  }, [showToast, remoteRepo])
+
+  const handleOpenBranchesOnRemote = useCallback(() => {
+    if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
+    window.gitAPI.openExternal(remoteUrl.branches(remoteRepo))
+  }, [showToast, remoteRepo])
+
   const handleCopyBranchLink = useCallback((name: string) => {
     if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
     navigator.clipboard.writeText(remoteUrl.branch(remoteRepo, name))
@@ -739,6 +755,7 @@ function VertexApp() {
       onPush: handlePush,
       onSetUpstream: () => handleSetUpstream(currentBranch),
       onOpenOnRemote: () => handleOpenBranchOnRemote(currentBranch),
+      onOpenBranchesOnRemote: handleOpenBranchesOnRemote,
       onAssociateIssue: () => setIssueModalBranch(currentBranch),
       onToggleFavorite: () => branchMeta.toggleFavorite(currentBranch),
       onToggleSolo: () => handleToggleSolo(currentBranch),
@@ -976,6 +993,8 @@ function VertexApp() {
                 onOpenFileDiff={handleOpenFileDiff}
                 onOpenStagingEditor={(f) => window.gitAPI.openStagingEditor(f)}
                 onRewordMessage={applyReword}
+                onOpenFileOnRemote={handleOpenFileOnRemote}
+                onCopyFileLink={handleCopyFileLink}
                 branchStrip={branchStripProps}
               />
             </div>
