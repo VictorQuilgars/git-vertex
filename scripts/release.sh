@@ -250,22 +250,51 @@ ok "$([ "$N" = 1 ] && echo "${SEL_TAG[0]} is free" || echo "all $N tags are free
 # bumps — so a pair whose second changelog is empty would publish the first
 # product and leave the other's gate red, with the first already on npm where a
 # version cannot be replaced. Better to see the whole list and write it once.
+# `## Unreleased` is accepted in place of `## <version>`, and promoted to the
+# real number just before the commit (see promote_unreleased below).
+#
+# Why: a lot lands its notes long before anyone knows which number it will ship
+# under — a numbered heading has to be guessed, and guessing is what produced
+# four numbering slips already. The script is the only place that knows the
+# version, so it is the right place to write it.
+#
+# The CI gate is untouched by this: it runs on main AFTER the merge, where the
+# heading has already been promoted, so it still finds `## <version>` and
+# nothing else. `changelog-section.sh` stays strict on purpose.
+SEL_FROM_UNRELEASED=(); SEL_NOTES_UNRELEASED=()
 NOTE_PATH=(); NOTE_STATE=(); MISSING=0
 for i in $(seq 0 $((N - 1))); do
   NOTE_PATH+=("${SEL_CHANGELOG[$i]}")
-  if bash scripts/changelog-section.sh "${SEL_CHANGELOG[$i]}" "${SEL_NEW[$i]}" >/dev/null 2>&1; then
+  has_version=0; has_unreleased=0
+  bash scripts/changelog-section.sh "${SEL_CHANGELOG[$i]}" "${SEL_NEW[$i]}" >/dev/null 2>&1 && has_version=1
+  bash scripts/changelog-section.sh "${SEL_CHANGELOG[$i]}" "Unreleased"     >/dev/null 2>&1 && has_unreleased=1
+
+  if [ "$has_version" = 1 ] && [ "$has_unreleased" = 1 ]; then
+    # Both would mean two candidate sections and no way to tell which is this
+    # release. Refuse rather than pick one and be silently wrong.
+    NOTE_STATE+=("both '## ${SEL_NEW[$i]}' and '## Unreleased' — merge them into one"); MISSING=1
+  elif [ "$has_version" = 1 ] || [ "$has_unreleased" = 1 ]; then
     NOTE_STATE+=("")
   else
-    NOTE_STATE+=("no '## ${SEL_NEW[$i]}' section"); MISSING=1
+    NOTE_STATE+=("no '## ${SEL_NEW[$i]}' section, and no '## Unreleased' either"); MISSING=1
   fi
+  SEL_FROM_UNRELEASED+=("$has_unreleased")
 
   if [ -n "${SEL_NOTES[$i]}" ]; then
     NOTE_PATH+=("${SEL_NOTES[$i]}")
-    if grep -qE "^[[:space:]]*'${SEL_NEW[$i]//./\\.}':" "${SEL_NOTES[$i]}"; then
+    n_version=0; n_unreleased=0
+    grep -qE "^[[:space:]]*'${SEL_NEW[$i]//./\\.}':" "${SEL_NOTES[$i]}" && n_version=1
+    grep -qE "^[[:space:]]*'Unreleased':"            "${SEL_NOTES[$i]}" && n_unreleased=1
+    if [ "$n_version" = 1 ] && [ "$n_unreleased" = 1 ]; then
+      NOTE_STATE+=("both '${SEL_NEW[$i]}' and 'Unreleased' entries — keep one"); MISSING=1
+    elif [ "$n_version" = 1 ] || [ "$n_unreleased" = 1 ]; then
       NOTE_STATE+=("")
     else
-      NOTE_STATE+=("no '${SEL_NEW[$i]}': entry"); MISSING=1
+      NOTE_STATE+=("no '${SEL_NEW[$i]}': entry, and no 'Unreleased': either"); MISSING=1
     fi
+    SEL_NOTES_UNRELEASED+=("$n_unreleased")
+  else
+    SEL_NOTES_UNRELEASED+=("0")
   fi
 done
 if [ "$MISSING" = 1 ]; then
@@ -360,10 +389,44 @@ git checkout --quiet -b "$RELEASE_BRANCH"
 # npm version rewrites package-lock.json alongside package.json. Everything
 # staged here belongs to the products being released, so the commit cannot
 # start a workflow that was not asked for.
+# promote_unreleased <file> <version>
+#
+# Rewrites the `## Unreleased` heading of a changelog into `## <version>`, and
+# the `'Unreleased':` key of an in-app notes file into `'<version>':` — plus any
+# `Unreleased` left inside that entry's body, which is where the "What's new in
+# …" title lives.
+#
+# awk into a temp file rather than `sed -i`: BSD sed takes an argument after
+# -i and GNU sed does not, and this script runs on the laptop and in nobody
+# else's shell. Same reason changelog-section.sh sticks to POSIX awk.
+promote_unreleased() {
+  local file="$1" version="$2" tmp
+  tmp="$file.release-tmp"
+  awk -v ver="$version" '
+    /^## Unreleased[[:space:]]*$/ { print "## " ver; next }
+    # The key line usually carries the "What'\''s new in …" title too, so the
+    # whole line is rewritten, not just the key.
+    /^[[:space:]]*.Unreleased.:/  { gsub(/Unreleased/, ver); inside = 1; print; next }
+    # A new version key ends the entry we are inside.
+    inside && /^[[:space:]]*.[0-9]+\.[0-9]+\.[0-9]+.:/ { inside = 0 }
+    inside                       { gsub(/Unreleased/, ver) }
+                                 { print }
+  ' "$file" > "$tmp" && mv "$tmp" "$file"
+}
+
 TO_ADD=()
 for i in $(seq 0 $((N - 1))); do
   ( cd "${SEL_DIR[$i]}" && npm version "${SEL_NEW[$i]}" --no-git-tag-version >/dev/null )
   ok "${SEL_PKG[$i]} is at ${SEL_NEW[$i]}"
+
+  if [ "${SEL_FROM_UNRELEASED[$i]}" = 1 ]; then
+    promote_unreleased "${SEL_CHANGELOG[$i]}" "${SEL_NEW[$i]}"
+    ok "${SEL_CHANGELOG[$i]}: '## Unreleased' → '## ${SEL_NEW[$i]}'"
+  fi
+  if [ -n "${SEL_NOTES[$i]}" ] && [ "${SEL_NOTES_UNRELEASED[$i]}" = 1 ]; then
+    promote_unreleased "${SEL_NOTES[$i]}" "${SEL_NEW[$i]}"
+    ok "${SEL_NOTES[$i]}: 'Unreleased' → '${SEL_NEW[$i]}'"
+  fi
   TO_ADD+=("${SEL_PKG[$i]}" "${SEL_CHANGELOG[$i]}")
   [ -f "${SEL_DIR[$i]}/package-lock.json" ] && TO_ADD+=("${SEL_DIR[$i]}/package-lock.json")
   [ -n "${SEL_NOTES[$i]}" ] && TO_ADD+=("${SEL_NOTES[$i]}")
