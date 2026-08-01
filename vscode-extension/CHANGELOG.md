@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **References in commit messages become links — yours, not just `#123`.** Settings › GitHub takes a list of patterns: a prefix (`JIRA-`) and a URL with `<num>` in it. Teams that track work anywhere but GitHub issues were reading their own ticket numbers as plain text.
+- **Add a co-author to a commit**, from the commit options. The panel already wrote a `Signed-off-by` trailer and already read co-authors to show their avatars; this is the half that was missing. The candidates are whoever has committed here recently.
+- **Right-click a file in the staging list** to copy its path or its name. VS Code's own copy-path commands act on the explorer, never on our list.
+- **Step through a file's changes** with *Go to Next Change* / *Go to Previous Change* (`alt+.` / `alt+,`): each stop is a different commit, so a file written in four sittings has four stops rather than one per line.
+- **Clear File Blame Annotations** as its own command, for when you want them gone and cannot remember whether they are on.
 - **Right-click a file in a commit: open it on the remote, or copy its link.** The panel knew the file and the commit it belonged to, and could do nothing with either. The link is built at that commit, so the line numbers it points at are the ones you were looking at.
 - **Copy a link to a comparison**, from the compare tab — and to a pull request or an issue, from the GitHub tab.
 - **Open Branches on Remote** in the branch menu, one level up from *Open Branch on Remote*.

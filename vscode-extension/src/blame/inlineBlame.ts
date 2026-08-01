@@ -178,6 +178,65 @@ export class InlineBlameController implements vscode.Disposable {
       `Git Vertex: line blame ${this.lineOverride ? 'on' : 'off'}`, 2000)
   }
 
+  /**
+   * Turn whole-file annotations OFF, whatever they were. A toggle is the wrong
+   * shape when you just want them gone and cannot remember whether they are on,
+   * so this is a separate command rather than an argument to the toggle.
+   */
+  clearFileBlame(editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor): void {
+    if (!editor) return
+    const key = editor.document.uri.toString()
+    if (!this.fileMode.delete(key)) return   // already off: say nothing, do nothing
+    void this.render(editor)
+    vscode.window.setStatusBarMessage('Git Vertex: file blame cleared', 2000)
+  }
+
+  /**
+   * Jump to the start of the next (or previous) block of lines that share a
+   * commit.
+   *
+   * "Change" means a different commit from the one the cursor sits in, so a
+   * 200-line file written in four sittings has four stops rather than 200. It
+   * works whether or not annotations are drawn: the blame is the same either
+   * way, and requiring them on first would be a second thing to remember.
+   */
+  async goToChange(
+    direction: 'next' | 'previous',
+    editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor,
+  ): Promise<void> {
+    if (!editor) { vscode.window.showWarningMessage('Open a file to step through its changes.'); return }
+    const lines = await this.getBlame(editor.document)
+    if (lines.length === 0) {
+      vscode.window.setStatusBarMessage('Git Vertex: nothing to step through here', 2000)
+      return
+    }
+    // getBlame is 1-based and may be sparse on an edited buffer; index by line.
+    const byLine = new Map(lines.map(l => [l.line, l]))
+    const cursor = editor.selection.active.line + 1
+    const hashAt = (n: number): string | undefined => byLine.get(n)?.hash
+    const current = hashAt(cursor)
+
+    const step = direction === 'next' ? 1 : -1
+    const last = editor.document.lineCount
+    let seen = current
+    for (let n = cursor + step; n >= 1 && n <= last; n += step) {
+      const h = hashAt(n)
+      if (h === undefined || h === seen) continue
+      // Going backwards, landing mid-block is wrong: walk up to its first line
+      // so the two directions are symmetric.
+      let target = n
+      if (direction === 'previous') {
+        while (target - 1 >= 1 && hashAt(target - 1) === h) target--
+      }
+      const pos = new vscode.Position(target - 1, 0)
+      editor.selection = new vscode.Selection(pos, pos)
+      editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenterIfOutsideViewport)
+      return
+    }
+    vscode.window.setStatusBarMessage(
+      `Git Vertex: no ${direction === 'next' ? 'later' : 'earlier'} change in this file`, 2000)
+  }
+
   toggleFileBlame(editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor): void {
     if (!editor) {
       vscode.window.showWarningMessage('Open a file to annotate it with blame.')

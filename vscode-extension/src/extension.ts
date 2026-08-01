@@ -420,6 +420,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.toggleLineBlame', () => blame.toggleLineBlame()),
     // Annotate every line of the active file (with the age heatmap).
     vscode.commands.registerCommand('gitVertex.toggleFileBlame', () => blame.toggleFileBlame()),
+    vscode.commands.registerCommand('gitVertex.clearFileBlame', () => blame.clearFileBlame()),
+    vscode.commands.registerCommand('gitVertex.nextChange', () => blame.goToChange('next')),
+    vscode.commands.registerCommand('gitVertex.previousChange', () => blame.goToChange('previous')),
     vscode.commands.registerCommand('gitVertex.toggleCodeLens', () => codeLens.toggle()),
     // Invoked from the blame hover, never from the palette.
     vscode.commands.registerCommand('gitVertex.blame.copyHash', async (hash?: string) => {
