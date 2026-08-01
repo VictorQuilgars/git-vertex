@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Changed
+- **"What's new" is written for you, not for the repository.** After an update the extension opened `CHANGELOG.md` in a markdown preview — the whole file, every version back to 1.0.0, in *Added / Changed / Fixed* sections aimed at whoever reads the source. It now opens the note for the version you just got, in the same view the desktop app has always used, with **Git Vertex: What's New** in the command palette to re-read it later. Every past version has a note too, so the history is browsable rather than starting from today.
 - **The panel's context menu speaks the same language as the desktop app.** Its wording comes from the extension manifest, the desktop's from the shared string catalogue, and nothing kept the two in step — six actions had drifted, including the one that detaches HEAD (*Switch to Commit* here, *Check out this commit* there) and the three reset modes. A test now compares both catalogues.
 - Actions that open an input carry `…`; the ones that act immediately do not.
 
