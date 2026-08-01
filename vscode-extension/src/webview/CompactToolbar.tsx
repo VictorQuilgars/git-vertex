@@ -1,4 +1,4 @@
-// CompactToolbar.tsx — another tool-style single-row icon toolbar for the panel.
+// CompactToolbar.tsx — single-row icon toolbar for the panel.
 // Logo + repo name + branch selector on the left; compact icon actions on the right.
 import React, { useState, useRef, useEffect } from 'react'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'

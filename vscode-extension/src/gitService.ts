@@ -1113,7 +1113,7 @@ export class GitService {
 
   // Batches one `git log --no-walk` call to attach a relative author date to
   // every commit step (done + todo) — used by the rebase-progress UI to match
-  // another tool' commit-row layout (hash + relative date on the right).
+  // The commit-row layout (hash + relative date on the right).
   private async attachRebaseDates(...stepLists: RebaseStep[][]): Promise<void> {
     const hashes = [...new Set(stepLists.flat().map(s => s.hash).filter(Boolean))]
     if (hashes.length === 0) return
@@ -1786,7 +1786,7 @@ exit 0
   }
 
   // Push local history up to (and including) `hash` to the upstream remote
-  // branch, without pushing any later local commits — another tool' "Push to
+  // branch, without pushing any later local commits — the "push up to this
   // Commit". Requires an upstream to know which remote/branch to target.
   async pushToCommit(hash: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(hash, 'commit'); if (bad) return { success: false, error: bad }

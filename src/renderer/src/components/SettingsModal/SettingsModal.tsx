@@ -6,6 +6,20 @@ import './SettingsModal.css'
 import iconUrl from '../../../../../resources/icon.png'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
 import { useSettings } from '../../contexts/SettingsContext'
+import { parseAutolinks, serializeAutolinks, type Autolink } from '../../utils/autolinks'
+
+/**
+ * Like parseAutolinks, but keeps half-typed rows on screen. The strict parser
+ * drops anything it could not read back, which while you are still typing the
+ * URL means the row you are working in disappears under the cursor.
+ */
+function parseAutolinksLoose(raw: string): Autolink[] {
+  try {
+    const parsed = JSON.parse(raw || '[]')
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((r: any) => ({ prefix: String(r?.prefix ?? ''), url: String(r?.url ?? '') }))
+  } catch { return parseAutolinks(raw) }
+}
 
 type Section = 'git' | 'appearance' | 'graph' | 'github' | 'ai' | 'notifications' | 'externalTools' | 'ssh' | 'about'
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
@@ -152,6 +166,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   // VS Code owns, 'pat' for a token we hold. Null on the desktop, which has
   // only ever had one source and does not report it.
   const [githubSource, setGithubSource] = useState<'vscode' | 'pat' | null>(null)
+  const [autolinksRaw, setAutolinksRaw] = useState('')
   const [githubLoading, setGithubLoading] = useState(false)
 
   // About
@@ -248,6 +263,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
         groq:      s.aiGroqKey ?? s.groqApiKey ?? '',
         openai:    s.aiOpenaiKey ?? '',
       }
+      setAutolinksRaw(s.autolinks ?? '')
       const token = s.githubToken ?? ''
       setGithubToken(token)
       // Embedded, a stored token is no longer the only way to be signed in: a
@@ -353,6 +369,16 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   // button stays in its loading state until then. The VS Code panel asks its
   // own GitHub provider and answers straight away, so a returned object means
   // it is already over, one way or the other.
+  // Autolinks live in the same store as the rest and are written as they are
+  // edited: a Save button on a list you add rows to is one more thing to forget.
+  // Rows that are still half-typed are kept on screen and dropped on read —
+  // serializeAutolinks refuses what parseAutolinks would not read back.
+  const autolinks = parseAutolinksLoose(autolinksRaw)
+  const saveAutolinks = (next: Autolink[]) => {
+    setAutolinksRaw(JSON.stringify(next))
+    void window.gitAPI.settingsSet('autolinks', serializeAutolinks(next))
+  }
+
   const handleGithubLogin = async () => {
     setGithubLoading(true)
     const r = await (window.gitAPI as any).githubStartAuth()
@@ -689,6 +715,41 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     {githubLoading ? t('settings.github.connecting') : t('settings.github.login')}
                   </button>
                 )}
+                {/* Autolinks — nothing here is GitHub-specific, but this is the
+                    section people look in when a reference in a commit message
+                    did not become a link. */}
+                <h2 className="stg-section-title" style={{ marginTop: 24 }}>{t('settings.autolinks.title')}</h2>
+                <p className="stg-desc">{t('settings.autolinks.desc')}</p>
+                <div className="stg-autolinks">
+                  {autolinks.map((link, i) => (
+                    <div key={i} className="stg-autolink-row">
+                      <input
+                        className="stg-input stg-autolink-prefix"
+                        value={link.prefix}
+                        placeholder="JIRA-"
+                        onChange={e => saveAutolinks(autolinks.map((l, j) => j === i ? { ...l, prefix: e.target.value } : l))}
+                      />
+                      <input
+                        className="stg-input stg-autolink-url"
+                        value={link.url}
+                        placeholder="https://jira.example.com/browse/JIRA-<num>"
+                        spellCheck={false}
+                        onChange={e => saveAutolinks(autolinks.map((l, j) => j === i ? { ...l, url: e.target.value } : l))}
+                      />
+                      <button
+                        className="stg-autolink-del"
+                        title={t('settings.autolinks.remove')}
+                        onClick={() => saveAutolinks(autolinks.filter((_, j) => j !== i))}
+                      >×</button>
+                    </div>
+                  ))}
+                  <button className="stg-save" style={{ alignSelf: 'flex-start' }}
+                    onClick={() => saveAutolinks([...autolinks, { prefix: '', url: '' }])}>
+                    {t('settings.autolinks.add')}
+                  </button>
+                </div>
+                <p className="stg-desc" style={{ marginTop: 6 }}>{t('settings.autolinks.hint')}</p>
+
                 {/* Manual Personal Access Token — the fallback, not the way in.
                     The button above signs in through VS Code's own GitHub
                     provider, which usually means confirming a session the user

@@ -1,5 +1,5 @@
 // CompareView — compare two refs (branches/tags/commits) in a standalone
-// editor tab (another tool "Search & Compare"-style). Ref selectors on top, the
+// editor tab, in the "search & compare" shape. Ref selectors on top, the
 // ahead/behind commit lists on the left, the full diff on the right.
 
 import React, { useState, useEffect, useCallback } from 'react'

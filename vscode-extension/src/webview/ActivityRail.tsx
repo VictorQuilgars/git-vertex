@@ -3,10 +3,10 @@ import type { SidebarView } from '../../../src/renderer/src/components/Sidebar/S
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
 
-// another tool-style vertical activity rail. Always visible on the left of the
+// Vertical activity rail. Always visible on the left of the
 // panel; each icon toggles the resizable side-panel for one Sidebar view.
 // The kanban icon at the bottom is a placeholder for a future project-management
-// feature (see docs-private/competitive-analysis.md § Project management).
+// feature (see the competitive analysis in docs-private/).
 
 interface RailItem {
   view: SidebarView

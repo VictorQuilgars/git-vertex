@@ -245,7 +245,7 @@
 }
 
 /* The commit git is actually stuck on (a real conflict, not just paused) —
-   red instead of the neutral "current" blue, same as another tool. */
+   red instead of the neutral "current" blue. */
 .rp-step--conflict {
   background: rgba(248, 81, 73, 0.15);
   border-left: 2px solid #f85149;

@@ -9,6 +9,7 @@ import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import { useSettings } from '../../contexts/SettingsContext'
 import { linkifyIssues } from '../IssueLink/IssueLink'
+import { parseAutolinks } from '../../utils/autolinks'
 import './CommitGraph.css'
 
 const ROW_HEIGHT  = 28
@@ -452,7 +453,7 @@ interface CommitGraphProps {
   onDropCommit?: (hash: string) => void
   onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
   onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => void
-  // Commit-menu actions added for another tool parity (all optional — only
+  // Commit-menu actions added for competitive parity (all optional — only
   // provided actions show, same convention as the branch-chip menu above)
   onRebaseCurrentOntoCommit?: (hash: string) => void
   onPushToCommit?: (hash: string) => void
@@ -496,6 +497,9 @@ export default function CommitGraph({
 }: CommitGraphProps) {
   const { t } = useLang()
   const { getBool, get, set } = useSettings()
+  // Configured reference patterns (Jira, Linear…). Parsed once per render pass
+  // rather than per row: a graph is hundreds of messages.
+  const autolinks = React.useMemo(() => parseAutolinks(get('autolinks', '')), [get])
   const showAvatars = getBool('graphShowAvatars', true)
   const showAuthor = getBool('graphShowAuthor', true)
   const showDate = getBool('graphShowDate', true)
@@ -907,7 +911,7 @@ export default function CommitGraph({
 
   // Branch operations for a local branch, shared by the branch chip and the
   // menu of the commit that is its tip — so both offer the exact same actions
-  // (another tool behaviour: right-clicking a branch name == its tip commit).
+  // (right-clicking a branch name == its tip commit).
   const branchActionItems = useCallback((name: string, isHead: boolean, display: string): MenuItemDef[] => {
     // Same deal as the chip menu: when the host can build the full branch menu,
     // the tip commit leads with all of it rather than the few actions this
@@ -1036,7 +1040,7 @@ export default function CommitGraph({
   }, [nativeContextMenu, onNativeMenuTarget])
 
   // Right-click on a ref chip. A LOCAL branch opens the same menu as its tip
-  // commit (branch actions + commit actions, another tool-style); tags and remote
+  // commit (branch actions + commit actions); tags and remote
   // branches keep their own dedicated menu.
   const openRefMenu = useCallback((e: React.MouseEvent, pref: ProcessedRef, commit: LayoutCommit) => {
     if ((pref.cls === 'rc-local' || pref.cls === 'rc-head') && pref.branchName) {
@@ -1418,7 +1422,7 @@ export default function CommitGraph({
                 {/* Message */}
                 <div className="cg-col-msg">
                   {!isWip && sigBadge(commit.signature, t)}
-                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo)}</span>
+                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
                 </div>
 
                 {/* Author */}

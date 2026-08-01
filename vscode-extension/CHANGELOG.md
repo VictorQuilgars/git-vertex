@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **References in commit messages become links — yours, not just `#123`.** Settings › GitHub takes a list of patterns: a prefix (`JIRA-`) and a URL with `<num>` in it. Teams that track work anywhere but GitHub issues were reading their own ticket numbers as plain text.
+- **Add a co-author to a commit**, from the commit options. The panel already wrote a `Signed-off-by` trailer and already read co-authors to show their avatars; this is the half that was missing. The candidates are whoever has committed here recently.
+- **Right-click a file in the staging list** to copy its path or its name. VS Code's own copy-path commands act on the explorer, never on our list.
+- **Step through a file's changes** with *Go to Next Change* / *Go to Previous Change* (`alt+.` / `alt+,`): each stop is a different commit, so a file written in four sittings has four stops rather than one per line.
+- **Clear File Blame Annotations** as its own command, for when you want them gone and cannot remember whether they are on.
 - **Right-click a file in a commit: open it on the remote, or copy its link.** The panel knew the file and the commit it belonged to, and could do nothing with either. The link is built at that commit, so the line numbers it points at are the ones you were looking at.
 - **Copy a link to a comparison**, from the compare tab — and to a pull request or an issue, from the GitHub tab.
 - **Open Branches on Remote** in the branch menu, one level up from *Open Branch on Remote*.
@@ -174,9 +179,9 @@
 ## 1.13.0
 
 ### Added
-- **Native commit context menu** — the right-click menu on a commit now renders as a real VS Code native menu (`webview/context`), so it's never clipped by the panel's bounds; every label matches another tool's clarity, and it gained the actions another tool has that were missing: reword any commit (not just HEAD), rebase current branch onto commit, push to commit, create/copy patch, create worktree, open commit on remote, compare working tree to here, select for compare / compare with selected. Related actions (interactive rebase, rebase onto commit) are grouped together.
+- **Native commit context menu** — the right-click menu on a commit now renders as a real VS Code native menu (`webview/context`), so it's never clipped by the panel's bounds; every label was rewritten for clarity, and it gained the actions that were missing: reword any commit (not just HEAD), rebase current branch onto commit, push to commit, create/copy patch, create worktree, open commit on remote, compare working tree to here, select for compare / compare with selected. Related actions (interactive rebase, rebase onto commit) are grouped together.
 - **Custom squash/reword message** — choose the final commit message yourself when squashing or rewording during an interactive rebase, instead of git's raw concatenation of the originals.
-- **Interactive rebase & rebase-in-progress as tabs** — the planner and the "Rebase en cours" tracker both open as editor tabs (not modals), matching another tool's Interactive Rebase view: branch/onto chips, step counter, a conflict banner with "Show conflicts", relative commit dates, a conflicted-files section with a filter, and drag/keyboard editing (pick/reword/edit/squash/fixup/drop, Alt+↑↓) on the remaining steps. The actually-conflicted commit is highlighted in red. Every Git Vertex tab now shows the app icon.
+- **Interactive rebase & rebase-in-progress as tabs** — the planner and the "Rebase en cours" tracker both open as editor tabs (not modals), in the shape an interactive-rebase view needs: branch/onto chips, step counter, a conflict banner with "Show conflicts", relative commit dates, a conflicted-files section with a filter, and drag/keyboard editing (pick/reword/edit/squash/fixup/drop, Alt+↑↓) on the remaining steps. The actually-conflicted commit is highlighted in red. Every Git Vertex tab now shows the app icon.
 - **`git-rebase-todo` defaults to Git Vertex for every user** — shipped as an extension-provided default (`workbench.editorAssociations` via `configurationDefaults`), no per-workspace setup needed; the same tab now serves both the pre-launch planner and the paused/conflict tracker for the same file, so there's one tab bound to the real file instead of two disconnected ones.
 - **Conflict resolver bound to the real file** — the 3-way resolver opens on the actual conflicted file (via "Reopen Editor With" or automatically when Git Vertex detects a conflict) instead of a floating panel with no file identity of its own.
 - **Reword/squash message editing for terminal-started rebases** — *Git Vertex: Toggle Interactive Rebase Editor* now also sets `core.editor`, so reword and squash steps during a `git rebase -i` started in a plain terminal open a Git Vertex form for the commit message, not whatever `$EDITOR` happened to be configured.
@@ -188,7 +193,7 @@
 ## 1.12.0
 
 ### Added
-- **Rebase tab (another tool-style)** — a "Rebase en cours" editor tab opens automatically whenever a rebase is detected, even one started from a terminal or an external tool: step timeline (done/current/remaining), conflicted files, Continue / Skip / Abort. Manual open via *Git Vertex: Show Rebase in Progress*; disable auto-open with `gitVertex.autoOpenRebaseTab`.
+- **Rebase tab** — a "Rebase en cours" editor tab opens automatically whenever a rebase is detected, even one started from a terminal or an external tool: step timeline (done/current/remaining), conflicted files, Continue / Skip / Abort. Manual open via *Git Vertex: Show Rebase in Progress*; disable auto-open with `gitVertex.autoOpenRebaseTab`.
 - **Interactive rebase editor** — `git-rebase-todo` files open in a visual planner (reorder by drag, pick/reword/edit/squash/fixup/drop). Enable with *Git Vertex: Toggle Interactive Rebase Editor* (sets `sequence.editor` to `code --wait`); a one-time suggestion appears on the first detected rebase.
 - **3-way conflict resolver tab** — the rich A/B line-picking resolver (with base fallback and manual edit) now opens per conflicted file in its own editor tab; VS Code's native conflict editor remains available.
 - **File History & Blame tab** — commit timeline for a file with per-commit diff or blame view (*Git Vertex: File History & Blame*, also in explorer/editor-tab context menus).
