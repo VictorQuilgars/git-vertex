@@ -126,12 +126,14 @@ function StatusBadge({ status, className }: { status?: string; className?: strin
   return <span className={`st-badge ${className ?? ''}`} style={{ color: m.color }}>{m.label}</span>
 }
 
-function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect, isSelected }: {
+function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect, isSelected, onContextMenu }: {
   node: TreeNode; depth: number
   onAction: (paths: string[]) => void
   actionIcon: string; actionTitle: string
   onSelect?: (path: string) => void
   isSelected?: boolean
+  /** Right-click on a FILE row (folders have nothing to link to). */
+  onContextMenu?: (e: React.MouseEvent, path: string) => void
 }) {
   const [open, setOpen] = React.useState(true)
   const indent = depth * 10
@@ -142,6 +144,7 @@ function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect,
         className={`st-tr st-clickable ${isSelected ? 'st-selected' : ''}`}
         style={{ paddingLeft: indent + 4 }}
         onClick={() => onSelect?.(node.fullPath)}
+        onContextMenu={onContextMenu && (e => onContextMenu(e, node.fullPath))}
       >
         <StatusBadge status={node.status} className="st-tr-badge" />
         <span className="st-tr-name">{node.name}</span>
@@ -362,7 +365,7 @@ function formatPath(path: string): { dir: string; name: string } {
 const MIN_MSG_H = 48
 const MAX_MSG_H = 400
 
-function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast }: {
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast, onOpenFileOnRemote, onCopyFileLink }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
   wipCount?: number
@@ -370,6 +373,13 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   onOpenFileDiff?: (target: CenterDiffTarget) => void
   onAmendSuccess?: () => void
   githubRepo?: IssueRepo | null
+  // A file inside a commit is the one place we know BOTH a path and the exact
+  // ref it existed at, which is what a shareable link needs. Callbacks rather
+  // than the parsed remote: the two hosts already hold it, and threading data
+  // three components deep to rebuild the same string would be the duplication
+  // this lot exists to delete. Omitted ⇒ the menu rows simply do not appear.
+  onOpenFileOnRemote?: (hash: string, filePath: string) => void
+  onCopyFileLink?: (hash: string, filePath: string) => void
   /**
    * Apply a message to a commit that is NOT the tip — a replay of everything
    * after it. The host owns it because it is a rebase: loading state, conflict
@@ -401,6 +411,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   // about the commits behind it.
   const [rewordPlan, setRewordPlan] = useState<RewordPlan | null>(null)
   // AI menu on the "Recompose commit with AI" button
+  const [fileMenu, setFileMenu] = useState<{ x: number; y: number; path: string } | null>(null)
   const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
   const [aiBusy, setAiBusy] = useState(false)
   const [aiExplanation, setAiExplanation] = useState<string | null>(null)
@@ -752,6 +763,23 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           </div>
 
           {/* File list */}
+          {fileMenu && (
+            <ContextMenu
+              x={fileMenu.x} y={fileMenu.y}
+              items={[
+                ...(onOpenFileOnRemote ? [{
+                  label: t('panel.file.openOnRemote'),
+                  action: () => onOpenFileOnRemote(commit.hash, fileMenu.path),
+                }] : []),
+                ...(onCopyFileLink ? [{
+                  label: t('panel.file.copyLink'),
+                  action: () => onCopyFileLink(commit.hash, fileMenu.path),
+                }] : []),
+                { label: t('panel.file.copyPath'), action: () => navigator.clipboard.writeText(fileMenu.path) },
+              ]}
+              onClose={() => setFileMenu(null)}
+            />
+          )}
           {view === 'files' && (
             <div className="rp-file-list">
               {cdTreeMode
@@ -761,6 +789,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                       actionIcon=""
                       actionTitle=""
                       onSelect={p => { setSelectedFile(p); onOpenFileDiff?.({ type: 'commit', commitHash: commit.hash, filePath: p }) }}
+                      onContextMenu={(e, p) => { e.preventDefault(); setFileMenu({ x: e.clientX, y: e.clientY, path: p }) }}
                       isSelected={selectedFile === node.fullPath}
                     />
                   ))
@@ -771,6 +800,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                       <div key={i}
                         className={`rp-file-row ${selectedFile === f.path ? 'active' : ''}`}
                         onClick={() => { setSelectedFile(f.path); onOpenFileDiff?.({ type: 'commit', commitHash: commit.hash, filePath: f.path }) }}
+                        onContextMenu={e => { e.preventDefault(); setFileMenu({ x: e.clientX, y: e.clientY, path: f.path }) }}
                       >
                         <StatusBadge status={s} className="rp-file-badge" />
                         <span className="rp-file-path">
@@ -1819,6 +1849,9 @@ interface RightPanelProps {
   onOpenFileDiff?: (target: CenterDiffTarget) => void
   onOpenStagingEditor?: (file: string) => void
   githubRepo?: IssueRepo | null
+  /** Right-click on a file in a commit: link to it on the remote. */
+  onOpenFileOnRemote?: (hash: string, filePath: string) => void
+  onCopyFileLink?: (hash: string, filePath: string) => void
   /** Apply a message to a commit that is not the tip — see CommitDetail. */
   onRewordMessage?: (hash: string, message: string) => void | Promise<void>
   // Agent-proposed commit (MCP propose_commit): message preloaded into the
@@ -1837,6 +1870,7 @@ interface RightPanelProps {
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
+  onOpenFileOnRemote, onCopyFileLink,
   onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
@@ -1883,6 +1917,8 @@ export default function RightPanel({
           onOpenFileDiff={onOpenFileDiff}
           onAmendSuccess={onCommitSuccess}
           githubRepo={githubRepo}
+          onOpenFileOnRemote={onOpenFileOnRemote}
+          onCopyFileLink={onCopyFileLink}
           onRewordMessage={onRewordMessage}
           showToast={showToast}
         />

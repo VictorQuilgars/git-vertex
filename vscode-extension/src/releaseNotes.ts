@@ -22,6 +22,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Right-click in the editor: **Copy Link to These Lines** gives the URL your reviewer opens with the selection already highlighted. **Open This File on Remote** is the same thing with the other verb.
 - The link points at the **commit that last touched the file**, not at a branch. A link to \`main\` shows something else next week, which is rarely what someone sharing line 40 meant.
 
+### 🔗 …and to a file, a comparison, a request
+- **Right-click a file in a commit** to open it on the remote or copy its link — built at that commit, so the lines it points at are the ones you were looking at.
+- **Copy a link to a comparison** from the compare tab, to a **pull request or issue** from the GitHub tab, and **Open Branches on Remote** from the branch menu.
+
 ### 🔗 And to a branch, a commit, or the repository
 - Git Vertex could open a commit on the remote, and that was the whole of it. The URL was written out by hand in six places with **github.com hardcoded in every one**, so a repository hosted anywhere else produced a link to a page that does not exist.
 - One place builds links now, from the remote itself — so it knows the host. Copying a link to a **branch** or a **commit** works in the panel as it already did on the desktop, and the shapes for GitLab and Bitbucket are declared rather than assumed.

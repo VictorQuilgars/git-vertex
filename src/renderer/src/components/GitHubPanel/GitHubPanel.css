@@ -220,3 +220,18 @@
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* Copy this row's URL. Hidden until the row is hovered so the list stays calm;
+   the whole row already opens the item, this is the quieter half of that. */
+.ghp-copy-link {
+  margin-left: auto;
+  opacity: 0;
+  background: none;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.ghp-item:hover .ghp-copy-link { opacity: 1; }
+.ghp-copy-link:hover { color: #58a6ff; }

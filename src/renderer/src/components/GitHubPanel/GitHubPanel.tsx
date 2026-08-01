@@ -55,6 +55,28 @@ function LabelChip({ label }: { label: Label }) {
   )
 }
 
+/**
+ * Copy the forge's own URL for a row. GitHub hands us `html_url` with every
+ * item, so this copies what the forge said rather than rebuilding it — the
+ * builder is for the cases where nobody handed us one.
+ */
+function CopyLinkButton({ url }: { url: string }) {
+  const { t } = useLang()
+  const [done, setDone] = useState(false)
+  return (
+    <button
+      className="ghp-copy-link"
+      title={t('gh.panel.copyLink')}
+      onClick={e => {
+        e.stopPropagation()
+        navigator.clipboard.writeText(url)
+        setDone(true)
+        setTimeout(() => setDone(false), 1500)
+      }}
+    >{done ? '✓' : '🔗'}</button>
+  )
+}
+
 function PRItem({ pr }: { pr: PR }) {
   const { t } = useLang()
   return (
@@ -64,6 +86,7 @@ function PRItem({ pr }: { pr: PR }) {
         <span className="ghp-number">#{pr.number}</span>
         {pr.draft && <span className="ghp-badge ghp-draft">{t('gh.panel.draft')}</span>}
         <span className="ghp-title">{pr.title}</span>
+        <CopyLinkButton url={pr.url} />
       </div>
       <div className="ghp-item-meta">
         <span className="ghp-refs">
@@ -104,6 +127,7 @@ function IssueItem({ issue }: { issue: Issue }) {
         {issue.repoLabel && <span className="ghp-repo-badge">{issue.repoLabel}</span>}
         <span className="ghp-number">#{issue.number}</span>
         <span className="ghp-title">{issue.title}</span>
+        <CopyLinkButton url={issue.url} />
       </div>
       <div className="ghp-item-meta">
         <span className="ghp-author">@{issue.author}</span>
