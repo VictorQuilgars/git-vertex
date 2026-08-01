@@ -28,6 +28,7 @@ import GitHubPanel from '../../../src/renderer/src/components/GitHubPanel/GitHub
 import AssociateIssueModal from '../../../src/renderer/src/components/IssueLink/AssociateIssueModal'
 import PRModal from '../../../src/renderer/src/components/PRModal/PRModal'
 import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
+import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
 import CommitMsgEditorView from './CommitMsgEditorView'
 import WhatsNew from '../../../src/renderer/src/components/WhatsNew/WhatsNew'
@@ -74,6 +75,9 @@ function VertexApp() {
   // per action (every handler used to call githubDetectRepo on its own), and
   // `defaultBranch` is what prIntentFor needs to know which way a request runs.
   const [githubRepo, setGithubRepo] = useState<{ owner: string; repo: string } | null>(null)
+  // The repository behind the remote, for building links. Distinct from
+  // githubRepo, which gates GitHub API calls and is only ever GitHub.
+  const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
   const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
   // The activity rail is always visible; `activeView` is the section its
@@ -156,6 +160,14 @@ function VertexApp() {
         const gh = await window.gitAPI.githubDetectRepo()
         setGithubRepo(gh?.owner ? { owner: gh.owner, repo: gh.repo } : null)
       } catch { setGithubRepo(null) }
+      // Read the remote itself: it is the only thing that knows the host, and
+      // every link below is built from it rather than from a hardcoded
+      // github.com.
+      try {
+        const rem = await window.gitAPI.getRemotes()
+        const def = await window.gitAPI.getDefaultRemote?.().catch(() => null)
+        setRemoteRepo(repoFromRemotes(rem?.remotes ?? [], def?.remote))
+      } catch { setRemoteRepo(null) }
     } finally {
       isLoadingRef.current = false
       if (!silent) setLoading(false)
@@ -412,21 +424,30 @@ function VertexApp() {
   }, [showToast])
 
   const handleOpenCommitOnRemote = useCallback(async (hash: string) => {
-    const detected = await window.gitAPI.githubDetectRepo()
-    if (!detected?.owner) { showToast(t('ext.app.noGithub'), 'err'); return }
-    window.gitAPI.openExternal(`https://github.com/${detected.owner}/${detected.repo}/commit/${hash}`)
-  }, [showToast])
+    if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
+    window.gitAPI.openExternal(remoteUrl.commit(remoteRepo, hash))
+  }, [showToast, remoteRepo])
 
   // Same trick one level up: /tree/<branch> instead of /commit/<hash>. This
   // existed for commits only until v1.21.0.
   const handleOpenBranchOnRemote = useCallback(async (name: string) => {
-    const detected = await window.gitAPI.githubDetectRepo()
-    if (!detected?.owner) { showToast(t('ext.app.noGithub'), 'err'); return }
-    const short = name.replace(/^remotes\/[^/]+\//, '')
-    window.gitAPI.openExternal(
-      `https://github.com/${detected.owner}/${detected.repo}/tree/${short.split('/').map(encodeURIComponent).join('/')}`
-    )
-  }, [showToast])
+    if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
+    window.gitAPI.openExternal(remoteUrl.branch(remoteRepo, name))
+  }, [showToast, remoteRepo])
+
+  // The copy variants the desktop already had and the panel did not: one place
+  // builds the link now, so offering it on both sides costs two lines.
+  const handleCopyCommitLink = useCallback((hash: string) => {
+    if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
+    navigator.clipboard.writeText(remoteUrl.commit(remoteRepo, hash))
+    showToast(t('toast.linkCopied'))
+  }, [showToast, remoteRepo])
+
+  const handleCopyBranchLink = useCallback((name: string) => {
+    if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
+    navigator.clipboard.writeText(remoteUrl.branch(remoteRepo, name))
+    showToast(t('toast.linkCopied'))
+  }, [showToast, remoteRepo])
 
   // Which pull request a branch row offers — the rules live in prIntent.ts, and
   // both products ask the same function so their menus agree. Null without a
@@ -704,9 +725,8 @@ function VertexApp() {
     onFetch: handleFetch,
     issue: branchMeta.issueFor(currentBranch),
     onAssociateIssue: () => setIssueModalBranch(currentBranch),
-    onOpenIssue: async (n: number) => {
-      const d = await window.gitAPI.githubDetectRepo()
-      if (d?.owner) window.gitAPI.openExternal(`https://github.com/${d.owner}/${d.repo}/issues/${n}`)
+    onOpenIssue: (n: number) => {
+      if (remoteRepo) window.gitAPI.openExternal(remoteUrl.issue(remoteRepo, n))
     },
     pr: currentBranchPR,
     menuState: {
@@ -724,6 +744,7 @@ function VertexApp() {
       onToggleSolo: () => handleToggleSolo(currentBranch),
       onToggleHide: () => handleToggleHide(currentBranch),
       onCopyName: () => navigator.clipboard.writeText(currentBranch),
+      onCopyLink: () => handleCopyBranchLink(currentBranch),
       onRename: () => handleRenameBranch(currentBranch),
       onCreatePR: currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined,
     },
@@ -853,6 +874,7 @@ function VertexApp() {
             issueFor={branchMeta.issueFor}
             onToggleFavorite={branchMeta.toggleFavorite}
             onOpenBranchOnRemote={handleOpenBranchOnRemote}
+            onCopyBranchLink={handleCopyBranchLink}
             onAssociateIssue={setIssueModalBranch}
             prIntentFor={prIntentFor}
             onCreatePR={handleStartPR}

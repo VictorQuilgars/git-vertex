@@ -16,6 +16,18 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🔗 Links to your code, not just to a commit
+- Git Vertex could open a commit on the remote, and that was the whole of it. The URL was written out by hand in six places with **github.com hardcoded in every one**, so a repository hosted anywhere else produced a link to a page that does not exist.
+- One place builds links now, from the remote itself — so it knows the host. Copying a link to a **branch** or a **commit** works in the panel as it already did on the desktop, and the shapes for GitLab and Bitbucket are declared rather than assumed.
+
+### 🔑 GitHub sign-in, three smaller things
+- **Signing out of GitHub from VS Code now reaches the panel.** Your account lives in VS Code's Accounts menu, and signing out there left settings showing an account that was gone.
+- **A revoked token said \`HTTP 401\`** — a bare status code next to the avatar of the account it had just stopped working for. It now reads as what it is, and offers the way back in.
+- **We ask for one permission instead of two.** \`read:user\` was never needed, and VS Code matches accounts by their exact set of permissions — so asking for less makes it likelier we can reuse one you have already approved.
+`,
+
   '1.26.0': `## What's new in 1.26.0
 
 ### 🔑 Sign in to GitHub without minting a token

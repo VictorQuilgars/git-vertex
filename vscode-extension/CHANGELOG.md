@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+- **Copy a link to a branch or a commit, from the panel.** The desktop could; the panel could only *open* a commit on the remote. Both products now build every link from one place, which is also what makes the next one possible.
+
+### Changed
+- **Links are built from your remote, not from github.com.** The URL was written out by hand in six places with the host hardcoded in every one, so a repository on GitLab, Bitbucket, or a self-hosted GitHub produced a link to a page that does not exist. One builder reads the remote and knows the shapes; GitLab's and Bitbucket's are declared from their published forms rather than assumed.
+
 ### Fixed
 - **Signing out of GitHub from VS Code now reaches the panel.** Your account lives in VS Code's Accounts menu, and signing out there left Git Vertex's settings showing an account that was gone — until the page was closed and reopened. It was the last place the panel could still be telling you something untrue.
 - **A revoked token said `HTTP 401`.** A session can be revoked from github.com after we were handed it, and the panel then showed a bare status code next to the avatar and login of the account it had just stopped working for. It now reads as what it is — not signed in — and offers the way back in. A `403` deliberately keeps its status: rate limiting and "you may not do this" are not fixed by signing in again.

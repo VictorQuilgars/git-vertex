@@ -25,6 +25,7 @@ import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
 import InitModal from './components/InitModal/InitModal'
 import PRModal from './components/PRModal/PRModal'
 import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
+import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
 import { canonicalRef, publishedNameFor } from './components/ContextMenu/branchRefs'
 import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu/branchMenu'
 import GitflowModal from './components/GitflowModal/GitflowModal'
@@ -339,6 +340,10 @@ export default function App() {
   const [activeView, setActiveView] = useState<'git' | 'github'>('git')
   const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
   const [githubOwnerRepo, setGithubOwnerRepo] = useState<{ owner: string; repo: string } | null>(null)
+  // The repository behind the remote, for building links. Separate from
+  // githubOwnerRepo on purpose: that one gates GitHub API calls and is only
+  // ever GitHub, while a link can be built for whatever host the remote names.
+  const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
   const [prModalOpen, setPrModalOpen] = useState(false)
   // Which pull request the composer is opening — head, base and whether the
   // head still has to be pushed. Decided by prIntentFor, never by the composer.
@@ -660,13 +665,15 @@ export default function App() {
   // ── Open repo helpers ──────────────────────────────────────
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
-    if (detected?.owner && detected?.repo) {
-      setGithubRepoUrl(`https://github.com/${detected.owner}/${detected.repo}`)
-      setGithubOwnerRepo({ owner: detected.owner, repo: detected.repo })
-    } else {
-      setGithubRepoUrl(null)
-      setGithubOwnerRepo(null)
-    }
+    setGithubOwnerRepo(detected?.owner && detected?.repo
+      ? { owner: detected.owner, repo: detected.repo } : null)
+    // Read the remote itself rather than assuming github.com: this is what
+    // every link below is built from, and the only thing that knows the host.
+    const rem = await window.gitAPI.getRemotes().catch(() => ({ remotes: [] }))
+    const def = await (window.gitAPI as any).getDefaultRemote?.().catch(() => null)
+    const parsed = repoFromRemotes(rem?.remotes ?? [], def?.remote)
+    setRemoteRepo(parsed)
+    setGithubRepoUrl(parsed ? remoteUrl.repo(parsed) : null)
     const d = await (window.gitAPI as any).getDefaultBranch?.()
     setDefaultBranch(d?.branch ?? null)
   }, [])
@@ -1467,8 +1474,8 @@ export default function App() {
   }
 
   const handleOpenCommitOnRemote = (hash: string) => {
-    if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    window.gitAPI.openExternal(`https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/commit/${hash}`)
+    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    window.gitAPI.openExternal(remoteUrl.commit(remoteRepo, hash))
   }
 
   // The pull request the checked-out branch offers — null on the default
@@ -1477,19 +1484,14 @@ export default function App() {
   const currentBranchPR = prIntentFor(currentBranch)
 
   const handleCopyBranchLink = (name: string) => {
-    if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    const short = name.replace(/^remotes\/[^/]+\//, '')
-    navigator.clipboard.writeText(
-      `https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/tree/${short.split('/').map(encodeURIComponent).join('/')}`
-    )
+    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    navigator.clipboard.writeText(remoteUrl.branch(remoteRepo, name))
     showToast(t('toast.linkCopied'))
   }
 
   const handleCopyCommitLink = (hash: string) => {
-    if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    navigator.clipboard.writeText(
-      `https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/commit/${hash}`
-    )
+    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    navigator.clipboard.writeText(remoteUrl.commit(remoteRepo, hash))
     showToast(t('toast.linkCopied'))
   }
 
@@ -1560,9 +1562,7 @@ export default function App() {
     pr: currentBranchPR,
     onAssociateIssue: () => setIssueModalBranch(currentBranch),
     onOpenIssue: (n: number) => {
-      if (githubOwnerRepo) {
-        window.gitAPI.openExternal(`https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/issues/${n}`)
-      }
+      if (remoteRepo) window.gitAPI.openExternal(remoteUrl.issue(remoteRepo, n))
     },
     menuState: {
       soloed: soloBranch === currentBranch,
@@ -1586,11 +1586,8 @@ export default function App() {
   // Same as above one level up: /tree/<branch>. Existed for commits only until
   // v1.21.0, which is why "Open Branch on Remote" was nowhere to be found.
   const handleOpenBranchOnRemote = (name: string) => {
-    if (!githubOwnerRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    const short = name.replace(/^remotes\/[^/]+\//, '')
-    window.gitAPI.openExternal(
-      `https://github.com/${githubOwnerRepo.owner}/${githubOwnerRepo.repo}/tree/${short.split('/').map(encodeURIComponent).join('/')}`
-    )
+    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    window.gitAPI.openExternal(remoteUrl.branch(remoteRepo, name))
   }
 
   // Drag branch A onto a target. `targetBranch` (B) is set when the drop landed
