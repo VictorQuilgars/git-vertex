@@ -37,6 +37,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The release scripts serve all four products, so this test belongs to no
+      # single one of them — but it has to run inside a job that main actually
+      # requires, or it could go red without blocking anything. It needs no
+      # install and takes under a second, so it runs first and fails early.
+      - name: Release script tests
+        run: bash scripts/__tests__/promote-unreleased.test.sh
       - uses: actions/setup-node@v4
         with:
           node-version: 20

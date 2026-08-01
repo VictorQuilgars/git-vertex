@@ -87,14 +87,41 @@ stops before doing any work.
 
 ## Before you run it
 
-Write the changelog entry first. `release.sh` tells you the version it is about
-to release and refuses to go on without it.
+Write the release notes first. `release.sh` refuses to go on without them.
 
-- **Every product**: a `## X.Y.Z` heading with content under it, in that
-  product's changelog.
-- **The desktop app only**: an `'X.Y.Z':` entry in `src/main/release-notes.ts`.
-  That feeds the in-app "What's new" tab shown on first launch after an update —
-  it is not the changelog, and it is the easiest thing in the repo to forget.
+- **Every product**: a heading with content under it, in that product's
+  changelog.
+- **The desktop app only**: an entry in `src/main/release-notes.ts`. That feeds
+  the in-app "What's new" tab shown on first launch after an update — it is not
+  the changelog, and it is the easiest thing in the repo to forget.
+
+**Write them under `Unreleased`, not under a version number.** Notes are written
+when the work lands, and the number is only known when the release goes out —
+often several lots later. `release.sh` accepts either form and **promotes
+`Unreleased` to the real number** in the release commit itself:
+
+```
+## Unreleased          →   ## 1.28.0            (changelog)
+'Unreleased': `## What's new in Unreleased …`
+                       →   '1.28.0': `## What's new in 1.28.0 …`
+```
+
+The number is written by the only thing that knows it. Guessing it in advance is
+what produced four numbering slips already — a reserved number gets consumed by
+whatever ships first.
+
+A numbered heading still works, for a release prepared in one go. What the script
+refuses is **both at once**: an `## Unreleased` *and* a `## 1.28.0` give two
+candidate sections with no way to tell which is this release, so it stops and
+asks you to merge them.
+
+The CI gate is untouched by any of this. It runs on `main` after the merge, where
+the heading has already been promoted, so it still finds `## X.Y.Z` and nothing
+else — `scripts/changelog-section.sh` stays strict on purpose, since it also
+builds the GitHub release body.
+
+Covered by `scripts/__tests__/promote-unreleased.test.sh` (fixtures only — it
+never runs a release and never touches git).
 
 `release.sh` then checks, before touching anything: you are on main and up to
 date, nothing is dirty except that changelog, the new version is ahead of the
