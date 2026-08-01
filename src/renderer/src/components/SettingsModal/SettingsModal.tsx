@@ -327,16 +327,30 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
     return () => { offAuth?.(); offDownloaded?.(); offProgress?.(); offError?.() }
   }, [])
 
+  // Two hosts, two shapes of answer. The desktop starts an OAuth flow and
+  // returns nothing — the result arrives later on onGithubAuthComplete, so the
+  // button stays in its loading state until then. The VS Code panel asks its
+  // own GitHub provider and answers straight away, so a returned object means
+  // it is already over, one way or the other.
   const handleGithubLogin = async () => {
     setGithubLoading(true)
-    await (window.gitAPI as any).githubStartAuth()
+    const r = await (window.gitAPI as any).githubStartAuth()
+    if (!r) return                       // desktop: wait for the callback event
+    setGithubLoading(false)
+    if (r.success) { await fetchGithubUser(); showToast(t('toast.githubConnected')); return }
+    // Cancelling is a choice, not a failure — say nothing.
+    if (r.error === 'cancelled') return
+    showToast(r.error === 'no-provider' ? t('settings.github.noProvider') : t('toast.githubErr', r.error ?? ''), 'err')
   }
 
   const handleGithubDisconnect = async () => {
-    await (window.gitAPI as any).githubDisconnect()
+    const r = await (window.gitAPI as any).githubDisconnect()
     setGithubToken('')
     setGithubUser(null)
-    showToast(t('toast.githubDisconnected'))
+    // Our token is ours to forget; a VS Code session is not. Clearing the field
+    // while the user stays authenticated, with nothing saying why, is worse
+    // than one extra sentence.
+    showToast(r?.stillSignedInWithVsCode ? t('settings.github.stillSignedIn') : t('toast.githubDisconnected'))
   }
 
   const saveGit = async () => {
@@ -636,16 +650,12 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       <span className="stg-gh-login">{githubUser.login}</span>
                       <span className="stg-gh-status">{t('settings.github.connected')}</span>
                     </div>
-                    <button className="stg-gh-disconnect" onClick={embedded ? async () => {
-                      await window.gitAPI.settingsSet('githubToken', '')
-                      setGithubToken(''); setGithubUser(null)
-                      showToast(t('toast.githubDisconnected'))
-                    } : handleGithubDisconnect}>
+                    <button className="stg-gh-disconnect" onClick={handleGithubDisconnect}>
                       {t('settings.github.disconnect')}
                     </button>
                   </div>
                 )}
-                {!githubUser && !embedded && (
+                {!githubUser && (
                   <button className="stg-gh-login-btn" onClick={handleGithubLogin} disabled={githubLoading}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
@@ -653,11 +663,15 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     {githubLoading ? t('settings.github.connecting') : t('settings.github.login')}
                   </button>
                 )}
-                {/* Manual Personal Access Token — the VS Code panel has no OAuth
-                    callback, so it's the only sign-in path there. On desktop,
+                {/* Manual Personal Access Token — the fallback, not the way in.
+                    The button above signs in through VS Code's own GitHub
+                    provider, which usually means confirming a session the user
+                    already has. This stays for hosts that do not bundle that
+                    provider (VSCodium and other OSS builds), and for anyone who
+                    would rather hand over a narrowly scoped token. On desktop,
                     OAuth handles it (prod builds carry the client id). */}
                 {!githubUser && embedded && (
-                  <div className="stg-field">
+                  <div className="stg-field" style={{ marginTop: 16 }}>
                     <label>{t('settings.github.pat')}</label>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input

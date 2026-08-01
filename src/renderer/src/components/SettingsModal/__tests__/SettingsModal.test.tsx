@@ -196,3 +196,93 @@ describe('SettingsModal — git binary', () => {
     expect(screen.queryByRole('button', { name: /apply and check/i })).not.toBeInTheDocument()
   })
 })
+
+describe('SettingsModal — GitHub sign-in', () => {
+  async function openGitHub(embedded: boolean, api: Record<string, any> = {}) {
+    const mock = installMockGitAPI(api)
+    const showToast = jest.fn()
+    renderWithProviders(
+      <SettingsModal embedded={embedded} onClose={() => {}} showToast={showToast} />)
+    await waitFor(() => expect(screen.getByText('Identity & profiles')).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /github/i }))
+    return { mock, showToast }
+  }
+
+  // The point of the lot. The panel used to offer a Personal Access Token and
+  // nothing else, because desktop OAuth needs a gitgui:// deep link that VS Code
+  // has no equivalent for — so everything already shipped behind a token (create
+  // a PR, the PR and issue lists, #123 cards on private repos) was gated behind
+  // "go to github.com and mint one". Sign-in now goes through VS Code's own
+  // GitHub provider.
+  test('embedded offers sign-in, not just a token field', async () => {
+    await openGitHub(true)
+    expect(await screen.findByRole('button', { name: /sign in with github/i })).toBeInTheDocument()
+    // The token stays as the fallback — hosts without the provider need it.
+    expect(screen.getByPlaceholderText('ghp_…')).toBeInTheDocument()
+  })
+
+  // Two hosts answer differently and the button has to read both. The extension
+  // resolves the call itself; the desktop returns nothing and finishes later on
+  // onGithubAuthComplete. Getting this backwards leaves the button spinning
+  // forever on one product or the other.
+  test('embedded resolves the sign-in itself', async () => {
+    const { mock, showToast } = await openGitHub(true, {
+      githubStartAuth: jest.fn().mockResolvedValue({ success: true, login: 'octocat' }),
+      githubGetUser: jest.fn().mockResolvedValue({ user: { login: 'octocat', avatar: 'x' } }),
+    })
+    await userEvent.click(await screen.findByRole('button', { name: /sign in with github/i }))
+
+    expect(mock.githubStartAuth).toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByText('octocat')).toBeInTheDocument())
+    expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/connect/i))
+  })
+
+  test('desktop leaves the button waiting for the OAuth callback', async () => {
+    // The desktop handler returns undefined: the result arrives on an event.
+    const { showToast } = await openGitHub(false, {
+      githubStartAuth: jest.fn().mockResolvedValue(undefined),
+    })
+    await userEvent.click(await screen.findByRole('button', { name: /sign in with github/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /connecting/i })).toBeDisabled())
+    expect(showToast).not.toHaveBeenCalled()
+  })
+
+  test('a cancelled sign-in says nothing', async () => {
+    const { showToast } = await openGitHub(true, {
+      githubStartAuth: jest.fn().mockResolvedValue({ success: false, error: 'cancelled' }),
+    })
+    await userEvent.click(await screen.findByRole('button', { name: /sign in with github/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /sign in with github/i })).toBeEnabled())
+    expect(showToast).not.toHaveBeenCalled()
+  })
+
+  // VSCodium and other builds that do not bundle vscode.github-authentication.
+  // A dialog that never opens is the worst answer; point at the token instead.
+  test('a host with no GitHub provider says so', async () => {
+    const { showToast } = await openGitHub(true, {
+      githubStartAuth: jest.fn().mockResolvedValue({ success: false, error: 'no-provider' }),
+    })
+    await userEvent.click(await screen.findByRole('button', { name: /sign in with github/i }))
+
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith(
+      expect.stringMatching(/no github sign-in/i), 'err'))
+  })
+
+  // Forgetting our token does not sign the user out of VS Code — that session is
+  // VS Code's. Clearing the field with nothing said would look like a bug.
+  test('disconnecting says when the VS Code session outlives the token', async () => {
+    const { showToast } = await openGitHub(true, {
+      githubGetUser: jest.fn().mockResolvedValue({ user: { login: 'octocat', avatar: 'x' } }),
+      settingsGetAll: jest.fn().mockResolvedValue({ githubToken: 'ghp_x' }),
+      githubDisconnect: jest.fn().mockResolvedValue({ success: true, stillSignedInWithVsCode: true }),
+    })
+    await userEvent.click(await screen.findByRole('button', { name: /disconnect/i }))
+
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith(
+      expect.stringMatching(/stays signed in to VS Code/i)))
+  })
+})
