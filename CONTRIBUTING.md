@@ -72,6 +72,14 @@ uses no secrets and a read-only token, which is what makes it safe to run
 against a fork. On your first PR a maintainer has to approve the run — that is
 GitHub's default for new contributors, not a judgement on your change.
 
+That run is the only one there is: CI does not run again on `main` after the
+merge, because it would be re-testing the same tree with nothing gated on the
+answer. What it does instead is require your branch to be **up to date** with
+`main` before it can be merged. So if `main` moves while your PR is open, you
+will be asked to pull it in and let the checks run again — that second run is
+the one testing what merging actually produces, including the case where your
+change and someone else's are each fine alone and broken together.
+
 Merging is done by a maintainer. Two things are reserved to the project owner
 regardless: the four `package.json` version files, because bumping one is what
 publishes a release under their credentials, and anything under `.github/` or
