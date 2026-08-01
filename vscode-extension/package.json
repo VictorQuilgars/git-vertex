@@ -103,6 +103,18 @@
         "title": "Git Vertex: Toggle Git CodeLens"
       },
       {
+        "command": "gitVertex.clearFileBlame",
+        "title": "Git Vertex: Clear File Blame Annotations"
+      },
+      {
+        "command": "gitVertex.nextChange",
+        "title": "Git Vertex: Go to Next Change"
+      },
+      {
+        "command": "gitVertex.previousChange",
+        "title": "Git Vertex: Go to Previous Change"
+      },
+      {
         "command": "gitVertex.blame.copyHash",
         "title": "Git Vertex: Copy Commit SHA"
       },
@@ -734,7 +746,19 @@
           "description": "Model to use (e.g. claude-haiku-4-5-20251001, gemini-2.0-flash, llama-3.3-70b-versatile, gpt-4o-mini). Leave empty for the provider's default."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "gitVertex.nextChange",
+        "key": "alt+.",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "gitVertex.previousChange",
+        "key": "alt+,",
+        "when": "editorTextFocus"
+      }
+    ]
   },
   "scripts": {
     "compile": "tsc -p ./ && tsc -p tsconfig.test.json && node build-webview.js",

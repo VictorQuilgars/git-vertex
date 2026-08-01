@@ -9,6 +9,7 @@ import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import { useSettings } from '../../contexts/SettingsContext'
 import { linkifyIssues } from '../IssueLink/IssueLink'
+import { parseAutolinks } from '../../utils/autolinks'
 import './CommitGraph.css'
 
 const ROW_HEIGHT  = 28
@@ -496,6 +497,9 @@ export default function CommitGraph({
 }: CommitGraphProps) {
   const { t } = useLang()
   const { getBool, get, set } = useSettings()
+  // Configured reference patterns (Jira, Linear…). Parsed once per render pass
+  // rather than per row: a graph is hundreds of messages.
+  const autolinks = React.useMemo(() => parseAutolinks(get('autolinks', '')), [get])
   const showAvatars = getBool('graphShowAvatars', true)
   const showAuthor = getBool('graphShowAuthor', true)
   const showDate = getBool('graphShowDate', true)
@@ -1418,7 +1422,7 @@ export default function CommitGraph({
                 {/* Message */}
                 <div className="cg-col-msg">
                   {!isWip && sigBadge(commit.signature, t)}
-                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo)}</span>
+                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
                 </div>
 
                 {/* Author */}
