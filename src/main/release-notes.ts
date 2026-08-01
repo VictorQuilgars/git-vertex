@@ -2,6 +2,21 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🏷️ Your own references become links
+- Settings › GitHub takes a list of patterns — a prefix like \`JIRA-\` and a URL with \`<num>\` in it. If your team tracks work anywhere but GitHub issues, its ticket numbers were plain text until now.
+- \`#123\` keeps its hover card, with the issue's title and whether it is open, closed or merged.
+
+### 👥 Add a co-author
+- In the commit options. Git Vertex already wrote a \`Signed-off-by\` trailer and already read co-authors to show their avatars — this is the half that was missing. It offers whoever has committed here recently.
+
+### 🔗 Links to your code, not just to a commit
+- **Right-click a file in a commit** to open it on the remote or copy its link, built at that commit so the lines it points at are the ones you were looking at. Right-click a file in the staging list to copy its path.
+- **Copy a link** to a comparison, to a pull request, or to an issue.
+- Links are now built from **your remote** rather than from github.com, so a repository on GitLab, Bitbucket or a self-hosted GitHub gets links that work.
+`,
+
   '1.28.0': `## What's new in 1.28.0
 
 ### 🗣️ The same action, the same name, everywhere
