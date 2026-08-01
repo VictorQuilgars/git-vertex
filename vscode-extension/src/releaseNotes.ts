@@ -18,7 +18,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
-### 🔗 Links to your code, not just to a commit
+### 🔗 A link to the lines you selected
+- Right-click in the editor: **Copy Link to These Lines** gives the URL your reviewer opens with the selection already highlighted. **Open This File on Remote** is the same thing with the other verb.
+- The link points at the **commit that last touched the file**, not at a branch. A link to \`main\` shows something else next week, which is rarely what someone sharing line 40 meant.
+
+### 🔗 And to a branch, a commit, or the repository
 - Git Vertex could open a commit on the remote, and that was the whole of it. The URL was written out by hand in six places with **github.com hardcoded in every one**, so a repository hosted anywhere else produced a link to a page that does not exist.
 - One place builds links now, from the remote itself — so it knows the host. Copying a link to a **branch** or a **commit** works in the panel as it already did on the desktop, and the shapes for GitLab and Bitbucket are declared rather than assumed.
 

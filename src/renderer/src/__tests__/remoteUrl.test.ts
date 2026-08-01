@@ -1,4 +1,4 @@
-import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch } from '../utils/remoteUrl'
+import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch, rangeFromSelection } from '../utils/remoteUrl'
 
 // Before this existed, one URL shape was written out by hand in three places
 // with github.com hardcoded, and nothing else in either product could be linked
@@ -141,5 +141,31 @@ describe('remoteUrl — the shapes we declare for other hosts', () => {
     expect(remoteUrl.file(bb, 'abc', 'a.ts', { from: 12, to: 40 }))
       .toBe('https://bitbucket.org/team/proj/src/abc/a.ts#lines-12:40')
     expect(remoteUrl.pullRequest(bb, 7)).toBe('https://bitbucket.org/team/proj/pull-requests/7')
+  })
+})
+
+// Editors count from 0 and end a selection exclusively once the caret wraps to
+// the next line, which is what dragging down a column gives you. Taken at face
+// value every such link covers one line too many.
+describe('rangeFromSelection — the off-by-one', () => {
+  test('a caret on one line links that line', () => {
+    expect(rangeFromSelection(11, 11, 4)).toEqual({ from: 12, to: 12 })
+  })
+
+  test('a selection ending mid-line keeps that line', () => {
+    expect(rangeFromSelection(11, 39, 7)).toEqual({ from: 12, to: 40 })
+  })
+
+  test('a selection wrapped to column 0 does NOT swallow the next line', () => {
+    expect(rangeFromSelection(11, 40, 0)).toEqual({ from: 12, to: 40 })
+  })
+
+  // A triple-click selects one whole line and lands at column 0 of the next.
+  test('a triple-clicked single line stays one line', () => {
+    expect(rangeFromSelection(11, 12, 0)).toEqual({ from: 12, to: 12 })
+  })
+
+  test('column 0 on the SAME line is a caret, not a wrap', () => {
+    expect(rangeFromSelection(11, 11, 0)).toEqual({ from: 12, to: 12 })
   })
 })

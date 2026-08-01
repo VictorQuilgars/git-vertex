@@ -169,6 +169,25 @@ export function shortBranch(name: string): string {
 
 export interface LineRange { from: number; to: number }
 
+/**
+ * A 1-based inclusive line range from an editor selection.
+ *
+ * Editors count lines from 0, and a selection's end is EXCLUSIVE when the caret
+ * has wrapped to column 0 of the next line — which is what dragging down a
+ * column, or a triple-click, produces. Taken literally that links to one line
+ * more than is highlighted, every single time.
+ *
+ * Lives here rather than beside the command that needs it because the command
+ * imports `vscode` and could not then be tested at all. This is the part with
+ * an off-by-one in it.
+ */
+export function rangeFromSelection(
+  startLine: number, endLine: number, endCharacter: number,
+): LineRange {
+  const last = endCharacter === 0 && endLine > startLine ? endLine - 1 : endLine
+  return { from: startLine + 1, to: last + 1 }
+}
+
 export const remoteUrl = {
   repo: (r: RemoteRepo): string => r.base,
 
