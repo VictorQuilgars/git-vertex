@@ -532,15 +532,18 @@ export class GitVertexHost implements vscode.Disposable {
         } catch (e: any) { return { success: false, error: e?.message } }
       }
       case 'githubGetUser': {
-        const token = await this._githubToken()
-        if (!token) return { user: null }
+        // `source` is what lets the settings page say where the identity came
+        // from. Without it, a VS Code session and a pasted token look the same
+        // on screen, and "Disconnect" reads as a promise we cannot keep.
+        const identity = await resolveIdentity(() => this._storedPat())
+        if (!identity) return { user: null }
         try {
           const res = await fetch('https://api.github.com/user', {
-            headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+            headers: { Authorization: `Bearer ${identity.token}`, Accept: 'application/vnd.github+json' },
           })
           if (!res.ok) return { user: null }
           const u = await res.json() as any
-          return { user: { login: u.login, avatar: u.avatar_url } }
+          return { user: { login: u.login, avatar: u.avatar_url }, source: identity.source }
         } catch { return { user: null } }
       }
       case 'aiGenerateCommitMessage': {

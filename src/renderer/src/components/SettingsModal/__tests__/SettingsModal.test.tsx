@@ -228,7 +228,10 @@ describe('SettingsModal — GitHub sign-in', () => {
   test('embedded resolves the sign-in itself', async () => {
     const { mock, showToast } = await openGitHub(true, {
       githubStartAuth: jest.fn().mockResolvedValue({ success: true, login: 'octocat' }),
-      githubGetUser: jest.fn().mockResolvedValue({ user: { login: 'octocat', avatar: 'x' } }),
+      // Nobody on mount, somebody once the session exists — the real sequence.
+      githubGetUser: jest.fn()
+        .mockResolvedValueOnce({ user: null })
+        .mockResolvedValue({ user: { login: 'octocat', avatar: 'x' }, source: 'vscode' }),
     })
     await userEvent.click(await screen.findByRole('button', { name: /sign in with github/i }))
 
@@ -276,7 +279,7 @@ describe('SettingsModal — GitHub sign-in', () => {
   // VS Code's. Clearing the field with nothing said would look like a bug.
   test('disconnecting says when the VS Code session outlives the token', async () => {
     const { showToast } = await openGitHub(true, {
-      githubGetUser: jest.fn().mockResolvedValue({ user: { login: 'octocat', avatar: 'x' } }),
+      githubGetUser: jest.fn().mockResolvedValue({ user: { login: 'octocat', avatar: 'x' }, source: 'pat' }),
       settingsGetAll: jest.fn().mockResolvedValue({ githubToken: 'ghp_x' }),
       githubDisconnect: jest.fn().mockResolvedValue({ success: true, stillSignedInWithVsCode: true }),
     })
@@ -284,5 +287,30 @@ describe('SettingsModal — GitHub sign-in', () => {
 
     await waitFor(() => expect(showToast).toHaveBeenCalledWith(
       expect.stringMatching(/stays signed in to VS Code/i)))
+    // ...and the account stays on screen, because it really is still signed in.
+    expect(screen.getByText('octocat')).toBeInTheDocument()
+  })
+
+  // The defect a manual test cannot see: a VS Code session writes nothing to our
+  // settings, so gating the mount fetch on a stored token showed "Sign in with
+  // GitHub" to someone whose PRs and issues were loading fine. It only appears
+  // on REOPENING the panel — right after clicking Connect the state is in memory.
+  test('embedded shows the session on mount, with no stored token', async () => {
+    await openGitHub(true, {
+      settingsGetAll: jest.fn().mockResolvedValue({}),          // no PAT anywhere
+      githubGetUser: jest.fn().mockResolvedValue({ user: { login: 'octocat', avatar: 'x' }, source: 'vscode' }),
+    })
+    expect(await screen.findByText('octocat')).toBeInTheDocument()
+    // And it says where the identity comes from — otherwise "Disconnect" reads
+    // as a promise we cannot keep, since that session is VS Code's to revoke.
+    expect(screen.getByText(/signed in through vs code/i)).toBeInTheDocument()
+  })
+
+  test('desktop still only asks when it holds a token', async () => {
+    const { mock } = await openGitHub(false, {
+      settingsGetAll: jest.fn().mockResolvedValue({}),
+      githubGetUser: jest.fn().mockResolvedValue({ user: null }),
+    })
+    expect(mock.githubGetUser).not.toHaveBeenCalled()
   })
 })
