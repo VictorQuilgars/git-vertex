@@ -6,9 +6,14 @@
 - **The panel's context menu speaks the same language as the desktop app.** Its wording comes from the extension manifest, the desktop's from the shared string catalogue, and nothing kept the two in step — six actions had drifted, including the one that detaches HEAD (*Switch to Commit* here, *Check out this commit* there) and the three reset modes. A test now compares both catalogues.
 - Actions that open an input carry `…`; the ones that act immediately do not.
 
+### Added
+- **The Agents view in the rail actually lists agents.** The robot icon opened an empty section from the day the rail shipped: finding running agents was a `ps` walk the desktop did in its main process, and this side never had one. It does now — the same walk, so Claude Code, aider, Codex, Gemini, Amp and Goose show up here as they do on the desktop, and worktree rows get the "an agent is working here" badge that goes with them.
+- **`#123` in a commit message opens its hover card.** The link was already there, in the graph and in the commit panel, but the card behind it never resolved: it asked the host for the issue and the host had no answer, so it fell back to the bare number. It now shows the title and whether the issue or request is open, closed or merged. Public repositories answer without a token.
+
 ### Fixed
 - **Two commands were both called "Open in Git Vertex"**, and the second was never filtered out of the command palette — so the palette listed the same name twice, for two entries that did the same thing when invoked without a file. The file-scoped one is now a context-menu action only, and a test fails on any two commands sharing a title.
 - **A command title leaked an implementation detail**: *Toggle Interactive Rebase Editor (sequence.editor + core.editor)*. The parenthetical named the two git config keys the command writes, which tells a user nothing about what will happen.
+- **Nothing stopped the panel from showing a button it had already declared dead.** The parity test made every `window.gitAPI` method be classified — implemented here, or written down as desktop-only — but it never looked at the screen, and both kinds answer *not-implemented* at runtime. So a classified method could stay wired to a visible control, and three did: the two above, plus Settings asking the host for an updater state VS Code has no updater for. Each failed silently, because every one of those call sites swallowed its own error. A second test now walks the panel's real module graph and fails on any call it can reach, and both tests run on every pull request instead of only before a release.
 
 ## 1.25.0
 

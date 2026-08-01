@@ -16,7 +16,8 @@ import { promisify } from 'util'
 import { GitService } from '../gitService'
 import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
-import { githubListPRs, githubListIssues, githubCreatePR, githubListBranches } from '../githubApi'
+import { githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches } from '../githubApi'
+import { listAgents } from '../agents'
 import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
@@ -458,6 +459,9 @@ export class GitVertexHost implements vscode.Disposable {
     switch (method) {
       // avatarResolve is synchronous — return its value directly.
       case 'avatarResolve': return svc.avatarResolve(args[0], args[1])
+      // Running AI agents, for the rail's Agents view and the worktree badges.
+      // A `ps` walk plus one `lsof` — nothing here needed the desktop.
+      case 'listAgents': return listAgents()
       // GitHub (PAT from the gvSettings memento, set via gitVertex.setGithubToken)
       case 'githubDetectRepo': {
         const { remotes } = await svc.getRemotes()
@@ -468,6 +472,10 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'githubListPRs': return githubListPRs(this._githubToken(), args[0], args[1])
       case 'githubListIssues': return githubListIssues(this._githubToken(), args[0], args[1])
+      // Backs the `#123` hover card the shared renderer renders on every commit
+      // message. Without it the card resolved to nothing and the panel showed a
+      // bare "#123 — owner/repo" with no title or state.
+      case 'githubGetIssue': return githubGetIssue(this._githubToken(), args[0], args[1], args[2])
       case 'githubCreatePR':
         return githubCreatePR(this._githubToken(), args[0], args[1], args[2], args[3], args[4], args[5])
       case 'githubListBranches': return githubListBranches(this._githubToken(), args[0], args[1])

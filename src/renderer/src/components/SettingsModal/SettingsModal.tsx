@@ -287,16 +287,21 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       }
     })
 
-    // Check if an update was already downloaded
+    // Check if an update was already downloaded. Desktop only: VS Code updates
+    // the extension itself, so embedded this asked the host for a state it has
+    // no updater to answer with — and the About section that would show the
+    // result is not even rendered there.
     const api = window.gitAPI as any
-    api.getUpdaterState?.().then((state: any) => {
-      console.log('[updater] getUpdaterState:', state)
-      if (state?.downloadedVersion) {
-        setUpdateReady(true)
-        setUpdateVersion(state.downloadedVersion)
-        setUpdateStatus('available')
-      }
-    })
+    if (!embedded) {
+      api.getUpdaterState?.().then((state: any) => {
+        console.log('[updater] getUpdaterState:', state)
+        if (state?.downloadedVersion) {
+          setUpdateReady(true)
+          setUpdateVersion(state.downloadedVersion)
+          setUpdateStatus('available')
+        }
+      })
+    }
     const offDownloaded = api.onUpdateDownloaded?.((version: string) => {
       console.log('[updater] update-downloaded:', version)
       setUpdateReady(true)

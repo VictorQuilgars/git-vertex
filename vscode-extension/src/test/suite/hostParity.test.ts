@@ -1,6 +1,7 @@
 import * as assert from 'assert'
 import * as fs from 'fs'
 import * as path from 'path'
+import { DESKTOP_ONLY, KNOWN_GAPS } from './parity-lists'
 
 // Drift detector between the two products.
 //
@@ -14,9 +15,13 @@ import * as path from 'path'
 // button in the VS Code panel. That is exactly how ext-v1.20.0 shipped a stash
 // picker, a prune action and a default-remote badge that could not work.
 //
-// This test forces the choice: implement it in the extension, or declare it
-// desktop-only below. It never fails for a method that already exists on both
+// This test forces the choice: implement it in the extension, or classify it in
+// parity-lists.ts. It never fails for a method that already exists on both
 // sides, and it fails for anything new and unclassified.
+//
+// Classifying is not the end of it. Both DESKTOP_ONLY and KNOWN_GAPS answer
+// not-implemented at runtime, and nothing here stops the shared UI from still
+// rendering a control for one — panelSurface.test.ts is the guard for that.
 
 // __dirname is out/test/suite at runtime, so every path is resolved from the
 // extension root rather than from the compiled tree.
@@ -25,50 +30,6 @@ const REPO_ROOT = path.resolve(EXT_ROOT, '..')
 const PRELOAD = path.join(REPO_ROOT, 'src', 'preload', 'index.ts')
 const EXT_SERVICE = path.join(EXT_ROOT, 'src', 'gitService.ts')
 const EXT_HOST = path.join(EXT_ROOT, 'src', 'panel', 'GitVertexHost.ts')
-
-/**
- * Desktop-only by design — the extension has no equivalent surface, or VS Code
- * already provides one. Nothing here is a bug; it is a decision.
- */
-const DESKTOP_ONLY = new Set([
-  // App shell: the extension lives inside VS Code's window and updater.
-  'zoomGet', 'zoomSet', 'isFullscreen',
-  'checkForUpdates', 'downloadUpdate', 'installUpdate', 'installManual',
-  'getUpdaterState', 'openDownloadedUpdate',
-  'getWhatsNew', 'getReleaseNotes', 'markWhatsNewSeen',
-  // Repo management: the extension is mono-repo, driven by the workspace
-  // folder, so opening/cloning/scanning repos is not its job.
-  'openRepo', 'setRepo', 'initRepo', 'initAdvanced', 'cloneTo', 'githubClone',
-  'getRecentRepos', 'removeRecentRepo', 'scanLocalRepos', 'readReadme',
-  'getWorkspaces', 'setRepoWorkspace', 'openPathInEditor',
-  'listGitignoreTemplates', 'listLicenses', 'githubCreateRepo',
-  // Deep links need a registered URL scheme — desktop only.
-  'getPendingDeepLink',
-  // AI credentials: the extension reads its own gitVertex.ai* settings.
-  'aiGetApiKey', 'aiSetApiKey', 'aiListModels',
-  // The git-too-old notice is raised host-side at activation
-  // (notifyIfGitTooOld), so the panel never has to ask. Same for resolving
-  // which git binary to run: the extension inherits VS Code's environment,
-  // which already has the user's real PATH — the Finder-launch problem that
-  // src/main/git-binary.ts exists for cannot happen here.
-  'getGitCapabilities', 'resolveGitBinary',
-])
-
-/**
- * Known gaps: the shared UI offers these in the panel and they answer
- * not-implemented. Each is claimed by a planned lot — this list must shrink,
- * never grow. See docs-private/gitvertex-plan-versions.md.
- */
-const KNOWN_GAPS = new Set([
-  // → lot D, "GitHub : au-delà du read-only"
-  'githubSharePatch', 'githubShareWipPatch',
-  'githubSearchIssues', 'githubCloseIssue', 'githubGetIssue', 'githubListRepos',
-  'githubDetectRepoAt', 'githubStartAuth', 'githubDisconnect', 'githubGetToken',
-  // → unclaimed: gitflow has no extension host implementation at all
-  'gitflowStatus', 'gitflowInit', 'gitflowStart', 'gitflowFinish',
-  // → unclaimed: agent scanning is a desktop-side process walk
-  'listAgents',
-])
 
 function preloadMethods(source: string): string[] {
   const body = source.slice(source.indexOf('const gitAPI = {'))
