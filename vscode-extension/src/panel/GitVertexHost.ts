@@ -18,6 +18,7 @@ import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../
 import { findAppPath, launchApp } from '../appLocator'
 import { githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches } from '../githubApi'
 import { listAgents } from '../agents'
+import { resolveIdentity, existingSession, signIn } from '../githubAuth'
 import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
@@ -470,15 +471,41 @@ export class GitVertexHost implements vscode.Disposable {
         const m = url.match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
         return m ? { owner: m[1], repo: m[2] } : { owner: null, repo: null }
       }
-      case 'githubListPRs': return githubListPRs(this._githubToken(), args[0], args[1])
-      case 'githubListIssues': return githubListIssues(this._githubToken(), args[0], args[1])
+      case 'githubListPRs': return githubListPRs(await this._githubToken(), args[0], args[1])
+      case 'githubListIssues': return githubListIssues(await this._githubToken(), args[0], args[1])
       // Backs the `#123` hover card the shared renderer renders on every commit
       // message. Without it the card resolved to nothing and the panel showed a
       // bare "#123 — owner/repo" with no title or state.
-      case 'githubGetIssue': return githubGetIssue(this._githubToken(), args[0], args[1], args[2])
+      case 'githubGetIssue': return githubGetIssue(await this._githubToken(), args[0], args[1], args[2])
       case 'githubCreatePR':
-        return githubCreatePR(this._githubToken(), args[0], args[1], args[2], args[3], args[4], args[5])
-      case 'githubListBranches': return githubListBranches(this._githubToken(), args[0], args[1])
+        return githubCreatePR(await this._githubToken(), args[0], args[1], args[2], args[3], args[4], args[5])
+      case 'githubListBranches': return githubListBranches(await this._githubToken(), args[0], args[1])
+      // Sign-in. The desktop's OAuth proxy and gitgui:// deep link have no
+      // equivalent here, so this asks VS Code's own GitHub provider instead —
+      // which for most people means confirming a session they already have.
+      // Only ever reached from a click: getSession shows a modal consent.
+      case 'githubStartAuth': {
+        try {
+          const session = await signIn()
+          if (!session) return { success: false, error: 'cancelled' }
+          return { success: true, login: session.account.label }
+        } catch {
+          // No GitHub provider on this host (VSCodium and other builds that do
+          // not bundle it). The PAT field is the way in there, and saying so
+          // beats a dialog that never opens.
+          return { success: false, error: 'no-provider' }
+        }
+      }
+      case 'githubGetToken': return { token: (await this._githubToken()) ?? null }
+      case 'githubDisconnect': {
+        const all = this._state.get<Record<string, string>>('gvSettings', {})
+        delete all.githubToken
+        await this._state.update('gvSettings', all)
+        // A VS Code session is VS Code's to revoke, not ours: forgetting our
+        // PAT does not sign the user out of it. Say so rather than clearing the
+        // field and leaving them still authenticated with no idea why.
+        return { success: true, stillSignedInWithVsCode: !!(await existingSession()) }
+      }
       // AI features — same pipeline as the desktop app, config from VS Code
       // settings (gitVertex.aiProvider/aiApiKey/aiModel) or shared gvSettings.
       // NO_API_KEY keeps the shared UI's "configure a key" toast working.
@@ -505,7 +532,7 @@ export class GitVertexHost implements vscode.Disposable {
         } catch (e: any) { return { success: false, error: e?.message } }
       }
       case 'githubGetUser': {
-        const token = this._githubToken()
+        const token = await this._githubToken()
         if (!token) return { user: null }
         try {
           const res = await fetch('https://api.github.com/user', {
@@ -615,9 +642,19 @@ export class GitVertexHost implements vscode.Disposable {
     return { success: false, error: `not-implemented: ${method}` }
   }
 
-  private _githubToken(): string | undefined {
+  /** The PAT the user pasted, if any — the fallback half of resolveIdentity. */
+  private _storedPat(): string | undefined {
     const all = this._state.get<Record<string, string>>('gvSettings', {})
     return all.githubToken || undefined
+  }
+
+  /**
+   * The token every GitHub call runs with: a VS Code session when one already
+   * exists, the stored PAT otherwise. Async because asking VS Code for a
+   * session is — which is why this used to be a plain memento read.
+   */
+  private async _githubToken(): Promise<string | undefined> {
+    return (await resolveIdentity(() => this._storedPat()))?.token
   }
 
   private _getHtml(webview: vscode.Webview): string {
