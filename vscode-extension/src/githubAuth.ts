@@ -88,12 +88,22 @@ export async function signIn(): Promise<vscode.AuthenticationSession | undefined
  *
  * `readPat` is passed in rather than read here so this module stays free of the
  * memento, and so the host keeps one place that knows where settings live.
+ *
+ * `useVsCodeSession` is false once the user has disconnected in our settings.
+ * No extension can revoke a VS Code session — that account belongs to VS Code,
+ * and the Accounts menu is where it is signed out. What "Disconnect" can mean,
+ * and now does, is that Git Vertex stops using it. Without this the button was
+ * honest and useless: it forgot a token that was not there, found the session
+ * still live, and put the user straight back on screen as connected.
  */
 export async function resolveIdentity(
   readPat: () => string | undefined,
+  useVsCodeSession = true,
 ): Promise<GitHubIdentity | undefined> {
-  const session = await existingSession()
-  if (session) return { token: session.accessToken, source: 'vscode', login: session.account.label }
+  if (useVsCodeSession) {
+    const session = await existingSession()
+    if (session) return { token: session.accessToken, source: 'vscode', login: session.account.label }
+  }
   const pat = readPat()
   return pat ? { token: pat, source: 'pat' } : undefined
 }

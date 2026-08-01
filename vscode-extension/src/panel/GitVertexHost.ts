@@ -18,7 +18,7 @@ import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../
 import { findAppPath, launchApp } from '../appLocator'
 import { githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches } from '../githubApi'
 import { listAgents } from '../agents'
-import { resolveIdentity, existingSession, signIn } from '../githubAuth'
+import { resolveIdentity, signIn } from '../githubAuth'
 import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
@@ -488,6 +488,9 @@ export class GitVertexHost implements vscode.Disposable {
         try {
           const session = await signIn()
           if (!session) return { success: false, error: 'cancelled' }
+          // Undo a previous Disconnect, or signing in would appear to do
+          // nothing: the session would be there and we would keep ignoring it.
+          await this._setSessionOptOut(false)
           return { success: true, login: session.account.label }
         } catch {
           // No GitHub provider on this host (VSCodium and other builds that do
@@ -498,13 +501,16 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'githubGetToken': return { token: (await this._githubToken()) ?? null }
       case 'githubDisconnect': {
+        // What "Disconnect" means here. A VS Code session is VS Code's to
+        // revoke — no extension API signs a user out — so this stops Git Vertex
+        // from using it, and forgets any token of our own. The account itself
+        // stays in the Accounts menu, which is what the toast says.
+        const wasVsCodeSession = (await this._identity())?.source === 'vscode'
         const all = this._state.get<Record<string, string>>('gvSettings', {})
         delete all.githubToken
         await this._state.update('gvSettings', all)
-        // A VS Code session is VS Code's to revoke, not ours: forgetting our
-        // PAT does not sign the user out of it. Say so rather than clearing the
-        // field and leaving them still authenticated with no idea why.
-        return { success: true, stillSignedInWithVsCode: !!(await existingSession()) }
+        await this._setSessionOptOut(true)
+        return { success: true, wasVsCodeSession }
       }
       // AI features — same pipeline as the desktop app, config from VS Code
       // settings (gitVertex.aiProvider/aiApiKey/aiModel) or shared gvSettings.
@@ -535,7 +541,7 @@ export class GitVertexHost implements vscode.Disposable {
         // `source` is what lets the settings page say where the identity came
         // from. Without it, a VS Code session and a pasted token look the same
         // on screen, and "Disconnect" reads as a promise we cannot keep.
-        const identity = await resolveIdentity(() => this._storedPat())
+        const identity = await this._identity()
         if (!identity) return { user: null }
         try {
           const res = await fetch('https://api.github.com/user', {
@@ -652,12 +658,33 @@ export class GitVertexHost implements vscode.Disposable {
   }
 
   /**
+   * False once the user has pressed Disconnect: we keep the VS Code session
+   * out of the way until they sign in again. Stored rather than held in memory
+   * so it survives a window reload, like the token it replaces.
+   */
+  private _useVsCodeSession(): boolean {
+    return this._state.get<Record<string, string>>('gvSettings', {}).githubSessionOptOut !== 'true'
+  }
+
+  private async _setSessionOptOut(optedOut: boolean): Promise<void> {
+    const all = this._state.get<Record<string, string>>('gvSettings', {})
+    if (optedOut) all.githubSessionOptOut = 'true'
+    else delete all.githubSessionOptOut
+    await this._state.update('gvSettings', all)
+  }
+
+  /** Who we are to GitHub, and where that came from. */
+  private _identity() {
+    return resolveIdentity(() => this._storedPat(), this._useVsCodeSession())
+  }
+
+  /**
    * The token every GitHub call runs with: a VS Code session when one already
    * exists, the stored PAT otherwise. Async because asking VS Code for a
    * session is — which is why this used to be a plain memento read.
    */
   private async _githubToken(): Promise<string | undefined> {
-    return (await resolveIdentity(() => this._storedPat()))?.token
+    return (await this._identity())?.token
   }
 
   private _getHtml(webview: vscode.Webview): string {
