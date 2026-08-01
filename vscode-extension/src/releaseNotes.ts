@@ -18,6 +18,17 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🏷️ Your own references become links
+- Settings › GitHub takes a list of patterns — a prefix like \`JIRA-\` and a URL with \`<num>\` in it. If your team tracks work anywhere but GitHub issues, its ticket numbers were plain text until now.
+
+### 👥 Add a co-author
+- In the commit options. The panel already wrote a \`Signed-off-by\` trailer and already read co-authors to show their avatars — this is the half that was missing. It offers whoever has committed here recently.
+
+### ⌨️ Smaller gestures
+- **Right-click a file in the staging list** to copy its path or its name. VS Code's own commands act on the explorer, never on our list.
+- **Step through a file's changes** with \`alt+.\` / \`alt+,\`. Each stop is a different commit, so a file written in four sittings has four stops rather than one per line.
+- **Clear File Blame Annotations**, for when you want them gone and cannot remember whether they are on.
+
 ### 🔗 A link to the lines you selected
 - Right-click in the editor: **Copy Link to These Lines** gives the URL your reviewer opens with the selection already highlighted. **Open This File on Remote** is the same thing with the other verb.
 - The link points at the **commit that last touched the file**, not at a branch. A link to \`main\` shows something else next week, which is rarely what someone sharing line 40 meant.

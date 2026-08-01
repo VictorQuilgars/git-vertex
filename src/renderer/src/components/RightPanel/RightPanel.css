@@ -1066,7 +1066,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
-   GitKraken-style commit panel (StagingView, .st2)
+   Commit panel (StagingView, .st2)
    ════════════════════════════════════════════════════════════════ */
 .st2 {
   display: flex;
@@ -1708,3 +1708,17 @@
 /* In the checkbox tree, drop the row's own left padding chevron spacing tweak */
 .stx-row.st-tr { gap: 6px; }
 .stx-row.st-tr-dir .st-tr-tri { margin-left: 0; }
+
+/* "Add co-author" — a quiet button in the collapsed commit options, beside the
+   amend and sign-off toggles it belongs with. */
+.st2-coauthor {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.st2-coauthor:hover { background: #30363d; border-color: #8b949e; }

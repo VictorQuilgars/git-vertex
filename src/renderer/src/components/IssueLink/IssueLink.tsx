@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLang } from '../../i18n/LanguageContext'
+import { findAutolinks, type Autolink } from '../../utils/autolinks'
 import './IssueLink.css'
 
 export interface IssueRepo { owner: string; repo: string }
@@ -113,21 +114,51 @@ export function IssueLink({ repo, number }: { repo: IssueRepo; number: number })
   )
 }
 
-// Matches #123 not preceded by a word char or slash (avoids URLs/paths like a/b#1 edge noise)
-const ISSUE_RE = /(?<![\w/])#(\d{1,6})\b/g
+/**
+ * A reference that is not `#123` — a Jira ticket, a Linear issue, anything the
+ * user configured. It gets a link and no hover card: we know where it goes, and
+ * nothing about what is on the other side.
+ */
+function PlainAutolink({ text, url }: { text: string; url: string }) {
+  return (
+    <a
+      className="issue-link"
+      onClick={e => { e.stopPropagation(); e.preventDefault(); (window.gitAPI as any).openExternal(url) }}
+      onDoubleClick={e => e.stopPropagation()}
+    >{text}</a>
+  )
+}
 
-export function linkifyIssues(text: string, repo: IssueRepo | null | undefined): ReactNode {
-  if (!repo || !text || !text.includes('#')) return text
+/**
+ * Linkify a commit message.
+ *
+ * `#123` keeps its rich card, resolved against the repository's own remote —
+ * that is the one reference we can look up. Configured `autolinks` cover
+ * everything else, and are matched by the same rules (not mid-word, not after a
+ * slash, digits only). A repository with no GitHub remote still gets its
+ * autolinks: they have nothing to do with the forge.
+ */
+export function linkifyIssues(
+  text: string,
+  repo: IssueRepo | null | undefined,
+  autolinks: Autolink[] = [],
+): ReactNode {
+  if (!text) return text
+  const links = [...autolinks]
+  // `#` is only meaningful when we know which repository it points at.
+  if (repo) links.push({ prefix: '#', url: '#' })
+  const found = findAutolinks(text, links)
+  if (found.length === 0) return text
+
   const parts: ReactNode[] = []
   let last = 0
-  let m: RegExpExecArray | null
-  ISSUE_RE.lastIndex = 0
-  while ((m = ISSUE_RE.exec(text)) !== null) {
+  for (const m of found) {
     if (m.index > last) parts.push(text.slice(last, m.index))
-    parts.push(<IssueLink key={`${m.index}-${m[1]}`} repo={repo} number={parseInt(m[1], 10)} />)
-    last = m.index + m[0].length
+    parts.push(m.url === '#' && repo
+      ? <IssueLink key={`${m.index}-${m.number}`} repo={repo} number={m.number} />
+      : <PlainAutolink key={`${m.index}-${m.number}`} text={m.text} url={m.url} />)
+    last = m.index + m.text.length
   }
-  if (parts.length === 0) return text
   if (last < text.length) parts.push(text.slice(last))
   return <>{parts}</>
 }

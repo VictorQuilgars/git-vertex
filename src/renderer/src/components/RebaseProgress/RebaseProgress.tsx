@@ -1,9 +1,9 @@
 // RebaseProgress — the "rebase in progress" tool shown in a standalone
-// editor tab (GitLens-style). Auto-opened by the VS Code extension whenever a
+// editor tab. Auto-opened by the VS Code extension whenever a
 // rebase is detected, whether it was started from Git Vertex, the integrated
 // terminal or an external CLI. Shows the step timeline (done / current /
 // remaining), lets you re-plan the REMAINING steps (pick/reword/edit/squash/
-// fixup/drop + reorder — same as GitLens' paused-rebase view), the conflicted
+// fixup/drop + reorder), the conflicted
 // files, and Continue / Skip / Abort controls.
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
@@ -252,7 +252,7 @@ export default function RebaseProgress() {
 
   const renderReadOnlyStep = (s: RebaseStep, key: string, status: 'done' | 'current') => {
     // The commit git is actually stuck on gets a red highlight instead of the
-    // neutral "current" blue — same convention as GitLens' rebase view.
+    // neutral "current" blue — the usual convention for a paused rebase.
     const isConflicted = status === 'current' && hasConflicts
     const variant = isConflicted ? 'conflict' : status
     return (

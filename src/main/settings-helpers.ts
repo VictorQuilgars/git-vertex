@@ -5,7 +5,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
-// Auto-Fetch Interval: 0/unset/invalid = disabled, matching GitKraken's own
+// Auto-Fetch Interval: 0/unset/invalid = disabled, matching the usual
 // "0 disables auto-fetch" convention.
 export function parseAutoFetchMinutes(raw: string | undefined): number {
   const n = parseInt(raw ?? '0', 10)

@@ -1,4 +1,4 @@
-// FileHistory — a file's history in a standalone editor tab (GitLens-style
+// FileHistory — a file's history in a standalone editor tab (
 // "Visual File History"): commit timeline on the left, per-commit diff or
 // blame on the right. Opened by the VS Code extension via boot mode 'history'.
 

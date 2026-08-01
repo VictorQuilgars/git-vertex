@@ -696,7 +696,7 @@ export default function App() {
         // match rather than open a second tab on the same repo.
         const existing = prev.find(tb => tb.kind === 'repo' && tb.path!.normalize('NFC') === res.path!.normalize('NFC'))
         if (existing) { setActiveTabId(existing.id); return prev }
-        // Opening a repo from a home tab converts that tab in place (GitKraken's
+        // Opening a repo from a home tab converts that tab in place (the
         // "New Tab" becomes the repo) rather than leaving an empty home behind.
         const active = prev.find(tb => tb.id === activeTabId)
         if (active && active.kind === 'home') {
@@ -816,7 +816,7 @@ export default function App() {
     setActiveView('git')
   }, [])
 
-  // "+" → a fresh home ("New Tab") every time, GitKraken-style.
+  // "+" → a fresh home ("New Tab") every time.
   const openHomeTab = useCallback(() => {
     if (conflictResolverFile || rebaseHash) return
     setWhatsNewActive(false)
@@ -1895,7 +1895,7 @@ export default function App() {
               overlay (like Settings), never a tab. */}
           <button className={`app-tab-launch ${repoMgmtOpen ? 'active' : ''}`}
             title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); setWhatsNewActive(false); setRepoMgmtOpen(o => !o) }}>📁</button>
-          {/* 🚀 Launchpad launcher — always reachable, GitKraken-style. */}
+          {/* 🚀 Launchpad launcher — always reachable. */}
           <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
             title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}>🚀</button>
           {tabs.map(tab => (

@@ -1,5 +1,16 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Added
+- **References in commit messages become links — yours, not just `#123`.** Settings › GitHub takes a list of patterns: a prefix (`JIRA-`) and a URL with `<num>` in it. Teams that track work anywhere but GitHub issues were reading their own ticket numbers as plain text.
+- **Add a co-author to a commit**, from the commit options. The panel already wrote a `Signed-off-by` trailer and already read co-authors to show their avatars; this is the half that was missing. The candidates are whoever has committed here recently.
+- **Right-click a file in a commit** to open it on the remote or copy its link — built at that commit, so the lines it points at are the ones you were looking at. Right-click a file in the staging list to copy its path or its name.
+- **Copy a link to a comparison**, and to a pull request or an issue.
+
+### Changed
+- **Links are built from your remote, not from github.com.** The URL was written out by hand in six places with the host hardcoded in every one, so a repository on GitLab, Bitbucket, or a self-hosted GitHub produced a link to a page that does not exist. One builder reads the remote and knows the shapes.
+
 ## 1.28.0
 
 ### Changed
@@ -155,8 +166,8 @@
 
 ### Added
 - **Repository Management** hub (folder button → full-page overlay): Open / Favorites / Recent sections with search and a WIP-summary toggle; per-row open, favorite, open-in-external-editor, repository details (README slide-in) and remove; a New Workspace modal.
-- **GitKraken-style Clone modal**: provider nav (Clone with URL / GitHub.com), Where-to-clone field with Browse, searchable remote-repo list, Shallow Clone and Sparse Checkout options (clones to the chosen location).
-- **GitKraken-style Init modal**: Local Only (name, location, branch, optional .gitignore + license, LFS) and GitHub.com (create the remote repo + clone).
+- **Clone modal**: provider nav (Clone with URL / GitHub.com), Where-to-clone field with Browse, searchable remote-repo list, Shallow Clone and Sparse Checkout options (clones to the chosen location).
+- **Init modal**: Local Only (name, location, branch, optional .gitignore + license, LFS) and GitHub.com (create the remote repo + clone).
 
 ### Fixed
 - Tabs stick to the left in macOS fullscreen (the traffic-light spacer is dropped when fullscreen).
@@ -240,7 +251,7 @@
 
 ### Added
 - **Redesigned launchpad (welcome screen)** — a two-column home with a vertical divider: Open / Clone / **Create** (git init), a repository search box, and the recent list (capped, no scroll); plus a **Resources** panel (Release notes, Source code, Documentation).
-- **Release notes on demand** — open the (GitKraken-style) release notes anytime from Resources, with an "Open in browser" link.
+- **Release notes on demand** — open the release notes anytime from Resources, with an "Open in browser" link.
 
 ### Changed
 - The home is a named, non-permanent tab (🏠): opening a repository from it closes it; opening a non-repo view (release notes) keeps it, before it in the tab bar (opening order). The repo sidebar and activity bar are hidden on the home.
@@ -253,7 +264,7 @@
 ## 1.13.0
 
 ### Changed
-- **Unified graph context menu** — right-clicking a local branch chip now opens the same menu as its tip commit (branch actions + commit actions), matching GitKraken; a non-tip commit keeps the commit-only menu.
+- **Unified graph context menu** — right-clicking a local branch chip now opens the same menu as its tip commit (branch actions + commit actions); a non-tip commit keeps the commit-only menu.
 - **Shorter menu with submenus** — Reset (soft/mixed/hard), Copy (hashes/message) and Move (up/down) are now hover submenus.
 - **Clearer branch drag-drop** — dragging branch A onto branch B offers "Merge A into B" / "Rebase A onto B" with real branch names (not the target SHA), in the expected direction; no menu when dragging the checked-out branch.
 

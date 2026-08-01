@@ -5,6 +5,8 @@ import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import { linkifyIssues, IssueRepo } from '../IssueLink/IssueLink'
+import { parseAutolinks } from '../../utils/autolinks'
+import { useSettings } from '../../contexts/SettingsContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
@@ -412,6 +414,9 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   const [rewordPlan, setRewordPlan] = useState<RewordPlan | null>(null)
   // AI menu on the "Recompose commit with AI" button
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; path: string } | null>(null)
+  const { get } = useSettings()
+  // Configured reference patterns (Jira, Linear…), for the message below.
+  const autolinks = React.useMemo(() => parseAutolinks(get('autolinks', '')), [get])
   const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
   const [aiBusy, setAiBusy] = useState(false)
   const [aiExplanation, setAiExplanation] = useState<string | null>(null)
@@ -618,8 +623,8 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             />
           ) : (
             <>
-              <p className="cd-title">{linkifyIssues(commit.message, githubRepo)}</p>
-              {cleanBody && <pre className="cd-body">{linkifyIssues(cleanBody, githubRepo)}</pre>}
+              <p className="cd-title">{linkifyIssues(commit.message, githubRepo, autolinks)}</p>
+              {cleanBody && <pre className="cd-body">{linkifyIssues(cleanBody, githubRepo, autolinks)}</pre>}
             </>
           )}
         </div>
@@ -896,6 +901,8 @@ interface StageTreeCtx {
   onSelect: (path: string, area: 'staged' | 'unstaged') => void
   selectedPath?: string | null
   onOpenStagingEditor?: (file: string) => void
+  /** Right-click on a file row — the staging list had no menu at all. */
+  onContextMenu?: (e: React.MouseEvent, path: string) => void
   stageTitle: string; unstageTitle: string; discardTitle: string; hunkTitle: string
 }
 function collectTreeFiles(n: TreeNode): string[] {
@@ -913,7 +920,8 @@ function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx
     return (
       <div className={`stx-row st-tr st-clickable ${selected ? 'st-selected' : ''}`}
         style={{ paddingLeft: indent + 4 }}
-        onClick={() => ctx.onSelect(node.fullPath, staged ? 'staged' : 'unstaged')}>
+        onClick={() => ctx.onSelect(node.fullPath, staged ? 'staged' : 'unstaged')}
+        onContextMenu={ctx.onContextMenu && (e => ctx.onContextMenu!(e, node.fullPath))}>
         <IndetCheckbox className="stx-check" checked={staged} indeterminate={state === 'partial'}
           title={staged ? ctx.unstageTitle : ctx.stageTitle}
           onChange={() => staged ? ctx.onUnstage([node.fullPath]) : ctx.onStage([node.fullPath])} />
@@ -979,6 +987,12 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const [stagedOpen, setStagedOpen] = useState(true)
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [signoff, setSignoff] = useState(false)
+  // "Add as co-author" — the panel already writes a Signed-off-by trailer, and
+  // already READS co-authors to show their avatars. This is the missing half:
+  // writing one. The candidates are whoever has committed here recently, which
+  // is who you actually pair with.
+  const [coAuthorMenu, setCoAuthorMenu] = useState<{ x: number; y: number } | null>(null)
+  const [authors, setAuthors] = useState<{ name: string; email: string }[]>([])
   const [committing, setCommitting] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
@@ -1242,6 +1256,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const filterHidesAll = !!filterNeedle
     && mergedFiles.length + amendOnly.length > 0
     && visibleFiles.length + visibleAmendOnly.length === 0
+  const [fileMenu, setFileMenu] = useState<{ x: number; y: number; path: string } | null>(null)
   const stageOne = (paths: string[]) => handle(() => window.gitAPI.stage(paths))
   const unstageOne = (paths: string[]) => handle(() => window.gitAPI.unstage(paths))
   const discardOne = async (path: string) => {
@@ -1250,15 +1265,38 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   }
   const toggleAllStaged = () => handle(() =>
     allStaged ? window.gitAPI.unstage(changes.staged.map(x => x.path)) : window.gitAPI.stageAll())
+  const openFileMenu = (e: React.MouseEvent, path: string) => {
+    e.preventDefault()
+    setFileMenu({ x: e.clientX, y: e.clientY, path })
+  }
   const stageCtx: StageTreeCtx = {
     stateByPath, onStage: stageOne, onUnstage: unstageOne, onDiscard: discardOne,
     onSelect: (path, area) => selectFile({ path, area }),
     selectedPath: selectedDiff?.path, onOpenStagingEditor,
+    onContextMenu: openFileMenu,
     stageTitle: t('panel.stage'), unstageTitle: t('panel.unstaged'),
     discardTitle: t('panel.discard'), hunkTitle: t('panel.hunkEditor'),
   }
 
   const branchName = currentBranch || 'HEAD'
+
+  // Copying the path of a file you are about to commit is the smallest gesture
+  // in this lot and the one with no equivalent anywhere: VS Code's own commands
+  // act on the explorer, not on our list. Paths are repo-relative, which is what
+  // goes into a review comment.
+  const fileMenuNode = fileMenu && (
+    <ContextMenu
+      x={fileMenu.x} y={fileMenu.y}
+      items={[
+        { label: t('panel.file.copyPath'), action: () => navigator.clipboard.writeText(fileMenu.path) },
+        {
+          label: t('panel.file.copyName'),
+          action: () => navigator.clipboard.writeText(fileMenu.path.split('/').pop() ?? fileMenu.path),
+        },
+      ]}
+      onClose={() => setFileMenu(null)}
+    />
+  )
 
   // Dynamic commit-button label following the commit flow.
   const commitLabel = (() => {
@@ -1293,6 +1331,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 
       {/* ── Sort + view toggle ── */}
       {/* ── Embedded (VS Code): single checkbox list ── */}
+      {fileMenuNode}
       {embedded && (
         <div className="stx">
           <div className="stx-head">
@@ -1434,6 +1473,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                         onAction={paths => handle(() => window.gitAPI.stage(paths))}
                         actionIcon="+" actionTitle={t('panel.stage.file', node.fullPath)}
                         onSelect={p => selectFile({ path: p, area: 'unstaged' })}
+                        onContextMenu={openFileMenu}
                         isSelected={selectedDiff?.area === 'unstaged' && selectedDiff?.path === node.fullPath}
                       />
                     ))
@@ -1508,6 +1548,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                         onAction={paths => handle(() => window.gitAPI.unstage(paths))}
                         actionIcon="−" actionTitle={t('panel.unstaged')}
                         onSelect={p => selectFile({ path: p, area: 'staged' })}
+                        onContextMenu={openFileMenu}
                         isSelected={selectedDiff?.area === 'staged' && selectedDiff?.path === node.fullPath}
                       />
                     ))
@@ -1637,8 +1678,30 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
             <IcoChevron open={optionsOpen} /> {t('panel.commitOptions')}
           </button>
         </div>
+        {coAuthorMenu && (
+          <ContextMenu
+            x={coAuthorMenu.x} y={coAuthorMenu.y}
+            items={authors.length
+              ? authors.map(a => ({
+                  label: `${a.name} <${a.email}>`,
+                  action: () => addCoAuthor(a.name, a.email),
+                }))
+              : [{ label: t('panel.coAuthor.none'), action: () => {} }]}
+            onClose={() => setCoAuthorMenu(null)}
+          />
+        )}
         {optionsOpen && (
           <div className="st2-options">
+            <button
+              className="st2-coauthor"
+              onClick={e => {
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                void loadAuthors()
+                setCoAuthorMenu({ x: r.left, y: r.bottom + 4 })
+              }}
+            >
+              {t('panel.coAuthor.add')}
+            </button>
             <label className="st2-amend">
               <input type="checkbox" checked={signoff} onChange={e => setSignoff(e.target.checked)} />
               <span>{t('panel.signoff')}</span>
@@ -1668,6 +1731,36 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
       </div>
     </div>
   )
+
+  /**
+   * Append a `Co-authored-by:` trailer, the way git itself expects it: in the
+   * trailer block at the end, one per line, and never twice for the same person.
+   */
+  function addCoAuthor(name: string, email: string): void {
+    const trailer = `Co-authored-by: ${name} <${email}>`
+    setMessage(prev => {
+      if (prev.includes(trailer)) return prev
+      const body = prev.replace(/\s+$/, '')
+      // A trailer block is separated from the message by one blank line; once
+      // one exists, further trailers join it rather than starting a new block.
+      const sep = !body ? '' : /\n(?:[A-Za-z-]+): .+$/.test(body) ? '\n' : '\n\n'
+      return `${body}${sep}${trailer}\n`
+    })
+  }
+
+  async function loadAuthors(): Promise<void> {
+    if (authors.length) return
+    try {
+      const r = await window.gitAPI.getLog({ maxCount: 200 })
+      const seen = new Map<string, { name: string; email: string }>()
+      for (const c of r?.commits ?? []) {
+        const email = (c.authorEmail ?? '').trim()
+        if (!email || seen.has(email.toLowerCase())) continue
+        seen.set(email.toLowerCase(), { name: (c.author ?? '').trim() || email, email })
+      }
+      setAuthors([...seen.values()].slice(0, 12))
+    } catch { setAuthors([]) }
+  }
 
   async function doCommit() {
     if (!message.trim()) return
