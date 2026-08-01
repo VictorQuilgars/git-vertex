@@ -1,0 +1,12 @@
+{
+  "//": "Emits the test tree, and only that. Kept at rootDir ./src so out/test/suite/*.js stays where scripts/test-nodisplay.js and src/test/runTests.ts expect it. No test imports extension.ts or GitVertexHost.ts, so nothing here reaches outside src/ \u2014 which is what lets this config keep the strict rootDir the other one had to give up.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "./src",
+    "outDir": "./out"
+  },
+  "include": [
+    "src/test/**/*"
+  ]
+}

@@ -2,14 +2,20 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "ES2020",
-    "outDir": "./out",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "sourceMap": true
+    "noEmitOnError": true,
+    "sourceMap": true,
+    "noEmit": true
   },
-  "include": ["src"],
-  "//": "src/webview is bundled by esbuild (build-webview.js), not tsc — it imports the desktop React sources which live outside rootDir.",
-  "exclude": ["node_modules", ".vscode-test", "src/webview"]
+  "include": [
+    "src"
+  ],
+  "//": "TYPECHECK ONLY \u2014 it emits nothing. Two things need to be true at once: the extension host must be able to import shared logic from ../src/renderer (remoteUrl.ts and whatever the shared lots add next), and out/test/** must keep the exact layout the two test runners locate by path. rootDir cannot satisfy both, so the jobs are split: this file checks everything with no rootDir constraint, tsconfig.test.json emits the test tree, and esbuild (build-webview.js) produces the shipped bundles. src/webview is bundled by esbuild too and is not type-checked here.",
+  "exclude": [
+    "node_modules",
+    ".vscode-test",
+    "src/webview"
+  ]
 }
