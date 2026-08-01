@@ -183,7 +183,7 @@ export class GitService {
       `--max-count=${maxCount}`,
       '--date-order',
     ]
-    // Explicit refs (solo/mute branch filtering) take precedence over --all.
+    // Explicit refs (solo/hide branch filtering) take precedence over --all.
     if (options.refs && options.refs.length) args.push(...options.refs)
     else if (options.all) args.push('--all')
 

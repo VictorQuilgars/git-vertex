@@ -23,7 +23,7 @@ function renderTags(overrides: Record<string, any> = {}) {
   const props: Record<string, any> = {
     repoPath: '/repo', repoName: 'repo', currentBranch: 'main',
     branches: [], recentRepos: [], stashes: [], tags: TAGS,
-    soloBranch: null, mutedBranches: new Set<string>(),
+    soloBranch: null, hiddenBranches: new Set<string>(),
     view: 'tags',
     showToast: jest.fn(), showPrompt: jest.fn(), showConfirm: jest.fn(),
   }
@@ -34,7 +34,7 @@ function renderTags(overrides: Record<string, any> = {}) {
     'onDeleteRemoteBranch', 'onSetUpstream', 'onCreateStash', 'onApplyStash', 'onPopStash',
     'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag', 'onCheckoutTag', 'onGoTo',
     'onPushTag', 'onDeleteRemoteTag', 'onSelectCommit', 'onCompareBranch',
-    'onToggleSolo', 'onToggleMute',
+    'onToggleSolo', 'onToggleHide',
   ]) props[k] = jest.fn()
 
   Object.assign(props, overrides)
