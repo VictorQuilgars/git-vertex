@@ -30,7 +30,7 @@ let gitService: GitService | null = null
 
 // ── Auto-fetch timer ────────────────────────────────────────────
 // Re-armed whenever the active repo changes (openRepoAt) or the interval
-// setting changes (settings:set). 0/unset = disabled, matching GitKraken's
+// setting changes (settings:set). 0/unset = disabled, the usual
 // "Auto-Fetch Interval" (0 disables auto-fetch).
 let autoFetchTimer: ReturnType<typeof setInterval> | null = null
 function scheduleAutoFetch(): void {
@@ -502,7 +502,7 @@ ipcMain.handle('git:init-repo', async (_event, dir: string) => {
   }
 })
 
-// GitKraken-style "Initialize a Repository" (Local Only): create <location>/<name>,
+// "Initialize a Repository" (Local Only): create <location>/<name>,
 // git init on the given branch, optionally drop a .gitignore/LICENSE (fetched
 // from GitHub's template APIs) and run `git lfs install`.
 ipcMain.handle('git:init-advanced', async (_e, opts: { location: string; name: string; branch?: string; gitignore?: string; license?: string; lfs?: boolean }) => {
@@ -555,7 +555,7 @@ ipcMain.handle('github:list-licenses', async () => {
   } catch { return { licenses: [] } }
 })
 
-// GitKraken-style init on GitHub.com: create the remote repo, optionally clone
+// Init on GitHub.com: create the remote repo, optionally clone
 // it to a chosen local folder.
 ipcMain.handle('github:create-repo', async (_e, opts: { name: string; description?: string; private?: boolean; gitignore?: string; license?: string; cloneTo?: string }) => {
   const token = readSettings().githubToken
@@ -2344,7 +2344,7 @@ ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
       const st = await exec(gitBinary(), ['-C', p, 'status', '--porcelain'], { env })
       changed = st.stdout.split('\n').filter(Boolean).length
     } catch { return null }   // not a real repo anymore — drop it
-    // Line-level breakdown (tracked changes vs HEAD), GitKraken-style ✏ + −.
+    // Line-level breakdown (tracked changes vs HEAD), shown as ✏ + −.
     try {
       const ss = await exec(gitBinary(), ['-C', p, 'diff', 'HEAD', '--shortstat'], { env })
       added = Number(ss.stdout.match(/(\d+) insertion/)?.[1] ?? 0)
@@ -2367,7 +2367,7 @@ ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
 })
 
 // User-centric Launchpad feed: one GitHub search across ALL of the user's
-// repos (not just the recent/local ones), GitKraken-style. `q` is a GitHub
+// repos (not just the recent/local ones). `q` is a GitHub
 // issue-search query, e.g. "is:open is:pr author:@me".
 // The search API is capped at 30 req/min, and the Launchpad remounts on every
 // tab switch, so results are cached (20s TTL, force to bypass) to avoid
@@ -2535,7 +2535,7 @@ ipcMain.handle('github:clone', async (_e, cloneUrl: string, repoName: string) =>
 })
 
 // Clone to an explicit location (no native dialog) with Shallow/Sparse options —
-// used by the GitKraken-style Clone modal.
+// used by the Clone modal.
 ipcMain.handle('git:clone-to', async (_e, opts: { url: string; location: string; name: string; shallow?: boolean; sparse?: boolean }) => {
   try {
     const target = pathJoin(opts.location, opts.name)

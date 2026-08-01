@@ -12,7 +12,7 @@
 //     (RebaseProgress, boot mode 'rebase') — same UI/continue-skip-abort
 //     flow as the tab that auto-opens for a non-interactive or Git-Vertex-
 //     launched rebase, just backed by the real file instead of an ad-hoc
-//     panel, so it's the one tab GitLens's own competing editor is up
+//     panel, so it's the one tab a competing editor is up
 //     against instead of two different Git Vertex surfaces at once.
 import * as vscode from 'vscode'
 import * as path from 'path'

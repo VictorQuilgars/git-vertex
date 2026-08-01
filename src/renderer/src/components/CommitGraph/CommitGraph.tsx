@@ -453,7 +453,7 @@ interface CommitGraphProps {
   onDropCommit?: (hash: string) => void
   onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
   onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => void
-  // Commit-menu actions added for GitLens parity (all optional — only
+  // Commit-menu actions added for competitive parity (all optional — only
   // provided actions show, same convention as the branch-chip menu above)
   onRebaseCurrentOntoCommit?: (hash: string) => void
   onPushToCommit?: (hash: string) => void
@@ -911,7 +911,7 @@ export default function CommitGraph({
 
   // Branch operations for a local branch, shared by the branch chip and the
   // menu of the commit that is its tip — so both offer the exact same actions
-  // (GitKraken behaviour: right-clicking a branch name == its tip commit).
+  // (right-clicking a branch name == its tip commit).
   const branchActionItems = useCallback((name: string, isHead: boolean, display: string): MenuItemDef[] => {
     // Same deal as the chip menu: when the host can build the full branch menu,
     // the tip commit leads with all of it rather than the few actions this
@@ -1040,7 +1040,7 @@ export default function CommitGraph({
   }, [nativeContextMenu, onNativeMenuTarget])
 
   // Right-click on a ref chip. A LOCAL branch opens the same menu as its tip
-  // commit (branch actions + commit actions, GitKraken-style); tags and remote
+  // commit (branch actions + commit actions); tags and remote
   // branches keep their own dedicated menu.
   const openRefMenu = useCallback((e: React.MouseEvent, pref: ProcessedRef, commit: LayoutCommit) => {
     if ((pref.cls === 'rc-local' || pref.cls === 'rc-head') && pref.branchName) {

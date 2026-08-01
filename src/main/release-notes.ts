@@ -195,10 +195,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Per-row actions: open, **favorite** (★), **open in external editor**, **repository details** (README rendered in a slide-in), remove.
 - **New Workspace** modal to name a workspace and assign repos to it.
 
-### ⬇️ GitKraken-style Clone
+### ⬇️ A real Clone dialog
 - Provider nav (**Clone with URL** / **GitHub.com**), a **Where to clone to** field with Browse, a searchable list of your remote repos, and **Shallow Clone** / **Sparse Checkout** options.
 
-### ＋ GitKraken-style Init
+### ＋ A real Init dialog
 - **Initialize a Repository** modal — **Local Only** (name, location, default branch, optional .gitignore + license, LFS) and **GitHub.com** (create the remote repo and clone it).
 
 ### 🐛 Fixed

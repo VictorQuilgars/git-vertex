@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import './RepoManager.css'
 import { useLang } from '../../i18n/LanguageContext'
 
-// Repository Management (GitKraken-style): a full-page hub to browse, open,
+// Repository Management: a full-page hub to browse, open,
 // clone, init and group your repos. Opened by the 📁 button in the tab bar.
 
 interface LocalRepo { path: string; name: string; changed: number; added: number; deleted: number; branch: string; fullname: string | null }

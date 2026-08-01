@@ -1,4 +1,4 @@
-/* Full-page Launchpad — user-centric PRs & issues (GitKraken-style). */
+/* Full-page Launchpad — user-centric PRs & issues. */
 .lp-page {
   display: flex;
   flex-direction: column;
@@ -178,7 +178,7 @@
 }
 .lp-repo-link:hover { color: var(--accent, #58a6ff); text-decoration: underline; }
 
-/* Split action button (GitKraken-style) — stays on one line */
+/* Split action button — stays on one line */
 .lp-split { position: relative; display: inline-flex; white-space: nowrap; vertical-align: middle; }
 .lp-split-main, .lp-split-caret {
   background: #238636; border: 1px solid #2ea043; color: #fff; cursor: pointer;
