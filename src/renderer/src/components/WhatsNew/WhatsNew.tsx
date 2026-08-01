@@ -39,9 +39,16 @@ function renderNotes(md: string): React.ReactNode[] {
   return out
 }
 
-export default function WhatsNew({ version, notes }: { version: string; notes: string }) {
+export default function WhatsNew(
+  { version, notes, tagPrefix = 'v' }:
+  // Four products share one repository and one tag namespace, so the release a
+  // note links to depends on who is showing it: `v1.26.0` is the desktop app,
+  // `ext-v1.26.0` the extension. Defaulting to the desktop's prefix keeps the
+  // app's call site unchanged.
+  { version: string; notes: string; tagPrefix?: string },
+) {
   const { t } = useLang()
-  const releaseUrl = `https://github.com/VictorQuilgars/git-vertex/releases/tag/v${version}`
+  const releaseUrl = `https://github.com/VictorQuilgars/git-vertex/releases/tag/${tagPrefix}${version}`
   return (
     <div className="wn">
       <div className="wn-inner">

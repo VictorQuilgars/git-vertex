@@ -30,6 +30,7 @@ import PRModal from '../../../src/renderer/src/components/PRModal/PRModal'
 import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
 import CommitMsgEditorView from './CommitMsgEditorView'
+import WhatsNew from '../../../src/renderer/src/components/WhatsNew/WhatsNew'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
 
 import 'highlight.js/styles/github-dark.css'
@@ -992,6 +993,9 @@ const boot = (window as any).__GV_BOOT__ as
   {
     mode?: string; file?: string; refA?: string; refB?: string; baseHash?: string; hash?: string
     initialMessage?: string; action?: string; subject?: string; stepCurrent?: number; stepTotal?: number
+    // "What's new": the note travels with the boot payload, since the host
+    // already knows which version it opened the tab for.
+    version?: string; notes?: string
   } | undefined
 
 // The 3-way conflict resolver in its own tab: resolving or closing disposes
@@ -1070,7 +1074,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                         ? <InteractiveRebaseTab baseHash={boot.baseHash} />
                         : boot?.mode === 'commitMsg'
                           ? <CommitMsgEditorView boot={boot} />
-                          : <VertexApp />}
+                          : boot?.mode === 'whatsNew' && boot.notes
+                            ? <WhatsNew version={boot.version ?? ''} notes={boot.notes} tagPrefix="ext-v" />
+                            : <VertexApp />}
       </ToastProvider>
     </LanguageProvider>
   </SettingsProvider>
