@@ -14,7 +14,9 @@ whole repo — it is not:
 
 Desktop: `npm run dev`, `npm run package`, tests `npm test` (jest).
 Releasing anything: `scripts/release.sh <app|ext|cli|mcp> <patch|minor|major|X.Y.Z>` —
-**never tag by hand**, see `RELEASING.md`.
+**never tag by hand**, see `RELEASING.md`. Products can be combined for a change
+that spans them: `scripts/release.sh app+ext minor`, or `app=1.28.0+ext=patch`
+for a different bump each — one commit, one PR, both workflows.
 
 ## Architecture
 

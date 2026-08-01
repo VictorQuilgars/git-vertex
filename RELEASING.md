@@ -8,10 +8,46 @@ scripts/release.sh <app|ext|cli|mcp> <patch|minor|major|X.Y.Z>
 
 | Product | Directory | Version file | Tag | Goes to |
 |---|---|---|---|---|
-| `app` — desktop | `.` | `package.json` | `v1.25.0` | GitHub release: macOS, Windows, Linux installers + the auto-update feed |
-| `ext` — VS Code | `vscode-extension/` | `vscode-extension/package.json` | `ext-v1.23.0` | VS Code Marketplace, Open VSX, GitHub release with the `.vsix` |
+| `app` — desktop | `.` | `package.json` | `v1.27.0` | GitHub release: macOS, Windows, Linux installers + the auto-update feed |
+| `ext` — VS Code | `vscode-extension/` | `vscode-extension/package.json` | `ext-v1.25.0` | VS Code Marketplace, Open VSX, GitHub release with the `.vsix` |
 | `cli` — terminal UI | `cli/` | `cli/package.json` | `cli-v0.1.1` | npm (`git-vertex-cli`) |
-| `mcp` — MCP server | `mcp/` | `mcp/package.json` | `mcp-v0.5.2` | npm (`git-vertex-mcp`) |
+| `mcp` — MCP server | `mcp/` | `mcp/package.json` | `mcp-v0.5.3` | npm (`git-vertex-mcp`) |
+
+## Two products at once
+
+A change that spans the shared renderer usually has to go out in both the app
+and the extension. Join them with `+` and it is one command, one commit, one
+pull request:
+
+```bash
+scripts/release.sh app+ext minor            # both, each bumped from its own version
+scripts/release.sh app=1.28.0+ext=patch     # a different bump per product
+```
+
+A bare keyword is resolved against each product's own current version, so
+`app+ext minor` takes the app 1.27.0 → 1.28.0 and the extension 1.25.0 → 1.26.0.
+An explicit `X.Y.Z` cannot mean two different numbers, so it is only accepted
+per product, after `=`.
+
+Nothing new happens on the CI side. The merge lands both version files in one
+commit; each product's workflow watches its own file, so both start in parallel
+and each gate compares its own version to its own tags. The branch is named
+after what it releases — `release/app+ext-1.28.0+1.26.0`.
+
+Every release note is checked before anything is touched, and they are reported
+together rather than one at a time:
+
+```
+✗ missing release notes:
+    CHANGELOG.md                  no '## 1.28.0' section
+    src/main/release-notes.ts     no '1.28.0': entry
+    vscode-extension/CHANGELOG.md ✓
+```
+
+That check is strict on purpose. A merge is all-or-nothing — it lands both
+bumps — so a pair whose second changelog is empty would publish the first
+product and leave the other's gate red, with the first already on npm, where a
+version can never be replaced.
 
 ## How it works
 
@@ -63,9 +99,14 @@ to release and refuses to go on without it.
 `release.sh` then checks, before touching anything: you are on main and up to
 date, nothing is dirty except that changelog, the new version is ahead of the
 current one, the tag is free locally *and* on the remote, no unpushed commit
-would release another product as a side effect, and the product's own tests
-pass. The CI gate repeats those checks — being told on your laptop is cheaper,
-because an npm version can never be replaced once published.
+would release a product you did **not** name as a side effect, and the product's
+own tests pass. The CI gate repeats those checks — being told on your laptop is
+cheaper, because an npm version can never be replaced once published.
+
+That side-effect check is the one thing the combined mode relaxes, and only
+that: an unpushed bump of a product you named is the point of the release, while
+an unpushed bump of one you did not is still refused. When it fires it now tells
+you the third option — add that product to the release.
 
 ## After you run it
 
@@ -83,6 +124,12 @@ or uploaded, and there is nothing to undo.
 Approving it is not required of the repository owner — the `review required`
 ruleset does not apply to them — but the status checks are, and they are the
 reason releases stopped pushing straight to main.
+
+`main` also requires a pull request to be **up to date** with it before merging.
+A release branch is cut from a `main` the script has just checked you are level
+with, so it opens up to date. It only goes stale if something else is merged
+while it is open; then GitHub's "Update branch" pulls `main` in and the checks
+re-run on the result. That is a rebase and a wait, never a block.
 
 ## What CI does
 

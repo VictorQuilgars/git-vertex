@@ -1,21 +1,26 @@
 name: CI
 
-# Runs on every pull request, and on every push to main.
+# Runs on every pull request. That is the only trigger, and it is enough:
+# nothing reaches main except through a pull request, and these four jobs are
+# main's required status checks, so no commit can land without them.
 #
-# No secrets, and a read-only token — that is what makes it safe to run against
-# a pull request from a fork, whose code nobody has reviewed yet. A workflow
-# that needed secrets here would hand them to that code.
+# It used to run on `push: branches: [main]` as well. That re-ran, on the merge
+# commit, the same four jobs that had just passed on the pull request — the
+# merge commit and the PR's test merge commit have the same tree, so the second
+# run could only agree with the first. It cost four runners per merge to
+# re-confirm a result nobody was waiting on, and nothing was gated on it: a red
+# run on main blocks no merge, because the merge has already happened.
 #
-# It deliberately builds no installer. Every product runs from source in a
-# couple of commands (see CONTRIBUTING.md), so a contributor tests their change
-# by running it, not by downloading an artifact from a CI run. This answers one
-# narrower question: does the change keep the four products compiling and their
-# tests green?
+# The one case it did catch is the semantic conflict — two pull requests that
+# are each green, merge without a textual conflict, and are broken together.
+# That is covered instead by "Require branches to be up to date before merging"
+# on the `protect main` ruleset: when main moves, a pull request has to take
+# that move in and re-run before it can be merged, so the run that gates the
+# merge is a run on the tree that merging actually produces. Catching it before
+# the merge is worth more than being told after it.
 
 on:
   pull_request:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
