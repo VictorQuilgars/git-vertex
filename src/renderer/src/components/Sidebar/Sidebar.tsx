@@ -565,10 +565,20 @@ export default function Sidebar({
   const [work, setWork] = useState<{ staged: number; changed: number }>({ staged: 0, changed: 0 })
   const { t } = useLang()
 
+  // Swallowing this silently is what kept the empty Agents view alive in the VS
+  // Code panel for two releases: the host answered not-implemented, the catch
+  // ate it, and the list just rendered as "none running". Log instead — a
+  // console line is the difference between a bug you can see and one you can't.
+  const loadAgents = useCallback(() => {
+    ;(window.gitAPI as any).listAgents?.()
+      .then((r: { agents?: AgentEntry[] }) => setAgents(r?.agents ?? []))
+      .catch((e: unknown) => console.warn('[sidebar] listAgents failed:', e))
+  }, [])
+
   const loadWorktrees = useCallback(() => {
     window.gitAPI.listWorktrees().then(r => setWorktrees(r.worktrees ?? []))
-    ;(window.gitAPI as any).listAgents?.().then((r: { agents?: AgentEntry[] }) => setAgents(r?.agents ?? [])).catch(() => {})
-  }, [])
+    loadAgents()
+  }, [loadAgents])
 
   useEffect(() => {
     if (!repoPath) return
@@ -581,11 +591,9 @@ export default function Sidebar({
       .catch(() => {})
     loadWorktrees()
     // Light poll so agent badges stay current while the sidebar is open.
-    const interval = setInterval(() => {
-      ;(window.gitAPI as any).listAgents?.().then((r: { agents?: AgentEntry[] }) => setAgents(r?.agents ?? [])).catch(() => {})
-    }, 10000)
+    const interval = setInterval(loadAgents, 10000)
     return () => clearInterval(interval)
-  }, [repoPath, loadWorktrees])
+  }, [repoPath, loadWorktrees, loadAgents])
 
   const agentsFor = useCallback((wtPath: string) =>
     agents.filter(a => a.cwd === wtPath || a.cwd.startsWith(wtPath + '/')),
