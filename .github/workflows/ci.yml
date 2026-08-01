@@ -72,10 +72,18 @@ jobs:
         working-directory: vscode-extension
       - run: npm run compile
         working-directory: vscode-extension
-      # The extension's own suite needs a display and is best-effort even in the
-      # publish workflow, so it is not a gate here either — `compile` is. Note
-      # that src/webview is outside tsc's reach, which is how 43 undefined
-      # translation keys once shipped: compiling is not the same as being right.
+      # The full suite needs a display, so it stays best-effort in the publish
+      # workflow. The display-free half does not, and it holds the two guards
+      # that only ever fail on a pull request: host parity (is every gitAPI
+      # method classified?) and panel surface (does the panel still render a
+      # control for something it declared unavailable?). Running them only at
+      # release time is how a red parity test shipped twice — `compile` alone
+      # is not a gate. Note that src/webview is outside tsc's reach, which is
+      # how 43 undefined translation keys once shipped: compiling is not the
+      # same as being right.
+      - name: Display-free tests (host parity, panel surface)
+        run: npm run test:nodisplay
+        working-directory: vscode-extension
 
   cli:
     name: CLI typecheck

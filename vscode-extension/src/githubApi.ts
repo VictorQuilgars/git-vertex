@@ -63,6 +63,39 @@ export async function githubListIssues(token: string | undefined, owner: string,
 }
 
 /**
+ * One issue or pull request by number, for the `#123` hover card the shared
+ * renderer puts on every commit message (IssueLink.tsx). Mirrors the desktop's
+ * `github:get-issue`, including its shape — the tooltip reads `issue.isPR` and
+ * `issue.merged` to pick its colour.
+ *
+ * The token is optional here, unlike every other call in this file: public
+ * repositories answer unauthenticated, and a hover card that only works once
+ * you have pasted a PAT is worse than one that works most of the time.
+ */
+export async function githubGetIssue(
+  token: string | undefined, owner: string, repo: string, num: number,
+): Promise<any> {
+  const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  try {
+    // The issues endpoint resolves both issues and PRs by number.
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${num}`, { headers })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const d = await res.json() as any
+    return {
+      issue: {
+        number: d.number,
+        title: d.title,
+        state: d.state,
+        isPR: !!d.pull_request,
+        merged: d.pull_request?.merged_at != null,
+        url: d.html_url,
+      },
+    }
+  } catch (e: any) { return { error: e.message } }
+}
+
+/**
  * Open a pull request. The head branch must already be on the remote — the
  * shared PRModal pushes it first, which is why its button says so.
  */
