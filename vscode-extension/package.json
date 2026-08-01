@@ -117,6 +117,10 @@
         "icon": "$(github)"
       },
       {
+        "command": "gitVertex.showWhatsNew",
+        "title": "Git Vertex: What's New"
+      },
+      {
         "command": "gitVertex.setGithubToken",
         "title": "Git Vertex: Set GitHub Token"
       },
@@ -317,6 +321,9 @@
         },
         {
           "command": "gitVertex.openGitHub"
+        },
+        {
+          "command": "gitVertex.showWhatsNew"
         },
         {
           "command": "gitVertex.setGithubToken"

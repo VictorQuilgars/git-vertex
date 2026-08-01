@@ -128,6 +128,9 @@ const MUST_BE_BUNDLED = [
   'src/renderer/src/components/CommitGraph/CommitGraph.tsx',
   'src/renderer/src/components/RightPanel/RightPanel.tsx',
   'src/renderer/src/components/IssueLink/IssueLink.tsx',
+  // Entered the bundle with the "What's new" tab. Listed so a resolver that
+  // stopped following that import could not quietly stop checking it.
+  'src/renderer/src/components/WhatsNew/WhatsNew.tsx',
 ]
 
 /** Resolve a relative import the way esbuild does for this bundle. */

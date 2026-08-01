@@ -875,6 +875,52 @@ export function openGitVertexGitHubTab(
   })
 }
 
+// ── "What's new" tab ──────────────────────────────────────────────
+// Replaces the raw CHANGELOG.md markdown preview that used to open after an
+// update. Same trigger, different content: the whole file, in developer
+// sections, was never what a user wanted to read — this shows the curated note
+// for one version, in the same component the desktop app uses.
+//
+// The note travels in the boot payload rather than through a gitAPI call: the
+// caller already knows which version it is opening for, so a round trip would
+// only add three methods to the host for no answer it does not have.
+const WHATS_NEW_VIEW_TYPE = 'gitVertex.whatsNew'
+let whatsNewPanel: vscode.WebviewPanel | undefined
+let whatsNewHost: GitVertexHost | undefined
+
+export function openGitVertexWhatsNewTab(
+  extensionUri: vscode.Uri,
+  state: vscode.Memento,
+  version: string,
+  notes: string,
+): void {
+  if (whatsNewPanel) {
+    whatsNewPanel.reveal(whatsNewPanel.viewColumn)
+    return
+  }
+
+  whatsNewPanel = vscode.window.createWebviewPanel(
+    WHATS_NEW_VIEW_TYPE,
+    `What's New — Git Vertex ${version}`,
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+    },
+  )
+  whatsNewPanel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
+
+  whatsNewHost = new GitVertexHost(whatsNewPanel.webview, extensionUri, state,
+    { mode: 'whatsNew', version, notes })
+
+  whatsNewPanel.onDidDispose(() => {
+    whatsNewHost?.dispose()
+    whatsNewHost = undefined
+    whatsNewPanel = undefined
+  })
+}
+
 // ── Compare tabs (one WebviewPanel per ref pair) ──────────────────
 // another tool "Search & Compare"-style: ahead/behind commit lists + full diff
 // between two refs. Refs can be changed from inside the tab.
