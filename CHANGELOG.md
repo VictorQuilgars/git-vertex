@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.28.0
 
 ### Changed
 - **The same action reads the same everywhere.** The desktop menus and the VS Code panel drew their wording from two different places, and six actions had drifted apart: the one that detaches HEAD said *Switch to Commit* in the panel and *Check out this commit* on the desktop, and the three reset modes were named on one side and described on the other. They now share one vocabulary, and a test compares the two catalogues so the next one cannot drift silently.

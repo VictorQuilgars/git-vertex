@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.26.0
 
 ### Changed
 - **"What's new" is written for you, not for the repository.** After an update the extension opened `CHANGELOG.md` in a markdown preview — the whole file, every version back to 1.0.0, in *Added / Changed / Fixed* sections aimed at whoever reads the source. It now opens the note for the version you just got, in the same view the desktop app has always used, with **Git Vertex: What's New** in the command palette to re-read it later. Every past version has a note too, so the history is browsable rather than starting from today.
