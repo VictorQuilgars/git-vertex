@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.26.0': `## What's new in 1.26.0
 
 ### 🔑 Sign in to GitHub without minting a token
 - The panel used to offer a Personal Access Token and nothing else, so creating a pull request, the PR and issue lists, and the \`#123\` cards on private repositories were all gated behind a trip to github.com.
