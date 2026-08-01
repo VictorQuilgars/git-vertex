@@ -89,18 +89,12 @@ const PANEL_UNREACHABLE: Unreachable[] = [
     guard: '{!embedded && (',
     within: 45,
   },
-  {
-    method: 'githubStartAuth',
-    file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
-    why: 'The OAuth "Connect" button. Desktop OAuth needs the gitgui:// deep link; the panel gets the PAT field instead.',
-    guard: '{!githubUser && !embedded && (',
-  },
-  {
-    method: 'githubDisconnect',
-    file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
-    why: 'Counterpart of the OAuth button. Embedded, the same control clears the stored PAT inline instead.',
-    guard: 'onClick={embedded ? async () => {',
-  },
+  // githubStartAuth and githubDisconnect used to sit here: the "Connect" button
+  // was hidden embedded because desktop OAuth needs a gitgui:// deep link. They
+  // are implemented in the panel now — sign-in goes through VS Code's own
+  // GitHub provider — so the button is shown on both products and there is
+  // nothing left to declare unreachable. This is the list shrinking in the
+  // direction it is supposed to.
   {
     method: 'checkForUpdates',
     file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
