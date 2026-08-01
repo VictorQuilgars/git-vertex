@@ -1,5 +1,17 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Changed
+- **The same action reads the same everywhere.** The desktop menus and the VS Code panel drew their wording from two different places, and six actions had drifted apart: the one that detaches HEAD said *Switch to Commit* in the panel and *Check out this commit* on the desktop, and the three reset modes were named on one side and described on the other. They now share one vocabulary, and a test compares the two catalogues so the next one cannot drift silently.
+- **Menu labels no longer start with an emoji.** 127 of them did. An emoji does not inherit the colour of its own row, so it could not follow the hover, disabled or danger state of the text beside it, and a screen reader announced it before the action — *"cherry, Cherry-pick Commit"*. The remaining state markers are monochrome glyphs that follow the text.
+- **Action labels are in Title Case, and `…` now means what it usually means**: the action opens an input or a dialog. *Move commit up* and *Copy short hash* were the odd ones out; *Cherry-pick Commit* never asked anything and kept its ellipsis.
+- The rail's stash entry is **Stashes**, like the Branches, Remotes, Tags and Worktrees beside it.
+
+### Fixed
+- **The Mixed reset described the opposite of what it does.** It read *keeps unstaged changes*, which reads as a promise to leave your work where it is; `--mixed` unstages everything and leaves the working copy alone. It now says *keeps your working copy, resets the index*.
+- **`cp.empty` was declared twice** in the string catalogue, with two different texts. A duplicate key is not an error in JavaScript — the last one silently wins — so the command palette had been showing the second one while the first sat unused. A test now fails on any duplicate.
+
 ## 1.27.0
 
 ### Added

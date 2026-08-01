@@ -64,7 +64,7 @@ function VertexApp() {
   const [stashes, setStashes] = useState<{ index: number; message: string }[]>([])
   const [tags, setTags] = useState<{ name: string; hash: string }[]>([])
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
-  const [mutedBranches, setMutedBranches] = useState<Set<string>>(new Set())
+  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set())
   // Favorites / graph pins / linked issues (v1.21.0). The panel is always the
   // workspace repo, so the repo name is a stable enough storage key.
   const branchMeta = useBranchMeta(repoName || 'repo')
@@ -90,7 +90,7 @@ function VertexApp() {
   const showAllRef = useRef(showAllBranches)
   showAllRef.current = showAllBranches
   const soloRef = useRef(soloBranch); soloRef.current = soloBranch
-  const mutedRef = useRef(mutedBranches); mutedRef.current = mutedBranches
+  const hiddenRef = useRef(hiddenBranches); hiddenRef.current = hiddenBranches
 
   // ── Data loading (mirrors desktop App.loadRepoData) ──────────
   // `silent` reloads (from file watchers) skip the loading flag so the toolbar
@@ -101,15 +101,15 @@ function VertexApp() {
     if (!silent) setLoading(true)
     try {
       const branchRes = await window.gitAPI.getBranches()
-      // Solo (show one branch) / mute (hide some) drive an explicit refs list,
+      // Solo (show one branch) / hide (hide some) drive an explicit refs list,
       // which takes precedence over --all in getLog.
       const refForGit = (n: string) => n.replace(/^remotes\//, '')
       let logOpts: { maxCount: number; all?: boolean; refs?: string[] } = { maxCount: 500, all: showAllRef.current }
       if (soloRef.current) {
         logOpts = { maxCount: 500, refs: [refForGit(soloRef.current)] }
-      } else if (mutedRef.current.size > 0 && branchRes?.branches) {
+      } else if (hiddenRef.current.size > 0 && branchRes?.branches) {
         const visible = branchRes.branches
-          .filter((b: BranchInfo) => !mutedRef.current.has(b.name))
+          .filter((b: BranchInfo) => !hiddenRef.current.has(b.name))
           .map((b: BranchInfo) => refForGit(b.name))
         logOpts = { maxCount: 500, refs: visible.length ? visible : ['HEAD'] }
       }
@@ -549,11 +549,11 @@ function VertexApp() {
     setSoloBranch(prev => { const next = prev === name ? null : name; soloRef.current = next; return next })
     setTimeout(() => loadRepoData(), 0)
   }, [loadRepoData])
-  const handleToggleMute = useCallback((name: string) => {
-    setMutedBranches(prev => {
+  const handleToggleHide = useCallback((name: string) => {
+    setHiddenBranches(prev => {
       const next = new Set(prev)
       if (next.has(name)) next.delete(name); else next.add(name)
-      mutedRef.current = next
+      hiddenRef.current = next
       return next
     })
     setTimeout(() => loadRepoData(), 0)
@@ -710,7 +710,7 @@ function VertexApp() {
     pr: currentBranchPR,
     menuState: {
       soloed: soloBranch === currentBranch,
-      muted: mutedBranches.has(currentBranch),
+      hidden: hiddenBranches.has(currentBranch),
       favorite: branchMeta.isFavorite(currentBranch),
     },
     menuActions: {
@@ -721,7 +721,7 @@ function VertexApp() {
       onAssociateIssue: () => setIssueModalBranch(currentBranch),
       onToggleFavorite: () => branchMeta.toggleFavorite(currentBranch),
       onToggleSolo: () => handleToggleSolo(currentBranch),
-      onToggleMute: () => handleToggleMute(currentBranch),
+      onToggleHide: () => handleToggleHide(currentBranch),
       onCopyName: () => navigator.clipboard.writeText(currentBranch),
       onRename: () => handleRenameBranch(currentBranch),
       onCreatePR: currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined,
@@ -765,11 +765,11 @@ function VertexApp() {
         onAssociateIssue={setIssueModalBranch}
         onToggleFavorite={branchMeta.toggleFavorite}
         onToggleSolo={handleToggleSolo}
-        onToggleMute={handleToggleMute}
+        onToggleHide={handleToggleHide}
         isFavorite={branchMeta.isFavorite}
         issueFor={branchMeta.issueFor}
         soloBranch={soloBranch}
-        mutedBranches={mutedBranches}
+        hiddenBranches={hiddenBranches}
         pr={currentBranchPR}
         onCreatePR={handleStartPR}
       />
@@ -843,9 +843,9 @@ function VertexApp() {
             onSelectCommit={handleSelectCommitByHash}
             onCompareBranch={(name: string) => window.gitAPI.openCompare(currentBranch, name)}
             soloBranch={soloBranch}
-            mutedBranches={mutedBranches}
+            hiddenBranches={hiddenBranches}
             onToggleSolo={handleToggleSolo}
-            onToggleMute={handleToggleMute}
+            onToggleHide={handleToggleHide}
             onFetch={handleFetch}
             onPull={handlePull}
             isFavorite={branchMeta.isFavorite}

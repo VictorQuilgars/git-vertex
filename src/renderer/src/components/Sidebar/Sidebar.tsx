@@ -65,9 +65,9 @@ interface SidebarProps {
   onSelectCommit: (hash: string) => void
   onCompareBranch: (branchName: string) => void
   soloBranch: string | null
-  mutedBranches: Set<string>
+  hiddenBranches: Set<string>
   onToggleSolo: (name: string) => void
-  onToggleMute: (name: string) => void
+  onToggleHide: (name: string) => void
   // Pull for the checked-out branch. Fetch is deliberately absent: it acts on
   // the repo, not on the branch you right-clicked, and lives on the toolbar.
   onPull?: () => void
@@ -151,12 +151,12 @@ interface BranchItemProps {
   onDeleteRemote?: () => void
   onSetUpstream?: () => void
   soloed?: boolean
-  muted?: boolean
+  hidden?: boolean
   favorite?: boolean
   issue?: { number: number; title?: string } | null
   onPull?: () => void
   onToggleSolo?: () => void
-  onToggleMute?: () => void
+  onToggleHide?: () => void
   onToggleFavorite?: () => void
   onOpenOnRemote?: () => void
   onAssociateIssue?: () => void
@@ -176,7 +176,7 @@ interface BranchItemProps {
   showRemotePrefix?: boolean
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, muted, favorite, issue, onPull, onToggleSolo, onToggleMute, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -189,7 +189,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   // now offer the identical menu (v1.21.0).
   const menuItems: MenuItemDef[] = buildBranchMenu(
     { name, display, current, remote: !!remote, pr: pr ?? undefined, publishedAs },
-    { currentBranch, soloed, muted, favorite, issue },
+    { currentBranch, soloed, hidden, favorite, issue },
     {
       onCheckout: current ? undefined : onCheckout,
       onPull,
@@ -197,7 +197,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
       onCreatePR: pr && onCreatePR ? () => onCreatePR(pr) : undefined,
       onMerge, onRebaseOnto, onCompare,
       onOpenOnRemote, onAssociateIssue, onToggleFavorite,
-      onToggleSolo, onToggleMute,
+      onToggleSolo, onToggleHide,
       onCopyName: () => navigator.clipboard.writeText(display),
       onCopyLink,
       onRename, onDelete, onDeleteRemote, onDeleteBoth,
@@ -221,7 +221,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   return (
     <>
       <div
-        className={`sb-branch-item ${current ? 'current' : ''} ${remote ? 'remote' : ''} ${muted ? 'muted' : ''} ${soloed ? 'soloed' : ''}`}
+        className={`sb-branch-item ${current ? 'current' : ''} ${remote ? 'remote' : ''} ${hidden ? 'is-hidden' : ''} ${soloed ? 'soloed' : ''}`}
         onMouseDown={handleMouseDown}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         onMouseEnter={() => setHover(true)}
@@ -242,7 +242,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
         {favorite && <span className="sb-branch-flag sb-branch-star" title={t('sb.branch.favoriteFlag')}>★</span>}
         {issue && <span className="sb-branch-flag" title={issue.title || `#${issue.number}`}>#{issue.number}</span>}
         {soloed && <span className="sb-branch-flag" title={t('sb.branch.soloFlag')}>👁</span>}
-        {muted && <span className="sb-branch-flag" title={t('sb.branch.mutedFlag')}>🔇</span>}
+        {hidden && <span className="sb-branch-flag" title={t('sb.branch.hiddenFlag')}>⊘</span>}
         {current && (
           <svg width="11" height="11" viewBox="0 0 16 16" fill="#3fb950" className="current-check">
             <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
@@ -540,7 +540,7 @@ export default function Sidebar({
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
-  soloBranch, mutedBranches, onToggleSolo, onToggleMute,
+  soloBranch, hiddenBranches, onToggleSolo, onToggleHide,
   onPull,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
@@ -914,9 +914,9 @@ export default function Sidebar({
                 onSetUpstream={() => onSetUpstream(b.name)}
                 onPull={b.current ? onPull : undefined}
                 soloed={soloBranch === b.name}
-                muted={mutedBranches.has(b.name)}
+                hidden={hiddenBranches.has(b.name)}
                 onToggleSolo={() => onToggleSolo(b.name)}
-                onToggleMute={() => onToggleMute(b.name)}
+                onToggleHide={() => onToggleHide(b.name)}
                 favorite={isFavorite?.(b.name)}
                 issue={issueFor?.(b.name)}
                 onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
@@ -956,9 +956,9 @@ export default function Sidebar({
                   onCheckout={() => onGoTo(b.name)}
                   onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
                   soloed={soloBranch === b.name}
-                  muted={mutedBranches.has(b.name)}
+                  hidden={hiddenBranches.has(b.name)}
                   onToggleSolo={() => onToggleSolo(b.name)}
-                  onToggleMute={() => onToggleMute(b.name)}
+                  onToggleHide={() => onToggleHide(b.name)}
                   favorite={isFavorite?.(b.name)}
                   onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
                   onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}

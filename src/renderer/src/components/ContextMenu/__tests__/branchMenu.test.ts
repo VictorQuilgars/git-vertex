@@ -20,7 +20,7 @@ const allActions = (): BranchMenuActions => ({
   onCheckout: jest.fn(), onPull: jest.fn(), onPush: jest.fn(),
   onMerge: jest.fn(), onRebaseOnto: jest.fn(), onCompare: jest.fn(), onSetUpstream: jest.fn(),
   onOpenOnRemote: jest.fn(), onAssociateIssue: jest.fn(), onToggleFavorite: jest.fn(),
-  onToggleSolo: jest.fn(), onToggleMute: jest.fn(),
+  onToggleSolo: jest.fn(), onToggleHide: jest.fn(),
   onCopyName: jest.fn(), onRename: jest.fn(), onDelete: jest.fn(), onDeleteRemote: jest.fn(),
   onCreatePR: jest.fn(), onCopyLink: jest.fn(), onDeleteBoth: jest.fn(),
 })
@@ -75,15 +75,15 @@ describe('buildBranchMenu (v1.21.0)', () => {
 
   test('toggle rows reflect their current state, inside the view submenu', () => {
     const on = buildBranchMenu(local(), {
-      currentBranch: 'main', favorite: true, soloed: true, muted: true,
+      currentBranch: 'main', favorite: true, soloed: true, hidden: true,
     }, allActions(), t)
     expect(subLabels(on, 'sb.branch.viewMenu')).toEqual([
-      'sb.branch.unfavorite', 'sb.branch.unsolo', 'sb.branch.unmute',
+      'sb.branch.unfavorite', 'sb.branch.unsolo', 'sb.branch.show',
     ])
 
     const off = buildBranchMenu(local(), { currentBranch: 'main' }, allActions(), t)
     expect(subLabels(off, 'sb.branch.viewMenu')).toEqual([
-      'sb.branch.favorite', 'sb.branch.solo', 'sb.branch.mute',
+      'sb.branch.favorite', 'sb.branch.solo', 'sb.branch.hide',
     ])
   })
 

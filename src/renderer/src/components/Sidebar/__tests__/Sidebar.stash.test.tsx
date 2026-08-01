@@ -23,7 +23,7 @@ function renderStash(overrides: Record<string, any> = {}) {
   const props: Record<string, any> = {
     repoPath: '/repo', repoName: 'repo', currentBranch: 'main',
     branches: [], recentRepos: [], stashes: STASHES, tags: [],
-    soloBranch: null, mutedBranches: new Set<string>(),
+    soloBranch: null, hiddenBranches: new Set<string>(),
     view: 'stash',
     showToast: jest.fn(),
     showPrompt: jest.fn().mockResolvedValue(null),
@@ -35,7 +35,7 @@ function renderStash(overrides: Record<string, any> = {}) {
     'onDeleteRemoteBranch', 'onSetUpstream', 'onCreateStash', 'onApplyStash', 'onPopStash',
     'onDropStash', 'onRefreshStashes', 'onCreateTag', 'onDeleteTag', 'onCheckoutTag',
     'onPushTag', 'onDeleteRemoteTag', 'onSelectCommit', 'onCompareBranch',
-    'onToggleSolo', 'onToggleMute', 'onRefresh',
+    'onToggleSolo', 'onToggleHide', 'onRefresh',
   ]) props[k] = jest.fn()
 
   Object.assign(props, overrides)

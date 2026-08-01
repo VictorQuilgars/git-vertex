@@ -61,7 +61,7 @@
       },
       {
         "command": "gitVertex.openFile",
-        "title": "Open in Git Vertex",
+        "title": "Open File in Git Vertex",
         "icon": "$(git-branch)"
       },
       {
@@ -81,7 +81,7 @@
       },
       {
         "command": "gitVertex.enableRebaseEditor",
-        "title": "Git Vertex: Toggle Interactive Rebase Editor (sequence.editor + core.editor)"
+        "title": "Git Vertex: Toggle Interactive Rebase Editor"
       },
       {
         "command": "gitVertex.fileHistory",
@@ -126,27 +126,27 @@
       },
       {
         "command": "gitVertex.commitMenu.switchTo",
-        "title": "Switch to Commit"
+        "title": "Check Out This Commit (Detached HEAD)"
       },
       {
         "command": "gitVertex.commitMenu.createBranch",
-        "title": "Create Branch Here"
+        "title": "Create Branch Here…"
       },
       {
         "command": "gitVertex.commitMenu.createTag",
-        "title": "Create Tag Here"
+        "title": "Create Tag Here…"
       },
       {
         "command": "gitVertex.commitMenu.createWorktree",
-        "title": "Create Worktree Here"
+        "title": "Create Worktree Here…"
       },
       {
         "command": "gitVertex.commitMenu.modifyFromHere",
-        "title": "Interactive Rebase from Here"
+        "title": "Interactive Rebase from Here…"
       },
       {
         "command": "gitVertex.commitMenu.reword",
-        "title": "Reword Commit"
+        "title": "Reword Commit…"
       },
       {
         "command": "gitVertex.commitMenu.cherryPick",
@@ -154,11 +154,11 @@
       },
       {
         "command": "gitVertex.commitMenu.revert",
-        "title": "Revert Commit"
+        "title": "Revert Commit…"
       },
       {
         "command": "gitVertex.commitMenu.drop",
-        "title": "Drop Commit"
+        "title": "Drop Commit…"
       },
       {
         "command": "gitVertex.commitMenu.moveUp",
@@ -170,23 +170,23 @@
       },
       {
         "command": "gitVertex.commitMenu.rebaseOnto",
-        "title": "Rebase Current Branch onto Commit"
+        "title": "Rebase Current Branch onto Commit…"
       },
       {
         "command": "gitVertex.commitMenu.resetSoft",
-        "title": "Reset Current Branch to Here (Soft)"
+        "title": "Reset Current Branch to Here — Soft (keeps all changes, staged)"
       },
       {
         "command": "gitVertex.commitMenu.resetMixed",
-        "title": "Reset Current Branch to Here (Mixed)"
+        "title": "Reset Current Branch to Here — Mixed (keeps your working copy, resets the index)"
       },
       {
         "command": "gitVertex.commitMenu.resetHard",
-        "title": "Reset Current Branch to Here (Hard)"
+        "title": "Reset Current Branch to Here — Hard (discards all changes)"
       },
       {
         "command": "gitVertex.commitMenu.pushToCommit",
-        "title": "Push to Commit"
+        "title": "Push to Commit…"
       },
       {
         "command": "gitVertex.commitMenu.copyShortHash",
@@ -202,7 +202,7 @@
       },
       {
         "command": "gitVertex.commitMenu.createPatch",
-        "title": "Create Patch"
+        "title": "Create Patch…"
       },
       {
         "command": "gitVertex.commitMenu.copyPatch",
@@ -277,6 +277,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "gitVertex.openFile",
+          "when": "false"
+        },
         {
           "command": "gitVertex.open"
         },

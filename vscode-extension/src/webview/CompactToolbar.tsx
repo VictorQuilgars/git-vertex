@@ -49,11 +49,11 @@ interface Props {
   onAssociateIssue?: (name: string) => void
   onToggleFavorite?: (name: string) => void
   onToggleSolo?: (name: string) => void
-  onToggleMute?: (name: string) => void
+  onToggleHide?: (name: string) => void
   isFavorite?: (name: string) => boolean
   issueFor?: (name: string) => { number: number; title?: string } | null
   soloBranch?: string | null
-  mutedBranches?: Set<string>
+  hiddenBranches?: Set<string>
   /** The pull request the checked-out branch offers, if any — see prIntentFor. */
   pr?: PRIntent | null
   onCreatePR?: (intent: PRIntent) => void
@@ -121,7 +121,7 @@ export default function CompactToolbar(p: Props) {
     {
       currentBranch: p.branch,
       soloed: p.soloBranch === p.branch,
-      muted: p.mutedBranches?.has(p.branch),
+      hidden: p.hiddenBranches?.has(p.branch),
       favorite: p.isFavorite?.(p.branch),
       issue: p.issueFor?.(p.branch),
     },
@@ -133,7 +133,7 @@ export default function CompactToolbar(p: Props) {
       onAssociateIssue: p.onAssociateIssue && (() => p.onAssociateIssue!(p.branch)),
       onToggleFavorite: p.onToggleFavorite && (() => p.onToggleFavorite!(p.branch)),
       onToggleSolo: p.onToggleSolo && (() => p.onToggleSolo!(p.branch)),
-      onToggleMute: p.onToggleMute && (() => p.onToggleMute!(p.branch)),
+      onToggleHide: p.onToggleHide && (() => p.onToggleHide!(p.branch)),
       onCopyName: () => navigator.clipboard.writeText(p.branch),
       onRename: p.onRenameBranch && (() => p.onRenameBranch!(p.branch)),
       onCreatePR: p.pr && p.onCreatePR ? () => p.onCreatePR!(p.pr!) : undefined,

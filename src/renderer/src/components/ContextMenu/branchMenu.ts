@@ -2,7 +2,7 @@
 // surface that offers branch actions.
 //
 // Before v1.21 these were scattered: Switch/Pull/Fetch lived on the toolbar,
-// while Rebase onto / Compare / Rename / Solo / Mute / Delete were reachable
+// while Rebase onto / Compare / Rename / Solo / Hide / Delete were reachable
 // only by right-clicking a row in the sidebar. Same actions, three places, and
 // invisible at the moment they were useful. Callers now pass the handlers they
 // can support and get one consistent, identically-ordered menu.
@@ -36,7 +36,7 @@ export interface BranchMenuState {
   /** Name of the checked-out branch — used in "Merge into X" style labels. */
   currentBranch: string
   soloed?: boolean
-  muted?: boolean
+  hidden?: boolean
   favorite?: boolean
   /** Issue currently linked to this branch, if any. */
   issue?: { number: number; title?: string } | null
@@ -56,7 +56,7 @@ export interface BranchMenuActions {
   onAssociateIssue?: () => void
   onToggleFavorite?: () => void
   onToggleSolo?: () => void
-  onToggleMute?: () => void
+  onToggleHide?: () => void
   onCopyName?: () => void
   /** Copies the branch's URL on the forge, next to opening it. */
   onCopyLink?: () => void
@@ -235,18 +235,18 @@ export function buildBranchMenu(
       checked: !!state.soloed,
     })
   }
-  if (actions.onToggleMute) {
+  if (actions.onToggleHide) {
     toggles.push({
-      label: state.muted ? t('sb.branch.unmute') : t('sb.branch.mute'),
-      action: actions.onToggleMute,
-      checked: !!state.muted,
+      label: state.hidden ? t('sb.branch.show') : t('sb.branch.hide'),
+      action: actions.onToggleHide,
+      checked: !!state.hidden,
     })
   }
   // A branch that is soloed, hidden or starred says so on the parent row, or
   // folding them away would hide the fact that they are on. Only when one is —
   // an unticked `checked` still reserves its slot and leaves the row visibly
   // indented against its neighbours.
-  const anyToggleOn = !!(state.favorite || state.soloed || state.muted)
+  const anyToggleOn = !!(state.favorite || state.soloed || state.hidden)
   if (toggles.length) {
     inspect.push({
       label: t('sb.branch.viewMenu'),
