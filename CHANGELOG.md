@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.29.0
 
 ### Added
 - **References in commit messages become links — yours, not just `#123`.** Settings › GitHub takes a list of patterns: a prefix (`JIRA-`) and a URL with `<num>` in it. Teams that track work anywhere but GitHub issues were reading their own ticket numbers as plain text.
