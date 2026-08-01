@@ -49,7 +49,12 @@ product_meta() {
       P_DIR="vscode-extension"
       P_PREFIX="ext-v"
       P_CHANGELOG="vscode-extension/CHANGELOG.md"
-      P_NOTES=""
+      # The extension has its own "What's new" tab now, fed by this file rather
+      # than by the changelog — same split as the app, and just as easy to
+      # forget. Empty here until the tab existed; a release without an entry
+      # would open a note for the previous version, which reads as if nothing
+      # shipped.
+      P_NOTES="vscode-extension/src/releaseNotes.ts"
       P_LABEL="VS Code extension"
       P_WORKFLOW="publish-extension.yml"
       # Not `npm test`: that one launches a real VS Code, which a headless

@@ -5,7 +5,8 @@ import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, postCommitMenuAction, lastCommitMenuHash } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash } from './panel/GitVertexHost'
+import { RELEASE_NOTES } from './releaseNotes'
 import { RebaseTodoEditor, isRebaseTodoEditorOpenFor, setOnRebaseTodoEditorClosed } from './panel/RebaseTodoEditor'
 import { ConflictEditor } from './panel/ConflictEditor'
 import { CommitMsgEditor } from './panel/CommitMsgEditor'
@@ -261,14 +262,42 @@ async function notifyIfGitTooOld(context: vscode.ExtensionContext): Promise<void
   } catch { /* no git on PATH, or it would not run — nothing useful to say */ }
 }
 
+/**
+ * The note to show for a version: its own, or the newest one we ship when that
+ * exact version has none — a patch released without its own entry would
+ * otherwise say nothing at all. `Unreleased` is never the fallback: it is what
+ * the working copy carries between releases, not something a user runs.
+ */
+function noteFor(version: string): { version: string; notes: string } | null {
+  if (RELEASE_NOTES[version]) return { version, notes: RELEASE_NOTES[version] }
+  const newest = Object.keys(RELEASE_NOTES)
+    .filter(v => v !== 'Unreleased')
+    .sort((a, b) => {
+      const pa = a.split('.').map(Number), pb = b.split('.').map(Number)
+      for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pb[i] || 0) - (pa[i] || 0)
+      return 0
+    })[0]
+  return newest ? { version: newest, notes: RELEASE_NOTES[newest] } : null
+}
+
+/**
+ * Show what changed, the first time a new version runs. A fresh install just
+ * records the version and says nothing — there is no "new" on day one.
+ *
+ * Until now this opened CHANGELOG.md in a markdown preview: the whole file,
+ * every version, in Added/Changed/Fixed sections written for whoever reads the
+ * repository. It now opens the curated note for this version alone, in the same
+ * component the desktop app has always used for it.
+ */
 async function showWhatsNewIfUpdated(context: vscode.ExtensionContext): Promise<void> {
   const current = (context.extension?.packageJSON?.version as string | undefined) ?? ''
   if (!current) return
   const last = context.globalState.get<string>('gvLastVersion')
   await context.globalState.update('gvLastVersion', current)
   if (!last || last === current) return
-  const changelog = vscode.Uri.joinPath(context.extensionUri, 'CHANGELOG.md')
-  try { await vscode.commands.executeCommand('markdown.showPreview', changelog) } catch { /* preview unavailable — ignore */ }
+  const note = noteFor(current)
+  if (!note) return
+  openGitVertexWhatsNewTab(context.extensionUri, context.globalState, note.version, note.notes)
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -352,6 +381,14 @@ export function activate(context: vscode.ExtensionContext): void {
       const root = resolveRepoRoot()
       if (!root) { vscode.window.showWarningMessage('No Git repository found for this workspace.'); return }
       openGitVertexGitHubTab(context.extensionUri, context.globalState, root)
+    }),
+    // Re-read the notes on demand. Without this the only way to see them is to
+    // be updating at that moment — and the tab is closable.
+    vscode.commands.registerCommand('gitVertex.showWhatsNew', () => {
+      const current = (context.extension?.packageJSON?.version as string | undefined) ?? ''
+      const note = noteFor(current)
+      if (!note) { vscode.window.showInformationMessage('Git Vertex: no release notes shipped with this build.'); return }
+      openGitVertexWhatsNewTab(context.extensionUri, context.globalState, note.version, note.notes)
     }),
     vscode.commands.registerCommand('gitVertex.setGithubToken', async () => {
       const token = await vscode.window.showInputBox({
