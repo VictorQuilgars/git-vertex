@@ -1,5 +1,16 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Added
+- **References in commit messages become links — yours, not just `#123`.** Settings › GitHub takes a list of patterns: a prefix (`JIRA-`) and a URL with `<num>` in it. Teams that track work anywhere but GitHub issues were reading their own ticket numbers as plain text.
+- **Add a co-author to a commit**, from the commit options. The panel already wrote a `Signed-off-by` trailer and already read co-authors to show their avatars; this is the half that was missing. The candidates are whoever has committed here recently.
+- **Right-click a file in a commit** to open it on the remote or copy its link — built at that commit, so the lines it points at are the ones you were looking at. Right-click a file in the staging list to copy its path or its name.
+- **Copy a link to a comparison**, and to a pull request or an issue.
+
+### Changed
+- **Links are built from your remote, not from github.com.** The URL was written out by hand in six places with the host hardcoded in every one, so a repository on GitLab, Bitbucket, or a self-hosted GitHub produced a link to a page that does not exist. One builder reads the remote and knows the shapes.
+
 ## 1.28.0
 
 ### Changed
