@@ -8,6 +8,24 @@ const HEADERS = (token: string): Record<string, string> => ({
   Accept: 'application/vnd.github+json',
 })
 
+/**
+ * What an unhappy response means to the caller.
+ *
+ * 401 is the one that matters: a session VS Code handed us can be revoked from
+ * github.com, or the grant withdrawn, and the token then fails while everything
+ * on our side still believes it is signed in. Reported as `HTTP 401` it reached
+ * the panel as a bare status code next to an avatar and a login. It is the same
+ * situation as having no token at all, so it says so, and the shared UI already
+ * knows how to show that: offer a way back in.
+ *
+ * 403 is deliberately NOT folded in. GitHub uses it for rate limiting and for
+ * "your token is fine, you may not do this" — telling someone to sign in again
+ * would send them round a loop that cannot help.
+ */
+function failure(res: { status: number }): { error: string } {
+  return { error: res.status === 401 ? 'not_authenticated' : `HTTP ${res.status}` }
+}
+
 export async function githubListPRs(token: string | undefined, owner: string, repo: string): Promise<any> {
   if (!token) return { error: 'not_authenticated' }
   try {
@@ -15,7 +33,7 @@ export async function githubListPRs(token: string | undefined, owner: string, re
       `https://api.github.com/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
       { headers: HEADERS(token) },
     )
-    if (!res.ok) return { error: `HTTP ${res.status}` }
+    if (!res.ok) return failure(res)
     const data = await res.json() as any[]
     return {
       prs: data.map(pr => ({
@@ -43,7 +61,7 @@ export async function githubListIssues(token: string | undefined, owner: string,
       `https://api.github.com/repos/${owner}/${repo}/issues?per_page=50&state=open`,
       { headers: HEADERS(token) },
     )
-    if (!res.ok) return { error: `HTTP ${res.status}` }
+    if (!res.ok) return failure(res)
     const data = await res.json() as any[]
     // The issues endpoint also returns PRs — filter them out.
     const issues = data.filter((i: any) => !i.pull_request)
@@ -80,7 +98,7 @@ export async function githubGetIssue(
   try {
     // The issues endpoint resolves both issues and PRs by number.
     const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${num}`, { headers })
-    if (!res.ok) return { error: `HTTP ${res.status}` }
+    if (!res.ok) return failure(res)
     const d = await res.json() as any
     return {
       issue: {

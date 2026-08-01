@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **Signing out of GitHub from VS Code now reaches the panel.** Your account lives in VS Code's Accounts menu, and signing out there left Git Vertex's settings showing an account that was gone — until the page was closed and reopened. It was the last place the panel could still be telling you something untrue.
+- **A revoked token said `HTTP 401`.** A session can be revoked from github.com after we were handed it, and the panel then showed a bare status code next to the avatar and login of the account it had just stopped working for. It now reads as what it is — not signed in — and offers the way back in. A `403` deliberately keeps its status: rate limiting and "you may not do this" are not fixed by signing in again.
+
+### Changed
+- **We ask for one GitHub permission instead of two.** `read:user` was never needed — the profile call answers with the public profile for any token, and the login and avatar are all the settings page shows. Beyond the hygiene, VS Code matches sessions by their exact set of permissions, so asking for less makes it likelier we can reuse an account you have already approved elsewhere.
+
 ## 1.26.0
 
 ### Changed

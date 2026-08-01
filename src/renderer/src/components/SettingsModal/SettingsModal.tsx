@@ -333,7 +333,19 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       }
       setDownloadProgress(null)
     })
-    return () => { offAuth?.(); offDownloaded?.(); offProgress?.(); offError?.() }
+    // Signing out of GitHub happens in VS Code's Accounts menu, outside this
+    // page entirely. Without this the account stayed on screen until the page
+    // was closed and reopened — the settings saying one thing while every
+    // GitHub call answered another. Absent on the desktop, whose OAuth result
+    // arrives on onGithubAuthComplete above.
+    const api2 = window.gitAPI as any
+    const onAuthChanged = () => { void fetchGithubUser() }
+    api2.onGithubAuthChanged?.(onAuthChanged)
+
+    return () => {
+      offAuth?.(); offDownloaded?.(); offProgress?.(); offError?.()
+      api2.offGithubAuthChanged?.(onAuthChanged)
+    }
   }, [])
 
   // Two hosts, two shapes of answer. The desktop starts an OAuth flow and

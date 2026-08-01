@@ -15,6 +15,11 @@ const pending = new Map<number, { resolve: (v: any) => void; reject: (e: any) =>
 const listeners: Record<string, Array<() => void>> = {
   repoChanged: [],
   workingChanged: [],
+  // Signing in or out of GitHub from VS Code's own Accounts menu. The desktop
+  // preload has no equivalent — its OAuth result arrives on
+  // onGithubAuthComplete instead — so the shared renderer subscribes with `?.`
+  // and simply gets nothing there.
+  githubAuthChanged: [],
 }
 
 // Native VS Code webview-context-menu commands (contributes.menus["webview/context"])
@@ -67,6 +72,10 @@ const overrides: Record<string, (...a: any[]) => any> = {
   },
   offWorkingChanged: (cb: () => void) => {
     listeners.workingChanged = listeners.workingChanged.filter(f => f !== cb)
+  },
+  onGithubAuthChanged: (cb: () => void) => { listeners.githubAuthChanged.push(cb) },
+  offGithubAuthChanged: (cb: () => void) => {
+    listeners.githubAuthChanged = listeners.githubAuthChanged.filter(f => f !== cb)
   },
   onMenuAction: (cb: MenuActionCb) => { menuActionListeners.push(cb) },
   offMenuAction: (cb: MenuActionCb) => { menuActionListeners = menuActionListeners.filter(f => f !== cb) },

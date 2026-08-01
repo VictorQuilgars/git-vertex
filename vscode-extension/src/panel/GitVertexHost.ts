@@ -137,6 +137,15 @@ export class GitVertexHost implements vscode.Disposable {
       null,
       this._disposables,
     )
+    // Signing out of GitHub happens in VS Code's Accounts menu, not here — so
+    // without this the settings page kept showing an account that was gone
+    // until it was unmounted and remounted. The one path left where the panel
+    // could still be telling the user something untrue.
+    vscode.authentication.onDidChangeSessions(
+      e => { if (e.provider.id === 'github') this._broadcast('githubAuthChanged') },
+      null,
+      this._disposables,
+    )
   }
 
   public setRepo(repoPath: string): void {
@@ -187,7 +196,7 @@ export class GitVertexHost implements vscode.Disposable {
     return () => { if (t) clearTimeout(t); t = setTimeout(fn, ms) }
   }
 
-  private _broadcast(name: 'repoChanged' | 'workingChanged'): void {
+  private _broadcast(name: 'repoChanged' | 'workingChanged' | 'githubAuthChanged'): void {
     this._webview.postMessage({ type: 'event', name })
   }
 
