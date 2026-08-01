@@ -355,13 +355,14 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const handleGithubDisconnect = async () => {
     const r = await (window.gitAPI as any).githubDisconnect()
     setGithubToken('')
-    // Our token is ours to forget; a VS Code session is not. Re-ask rather than
-    // assume we are signed out — when the session outlives the token the honest
-    // answer is that the account is still there, and the toast says why.
-    if (r?.stillSignedInWithVsCode) { await fetchGithubUser(); showToast(t('settings.github.stillSignedIn')); return }
-    setGithubUser(null)
-    setGithubSource(null)
-    showToast(t('toast.githubDisconnected'))
+    // Re-ask rather than assume: this is the one call that has to prove it
+    // worked, and the host is the only thing that knows whether anything is
+    // still signing us in.
+    await fetchGithubUser()
+    // Disconnecting a VS Code session means we stop using it — the account
+    // itself is VS Code's, and stays in its Accounts menu. Saying only
+    // "disconnected" would leave the user hunting for an account we do not own.
+    showToast(r?.wasVsCodeSession ? t('settings.github.disconnectedVsCode') : t('toast.githubDisconnected'))
   }
 
   const saveGit = async () => {

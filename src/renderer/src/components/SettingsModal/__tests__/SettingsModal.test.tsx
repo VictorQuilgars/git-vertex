@@ -275,20 +275,41 @@ describe('SettingsModal — GitHub sign-in', () => {
       expect.stringMatching(/no github sign-in/i), 'err'))
   })
 
-  // Forgetting our token does not sign the user out of VS Code — that session is
-  // VS Code's. Clearing the field with nothing said would look like a bug.
-  test('disconnecting says when the VS Code session outlives the token', async () => {
+  // The first version of this button was honest and useless: it forgot a token
+  // that was not there, found the VS Code session still live, and put the user
+  // straight back on screen as connected. No extension API revokes a session —
+  // so Disconnect means Git Vertex stops using it, and it has to actually stop.
+  test('disconnecting a VS Code session really signs out of the panel', async () => {
+    const { mock, showToast } = await openGitHub(true, {
+      settingsGetAll: jest.fn().mockResolvedValue({}),
+      githubGetUser: jest.fn()
+        .mockResolvedValueOnce({ user: { login: 'octocat', avatar: 'x' }, source: 'vscode' })
+        .mockResolvedValue({ user: null }),      // the host stopped using the session
+      githubDisconnect: jest.fn().mockResolvedValue({ success: true, wasVsCodeSession: true }),
+    })
+    expect(await screen.findByText('octocat')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /disconnect/i }))
+
+    expect(mock.githubDisconnect).toHaveBeenCalled()
+    // Gone from the panel, and the way back in is offered again.
+    await waitFor(() => expect(screen.queryByText('octocat')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /sign in with github/i })).toBeInTheDocument()
+    // And it says where the account went, since we do not own it.
+    expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/no longer uses your GitHub account/i))
+  })
+
+  test('disconnecting a token says the plain thing', async () => {
     const { showToast } = await openGitHub(true, {
-      githubGetUser: jest.fn().mockResolvedValue({ user: { login: 'octocat', avatar: 'x' }, source: 'pat' }),
       settingsGetAll: jest.fn().mockResolvedValue({ githubToken: 'ghp_x' }),
-      githubDisconnect: jest.fn().mockResolvedValue({ success: true, stillSignedInWithVsCode: true }),
+      githubGetUser: jest.fn()
+        .mockResolvedValueOnce({ user: { login: 'octocat', avatar: 'x' }, source: 'pat' })
+        .mockResolvedValue({ user: null }),
+      githubDisconnect: jest.fn().mockResolvedValue({ success: true, wasVsCodeSession: false }),
     })
     await userEvent.click(await screen.findByRole('button', { name: /disconnect/i }))
 
     await waitFor(() => expect(showToast).toHaveBeenCalledWith(
-      expect.stringMatching(/stays signed in to VS Code/i)))
-    // ...and the account stays on screen, because it really is still signed in.
-    expect(screen.getByText('octocat')).toBeInTheDocument()
+      expect.not.stringMatching(/Accounts menu/i)))
   })
 
   // The defect a manual test cannot see: a VS Code session writes nothing to our
