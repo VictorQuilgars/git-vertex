@@ -7,6 +7,7 @@ import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
 import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash } from './panel/GitVertexHost'
 import { RELEASE_NOTES } from './releaseNotes'
+import { runFileLinkCommand } from './remoteLinks'
 import { RebaseTodoEditor, isRebaseTodoEditorOpenFor, setOnRebaseTodoEditorClosed } from './panel/RebaseTodoEditor'
 import { ConflictEditor } from './panel/ConflictEditor'
 import { CommitMsgEditor } from './panel/CommitMsgEditor'
@@ -390,6 +391,13 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!note) { vscode.window.showInformationMessage('Git Vertex: no release notes shipped with this build.'); return }
       openGitVertexWhatsNewTab(context.extensionUri, context.globalState, note.version, note.notes)
     }),
+    // "Share a link to these lines" — the gesture this lot is named after.
+    vscode.commands.registerCommand('gitVertex.copyRemoteFileUrl', () =>
+      runFileLinkCommand(() => resolveRepoRoot() ?? undefined, { withRange: true, action: 'copy' })),
+    vscode.commands.registerCommand('gitVertex.copyRemoteFileUrlNoRange', () =>
+      runFileLinkCommand(() => resolveRepoRoot() ?? undefined, { withRange: false, action: 'copy' })),
+    vscode.commands.registerCommand('gitVertex.openFileOnRemote', () =>
+      runFileLinkCommand(() => resolveRepoRoot() ?? undefined, { withRange: true, action: 'open' })),
     vscode.commands.registerCommand('gitVertex.setGithubToken', async () => {
       const token = await vscode.window.showInputBox({
         prompt: 'GitHub Personal Access Token (repo scope) — leave empty to clear',

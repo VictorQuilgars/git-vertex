@@ -117,6 +117,18 @@
         "icon": "$(github)"
       },
       {
+        "command": "gitVertex.copyRemoteFileUrl",
+        "title": "Git Vertex: Copy Link to These Lines"
+      },
+      {
+        "command": "gitVertex.copyRemoteFileUrlNoRange",
+        "title": "Git Vertex: Copy Link to This File"
+      },
+      {
+        "command": "gitVertex.openFileOnRemote",
+        "title": "Git Vertex: Open This File on Remote"
+      },
+      {
         "command": "gitVertex.showWhatsNew",
         "title": "Git Vertex: What's New"
       },
@@ -266,6 +278,11 @@
           "command": "gitVertex.toggleFileBlame",
           "when": "resourceScheme == file",
           "group": "1_diff@100"
+        },
+        {
+          "command": "gitVertex.copyRemoteFileUrlNoRange",
+          "when": "resourceScheme == file",
+          "group": "1_diff@97"
         }
       ],
       "scm/title": [
@@ -558,6 +575,18 @@
           "when": "(webviewId == 'gitVertex.graphView' || webviewId == 'gitVertex.editor') && webviewSection == 'gitVertexCommit' && hasCompareBase",
           "group": "8_compare@3"
         }
+      ],
+      "editor/context": [
+        {
+          "command": "gitVertex.copyRemoteFileUrl",
+          "when": "resourceScheme == file && gitOpenRepositoryCount > 0",
+          "group": "9_gitvertex@1"
+        },
+        {
+          "command": "gitVertex.openFileOnRemote",
+          "when": "resourceScheme == file && gitOpenRepositoryCount > 0",
+          "group": "9_gitvertex@2"
+        }
       ]
     },
     "customEditors": [
@@ -708,7 +737,7 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./ && node build-webview.js",
+    "compile": "tsc -p ./ && tsc -p tsconfig.test.json && node build-webview.js",
     "vscode:prepublish": "npm run compile",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",

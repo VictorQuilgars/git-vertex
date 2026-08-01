@@ -26,11 +26,20 @@
 import * as vscode from 'vscode'
 
 /**
- * What our GitHub calls need:
- *   repo       private repositories, and creating a pull request
- *   read:user  the login and avatar shown in the settings page
+ * The narrowest set that covers what we actually call.
+ *
+ * `repo` earns its place: every call we make is repository-scoped, and on a
+ * private repository none of them answer without it — listing pull requests and
+ * issues, resolving one by number, listing branches, and opening a request. Its
+ * public-only sibling `public_repo` would break the case people care about most.
+ *
+ * `read:user` was dropped: `GET /user` answers with the public profile for any
+ * token, and login plus avatar is all the settings page shows. Asking for less
+ * is not only hygiene — VS Code matches sessions BY SCOPE SET, so a shorter list
+ * is likelier to match a session another extension already obtained, which is
+ * the difference between confirming an account and signing in again.
  */
-export const GITHUB_SCOPES = ['repo', 'read:user']
+export const GITHUB_SCOPES = ['repo']
 
 const PROVIDER = 'github'
 
