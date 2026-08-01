@@ -75,11 +75,26 @@ export async function existingSession(): Promise<vscode.AuthenticationSession | 
  * shows a modal consent dialog, and showing one unprompted on activation is
  * how an extension gets uninstalled.
  *
+ * `clearSessionPreference` is what lets the user pick WHICH account. VS Code
+ * remembers the one an extension last used and reuses it silently forever
+ * after; someone with a personal and a work GitHub account got whichever we
+ * happened to land on first, with no way back. Clearing it makes VS Code ask
+ * again — and asking is right here, because this only ever runs on a click.
+ *
+ * The trade is one quick-pick on a button that says "Sign in with GitHub",
+ * where a picker is what you would expect anyway. GitHub's provider supports
+ * several accounts at once, so the prompt may appear even with one signed in —
+ * that is the price of being able to choose at all, and it is only paid on a
+ * deliberate click. The silent path above never clears anything.
+ *
  * Returns undefined when the user cancels, and throws only when the host has
  * no GitHub provider to ask, which the caller reports as such.
  */
 export async function signIn(): Promise<vscode.AuthenticationSession | undefined> {
-  return vscode.authentication.getSession(PROVIDER, GITHUB_SCOPES, { createIfNone: true })
+  return vscode.authentication.getSession(PROVIDER, GITHUB_SCOPES, {
+    createIfNone: true,
+    clearSessionPreference: true,
+  })
 }
 
 /**
