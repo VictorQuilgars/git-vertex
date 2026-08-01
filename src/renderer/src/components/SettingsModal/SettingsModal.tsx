@@ -148,6 +148,10 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const [githubToken, setGithubToken] = useState('')
   const [showToken, setShowToken] = useState(false)
   const [githubUser, setGithubUser] = useState<{ login: string; avatar: string } | null>(null)
+  // Where the identity came from, when the host says: 'vscode' for a session
+  // VS Code owns, 'pat' for a token we hold. Null on the desktop, which has
+  // only ever had one source and does not report it.
+  const [githubSource, setGithubSource] = useState<'vscode' | 'pat' | null>(null)
   const [githubLoading, setGithubLoading] = useState(false)
 
   // About
@@ -221,6 +225,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const fetchGithubUser = async () => {
     const r = await (window.gitAPI as any).githubGetUser()
     setGithubUser(r.user ?? null)
+    setGithubSource(r.source ?? null)
   }
 
   useEffect(() => {
@@ -245,7 +250,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       }
       const token = s.githubToken ?? ''
       setGithubToken(token)
-      if (token) fetchGithubUser()
+      // Embedded, a stored token is no longer the only way to be signed in: a
+      // VS Code session writes nothing here, so gating on it showed "Sign in
+      // with GitHub" to someone whose pull requests and issues were loading
+      // fine two panes away. Ask the host, which knows about both.
+      if (token || embedded) fetchGithubUser()
       setNotifyFetch(s.notifyFetch !== 'false')
       setNotifyCommit(s.notifyCommit === 'true')
       setNotifyUpdate(s.notifyUpdate !== 'false')
@@ -346,11 +355,13 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const handleGithubDisconnect = async () => {
     const r = await (window.gitAPI as any).githubDisconnect()
     setGithubToken('')
+    // Our token is ours to forget; a VS Code session is not. Re-ask rather than
+    // assume we are signed out — when the session outlives the token the honest
+    // answer is that the account is still there, and the toast says why.
+    if (r?.stillSignedInWithVsCode) { await fetchGithubUser(); showToast(t('settings.github.stillSignedIn')); return }
     setGithubUser(null)
-    // Our token is ours to forget; a VS Code session is not. Clearing the field
-    // while the user stays authenticated, with nothing saying why, is worse
-    // than one extra sentence.
-    showToast(r?.stillSignedInWithVsCode ? t('settings.github.stillSignedIn') : t('toast.githubDisconnected'))
+    setGithubSource(null)
+    showToast(t('toast.githubDisconnected'))
   }
 
   const saveGit = async () => {
@@ -648,7 +659,9 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     <img className="stg-gh-avatar" src={githubUser.avatar} alt={githubUser.login} />
                     <div className="stg-gh-info">
                       <span className="stg-gh-login">{githubUser.login}</span>
-                      <span className="stg-gh-status">{t('settings.github.connected')}</span>
+                      <span className="stg-gh-status">
+                        {githubSource === 'vscode' ? t('settings.github.viaVsCode') : t('settings.github.connected')}
+                      </span>
                     </div>
                     <button className="stg-gh-disconnect" onClick={handleGithubDisconnect}>
                       {t('settings.github.disconnect')}

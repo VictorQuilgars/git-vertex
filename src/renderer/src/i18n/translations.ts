@@ -468,6 +468,7 @@ const fr = {
   'settings.github.connecting': 'Connexion en cours…',
   'settings.github.pat': 'Token d\'accès personnel',
   'settings.github.patHint': 'Créez-en un sur github.com/settings/tokens avec les scopes repo + gist, puis collez-le ici.',
+  'settings.github.viaVsCode': 'Connecté via VS Code',
   'settings.github.noProvider': 'Cet éditeur ne fournit pas de connexion GitHub. Utilisez un token d\'accès personnel ci-dessous.',
   'settings.github.stillSignedIn': 'Token oublié. Votre compte GitHub reste connecté dans VS Code — déconnectez-le depuis le menu Comptes.',
 
@@ -1760,6 +1761,7 @@ const en: typeof fr = {
   'settings.github.connecting': 'Connecting…',
   'settings.github.pat': 'Personal Access Token',
   'settings.github.patHint': 'Create one at github.com/settings/tokens with the repo + gist scopes, then paste it here.',
+  'settings.github.viaVsCode': 'Signed in through VS Code',
   'settings.github.noProvider': 'This editor provides no GitHub sign-in. Use a personal access token below.',
   'settings.github.stillSignedIn': 'Token forgotten. Your GitHub account stays signed in to VS Code — sign out from the Accounts menu.',
 
