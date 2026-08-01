@@ -42,17 +42,30 @@ export interface GitHubIdentity {
   login?: string
 }
 
+// Logged once per activation. A host with no GitHub provider (VSCodium and
+// other OSS builds) throws here on every single call, and a line per call would
+// be noise — but swallowing it outright is how the empty Agents view survived
+// two releases, so the first one is always reported.
+let lookupFailureReported = false
+
 /**
  * A session VS Code already has, or undefined. Never prompts: `createIfNone`
  * stays false, so this is safe to call on activation and on every request.
  *
  * Throws nothing — a host without the GitHub provider is a normal situation
- * here, not an error, and the caller falls back to the PAT.
+ * here, not an error, and the caller falls back to the PAT. It is reported once
+ * all the same: from the outside "not signed in" looks identical whether the
+ * provider is missing, the grant was revoked, or something else broke, and
+ * without a line in the Extension Host log there is no way to tell which.
  */
 export async function existingSession(): Promise<vscode.AuthenticationSession | undefined> {
   try {
     return await vscode.authentication.getSession(PROVIDER, GITHUB_SCOPES, { createIfNone: false })
-  } catch {
+  } catch (e) {
+    if (!lookupFailureReported) {
+      lookupFailureReported = true
+      console.warn('[GitVertex] no GitHub session from VS Code; falling back to a token:', e)
+    }
     return undefined
   }
 }
@@ -67,16 +80,6 @@ export async function existingSession(): Promise<vscode.AuthenticationSession | 
  */
 export async function signIn(): Promise<vscode.AuthenticationSession | undefined> {
   return vscode.authentication.getSession(PROVIDER, GITHUB_SCOPES, { createIfNone: true })
-}
-
-/** True when this host can offer VS Code sign-in at all. */
-export async function providerAvailable(): Promise<boolean> {
-  try {
-    await vscode.authentication.getSession(PROVIDER, GITHUB_SCOPES, { createIfNone: false })
-    return true
-  } catch {
-    return false
-  }
 }
 
 /**
