@@ -53,5 +53,8 @@ export const KNOWN_GAPS = new Set([
   // → lot D, "GitHub : au-delà du read-only"
   'githubSharePatch', 'githubShareWipPatch',
   'githubSearchIssues', 'githubCloseIssue', 'githubListRepos',
-  'githubDetectRepoAt', 'githubStartAuth', 'githubDisconnect', 'githubGetToken',
+  'githubDetectRepoAt',
+  // githubStartAuth / githubDisconnect / githubGetToken left this list in the
+  // lot that put sign-in behind VS Code's own GitHub provider (src/githubAuth.ts).
+  // They were the reason the panel offered a PAT field and nothing else.
 ])
