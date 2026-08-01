@@ -2,6 +2,25 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🗣️ The same action, the same name, everywhere
+- The desktop menus and the VS Code panel took their wording from two different places, and nothing compared them. Six actions had drifted apart — the one that detaches HEAD said *Switch to Commit* in the panel and *Check out this commit* here.
+- They share one vocabulary now, and a test compares both catalogues, so the next one cannot drift quietly.
+
+### 🚫 Menus without emoji
+- 127 menu entries started with one. An emoji does not take the colour of the text beside it, so it could not follow a row going grey when disabled or red when dangerous — and a screen reader read it out before the action itself: *"cherry, Cherry-pick Commit"*.
+- The markers that remain — a favourite, a branch hidden from the graph — are plain glyphs that do follow the text. This finishes what 1.19.0 started in the settings.
+
+### ⚠️ The Mixed reset said the opposite of what it does
+- It read **keeps unstaged changes**, which sounds like a promise to leave your work alone. \`--mixed\` unstages everything and leaves the working copy alone — the two are not the same, and the label described the wrong one.
+- It now reads **keeps your working copy, resets the index**. The other two were already right: \`--soft\` keeps changes staged, \`--hard\` discards them.
+
+### ✏️ Smaller things you may notice
+- Action labels are in Title Case, and \`…\` now means what it usually means: the action asks you something. *Cherry-pick Commit* never did, and no longer pretends to.
+- The sidebar rail says **Stashes**, like Branches, Remotes, Tags and Worktrees next to it.
+- *Hide from graph* and *Show in graph* replace the old mute/unmute wording — the menu already said "hide", only the code disagreed.
+`,
   '1.27.0': `## What's new in 1.27.0
 
 ### 🎯 A double-click always lands on a branch
