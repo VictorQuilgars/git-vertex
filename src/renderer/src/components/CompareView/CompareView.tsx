@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import DiffViewer from '../DiffViewer/DiffViewer'
 import type { FileChange } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
+import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../utils/remoteUrl'
 import './CompareView.css'
 
 interface CompareCommit {
@@ -27,6 +28,22 @@ export default function CompareView({ initialA, initialB }: { initialA?: string;
   const [diff, setDiff] = useState('')
   const [files, setFiles] = useState<FileChange[]>([])
   const [loading, setLoading] = useState(false)
+  // This view is its own tab with no host around it, so it resolves the remote
+  // itself rather than being handed one.
+  const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      try {
+        const rem = await window.gitAPI.getRemotes()
+        const def = await (window.gitAPI as any).getDefaultRemote?.().catch(() => null)
+        if (alive) setRemoteRepo(repoFromRemotes(rem?.remotes ?? [], def?.remote))
+      } catch { if (alive) setRemoteRepo(null) }
+    })()
+    return () => { alive = false }
+  }, [])
 
   // Selector options: local + remote branches, then tags.
   useEffect(() => {
@@ -96,6 +113,19 @@ export default function CompareView({ initialA, initialB }: { initialA?: string;
           <span className="cv-summary">
             <span className="cv-sum-ahead">+{ahead.length}</span> / <span className="cv-sum-behind">−{behind.length}</span> commits
           </span>
+        )}
+        {ready && remoteRepo && (
+          <button
+            className="cv-copy-link"
+            title={t('cv.copyLink')}
+            onClick={() => {
+              navigator.clipboard.writeText(remoteUrl.compare(remoteRepo, refA, refB))
+              setCopied(true)
+              setTimeout(() => setCopied(false), 1800)
+            }}
+          >
+            {copied ? t('cv.linkCopied') : t('cv.copyLink')}
+          </button>
         )}
       </div>
 

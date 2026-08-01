@@ -1489,6 +1489,25 @@ export default function App() {
     showToast(t('toast.linkCopied'))
   }
 
+  // A file inside a commit: the one place we know both a path and the exact ref
+  // it existed at. Linking at the commit rather than at a branch is the whole
+  // point — the line numbers stay true.
+  const handleOpenFileOnRemote = (hash: string, filePath: string) => {
+    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    window.gitAPI.openExternal(remoteUrl.file(remoteRepo, hash, filePath))
+  }
+
+  const handleCopyFileLink = (hash: string, filePath: string) => {
+    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    navigator.clipboard.writeText(remoteUrl.file(remoteRepo, hash, filePath))
+    showToast(t('toast.linkCopied'))
+  }
+
+  const handleOpenBranchesOnRemote = () => {
+    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
+    window.gitAPI.openExternal(remoteUrl.branches(remoteRepo))
+  }
+
   const handleCopyCommitLink = (hash: string) => {
     if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
     navigator.clipboard.writeText(remoteUrl.commit(remoteRepo, hash))
@@ -1575,6 +1594,7 @@ export default function App() {
       onSetUpstream: () => handleSetUpstream(currentBranch),
       onCreatePR: currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined,
       onOpenOnRemote: () => handleOpenBranchOnRemote(currentBranch),
+      onOpenBranchesOnRemote: handleOpenBranchesOnRemote,
       onAssociateIssue: () => setIssueModalBranch(currentBranch),
       onToggleFavorite: () => branchMeta.toggleFavorite(currentBranch),
       onToggleSolo: () => setSoloBranch(prev => prev === currentBranch ? null : currentBranch),
@@ -2403,6 +2423,8 @@ export default function App() {
                 onOpenResolver={(file) => setConflictResolverFile(file)}
                 onOpenFileDiff={setCenterDiff}
                 githubRepo={githubOwnerRepo}
+                onOpenFileOnRemote={handleOpenFileOnRemote}
+                onCopyFileLink={handleCopyFileLink}
                 onRewordMessage={applyReword}
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}

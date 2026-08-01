@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- **Right-click a file in a commit: open it on the remote, or copy its link.** The panel knew the file and the commit it belonged to, and could do nothing with either. The link is built at that commit, so the line numbers it points at are the ones you were looking at.
+- **Copy a link to a comparison**, from the compare tab — and to a pull request or an issue, from the GitHub tab.
+- **Open Branches on Remote** in the branch menu, one level up from *Open Branch on Remote*.
 - **Copy a link to the lines you selected.** Right-click in the editor: *Copy Link to These Lines* gives the URL your reviewer can open, with the selection already highlighted. *Open This File on Remote* is the same calculation with the other verb, and the editor tab's menu carries a whole-file variant. The link points at the commit that last touched the file rather than at a branch — a link to `main` shows something else next week, which is rarely what someone sharing line 40 meant.
 - **Copy a link to a branch or a commit, from the panel.** The desktop could; the panel could only *open* a commit on the remote. Both products now build every link from one place, which is also what makes the next one possible.
 

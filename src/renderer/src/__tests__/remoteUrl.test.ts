@@ -118,6 +118,7 @@ describe('remoteUrl — GitHub, the one we actually use', () => {
       .toBe('https://github.com/VictorQuilgars/git-vertex/compare/main...feat/x')
     expect(remoteUrl.pullRequest(r, 11)).toBe('https://github.com/VictorQuilgars/git-vertex/pull/11')
     expect(remoteUrl.issue(r, 42)).toBe('https://github.com/VictorQuilgars/git-vertex/issues/42')
+    expect(remoteUrl.branches(r)).toBe('https://github.com/VictorQuilgars/git-vertex/branches')
   })
 })
 
@@ -134,6 +135,7 @@ describe('remoteUrl — the shapes we declare for other hosts', () => {
       .toBe('https://gitlab.com/group/sub/proj/-/blob/abc/a.ts#L12-40')
     expect(remoteUrl.pullRequest(gl, 7)).toBe('https://gitlab.com/group/sub/proj/-/merge_requests/7')
     expect(remoteUrl.issue(gl, 7)).toBe('https://gitlab.com/group/sub/proj/-/issues/7')
+    expect(remoteUrl.branches(gl)).toBe('https://gitlab.com/group/sub/proj/-/branches')
   })
 
   test('Bitbucket says commits, src, and lines-12:40', () => {
