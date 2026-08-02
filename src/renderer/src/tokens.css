@@ -1,0 +1,291 @@
+/* Design tokens — the single place where the app's colour values live.
+ *
+ * Imported from App.css, which both products load (the desktop renderer and the
+ * VS Code webview), so every component sees these.
+ *
+ * Two rules when adding to this file:
+ *   1. Name the ROLE, never the value. `--text-secondary`, not `--gray-500`.
+ *      Two roles that happen to share a value today still get two tokens —
+ *      that is the point, it is what lets one of them move later.
+ *   2. A literal in a component stylesheet is a bug unless it is listed in the
+ *      exceptions block at the bottom of this file.
+ *
+ * The values here are exactly the ones the components used before tokenisation;
+ * nothing was normalised or "cleaned up" on the way in. See
+ * docs-private/ui-audit.md for how the value → role mapping was established.
+ */
+
+:root {
+  /* ── Surfaces ──────────────────────────────────────────────────────────
+   * Ordered darkest → lightest. `canvas` is the app background, `inset` sits
+   * below it (tab strip, wells), the rest sit above.
+   */
+  --bg-canvas: #0d1117;
+  --bg-inset: #010409;
+  --surface: #161b22;          /* toolbars, panels, raised rows */
+  --surface-sunken: #21262d;   /* inputs, chips, secondary buttons */
+  --surface-hover: #1c2128;    /* row and icon hover */
+  --surface-active: #30363d;   /* pressed, or hover on an already-raised thing */
+  --surface-info: #1f2d3d;     /* informational blocks */
+
+  /* ── Borders ───────────────────────────────────────────────────────────
+   * `default` and `surface-active` share a value today. They are different
+   * roles — one outlines, the other fills — and will not always match.
+   */
+  --border-default: #30363d;
+  --border-muted: #21262d;     /* internal rules, table separators */
+  --border-strong: #8b949e;    /* focused or deliberately louder outlines */
+  --border-subtle: #484f58;
+
+  /* ── Text ──────────────────────────────────────────────────────────────
+   * `primary` and `primary-soft` are two competing primaries inherited from
+   * before tokenisation (audit I7). Kept apart so the difference stays
+   * visible and can be resolved deliberately rather than by accident.
+   */
+  --text-primary: #e6edf3;
+  --text-primary-soft: #c9d1d9;
+  --text-secondary: #8b949e;
+  --text-tertiary: #6e7681;
+  --text-disabled: #484f58;
+  --text-on-emphasis: #ffffff; /* on a filled accent/success/danger button */
+  --text-on-bright: #0d1117;   /* on a light or vivid fill */
+
+  /* ── Accent ────────────────────────────────────────────────────────────
+   * `--accent` is overwritten at runtime from the user's `accentColor`
+   * setting — see contexts/SettingsContext.tsx. The value below is the
+   * default, and what the UI shows until settings load.
+   */
+  --accent: #58a6ff;
+  --accent-emphasis: #1f6feb;  /* filled accent surfaces, selected states */
+
+  /* Sites that read as the accent but do NOT follow the user's setting.
+   * Pointing these at `--accent` is a behaviour change, not a rendering one,
+   * so it is deliberately not done here — see audit I1. When that change is
+   * made, it is this one line: `--accent-static: var(--accent);`
+   */
+  --accent-static: #58a6ff;
+
+  /* ── Semantic ──────────────────────────────────────────────────────────*/
+  --success: #3fb950;
+  --success-emphasis: #2ea043; /* filled success surfaces and their borders */
+  --success-strong: #238636;   /* primary confirm button */
+  --danger: #f85149;
+  --warning: #d29922;
+  --warning-bright: #e3b341;
+  --attention: #ffa657;        /* WIP, in-progress, "look here" */
+
+  /* ── Accents used for categories (tags, labels, AI) ───────────────────*/
+  --purple: #8957e5;
+  --purple-deep: #6e40c9;
+  --purple-soft: #b895f2;
+  --purple-text: #d2a8ff;
+  --info-text: #79c0ff;
+
+  /* ── Hover variants ────────────────────────────────────────────────────
+   * Lighter siblings used on :hover. Kept as their own tokens rather than
+   * derived, so a redesign can change the hover relationship itself.
+   */
+  --accent-hover: #388bfd;
+  --success-hover: #56d364;
+  --danger-hover: #ff7b72;
+
+  /* ── Filled danger (destructive confirm buttons) ───────────────────────*/
+  --danger-solid: #b91c1c;
+  --danger-solid-hover: #dc2626;
+
+  /* ── Diff ──────────────────────────────────────────────────────────────
+   * The diff has its own tints because it needs two depths per side: the line
+   * body and the (stronger) gutter.
+   */
+  --diff-add-bg: #1a3a1a;
+  --diff-add-bg-emphasis: #1f4a1f;
+  --diff-add-text: #aff5b4;
+  --diff-remove-bg: #3a1a1a;
+  --diff-remove-bg-emphasis: #4a1f1f;
+  --diff-remove-text: #ffdcd7;
+
+  /* ── Conflict resolver ─────────────────────────────────────────────────*/
+  --conflict-take-hover: #57d96a;   /* keep this line */
+  --conflict-drop-hover: #ff6b63;   /* drop this line */
+
+  /* ── Feedback blocks (push errors, force-push warning) ─────────────────
+   * Opaque tints over the canvas rather than translucent overlays — they sit
+   * on top of scrolling content and must stay legible.
+   */
+  --danger-block-bg: #2d1117;
+  --danger-block-border: #6e2c2c;
+  --warning-block-bg: #2b2410;
+  --warning-block-border: #5c4813;
+
+  /* ── Amend controls ────────────────────────────────────────────────────*/
+  --amend-confirm-bg: #2d6a31;
+  --amend-cancel-bg: #6e1f1f;
+
+  /* ── WIP banner ────────────────────────────────────────────────────────*/
+  --wip-bg: #1b4472;
+  --wip-border: #2d6aa0;
+  --wip-text: #a5c8f0;
+
+  /* ── Selection ─────────────────────────────────────────────────────────
+   * The selected commit row. Its own token because it is the single most
+   * frequent state in the product — and because today it does NOT follow
+   * --accent (audit I1). Pointing it at the accent is one line here.
+   */
+  --surface-selected: #1a3a5c;
+
+  /* ── Misc roles ────────────────────────────────────────────────────────*/
+  --text-muted-soft: #adbac7;   /* body copy in menus and release notes */
+  --text-muted-cool: #9aa7b4;
+  --ref-head: #f1e05a;          /* the HEAD ref chip */
+  --agent-accent: #5eead4;      /* agent/worktree chips */
+  --ai-border: #9d6ef0;         /* the AI action buttons */
+  --ai-text: #b083f0;
+  --install-bg: #f0883e;        /* the "install update" button */
+  --install-bg-hover: #e07830;
+
+  /* ── Graph lanes ───────────────────────────────────────────────────────
+   * Read once at runtime by graph-layout.ts, because CommitGraph does
+   * arithmetic on these (dimColor) and cannot work from a var() string.
+   * Editing them here still changes the graph — that is the point.
+   */
+  --lane-1: #2dd4bf;
+  --lane-2: #4d9de0;
+  --lane-3: #9b59b6;
+  --lane-4: #e879f9;
+  --lane-5: #22d3ee;
+  --lane-6: #818cf8;
+  --lane-7: #a78bfa;
+  --lane-8: #34d399;
+  --lane-9: #60a5fa;
+  --lane-10: #f472b6;
+
+  /* ── Opacity scale ─────────────────────────────────────────────────────
+   * Used as `color-mix(in srgb, var(--x) var(--alpha-muted), transparent)`.
+   * Replaced 49 hand-tuned opacities; the average site moved 1.6 percentage
+   * points, the worst 8. See docs-private/opacity-scale-proposal.md.
+   */
+  --alpha-faint: 8%;
+  --alpha-subtle: 12%;
+  --alpha-soft: 16%;
+  --alpha-muted: 20%;
+  --alpha-visible: 25%;
+  --alpha-strong: 30%;
+  --alpha-bold: 40%;
+  --alpha-half: 55%;
+  --alpha-heavy: 70%;
+  --alpha-dense: 85%;
+
+  /* Scrims sit over the whole app, so they get their own base. */
+  --scrim: #000000;
+
+  /* ── Toasts ────────────────────────────────────────────────────────────
+   * Opaque tints, not translucent: a toast floats over scrolling content and
+   * has to stay readable whatever is underneath.
+   */
+  --toast-success-bg: #0f2a15;
+  --toast-danger-bg: #2a0f0f;
+  --toast-info-bg: #0d1f38;
+
+  /* The status bar sits a shade below the canvas. */
+  --bg-statusbar: #0a0d12;
+
+  /* Pull-request state, alongside --success (open) and --danger (closed). */
+  --pr-merged: #a371f7;
+
+  /* ── Type scale ────────────────────────────────────────────────────────
+   * `base` is the body size. Replaced 22 sizes, including 12.5px, 13.5px and
+   * 11.5px — half-pixels that only existed because no step landed right.
+   */
+  --text-micro: 9px;
+  --text-tiny: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+  --text-5xl: 40px;
+
+  /* ── Weight ────────────────────────────────────────────────────────────*/
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Spacing ───────────────────────────────────────────────────────────
+   * Roughly ×1.4 per step. The odd values (3, 5, 7, 9, 11, 13, 14, 18) that
+   * used to sit between steps now snap to one; nothing moved by more than 2px.
+   */
+  --space-px: 1px;
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 8px;
+  --space-lg: 10px;
+  --space-xl: 12px;
+  --space-2xl: 16px;
+  --space-3xl: 20px;
+  --space-4xl: 24px;
+  --space-5xl: 32px;
+  --space-6xl: 40px;
+
+  /* ── Radius ────────────────────────────────────────────────────────────*/
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* ── Motion ────────────────────────────────────────────────────────────
+   * 0.1 / 0.12 / 0.15 were indistinguishable and sat on comparable
+   * interactions. Three steps is enough.
+   */
+  --dur-fast: 0.1s;
+  --dur-base: 0.15s;
+  --dur-slow: 0.3s;
+  /* Looping spinners and pulses. Separate from --dur-slow because a one-shot
+     transition and a continuous loop are not the same kind of duration —
+     folding them together made spinners run three times too fast. */
+  --dur-loop: 0.9s;
+
+  /* ── Layers ────────────────────────────────────────────────────────────
+   * Replaced 16 ad-hoc z-index values running from 1 to 10000, including the
+   * 900/901 and 9999/10000 pairs that are the fingerprints of a stacking
+   * argument. Anything new gets a name here, not a bigger number.
+   */
+  --z-raised: 1;
+  --z-sticky: 10;
+  --z-dropdown: 100;
+  --z-overlay: 1000;
+  --z-modal: 2000;
+  --z-toast: 5000;
+  --z-tooltip: 9000;
+}
+
+/* ── Exceptions ──────────────────────────────────────────────────────────
+ * Deliberately still literals in component stylesheets. Do not "fix" these by
+ * inventing a token — each one needs a decision first.
+ *
+ * 1. ALPHA VARIANTS (~158 sites). The palette carries hand-tuned opacities:
+ *    `--accent-emphasis` alone appears at 13 different alphas (0d, 11, 12, 14,
+ *    18, 1a, 22, 26, 28, 30, 33, 35, 44, 55), `--success-emphasis` at 12.
+ *    Collapsing them to an opacity scale of 4-5 steps is the obvious cleanup,
+ *    but it MOVES PIXELS, so it cannot ride along with a tokenisation that
+ *    guarantees it does not. Left literal so `grep -E '#[0-9a-f]{8}'` still
+ *    finds the whole worklist.
+ *
+ * 2. ONE-OFF COLOURS (48 values used 1-3 times). They belong to no family:
+ *    `#1a3a5c` (the selected commit row), `#0f2a15`/`#2a0f0f`/`#0d1f38` (toast
+ *    tints), `#1a3a1a`/`#1f4a1f`/`#3a1a1a`/`#4a1f1f`/`#6e2c2c` (conflict
+ *    ours/theirs tints), `#2b2410`/`#5c4813` (warning tints), `#b91c1c`/
+ *    `#dc2626`/`#5eead4` (stray Tailwind), and others. Naming them now would
+ *    invent roles the design does not actually have.
+ *
+ * 3. DOMAIN COLOURS in .ts/.tsx: GitHub language colours, AI provider brand
+ *    colours, and the app logo's SVG fills. These are data, not design.
+ */

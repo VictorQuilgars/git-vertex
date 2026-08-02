@@ -78,7 +78,7 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
         ) : (
           <div className="bc-grid">
             <div className="bc-col">
-              <div className="bc-col-header" style={{ color: '#58a6ff' }}>
+              <div className="bc-col-header" style={{ color: 'var(--accent-static)' }}>
                 {t('bc.in')} <code>{otherBranch}</code> {t('bc.butNotIn')} <code>{currentBranch}</code> ({data.ahead.length})
               </div>
               <div className="bc-list">
@@ -92,7 +92,7 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
               </div>
             </div>
             <div className="bc-col">
-              <div className="bc-col-header" style={{ color: '#3fb950' }}>
+              <div className="bc-col-header" style={{ color: 'var(--success)' }}>
                 {t('bc.in')} <code>{currentBranch}</code> {t('bc.butNotIn')} <code>{otherBranch}</code> ({data.behind.length})
               </div>
               <div className="bc-list">
@@ -221,7 +221,7 @@ function CompareCommitsModal({ from, to, onClose }: { from: string; to: string; 
           {loading
             ? <div className="bc-loading">{t('common.loading')}</div>
             : error
-              ? <div className="bc-empty" style={{ padding: 24, color: '#f85149' }}>{error}</div>
+              ? <div className="bc-empty" style={{ padding: 24, color: 'var(--danger)' }}>{error}</div>
               : diff.trim() === ''
                 ? <div className="bc-empty" style={{ padding: 24 }}>{t('compare.noDiffCommits')}</div>
                 : <DiffViewer
@@ -2253,7 +2253,7 @@ export default function App() {
                     <defs>
                       <radialGradient id="wmerge" cx="50%" cy="50%" r="50%">
                         <stop offset="0%" stopColor="#5eff8a"/>
-                        <stop offset="100%" stopColor="#3fb950"/>
+                        <stop offset="100%" stopColor="var(--success)"/>
                       </radialGradient>
                       <filter id="wglow">
                         <feGaussianBlur stdDeviation="6" result="blur"/>
@@ -2261,20 +2261,20 @@ export default function App() {
                       </filter>
                     </defs>
                     {/* Left arm — green */}
-                    <line x1="148" y1="82" x2="256" y2="422" stroke="#3fb950" strokeWidth="22" strokeLinecap="round"/>
+                    <line x1="148" y1="82" x2="256" y2="422" stroke="var(--success)" strokeWidth="22" strokeLinecap="round"/>
                     {/* Right arm — blue */}
-                    <line x1="364" y1="82" x2="256" y2="422" stroke="#58a6ff" strokeWidth="22" strokeLinecap="round"/>
+                    <line x1="364" y1="82" x2="256" y2="422" stroke="var(--accent-static)" strokeWidth="22" strokeLinecap="round"/>
                     {/* Left commits */}
-                    <circle cx="148" cy="82"  r="24" fill="#0d1117" stroke="#3fb950" strokeWidth="13"/>
-                    <circle cx="184" cy="192" r="18" fill="#0d1117" stroke="#3fb950" strokeWidth="11"/>
-                    <circle cx="220" cy="302" r="18" fill="#0d1117" stroke="#3fb950" strokeWidth="11"/>
+                    <circle cx="148" cy="82"  r="24" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="13"/>
+                    <circle cx="184" cy="192" r="18" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="11"/>
+                    <circle cx="220" cy="302" r="18" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="11"/>
                     {/* Right commits */}
-                    <circle cx="364" cy="82"  r="24" fill="#0d1117" stroke="#58a6ff" strokeWidth="13"/>
-                    <circle cx="328" cy="192" r="18" fill="#0d1117" stroke="#58a6ff" strokeWidth="11"/>
-                    <circle cx="292" cy="302" r="18" fill="#0d1117" stroke="#58a6ff" strokeWidth="11"/>
+                    <circle cx="364" cy="82"  r="24" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="13"/>
+                    <circle cx="328" cy="192" r="18" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="11"/>
+                    <circle cx="292" cy="302" r="18" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="11"/>
                     {/* Merge node */}
                     <circle cx="256" cy="422" r="28" fill="url(#wmerge)" filter="url(#wglow)"/>
-                    <circle cx="256" cy="422" r="14" fill="#0d1117"/>
+                    <circle cx="256" cy="422" r="14" fill="var(--bg-canvas)"/>
                   </svg>
                   <div>
                     <h1 className="welcome-title">Git Vertex</h1>

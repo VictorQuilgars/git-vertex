@@ -3,23 +3,23 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #0d1117;
+  background: var(--bg-canvas);
 }
 
 /* ── Header ─────────────────────────────────── */
 .ghp-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid #21262d;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-muted);
   flex-shrink: 0;
 }
 
 .ghp-repo-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e6edf3;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
   font-family: 'JetBrains Mono', monospace;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -29,27 +29,27 @@
 .ghp-refresh {
   background: transparent;
   border: none;
-  color: #6e7681;
+  color: var(--text-tertiary);
   cursor: pointer;
-  padding: 3px 5px;
-  border-radius: 4px;
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
-  transition: color 0.1s;
+  transition: color var(--dur-fast);
 }
-.ghp-refresh:hover { color: #e6edf3; background: #21262d; }
+.ghp-refresh:hover { color: var(--text-primary); background: var(--surface-sunken); }
 
 /* Repo badge on aggregated items (kept for defensive rendering) */
 .ghp-repo-badge {
   flex-shrink: 0;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 700;
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-bold);
   line-height: 16px;
-  color: #8b949e;
-  background: #21262d;
-  border: 1px solid #30363d;
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -59,20 +59,20 @@
 .ghp-close {
   background: transparent;
   border: none;
-  color: #6e7681;
-  font-size: 18px;
+  color: var(--text-tertiary);
+  font-size: var(--text-xl);
   cursor: pointer;
   line-height: 1;
-  padding: 1px 5px;
-  border-radius: 4px;
+  padding: var(--space-px) var(--space-xs);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
-.ghp-close:hover { color: #e6edf3; background: #21262d; }
+.ghp-close:hover { color: var(--text-primary); background: var(--surface-sunken); }
 
 /* ── Tabs ───────────────────────────────────── */
 .ghp-tabs {
   display: flex;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--border-muted);
   flex-shrink: 0;
 }
 
@@ -81,28 +81,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-sm);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #8b949e;
-  font-size: 12px;
-  padding: 9px 10px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  padding: var(--space-md) var(--space-lg);
   cursor: pointer;
-  transition: color 0.1s;
-  margin-bottom: -1px;
+  transition: color var(--dur-fast);
+  margin-bottom: -var(--space-px);
 }
-.ghp-tab:hover { color: #e6edf3; }
-.ghp-tab.active { color: #e6edf3; border-bottom-color: var(--accent,#58a6ff); font-weight: 600; }
+.ghp-tab:hover { color: var(--text-primary); }
+.ghp-tab.active { color: var(--text-primary); border-bottom-color: var(--accent); font-weight: var(--weight-semibold); }
 
 .ghp-count {
-  background: #21262d;
-  border: 1px solid #30363d;
-  border-radius: 10px;
-  font-size: 10px;
-  padding: 0 5px;
-  color: #8b949e;
-  font-weight: 500;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-tiny);
+  padding: 0 var(--space-xs);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
 }
 
 /* ── Body ───────────────────────────────────── */
@@ -112,54 +112,54 @@
 }
 
 .ghp-state {
-  padding: 24px 16px;
+  padding: var(--space-4xl) var(--space-2xl);
   text-align: center;
-  font-size: 12px;
-  color: #8b949e;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
-.ghp-err { color: #f85149; }
+.ghp-err { color: var(--danger); }
 
 /* ── Item ───────────────────────────────────── */
 .ghp-item {
-  padding: 10px 14px;
-  border-bottom: 1px solid #21262d;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-muted);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--dur-fast);
 }
-.ghp-item:hover { background: #1c2128; }
+.ghp-item:hover { background: var(--surface-hover); }
 .ghp-item:last-child { border-bottom: none; }
 
 .ghp-item-top {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  margin-bottom: 4px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
 }
 
 .ghp-number {
-  font-size: 11px;
-  color: #8b949e;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
   font-family: 'JetBrains Mono', monospace;
   flex-shrink: 0;
 }
 
 .ghp-badge {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-weight: 500;
+  font-size: var(--text-tiny);
+  padding: var(--space-px) var(--space-sm);
+  border-radius: var(--radius-lg);
+  font-weight: var(--weight-medium);
   flex-shrink: 0;
 }
 .ghp-draft {
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #8b949e;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
 }
 
 .ghp-title {
-  font-size: 13px;
-  color: #e6edf3;
+  font-size: var(--text-base);
+  color: var(--text-primary);
   line-height: 1.4;
   word-break: break-word;
 }
@@ -167,53 +167,53 @@
 .ghp-item-meta {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-xs);
   flex-wrap: wrap;
-  margin-top: 3px;
+  margin-top: var(--space-2xs);
 }
 
 .ghp-refs {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--accent,#58a6ff);
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--accent);
 }
-.ghp-refs code { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.ghp-refs code { font-family: 'JetBrains Mono', monospace; font-size: var(--text-tiny); }
 
-.ghp-dot { color: #484f58; font-size: 10px; }
+.ghp-dot { color: var(--text-disabled); font-size: var(--text-tiny); }
 
 .ghp-author {
-  font-size: 11px;
-  color: #8b949e;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 
 .ghp-time {
-  font-size: 11px;
-  color: #6e7681;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
 }
 
 .ghp-comments {
   display: flex;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  color: #6e7681;
+  gap: var(--space-2xs);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
 }
 
 .ghp-labels {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
 
 .ghp-label {
-  font-size: 10px;
-  padding: 1px 7px;
-  border-radius: 10px;
+  font-size: var(--text-tiny);
+  padding: var(--space-px) var(--space-sm);
+  border-radius: var(--radius-lg);
   border: 1px solid;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 @keyframes ghp-spin {
@@ -228,10 +228,10 @@
   opacity: 0;
   background: none;
   border: none;
-  color: #8b949e;
+  color: var(--text-secondary);
   cursor: pointer;
-  font-size: 12px;
-  padding: 0 4px;
+  font-size: var(--text-sm);
+  padding: 0 var(--space-xs);
 }
 .ghp-item:hover .ghp-copy-link { opacity: 1; }
-.ghp-copy-link:hover { color: #58a6ff; }
+.ghp-copy-link:hover { color: var(--accent-static); }

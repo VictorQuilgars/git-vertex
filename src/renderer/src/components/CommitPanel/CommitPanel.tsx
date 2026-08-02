@@ -19,12 +19,12 @@ interface CommitPanelProps {
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  M: { label: 'M', color: '#58a6ff' },
-  A: { label: 'A', color: '#3fb950' },
-  D: { label: 'D', color: '#f85149' },
-  R: { label: 'R', color: '#d2a8ff' },
-  '!': { label: '!', color: '#ffa657' },
-  '?': { label: '?', color: '#8b949e' },
+  M: { label: 'M', color: 'var(--accent-static)' },
+  A: { label: 'A', color: 'var(--success)' },
+  D: { label: 'D', color: 'var(--danger)' },
+  R: { label: 'R', color: 'var(--purple-text)' },
+  '!': { label: '!', color: 'var(--attention)' },
+  '?': { label: '?', color: 'var(--text-secondary)' },
 }
 
 function FileRow({

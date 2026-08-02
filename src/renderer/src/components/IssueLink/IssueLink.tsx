@@ -40,10 +40,10 @@ function fetchIssue(repo: IssueRepo, number: number): Promise<IssueInfo | null> 
 }
 
 function stateMeta(info: IssueInfo): { color: string; labelKey: string } {
-  if (info.isPR && info.merged) return { color: '#a371f7', labelKey: 'issue.merged' }
-  if (info.state === 'open') return { color: '#3fb950', labelKey: 'issue.open' }
-  if (info.isPR) return { color: '#f85149', labelKey: 'issue.closed' }
-  return { color: '#a371f7', labelKey: 'issue.closed' }
+  if (info.isPR && info.merged) return { color: 'var(--pr-merged)', labelKey: 'issue.merged' }
+  if (info.state === 'open') return { color: 'var(--success)', labelKey: 'issue.open' }
+  if (info.isPR) return { color: 'var(--danger)', labelKey: 'issue.closed' }
+  return { color: 'var(--pr-merged)', labelKey: 'issue.closed' }
 }
 
 export function IssueLink({ repo, number }: { repo: IssueRepo; number: number }) {

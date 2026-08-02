@@ -46,14 +46,14 @@ const SHORTCUT_KEYS: Record<string, EditableAction> = {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  pick: '#3fb950',
-  reword: '#58a6ff',
-  edit: '#58a6ff',
-  squash: '#d2a8ff',
-  fixup: '#ffa657',
-  drop: '#f85149',
-  exec: '#8b949e',
-  break: '#8b949e',
+  pick: 'var(--success)',
+  reword: 'var(--accent-static)',
+  edit: 'var(--accent-static)',
+  squash: 'var(--purple-text)',
+  fixup: 'var(--attention)',
+  drop: 'var(--danger)',
+  exec: 'var(--text-secondary)',
+  break: 'var(--text-secondary)',
 }
 
 // Composite key embedding a group's exact composition — when the plan
@@ -258,7 +258,7 @@ export default function RebaseProgress() {
     return (
       <div key={key} className={`rp-step rp-step--${status} rp-step--${variant}`}>
         <span className={`rp-step-dot rp-step-dot--${variant}`} />
-        <span className="rp-step-action" style={{ color: ACTION_COLORS[s.action] ?? '#8b949e' }}>
+        <span className="rp-step-action" style={{ color: ACTION_COLORS[s.action] ?? 'var(--text-secondary)' }}>
           {s.action}
         </span>
         <span className="rp-step-subject">{s.subject}</span>
@@ -338,7 +338,7 @@ export default function RebaseProgress() {
                     className="rp-step-select"
                     value={EDITABLE_ACTIONS.includes(s.action as EditableAction) ? s.action : 'pick'}
                     onChange={e => setTodoAction(i, e.target.value as EditableAction)}
-                    style={{ color: ACTION_COLORS[s.action] ?? '#e6edf3' }}
+                    style={{ color: ACTION_COLORS[s.action] ?? 'var(--text-primary)' }}
                   >
                     {EDITABLE_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
                   </select>

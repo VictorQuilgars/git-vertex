@@ -24,7 +24,7 @@ const isVSCodeHost = typeof window !== 'undefined' && (window as any).appInfo?.p
 // Defaults for keys that drive appearance/graph so the UI has sane values
 // before the user ever opens preferences.
 export const SETTING_DEFAULTS: SettingsMap = {
-  accentColor: '#58a6ff',
+  accentColor: 'var(--accent-static)',
   dateFormat: 'relative',          // 'relative' | 'absolute'
   graphShowAvatars: 'true',
   graphShowAuthor: 'true',

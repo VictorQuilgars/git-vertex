@@ -117,7 +117,7 @@ function buildTree(files: { path: string; status: string }[]): TreeNode[] {
 }
 
 const TreePencil = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" style={{ flexShrink: 0 }}>
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="var(--warning-bright)" style={{ flexShrink: 0 }}>
     <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
   </svg>
 )
@@ -241,7 +241,7 @@ function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }: {
   return (
     <div style={{ ...base, background: getAvatarColor(email), display: 'flex',
       alignItems: 'center', justifyContent: 'center',
-      color: '#fff', fontWeight: 700, fontSize: size * 0.38 }}>
+      color: 'var(--text-on-emphasis)', fontWeight: 700, fontSize: size * 0.38 }}>
       {initials(name)}
     </div>
   )
@@ -250,9 +250,9 @@ function fmtDate(s: string, locale: string) {
   try { return new Date(s).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) } catch { return s }
 }
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  M: { label: 'M', color: '#58a6ff' }, A: { label: 'A', color: '#3fb950' },
-  D: { label: 'D', color: '#f85149' }, R: { label: 'R', color: '#d2a8ff' },
-  '!': { label: '!', color: '#ffa657' }, '?': { label: '?', color: '#8b949e' },
+  M: { label: 'M', color: 'var(--accent-static)' }, A: { label: 'A', color: 'var(--success)' },
+  D: { label: 'D', color: 'var(--danger)' }, R: { label: 'R', color: 'var(--purple-text)' },
+  '!': { label: '!', color: 'var(--attention)' }, '?': { label: '?', color: 'var(--text-secondary)' },
 }
 
 // ── File History modal ────────────────────────────────────────
@@ -747,7 +747,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             return (
               <div className="cd-files-count-row">
                 {nMod > 0 && <>
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="#e3b341" style={{ flexShrink: 0 }}>
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="var(--warning-bright)" style={{ flexShrink: 0 }}>
                     <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
                   </svg>
                   <span className="cd-count-mod">{nMod} modified</span>
@@ -1515,7 +1515,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                         const isDir = f.endsWith('/')
                         return (
                           <div key={f} className="st-file-row">
-                            <span className="st-badge" style={{ color: '#3fb950' }}>{isDir ? '📁' : '?'}</span>
+                            <span className="st-badge" style={{ color: 'var(--success)' }}>{isDir ? '📁' : '?'}</span>
                             <span className="st-path" title={f}>
                               {f}{isDir && <span className="st-dir-hint"> {t('panel.folder')}</span>}
                             </span>
@@ -1888,7 +1888,7 @@ function ConflictPanel({
             const contentChoice = sides.ours && sides.theirs
             return (
               <div key={f} className={`rp-file-row rp-file-conflicted${contentChoice ? '' : ' rp-file-conflicted--existence'}`}>
-                <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>
+                <span className="rp-file-status" style={{ color: 'var(--attention)' }}>!</span>
                 <span className="rp-file-path" style={{ flex: 1, cursor: 'pointer' }}
                   title={t('rp2.openInEditor')} onClick={() => onOpenResolver(f)}>{f}</span>
                 {kind && kind !== 'unknown' && (
@@ -1922,7 +1922,7 @@ function ConflictPanel({
           {resolvedFiles.length === 0 && <div className="rp-empty">{t('rp.noResolved')}</div>}
           {resolvedFiles.map(f => (
             <div key={f.path} className="rp-file-row rp-file-resolved">
-              <span className="rp-file-status" style={{ color: '#3fb950' }}>✓</span>
+              <span className="rp-file-status" style={{ color: 'var(--success)' }}>✓</span>
               <span className="rp-file-path">{f.path}</span>
             </div>
           ))}
@@ -1939,14 +1939,14 @@ function ConflictPanel({
         <div className="rp-commit-actions" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <button
             className="rp-btn rp-btn-abort"
-            style={{ flex: 1, backgroundColor: '#21262d', color: '#f85149' }}
+            style={{ flex: 1, backgroundColor: 'var(--surface-sunken)', color: 'var(--danger)' }}
             onClick={onConflictAbort}
           >
             {t('rp.abortMode', conflictMode)}
           </button>
           <button
             className="rp-btn rp-btn-commit"
-            style={{ flex: 1, backgroundColor: allResolved ? '#2ea043' : '#21262d', color: allResolved ? '#fff' : '#8b949e' }}
+            style={{ flex: 1, backgroundColor: allResolved ? 'var(--success-emphasis)' : 'var(--surface-sunken)', color: allResolved ? 'var(--text-on-emphasis)' : 'var(--text-secondary)' }}
             disabled={!allResolved || !commitMsg.trim() || committing}
             onClick={doCommit}
           >

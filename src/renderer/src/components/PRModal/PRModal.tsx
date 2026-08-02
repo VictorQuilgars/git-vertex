@@ -93,7 +93,7 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
 
         {createdUrl ? (
           <div className="pr-success">
-            <svg width="32" height="32" viewBox="0 0 16 16" fill="#3fb950">
+            <svg width="32" height="32" viewBox="0 0 16 16" fill="var(--success)">
               <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
             </svg>
             <p className="pr-success-text">{t('pr.success', createdNumber!)}</p>
@@ -115,9 +115,9 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
                 <span className="pr-branch-label">{t('pr.headLabel')}</span>
                 <span className="pr-branch-value pr-branch-head">{head}</span>
               </div>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="#58a6ff">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--accent-static)">
                 <path d="M8 9l3-3-3-3M5 6H2M14 6h-3"/>
-                <path d="M2 6h12" strokeWidth="1.5" stroke="#58a6ff" fill="none"/>
+                <path d="M2 6h12" strokeWidth="1.5" stroke="var(--accent-static)" fill="none"/>
               </svg>
               <div className="pr-branch-item">
                 <span className="pr-branch-label">{t('pr.baseLabel')}</span>

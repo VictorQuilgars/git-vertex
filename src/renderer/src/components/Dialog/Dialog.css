@@ -1,12 +1,12 @@
 .dlg-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
-  animation: dlg-fade 0.1s ease;
+  z-index: var(--z-tooltip);
+  animation: dlg-fade var(--dur-fast) ease;
 }
 
 @keyframes dlg-fade {
@@ -15,17 +15,17 @@
 }
 
 .dlg-box {
-  background: #1c2128;
-  border: 1px solid #30363d;
-  border-radius: 10px;
-  padding: 20px 22px 16px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3xl) var(--space-3xl) var(--space-2xl);
   min-width: 320px;
   max-width: 480px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--scrim) var(--alpha-heavy), transparent);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  animation: dlg-pop 0.1s ease;
+  gap: var(--space-xl);
+  animation: dlg-pop var(--dur-fast) ease;
 }
 
 @keyframes dlg-pop {
@@ -34,24 +34,24 @@
 }
 
 .dlg-message {
-  font-size: 13px;
-  color: #c9d1d9;
+  font-size: var(--text-base);
+  color: var(--text-primary-soft);
   line-height: 1.5;
 }
 
 .dlg-input {
   width: 100%;
-  background: #0d1117;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  color: #e6edf3;
-  font-size: 13px;
-  padding: 7px 10px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  padding: var(--space-sm) var(--space-lg);
   outline: none;
   box-sizing: border-box;
   font-family: inherit;
 }
-.dlg-input:focus { border-color: var(--accent,#58a6ff); }
+.dlg-input:focus { border-color: var(--accent); }
 
 /* Multi-line variant (commit messages): wide box + tall monospace textarea */
 .dlg-box--wide {
@@ -63,59 +63,59 @@
   width: 100%;
   min-height: 220px;
   resize: vertical;
-  background: #0d1117;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  color: #e6edf3;
-  font-size: 12.5px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
   line-height: 1.5;
-  padding: 8px 10px;
+  padding: var(--space-md) var(--space-lg);
   outline: none;
   box-sizing: border-box;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   white-space: pre-wrap;
 }
-.dlg-textarea:focus { border-color: var(--accent,#58a6ff); }
+.dlg-textarea:focus { border-color: var(--accent); }
 .dlg-hint {
-  font-size: 10.5px;
-  color: #6e7681;
-  margin-top: -8px;
+  font-size: var(--text-tiny);
+  color: var(--text-tertiary);
+  margin-top: -var(--space-md);
 }
 
 .dlg-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-md);
 }
 
 .dlg-btn {
   height: 28px;
-  padding: 0 16px;
-  border-radius: 6px;
+  padding: 0 var(--space-2xl);
+  border-radius: var(--radius-md);
   border: 1px solid;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--dur-fast);
 }
 
 .dlg-cancel {
   background: transparent;
-  border-color: #30363d;
-  color: #8b949e;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
 }
-.dlg-cancel:hover { background: #21262d; color: #c9d1d9; }
+.dlg-cancel:hover { background: var(--surface-sunken); color: var(--text-primary-soft); }
 
 .dlg-ok {
-  background: #238636;
-  border-color: #2ea043;
-  color: #fff;
+  background: var(--success-strong);
+  border-color: var(--success-emphasis);
+  color: var(--text-on-emphasis);
 }
-.dlg-ok:hover { background: #2ea043; }
+.dlg-ok:hover { background: var(--success-emphasis); }
 
 .dlg-danger {
-  background: #b91c1c;
-  border-color: #f85149;
-  color: #fff;
+  background: var(--danger-solid);
+  border-color: var(--danger);
+  color: var(--text-on-emphasis);
 }
-.dlg-danger:hover { background: #dc2626; }
+.dlg-danger:hover { background: var(--danger-solid-hover); }

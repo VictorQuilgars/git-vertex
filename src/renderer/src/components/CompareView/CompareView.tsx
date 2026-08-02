@@ -134,8 +134,8 @@ export default function CompareView({ initialA, initialB }: { initialA?: string;
       ) : (
         <div className="cv-body">
           <div className="cv-left">
-            {renderCommitList(t('cv.inOnly', refB), ahead, '#3fb950')}
-            {renderCommitList(t('cv.inOnly', refA), behind, '#f85149')}
+            {renderCommitList(t('cv.inOnly', refB), ahead, 'var(--success)')}
+            {renderCommitList(t('cv.inOnly', refA), behind, 'var(--danger)')}
           </div>
           <div className="cv-right">
             <DiffViewer

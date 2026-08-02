@@ -2,40 +2,40 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #0d1117;
-  color: #e6edf3;
-  font-size: 13px;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-size: var(--text-base);
   overflow: hidden;
 }
 
 .fh-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-bottom: 1px solid #21262d;
-  background: #161b22;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-2xl);
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--surface);
   flex-shrink: 0;
 }
 
 .fh-title {
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
   flex-shrink: 0;
 }
 
 .fh-file {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: #58a6ff;
+  font-size: var(--text-sm);
+  color: var(--accent-static);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fh-count {
-  color: #8b949e;
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
   flex-shrink: 0;
 }
 
@@ -45,8 +45,8 @@
 
 .fh-toggle {
   display: flex;
-  border: 1px solid #30363d;
-  border-radius: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -54,31 +54,31 @@
 .fh-toggle button {
   background: transparent;
   border: none;
-  color: #8b949e;
-  padding: 4px 12px;
-  font-size: 12px;
+  color: var(--text-secondary);
+  padding: var(--space-xs) var(--space-xl);
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
 .fh-toggle button.active {
-  background: #21262d;
-  color: #e6edf3;
+  background: var(--surface-sunken);
+  color: var(--text-primary);
 }
 
 .fh-native {
   background: transparent;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  color: #8b949e;
-  padding: 4px 10px;
-  font-size: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  padding: var(--space-xs) var(--space-lg);
+  font-size: var(--text-sm);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .fh-native:hover {
-  color: #e6edf3;
-  background: #21262d;
+  color: var(--text-primary);
+  background: var(--surface-sunken);
 }
 
 .fh-body {
@@ -90,7 +90,7 @@
 .fh-list {
   width: 280px;
   min-width: 220px;
-  border-right: 1px solid #21262d;
+  border-right: 1px solid var(--border-muted);
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -101,50 +101,50 @@
   text-align: left;
   background: transparent;
   border: none;
-  border-bottom: 1px solid #161b22;
+  border-bottom: 1px solid var(--surface);
   border-left: 2px solid transparent;
-  color: #e6edf3;
-  padding: 8px 12px;
+  color: var(--text-primary);
+  padding: var(--space-md) var(--space-xl);
   cursor: pointer;
 }
 
 .fh-item:hover {
-  background: #161b22;
+  background: var(--surface);
 }
 
 .fh-item.selected {
-  background: #161b22;
-  border-left-color: #58a6ff;
+  background: var(--surface);
+  border-left-color: var(--accent-static);
 }
 
 .fh-item-top {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-md);
 }
 
 .fh-item-hash {
-  color: #58a6ff;
+  color: var(--accent-static);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .fh-item-date {
-  color: #484f58;
-  font-size: 11px;
+  color: var(--text-disabled);
+  font-size: var(--text-xs);
 }
 
 .fh-item-msg {
-  font-size: 12px;
-  margin: 3px 0 2px;
+  font-size: var(--text-sm);
+  margin: var(--space-2xs) 0 var(--space-2xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fh-item-author {
-  color: #8b949e;
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 
 .fh-pane {
@@ -159,27 +159,27 @@
   flex: 1;
   overflow: auto;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  padding: 6px 0;
+  font-size: var(--text-sm);
+  padding: var(--space-sm) 0;
 }
 
 .fh-blame-line {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 0 14px;
+  gap: var(--space-lg);
+  padding: 0 var(--space-xl);
   line-height: 1.5;
   white-space: pre;
 }
 
 .fh-blame-line:hover {
-  background: #161b22;
+  background: var(--surface);
 }
 
 .fh-blame-hash {
   background: transparent;
   border: none;
-  color: #58a6ff;
+  color: var(--accent-static);
   font-family: inherit;
   font-size: inherit;
   padding: 0;
@@ -192,7 +192,7 @@
 }
 
 .fh-blame-author {
-  color: #8b949e;
+  color: var(--text-secondary);
   width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -200,13 +200,13 @@
 }
 
 .fh-blame-date {
-  color: #484f58;
+  color: var(--text-disabled);
   width: 80px;
   flex-shrink: 0;
 }
 
 .fh-blame-num {
-  color: #484f58;
+  color: var(--text-disabled);
   width: 36px;
   text-align: right;
   flex-shrink: 0;
@@ -218,7 +218,7 @@
 }
 
 .fh-empty {
-  padding: 20px;
+  padding: var(--space-3xl);
   text-align: center;
-  color: #484f58;
+  color: var(--text-disabled);
 }

@@ -31,11 +31,11 @@ interface InteractiveRebaseProps {
 const ACTIONS: RebaseAction[] = ['pick', 'reword', 'squash', 'fixup', 'drop']
 
 const ACTION_COLORS: Record<RebaseAction, string> = {
-  pick: '#3fb950',
-  reword: '#58a6ff',
-  squash: '#d2a8ff',
-  fixup: '#ffa657',
-  drop: '#f85149',
+  pick: 'var(--success)',
+  reword: 'var(--accent-static)',
+  squash: 'var(--purple-text)',
+  fixup: 'var(--attention)',
+  drop: 'var(--danger)',
 }
 
 // Composite key embedding a group's exact composition — when the plan
