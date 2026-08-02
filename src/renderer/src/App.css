@@ -267,7 +267,13 @@ body {
 .welcome-logo {
   width: 72px;
   height: 72px;
-  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--success) var(--alpha-strong), transparent)) drop-shadow(0 0 40px var(--accent)25);
+  /* The blue glow used to read `var(--accent)25`, meaning to end up as
+     #58a6ff25. Custom properties substitute as tokens, not as text: that
+     expands to `#58a6ff 25` — a colour and a stray number — which makes the
+     whole declaration invalid at computed-value time, so `filter` fell back to
+     `none` and BOTH glows were lost. */
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--success) var(--alpha-strong), transparent))
+          drop-shadow(0 0 40px color-mix(in srgb, var(--accent) var(--alpha-soft), transparent));
 }
 
 .welcome-title {
