@@ -64,7 +64,9 @@ export function buildWebviewHtml(
   <title>Git Vertex</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: #0d1117; }
+    /* The stylesheet above defines --bg-canvas; the literal is only the guard
+       for the case where it fails to load at all. */
+    html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg-canvas, #0d1117); }
     #root { width: 100%; height: 100%; }
   </style>
 </head>

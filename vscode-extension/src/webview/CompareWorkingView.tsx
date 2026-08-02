@@ -29,7 +29,7 @@ export default function CompareWorkingView({ hash }: { hash: string }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {!loading && diff.trim() === '' ? (
-        <div style={{ padding: 24, color: '#8b949e' }}>{t('cw.noDiff')}</div>
+        <div style={{ padding: 24, color: 'var(--text-secondary)' }}>{t('cw.noDiff')}</div>
       ) : (
         <DiffViewer
           commit={syntheticCommit(hash.slice(0, 7), t('ext.compare.workingDir'))}

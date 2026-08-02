@@ -1,5 +1,16 @@
 /* vertex-vscode.css — webview-only tweaks + Git Vertex brand header.
-   Keeps the desktop look but adapts the shell to the VS Code panel. */
+   Keeps the desktop look but adapts the shell to the VS Code panel.
+
+   COLOURS AND LAYERS COME FROM TOKENS. app.tsx imports the shared App.css
+   (and therefore tokens.css) before this file, so every `--token` below is
+   already in scope — this stylesheet needs no palette of its own, and must not
+   grow one. It used to carry 69 colour literals, which meant the chrome that
+   exists *only* in the panel — the rail, the compact toolbar, the conflict
+   banner, the stacked-mode bar — stayed on one fixed palette no matter what
+   tokens.css said. Geometry (widths, heights, radii, font sizes, durations)
+   is still literal here on purpose: it is panel-specific layout, not theme,
+   and snapping it to the scales would move pixels in a surface with no
+   automated render coverage. */
 
 .gv-app {
   height: 100%;
@@ -19,8 +30,8 @@
   flex-shrink: 0;
   height: 100%;
   padding: 6px 0;
-  background: #0d1117;
-  border-right: 1px solid #21262d;
+  background: var(--bg-canvas);
+  border-right: 1px solid var(--border-muted);
   user-select: none;
   overflow: hidden;
 }
@@ -34,13 +45,14 @@
   border: none;
   border-radius: 7px;
   background: transparent;
-  color: #8b949e;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.1s, color 0.1s;
 }
-.gv-rail-btn:hover:not(:disabled) { background: #21262d; color: #e6edf3; }
-.gv-rail-btn--active { color: #e6edf3; }
-/* Accent bar on the active icon (VS Code activity-bar convention) */
+.gv-rail-btn:hover:not(:disabled) { background: var(--surface-sunken); color: var(--text-primary); }
+.gv-rail-btn--active { color: var(--text-primary); }
+/* Accent bar on the active icon (VS Code activity-bar convention). Follows the
+   user's accent, like every other "this one is selected" mark in the product. */
 .gv-rail-btn--active::before {
   content: '';
   position: absolute;
@@ -49,7 +61,7 @@
   bottom: 6px;
   width: 2px;
   border-radius: 2px;
-  background: #58a6ff;
+  background: var(--accent);
 }
 .gv-rail-btn--soon { opacity: 0.4; cursor: default; }
 .gv-rail-spacer { flex: 1; }
@@ -64,7 +76,7 @@
 }
 .gv-sidepanel .sidebar { border-right: none; }
 
-/* ── Compact toolbar ───────────────────────────── */
+/* ── Compact toolbar ───────────────────────────────────────── */
 .gvt {
   display: flex;
   align-items: center;
@@ -72,16 +84,16 @@
   height: 34px;
   flex-shrink: 0;
   padding: 0 8px;
-  background: #161b22;
-  border-bottom: 1px solid #21262d;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-muted);
   font-size: 12px;
   user-select: none;
 }
 .gvt-logo { flex-shrink: 0; }
-.gvt-repo { color: #c9d1d9; font-size: 12px; font-weight: 600; margin-left: 4px; }
+.gvt-repo { color: var(--text-primary-soft); font-size: 12px; font-weight: 600; margin-left: 4px; }
 
 .gvt-spring { flex: 1; }
-.gvt-sep { width: 1px; height: 16px; background: #30363d; margin: 0 3px; flex-shrink: 0; }
+.gvt-sep { width: 1px; height: 16px; background: var(--border-default); margin: 0 3px; flex-shrink: 0; }
 
 /* Icon buttons */
 .gvt-btn {
@@ -94,17 +106,20 @@
   border: none;
   border-radius: 5px;
   background: transparent;
-  color: #8b949e;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.1s, color 0.1s;
   flex-shrink: 0;
 }
-.gvt-btn:hover:not(:disabled) { background: #21262d; color: #e6edf3; }
+.gvt-btn:hover:not(:disabled) { background: var(--surface-sunken); color: var(--text-primary); }
 .gvt-btn:disabled { opacity: 0.35; cursor: default; }
-.gvt-btn--active { background: #1f6feb22; color: #58a6ff; }
+.gvt-btn--active {
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent);
+  color: var(--accent);
+}
 .gvt-badge {
   position: absolute; top: -2px; right: -2px;
-  background: #1f6feb; color: #fff; font-size: 8px; font-weight: 700;
+  background: var(--accent-emphasis); color: var(--text-on-emphasis); font-size: 8px; font-weight: 700;
   min-width: 13px; height: 13px; line-height: 13px; text-align: center;
   border-radius: 7px; padding: 0 2px;
 }
@@ -116,15 +131,17 @@
   display: inline-flex; align-items: center; gap: 5px;
   height: 24px; padding: 0 10px;
   background: transparent; border: 1px solid transparent; border-radius: 5px;
-  color: #8b949e; font-size: 11px; font-weight: 600; cursor: pointer;
+  color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer;
   flex-shrink: 0; transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
-.gvt-tbtn:hover:not(:disabled) { background: #21262d; color: #e6edf3; border-color: #30363d; }
+.gvt-tbtn:hover:not(:disabled) {
+  background: var(--surface-sunken); color: var(--text-primary); border-color: var(--border-default);
+}
 .gvt-tbtn:disabled { opacity: 0.4; cursor: default; }
 /* ahead/behind count badge on Pull / Push */
 .gvt-tbtn-count {
   min-width: 15px; height: 15px; line-height: 15px; padding: 0 4px;
-  border-radius: 8px; background: #1f6feb; color: #fff;
+  border-radius: 8px; background: var(--accent-emphasis); color: var(--text-on-emphasis);
   font-size: 9px; font-weight: 700; text-align: center;
 }
 
@@ -136,54 +153,60 @@
   display: inline-flex; align-items: center; justify-content: center;
   width: 20px; height: 22px; margin-left: 1px;
   background: none; border: none; border-radius: 5px;
-  color: #8b949e; cursor: pointer; flex-shrink: 0;
+  color: var(--text-secondary); cursor: pointer; flex-shrink: 0;
 }
-.gvt-branch-menu-btn:hover { background: #30363d; color: #c9d1d9; }
+.gvt-branch-menu-btn:hover { background: var(--surface-active); color: var(--text-primary-soft); }
 .gvt-branch {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 8px; height: 22px;
-  background: #1f6feb18; border: 1px solid #1f6feb40; border-radius: 20px;
-  color: #58a6ff; font-size: 11px; font-weight: 600; cursor: pointer;
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-faint), transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-emphasis) var(--alpha-visible), transparent);
+  border-radius: 20px;
+  color: var(--accent); font-size: 11px; font-weight: 600; cursor: pointer;
   max-width: 200px;
 }
-.gvt-branch:hover { background: #1f6feb28; }
+.gvt-branch:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-soft), transparent); }
 .gvt-branch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
 .gvt-branch-menu {
-  position: absolute; top: 26px; left: 0; z-index: 9999;
+  position: absolute; top: 26px; left: 0; z-index: var(--z-dropdown);
   min-width: 200px; max-height: 280px; overflow-y: auto;
-  background: #1c2128; border: 1px solid #30363d; border-radius: 8px;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.5); padding: 4px;
+  background: var(--surface-hover); border: 1px solid var(--border-default); border-radius: 8px;
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent); padding: 4px;
 }
 .gvt-branch-item {
   display: flex; align-items: center; gap: 6px; width: 100%;
   padding: 5px 8px; border: none; background: transparent; border-radius: 5px;
-  color: #c9d1d9; font-size: 12px; cursor: pointer; text-align: left;
+  color: var(--text-primary-soft); font-size: 12px; cursor: pointer; text-align: left;
 }
-.gvt-branch-item:hover { background: #21262d; }
-.gvt-branch-item--current { color: #3fb950; }
-.gvt-branch-tick { width: 12px; flex-shrink: 0; color: #3fb950; }
+.gvt-branch-item:hover { background: var(--surface-sunken); }
+.gvt-branch-item--current { color: var(--success); }
+.gvt-branch-tick { width: 12px; flex-shrink: 0; color: var(--success); }
 .gvt-branch-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gvt-branch-empty { padding: 8px; color: #6e7681; font-size: 11px; }
+.gvt-branch-empty { padding: 8px; color: var(--text-tertiary); font-size: 11px; }
 
 
 /* Search */
 .gvt-search {
   display: flex; align-items: center; gap: 5px;
   height: 24px; padding: 0 8px; width: 150px;
-  background: #0d1117; border: 1px solid #30363d; border-radius: 5px;
-  color: #6e7681; flex-shrink: 0; transition: border-color 0.1s, width 0.15s;
+  background: var(--bg-canvas); border: 1px solid var(--border-default); border-radius: 5px;
+  color: var(--text-tertiary); flex-shrink: 0; transition: border-color 0.1s, width 0.15s;
 }
-.gvt-search:focus-within { border-color: #58a6ff; width: 200px; }
-.gvt-search input { flex: 1; width: 0; background: none; border: none; outline: none; color: #e6edf3; font-size: 11px; }
-.gvt-search input::placeholder { color: #484f58; }
-.gvt-search-clear { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
-.gvt-search-clear:hover { color: #e6edf3; }
+.gvt-search:focus-within { border-color: var(--accent); width: 200px; }
+.gvt-search input { flex: 1; width: 0; background: none; border: none; outline: none; color: var(--text-primary); font-size: 11px; }
+.gvt-search input::placeholder { color: var(--text-disabled); }
+.gvt-search-clear { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.gvt-search-clear:hover { color: var(--text-primary); }
 .gvt-search-count {
-  background: #1f6feb33; color: #58a6ff;
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-muted), transparent);
+  color: var(--accent);
   font-size: 9px; font-weight: 700;
   padding: 1px 5px; border-radius: 8px; flex-shrink: 0;
 }
-.gvt-search-count--none { background: #f8514922; color: #f85149; }
+.gvt-search-count--none {
+  background: color-mix(in srgb, var(--danger) var(--alpha-subtle), transparent);
+  color: var(--danger);
+}
 
 /* ── Responsive: the webview viewport IS the panel, so media queries track
    the panel width directly. Degrade gracefully as the panel narrows. ───── */
@@ -213,44 +236,52 @@
   .gvt-branch-name { max-width: 70px; }
 }
 
-/* ── In-progress operation banner ────────────────────────────── */
+/* ── In-progress operation banner ────────────────────────────────
+   This used to carry its own amber family (#3d2a12 / #5c4813 / #f0c674 /
+   #ffd9a0) — a fourth one in a product that already has --warning,
+   --warning-bright, --attention and the --warning-block-* pair. It now uses
+   that pair, which is the same role: a warning block over scrolling content.
+   The two ends of the family (background, emphasised word) shift by a shade;
+   the border was already exactly --warning-block-border. */
 .gv-conflict-banner {
   display: flex; align-items: center; gap: 8px;
   flex-shrink: 0; height: 30px; padding: 0 10px;
-  background: #3d2a12; border-bottom: 1px solid #5c4813;
-  color: #f0c674; font-size: 12px;
+  background: var(--warning-block-bg); border-bottom: 1px solid var(--warning-block-border);
+  color: var(--warning-bright); font-size: 12px;
 }
 .gv-cb-icon { flex-shrink: 0; }
 .gv-cb-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gv-cb-text strong { text-transform: capitalize; color: #ffd9a0; }
+.gv-cb-text strong { text-transform: capitalize; color: var(--attention); }
 .gv-cb-spring { flex: 1; }
 .gv-cb-btn {
   flex-shrink: 0; height: 22px; padding: 0 10px;
   border-radius: 5px; border: 1px solid transparent;
   font-size: 11px; font-weight: 600; cursor: pointer;
 }
-.gv-cb-continue { background: #238636; color: #fff; border-color: #2ea043; }
-.gv-cb-continue:hover:not(:disabled) { background: #2ea043; }
+.gv-cb-continue {
+  background: var(--success-strong); color: var(--text-on-emphasis); border-color: var(--success-emphasis);
+}
+.gv-cb-continue:hover:not(:disabled) { background: var(--success-emphasis); }
 .gv-cb-continue:disabled { opacity: 0.4; cursor: default; }
-.gv-cb-abort { background: transparent; color: #f0c674; border-color: #5c4813; }
-.gv-cb-abort:hover { background: #5c481333; }
+.gv-cb-abort { background: transparent; color: var(--warning-bright); border-color: var(--warning-block-border); }
+.gv-cb-abort:hover { background: color-mix(in srgb, var(--warning-block-border) var(--alpha-muted), transparent); }
 
 /* ── Stacked mode: in a narrow panel the right panel takes the full width
    instead of squeezing the graph to nothing. ─────────────────────────── */
 .gv-stacked-bar {
   display: flex; align-items: center; gap: 8px;
   height: 30px; flex-shrink: 0; padding: 0 8px;
-  background: #161b22; border-bottom: 1px solid #21262d;
+  background: var(--surface); border-bottom: 1px solid var(--border-muted);
 }
 .gv-stacked-back {
   display: inline-flex; align-items: center; gap: 5px;
   height: 22px; padding: 0 8px;
-  background: transparent; border: 1px solid #30363d; border-radius: 5px;
-  color: #8b949e; font-size: 11px; font-weight: 600; cursor: pointer;
+  background: transparent; border: 1px solid var(--border-default); border-radius: 5px;
+  color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer;
 }
-.gv-stacked-back:hover { background: #21262d; color: #e6edf3; }
+.gv-stacked-back:hover { background: var(--surface-sunken); color: var(--text-primary); }
 .gv-stacked-title {
-  color: #6e7681; font-size: 11px;
+  color: var(--text-tertiary); font-size: 11px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .gv-right-stacked { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -268,8 +299,8 @@
 .gv-settings-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10000;
-  background: #0d1117;
+  z-index: var(--z-modal);
+  background: var(--bg-canvas);
   overflow: auto;
   display: flex;
   flex-direction: column;

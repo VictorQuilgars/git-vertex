@@ -148,7 +148,7 @@
   padding: var(--space-px) var(--space-xs);
   border-radius: var(--radius-sm);
 }
-.cd-ai-explain-refresh:hover { color: var(--text-on-emphasis); background: color-mix(in srgb, var(--purple-deep) var(--alpha-visible), transparent); }
+.cd-ai-explain-refresh:hover { color: var(--text-primary); background: color-mix(in srgb, var(--purple-deep) var(--alpha-visible), transparent); }
 .cd-ai-explain-refresh:disabled { opacity: 0.6; cursor: wait; }
 .cd-ai-explain-text {
   margin: 0;
@@ -285,7 +285,7 @@
 .cd-title {
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
-  color: var(--text-on-emphasis);
+  color: var(--text-primary);
   line-height: 1.4;
   word-break: break-word;
   margin: 0 0 var(--space-md);
@@ -1301,7 +1301,7 @@
 .st2-tab.active {
   background: var(--bg-canvas);
   border-color: var(--border-default);
-  color: var(--text-on-emphasis);
+  color: var(--text-primary);
   position: relative;
 }
 .st2-tab-icon {

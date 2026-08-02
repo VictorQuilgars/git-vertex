@@ -126,7 +126,7 @@
   padding: var(--space-px) var(--space-xs);
   flex-shrink: 0;
 }
-.mt-ai-explain-close:hover { color: var(--text-on-emphasis); }
+.mt-ai-explain-close:hover { color: var(--text-primary); }
 
 .mt-btn-save {
   background: var(--success-strong);

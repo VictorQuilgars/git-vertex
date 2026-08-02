@@ -1,4 +1,4 @@
-import { computeGraphLayout } from '../graph-layout'
+import { computeGraphLayout, canvasRgb, laneColors, resetThemeCache } from '../graph-layout'
 import { CommitNode } from '../../../types'
 
 // Topology of the "TaskFlow" demo repo (scripts/make-demo-repo.sh), in the same
@@ -158,3 +158,63 @@ describe('computeGraphLayout', () => {
     expect(color('4694ea8')).not.toBe(color('c0bc6e4'))
   })
 })
+
+// The graph resolves two things to literals because it does arithmetic on them:
+// the lane palette and the canvas. Both used to be frozen — the lanes in a cache
+// nothing could clear, the canvas as `[13, 17, 23]` written into the TypeScript —
+// so a theme swap left the graph painting the old one. dimColor() blending
+// toward the wrong background is invisible on a dark theme and inverts on a
+// light one: the faded edges come out darker, and louder, than the live ones.
+describe('theme values the graph resolves itself', () => {
+  const root = () => document.documentElement
+
+  afterEach(() => {
+    root().style.removeProperty('--bg-canvas')
+    for (let i = 1; i <= 10; i++) root().style.removeProperty(`--lane-${i}`)
+    resetThemeCache()
+  })
+
+  it('falls back to the dark canvas when no token is set', () => {
+    resetThemeCache()
+    expect(canvasRgb()).toEqual([13, 17, 23])
+  })
+
+  it('reads --bg-canvas, including a light one', () => {
+    root().style.setProperty('--bg-canvas', '#fbfaf7')
+    resetThemeCache()
+    expect(canvasRgb()).toEqual([251, 250, 247])
+  })
+
+  it('accepts the shorthand and rgb() forms', () => {
+    root().style.setProperty('--bg-canvas', '#abc')
+    resetThemeCache()
+    expect(canvasRgb()).toEqual([170, 187, 204])
+    root().style.setProperty('--bg-canvas', 'rgb(20, 16, 12)')
+    resetThemeCache()
+    expect(canvasRgb()).toEqual([20, 16, 12])
+  })
+
+  it('keeps the fallback rather than a wrong value when unparseable', () => {
+    root().style.setProperty('--bg-canvas', 'not-a-colour')
+    resetThemeCache()
+    expect(canvasRgb()).toEqual([13, 17, 23])
+  })
+
+  it('lets resetThemeCache pick up a theme swapped after first paint', () => {
+    root().style.setProperty('--bg-canvas', '#101010')
+    resetThemeCache()
+    expect(canvasRgb()).toEqual([16, 16, 16])
+    // Without the reset the old value would survive — that was the bug.
+    root().style.setProperty('--bg-canvas', '#14100c')
+    expect(canvasRgb()).toEqual([16, 16, 16])
+    resetThemeCache()
+    expect(canvasRgb()).toEqual([20, 16, 12])
+  })
+
+  it('re-reads the lane palette after a reset too', () => {
+    for (let i = 1; i <= 10; i++) root().style.setProperty(`--lane-${i}`, '#010203')
+    resetThemeCache()
+    expect(laneColors()).toEqual(Array(10).fill('#010203'))
+  })
+})
+

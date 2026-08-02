@@ -2,6 +2,9 @@
    in front of every component stylesheet in the desktop app and the VS Code
    webview alike. */
 @import './tokens.css';
+/* The highlight.js class map, in tokens. Here rather than in a component so it
+   is present for all three hljs callers, not only whichever one is loaded. */
+@import './syntax.css';
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; width: 100%; overflow: hidden; }

@@ -83,4 +83,4 @@
   flex-shrink: 0;
   transition: background var(--dur-fast);
 }
-.toast-action:hover { background: color-mix(in srgb, var(--text-on-emphasis) var(--alpha-faint), transparent); }
+.toast-action:hover { background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent); }

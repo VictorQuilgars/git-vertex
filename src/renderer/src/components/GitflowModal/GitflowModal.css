@@ -150,5 +150,5 @@
   cursor: pointer;
   opacity: 0.85;
 }
-.gf-start-btn:hover:not(:disabled) { opacity: 1; background: color-mix(in srgb, var(--text-on-emphasis) var(--alpha-faint), transparent); }
+.gf-start-btn:hover:not(:disabled) { opacity: 1; background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent); }
 .gf-start-btn:disabled { opacity: 0.4; cursor: default; }

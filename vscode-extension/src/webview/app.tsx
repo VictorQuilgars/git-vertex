@@ -35,7 +35,9 @@ import CommitMsgEditorView from './CommitMsgEditorView'
 import WhatsNew from '../../../src/renderer/src/components/WhatsNew/WhatsNew'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
 
-import 'highlight.js/styles/github-dark.css'
+// The hljs theme comes from App.css → syntax.css, in tokens, like the rest of
+// the palette. This used to import highlight.js/styles/github-dark.css on top,
+// which put a second, untokenised palette in the panel.
 import '../../../src/renderer/src/App.css'
 import './vertex-vscode.css'
 
@@ -1084,9 +1086,9 @@ class PanelErrorBoundary extends React.Component<
   render() {
     if (!this.state.error) return this.props.children
     return (
-      <div style={{ padding: 16, font: '12px var(--vscode-editor-font-family, monospace)', color: '#f85149' }}>
+      <div style={{ padding: 16, font: '12px var(--vscode-editor-font-family, monospace)', color: 'var(--danger)' }}>
         <div style={{ fontWeight: 600, marginBottom: 8 }}>Git Vertex — render error</div>
-        <pre style={{ whiteSpace: 'pre-wrap', color: '#c9d1d9', margin: 0 }}>
+        <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--text-primary-soft)', margin: 0 }}>
           {this.state.error.message}
           {'\n\n'}
           {this.state.error.stack}

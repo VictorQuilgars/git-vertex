@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import hljs from 'highlight.js'
-import 'highlight.js/styles/github-dark.css'
+// The hljs theme is src/renderer/src/syntax.css, imported from App.css so all
+// three hljs callers get it. It used to be `highlight.js/styles/github-dark.css`
+// imported here, which meant the diff's palette lived outside tokens.css.
 import { CommitNode, FileChange } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
 import './DiffViewer.css'

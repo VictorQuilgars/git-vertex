@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { LayoutCommit, computeGraphLayout } from './graph-layout'
+import { LayoutCommit, computeGraphLayout, canvasRgb } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
@@ -98,7 +98,7 @@ function dimColor(hex: string, factor = 0.4): string {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   if (!m) return hex
   const [r, g, b] = [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)]
-  const bg = [13, 17, 23] // var(--bg-canvas)
+  const bg = canvasRgb()
   const mix = (c: number, bgc: number) => Math.round(bgc + (c - bgc) * factor)
   const toHex = (n: number) => n.toString(16).padStart(2, '0')
   return `#${toHex(mix(r, bg[0]))}${toHex(mix(g, bg[1]))}${toHex(mix(b, bg[2]))}`
