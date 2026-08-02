@@ -1,12 +1,12 @@
 .ctx-menu {
   background: var(--surface-hover);
   border: 1px solid var(--border-default);
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent), 0 2px 8px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent);
   min-width: 200px;
-  padding: 3px;
+  padding: var(--space-2xs);
   user-select: none;
-  animation: ctx-appear 0.08s ease;
+  animation: ctx-appear var(--dur-fast) ease;
   /* Stay within the viewport — scroll if taller than the available height
      (e.g. inside the short VS Code panel). A long menu (this one has grown
      to ~25 entries) needs an OBVIOUS scroll affordance here, not a default
@@ -15,15 +15,15 @@
   max-height: calc(100vh - 8px);
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #6e7681 #1c2128;
+  scrollbar-color: var(--text-tertiary) var(--surface-hover);
 }
 
 .ctx-menu::-webkit-scrollbar { width: 10px; }
 .ctx-menu::-webkit-scrollbar-track { background: var(--surface-hover); }
 .ctx-menu::-webkit-scrollbar-thumb {
   background: var(--text-tertiary);
-  border-radius: 5px;
-  border: 2px solid #1c2128;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--surface-hover);
 }
 .ctx-menu::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
@@ -39,26 +39,26 @@
   /* Tight on purpose: this menu carries every branch AND commit action, so a
      couple of pixels per row decide whether it needs scrolling. 4px keeps the
      rows comfortably clickable (~23px tall) without the list running off. */
-  padding: 4px 10px;
+  padding: var(--space-xs) var(--space-lg);
   background: none;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: var(--text-primary-soft);
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 15px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.08s, color 0.08s;
+  transition: background var(--dur-fast), color var(--dur-fast);
   white-space: nowrap;
 }
 
 .ctx-item:hover:not(.ctx-disabled) {
-  background: #2d333b;
+  background: var(--surface-active);
   color: var(--text-primary);
 }
 
 .ctx-item.ctx-danger { color: var(--danger); }
-.ctx-item.ctx-danger:hover:not(.ctx-disabled) { background: #f8514918; color: #ff7b72; }
+.ctx-item.ctx-danger:hover:not(.ctx-disabled) { background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); color: var(--danger-hover); }
 
 .ctx-item.ctx-disabled {
   opacity: 0.4;
@@ -69,7 +69,7 @@
   display: inline-block;
   width: 16px;
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--accent);
 }
 
@@ -77,15 +77,15 @@
 
 .ctx-chevron {
   flex-shrink: 0;
-  margin-left: 14px;
+  margin-left: var(--space-xl);
   color: var(--text-tertiary);
-  font-size: 15px;
+  font-size: var(--text-md);
   line-height: 1;
 }
-.ctx-item:hover:not(.ctx-disabled) .ctx-chevron { color: #adbac7; }
+.ctx-item:hover:not(.ctx-disabled) .ctx-chevron { color: var(--text-muted-soft); }
 
 .ctx-sep {
   height: 1px;
   background: var(--surface-active);
-  margin: 3px 0;
+  margin: var(--space-2xs) 0;
 }

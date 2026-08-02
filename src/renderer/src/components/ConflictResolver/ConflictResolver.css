@@ -6,7 +6,7 @@
   background: var(--bg-canvas);
   color: var(--text-primary-soft);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 13px;
+  font-size: var(--text-base);
   overflow: hidden;
 }
 
@@ -16,7 +16,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--text-secondary);
 }
 
@@ -25,7 +25,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
+  padding: var(--space-md) var(--space-2xl);
   background: var(--surface);
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
@@ -33,34 +33,34 @@
 .mt-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-md);
 }
 .cr-warning {
-  font-size: 16px;
+  font-size: var(--text-lg);
 }
 .mt-filename {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 .mt-count {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .mt-header-right {
   display: flex;
-  gap: 8px;
+  gap: var(--space-md);
 }
 .mt-btn {
-  padding: 4px 12px;
+  padding: var(--space-xs) var(--space-xl);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--surface-sunken);
   color: var(--text-primary-soft);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
-  transition: 0.2s;
+  transition: var(--dur-base);
 }
 .mt-btn:hover {
   background: var(--surface-active);
@@ -70,10 +70,10 @@
 .mt-ai-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  background: #6e40c910;
-  border-bottom: 1px solid #6e40c944;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-2xl);
+  background: color-mix(in srgb, var(--purple-deep) var(--alpha-faint), transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--purple-deep) var(--alpha-visible), transparent);
   flex-shrink: 0;
 }
 .mt-ai-icon { color: var(--purple-soft); flex-shrink: 0; }
@@ -81,19 +81,19 @@
   flex: 1;
   min-width: 0;
   height: 26px;
-  padding: 0 10px;
+  padding: 0 var(--space-lg);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-canvas);
   color: var(--text-primary-soft);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .mt-ai-input:focus { outline: none; border-color: var(--purple); }
 .mt-ai-input::placeholder { color: var(--text-tertiary); }
 .mt-ai-input:disabled { opacity: 0.6; }
 .mt-btn-ai {
   background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple) 100%);
-  border-color: #9d6ef0;
+  border-color: var(--ai-border);
   color: var(--text-on-emphasis);
   white-space: nowrap;
 }
@@ -105,15 +105,15 @@
 .mt-ai-explain {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 6px 16px;
-  background: #6e40c91a;
-  border-bottom: 1px solid #6e40c944;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-2xl);
+  background: color-mix(in srgb, var(--purple-deep) var(--alpha-subtle), transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--purple-deep) var(--alpha-visible), transparent);
   flex-shrink: 0;
 }
 .mt-ai-explain-text {
   flex: 1;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--text-primary-soft);
 }
@@ -122,8 +122,8 @@
   border: none;
   color: var(--purple-soft);
   cursor: pointer;
-  font-size: 11px;
-  padding: 1px 4px;
+  font-size: var(--text-xs);
+  padding: var(--space-px) var(--space-xs);
   flex-shrink: 0;
 }
 .mt-ai-explain-close:hover { color: var(--text-on-emphasis); }
@@ -131,7 +131,7 @@
 .mt-btn-save {
   background: var(--success-strong);
   color: var(--text-on-emphasis);
-  border-color: rgba(240, 246, 252, 0.1);
+  border-color: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
 }
 .mt-btn-save:hover {
   background: var(--success-emphasis);
@@ -141,14 +141,14 @@
   color: var(--accent);
 }
 .mt-btn-all-a:hover {
-  background: rgba(31, 111, 235, 0.15);
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-soft), transparent);
 }
 .mt-btn-all-b {
   border-color: var(--warning);
   color: var(--warning-bright);
 }
 .mt-btn-all-b:hover {
-  background: rgba(210, 153, 34, 0.15);
+  background: color-mix(in srgb, var(--warning) var(--alpha-soft), transparent);
 }
 
 /* ── Main Layout ── */
@@ -179,21 +179,21 @@
 .mt-pane-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-xl);
   background: var(--surface);
   border-bottom: 1px solid var(--border-default);
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-sticky);
 }
 .mt-badge {
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
   color: var(--text-on-emphasis);
 }
 .mt-badge-ours { background: var(--accent-emphasis); }
@@ -203,8 +203,8 @@
 .mt-pane-content {
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
-  gap: 4px;
+  padding: var(--space-md) 0;
+  gap: var(--space-xs);
   overflow-x: auto;
 }
 
@@ -217,15 +217,15 @@
   width: 56px;
   flex-shrink: 0;
   text-align: right;
-  padding-right: 8px;
+  padding-right: var(--space-md);
   color: var(--text-tertiary);
   user-select: none;
   border-right: 1px solid var(--border-default);
-  margin-right: 8px;
+  margin-right: var(--space-md);
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .mt-line-checkbox {
@@ -239,9 +239,9 @@
 
 .mt-block-common {
   margin: 0;
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 20px;
   color: var(--text-secondary);
   min-width: max-content;
@@ -251,7 +251,7 @@
   display: flex;
   flex-direction: column;
   border: 1px solid transparent;
-  transition: all 0.15s;
+  transition: all var(--dur-base);
   min-width: max-content;
   cursor: pointer;
 }
@@ -259,10 +259,10 @@
 .mt-block-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
+  gap: var(--space-md);
+  padding: var(--space-2xs) var(--space-md);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   user-select: none;
   height: 22px;
   flex-shrink: 0;
@@ -274,12 +274,12 @@
 
 .mt-selected-badge {
   color: var(--success);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .mt-click-hint {
   color: var(--text-disabled);
-  font-size: 10px;
+  font-size: var(--text-tiny);
   font-style: italic;
 }
 
@@ -294,13 +294,13 @@
 
 .mt-line-action {
   opacity: 0;
-  transition: opacity 0.1s;
+  transition: opacity var(--dur-fast);
   width: 14px;
   height: 14px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   border: none;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
   line-height: 1;
   padding: 0;
   cursor: pointer;
@@ -320,7 +320,7 @@
 }
 
 .mt-line-action-add:hover {
-  background: #57d96a;
+  background: var(--conflict-take-hover);
 }
 
 .mt-line-action-remove {
@@ -329,40 +329,40 @@
 }
 
 .mt-line-action-remove:hover {
-  background: #ff6b63;
+  background: var(--conflict-drop-hover);
 }
 
 .mt-block-ours .mt-line-in-output {
-  background: rgba(31, 111, 235, 0.3);
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-strong), transparent);
 }
 .mt-block-theirs .mt-line-in-output {
-  background: rgba(210, 153, 34, 0.3);
+  background: color-mix(in srgb, var(--warning) var(--alpha-strong), transparent);
 }
 
 .mt-base-hint {
   color: var(--purple);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-semibold);
 }
 
 .mt-block-text {
   margin: 0;
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 20px;
   flex: 1;
 }
 
 /* Ours Colors */
 .mt-block-ours {
-  background: rgba(31, 111, 235, 0.1);
-  border-color: rgba(31, 111, 235, 0.2);
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-faint), transparent);
+  border-color: color-mix(in srgb, var(--accent-emphasis) var(--alpha-muted), transparent);
   border-left: none;
   border-right: none;
 }
 .mt-block-ours.selected {
-  background: rgba(31, 111, 235, 0.2);
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-muted), transparent);
   border-color: var(--accent-emphasis);
   border-left: none;
   border-right: none;
@@ -370,13 +370,13 @@
 
 /* Theirs Colors */
 .mt-block-theirs {
-  background: rgba(210, 153, 34, 0.1);
-  border-color: rgba(210, 153, 34, 0.2);
+  background: color-mix(in srgb, var(--warning) var(--alpha-faint), transparent);
+  border-color: color-mix(in srgb, var(--warning) var(--alpha-muted), transparent);
   border-left: none;
   border-right: none;
 }
 .mt-block-theirs.selected {
-  background: rgba(210, 153, 34, 0.2);
+  background: color-mix(in srgb, var(--warning) var(--alpha-muted), transparent);
   border-color: var(--warning);
   border-left: none;
   border-right: none;
@@ -395,10 +395,10 @@
 .mt-manual-badge {
   background: var(--purple);
   color: var(--text-on-emphasis);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
 }
 
@@ -407,14 +407,14 @@
   flex: 1;
   overflow: hidden;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 20px;
 }
 
 .mt-output-line-numbers {
   display: flex;
   flex-direction: column;
-  padding: 12px 0;
+  padding: var(--space-xl) 0;
   width: 40px;
   flex-shrink: 0;
   text-align: right;
@@ -429,7 +429,7 @@
   overflow-y: hidden;
 }
 .mt-output-line-numbers .mt-line-num {
-  padding-right: 8px;
+  padding-right: var(--space-md);
   border: none;
   margin: 0;
   width: 100%;
@@ -438,7 +438,7 @@
 .mt-output-editor {
   flex: 1;
   margin: 0;
-  padding: 12px 8px;
+  padding: var(--space-xl) var(--space-md);
   background: transparent;
   border: none;
   color: var(--text-primary);
@@ -454,8 +454,8 @@
 }
 
 .mt-btn-edit {
-  font-size: 10px;
-  padding: 2px 8px;
+  font-size: var(--text-tiny);
+  padding: var(--space-2xs) var(--space-md);
   border-color: var(--border-default);
   color: var(--text-secondary);
 }
@@ -466,14 +466,14 @@
 .mt-output-lines {
   flex: 1;
   overflow: auto;
-  padding: 12px 0;
+  padding: var(--space-xl) 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 20px;
 }
 
 .mt-output-line {
-  padding: 0 8px;
+  padding: 0 var(--space-md);
   min-width: max-content;
 }
 
@@ -482,16 +482,16 @@
 }
 
 .mt-output-line--ours {
-  background: rgba(31, 111, 235, 0.15);
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-soft), transparent);
   color: var(--info-text);
 }
 
 .mt-output-line--theirs {
-  background: rgba(210, 153, 34, 0.15);
+  background: color-mix(in srgb, var(--warning) var(--alpha-soft), transparent);
   color: var(--warning-bright);
 }
 
 .mt-output-line--base {
-  background: rgba(137, 87, 229, 0.1);
-  color: #bc8cff;
+  background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent);
+  color: var(--purple-soft);
 }

@@ -102,11 +102,11 @@ const NAV_GROUPS: { group: string; items: { id: Section; icon: React.ReactNode; 
 
 // `key` holds an i18n key resolved at render for the swatch tooltip.
 const ACCENT_PRESETS = [
-  { key: 'settings.color.blue',   value: '#58a6ff' },
-  { key: 'settings.color.purple', value: '#bc8cff' },
-  { key: 'settings.color.green',  value: '#3fb950' },
-  { key: 'settings.color.orange', value: '#ffa657' },
-  { key: 'settings.color.red',    value: '#f85149' },
+  { key: 'settings.color.blue',   value: 'var(--accent-static)' },
+  { key: 'settings.color.purple', value: 'var(--purple-soft)' },
+  { key: 'settings.color.green',  value: 'var(--success)' },
+  { key: 'settings.color.orange', value: 'var(--attention)' },
+  { key: 'settings.color.red',    value: 'var(--danger)' },
   { key: 'settings.color.pink',   value: '#f778ba' },
   { key: 'settings.color.cyan',   value: '#56d4dd' },
 ]
@@ -616,7 +616,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 <p className="stg-desc">{t('settings.accent.desc')}</p>
                 <div className="stg-swatches">
                   {ACCENT_PRESETS.map(c => {
-                    const active = get('accentColor', '#58a6ff').toLowerCase() === c.value.toLowerCase()
+                    const active = get('accentColor', 'var(--accent-static)').toLowerCase() === c.value.toLowerCase()
                     return (
                       <button
                         key={c.value}
@@ -632,7 +632,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                   <label className="stg-swatch-custom" title={t('settings.color.custom')}>
                     <input
                       type="color"
-                      value={get('accentColor', '#58a6ff')}
+                      value={get('accentColor', 'var(--accent-static)')}
                       onChange={e => set('accentColor', e.target.value)}
                     />
                   </label>

@@ -1,6 +1,14 @@
 import { CommitNode, GraphEdge } from '../../types'
 
-export const LANE_COLORS = [
+// The graph's lane palette lives in tokens.css like everything else, but it
+// cannot be *used* as `var(--lane-n)`: CommitGraph.dimColor() does arithmetic on
+// the hex string to fade edges, and a var() string makes its regex fail — the
+// dimming would silently stop. So the tokens are resolved to literals once,
+// here, and the rest of the graph keeps receiving plain hex.
+//
+// The fallback is the same list, for jsdom (no stylesheet) and for any host that
+// renders the graph before the CSS lands.
+const LANE_FALLBACK = [
   '#2dd4bf', // teal
   '#4d9de0', // blue
   '#9b59b6', // purple
@@ -12,6 +20,27 @@ export const LANE_COLORS = [
   '#60a5fa', // cornflower
   '#f472b6', // pink
 ]
+
+let laneCache: string[] | null = null
+
+export function laneColors(): string[] {
+  if (laneCache) return laneCache
+  if (typeof document === 'undefined' || !document.documentElement) return LANE_FALLBACK
+  const cs = getComputedStyle(document.documentElement)
+  const read: string[] = []
+  for (let i = 1; i <= LANE_FALLBACK.length; i++) {
+    const v = cs.getPropertyValue(`--lane-${i}`).trim()
+    if (!v) break
+    read.push(v)
+  }
+  // Only cache a complete read — a partial one means the stylesheet was not
+  // there yet, and the next call should try again rather than freeze a gap.
+  if (read.length === LANE_FALLBACK.length) { laneCache = read; return read }
+  return LANE_FALLBACK
+}
+
+/** @deprecated use laneColors() — kept so nothing importing the old name breaks. */
+export const LANE_COLORS = LANE_FALLBACK
 
 export interface LayoutCommit extends CommitNode {
   lane: number
@@ -114,7 +143,7 @@ export function computeGraphLayout(commits: CommitNode[]): LayoutCommit[] {
     if (ln === -1) { ln = occupant.length; occupant.push(null) }
     occupant[ln] = tip
     laneOf.set(tip, ln)
-    if (!colorOf.has(tip)) colorOf.set(tip, LANE_COLORS[colorN++ % LANE_COLORS.length])
+    if (!colorOf.has(tip)) { const lanes = laneColors(); colorOf.set(tip, lanes[colorN++ % lanes.length]) }
     return ln
   }
 

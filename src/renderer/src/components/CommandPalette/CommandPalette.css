@@ -1,8 +1,8 @@
 .cp-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 2000;
+  background: color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  z-index: var(--z-modal);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -12,21 +12,21 @@
 .cp-panel {
   background: var(--surface);
   border: 1px solid var(--border-default);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   width: 520px;
   max-width: 90vw;
   max-height: 60vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
 }
 
 .cp-search {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-2xl);
   border-bottom: 1px solid var(--border-default);
 }
 
@@ -37,7 +37,7 @@
   background: transparent;
   border: none;
   outline: none;
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--text-primary);
   font-family: inherit;
 }
@@ -45,46 +45,46 @@
 .cp-input::placeholder { color: var(--text-disabled); }
 
 .cp-esc {
-  font-size: 10px;
+  font-size: var(--text-tiny);
   color: var(--text-disabled);
   background: var(--surface-sunken);
   border: 1px solid var(--border-default);
-  border-radius: 4px;
-  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-sm);
   font-family: inherit;
 }
 
 .cp-list {
   overflow-y: auto;
   flex: 1;
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
 }
 
 .cp-empty {
-  padding: 20px;
+  padding: var(--space-3xl);
   text-align: center;
   color: var(--text-disabled);
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 
 .cp-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 16px;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-2xl);
   cursor: pointer;
-  transition: background 0.1s;
-  font-size: 13px;
+  transition: background var(--dur-fast);
+  font-size: var(--text-base);
   color: var(--text-primary-soft);
 }
 
 .cp-item.active,
 .cp-item:hover {
-  background: #1f6feb22;
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent);
   color: var(--text-primary);
 }
 
-.cp-item.active { background: #1f6feb33; }
+.cp-item.active { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-muted), transparent); }
 
-.cp-item-icon { font-size: 14px; flex-shrink: 0; }
+.cp-item-icon { font-size: var(--text-md); flex-shrink: 0; }
 .cp-item-label { flex: 1; }

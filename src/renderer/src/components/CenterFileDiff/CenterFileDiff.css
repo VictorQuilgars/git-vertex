@@ -10,8 +10,8 @@
 .cfd-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-xl);
   background: var(--surface);
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
@@ -20,13 +20,13 @@
 .cfd-back {
   background: none;
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 12px;
-  padding: 3px 10px;
+  font-size: var(--text-sm);
+  padding: var(--space-2xs) var(--space-lg);
   cursor: pointer;
   flex-shrink: 0;
-  transition: 0.15s;
+  transition: var(--dur-base);
 }
 .cfd-back:hover {
   color: var(--text-primary-soft);
@@ -35,20 +35,20 @@
 }
 
 .cfd-area-badge {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: var(--space-2xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   flex-shrink: 0;
 }
-.cfd-staged   { background: rgba(63, 185, 80, 0.15);  color: var(--success); }
-.cfd-unstaged { background: rgba(255, 166, 87, 0.15); color: var(--attention); }
-.cfd-commit   { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+.cfd-staged   { background: color-mix(in srgb, var(--success) var(--alpha-soft), transparent);  color: var(--success); }
+.cfd-unstaged { background: color-mix(in srgb, var(--attention) var(--alpha-soft), transparent); color: var(--attention); }
+.cfd-commit   { background: color-mix(in srgb, var(--accent-static) var(--alpha-soft), transparent); color: var(--accent); }
 
 .cfd-filepath {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -59,7 +59,7 @@
 .cfd-area-toggle {
   display: inline-flex;
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -67,26 +67,26 @@
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 11px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-2xs) var(--space-lg);
   cursor: pointer;
 }
 .cfd-area-toggle button + button { border-left: 1px solid var(--border-default); }
-.cfd-area-toggle button.active { background: rgba(88,166,255,0.12); color: var(--accent); }
+.cfd-area-toggle button.active { background: color-mix(in srgb, var(--accent-static) var(--alpha-subtle), transparent); color: var(--accent); }
 .cfd-area-toggle button:not(.active):hover { color: var(--text-primary-soft); background: var(--surface-sunken); }
 
 .cfd-toggle {
   background: none;
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 11px;
-  padding: 3px 10px;
+  font-size: var(--text-xs);
+  padding: var(--space-2xs) var(--space-lg);
   cursor: pointer;
   flex-shrink: 0;
-  transition: 0.15s;
-  margin-left: 8px;
+  transition: var(--dur-base);
+  margin-left: var(--space-md);
 }
 .cfd-toggle:hover {
   color: var(--text-primary-soft);
@@ -94,7 +94,7 @@
   border-color: var(--border-subtle);
 }
 .cfd-toggle.active {
-  background: rgba(88, 166, 255, 0.1);
+  background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent);
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -103,48 +103,48 @@
   flex: 1;
   overflow: auto;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 20px;
 }
 
 .cfd-loading {
-  padding: 24px;
+  padding: var(--space-4xl);
   color: var(--text-secondary);
   text-align: center;
 }
 
 .cfd-error {
-  padding: 6px 14px;
-  background: rgba(248, 81, 73, 0.1);
-  border-bottom: 1px solid rgba(248, 81, 73, 0.3);
+  padding: var(--space-sm) var(--space-xl);
+  background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--danger) var(--alpha-strong), transparent);
   color: var(--danger);
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
 .cfd-apply-btn {
-  background: rgba(63, 185, 80, 0.15);
+  background: color-mix(in srgb, var(--success) var(--alpha-soft), transparent);
   border: 1px solid var(--success);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--success);
-  font-size: 11px;
-  padding: 3px 10px;
+  font-size: var(--text-xs);
+  padding: var(--space-2xs) var(--space-lg);
   cursor: pointer;
   flex-shrink: 0;
-  transition: 0.15s;
+  transition: var(--dur-base);
 }
-.cfd-apply-btn:hover { background: rgba(63, 185, 80, 0.25); }
+.cfd-apply-btn:hover { background: color-mix(in srgb, var(--success) var(--alpha-visible), transparent); }
 
-.cfd-hunk { margin-bottom: 2px; }
+.cfd-hunk { margin-bottom: var(--space-2xs); }
 
 .cfd-hunk-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 12px;
+  padding: var(--space-xs) var(--space-xl);
   background: var(--surface);
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-style: italic;
   border-top: 1px solid var(--border-muted);
   border-bottom: 1px solid var(--border-muted);
@@ -152,7 +152,7 @@
 
 .cfd-hunk-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   flex-shrink: 0;
 }
 
@@ -160,17 +160,17 @@
 .cfd-hunk-apply {
   background: none;
   border: 1px solid var(--border-default);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-style: normal;
-  padding: 1px 8px;
+  padding: var(--space-px) var(--space-md);
   cursor: pointer;
-  transition: 0.15s;
+  transition: var(--dur-base);
 }
 .cfd-hunk-select:hover { color: var(--text-primary-soft); background: var(--surface-sunken); border-color: var(--border-subtle); }
-.cfd-hunk-select.active { color: var(--accent); border-color: var(--accent); background: rgba(88,166,255,0.1); }
-.cfd-hunk-apply:hover { color: var(--success); border-color: var(--success); background: rgba(63,185,80,0.1); }
+.cfd-hunk-select.active { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent); }
+.cfd-hunk-apply:hover { color: var(--success); border-color: var(--success); background: color-mix(in srgb, var(--success) var(--alpha-faint), transparent); }
 
 .cfd-diff-table {
   width: 100%;
@@ -178,33 +178,33 @@
 }
 
 .cfd-dl { white-space: pre; }
-.cfd-dl-add    { background: rgba(63, 185, 80, 0.1); }
-.cfd-dl-remove { background: rgba(248, 81, 73, 0.1); }
+.cfd-dl-add    { background: color-mix(in srgb, var(--success) var(--alpha-faint), transparent); }
+.cfd-dl-remove { background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); }
 .cfd-dl--selectable { cursor: pointer; }
 .cfd-dl--selectable:hover { filter: brightness(1.3); }
-.cfd-dl--selected.cfd-dl-add    { background: rgba(63, 185, 80, 0.3); outline: 1px solid rgba(63,185,80,0.4); }
-.cfd-dl--selected.cfd-dl-remove { background: rgba(248, 81, 73, 0.3); outline: 1px solid rgba(248,81,73,0.4); }
+.cfd-dl--selected.cfd-dl-add    { background: color-mix(in srgb, var(--success) var(--alpha-strong), transparent); outline: 1px solid color-mix(in srgb, var(--success) var(--alpha-bold), transparent); }
+.cfd-dl--selected.cfd-dl-remove { background: color-mix(in srgb, var(--danger) var(--alpha-strong), transparent); outline: 1px solid color-mix(in srgb, var(--danger) var(--alpha-bold), transparent); }
 
 /* Indexé view: the action is UNstage — use amber so selecting a line doesn't
    look like (re)staging it. */
 .cfd-staged-mode .cfd-apply-btn {
-  background: rgba(255, 166, 87, 0.15);
+  background: color-mix(in srgb, var(--attention) var(--alpha-soft), transparent);
   border-color: var(--attention);
   color: var(--attention);
 }
-.cfd-staged-mode .cfd-apply-btn:hover { background: rgba(255, 166, 87, 0.28); }
-.cfd-staged-mode .cfd-hunk-apply:hover { color: var(--attention); border-color: var(--attention); background: rgba(255, 166, 87, 0.12); }
+.cfd-staged-mode .cfd-apply-btn:hover { background: color-mix(in srgb, var(--attention) var(--alpha-strong), transparent); }
+.cfd-staged-mode .cfd-hunk-apply:hover { color: var(--attention); border-color: var(--attention); background: color-mix(in srgb, var(--attention) var(--alpha-subtle), transparent); }
 .cfd-staged-mode .cfd-dl--selected.cfd-dl-add,
 .cfd-staged-mode .cfd-dl--selected.cfd-dl-remove {
-  background: rgba(255, 166, 87, 0.22);
-  outline: 1px solid rgba(255, 166, 87, 0.55);
+  background: color-mix(in srgb, var(--attention) var(--alpha-muted), transparent);
+  outline: 1px solid color-mix(in srgb, var(--attention) var(--alpha-half), transparent);
 }
 
 .cfd-ln {
   width: 44px;
   min-width: 44px;
   text-align: right;
-  padding: 0 8px 0 4px;
+  padding: 0 var(--space-md) 0 var(--space-xs);
   color: var(--text-tertiary);
   user-select: none;
   border-right: 1px solid var(--border-muted);
@@ -213,14 +213,14 @@
 .cfd-lm {
   width: 20px;
   text-align: center;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
   color: var(--text-tertiary);
   user-select: none;
 }
 .cfd-dl-add .cfd-lm    { color: var(--success); }
 .cfd-dl-remove .cfd-lm { color: var(--danger); }
 
-.cfd-lc { padding: 0 8px; }
+.cfd-lc { padding: 0 var(--space-md); }
 .cfd-lc code { font-family: inherit; font-size: inherit; }
 
 .cfd-full-table {
@@ -234,11 +234,11 @@
   width: 44px;
   min-width: 44px;
   text-align: right;
-  padding: 0 8px 0 4px;
+  padding: 0 var(--space-md) 0 var(--space-xs);
   color: var(--text-tertiary);
   user-select: none;
   border-right: 1px solid var(--border-muted);
 }
 
-.cfd-full-lc { padding: 0 8px; }
+.cfd-full-lc { padding: 0 var(--space-md); }
 .cfd-full-lc code { font-family: inherit; font-size: inherit; }

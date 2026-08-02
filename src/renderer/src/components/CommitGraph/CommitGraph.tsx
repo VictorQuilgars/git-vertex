@@ -92,13 +92,13 @@ function startColumnResize(opts: {
   document.addEventListener('mouseup', onUp)
 }
 
-// Blend a hex color toward the graph background (#0d1117) by `factor` (0..1).
+// Blend a hex color toward the graph background (var(--bg-canvas)) by `factor` (0..1).
 // Produces an opaque color so overlapping segments never add up in brightness.
 function dimColor(hex: string, factor = 0.4): string {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   if (!m) return hex
   const [r, g, b] = [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)]
-  const bg = [13, 17, 23] // #0d1117
+  const bg = [13, 17, 23] // var(--bg-canvas)
   const mix = (c: number, bgc: number) => Math.round(bgc + (c - bgc) * factor)
   const toHex = (n: number) => n.toString(16).padStart(2, '0')
   return `#${toHex(mix(r, bg[0]))}${toHex(mix(g, bg[1]))}${toHex(mix(b, bg[2]))}`
@@ -147,7 +147,7 @@ function NodeAvatar({ cx, cy, r, email, name, color, clipId, sha }: {
       <g>
         <circle cx={cx} cy={cy} r={r} fill={color} />
         <text x={cx} y={cy} dy=".35em" textAnchor="middle" fontSize={8} fontWeight="700"
-          fontFamily="-apple-system, BlinkMacSystemFont, sans-serif" fill="#ffffff">
+          fontFamily="-apple-system, BlinkMacSystemFont, sans-serif" fill="var(--text-on-emphasis)">
           {initials(name)}
         </text>
       </g>
@@ -158,7 +158,7 @@ function NodeAvatar({ cx, cy, r, email, name, color, clipId, sha }: {
       <defs>
         <clipPath id={clipId}><circle cx={cx} cy={cy} r={r} /></clipPath>
       </defs>
-      <circle cx={cx} cy={cy} r={r} fill="#161b22" />
+      <circle cx={cx} cy={cy} r={r} fill="var(--surface)" />
       <image
         href={src}
         x={cx - r} y={cy - r} width={r * 2} height={r * 2}
@@ -676,8 +676,8 @@ export default function CommitGraph({
     if (!hasWipNode) return layout
     return layout.map(c => {
       if (c.hash !== WIP_HASH) return c
-      const wipColor = conflictMode ? '#ffa657' : c.color
-      const edges = c.edges.map(e => ({ ...e, color: '#484f58', dashed: true }))
+      const wipColor = conflictMode ? 'var(--attention)' : c.color
+      const edges = c.edges.map(e => ({ ...e, color: 'var(--text-disabled)', dashed: true }))
       if (conflictMode) {
         const incoming = layout.find(x => x.hash !== WIP_HASH && x.hash !== headHash)
         if (incoming) {
@@ -1318,10 +1318,10 @@ export default function CommitGraph({
                 if (conflictMode) {
                   return (
                     <g key="wip">
-                      <circle cx={cx} cy={cy} r={NODE_RADIUS + 2} fill="#161b22" />
+                      <circle cx={cx} cy={cy} r={NODE_RADIUS + 2} fill="var(--surface)" />
                       <circle cx={cx} cy={cy} r={NODE_RADIUS}
-                        fill="#ffa657"
-                        stroke="#ffa657"
+                        fill="var(--attention)"
+                        stroke="var(--attention)"
                         strokeWidth={1.5}
                       />
                       <text x={cx} y={cy} dy=".35em"
@@ -1329,7 +1329,7 @@ export default function CommitGraph({
                         fontSize={10}
                         fontWeight="900"
                         fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
-                        fill="#161b22"
+                        fill="var(--surface)"
                       >!</text>
                     </g>
                   )
@@ -1338,8 +1338,8 @@ export default function CommitGraph({
                 return (
                   <g key="wip">
                     <circle cx={cx} cy={cy} r={NODE_RADIUS}
-                      fill="#161b22"
-                      stroke="#6e7681"
+                      fill="var(--surface)"
+                      stroke="var(--text-tertiary)"
                       strokeWidth={1.5}
                       strokeDasharray="3 2"
                     />
@@ -1348,7 +1348,7 @@ export default function CommitGraph({
                       fontSize={6}
                       fontWeight="700"
                       fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
-                      fill="#6e7681"
+                      fill="var(--text-tertiary)"
                     >WIP</text>
                   </g>
                 )
@@ -1368,7 +1368,7 @@ export default function CommitGraph({
                        (de-emphasized) — in compact mode the
                        avatar moves beside the graph instead (see AuthorBullet). */
                     <circle cx={cx} cy={cy} r={5} fill={commit.color}
-                      stroke="#161b22" strokeWidth={2} />
+                      stroke="var(--surface)" strokeWidth={2} />
                   ) : showAvatars ? (
                     /* Normal commit: author avatar */
                     <NodeAvatar cx={cx} cy={cy} r={NODE_RADIUS}
@@ -1380,7 +1380,7 @@ export default function CommitGraph({
                       <circle cx={cx} cy={cy} r={NODE_RADIUS} fill={commit.color} />
                       <text x={cx} y={cy} dy=".35em" textAnchor="middle" fontSize={8}
                         fontWeight="700" fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
-                        fill="#ffffff">{init}</text>
+                        fill="var(--text-on-emphasis)">{init}</text>
                     </g>
                   )}
                 </g>

@@ -244,7 +244,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
         {soloed && <span className="sb-branch-flag" title={t('sb.branch.soloFlag')}>👁</span>}
         {hidden && <span className="sb-branch-flag" title={t('sb.branch.hiddenFlag')}>⊘</span>}
         {current && (
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="#3fb950" className="current-check">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="var(--success)" className="current-check">
             <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
           </svg>
         )}
@@ -449,7 +449,7 @@ function SubmoduleItem({
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
-  const statusColor = sub.status === 'ok' ? '#3fb950' : sub.status === 'dirty' ? '#ffa657' : '#484f58'
+  const statusColor = sub.status === 'ok' ? 'var(--success)' : sub.status === 'dirty' ? 'var(--attention)' : 'var(--text-disabled)'
   const statusLabel = sub.status === 'ok' ? '✓' : sub.status === 'dirty' ? '~' : '○'
 
   const menuItems: MenuItemDef[] = [
@@ -781,7 +781,7 @@ export default function Sidebar({
       {!embedded && (
       <div className="sb-repo-area" ref={repoMenuRef}>
         <button className="sb-repo-btn" onClick={() => setRepoMenuOpen(o => !o)}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="#3fb950">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--success)">
             <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
           </svg>
           <span className="sb-repo-name">{repoName || t('sb.openRepo')}</span>
@@ -858,7 +858,7 @@ export default function Sidebar({
                 <div className="sb-ov-label">{t('sb.currentWork')}</div>
                 <div className="sb-ov-card">
                   <div className="sb-ov-branch">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="#3fb950">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--success)">
                       <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
                     </svg>
                     <span className="sb-ov-branch-name">{currentBranch}</span>

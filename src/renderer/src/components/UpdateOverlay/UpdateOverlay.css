@@ -1,46 +1,46 @@
 .upd-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 5000;
+  z-index: var(--z-toast);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(1, 4, 9, 0.72);
+  background: color-mix(in srgb, var(--bg-inset) var(--alpha-heavy), transparent);
   backdrop-filter: blur(3px);
-  animation: upd-fade 0.18s ease;
+  animation: upd-fade var(--dur-base) ease;
 }
 
 @keyframes upd-fade { from { opacity: 0; } to { opacity: 1; } }
 
 .upd-card {
   width: 340px;
-  padding: 32px 28px 30px;
-  border-radius: 16px;
-  border: 1px solid rgba(240, 246, 252, 0.08);
+  padding: var(--space-5xl) var(--space-4xl) var(--space-5xl);
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
   background: radial-gradient(80% 70% at 50% 30%, var(--surface) 0%, var(--bg-canvas) 78%);
-  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 24px 60px -18px color-mix(in srgb, var(--scrim) var(--alpha-dense), transparent);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-xl);
   text-align: center;
 }
 
-.upd-mark { width: 78px; height: 78px; display: block; margin-bottom: 2px; }
+.upd-mark { width: 78px; height: 78px; display: block; margin-bottom: var(--space-2xs); }
 
 .upd-title {
   margin: 0;
-  font-size: 17px;
-  font-weight: 650;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
-  color: #f0f6fc;
+  color: var(--text-primary);
 }
 
 .upd-desc {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.5;
-  color: #8b98a5;
+  color: var(--border-strong);
   max-width: 30ch;
   font-variant-numeric: tabular-nums;
 }
@@ -48,35 +48,35 @@
 .upd-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-md);
   width: 100%;
-  margin-top: 8px;
+  margin-top: var(--space-md);
 }
 
 .upd-btn {
   appearance: none;
   border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg) var(--space-2xl);
   font: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
-  transition: filter 0.15s, border-color 0.15s, color 0.15s;
+  transition: filter var(--dur-base), border-color var(--dur-base), color var(--dur-base);
 }
 
 .upd-btn--primary {
   background: linear-gradient(90deg, var(--success), var(--success-emphasis));
-  color: #06140a;
+  color: var(--bg-canvas);
 }
 .upd-btn--primary:hover { filter: brightness(1.08); }
 
 .upd-btn--ghost {
   background: transparent;
-  border-color: rgba(240, 246, 252, 0.1);
-  color: #9aa7b4;
+  border-color: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
+  color: var(--text-muted-cool);
 }
-.upd-btn--ghost:hover { border-color: rgba(88, 166, 255, 0.5); color: var(--text-primary); }
+.upd-btn--ghost:hover { border-color: color-mix(in srgb, var(--accent-static) var(--alpha-half), transparent); color: var(--text-primary); }
 
 .upd-btn:focus-visible { outline: 2px solid var(--accent-static); outline-offset: 2px; }
 
@@ -85,18 +85,18 @@
   position: relative;
   width: 100%;
   height: 6px;
-  margin-top: 8px;
-  border-radius: 6px;
-  background: rgba(240, 246, 252, 0.07);
+  margin-top: var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
   overflow: hidden;
 }
 
 /* determinate: fill grows with the download percentage */
 .upd-track-fill {
   height: 100%;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: linear-gradient(90deg, var(--success), var(--accent-static));
-  transition: width 0.25s ease;
+  transition: width var(--dur-slow) ease;
 }
 
 /* indeterminate: a green→blue sweep for the install phase */
@@ -106,7 +106,7 @@
   left: 0;
   height: 100%;
   width: 40%;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: linear-gradient(90deg, transparent, var(--success), var(--accent-static), transparent);
   animation: upd-sweep 1.4s cubic-bezier(0.5, 0.05, 0.5, 0.95) infinite;
 }

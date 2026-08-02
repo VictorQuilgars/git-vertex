@@ -1,12 +1,12 @@
 .dlg-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
-  animation: dlg-fade 0.1s ease;
+  z-index: var(--z-tooltip);
+  animation: dlg-fade var(--dur-fast) ease;
 }
 
 @keyframes dlg-fade {
@@ -17,15 +17,15 @@
 .dlg-box {
   background: var(--surface-hover);
   border: 1px solid var(--border-default);
-  border-radius: 10px;
-  padding: 20px 22px 16px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3xl) var(--space-3xl) var(--space-2xl);
   min-width: 320px;
   max-width: 480px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--scrim) var(--alpha-heavy), transparent);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  animation: dlg-pop 0.1s ease;
+  gap: var(--space-xl);
+  animation: dlg-pop var(--dur-fast) ease;
 }
 
 @keyframes dlg-pop {
@@ -34,7 +34,7 @@
 }
 
 .dlg-message {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--text-primary-soft);
   line-height: 1.5;
 }
@@ -43,10 +43,10 @@
   width: 100%;
   background: var(--bg-canvas);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 13px;
-  padding: 7px 10px;
+  font-size: var(--text-base);
+  padding: var(--space-sm) var(--space-lg);
   outline: none;
   box-sizing: border-box;
   font-family: inherit;
@@ -65,11 +65,11 @@
   resize: vertical;
   background: var(--bg-canvas);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   line-height: 1.5;
-  padding: 8px 10px;
+  padding: var(--space-md) var(--space-lg);
   outline: none;
   box-sizing: border-box;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -77,26 +77,26 @@
 }
 .dlg-textarea:focus { border-color: var(--accent); }
 .dlg-hint {
-  font-size: 10.5px;
+  font-size: var(--text-tiny);
   color: var(--text-tertiary);
-  margin-top: -8px;
+  margin-top: -var(--space-md);
 }
 
 .dlg-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-md);
 }
 
 .dlg-btn {
   height: 28px;
-  padding: 0 16px;
-  border-radius: 6px;
+  padding: 0 var(--space-2xl);
+  border-radius: var(--radius-md);
   border: 1px solid;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--dur-fast);
 }
 
 .dlg-cancel {
@@ -114,8 +114,8 @@
 .dlg-ok:hover { background: var(--success-emphasis); }
 
 .dlg-danger {
-  background: #b91c1c;
+  background: var(--danger-solid);
   border-color: var(--danger);
   color: var(--text-on-emphasis);
 }
-.dlg-danger:hover { background: #dc2626; }
+.dlg-danger:hover { background: var(--danger-solid-hover); }

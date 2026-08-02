@@ -4,41 +4,41 @@
   height: 100%;
   background: var(--bg-canvas);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: var(--text-base);
   overflow: hidden;
 }
 
 .cv-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-2xl);
   border-bottom: 1px solid var(--border-muted);
   background: var(--surface);
   flex-shrink: 0;
 }
 
 .cv-title {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   flex-shrink: 0;
 }
 
 .cv-ref-select {
   background: var(--bg-canvas);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
   max-width: 220px;
 }
 
 .cv-swap {
   background: transparent;
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
-  padding: 4px 8px;
+  padding: var(--space-xs) var(--space-md);
   cursor: pointer;
 }
 
@@ -49,7 +49,7 @@
 
 .cv-summary {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--text-sm);
   margin-left: auto;
 }
 
@@ -76,34 +76,34 @@
 }
 
 .cv-commits-section {
-  padding: 8px 0;
+  padding: var(--space-md) 0;
   border-bottom: 1px solid var(--surface);
 }
 
 .cv-commits-title {
-  padding: 4px 14px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: var(--space-xs) var(--space-xl);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
 .cv-commits-count {
   color: var(--text-disabled);
-  font-weight: 400;
+  font-weight: var(--weight-normal);
 }
 
 .cv-commits-empty {
-  padding: 6px 14px;
+  padding: var(--space-sm) var(--space-xl);
   color: var(--text-disabled);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .cv-commit {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 3px 14px;
+  gap: var(--space-md);
+  padding: var(--space-2xs) var(--space-xl);
   line-height: 1.5;
 }
 
@@ -114,7 +114,7 @@
 .cv-commit-hash {
   color: var(--accent-static);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--text-xs);
   flex-shrink: 0;
 }
 
@@ -122,7 +122,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .cv-right {
@@ -148,9 +148,9 @@
   background: var(--surface-sunken);
   border: 1px solid var(--border-default);
   color: var(--text-primary-soft);
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2xs) var(--space-lg);
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 .cv-copy-link:hover { background: var(--surface-active); border-color: var(--border-strong); }

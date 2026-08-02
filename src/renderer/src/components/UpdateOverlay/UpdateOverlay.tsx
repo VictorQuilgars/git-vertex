@@ -16,16 +16,16 @@ interface Props {
 function Mark() {
   return (
     <svg className="upd-mark" viewBox="0 0 512 512" role="img" aria-label="Git Vertex">
-      <path d="M148 82 L256 422" fill="none" stroke="#3fb950" strokeWidth="22" strokeLinecap="round" />
-      <path d="M364 82 L256 422" fill="none" stroke="#58a6ff" strokeWidth="22" strokeLinecap="round" />
-      <circle cx="148" cy="82" r="24" fill="#0d1117" stroke="#3fb950" strokeWidth="13" />
-      <circle cx="184" cy="192" r="18" fill="#0d1117" stroke="#3fb950" strokeWidth="12" />
-      <circle cx="220" cy="302" r="18" fill="#0d1117" stroke="#3fb950" strokeWidth="12" />
-      <circle cx="364" cy="82" r="24" fill="#0d1117" stroke="#58a6ff" strokeWidth="13" />
-      <circle cx="328" cy="192" r="18" fill="#0d1117" stroke="#58a6ff" strokeWidth="12" />
-      <circle cx="292" cy="302" r="18" fill="#0d1117" stroke="#58a6ff" strokeWidth="12" />
-      <circle cx="256" cy="422" r="26" fill="#3fb950" opacity="0.5" />
-      <circle cx="256" cy="422" r="12" fill="#0d1117" />
+      <path d="M148 82 L256 422" fill="none" stroke="var(--success)" strokeWidth="22" strokeLinecap="round" />
+      <path d="M364 82 L256 422" fill="none" stroke="var(--accent-static)" strokeWidth="22" strokeLinecap="round" />
+      <circle cx="148" cy="82" r="24" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="13" />
+      <circle cx="184" cy="192" r="18" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="12" />
+      <circle cx="220" cy="302" r="18" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="12" />
+      <circle cx="364" cy="82" r="24" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="13" />
+      <circle cx="328" cy="192" r="18" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="12" />
+      <circle cx="292" cy="302" r="18" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="12" />
+      <circle cx="256" cy="422" r="26" fill="var(--success)" opacity="0.5" />
+      <circle cx="256" cy="422" r="12" fill="var(--bg-canvas)" />
     </svg>
   )
 }

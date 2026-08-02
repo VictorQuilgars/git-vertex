@@ -21,9 +21,9 @@ interface GitflowModalProps {
 }
 
 const COLORS: Record<FlowType, string> = {
-  feature: '#58a6ff',
-  release: '#3fb950',
-  hotfix: '#f85149',
+  feature: 'var(--accent-static)',
+  release: 'var(--success)',
+  hotfix: 'var(--danger)',
 }
 
 export default function GitflowModal({ onClose, onSuccess, showToast, showPrompt, showConfirm }: GitflowModalProps) {

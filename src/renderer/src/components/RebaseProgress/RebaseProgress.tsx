@@ -46,14 +46,14 @@ const SHORTCUT_KEYS: Record<string, EditableAction> = {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  pick: '#3fb950',
-  reword: '#58a6ff',
-  edit: '#58a6ff',
-  squash: '#d2a8ff',
-  fixup: '#ffa657',
-  drop: '#f85149',
-  exec: '#8b949e',
-  break: '#8b949e',
+  pick: 'var(--success)',
+  reword: 'var(--accent-static)',
+  edit: 'var(--accent-static)',
+  squash: 'var(--purple-text)',
+  fixup: 'var(--attention)',
+  drop: 'var(--danger)',
+  exec: 'var(--text-secondary)',
+  break: 'var(--text-secondary)',
 }
 
 // Composite key embedding a group's exact composition — when the plan

@@ -21,7 +21,7 @@ interface Props {
 }
 
 const LANG_COLORS: Record<string, string> = {
-  TypeScript: '#3178c6', JavaScript: '#f1e05a', Python: '#3572A5',
+  TypeScript: '#3178c6', JavaScript: 'var(--ref-head)', Python: '#3572A5',
   Rust: '#dea584', Go: '#00ADD8', Java: '#b07219', 'C#': '#178600',
   'C++': '#f34b7d', C: '#555555', Ruby: '#701516', Swift: '#F05138',
   Kotlin: '#A97BFF', Dart: '#00B4AB', HTML: '#e34c26', CSS: '#563d7c',
@@ -142,7 +142,7 @@ export default function CloneModal({ onClose, onCloned }: Props) {
                           </div>
                           {repo.description && <div className="cm-repo-desc">{repo.description}</div>}
                           <div className="cm-repo-meta">
-                            {repo.language && <span className="cm-repo-lang"><span className="cm-lang-dot" style={{ background: LANG_COLORS[repo.language] ?? '#8b949e' }} />{repo.language}</span>}
+                            {repo.language && <span className="cm-repo-lang"><span className="cm-lang-dot" style={{ background: LANG_COLORS[repo.language] ?? 'var(--text-secondary)' }} />{repo.language}</span>}
                           </div>
                         </div>
                         {selected?.id === repo.id && <span className="cm-repo-check">✓</span>}

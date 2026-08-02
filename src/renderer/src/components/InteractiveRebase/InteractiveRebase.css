@@ -1,8 +1,8 @@
 .ir-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 1500;
+  background: color-mix(in srgb, var(--scrim) var(--alpha-heavy), transparent);
+  z-index: var(--z-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,14 +11,14 @@
 .ir-panel {
   background: var(--surface);
   border: 1px solid var(--border-default);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   width: 720px;
   max-width: 95vw;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
 }
 
 /* Embedded (tab) mode — fills the whole tab/page instead of a centered card. */
@@ -42,20 +42,20 @@
 .ir-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-2xl);
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .ir-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   color: var(--text-primary);
 }
 
 .ir-base {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   flex: 1;
 }
@@ -69,16 +69,16 @@
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 18px;
+  font-size: var(--text-xl);
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
   line-height: 1;
 }
 .ir-close:hover { color: var(--text-primary); }
 
 .ir-hint {
-  padding: 6px 18px;
-  font-size: 11px;
+  padding: var(--space-sm) var(--space-2xl);
+  font-size: var(--text-xs);
   color: var(--text-disabled);
   border-bottom: 1px solid var(--border-muted);
   background: var(--bg-canvas);
@@ -87,48 +87,48 @@
 
 /* Agent proposal banner (MCP propose_rebase_plan) */
 .ir-plan-banner {
-  padding: 7px 18px;
-  font-size: 12px;
+  padding: var(--space-sm) var(--space-2xl);
+  font-size: var(--text-sm);
   color: var(--accent-static);
-  background: #58a6ff12;
-  border-bottom: 1px solid #58a6ff55;
+  background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-static) var(--alpha-strong), transparent);
   flex-shrink: 0;
 }
 
 .ir-list {
   overflow-y: auto;
   flex: 1;
-  padding: 6px 0;
+  padding: var(--space-sm) 0;
 }
 
 .ir-empty {
-  padding: 20px;
+  padding: var(--space-3xl);
   text-align: center;
   color: var(--text-disabled);
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 
 .ir-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 16px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-2xl);
   border-bottom: 1px solid var(--border-muted);
   cursor: default;
-  transition: background 0.1s;
+  transition: background var(--dur-fast);
 }
 
 .ir-row:hover { background: var(--surface-hover); }
 
 .ir-row.drag-over {
-  background: #1f6feb22;
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent);
   border-top: 2px solid var(--accent);
 }
 
 .ir-drag-handle {
   color: var(--text-disabled);
   cursor: grab;
-  font-size: 14px;
+  font-size: var(--text-md);
   flex-shrink: 0;
   user-select: none;
 }
@@ -137,10 +137,10 @@
 .ir-action-select {
   background: var(--surface-sunken);
   border: 1px solid var(--border-default);
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-size: 11px;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
   outline: none;
   min-width: 72px;
@@ -150,13 +150,13 @@
 
 .ir-hash {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--accent);
   flex-shrink: 0;
 }
 
 .ir-msg {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--text-primary-soft);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -167,25 +167,25 @@
 .ir-msg-editor {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 18px 10px 40px;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-2xl) var(--space-lg) var(--space-6xl);
   background: var(--bg-canvas);
   border-bottom: 1px solid var(--border-muted);
 }
 
 .ir-msg-editor-label {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 
 .ir-msg-textarea {
   background: var(--surface);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  padding: 6px 8px;
+  font-size: var(--text-sm);
+  padding: var(--space-sm) var(--space-md);
   resize: vertical;
 }
 
@@ -198,8 +198,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 12px 18px;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-2xl);
   border-top: 1px solid var(--border-default);
   flex-shrink: 0;
   background: var(--bg-canvas);
@@ -209,10 +209,10 @@
   background: transparent;
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
-  padding: 7px 16px;
-  border-radius: 6px;
+  padding: var(--space-sm) var(--space-2xl);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 .ir-cancel:hover { border-color: var(--text-tertiary); color: var(--text-primary); }
 
@@ -220,12 +220,12 @@
   background: var(--purple-deep);
   border: none;
   color: var(--text-on-emphasis);
-  padding: 7px 20px;
-  border-radius: 6px;
+  padding: var(--space-sm) var(--space-3xl);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: background 0.15s;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  transition: background var(--dur-base);
 }
 .ir-launch:hover:not(:disabled) { background: var(--purple); }
 .ir-launch:disabled { opacity: 0.5; cursor: not-allowed; }
