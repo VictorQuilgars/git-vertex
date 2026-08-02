@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { CommitNode, BranchInfo, FileChange, PullMode, StashScope } from './types'
+import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
@@ -36,6 +36,14 @@ import './App.css'
 
 interface StashEntry { index: number; message: string }
 interface TagEntry   { name: string; hash: string }
+
+// Absent `entries` means the host does not report unmerged states (an older
+// extension build). Return an empty map so the UI stays silent about the kind
+// instead of defaulting every file to "both modified".
+function kindsByPath(entries?: { path: string; kind: ConflictKind }[]): Record<string, ConflictKind> {
+  if (!entries) return {}
+  return Object.fromEntries(entries.map(e => [e.path, e.kind]))
+}
 
 // ── Branch Compare Modal ───────────────────────────────────────
 function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommit }: {
@@ -381,6 +389,10 @@ export default function App() {
   }, [])
 
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
+  // path → unmerged state, kept beside conflictFiles rather than folded into it
+  // so every existing consumer of the plain path list is untouched. Empty when
+  // the host does not report kinds — the UI then shows no badge at all.
+  const [conflictKinds, setConflictKinds] = useState<Record<string, ConflictKind>>({})
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [conflictResolverFile, setConflictResolverFile] = useState<string | null>(null)
   // Agent-proposed resolution (from a gitgui://open deep link) to preload into
@@ -469,6 +481,7 @@ export default function App() {
         window.gitAPI.getConflictMode(),
       ])
       setConflictFiles(conflictRes.files ?? [])
+      setConflictKinds(kindsByPath(conflictRes.entries))
       setConflictMode(modeRes.mode)
       const changesRes = await window.gitAPI.getWorkingChanges()
       setWipCount(
@@ -2198,6 +2211,7 @@ export default function App() {
                 setConflictResolverProposal(null)
                 const res = await window.gitAPI.getConflictedFiles()
                 const remaining = res.files
+                setConflictKinds(kindsByPath(res.entries))
                 if (remaining.length > 0) {
                   setConflictFiles(remaining)
                   setConflictResolverFile(remaining[0])
@@ -2417,6 +2431,7 @@ export default function App() {
                   if (found) setSelectedCommit(found)
                 }}
                 conflictFiles={conflictFiles}
+                conflictKinds={conflictKinds}
                 conflictMode={conflictMode}
                 onConflictFinish={handleConflictFinish}
                 onConflictAbort={handleConflictAbort}

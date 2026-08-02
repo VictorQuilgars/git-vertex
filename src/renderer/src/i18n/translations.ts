@@ -946,6 +946,16 @@ const fr = {
   'rp2.openInEditor': 'Ouvrir dans l\'éditeur',
   'rp2.keepOurs': 'Garder la version courante (ours)',
   'rp2.keepTheirs': 'Garder la version entrante (theirs)',
+  'rp2.conflictKindTitle': 'Nature du conflit, telle que git la rapporte',
+  'rp2.conflictKind': (kind: string) => ({
+    'both-modified': 'modifié des deux côtés',
+    'both-added': 'ajouté des deux côtés',
+    'both-deleted': 'supprimé des deux côtés',
+    'added-by-us': 'ajouté ici',
+    'added-by-them': 'ajouté en face',
+    'deleted-by-us': 'supprimé ici',
+    'deleted-by-them': 'supprimé en face',
+  } as Record<string, string>)[kind] ?? '',
   'rp2.markResolvedTitle': 'Marquer résolu (indexer le fichier édité)',
   'dv.unifiedTitle': 'Vue unifiée',
   'dv.splitTitle': 'Vue côte à côte',
@@ -1207,6 +1217,12 @@ const fr = {
   'rp.conflictsInProgress': 'Conflits en cours :',
   'rp.conflictedFiles': 'Fichiers en conflit',
   'rp.abortMode': (mode: string) => `Annuler le ${mode}`,
+  // The continue button must name the operation actually in progress: saying
+  // "Merge" during a rebase told the user the wrong thing about what the
+  // click would do. Only a merge ends in a merge commit.
+  'rp.commitMode': (mode: string) =>
+    mode === 'merge' ? 'Valider la fusion' : `Valider et continuer le ${mode}`,
+  'rp.commitPlaceholder': 'Message de commit…',
   'rp.inProgress': 'En cours…',
   'cme.title': 'Reword — reformuler le message',
   'cme.save': 'Enregistrer',
@@ -2255,6 +2271,16 @@ const en: typeof fr = {
   'rp2.openInEditor': 'Open in editor',
   'rp2.keepOurs': 'Keep current version (ours)',
   'rp2.keepTheirs': 'Keep incoming version (theirs)',
+  'rp2.conflictKindTitle': 'How git reports this conflict',
+  'rp2.conflictKind': (kind: string) => ({
+    'both-modified': 'both modified',
+    'both-added': 'added on both sides',
+    'both-deleted': 'deleted on both sides',
+    'added-by-us': 'added here',
+    'added-by-them': 'added upstream',
+    'deleted-by-us': 'deleted here',
+    'deleted-by-them': 'deleted upstream',
+  } as Record<string, string>)[kind] ?? '',
   'rp2.markResolvedTitle': 'Mark resolved (stage the edited file)',
   'dv.unifiedTitle': 'Unified view',
   'dv.splitTitle': 'Side-by-side view',
@@ -2519,6 +2545,12 @@ const en: typeof fr = {
   'rp.conflictsInProgress': 'Conflicts in progress:',
   'rp.conflictedFiles': 'Conflicted files',
   'rp.abortMode': (mode: string) => `Abort ${mode}`,
+  // The continue button must name the operation actually in progress: saying
+  // "Merge" during a rebase told the user the wrong thing about what the
+  // click would do. Only a merge ends in a merge commit.
+  'rp.commitMode': (mode: string) =>
+    mode === 'merge' ? 'Commit & Merge' : `Commit & Continue ${mode}`,
+  'rp.commitPlaceholder': 'Commit message…',
   'rp.inProgress': 'In progress…',
   'cme.title': 'Reword — rewrite the message',
   'cme.save': 'Save',

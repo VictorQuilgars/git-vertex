@@ -137,6 +137,33 @@ describe('GitService', () => {
       expect(branch).toBeDefined()
     })
 
+    // `git branch` prints `* (no branch, rebasing feature)` mid-rebase and
+    // simple-git takes the first token as the name — `(no` reached the sidebar
+    // and the status bar verbatim.
+    test('the current branch mid-rebase names the rebase, not `(no`', async () => {
+      execSync(`cd ${tempDir} && git checkout -b feature`)
+      fs.writeFileSync(path.join(tempDir, 'file.txt'), 'theirs')
+      execSync(`cd ${tempDir} && git commit -am "feature"`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      fs.writeFileSync(path.join(tempDir, 'file.txt'), 'ours')
+      execSync(`cd ${tempDir} && git commit -am "main"`)
+      execSync(`cd ${tempDir} && git checkout feature`)
+      execSync(`cd ${tempDir} && git rebase main || true`)   // stops on the conflict
+
+      const cur = (await git.getBranches()).branches.find(b => b.current)
+      expect(cur).toBeDefined()
+      expect(cur!.name).not.toMatch(/^\(/)
+      expect(cur!.name).toBe('rebasing feature')
+      expect(cur!.detached).toBe(true)
+    })
+
+    test('a normal checkout is left alone — no detached flag, real name', async () => {
+      execSync(`cd ${tempDir} && git checkout -b feature/plain`)
+      const cur = (await git.getBranches()).branches.find(b => b.current)
+      expect(cur!.name).toBe('feature/plain')
+      expect(cur!.detached).toBeUndefined()
+    })
+
     test('createBranchAt should create branch at specific commit', async () => {
       // Create 2 commits
       fs.writeFileSync(path.join(tempDir, 'file.txt'), 'modified')
@@ -726,6 +753,40 @@ describe('GitService', () => {
       const r = await git.getConflictedFiles()
       expect(r.files).toContain('shared.txt')
       expect(r.files.length).toBeGreaterThanOrEqual(1)
+    })
+
+    // The XY codes were read to decide what counts as conflicted and then
+    // dropped, so a modify/delete reached the UI looking exactly like a content
+    // conflict — and "Incoming" silently meant "delete this file".
+    test('getConflictedFiles reports each unmerged state, not just the paths', async () => {
+      // A merge carrying all three shapes at once: content, modify/delete, add/add.
+      fs.writeFileSync(path.join(tempDir, 'content.txt'), 'base\n')
+      fs.writeFileSync(path.join(tempDir, 'gone.txt'), 'base\n')
+      execSync(`cd ${tempDir} && git add . && git commit -m "base"`)
+      execSync(`cd ${tempDir} && git checkout -b side`)
+      fs.writeFileSync(path.join(tempDir, 'content.txt'), 'theirs\n')
+      fs.rmSync(path.join(tempDir, 'gone.txt'))
+      fs.writeFileSync(path.join(tempDir, 'fresh.txt'), 'theirs\n')
+      execSync(`cd ${tempDir} && git add -A && git commit -m "side"`)
+      execSync(`cd ${tempDir} && git checkout main`)
+      fs.writeFileSync(path.join(tempDir, 'content.txt'), 'ours\n')
+      fs.writeFileSync(path.join(tempDir, 'gone.txt'), 'ours\n')
+      fs.writeFileSync(path.join(tempDir, 'fresh.txt'), 'ours\n')
+      execSync(`cd ${tempDir} && git add -A && git commit -m "main"`)
+      execSync(`cd ${tempDir} && git merge side || true`)
+
+      const byPath = Object.fromEntries(
+        (await git.getConflictedFiles()).entries.map(e => [e.path, e.kind])
+      )
+      expect(byPath['content.txt']).toBe('both-modified')
+      expect(byPath['gone.txt']).toBe('deleted-by-them')
+      expect(byPath['fresh.txt']).toBe('both-added')
+    })
+
+    test('getConflictedFiles keeps files and entries in step', async () => {
+      setupConflict()
+      const r = await git.getConflictedFiles()
+      expect(r.entries.map(e => e.path)).toEqual(r.files)
     })
 
     test('getConflictMode detects merge-in-progress via MERGE_HEAD', async () => {
