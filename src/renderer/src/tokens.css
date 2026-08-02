@@ -192,6 +192,29 @@
   /* Pull-request state, alongside --success (open) and --danger (closed). */
   --pr-merged: #a371f7;
 
+  /* ── Syntax highlighting ───────────────────────────────────────────────
+   * The diff is a core screen, so its colours belong here like everything
+   * else. These replace `highlight.js/styles/github-dark.css`, which was
+   * imported by DiffViewer.tsx and hardcoded its own palette — including
+   * `background: #0d1117`, which painted an opaque block behind every line of
+   * code and pinned the diff to one canvas. syntax.css maps highlight.js's
+   * classes onto these; the values below are github-dark's, unchanged.
+   *
+   * `--syntax-bg` is transparent so the add/remove row tint reads THROUGH the
+   * code, which is what the diff always meant to show.
+   */
+  --syntax-bg: transparent;
+  --syntax-text: #c9d1d9;      /* base code, and subst/emphasis/strong */
+  --syntax-keyword: #ff7b72;
+  --syntax-entity: #d2a8ff;    /* class and function names */
+  --syntax-constant: #79c0ff;  /* numbers, literals, attributes, operators */
+  --syntax-string: #a5d6ff;
+  --syntax-variable: #ffa657;  /* built-ins and symbols */
+  --syntax-comment: #8b949e;
+  --syntax-tag: #7ee787;       /* tag names, selectors, quotes */
+  --syntax-section: #1f6feb;   /* markdown headings */
+  --syntax-bullet: #f2cc60;    /* markdown list markers */
+
   /* ── Type scale ────────────────────────────────────────────────────────
    * `base` is the body size. Replaced 22 sizes, including 12.5px, 13.5px and
    * 11.5px — half-pixels that only existed because no step landed right.

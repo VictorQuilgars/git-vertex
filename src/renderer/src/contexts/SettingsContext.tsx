@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { resetThemeCache } from '../components/CommitGraph/graph-layout'
 
 // Centralized app settings. Loads everything once from the main process, exposes
 // a typed getter helper + a setter that persists and updates live, and applies
@@ -40,6 +41,10 @@ function applyAppearance(s: SettingsMap) {
   const root = document.documentElement
   const accent = s.accentColor || SETTING_DEFAULTS.accentColor
   root.style.setProperty('--accent', accent)
+  // The graph resolves --lane-n and --bg-canvas to literals once and caches
+  // them, because it does arithmetic on them. Anything that rewrites tokens on
+  // <html> has to drop that cache, or the graph keeps painting the old theme.
+  resetThemeCache()
 }
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {

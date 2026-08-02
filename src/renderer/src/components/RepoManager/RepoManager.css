@@ -7,7 +7,7 @@
   background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-primary-soft); cursor: pointer;
   padding: var(--space-sm) var(--space-xl); border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: var(--weight-semibold);
 }
-.rm-btn:hover { background: var(--surface-active); color: var(--text-on-emphasis); }
+.rm-btn:hover { background: var(--surface-active); color: var(--text-primary); }
 .rm-btn-primary { background: var(--success-strong); border-color: var(--success-emphasis); color: var(--text-on-emphasis); }
 .rm-btn-primary:hover { background: var(--success-emphasis); }
 .rm-btn:disabled { opacity: 0.5; cursor: not-allowed; }

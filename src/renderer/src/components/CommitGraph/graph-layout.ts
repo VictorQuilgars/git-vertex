@@ -42,6 +42,50 @@ export function laneColors(): string[] {
 /** @deprecated use laneColors() — kept so nothing importing the old name breaks. */
 export const LANE_COLORS = LANE_FALLBACK
 
+// The canvas, for the same reason as the lanes: CommitGraph.dimColor() fades an
+// edge by blending it toward the background, which is arithmetic and cannot be
+// done with a var(). It used to blend toward the literal [13, 17, 23] — the
+// --bg-canvas of the day, written into the TypeScript — so a theme with any
+// other canvas dimmed toward the wrong colour, and a LIGHT one dimmed toward
+// near-black, making faded edges louder than live ones.
+const CANVAS_FALLBACK: [number, number, number] = [13, 17, 23]
+
+/** Parse the forms --bg-canvas can hold: #rgb, #rrggbb, rgb()/rgba(). */
+function parseRgb(v: string): [number, number, number] | null {
+  const hex = /^#?([a-f\d])([a-f\d])([a-f\d])$|^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(v)
+  if (hex) {
+    return hex[1]
+      ? [hex[1], hex[2], hex[3]].map(c => parseInt(c + c, 16)) as [number, number, number]
+      : [hex[4], hex[5], hex[6]].map(c => parseInt(c, 16)) as [number, number, number]
+  }
+  const fn = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(v)
+  if (fn) return [Math.round(+fn[1]), Math.round(+fn[2]), Math.round(+fn[3])]
+  return null
+}
+
+let canvasCache: [number, number, number] | null = null
+
+/** --bg-canvas as an RGB triple, for code that has to blend toward it. */
+export function canvasRgb(): [number, number, number] {
+  if (canvasCache) return canvasCache
+  if (typeof document === 'undefined' || !document.documentElement) return CANVAS_FALLBACK
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--bg-canvas').trim()
+  const rgb = v ? parseRgb(v) : null
+  if (!rgb) return CANVAS_FALLBACK
+  canvasCache = rgb
+  return rgb
+}
+
+/**
+ * Drop both theme caches. Call this when the tokens on <html> change, otherwise
+ * the lanes and the canvas stay frozen at whatever they were on first paint —
+ * which is why swapping a theme used to need a reload.
+ */
+export function resetThemeCache(): void {
+  laneCache = null
+  canvasCache = null
+}
+
 export interface LayoutCommit extends CommitNode {
   lane: number
   color: string

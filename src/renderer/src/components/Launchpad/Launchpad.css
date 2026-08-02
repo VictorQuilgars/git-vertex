@@ -101,7 +101,7 @@
   margin-top: var(--space-xl); background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-primary-soft);
   cursor: pointer; padding: var(--space-sm) var(--space-2xl); border-radius: var(--radius-md); font-size: var(--text-base); font-weight: var(--weight-semibold);
 }
-.lp-retry:hover { background: var(--surface-active); color: var(--text-on-emphasis); }
+.lp-retry:hover { background: var(--surface-active); color: var(--text-primary); }
 
 /* Table */
 .lp-table { width: 100%; border-collapse: collapse; }
@@ -208,7 +208,7 @@
   background: transparent; border: none; color: var(--text-primary-soft); cursor: pointer;
   text-align: left; padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-sm); font-size: var(--text-sm);
 }
-.lp-menu button:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); color: var(--text-on-emphasis); }
+.lp-menu button:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); color: var(--text-primary); }
 .lp-menu button.lp-menu-danger { color: var(--danger); }
 .lp-menu button.lp-menu-danger:hover { background: color-mix(in srgb, var(--danger) var(--alpha-subtle), transparent); color: var(--danger-hover); }
 .lp-menu-backdrop { position: fixed; inset: 0; z-index: var(--z-sticky); }

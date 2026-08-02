@@ -158,7 +158,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-on-emphasis);
+  color: var(--text-primary);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
 }
