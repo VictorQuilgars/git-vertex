@@ -16,6 +16,13 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🏷️ Hovering a branch's \`+1\` is readable again
+- The refs it was hiding — usually a tag on the same commit — appeared in a panel with no background of its own, drawn straight over the chip of the row below. Two names on top of each other, character by character.
+- It is a real popover now, **as wide as the chip it belongs to** — wider only when a name does not fit — and it opens **upwards** when there is no room beneath, instead of past the bottom of the window.
+`,
+
   '1.27.0': `## What's new in 1.27.0
 
 ### 🏷️ Your own references become links

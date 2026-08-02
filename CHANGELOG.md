@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **Hovering a branch's `+1` showed an unreadable pile.** The refs it was hiding — a tag on the same commit, usually — appeared in a panel with no background of its own, drawn straight over the chip of the row below: two names on top of each other, character by character. The panel is now a real popover, as wide as the chip it belongs to — wider only when a name does not fit — and it opens upwards when there is no room beneath, instead of past the bottom of the window.
+
 ## 1.29.0
 
 ### Added
