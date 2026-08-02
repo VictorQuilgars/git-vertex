@@ -358,11 +358,28 @@
   user-select: none;
 }
 
-/* Hover expansion popup */
+/* Hover expansion popup — the refs a "+N" chip was hiding.
+   It MUST have a surface of its own. Without one it was a bare column of chips
+   floating over the next row, whose own chip sits at the same place: the two
+   texts overlapped character by character and neither could be read. A popover
+   is allowed to cover what is beneath it — but only if it hides it. */
 .ref-expansion-popup {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  background: #1c2128;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  /* Its own keyframe rather than ContextMenu's: relying on another
+     stylesheet's would break silently the day that file moves. */
+  animation: ref-expansion-appear 0.08s ease;
+}
+
+@keyframes ref-expansion-appear {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .ref-expansion-popup .ref-chip {

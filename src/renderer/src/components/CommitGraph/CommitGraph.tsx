@@ -342,6 +342,55 @@ function StatsBar({ additions = 0, deletions = 0, compact }: { additions?: numbe
   )
 }
 
+/**
+ * The refs a "+N" chip was hiding, shown while the pointer is on it.
+ *
+ * Opens below the chip, and flips above it when there is not enough room —
+ * without that, hovering a "+N" on one of the last rows pushed the panel past
+ * the bottom of the window and the names were simply unreachable. Measured
+ * after mount rather than estimated: chip heights depend on the ref names.
+ */
+function RefExpansionPopup({ anchor, children, onMouseEnter, onMouseLeave }: {
+  anchor: DOMRect
+  children: React.ReactNode
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+}) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [above, setAbove] = React.useState(false)
+
+  React.useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const h = el.getBoundingClientRect().height
+    // 8px of breathing room, so it never sits flush against the edge.
+    setAbove(anchor.bottom + 4 + h > window.innerHeight - 8 && anchor.top - 4 - h > 8)
+  }, [anchor, children])
+
+  return (
+    <div
+      ref={ref}
+      className="ref-expansion-popup"
+      style={{
+        position: 'fixed',
+        left: anchor.left,
+        top: above ? undefined : anchor.bottom + 4,
+        bottom: above ? window.innerHeight - anchor.top + 4 : undefined,
+        zIndex: 9998,
+        // As wide as the chip it belongs to — and wider only when a name does
+        // not fit, which is the one case where growing is better than truncating.
+        minWidth: anchor.width,
+        width: 'max-content',
+        maxWidth: 'min(420px, 90vw)',
+      }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </div>
+  )
+}
+
 function RefChip({ pref, laneColor, compact, onDoubleClick, onDragStartBranch, onDragEndBranch, onContextMenu }: {
   pref: ProcessedRef
   laneColor?: string
@@ -1393,7 +1442,12 @@ export default function CommitGraph({
                           if (stackCount < 1) return
                           if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
                           if (refExpand?.row !== commit.row) {
-                            setRefExpand({ row: commit.row, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })
+                            // Anchor on the CHIP, not on this wrapper: the wrapper
+                            // also holds the "+N" badge, so using it made the panel
+                            // wider than the name it sits under for no reason.
+                            const el = e.currentTarget as HTMLElement
+                            const chip = el.querySelector('.ref-chip') ?? el
+                            setRefExpand({ row: commit.row, rect: chip.getBoundingClientRect() })
                           }
                         }}
                         onMouseLeave={() => {
@@ -1512,16 +1566,11 @@ export default function CommitGraph({
       {refExpand && (() => {
         const expandCommit = displayLayout.find(c => c.row === refExpand.row)
         if (!expandCommit) return null
-        const allPrefs = processRefs(expandCommit.refs)
-        const hiddenPrefs = allPrefs.slice(1)
+        const hiddenPrefs = processRefs(expandCommit.refs).slice(1)
         if (hiddenPrefs.length === 0) return null
-        const { rect } = refExpand
-        const top = rect.bottom + 4
-        const left = rect.left
         return createPortal(
-          <div
-            className="ref-expansion-popup"
-            style={{ position: 'fixed', left, top, zIndex: 9998, minWidth: rect.width, width: 'max-content' }}
+          <RefExpansionPopup
+            anchor={refExpand.rect}
             onMouseEnter={() => { if (refExpandTimer.current) clearTimeout(refExpandTimer.current) }}
             onMouseLeave={() => { refExpandTimer.current = setTimeout(() => setRefExpand(null), 120) }}
           >
@@ -1531,7 +1580,7 @@ export default function CommitGraph({
                 onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
                 onContextMenu={(e, pref) => openRefMenu(e, pref, expandCommit)} />
             ))}
-          </div>,
+          </RefExpansionPopup>,
           document.body
         )
       })()}
