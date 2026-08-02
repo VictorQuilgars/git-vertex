@@ -6,9 +6,9 @@
   flex-shrink: 0;
   padding: 0 10px;
   background: #0a0d12;
-  border-top: 1px solid #21262d;
+  border-top: 1px solid var(--border-muted);
   font-size: 11px;
-  color: #8b949e;
+  color: var(--text-secondary);
   user-select: none;
 }
 
@@ -21,7 +21,7 @@
 
 .sb-repo {
   font-weight: 600;
-  color: #c9d1d9;
+  color: var(--text-primary-soft);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -32,7 +32,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #3fb950;
+  color: var(--success);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -45,8 +45,8 @@
   gap: 6px;
   font-variant-numeric: tabular-nums;
 }
-.sb-ahead { color: #58a6ff; }
-.sb-behind { color: #d29922; }
+.sb-ahead { color: var(--accent-static); }
+.sb-behind { color: var(--warning); }
 
 .sb-fetch {
   display: inline-flex;
@@ -54,14 +54,14 @@
   gap: 5px;
   background: none;
   border: none;
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 4px;
   transition: background 0.12s, color 0.12s;
 }
-.sb-fetch:hover:not(:disabled) { background: #1c2128; color: #c9d1d9; }
+.sb-fetch:hover:not(:disabled) { background: var(--surface-hover); color: var(--text-primary-soft); }
 .sb-fetch:disabled { cursor: default; opacity: 0.7; }
 .sb-fetch-label { white-space: nowrap; }
 
@@ -71,14 +71,14 @@
 .sb-zoom {
   display: inline-flex;
   align-items: center;
-  border: 1px solid #21262d;
+  border: 1px solid var(--border-muted);
   border-radius: 4px;
   overflow: hidden;
 }
 .sb-zoom-btn, .sb-zoom-val {
   background: none;
   border: none;
-  color: #8b949e;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 11px;
   padding: 1px 7px;
@@ -88,7 +88,7 @@
   font-variant-numeric: tabular-nums;
   min-width: 38px;
   text-align: center;
-  border-left: 1px solid #21262d;
-  border-right: 1px solid #21262d;
+  border-left: 1px solid var(--border-muted);
+  border-right: 1px solid var(--border-muted);
 }
-.sb-zoom-btn:hover, .sb-zoom-val:hover { background: #1c2128; color: #c9d1d9; }
+.sb-zoom-btn:hover, .sb-zoom-val:hover { background: var(--surface-hover); color: var(--text-primary-soft); }

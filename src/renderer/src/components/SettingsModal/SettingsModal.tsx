@@ -512,7 +512,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="stg-save" onClick={saveGit}>{t('settings.save')}</button>
-                  <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} onClick={saveCurrentAsProfile}>
+                  <button className="stg-save" style={{ background: 'var(--surface-sunken)', color: 'var(--text-primary-soft)' }} onClick={saveCurrentAsProfile}>
                     {t('settings.saveAsProfile')}
                   </button>
                 </div>
@@ -550,13 +550,13 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                   <>
                     <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.gitBinary.title')}</h2>
                     <p className="stg-desc">{t('settings.gitBinary.desc')}</p>
-                    <p className="stg-desc" style={{ color: '#c9d1d9' }}>
+                    <p className="stg-desc" style={{ color: 'var(--text-primary-soft)' }}>
                       {gitBinary
                         ? <>
                             <strong>git {gitBinary.version ?? '—'}</strong>
                             {' — '}
                             <code>{gitBinary.path}</code>
-                            <span style={{ color: '#8b949e' }}> ({t(`settings.gitBinary.source.${gitBinary.source}` as any)})</span>
+                            <span style={{ color: 'var(--text-secondary)' }}> ({t(`settings.gitBinary.source.${gitBinary.source}` as any)})</span>
                           </>
                         : t('settings.gitBinary.unknown')}
                     </p>
@@ -601,7 +601,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       setGpgSign(e.target.checked)
                       await window.gitAPI.settingsSet('gpgSign', String(e.target.checked))
                     }} />
-                  <span>{t('settings.gpg.label')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.gpg.hint')}</span></span>
+                  <span>{t('settings.gpg.label')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.gpg.hint')}</span></span>
                 </label>
               </div>
             )}
@@ -672,7 +672,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       checked={getBool(key, true)}
                       onChange={e => set(key, String(e.target.checked))}
                     />
-                    <span>{t(labelKey as any)} <span style={{ color: '#8b949e', fontSize: 12 }}>— {t(descKey as any)}</span></span>
+                    <span>{t(labelKey as any)} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>— {t(descKey as any)}</span></span>
                   </label>
                 ))}
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
@@ -681,7 +681,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     checked={getBool('graphCompactColumns', false)}
                     onChange={e => set('graphCompactColumns', String(e.target.checked))}
                   />
-                  <span>{t('settings.graph.compact')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.graph.compactHint')}</span></span>
+                  <span>{t('settings.graph.compact')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.graph.compactHint')}</span></span>
                 </label>
                 <p className="stg-desc" style={{ marginTop: 12 }}>{t('settings.graph.tip')}</p>
               </div>
@@ -769,7 +769,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         style={{ flex: 1 }}
                         spellCheck={false}
                       />
-                      <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} onClick={() => setShowToken(v => !v)}>{showToken ? '🙈' : '👁'}</button>
+                      <button className="stg-save" style={{ background: 'var(--surface-sunken)', color: 'var(--text-primary-soft)' }} onClick={() => setShowToken(v => !v)}>{showToken ? '🙈' : '👁'}</button>
                       <button className="stg-save" onClick={async () => { await saveGithub(); if (githubToken.trim()) fetchGithubUser() }}>
                         {t('settings.save')}
                       </button>
@@ -905,7 +905,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       setAutoStash(e.target.checked)
                       await window.gitAPI.settingsSet('autoStash', String(e.target.checked))
                     }} />
-                  <span>{t('settings.behavior.autostash')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.behavior.autostashHint')}</span></span>
+                  <span>{t('settings.behavior.autostash')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.behavior.autostashHint')}</span></span>
                 </label>
 
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
@@ -914,11 +914,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       setWarnBeforeConflict(e.target.checked)
                       await window.gitAPI.settingsSet('warnBeforeConflict', String(e.target.checked))
                     }} />
-                  <span>{t('settings.behavior.warnConflict')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.behavior.warnConflictHint')}</span></span>
+                  <span>{t('settings.behavior.warnConflict')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.behavior.warnConflictHint')}</span></span>
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12 }}>
-                  <span>{t('settings.general.defaultBranch')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.general.defaultBranchHint')}</span></span>
+                  <span>{t('settings.general.defaultBranch')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.general.defaultBranchHint')}</span></span>
                   <input
                     className="stg-input"
                     value={defaultBranchName}
@@ -931,7 +931,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12 }}>
-                  <span>{t('settings.general.autoFetch')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.general.autoFetchHint')}</span></span>
+                  <span>{t('settings.general.autoFetch')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.general.autoFetchHint')}</span></span>
                   <input
                     className="stg-input"
                     type="number"
@@ -953,7 +953,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       setAutoUpdateSubmodules(e.target.checked)
                       await window.gitAPI.settingsSet('autoUpdateSubmodules', String(e.target.checked))
                     }} />
-                  <span>{t('settings.general.autoSubmodules')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.general.autoSubmodulesHint')}</span></span>
+                  <span>{t('settings.general.autoSubmodules')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.general.autoSubmodulesHint')}</span></span>
                 </label>
 
                 {/* OS notifications — desktop only (no-op in the VS Code host) */}
@@ -1000,7 +1000,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 <p className="stg-desc">{t('settings.externalTools.desc')}</p>
 
                 <label className="stg-field">
-                  <span>{t('settings.behavior.externalEditor')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.behavior.externalEditorHintPre')}<code>code</code>, <code>code --wait</code>, <code>subl</code>, <code>meld</code>{t('settings.behavior.externalEditorHintPost')}</span></span>
+                  <span>{t('settings.behavior.externalEditor')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.behavior.externalEditorHintPre')}<code>code</code>, <code>code --wait</code>, <code>subl</code>, <code>meld</code>{t('settings.behavior.externalEditorHintPost')}</span></span>
                   <input
                     className="stg-input"
                     value={externalEditor}
@@ -1013,7 +1013,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12 }}>
-                  <span>{t('settings.externalTools.diffTool')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.externalTools.diffToolHint')}</span></span>
+                  <span>{t('settings.externalTools.diffTool')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.externalTools.diffToolHint')}</span></span>
                   <input
                     className="stg-input"
                     value={externalDiffTool}
@@ -1026,7 +1026,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12 }}>
-                  <span>{t('settings.externalTools.mergeTool')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.externalTools.mergeToolHint')}</span></span>
+                  <span>{t('settings.externalTools.mergeTool')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.externalTools.mergeToolHint')}</span></span>
                   <input
                     className="stg-input"
                     value={externalMergeTool}
@@ -1039,7 +1039,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12 }}>
-                  <span>{t('settings.externalTools.terminal')} <span style={{ color: '#8b949e', fontSize: 12 }}>{t('settings.externalTools.terminalHint')}</span></span>
+                  <span>{t('settings.externalTools.terminal')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.externalTools.terminalHint')}</span></span>
                   <input
                     className="stg-input"
                     value={externalTerminal}
@@ -1081,7 +1081,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       }}
                       placeholder="~/.ssh/id_ed25519"
                     />
-                    <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} disabled={sshUseAgent}
+                    <button className="stg-save" style={{ background: 'var(--surface-sunken)', color: 'var(--text-primary-soft)' }} disabled={sshUseAgent}
                       onClick={async () => {
                         const r = await (window.gitAPI as any).sshBrowseKey('private')
                         if (r?.path) { setSshPrivateKey(r.path); await window.gitAPI.settingsSet('sshPrivateKey', r.path) }
@@ -1102,7 +1102,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       }}
                       placeholder="~/.ssh/id_ed25519.pub"
                     />
-                    <button className="stg-save" style={{ background: '#21262d', color: '#c9d1d9' }} disabled={sshUseAgent}
+                    <button className="stg-save" style={{ background: 'var(--surface-sunken)', color: 'var(--text-primary-soft)' }} disabled={sshUseAgent}
                       onClick={async () => {
                         const r = await (window.gitAPI as any).sshBrowseKey('public')
                         if (r?.path) { setSshPublicKey(r.path); await window.gitAPI.settingsSet('sshPublicKey', r.path) }

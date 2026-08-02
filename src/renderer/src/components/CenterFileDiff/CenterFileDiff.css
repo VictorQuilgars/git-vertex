@@ -3,7 +3,7 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: #0d1117;
+  background: var(--bg-canvas);
   overflow: hidden;
 }
 
@@ -12,16 +12,16 @@
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .cfd-back {
   background: none;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 12px;
   padding: 3px 10px;
   cursor: pointer;
@@ -29,9 +29,9 @@
   transition: 0.15s;
 }
 .cfd-back:hover {
-  color: #c9d1d9;
-  background: #21262d;
-  border-color: #484f58;
+  color: var(--text-primary-soft);
+  background: var(--surface-sunken);
+  border-color: var(--border-subtle);
 }
 
 .cfd-area-badge {
@@ -42,14 +42,14 @@
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   flex-shrink: 0;
 }
-.cfd-staged   { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
-.cfd-unstaged { background: rgba(255, 166, 87, 0.15); color: #ffa657; }
-.cfd-commit   { background: rgba(88, 166, 255, 0.15); color: var(--accent,#58a6ff); }
+.cfd-staged   { background: rgba(63, 185, 80, 0.15);  color: var(--success); }
+.cfd-unstaged { background: rgba(255, 166, 87, 0.15); color: var(--attention); }
+.cfd-commit   { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
 
 .cfd-filepath {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
-  color: #e6edf3;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -58,7 +58,7 @@
 
 .cfd-area-toggle {
   display: inline-flex;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
@@ -66,21 +66,21 @@
 .cfd-area-toggle button {
   background: none;
   border: none;
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   padding: 3px 11px;
   cursor: pointer;
 }
-.cfd-area-toggle button + button { border-left: 1px solid #30363d; }
-.cfd-area-toggle button.active { background: rgba(88,166,255,0.12); color: var(--accent,#58a6ff); }
-.cfd-area-toggle button:not(.active):hover { color: #c9d1d9; background: #21262d; }
+.cfd-area-toggle button + button { border-left: 1px solid var(--border-default); }
+.cfd-area-toggle button.active { background: rgba(88,166,255,0.12); color: var(--accent); }
+.cfd-area-toggle button:not(.active):hover { color: var(--text-primary-soft); background: var(--surface-sunken); }
 
 .cfd-toggle {
   background: none;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 11px;
   padding: 3px 10px;
   cursor: pointer;
@@ -89,14 +89,14 @@
   margin-left: 8px;
 }
 .cfd-toggle:hover {
-  color: #c9d1d9;
-  background: #21262d;
-  border-color: #484f58;
+  color: var(--text-primary-soft);
+  background: var(--surface-sunken);
+  border-color: var(--border-subtle);
 }
 .cfd-toggle.active {
   background: rgba(88, 166, 255, 0.1);
-  color: var(--accent,#58a6ff);
-  border-color: var(--accent,#58a6ff);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .cfd-body {
@@ -109,7 +109,7 @@
 
 .cfd-loading {
   padding: 24px;
-  color: #8b949e;
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -117,16 +117,16 @@
   padding: 6px 14px;
   background: rgba(248, 81, 73, 0.1);
   border-bottom: 1px solid rgba(248, 81, 73, 0.3);
-  color: #f85149;
+  color: var(--danger);
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
 .cfd-apply-btn {
   background: rgba(63, 185, 80, 0.15);
-  border: 1px solid #3fb950;
+  border: 1px solid var(--success);
   border-radius: 6px;
-  color: #3fb950;
+  color: var(--success);
   font-size: 11px;
   padding: 3px 10px;
   cursor: pointer;
@@ -142,12 +142,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 12px;
-  background: #161b22;
-  color: var(--accent,#58a6ff);
+  background: var(--surface);
+  color: var(--accent);
   font-size: 11px;
   font-style: italic;
-  border-top: 1px solid #21262d;
-  border-bottom: 1px solid #21262d;
+  border-top: 1px solid var(--border-muted);
+  border-bottom: 1px solid var(--border-muted);
 }
 
 .cfd-hunk-actions {
@@ -159,18 +159,18 @@
 .cfd-hunk-select,
 .cfd-hunk-apply {
   background: none;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-default);
   border-radius: 4px;
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 11px;
   font-style: normal;
   padding: 1px 8px;
   cursor: pointer;
   transition: 0.15s;
 }
-.cfd-hunk-select:hover { color: #c9d1d9; background: #21262d; border-color: #484f58; }
-.cfd-hunk-select.active { color: var(--accent,#58a6ff); border-color: var(--accent,#58a6ff); background: rgba(88,166,255,0.1); }
-.cfd-hunk-apply:hover { color: #3fb950; border-color: #3fb950; background: rgba(63,185,80,0.1); }
+.cfd-hunk-select:hover { color: var(--text-primary-soft); background: var(--surface-sunken); border-color: var(--border-subtle); }
+.cfd-hunk-select.active { color: var(--accent); border-color: var(--accent); background: rgba(88,166,255,0.1); }
+.cfd-hunk-apply:hover { color: var(--success); border-color: var(--success); background: rgba(63,185,80,0.1); }
 
 .cfd-diff-table {
   width: 100%;
@@ -189,11 +189,11 @@
    look like (re)staging it. */
 .cfd-staged-mode .cfd-apply-btn {
   background: rgba(255, 166, 87, 0.15);
-  border-color: #ffa657;
-  color: #ffa657;
+  border-color: var(--attention);
+  color: var(--attention);
 }
 .cfd-staged-mode .cfd-apply-btn:hover { background: rgba(255, 166, 87, 0.28); }
-.cfd-staged-mode .cfd-hunk-apply:hover { color: #ffa657; border-color: #ffa657; background: rgba(255, 166, 87, 0.12); }
+.cfd-staged-mode .cfd-hunk-apply:hover { color: var(--attention); border-color: var(--attention); background: rgba(255, 166, 87, 0.12); }
 .cfd-staged-mode .cfd-dl--selected.cfd-dl-add,
 .cfd-staged-mode .cfd-dl--selected.cfd-dl-remove {
   background: rgba(255, 166, 87, 0.22);
@@ -205,20 +205,20 @@
   min-width: 44px;
   text-align: right;
   padding: 0 8px 0 4px;
-  color: #6e7681;
+  color: var(--text-tertiary);
   user-select: none;
-  border-right: 1px solid #21262d;
+  border-right: 1px solid var(--border-muted);
 }
 
 .cfd-lm {
   width: 20px;
   text-align: center;
   padding: 0 4px;
-  color: #6e7681;
+  color: var(--text-tertiary);
   user-select: none;
 }
-.cfd-dl-add .cfd-lm    { color: #3fb950; }
-.cfd-dl-remove .cfd-lm { color: #f85149; }
+.cfd-dl-add .cfd-lm    { color: var(--success); }
+.cfd-dl-remove .cfd-lm { color: var(--danger); }
 
 .cfd-lc { padding: 0 8px; }
 .cfd-lc code { font-family: inherit; font-size: inherit; }
@@ -235,9 +235,9 @@
   min-width: 44px;
   text-align: right;
   padding: 0 8px 0 4px;
-  color: #6e7681;
+  color: var(--text-tertiary);
   user-select: none;
-  border-right: 1px solid #21262d;
+  border-right: 1px solid var(--border-muted);
 }
 
 .cfd-full-lc { padding: 0 8px; }

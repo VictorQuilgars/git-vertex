@@ -1427,7 +1427,7 @@ export default function CommitGraph({
                 onDrop={e => handleRowDrop(e, commit)}
               >
                 {/* Colored left stripe based on branch */}
-                <div className="cg-color-bar" style={{ background: isWip ? '#484f58' : commit.color }} />
+                <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />
 
                 {/* BRANCH / TAG column */}
                 <div className="cg-refs-col" style={{ width: refsColW }}>

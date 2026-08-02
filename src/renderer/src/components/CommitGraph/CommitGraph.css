@@ -4,7 +4,7 @@
   flex: 1;
   overflow: hidden;
   font-size: 12px;
-  color: #c9d1d9;
+  color: var(--text-primary-soft);
 }
 
 /* ── Header ──────────────────────────────────────────────── */
@@ -12,11 +12,11 @@
   display: flex;
   align-items: center;
   height: 28px;
-  background: #161b22;
-  border-bottom: 1px solid #21262d;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-muted);
   font-size: 10px;
   font-weight: 700;
-  color: #6e7681;
+  color: var(--text-tertiary);
   letter-spacing: 0.05em;
   flex-shrink: 0;
   padding: 0;
@@ -39,7 +39,7 @@
   height: 100%;
   z-index: 10;
 }
-.cg-col-handle:hover { background: var(--accent,#58a6ff); }
+.cg-col-handle:hover { background: var(--accent); }
 
 /* ── Body ────────────────────────────────────────────────── */
 .cg-body {
@@ -98,7 +98,7 @@
 .cg-dimmed .cg-col-stats { opacity: 0.25; }
 .cg-drop-target {
   background: #1f6feb33 !important;
-  box-shadow: inset 0 0 0 1px var(--accent,#58a6ff);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 .ref-chip[draggable="true"] { cursor: grab; }
 .ref-chip[draggable="true"]:active { cursor: grabbing; }
@@ -158,7 +158,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #ffffff;
+  color: var(--text-on-emphasis);
   font-size: 12px;
   font-weight: 500;
 }
@@ -175,14 +175,14 @@
 .cg-sig--warn { filter: sepia(1) saturate(2) hue-rotate(5deg); }
 
 .cg-msg-wip {
-  color: #6e7681;
+  color: var(--text-tertiary);
   font-style: italic;
 }
 
 .cg-msg-sub {
   display: block;
   font-size: 10px;
-  color: #6e7681;
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -208,13 +208,13 @@
   align-items: center;
   justify-content: center;
   border: 1.5px solid transparent;
-  background: #161b22;
+  background: var(--surface);
 }
 .cg-author-bullet img { width: 100%; height: 100%; object-fit: cover; }
 .cg-author-bullet-initials {
   font-size: 7px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-on-emphasis);
 }
 
 .cg-avatar {
@@ -226,14 +226,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-on-emphasis);
   flex-shrink: 0;
 }
-.cg-avatar-img { object-fit: cover; background: #21262d; }
+.cg-avatar-img { object-fit: cover; background: var(--surface-sunken); }
 
 .cg-author-name {
   font-size: 11px;
-  color: #8b949e;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -241,7 +241,7 @@
 
 .cg-col-date {
   flex-shrink: 0;
-  color: #6e7681;
+  color: var(--text-tertiary);
   padding: 0 8px;
   font-size: 11px;
   white-space: nowrap;
@@ -254,7 +254,7 @@
 .cg-col-sha code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  color: #484f58;
+  color: var(--text-disabled);
 }
 
 /* ── Ajouts / suppressions ───────────────────────────────── */
@@ -276,12 +276,12 @@
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
-  background: #21262d;
+  background: var(--surface-sunken);
   flex-shrink: 0;
 }
 .cg-stats-bar--compact { width: 20px; }
-.cg-stats-add { background: #3fb950; height: 100%; }
-.cg-stats-del { background: #f85149; height: 100%; }
+.cg-stats-add { background: var(--success); height: 100%; }
+.cg-stats-del { background: var(--danger); height: 100%; }
 .cg-stats-nums {
   display: inline-flex;
   gap: 4px;
@@ -289,8 +289,8 @@
   white-space: nowrap;
   font-family: 'JetBrains Mono', monospace;
 }
-.cg-stats-add-n { color: #3fb950; }
-.cg-stats-del-n { color: #f85149; }
+.cg-stats-add-n { color: var(--success); }
+.cg-stats-del-n { color: var(--danger); }
 
 /* ── Ref chips ───────────────────────────────────────────── */
 .ref-chip {
@@ -336,11 +336,11 @@
   flex-shrink: 0;
 }
 
-.rc-local  { background: #1f6feb18; color: var(--accent,#58a6ff); border-color: #1f6feb55; }
-.rc-remote { background: #2ea04318; color: #3fb950; border-color: #2ea04355; }
+.rc-local  { background: #1f6feb18; color: var(--accent); border-color: #1f6feb55; }
+.rc-remote { background: #2ea04318; color: var(--success); border-color: #2ea04355; }
 .rc-head   { background: #f1e05a22; color: #f1e05a; border-color: #f1e05a66; }
-.rc-tag    { background: #8957e518; color: #d2a8ff; border-color: #8957e555; }
-.rc-overflow { background: #30363d; color: #8b949e; border-color: #484f58; cursor: default; padding: 2px 7px; }
+.rc-tag    { background: #8957e518; color: var(--purple-text); border-color: #8957e555; }
+.rc-overflow { background: var(--surface-active); color: var(--text-secondary); border-color: var(--border-subtle); cursor: default; padding: 2px 7px; }
 
 /* Stack badge — shown when a commit has hidden refs */
 .rc-stack-badge {
@@ -350,9 +350,9 @@
   border-radius: 6px;
   font-size: 9px;
   font-weight: 700;
-  background: #30363d;
-  color: #8b949e;
-  border: 1px solid #484f58;
+  background: var(--surface-active);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
   cursor: default;
   flex-shrink: 0;
   user-select: none;
@@ -367,8 +367,8 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  background: #1c2128;
-  border: 1px solid #30363d;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   padding: 4px;
@@ -402,7 +402,7 @@
 .cg-skel-chip,
 .cg-skel-dot,
 .cg-skel-bar {
-  background: linear-gradient(90deg, #1c2128 25%, #262c36 50%, #1c2128 75%);
+  background: linear-gradient(90deg, var(--surface-hover) 25%, #262c36 50%, var(--surface-hover) 75%);
   background-size: 200% 100%;
   animation: cg-skel-shimmer 1.4s linear infinite;
   border-radius: 4px;
@@ -422,11 +422,11 @@
 .cg-empty {
   padding: 40px;
   text-align: center;
-  color: #484f58;
+  color: var(--text-disabled);
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
 .cg-body::-webkit-scrollbar { width: 5px; }
 .cg-body::-webkit-scrollbar-track { background: transparent; }
-.cg-body::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
-.cg-body::-webkit-scrollbar-thumb:hover { background: #30363d; }
+.cg-body::-webkit-scrollbar-thumb { background: var(--surface-sunken); border-radius: 3px; }
+.cg-body::-webkit-scrollbar-thumb:hover { background: var(--surface-active); }

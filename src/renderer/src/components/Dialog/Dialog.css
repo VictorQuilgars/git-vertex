@@ -15,8 +15,8 @@
 }
 
 .dlg-box {
-  background: #1c2128;
-  border: 1px solid #30363d;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-default);
   border-radius: 10px;
   padding: 20px 22px 16px;
   min-width: 320px;
@@ -35,23 +35,23 @@
 
 .dlg-message {
   font-size: 13px;
-  color: #c9d1d9;
+  color: var(--text-primary-soft);
   line-height: 1.5;
 }
 
 .dlg-input {
   width: 100%;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  color: #e6edf3;
+  color: var(--text-primary);
   font-size: 13px;
   padding: 7px 10px;
   outline: none;
   box-sizing: border-box;
   font-family: inherit;
 }
-.dlg-input:focus { border-color: var(--accent,#58a6ff); }
+.dlg-input:focus { border-color: var(--accent); }
 
 /* Multi-line variant (commit messages): wide box + tall monospace textarea */
 .dlg-box--wide {
@@ -63,10 +63,10 @@
   width: 100%;
   min-height: 220px;
   resize: vertical;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  color: #e6edf3;
+  color: var(--text-primary);
   font-size: 12.5px;
   line-height: 1.5;
   padding: 8px 10px;
@@ -75,10 +75,10 @@
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   white-space: pre-wrap;
 }
-.dlg-textarea:focus { border-color: var(--accent,#58a6ff); }
+.dlg-textarea:focus { border-color: var(--accent); }
 .dlg-hint {
   font-size: 10.5px;
-  color: #6e7681;
+  color: var(--text-tertiary);
   margin-top: -8px;
 }
 
@@ -101,21 +101,21 @@
 
 .dlg-cancel {
   background: transparent;
-  border-color: #30363d;
-  color: #8b949e;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
 }
-.dlg-cancel:hover { background: #21262d; color: #c9d1d9; }
+.dlg-cancel:hover { background: var(--surface-sunken); color: var(--text-primary-soft); }
 
 .dlg-ok {
-  background: #238636;
-  border-color: #2ea043;
-  color: #fff;
+  background: var(--success-strong);
+  border-color: var(--success-emphasis);
+  color: var(--text-on-emphasis);
 }
-.dlg-ok:hover { background: #2ea043; }
+.dlg-ok:hover { background: var(--success-emphasis); }
 
 .dlg-danger {
   background: #b91c1c;
-  border-color: #f85149;
-  color: #fff;
+  border-color: var(--danger);
+  color: var(--text-on-emphasis);
 }
 .dlg-danger:hover { background: #dc2626; }

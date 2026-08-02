@@ -3,8 +3,8 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: #0d1117;
-  color: #c9d1d9;
+  background: var(--bg-canvas);
+  color: var(--text-primary-soft);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
   overflow: hidden;
@@ -17,7 +17,7 @@
   width: 100%;
   height: 100%;
   font-size: 14px;
-  color: #8b949e;
+  color: var(--text-secondary);
 }
 
 /* ── Header ── */
@@ -26,8 +26,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 .mt-header-left {
@@ -40,11 +40,11 @@
 }
 .mt-filename {
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--text-primary);
   font-size: 14px;
 }
 .mt-count {
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .mt-header-right {
@@ -53,17 +53,17 @@
 }
 .mt-btn {
   padding: 4px 12px;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  background: #21262d;
-  color: #c9d1d9;
+  background: var(--surface-sunken);
+  color: var(--text-primary-soft);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
 }
 .mt-btn:hover {
-  background: #30363d;
+  background: var(--surface-active);
 }
 
 /* ── AI resolution bar ──────────────────────────────────── */
@@ -76,29 +76,29 @@
   border-bottom: 1px solid #6e40c944;
   flex-shrink: 0;
 }
-.mt-ai-icon { color: #b895f2; flex-shrink: 0; }
+.mt-ai-icon { color: var(--purple-soft); flex-shrink: 0; }
 .mt-ai-input {
   flex: 1;
   min-width: 0;
   height: 26px;
   padding: 0 10px;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  background: #0d1117;
-  color: #c9d1d9;
+  background: var(--bg-canvas);
+  color: var(--text-primary-soft);
   font-size: 12px;
 }
-.mt-ai-input:focus { outline: none; border-color: #8957e5; }
-.mt-ai-input::placeholder { color: #6e7681; }
+.mt-ai-input:focus { outline: none; border-color: var(--purple); }
+.mt-ai-input::placeholder { color: var(--text-tertiary); }
 .mt-ai-input:disabled { opacity: 0.6; }
 .mt-btn-ai {
-  background: linear-gradient(135deg, #6e40c9 0%, #8957e5 100%);
+  background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple) 100%);
   border-color: #9d6ef0;
-  color: #fff;
+  color: var(--text-on-emphasis);
   white-space: nowrap;
 }
 /* re-assert the gradient: the generic .mt-btn:hover would repaint it flat */
-.mt-btn-ai:hover:not(:disabled) { filter: brightness(1.12); background: linear-gradient(135deg, #6e40c9 0%, #8957e5 100%); }
+.mt-btn-ai:hover:not(:disabled) { filter: brightness(1.12); background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple) 100%); }
 .mt-btn-ai:disabled { opacity: 0.6; cursor: wait; }
 
 /* AI explanation strip under the AI bar */
@@ -115,37 +115,37 @@
   flex: 1;
   font-size: 12px;
   line-height: 1.5;
-  color: #c9d1d9;
+  color: var(--text-primary-soft);
 }
 .mt-ai-explain-close {
   background: none;
   border: none;
-  color: #b895f2;
+  color: var(--purple-soft);
   cursor: pointer;
   font-size: 11px;
   padding: 1px 4px;
   flex-shrink: 0;
 }
-.mt-ai-explain-close:hover { color: #fff; }
+.mt-ai-explain-close:hover { color: var(--text-on-emphasis); }
 
 .mt-btn-save {
-  background: #238636;
-  color: #fff;
+  background: var(--success-strong);
+  color: var(--text-on-emphasis);
   border-color: rgba(240, 246, 252, 0.1);
 }
 .mt-btn-save:hover {
-  background: #2ea043;
+  background: var(--success-emphasis);
 }
 .mt-btn-all-a {
-  border-color: #1f6feb;
-  color: var(--accent,#58a6ff);
+  border-color: var(--accent-emphasis);
+  color: var(--accent);
 }
 .mt-btn-all-a:hover {
   background: rgba(31, 111, 235, 0.15);
 }
 .mt-btn-all-b {
-  border-color: #d29922;
-  color: #e3b341;
+  border-color: var(--warning);
+  color: var(--warning-bright);
 }
 .mt-btn-all-b:hover {
   background: rgba(210, 153, 34, 0.15);
@@ -173,7 +173,7 @@
   min-width: 0;
 }
 .mt-ours-pane {
-  border-right: 1px solid #30363d;
+  border-right: 1px solid var(--border-default);
 }
 
 .mt-pane-header {
@@ -181,11 +181,11 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-default);
   font-weight: 600;
   font-size: 12px;
-  color: #8b949e;
+  color: var(--text-secondary);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -194,10 +194,10 @@
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 11px;
-  color: #fff;
+  color: var(--text-on-emphasis);
 }
-.mt-badge-ours { background: #1f6feb; }
-.mt-badge-theirs { background: #d29922; }
+.mt-badge-ours { background: var(--accent-emphasis); }
+.mt-badge-theirs { background: var(--warning); }
 
 /* ── Content Blocks ── */
 .mt-pane-content {
@@ -218,9 +218,9 @@
   flex-shrink: 0;
   text-align: right;
   padding-right: 8px;
-  color: #6e7681;
+  color: var(--text-tertiary);
   user-select: none;
-  border-right: 1px solid #30363d;
+  border-right: 1px solid var(--border-default);
   margin-right: 8px;
   display: flex;
   align-items: center;
@@ -243,7 +243,7 @@
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 20px;
-  color: #8b949e;
+  color: var(--text-secondary);
   min-width: max-content;
 }
 
@@ -269,16 +269,16 @@
 }
 
 .mt-conflict-num {
-  color: #8b949e;
+  color: var(--text-secondary);
 }
 
 .mt-selected-badge {
-  color: #3fb950;
+  color: var(--success);
   font-size: 11px;
 }
 
 .mt-click-hint {
-  color: #484f58;
+  color: var(--text-disabled);
   font-size: 10px;
   font-style: italic;
 }
@@ -315,8 +315,8 @@
 }
 
 .mt-line-action-add {
-  background: #3fb950;
-  color: #fff;
+  background: var(--success);
+  color: var(--text-on-emphasis);
 }
 
 .mt-line-action-add:hover {
@@ -324,8 +324,8 @@
 }
 
 .mt-line-action-remove {
-  background: #f85149;
-  color: #fff;
+  background: var(--danger);
+  color: var(--text-on-emphasis);
 }
 
 .mt-line-action-remove:hover {
@@ -340,7 +340,7 @@
 }
 
 .mt-base-hint {
-  color: #8957e5;
+  color: var(--purple);
   font-size: 10px;
   font-weight: 600;
 }
@@ -363,7 +363,7 @@
 }
 .mt-block-ours.selected {
   background: rgba(31, 111, 235, 0.2);
-  border-color: #1f6feb;
+  border-color: var(--accent-emphasis);
   border-left: none;
   border-right: none;
 }
@@ -377,7 +377,7 @@
 }
 .mt-block-theirs.selected {
   background: rgba(210, 153, 34, 0.2);
-  border-color: #d29922;
+  border-color: var(--warning);
   border-left: none;
   border-right: none;
 }
@@ -388,13 +388,13 @@
   flex-direction: column;
   height: 35%;
   min-height: 150px;
-  border-top: 2px solid #30363d;
-  background: #0d1117;
+  border-top: 2px solid var(--border-default);
+  background: var(--bg-canvas);
 }
 
 .mt-manual-badge {
-  background: #8957e5;
-  color: #fff;
+  background: var(--purple);
+  color: var(--text-on-emphasis);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 10px;
@@ -418,9 +418,9 @@
   width: 40px;
   flex-shrink: 0;
   text-align: right;
-  border-right: 1px solid #30363d;
-  background: #0d1117;
-  color: #6e7681;
+  border-right: 1px solid var(--border-default);
+  background: var(--bg-canvas);
+  color: var(--text-tertiary);
   user-select: none;
   /* The gutter is scrolled from JS to follow .mt-output-lines (it cannot share
      that element's scrollbar: the text scrolls horizontally too, and the numbers
@@ -441,7 +441,7 @@
   padding: 12px 8px;
   background: transparent;
   border: none;
-  color: #e6edf3;
+  color: var(--text-primary);
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
@@ -456,11 +456,11 @@
 .mt-btn-edit {
   font-size: 10px;
   padding: 2px 8px;
-  border-color: #30363d;
-  color: #8b949e;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
 }
 .mt-btn-edit:hover {
-  color: #c9d1d9;
+  color: var(--text-primary-soft);
 }
 
 .mt-output-lines {
@@ -478,17 +478,17 @@
 }
 
 .mt-output-line--common {
-  color: #e6edf3;
+  color: var(--text-primary);
 }
 
 .mt-output-line--ours {
   background: rgba(31, 111, 235, 0.15);
-  color: #79c0ff;
+  color: var(--info-text);
 }
 
 .mt-output-line--theirs {
   background: rgba(210, 153, 34, 0.15);
-  color: #e3b341;
+  color: var(--warning-bright);
 }
 
 .mt-output-line--base {

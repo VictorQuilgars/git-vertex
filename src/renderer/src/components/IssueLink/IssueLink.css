@@ -4,7 +4,7 @@
 }
 
 .issue-link {
-  color: #58a6ff;
+  color: var(--accent-static);
   cursor: pointer;
   border-radius: 3px;
 }
@@ -23,8 +23,8 @@
   min-width: 220px;
   max-width: 360px;
   padding: 8px 10px;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(1, 4, 9, 0.85);
   font-size: 12px;
@@ -54,13 +54,13 @@
 }
 
 .issue-tooltip-kind {
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 11px;
   margin-left: auto;
 }
 
 .issue-tooltip-title {
-  color: #e6edf3;
+  color: var(--text-primary);
   font-weight: 500;
   overflow: hidden;
   display: -webkit-box;
@@ -69,6 +69,6 @@
 }
 
 .issue-tooltip-loading {
-  color: #8b949e;
+  color: var(--text-secondary);
   font-style: italic;
 }

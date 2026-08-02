@@ -241,7 +241,7 @@ function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }: {
   return (
     <div style={{ ...base, background: getAvatarColor(email), display: 'flex',
       alignItems: 'center', justifyContent: 'center',
-      color: '#fff', fontWeight: 700, fontSize: size * 0.38 }}>
+      color: 'var(--text-on-emphasis)', fontWeight: 700, fontSize: size * 0.38 }}>
       {initials(name)}
     </div>
   )
@@ -1515,7 +1515,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                         const isDir = f.endsWith('/')
                         return (
                           <div key={f} className="st-file-row">
-                            <span className="st-badge" style={{ color: '#3fb950' }}>{isDir ? '📁' : '?'}</span>
+                            <span className="st-badge" style={{ color: 'var(--success)' }}>{isDir ? '📁' : '?'}</span>
                             <span className="st-path" title={f}>
                               {f}{isDir && <span className="st-dir-hint"> {t('panel.folder')}</span>}
                             </span>
@@ -1888,7 +1888,7 @@ function ConflictPanel({
             const contentChoice = sides.ours && sides.theirs
             return (
               <div key={f} className={`rp-file-row rp-file-conflicted${contentChoice ? '' : ' rp-file-conflicted--existence'}`}>
-                <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>
+                <span className="rp-file-status" style={{ color: 'var(--attention)' }}>!</span>
                 <span className="rp-file-path" style={{ flex: 1, cursor: 'pointer' }}
                   title={t('rp2.openInEditor')} onClick={() => onOpenResolver(f)}>{f}</span>
                 {kind && kind !== 'unknown' && (
@@ -1922,7 +1922,7 @@ function ConflictPanel({
           {resolvedFiles.length === 0 && <div className="rp-empty">{t('rp.noResolved')}</div>}
           {resolvedFiles.map(f => (
             <div key={f.path} className="rp-file-row rp-file-resolved">
-              <span className="rp-file-status" style={{ color: '#3fb950' }}>✓</span>
+              <span className="rp-file-status" style={{ color: 'var(--success)' }}>✓</span>
               <span className="rp-file-path">{f.path}</span>
             </div>
           ))}
@@ -1939,14 +1939,14 @@ function ConflictPanel({
         <div className="rp-commit-actions" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <button
             className="rp-btn rp-btn-abort"
-            style={{ flex: 1, backgroundColor: '#21262d', color: '#f85149' }}
+            style={{ flex: 1, backgroundColor: 'var(--surface-sunken)', color: 'var(--danger)' }}
             onClick={onConflictAbort}
           >
             {t('rp.abortMode', conflictMode)}
           </button>
           <button
             className="rp-btn rp-btn-commit"
-            style={{ flex: 1, backgroundColor: allResolved ? '#2ea043' : '#21262d', color: allResolved ? '#fff' : '#8b949e' }}
+            style={{ flex: 1, backgroundColor: allResolved ? 'var(--success-emphasis)' : 'var(--surface-sunken)', color: allResolved ? 'var(--text-on-emphasis)' : 'var(--text-secondary)' }}
             disabled={!allResolved || !commitMsg.trim() || committing}
             onClick={doCommit}
           >

@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
   font-size: 13px;
   overflow: hidden;
 }
@@ -13,8 +13,8 @@
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  border-bottom: 1px solid #21262d;
-  background: #161b22;
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--surface);
   flex-shrink: 0;
 }
 
@@ -24,10 +24,10 @@
 }
 
 .cv-ref-select {
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  color: #e6edf3;
+  color: var(--text-primary);
   padding: 4px 8px;
   font-size: 12px;
   max-width: 220px;
@@ -35,30 +35,30 @@
 
 .cv-swap {
   background: transparent;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  color: #8b949e;
+  color: var(--text-secondary);
   padding: 4px 8px;
   cursor: pointer;
 }
 
 .cv-swap:hover {
-  color: #e6edf3;
-  background: #21262d;
+  color: var(--text-primary);
+  background: var(--surface-sunken);
 }
 
 .cv-summary {
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 12px;
   margin-left: auto;
 }
 
 .cv-sum-ahead {
-  color: #3fb950;
+  color: var(--success);
 }
 
 .cv-sum-behind {
-  color: #f85149;
+  color: var(--danger);
 }
 
 .cv-body {
@@ -70,14 +70,14 @@
 .cv-left {
   width: 300px;
   min-width: 240px;
-  border-right: 1px solid #21262d;
+  border-right: 1px solid var(--border-muted);
   overflow-y: auto;
   flex-shrink: 0;
 }
 
 .cv-commits-section {
   padding: 8px 0;
-  border-bottom: 1px solid #161b22;
+  border-bottom: 1px solid var(--surface);
 }
 
 .cv-commits-title {
@@ -89,13 +89,13 @@
 }
 
 .cv-commits-count {
-  color: #484f58;
+  color: var(--text-disabled);
   font-weight: 400;
 }
 
 .cv-commits-empty {
   padding: 6px 14px;
-  color: #484f58;
+  color: var(--text-disabled);
   font-size: 12px;
 }
 
@@ -108,11 +108,11 @@
 }
 
 .cv-commit:hover {
-  background: #161b22;
+  background: var(--surface);
 }
 
 .cv-commit-hash {
-  color: #58a6ff;
+  color: var(--accent-static);
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   flex-shrink: 0;
@@ -138,19 +138,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #484f58;
+  color: var(--text-disabled);
 }
 
 /* "Copy link to this comparison" — a quiet action in the header, next to the
    ahead/behind counts it describes. */
 .cv-copy-link {
   margin-left: auto;
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #c9d1d9;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary-soft);
   border-radius: 6px;
   padding: 3px 10px;
   font-size: 12px;
   cursor: pointer;
 }
-.cv-copy-link:hover { background: #30363d; border-color: #8b949e; }
+.cv-copy-link:hover { background: var(--surface-active); border-color: var(--border-strong); }

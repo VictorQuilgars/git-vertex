@@ -78,7 +78,7 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
         ) : (
           <div className="bc-grid">
             <div className="bc-col">
-              <div className="bc-col-header" style={{ color: '#58a6ff' }}>
+              <div className="bc-col-header" style={{ color: 'var(--accent-static)' }}>
                 {t('bc.in')} <code>{otherBranch}</code> {t('bc.butNotIn')} <code>{currentBranch}</code> ({data.ahead.length})
               </div>
               <div className="bc-list">
@@ -92,7 +92,7 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
               </div>
             </div>
             <div className="bc-col">
-              <div className="bc-col-header" style={{ color: '#3fb950' }}>
+              <div className="bc-col-header" style={{ color: 'var(--success)' }}>
                 {t('bc.in')} <code>{currentBranch}</code> {t('bc.butNotIn')} <code>{otherBranch}</code> ({data.behind.length})
               </div>
               <div className="bc-list">
@@ -221,7 +221,7 @@ function CompareCommitsModal({ from, to, onClose }: { from: string; to: string; 
           {loading
             ? <div className="bc-loading">{t('common.loading')}</div>
             : error
-              ? <div className="bc-empty" style={{ padding: 24, color: '#f85149' }}>{error}</div>
+              ? <div className="bc-empty" style={{ padding: 24, color: 'var(--danger)' }}>{error}</div>
               : diff.trim() === ''
                 ? <div className="bc-empty" style={{ padding: 24 }}>{t('compare.noDiffCommits')}</div>
                 : <DiffViewer

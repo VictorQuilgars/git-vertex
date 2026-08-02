@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #0d1117;
+  background: var(--bg-canvas);
 }
 
 /* ── Header ─────────────────────────────────── */
@@ -12,14 +12,14 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--border-muted);
   flex-shrink: 0;
 }
 
 .ghp-repo-name {
   font-size: 13px;
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--text-primary);
   font-family: 'JetBrains Mono', monospace;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -29,7 +29,7 @@
 .ghp-refresh {
   background: transparent;
   border: none;
-  color: #6e7681;
+  color: var(--text-tertiary);
   cursor: pointer;
   padding: 3px 5px;
   border-radius: 4px;
@@ -37,7 +37,7 @@
   align-items: center;
   transition: color 0.1s;
 }
-.ghp-refresh:hover { color: #e6edf3; background: #21262d; }
+.ghp-refresh:hover { color: var(--text-primary); background: var(--surface-sunken); }
 
 /* Repo badge on aggregated items (kept for defensive rendering) */
 .ghp-repo-badge {
@@ -47,9 +47,9 @@
   font-size: 9px;
   font-weight: 700;
   line-height: 16px;
-  color: #8b949e;
-  background: #21262d;
-  border: 1px solid #30363d;
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -59,7 +59,7 @@
 .ghp-close {
   background: transparent;
   border: none;
-  color: #6e7681;
+  color: var(--text-tertiary);
   font-size: 18px;
   cursor: pointer;
   line-height: 1;
@@ -67,12 +67,12 @@
   border-radius: 4px;
   flex-shrink: 0;
 }
-.ghp-close:hover { color: #e6edf3; background: #21262d; }
+.ghp-close:hover { color: var(--text-primary); background: var(--surface-sunken); }
 
 /* ── Tabs ───────────────────────────────────── */
 .ghp-tabs {
   display: flex;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--border-muted);
   flex-shrink: 0;
 }
 
@@ -85,23 +85,23 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #8b949e;
+  color: var(--text-secondary);
   font-size: 12px;
   padding: 9px 10px;
   cursor: pointer;
   transition: color 0.1s;
   margin-bottom: -1px;
 }
-.ghp-tab:hover { color: #e6edf3; }
-.ghp-tab.active { color: #e6edf3; border-bottom-color: var(--accent,#58a6ff); font-weight: 600; }
+.ghp-tab:hover { color: var(--text-primary); }
+.ghp-tab.active { color: var(--text-primary); border-bottom-color: var(--accent); font-weight: 600; }
 
 .ghp-count {
-  background: #21262d;
-  border: 1px solid #30363d;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: 10px;
   font-size: 10px;
   padding: 0 5px;
-  color: #8b949e;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -115,19 +115,19 @@
   padding: 24px 16px;
   text-align: center;
   font-size: 12px;
-  color: #8b949e;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
-.ghp-err { color: #f85149; }
+.ghp-err { color: var(--danger); }
 
 /* ── Item ───────────────────────────────────── */
 .ghp-item {
   padding: 10px 14px;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--border-muted);
   cursor: pointer;
   transition: background 0.1s;
 }
-.ghp-item:hover { background: #1c2128; }
+.ghp-item:hover { background: var(--surface-hover); }
 .ghp-item:last-child { border-bottom: none; }
 
 .ghp-item-top {
@@ -139,7 +139,7 @@
 
 .ghp-number {
   font-size: 11px;
-  color: #8b949e;
+  color: var(--text-secondary);
   font-family: 'JetBrains Mono', monospace;
   flex-shrink: 0;
 }
@@ -152,14 +152,14 @@
   flex-shrink: 0;
 }
 .ghp-draft {
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #8b949e;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
 }
 
 .ghp-title {
   font-size: 13px;
-  color: #e6edf3;
+  color: var(--text-primary);
   line-height: 1.4;
   word-break: break-word;
 }
@@ -177,20 +177,20 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: var(--accent,#58a6ff);
+  color: var(--accent);
 }
 .ghp-refs code { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
 
-.ghp-dot { color: #484f58; font-size: 10px; }
+.ghp-dot { color: var(--text-disabled); font-size: 10px; }
 
 .ghp-author {
   font-size: 11px;
-  color: #8b949e;
+  color: var(--text-secondary);
 }
 
 .ghp-time {
   font-size: 11px;
-  color: #6e7681;
+  color: var(--text-tertiary);
 }
 
 .ghp-comments {
@@ -198,7 +198,7 @@
   align-items: center;
   gap: 3px;
   font-size: 11px;
-  color: #6e7681;
+  color: var(--text-tertiary);
 }
 
 .ghp-labels {
@@ -228,10 +228,10 @@
   opacity: 0;
   background: none;
   border: none;
-  color: #8b949e;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
   padding: 0 4px;
 }
 .ghp-item:hover .ghp-copy-link { opacity: 1; }
-.ghp-copy-link:hover { color: #58a6ff; }
+.ghp-copy-link:hover { color: var(--accent-static); }
