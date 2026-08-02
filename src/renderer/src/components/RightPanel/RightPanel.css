@@ -1018,6 +1018,31 @@
 .rp-cf-btn--ok { color: #3fb950; }
 .rp-cf-btn--ok:hover { background: #238636; color: #fff; border-color: #2ea043; }
 
+/* The unmerged state git reports for this path. Only shown when the host
+   supplies it — see conflictKinds in RightPanel.tsx. */
+.rp-cf-kind {
+  /* Shrinks before the file path does — the path is what identifies the row,
+     the badge is recoverable from its title. */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #21262d;
+  color: #8b949e;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+/* A conflict where one side has no version of the file: the decision is
+   whether the file survives, not which content wins. */
+.rp-file-conflicted--existence .rp-cf-kind { background: #d299221f; color: #d29922; }
+/* Keep the name readable however narrow the panel gets. */
+.rp-file-conflicted .rp-file-path { min-width: 84px; }
+
 .rp-commit-area {
   display: flex;
   flex-direction: column;

@@ -2,7 +2,23 @@
 // Uses simple-git (no Electron dependency).
 
 import simpleGit, { SimpleGit, BranchSummary } from 'simple-git'
-import { CommitNode, BranchInfo, FileChange, WorkingChanges, RebaseState, RebaseStep } from './types'
+import { readFileSync } from 'fs'
+import { resolve as pathResolve } from 'path'
+import { CommitNode, BranchInfo, ConflictEntry, ConflictKind, FileChange, WorkingChanges, RebaseState, RebaseStep } from './types'
+
+const CONFLICT_KINDS: Record<string, ConflictKind> = {
+  UU: 'both-modified',
+  AA: 'both-added',
+  DD: 'both-deleted',
+  AU: 'added-by-us',
+  UA: 'added-by-them',
+  DU: 'deleted-by-us',
+  UD: 'deleted-by-them',
+}
+
+function conflictKind(index: string, workingDir: string): ConflictKind {
+  return CONFLICT_KINDS[`${index}${workingDir}`] ?? 'unknown'
+}
 
 // git localizes its messages, and the raw commands below have their stderr both
 // surfaced to an English-only UI and, in places, matched by wording. Pin the
@@ -212,6 +228,40 @@ export class GitService {
     return { commits }
   }
 
+  // What to call HEAD when it is not on a branch. Returns null when HEAD *is*
+  // on a branch, so callers can leave a real name alone.
+  //
+  // `git branch` prints a placeholder line for a detached HEAD — `* (no branch,
+  // rebasing feature)`, `* (HEAD detached at 1a2b3c4)` — and simple-git parses
+  // it like any other line, taking the first whitespace-separated token as the
+  // name. That yields `(no` / `(HEAD`, which shipped straight into the sidebar
+  // and the status bar. Rebuild the label from plumbing: git's sentence is
+  // written for humans and must not be something we depend on.
+  private async detachedHeadLabel(): Promise<string | null> {
+    try {
+      // Succeeds only when HEAD is a symbolic ref, i.e. a real branch.
+      if ((await this.git.raw(['symbolic-ref', '--quiet', '--short', 'HEAD'])).trim()) return null
+    } catch { /* detached — carry on and name the state */ }
+
+    // Mid-rebase, the branch being replayed is recorded in head-name.
+    // `--git-path` answers relative to the repo (`.git/rebase-merge/head-name`),
+    // so it must be resolved against repoPath and not the process cwd — it is
+    // still the right command, because it also handles worktrees and submodules
+    // where `.git` is a file pointing elsewhere.
+    for (const dir of ['rebase-merge', 'rebase-apply']) {
+      try {
+        const rel = (await this.git.raw(['rev-parse', '--git-path', `${dir}/head-name`])).trim()
+        const ref = readFileSync(pathResolve(this.repoPath, rel), 'utf8').trim()
+        if (ref) return `rebasing ${ref.replace(/^refs\/heads\//, '')}`
+      } catch { /* not a rebase of that flavour */ }
+    }
+    try {
+      const sha = (await this.git.raw(['rev-parse', '--short', 'HEAD'])).trim()
+      if (sha) return `detached at ${sha}`
+    } catch { /* unborn or unreadable HEAD */ }
+    return 'detached'
+  }
+
   async getBranches(): Promise<{ branches: BranchInfo[] }> {
     const summary: BranchSummary = await this.git.branch(['-a', '--verbose'])
     const branches: BranchInfo[] = Object.values(summary.branches).map(b => ({
@@ -228,6 +278,17 @@ export class GitService {
         const name = (await this.git.raw(['symbolic-ref', '--short', 'HEAD'])).trim()
         if (name) branches.push({ name, current: true, remote: false, commit: '', label: name })
       } catch { /* detached HEAD — nothing to add */ }
+    }
+    // Repair simple-git's parse of the detached-HEAD placeholder (see
+    // detachedHeadLabel). The UI shows `name`, so the fix has to land there.
+    const cur = branches.find(b => b.current)
+    if (cur && cur.name.startsWith('(')) {
+      const label = await this.detachedHeadLabel()
+      if (label) {
+        cur.name = label
+        cur.label = label
+        cur.detached = true
+      }
     }
     // Ahead/behind vs upstream for local branches, in a single git call.
     try {
@@ -1072,12 +1133,20 @@ export class GitService {
 
   // ── Conflict / tracking state ──────────────────────────────────
 
-  async getConflictedFiles(): Promise<{ files: string[] }> {
+  // Kept in step with the desktop implementation (src/main/git-service.ts): same
+  // source (`status`), same filter, same shape. This used to ask a different
+  // question — `diff --name-only --diff-filter=U` — which returns the same paths
+  // but carries no XY codes, so it could not tell a modify/delete from a content
+  // conflict.
+  async getConflictedFiles(): Promise<{ files: string[]; entries: ConflictEntry[] }> {
     try {
-      const out = await this.git.raw(['diff', '--name-only', '--diff-filter=U'])
-      return { files: out.trim().split('\n').filter(Boolean) }
+      const status = await this.git.status()
+      const entries = status.files
+        .filter(f => f.index === 'U' || f.working_dir === 'U' || (f.index === 'A' && f.working_dir === 'A') || (f.index === 'D' && f.working_dir === 'D'))
+        .map(f => ({ path: f.path, kind: conflictKind(f.index, f.working_dir) }))
+      return { files: entries.map(e => e.path), entries }
     } catch {
-      return { files: [] }
+      return { files: [], entries: [] }
     }
   }
 

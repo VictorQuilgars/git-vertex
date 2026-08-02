@@ -1,4 +1,6 @@
 import simpleGit, { SimpleGit, LogResult, BranchSummary } from 'simple-git'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
 import { getGitBinary, isSimpleGitSafeBinary } from './git-binary'
 
 export interface CommitNode {
@@ -17,12 +19,47 @@ export interface CommitNode {
   deletions?: number
 }
 
+// The unmerged states git reports in the XY columns of `git status --porcelain`.
+// They are not interchangeable: `both-modified` is a content decision, while
+// the delete-bearing ones ask whether the file survives at all.
+export type ConflictKind =
+  | 'both-modified'    // UU
+  | 'both-added'       // AA — no common ancestor to diff against
+  | 'both-deleted'     // DD
+  | 'added-by-us'      // AU
+  | 'added-by-them'    // UA
+  | 'deleted-by-us'    // DU
+  | 'deleted-by-them'  // UD
+  | 'unknown'
+
+export interface ConflictEntry {
+  path: string
+  kind: ConflictKind
+}
+
+const CONFLICT_KINDS: Record<string, ConflictKind> = {
+  UU: 'both-modified',
+  AA: 'both-added',
+  DD: 'both-deleted',
+  AU: 'added-by-us',
+  UA: 'added-by-them',
+  DU: 'deleted-by-us',
+  UD: 'deleted-by-them',
+}
+
+export function conflictKind(index: string, workingDir: string): ConflictKind {
+  return CONFLICT_KINDS[`${index}${workingDir}`] ?? 'unknown'
+}
+
 export interface BranchInfo {
   name: string
   current: boolean
   remote: boolean
   commit: string
   label: string
+  // HEAD is not on a branch (mid-rebase, or plain detached). `name` then holds
+  // a human label such as `rebasing feature`, never a checkout-able ref.
+  detached?: boolean
   ahead?: number    // commits ahead of upstream
   behind?: number   // commits behind upstream
   gone?: boolean    // upstream configured but deleted on the remote
@@ -237,6 +274,40 @@ export class GitService {
     return { commits }
   }
 
+  // What to call HEAD when it is not on a branch. Returns null when HEAD *is*
+  // on a branch, so callers can leave a real name alone.
+  //
+  // `git branch` prints a placeholder line for a detached HEAD — `* (no branch,
+  // rebasing feature)`, `* (HEAD detached at 1a2b3c4)` — and simple-git parses
+  // it like any other line, taking the first whitespace-separated token as the
+  // name. That yields `(no` / `(HEAD`, which shipped straight into the sidebar
+  // and the status bar. Rebuild the label from plumbing: git's sentence is
+  // written for humans and must not be something we depend on.
+  private async detachedHeadLabel(): Promise<string | null> {
+    try {
+      // Succeeds only when HEAD is a symbolic ref, i.e. a real branch.
+      if ((await this.git.raw(['symbolic-ref', '--quiet', '--short', 'HEAD'])).trim()) return null
+    } catch { /* detached — carry on and name the state */ }
+
+    // Mid-rebase, the branch being replayed is recorded in head-name.
+    // `--git-path` answers relative to the repo (`.git/rebase-merge/head-name`),
+    // so it must be resolved against repoPath and not the process cwd — it is
+    // still the right command, because it also handles worktrees and submodules
+    // where `.git` is a file pointing elsewhere.
+    for (const dir of ['rebase-merge', 'rebase-apply']) {
+      try {
+        const rel = (await this.git.raw(['rev-parse', '--git-path', `${dir}/head-name`])).trim()
+        const ref = readFileSync(resolve(this.repoPath, rel), 'utf8').trim()
+        if (ref) return `rebasing ${ref.replace(/^refs\/heads\//, '')}`
+      } catch { /* not a rebase of that flavour */ }
+    }
+    try {
+      const sha = (await this.git.raw(['rev-parse', '--short', 'HEAD'])).trim()
+      if (sha) return `detached at ${sha}`
+    } catch { /* unborn or unreadable HEAD */ }
+    return 'detached'
+  }
+
   async getBranches(): Promise<{ branches: BranchInfo[] }> {
     const summary: BranchSummary = await this.git.branch(['-a', '--verbose'])
     const branches: BranchInfo[] = Object.values(summary.branches).map(b => ({
@@ -253,6 +324,17 @@ export class GitService {
         const name = (await this.git.raw(['symbolic-ref', '--short', 'HEAD'])).trim()
         if (name) branches.push({ name, current: true, remote: false, commit: '', label: name })
       } catch { /* detached HEAD — nothing to add */ }
+    }
+    // Repair simple-git's parse of the detached-HEAD placeholder (see
+    // detachedHeadLabel). The UI shows `name`, so the fix has to land there.
+    const cur = branches.find(b => b.current)
+    if (cur && cur.name.startsWith('(')) {
+      const label = await this.detachedHeadLabel()
+      if (label) {
+        cur.name = label
+        cur.label = label
+        cur.detached = true
+      }
     }
     // Ahead/behind vs upstream for local branches, in a single git call.
     try {
@@ -1793,15 +1875,20 @@ exit 0
 
   // ── Conflict detection ──────────────────────────────────────
 
-  async getConflictedFiles(): Promise<{ files: string[] }> {
+  // `files` is the historical shape and stays; `entries` adds the one thing the
+  // UI could not previously know. The XY codes were already being read here to
+  // decide what counts as conflicted, then dropped by the `.map` — so a
+  // modify/delete looked exactly like a content conflict, and "Incoming" (which
+  // correctly deletes the file, see resolveConflictWithSide) said nothing about it.
+  async getConflictedFiles(): Promise<{ files: string[]; entries: ConflictEntry[] }> {
     try {
       const status = await this.git.status()
-      const files = status.files
+      const entries = status.files
         .filter(f => f.index === 'U' || f.working_dir === 'U' || (f.index === 'A' && f.working_dir === 'A') || (f.index === 'D' && f.working_dir === 'D'))
-        .map(f => f.path)
-      return { files }
+        .map(f => ({ path: f.path, kind: conflictKind(f.index, f.working_dir) }))
+      return { files: entries.map(e => e.path), entries }
     } catch (e) {
-      return { files: [] }
+      return { files: [], entries: [] }
     }
   }
 

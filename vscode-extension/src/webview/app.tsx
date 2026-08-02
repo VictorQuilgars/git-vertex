@@ -14,6 +14,7 @@ import CompactToolbar from './CompactToolbar'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
+import type { ConflictKind } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import ActivityRail from './ActivityRail'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
@@ -57,6 +58,9 @@ function VertexApp() {
   const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
   const [wipCount, setWipCount] = useState(0)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
+  // path → unmerged state, so the panel can tell a modify/delete from a content
+  // conflict here exactly as it does on the desktop.
+  const [conflictKinds, setConflictKinds] = useState<Record<string, ConflictKind>>({})
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchMatches, setSearchMatches] = useState(-1)
@@ -134,6 +138,7 @@ function VertexApp() {
         window.gitAPI.getConflictMode(),
       ])
       setConflictFiles(conflictRes?.files ?? [])
+      setConflictKinds(Object.fromEntries((conflictRes?.entries ?? []).map(e => [e.path, e.kind])))
       setConflictMode(modeRes?.mode ?? null)
       const ch = await window.gitAPI.getWorkingChanges()
       setWipCount((ch?.staged?.length ?? 0) + (ch?.unstaged?.length ?? 0) + (ch?.untracked?.length ?? 0))
@@ -986,6 +991,7 @@ function VertexApp() {
                   if (found) setSelectedCommit(found)
                 }}
                 conflictFiles={conflictFiles}
+                conflictKinds={conflictKinds}
                 conflictMode={conflictMode}
                 onConflictFinish={handleConflictFinish}
                 onConflictAbort={handleConflictAbort}

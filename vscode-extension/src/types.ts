@@ -25,12 +25,33 @@ export interface GraphEdge {
   dashed?: boolean
 }
 
+// The unmerged states git reports in the XY columns of `git status --porcelain`.
+// They are not interchangeable: `both-modified` is a content decision, while
+// the delete-bearing ones ask whether the file survives at all.
+export type ConflictKind =
+  | 'both-modified'    // UU
+  | 'both-added'       // AA — no common ancestor to diff against
+  | 'both-deleted'     // DD
+  | 'added-by-us'      // AU
+  | 'added-by-them'    // UA
+  | 'deleted-by-us'    // DU
+  | 'deleted-by-them'  // UD
+  | 'unknown'
+
+export interface ConflictEntry {
+  path: string
+  kind: ConflictKind
+}
+
 export interface BranchInfo {
   name: string
   current: boolean
   remote: boolean
   commit: string
   label: string
+  // HEAD is not on a branch (mid-rebase, or plain detached). `name` then holds
+  // a human label such as `rebasing feature`, never a checkout-able ref.
+  detached?: boolean
   ahead?: number    // commits ahead of upstream
   behind?: number   // commits behind upstream
   gone?: boolean    // upstream configured but deleted on the remote

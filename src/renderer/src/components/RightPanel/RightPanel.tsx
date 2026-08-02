@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import hljs from 'highlight.js'
-import { CommitNode, FileChange, WorkingChanges } from '../../types'
+import { CommitNode, ConflictKind, FileChange, WorkingChanges } from '../../types'
+
+// Whether each side actually holds a version of the path. Where one does not,
+// choosing that side removes the file (resolveConflictWithSide falls back to
+// `git rm -f`), so the button has to say Delete rather than Current/Incoming.
+const SIDE_HAS_VERSION: Record<ConflictKind, { ours: boolean; theirs: boolean }> = {
+  'both-modified':   { ours: true,  theirs: true  },
+  'both-added':      { ours: true,  theirs: true  },
+  'both-deleted':    { ours: false, theirs: false },
+  'added-by-us':     { ours: true,  theirs: false },
+  'added-by-them':   { ours: false, theirs: true  },
+  'deleted-by-us':   { ours: false, theirs: true  },
+  'deleted-by-them': { ours: true,  theirs: false },
+  'unknown':         { ours: true,  theirs: true  },
+}
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
@@ -1301,7 +1315,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   // Dynamic commit-button label following the commit flow.
   const commitLabel = (() => {
     if (committing) return t('panel.commit.inProgress')
-    if (isConflict) return 'Commit & Merge'
+    if (isConflict) return t('rp.commitMode', conflictMode as string)
     if (!canCommit) return t('panel.commit.stageFirst')      // nothing staged
     if (!message.trim()) return t('panel.commit.typeMessage') // staged, no message
     if (amend && changes.staged.length === 0) return t('panel.commit.amend')
@@ -1787,6 +1801,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 // ── Conflict Panel ──────────────────────────────────────────────
 function ConflictPanel({
   conflictFiles,
+  conflictKinds,
   conflictMode,
   onConflictFinish,
   onConflictAbort,
@@ -1795,6 +1810,7 @@ function ConflictPanel({
   onCommitSuccess
 }: {
   conflictFiles: string[]
+  conflictKinds: Record<string, ConflictKind>
   conflictMode: string
   onConflictFinish: (action: 'rebase' | 'merge', message?: string) => void
   onConflictAbort: () => void
@@ -1863,21 +1879,38 @@ function ConflictPanel({
         </div>
         <div className="rp-file-list">
           {conflictFiles.length === 0 && <div className="rp-empty">{t('rp.allResolved')}</div>}
-          {conflictFiles.map(f => (
-            <div key={f} className="rp-file-row rp-file-conflicted">
-              <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>
-              <span className="rp-file-path" style={{ flex: 1, cursor: 'pointer' }}
-                title={t('rp2.openInEditor')} onClick={() => onOpenResolver(f)}>{f}</span>
-              <div className="rp-conflict-actions">
-                <button className="rp-cf-btn" title={t('rp2.keepOurs')}
-                  onClick={e => { e.stopPropagation(); takeSide(f, 'ours') }}>Current</button>
-                <button className="rp-cf-btn" title={t('rp2.keepTheirs')}
-                  onClick={e => { e.stopPropagation(); takeSide(f, 'theirs') }}>Incoming</button>
-                <button className="rp-cf-btn rp-cf-btn--ok" title={t('rp2.markResolvedTitle')}
-                  onClick={e => { e.stopPropagation(); markResolved(f) }}>✓</button>
+          {conflictFiles.map(f => {
+            const kind = conflictKinds[f]
+            const sides = SIDE_HAS_VERSION[kind ?? 'unknown']
+            // When one side has no version of the path, taking it deletes the
+            // file — resolveConflictWithSide falls back to `git rm`. Saying
+            // "Incoming" there described the wrong outcome.
+            const contentChoice = sides.ours && sides.theirs
+            return (
+              <div key={f} className={`rp-file-row rp-file-conflicted${contentChoice ? '' : ' rp-file-conflicted--existence'}`}>
+                <span className="rp-file-status" style={{ color: '#ffa657' }}>!</span>
+                <span className="rp-file-path" style={{ flex: 1, cursor: 'pointer' }}
+                  title={t('rp2.openInEditor')} onClick={() => onOpenResolver(f)}>{f}</span>
+                {kind && kind !== 'unknown' && (
+                  <span className="rp-cf-kind" title={`${t('rp2.conflictKind', kind)} — ${t('rp2.conflictKindTitle')}`}>
+                    {t('rp2.conflictKind', kind)}
+                  </span>
+                )}
+                <div className="rp-conflict-actions">
+                  <button className="rp-cf-btn" title={t('rp2.keepOurs')}
+                    onClick={e => { e.stopPropagation(); takeSide(f, 'ours') }}>
+                    {contentChoice ? 'Current' : (sides.ours ? 'Keep' : 'Delete')}
+                  </button>
+                  <button className="rp-cf-btn" title={t('rp2.keepTheirs')}
+                    onClick={e => { e.stopPropagation(); takeSide(f, 'theirs') }}>
+                    {contentChoice ? 'Incoming' : (sides.theirs ? 'Keep' : 'Delete')}
+                  </button>
+                  <button className="rp-cf-btn rp-cf-btn--ok" title={t('rp2.markResolvedTitle')}
+                    onClick={e => { e.stopPropagation(); markResolved(f) }}>✓</button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -1899,7 +1932,7 @@ function ConflictPanel({
       <div className="rp-commit-area" style={{ marginTop: 'auto' }}>
         <textarea
           className="rp-commit-input"
-          placeholder="Message de commit..."
+          placeholder={t('rp.commitPlaceholder')}
           value={commitMsg}
           onChange={e => setCommitMsg(e.target.value)}
         />
@@ -1917,7 +1950,7 @@ function ConflictPanel({
             disabled={!allResolved || !commitMsg.trim() || committing}
             onClick={doCommit}
           >
-            {committing ? t('rp.inProgress') : 'Commit & Merge'}
+            {committing ? t('rp.inProgress') : t('rp.commitMode', conflictMode)}
           </button>
         </div>
       </div>
@@ -1935,6 +1968,9 @@ interface RightPanelProps {
   wipCount?: number
   onViewWip?: () => void
   conflictFiles?: string[]
+  // path → unmerged state. Absent/empty ⇒ the host does not report it and no
+  // kind is shown, rather than every file being labelled "both modified".
+  conflictKinds?: Record<string, ConflictKind>
   conflictMode?: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
   onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
   onConflictAbort?: () => void
@@ -1962,7 +1998,7 @@ interface RightPanelProps {
 
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
-  conflictFiles, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
+  conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
   onOpenFileOnRemote, onCopyFileLink,
   onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
 }: RightPanelProps) {
@@ -1978,6 +2014,7 @@ export default function RightPanel({
       {hasUnresolvedConflicts ? (
         <ConflictPanel
           conflictFiles={conflictFiles ?? []}
+          conflictKinds={conflictKinds ?? {}}
           conflictMode={conflictMode!}
           onConflictFinish={onConflictFinish!}
           onConflictAbort={onConflictAbort!}
