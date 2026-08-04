@@ -162,16 +162,24 @@ body {
 .app-tab-add.active { color: var(--text-primary); background: var(--surface); }
 
 /* 🚀 Launchpad launcher — sits at the far left of the tab bar. */
+/* These held an emoji until the icon set covered them, and were styled for
+   text: a font-size, a line-height, and a grayscale filter that existed to
+   desaturate a coloured glyph. An inline <svg> sits on the TEXT BASELINE
+   rather than in the middle of the button, which left the folder and the
+   rocket 3.2px above the icons in the tabs beside them.
+   So the button centres its child explicitly, and takes the same vertical box
+   as .app-tab — stretched to the bar, pushed down by the same margin-top —
+   which is what puts every icon in this row on one line. */
 .app-tab-launch {
+  display: flex;
+  align-items: center;
   background: none;
   border: none;
-  font-size: var(--text-md);
-  line-height: 1;
   cursor: pointer;
   padding: 0 var(--space-md);
-  align-self: center;
+  align-self: stretch;
+  margin-top: var(--space-xs);
   border-radius: var(--radius-sm);
-  filter: grayscale(0.35);
   opacity: 0.8;
 }
 .app-tab-launch:hover { filter: none; opacity: 1; background: var(--surface); }
