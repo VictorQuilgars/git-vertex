@@ -1927,7 +1927,7 @@ export default function App() {
                 <Icon name="repo" size={16} className="app-tab-icon" />
               ) : (
                 <Icon size={16} className="app-tab-icon app-tab-icon--tool"
-                  name={tab.kind === 'launchpad' ? 'rocket' : tab.kind === 'repomgmt' ? 'folder' : 'home'} />
+                  name={tab.kind === 'launchpad' ? 'liftoff' : tab.kind === 'repomgmt' ? 'folder' : 'home'} />
               )}
               <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : tab.kind === 'repomgmt' ? t('repomgmt.title') : t('tabs.home')}</span>
               <button className="app-tab-close" title={t('tabs.close')}

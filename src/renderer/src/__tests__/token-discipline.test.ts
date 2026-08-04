@@ -260,6 +260,37 @@ describe('token discipline', () => {
       .toEqual(shapesOf(icon).filter(s => !s.startsWith('d=M204 422')))
   })
 
+  // An unknown icon name is a CRASH, not a red squiggle: Icon throws on a name
+  // it cannot find, the Vite build does not typecheck, and tsc over this
+  // project already reports a thousand pre-existing errors, so nothing on the
+  // path to a release would have said a word. Renaming rocket.svg to
+  // liftoff.svg left one call site behind — in a ternary, in single quotes,
+  // which a search for the double-quoted form missed — and the Launchpad
+  // rendered a black screen.
+  it('names an icon that exists at every call site', () => {
+    const known = new Set(
+      fs.readdirSync(path.join(SRC, 'components/Icon/icons'))
+        .filter(f => f.endsWith('.svg')).map(f => f.slice(0, -4)),
+    )
+    const offenders: string[] = []
+    for (const f of COMPONENT_TSX) {
+      const src = fs.readFileSync(f, 'utf8')
+      // The plain form.
+      for (const m of src.matchAll(/<Icon\b[^>]*?\bname="(\w+)"/g)) {
+        if (!known.has(m[1])) offenders.push(`${rel(f)}  name="${m[1]}"`)
+      }
+      // The computed form. Inside `name={…}` only the literals that FOLLOW a
+      // `?` or a `:` are results — the ones before them are the condition's
+      // operands (`tab.kind === 'launchpad'`) and name no icon.
+      for (const m of src.matchAll(/<Icon\b[^>]*?\bname=\{([^}]*)\}/g)) {
+        for (const lit of m[1].matchAll(/[?:]\s*'(\w+)'/g)) {
+          if (!known.has(lit[1])) offenders.push(`${rel(f)}  name={… '${lit[1]}' …}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
   // ── One drawing, one file ─────────────────────────────────────────────────
   //
   // The interface used to inline 91 `<svg>` blocks across 18 components: 71

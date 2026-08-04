@@ -220,7 +220,9 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
         <Icon name="liftoff" size={24} className="lp-rocket" />
         <h1 className="lp-title">{t('launchpad.title')}</h1>
         <div style={{ flex: 1 }} />
-        <button className={`lp-manage ${manageOpen ? 'active' : ''}`} onClick={() => setManageOpen(o => !o)} title={t('launchpad.manage')}>⚙</button>
+        <button className={`lp-manage ${manageOpen ? 'active' : ''}`} onClick={() => setManageOpen(o => !o)} title={t('launchpad.manage')}>
+          <Icon name="gear" size={15} />
+        </button>
         <button className="lp-refresh" onClick={() => load(true)} title={t('launchpad.refresh')}>
           <Icon name="refresh" size={15} />
         </button>
