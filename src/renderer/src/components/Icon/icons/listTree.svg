@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+  <!-- listTree — a FILLED shape, not a stroke drawing, and the file says so:
+       components/Icon reads the fill and passes it through. Imposing our stroke
+       on it would render the outline of the silhouette rather than the icon.
+       EDIT THIS FILE to change the icon — the folder is the source. -->
+  <path d="M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z"/>
+</svg>

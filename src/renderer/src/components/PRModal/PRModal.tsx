@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Icon } from '../Icon/Icon'
 import './PRModal.css'
 import { useLang } from '../../i18n/LanguageContext'
 import type { PRIntent } from '../ContextMenu/prIntent'
@@ -84,9 +85,7 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
     <div className="pr-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="pr-modal">
         <div className="pr-header">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z"/>
-          </svg>
+          <Icon name="pullRequest" />
           <span className="pr-header-title">{t('pr.title')}</span>
           <div className="pr-repo-badge">{owner}/{repo}</div>
           <button className="pr-close" title={t('common.close')} onClick={onClose}>×</button>
@@ -94,9 +93,7 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
 
         {createdUrl ? (
           <div className="pr-success">
-            <svg width="32" height="32" viewBox="0 0 16 16" fill="var(--success)">
-              <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
-            </svg>
+            <Icon name="check" size={32} />
             <p className="pr-success-text">{t('pr.success', createdNumber!)}</p>
             <div className="pr-success-actions">
               <button className="pr-btn-primary" onClick={() => window.gitAPI.openExternal(createdUrl)}>
@@ -114,10 +111,7 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
                 <span className="pr-branch-label">{t('pr.headLabel')}</span>
                 <span className="pr-branch-value pr-branch-head">{head}</span>
               </div>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--accent-static)">
-                <path d="M8 9l3-3-3-3M5 6H2M14 6h-3"/>
-                <path d="M2 6h12" strokeWidth="1.5" stroke="var(--accent-static)" fill="none"/>
-              </svg>
+              <Icon name="arrowRight" />
               <div className="pr-branch-item">
                 <span className="pr-branch-label">{t('pr.baseLabel')}</span>
                 <select className="pr-branch-select" value={base} onChange={e => setBase(e.target.value)}>

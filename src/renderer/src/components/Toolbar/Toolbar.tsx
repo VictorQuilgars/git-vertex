@@ -122,7 +122,7 @@ export default function Toolbar({
                 const r = pullChevRef.current?.getBoundingClientRect()
                 if (r) setPullMenuPos({ x: r.left, y: r.bottom + 4 })
               }}>
-              <svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor"><path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"/></svg>
+              <Icon name="chevronDown" size={9} />
             </button>
           </div>
           {pullMenuPos && (
@@ -172,14 +172,10 @@ export default function Toolbar({
         )}
         <button className={`tb-btn tb-toggle ${showAllBranches ? 'active' : ''}`}
           onClick={onToggleAllBranches} disabled={disabled} title={t('toolbar.allBranches.tooltip')}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M5.45 5.154A4.25 4.25 0 0 0 9.25 7.5h1.378a2.251 2.251 0 1 1 0 1.5H9.25A5.734 5.734 0 0 1 5 7.123v3.505a2.25 2.25 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.95-.218zM4.25 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm8.5-4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM5 3.25a.75.75 0 1 0 0 .005V3.25z"/>
-          </svg>
+          <Icon name="branch" size={14} />
         </button>
         <div className={`tb-search${aiSearch ? ' tb-search--ai' : ''}`}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
+          <Icon name="search" size={13} />
           <input type="text"
             placeholder={aiSearch ? t('toolbar.aiSearch.placeholder') : t('toolbar.search.placeholder')}
             value={searchQuery} onChange={e => onSearch(e.target.value)}
@@ -195,9 +191,7 @@ export default function Toolbar({
               onClick={onToggleExtendedSearch} title={t('toolbar.extSearch.tooltip')}>
               {extendedSearchLoading ? '…' : (
                 /* code chevrons: search inside diffs/code, not just messages */
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.94 8l-3.72-3.72a.75.75 0 1 1 1.06-1.06ZM4.72 3.22a.75.75 0 0 1 1.06 1.06L2.06 8l3.72 3.72a.75.75 0 1 1-1.06 1.06L.47 8.53a.75.75 0 0 1 0-1.06Z"/>
-                </svg>
+                <Icon name="editor" size={15} />
               )}
             </button>
           )}

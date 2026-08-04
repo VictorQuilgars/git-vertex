@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+  <!-- layout — a FILLED shape, not a stroke drawing, and the file says so:
+       components/Icon reads the fill and passes it through. Imposing our stroke
+       on it would render the outline of the silhouette rather than the icon.
+       EDIT THIS FILE to change the icon — the folder is the source. -->
+  <path d="M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z"/>
+</svg>

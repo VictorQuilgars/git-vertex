@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { Icon } from './components/Icon/Icon'
 import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
@@ -1923,9 +1924,7 @@ export default function App() {
               title={tab.kind === 'repo' ? tab.path : undefined}
             >
               {tab.kind === 'repo' ? (
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="app-tab-icon">
-                  <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-                </svg>
+                <Icon name="repo" size={12} className="app-tab-icon" />
               ) : (
                 <span className="app-tab-icon app-tab-icon--tool">{tab.kind === 'launchpad' ? '🚀' : tab.kind === 'repomgmt' ? '📁' : '🏠'}</span>
               )}
@@ -1959,27 +1958,20 @@ export default function App() {
             {updatePhase !== 'idle' && (
               <button className="app-tb-update-btn" title={t('toolbar.update.tooltip')}
                 onClick={() => setUpdateOverlayOpen(true)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
+                <Icon name="download" size={14} />
                 <span className="app-tb-update-btn-label">{t('toolbar.update.label')}</span>
               </button>
             )}
             <button className={`app-tb-icon app-tb-bell ${notifsOpen ? 'active' : ''}`}
               title={t('notifs.title')} onClick={() => setNotifsOpen(v => !v)}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 16a2 2 0 0 0 1.985-1.75c.017-.137-.097-.25-.235-.25h-3.5c-.138 0-.252.113-.235.25A2 2 0 0 0 8 16zm.535-13.518C10.456 2.787 12 4.482 12 6.5c0 1.5.286 2.658.66 3.516.187.43.39.764.578 1.011.094.124.18.225.249.302a3.86 3.86 0 0 0 .153.163l.013.013.004.004.001.001H14a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1h.342l.001-.001.004-.004.013-.013a3.86 3.86 0 0 0 .153-.163c.069-.077.155-.178.249-.302.188-.247.391-.581.578-1.011C4.714 9.158 5 8 5 6.5c0-2.018 1.544-3.713 3.465-4.018A1.5 1.5 0 0 1 8 1.5a1.5 1.5 0 0 1 .535.982z"/>
-              </svg>
+              <Icon name="bell" />
               {unreadCount > 0 && (
                 <span className="app-tb-bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
               )}
             </button>
             <button className={`app-tb-icon ${settingsOpen ? 'active' : ''}`}
               title={t('settings.title')} onClick={() => { setRepoMgmtOpen(false); setSettingsOpen(v => !v) }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.376l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.318z"/>
-              </svg>
+              <Icon name="gear" />
             </button>
             <button className="app-profile-chip" title={githubUser?.login ?? t('settings.profile')}
               onClick={() => { setRepoMgmtOpen(false); setSettingsOpen(true) }}>
@@ -1987,9 +1979,7 @@ export default function App() {
                 ? <img className="app-profile-avatar" src={githubUser.avatar} alt={githubUser.login} />
                 : <span className="app-profile-avatar app-profile-avatar--fallback">{(githubUser?.login ?? '?').slice(0, 1).toUpperCase()}</span>}
               <span className="app-profile-name">{githubUser?.login ?? t('settings.defaultProfile')}</span>
-              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"/>
-              </svg>
+              <Icon name="chevronDown" size={10} />
             </button>
           </div>
         </div>
@@ -2259,9 +2249,7 @@ export default function App() {
 
                 <div className="welcome-actions">
                   <button className="welcome-btn welcome-btn-primary" onClick={handleOpenRepo}>
-                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"/>
-                    </svg>
+                    <Icon name="folder" size={15} />
                     {t('welcome.open')}
                   </button>
                   <button className="welcome-btn welcome-btn-secondary" onClick={() => setCloneOpen(true)}>
@@ -2269,17 +2257,13 @@ export default function App() {
                     {t('clone.title')}
                   </button>
                   <button className="welcome-btn welcome-btn-secondary" onClick={handleCreateRepo}>
-                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M7.75 2a.75.75 0 0 1 .75.75V7.25h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 7.75 2Z"/>
-                    </svg>
+                    <Icon name="plus" size={15} />
                     {t('welcome.create')}
                   </button>
                 </div>
 
                 <div className="welcome-search">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-3.04-3.04ZM11.5 7a4.5 4.5 0 1 0-9 0 4.5 4.5 0 0 0 9 0Z"/>
-                  </svg>
+                  <Icon name="search" size={14} />
                   <input className="welcome-search-input" value={repoSearch}
                     onChange={e => setRepoSearch(e.target.value)}
                     placeholder={t('welcome.searchRepos')} />
@@ -2291,9 +2275,7 @@ export default function App() {
                   return (
                     <div className="welcome-recents">
                       <div className="welcome-recents-title">
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                          <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/>
-                        </svg>
+                        <Icon name="clock" size={12} />
                         {t('welcome.recents')}
                       </div>
                       <div className="welcome-recents-list">
@@ -2303,16 +2285,12 @@ export default function App() {
                           const parent = parts.slice(0, -1).join('/')
                           return (
                           <button key={path} className="welcome-recent-item" onClick={() => handleSetRepo(path)} title={path}>
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-icon">
-                              <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-                            </svg>
+                            <Icon name="repo" size={14} className="welcome-recent-icon" />
                             <div className="welcome-recent-info">
                               <span className="welcome-recent-name">{name}</span>
                               <span className="welcome-recent-path">{parent}</span>
                             </div>
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="welcome-recent-arrow">
-                              <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>
-                            </svg>
+                            <Icon name="chevronRight" size={12} className="welcome-recent-arrow" />
                           </button>
                           )
                         })}

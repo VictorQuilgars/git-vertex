@@ -260,6 +260,31 @@ describe('token discipline', () => {
       .toEqual(shapesOf(icon).filter(s => !s.startsWith('d=M204 422')))
   })
 
+  // ── One drawing, one file ─────────────────────────────────────────────────
+  //
+  // The interface used to inline 91 `<svg>` blocks across 18 components: 71
+  // distinct drawings, the same magnifier pasted eight times, three different
+  // hands mixed (our own, GitHub's Octicons, Feather). "Change the icon" meant
+  // finding every copy, which is how five of them kept the pre-aqua palette
+  // through the whole migration.
+  //
+  // Four files may still hold an <svg> and no others: the two that ARE a
+  // drawing (Mark, BrandMark), the one that renders the folder (Icon), and the
+  // graph, whose SVG is a canvas it computes rather than an icon.
+  it('leaves no icon inlined in a component', () => {
+    const ALLOWED = [
+      'components/Mark/Mark.tsx',
+      'components/BrandMark/BrandMark.tsx',
+      'components/Icon/Icon.tsx',
+      'components/CommitGraph/CommitGraph.tsx',
+    ]
+    const offenders = COMPONENT_TSX
+      .filter(f => !ALLOWED.some(a => path.resolve(f).endsWith(a)))
+      .filter(f => /<svg\b/.test(fs.readFileSync(f, 'utf8')))
+      .map(rel)
+    expect(offenders).toEqual([])
+  })
+
   // Our own mark has exactly one home too, for the same reason. UpdateOverlay
   // declared a local `Mark()` that shadowed the real component and drew the V
   // by hand — straight lines, the pre-aqua greens — and it survived the whole

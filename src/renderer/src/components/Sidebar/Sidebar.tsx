@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Icon } from '../Icon/Icon'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
@@ -117,17 +118,13 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }
   return (
     <div className="sb-section">
       <div className="sb-section-header" onClick={() => setOpen(o => !o)}>
-        <svg className={`chevron ${open ? 'open' : ''}`} width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-          <path d="m4 1 8 7-8 7V1z"/>
-        </svg>
+        <Icon name="play" size={10} />
         <span className="sb-section-title">{title}</span>
         {count !== undefined && <span className="sb-section-count">{count}</span>}
         {onAdd && (
           <button className="sb-add-btn" title={addLabel ?? t('sb.add')}
             onClick={e => { e.stopPropagation(); onAdd(e) }}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
-            </svg>
+            <Icon name="plus" size={12} />
           </button>
         )}
       </div>
@@ -229,9 +226,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
         onMouseLeave={() => setHover(false)}
         title={current ? t('sb.branch.currentTitle', name) : t('sb.branch.hint')}
       >
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="branch-icon">
-          <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
-        </svg>
+        <Icon name="branch" size={11} className="branch-icon" />
         <span className="sb-branch-name">{display}</span>
         {(ahead > 0 || behind > 0) && (
           <span className="sb-track" title={t('sb.branch.trackTitle', ahead, behind)}>
@@ -245,9 +240,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
         {soloed && <span className="sb-branch-flag" title={t('sb.branch.soloFlag')}>👁</span>}
         {hidden && <span className="sb-branch-flag" title={t('sb.branch.hiddenFlag')}>⊘</span>}
         {current && (
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="var(--success)" className="current-check">
-            <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
-          </svg>
+          <Icon name="check" size={11} className="current-check" />
         )}
         {/* Hover affordance for the whole menu rather than the lone delete
             cross it replaces — right-click was the only way in before, which
@@ -259,9 +252,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
               const r = e.currentTarget.getBoundingClientRect()
               setCtx({ x: r.right, y: r.bottom + 2 })
             }}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z"/>
-            </svg>
+            <Icon name="kebab" size={12} />
           </button>
         )}
       </div>
@@ -302,9 +293,7 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename }: {
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={onPreview ? t('sb.stash.title', stash.message) : stash.message}
       >
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="stash-icon">
-          <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h8.75a.75.75 0 0 1 0 1.5H2.5a.5.5 0 0 0 0 1H8a1 1 0 0 1 1 1v3.75a.75.75 0 0 1-1.5 0V6H2.5A1.5 1.5 0 0 1 1 4.5v-1Zm3 9A1.5 1.5 0 0 1 2.5 11h1.25a.75.75 0 0 0 0-1.5H2.5A1.5 1.5 0 0 1 1 8v-.5a.75.75 0 0 1 1.5 0V8a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-.5a.75.75 0 0 1 1.5 0V8a1.5 1.5 0 0 1-1.5 1.5H4.5v1H14a.75.75 0 0 1 0 1.5H4.5v.5a.75.75 0 0 1-1.5 0v-.5Z"/>
-        </svg>
+        <Icon name="stash" size={11} className="stash-icon" />
         <span className="sb-stash-label">{label}</span>
         <span className="sb-stash-index">#{stash.index}</span>
       </div>
@@ -422,9 +411,7 @@ function RemoteItem({
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={remote.fetchUrl}
       >
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="remote-icon">
-          <path d="M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2ZM1.5 12.251c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V5.809L8.38 9.397a.75.75 0 0 1-.76 0L1.5 5.809v6.442Zm13-8.181v-.32a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25v.32L8 7.88Z"/>
-        </svg>
+        <Icon name="mail" size={11} className="remote-icon" />
         <div className="sb-remote-info">
           <span className="sb-remote-name">
             {remote.name}
@@ -782,22 +769,16 @@ export default function Sidebar({
       {!embedded && (
       <div className="sb-repo-area" ref={repoMenuRef}>
         <button className="sb-repo-btn" onClick={() => setRepoMenuOpen(o => !o)}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--success)">
-            <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-          </svg>
+          <Icon name="repo" size={14} />
           <span className="sb-repo-name">{repoName || t('sb.openRepo')}</span>
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z"/>
-          </svg>
+          <Icon name="caretDown" size={10} />
         </button>
 
         {repoMenuOpen && (
           <div className="sb-repo-dropdown">
             <button className="sb-dropdown-item sb-open-item"
               onClick={() => { onOpenRepo(); setRepoMenuOpen(false) }}>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M.75 9.75a.75.75 0 0 0 0 1.5h14.5a.75.75 0 0 0 0-1.5H.75ZM0 2.75C0 2.336.336 2 .75 2h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 2.75ZM0 6.25C0 5.836.336 5.5.75 5.5h14.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 6.25Z"/>
-              </svg>
+              <Icon name="list" size={13} />
               {t('sb.openRepoDots')}
             </button>
             <button className="sb-dropdown-item sb-open-item"
@@ -813,9 +794,7 @@ export default function Sidebar({
                   <div key={path} className="sb-dropdown-item sb-recent-item">
                     <button className="sb-recent-path"
                       onClick={() => { onSetRepo(path); setRepoMenuOpen(false) }} title={path}>
-                      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-                      </svg>
+                      <Icon name="repo" size={11} />
                       <span>{path.split('/').pop()}</span>
                       <span className="sb-recent-full">{path}</span>
                     </button>
@@ -833,9 +812,7 @@ export default function Sidebar({
       {/* ── Branch filter ── (branches view only in single mode) */}
       {repoPath && show('branches') && (
         <div className="sb-search">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
-          </svg>
+          <Icon name="search" size={12} />
           <input type="text" placeholder={t('sb.filterBranches')}
             value={branchFilter} onChange={e => setBranchFilter(e.target.value)} />
           {branchFilter && <button className="sb-filter-clear" title={t('common.clearFilter')} onClick={() => setBranchFilter('')}>×</button>}
@@ -857,9 +834,7 @@ export default function Sidebar({
                 <div className="sb-ov-label">{t('sb.currentWork')}</div>
                 <div className="sb-ov-card">
                   <div className="sb-ov-branch">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--success)">
-                      <path d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/>
-                    </svg>
+                    <Icon name="branch" size={14} />
                     <span className="sb-ov-branch-name">{currentBranch}</span>
                     {agents.length > 0 && (
                       <span className="sb-ov-agents" title={t('sb.agentsActive', agents.length)}>
@@ -1118,9 +1093,7 @@ export default function Sidebar({
               <div className="sb-recents-title">{t('sb.recents')}</div>
               {recentRepos.map(path => (
                 <button key={path} className="sb-recent-btn" onClick={() => onSetRepo(path)} title={path}>
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5v-9zm10.5-1V9h-8c-.356 0-.694.074-1 .208V2.5a1 1 0 0 1 1-1h8z"/>
-                  </svg>
+                  <Icon name="repo" size={12} />
                   {path.split('/').pop()}
                 </button>
               ))}

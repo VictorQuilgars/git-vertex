@@ -1,4 +1,4 @@
-// The Git Vertex icon set — 25 domain icons, drawn in the same hand as the mark.
+// The Git Vertex icon set — every icon the interface draws, in one folder.
 //
 // ── The folder IS the source ────────────────────────────────────────────────
 //
@@ -7,11 +7,13 @@
 // re-run, no second place that can drift. Adding one means dropping a .svg in
 // the folder and importing it below.
 //
-// Each file is valid on its own — open it in a browser and it renders, because
-// it carries its own viewBox, stroke and caps. Those are ignored once injected
-// here: the wrapper below sets them, which is what lets the stroke grow as the
-// icon shrinks. Colours that carry meaning are written `var(--token, #fallback)`
-// so the token wins in the app and the fallback shows in a standalone preview.
+// Each file is valid on its own — open it in a browser and it renders. Its
+// viewBox and its fill/stroke are READ, not overridden: that is what lets the
+// folder hold both families (see below) rather than only ours. What the wrapper
+// still owns is the stroke WIDTH, which it grows as the icon shrinks, so a
+// shape must never carry a `stroke-width` of its own. Colours that carry
+// meaning are written `var(--token, #fallback)` so the token wins in the app
+// and the fallback shows in a standalone preview.
 //
 // The three build systems that compile this file are configured to load .svg as
 // text: electron.vite.config.ts (a pre-load hook), the extension's
@@ -19,66 +21,141 @@
 //
 // ── The set's rules ─────────────────────────────────────────────────────────
 //
-// Grid 24, stroke 1.7, round caps. Nodes are open RINGS, arrival points are
-// filled — the vocabulary of the symbol itself, so an icon and the logo read as
-// one drawing. Node radius is 1.9 everywhere; the larger circles (commit and
-// history at 3.4, issue and ai at 8) are subjects, not nodes.
+// The GIT VOCABULARY is ours and is drawn to it: grid 24, stroke 1.7, round
+// caps, nodes as open RINGS and arrival points filled — the symbol's own
+// vocabulary, so an icon and the logo read as one drawing. Node radius is 1.9
+// everywhere; the larger circles (commit and history at 3.4, issue and ai at 8)
+// are subjects, not nodes.
+//
+// The INTERFACE FURNITURE — chevrons, a magnifier, a bin — is not ours and is
+// not redrawn to match. Those files are the drawings the app already used,
+// moved here so there is one of each instead of the same magnifier pasted
+// eight times. Most are filled silhouettes on a 16 grid, which is why the
+// wrapper had to learn two families.
 //
 // `editor` is a code editor as a CATEGORY, not Visual Studio Code the product.
 // Microsoft's actual mark lives in components/BrandMark, because a logo that
 // belongs to someone else may not be redrawn to match our hand.
 
+import activity from './icons/activity.svg'
 import agent from './icons/agent.svg'
 import ai from './icons/ai.svg'
+import arrowRight from './icons/arrowRight.svg'
+import arrowSwitch from './icons/arrowSwitch.svg'
+import bell from './icons/bell.svg'
 import blame from './icons/blame.svg'
+import branch from './icons/branch.svg'
+import caretDown from './icons/caretDown.svg'
+import check from './icons/check.svg'
+import chevronDown from './icons/chevronDown.svg'
+import chevronLeft from './icons/chevronLeft.svg'
+import chevronRight from './icons/chevronRight.svg'
+import clock from './icons/clock.svg'
+import cloud from './icons/cloud.svg'
 import commandPalette from './icons/commandPalette.svg'
+import comment from './icons/comment.svg'
 import commit from './icons/commit.svg'
 import compare from './icons/compare.svg'
 import conflict from './icons/conflict.svg'
+import copy from './icons/copy.svg'
+import device from './icons/device.svg'
 import diff from './icons/diff.svg'
 import download from './icons/download.svg'
 import editor from './icons/editor.svg'
+import externalLink from './icons/externalLink.svg'
+import eye from './icons/eye.svg'
+import eyeOff from './icons/eyeOff.svg'
+import folder from './icons/folder.svg'
+import gear from './icons/gear.svg'
 import gitflow from './icons/gitflow.svg'
-import graph from './icons/graph.svg'
 import history from './icons/history.svg'
+import home from './icons/home.svg'
 import hunk from './icons/hunk.svg'
+import info from './icons/info.svg'
 import issue from './icons/issue.svg'
+import kebab from './icons/kebab.svg'
+import layout from './icons/layout.svg'
+import link from './icons/link.svg'
+import list from './icons/list.svg'
+import listTree from './icons/listTree.svg'
+import mail from './icons/mail.svg'
 import merge from './icons/merge.svg'
 import newBranch from './icons/newBranch.svg'
+import node from './icons/node.svg'
+import panel from './icons/panel.svg'
+import pencil from './icons/pencil.svg'
+import person from './icons/person.svg'
+import play from './icons/play.svg'
+import plus from './icons/plus.svg'
 import pop from './icons/pop.svg'
 import pullRequest from './icons/pullRequest.svg'
 import push from './icons/push.svg'
 import rebase from './icons/rebase.svg'
 import redo from './icons/redo.svg'
 import reflog from './icons/reflog.svg'
+import refresh from './icons/refresh.svg'
 import repo from './icons/repo.svg'
+import search from './icons/search.svg'
+import shield from './icons/shield.svg'
+import sliders from './icons/sliders.svg'
+import sort from './icons/sort.svg'
 import staging from './icons/staging.svg'
 import stash from './icons/stash.svg'
 import tag from './icons/tag.svg'
 import terminal from './icons/terminal.svg'
+import trash from './icons/trash.svg'
 import undo from './icons/undo.svg'
 import worktree from './icons/worktree.svg'
+import wrench from './icons/wrench.svg'
 
 const SOURCE: Record<string, string> = {
-  agent, ai, blame, commandPalette, commit, compare, conflict, diff,
-  download, editor, gitflow, graph, history, hunk, issue, merge, newBranch,
-  pop, pullRequest, push, rebase, redo, reflog, repo, staging, stash, tag,
-  terminal, undo, worktree,
+  activity, agent, ai, arrowRight, arrowSwitch, bell, blame, branch,
+  caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
+  commandPalette, comment, commit, compare, conflict, copy, device, diff,
+  download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
+  history, home, hunk, info, issue, kebab, layout, link, list, listTree,
+  mail, merge, newBranch, node, panel, pencil, person, play, plus, pop,
+  pullRequest, push, rebase, redo, reflog, refresh, repo, search, shield,
+  sliders, sort, staging, stash, tag, terminal, trash, undo, worktree,
+  wrench,
 }
 
 export type IconName = keyof typeof SOURCE
 
 /**
- * The shapes inside a file, without its `<svg>` wrapper or comments — the
- * wrapper's own stroke and viewBox belong to the standalone preview, not to the
- * icon as rendered here.
+ * ── Two families, and the FILE says which ──────────────────────────────────
+ *
+ * `stroke` is our own hand: grid 24, `fill="none"`, drawn in a stroke this
+ * component thickens as the icon shrinks.
+ *
+ * `solid` is a filled silhouette — usually grid 16 and `fill="currentColor"`,
+ * sometimes a token when the fill carries meaning. Most of the interface's
+ * icons are that, and they are not ours to redraw: imposing a stroke on one
+ * renders the OUTLINE of its silhouette, which is not the icon but a rubbing
+ * of it. The file's own fill is passed through untouched.
+ *
+ * So the wrapper no longer dictates. It reads the file's own `viewBox` and
+ * whether it declares a fill, and follows. That is what lets any icon live in
+ * the folder and stay editable there, which is the whole point of the folder.
  */
-const INNER = /<svg\b[^>]*>([\s\S]*)<\/svg>/
-const bodies: Record<string, string> = Object.fromEntries(
+const SVG_TAG = /<svg\b([^>]*)>([\s\S]*)<\/svg>/
+interface Parsed { body: string; viewBox: string; fill: string | null }
+
+const parsed: Record<string, Parsed> = Object.fromEntries(
   Object.entries(SOURCE).map(([name, src]) => {
-    const m = INNER.exec(src)
+    const m = SVG_TAG.exec(src)
     if (!m) throw new Error(`Icon: icons/${name}.svg has no <svg> element`)
-    return [name, m[1].replace(/<!--[\s\S]*?-->/g, '').trim()]
+    const attrs = m[1]
+    const vb = /viewBox="([^"]+)"/.exec(attrs)
+    if (!vb) throw new Error(`Icon: icons/${name}.svg has no viewBox`)
+    // A file that declares ANY fill other than `none` is a silhouette, and the
+    // fill is kept verbatim: matching on `currentColor` alone missed the ones
+    // that fill with a token — PRModal's arrow is `fill="var(--accent-static)"`
+    // — and reclassifying those as stroke drawings threw away both the fill and
+    // the colour that carried the meaning.
+    const f = /\bfill="([^"]+)"/.exec(attrs)
+    const fill = f && f[1] !== 'none' ? f[1] : null
+    return [name, { body: m[2].replace(/<!--[\s\S]*?-->/g, '').trim(), viewBox: vb[1], fill }]
   }),
 )
 
@@ -107,27 +184,35 @@ interface Props {
 }
 
 export function Icon({ name, size = 16, className, title }: Props) {
-  const body = bodies[name]
-  if (!body) throw new Error(`Icon: no icons/${name}.svg`)
+  const ic = parsed[name]
+  if (!ic) throw new Error(`Icon: no icons/${name}.svg`)
   const s = DENSE.has(name) ? Math.max(size, 20) : size
+
+  // A silhouette has no stroke to grow, and growing one would be drawing on
+  // somebody else's shape. Only our own family gets the size-aware weight.
+  const paint = ic.fill
+    ? { fill: ic.fill }
+    : {
+        fill: 'none' as const,
+        stroke: 'currentColor',
+        strokeWidth: strokeFor(s),
+        strokeLinecap: 'round' as const,
+        strokeLinejoin: 'round' as const,
+      }
 
   return (
     <svg
       className={className}
       width={s}
       height={s}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeFor(s)}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      viewBox={ic.viewBox}
+      {...paint}
       xmlns="http://www.w3.org/2000/svg"
       role={title ? 'img' : undefined}
       aria-hidden={title ? undefined : true}
       // The shapes come from a file we author and ship; nothing here is user
       // input, and injecting is what keeps the folder the single source.
-      dangerouslySetInnerHTML={{ __html: (title ? `<title>${title}</title>` : '') + body }}
+      dangerouslySetInnerHTML={{ __html: (title ? `<title>${title}</title>` : '') + ic.body }}
     />
   )
 }

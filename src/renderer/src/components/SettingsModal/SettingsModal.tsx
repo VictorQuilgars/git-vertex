@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Icon } from '../Icon/Icon'
 import { Brand } from '../BrandMark/BrandMark'
 import './SettingsModal.css'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
@@ -28,49 +29,22 @@ type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
 const DESKTOP_ONLY_SECTIONS: Section[] = ['externalTools', 'ssh', 'about']
 
 // ── Nav icons ─────────────────────────────────────────────────
-// Monochrome line icons (stroke = currentColor) so they follow the same
-// hover/active color as the nav label, instead of colored emoji.
-function NavIcon({ children }: { children: React.ReactNode }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {children}
-    </svg>
-  )
-}
-const IconIdentity = () => (
-  <NavIcon><circle cx="12" cy="8" r="3.3"/><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></NavIcon>
-)
-const IconAppearance = () => (
-  <NavIcon>
-    <line x1="4" y1="20" x2="4" y2="14"/><circle cx="4" cy="11" r="2"/><line x1="4" y1="8" x2="4" y2="4"/>
-    <line x1="12" y1="20" x2="12" y2="12"/><circle cx="12" cy="9" r="2"/><line x1="12" y1="6" x2="12" y2="4"/>
-    <line x1="20" y1="20" x2="20" y2="16"/><circle cx="20" cy="13" r="2"/><line x1="20" y1="10" x2="20" y2="4"/>
-  </NavIcon>
-)
-const IconGraph = () => (
-  <NavIcon><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/></NavIcon>
-)
-const IconShield = () => (
-  <NavIcon><path d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z"/></NavIcon>
-)
+// These were seven `<path>` sets inside a local NavIcon wrapper that spelled
+// out our own spec a second time — grid 24, stroke 1.7, round caps. They are
+// files in components/Icon/icons now, like everything else.
+const IconIdentity = () => <Icon name="person" />
+const IconAppearance = () => <Icon name="sliders" />
+const IconGraph = () => <Icon name="node" />
+const IconShield = () => <Icon name="shield" />
 const IconGithubMark = () => <Brand name="github" size={16} />
 // Same sparkle glyph already used for the AI actions in ConflictResolver —
 // reused here instead of a new one, so "AI" reads the same everywhere.
 const IconSparkle = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-    <path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/>
-  </svg>
+  <Icon name="ai" />
 )
-const IconActivity = () => (
-  <NavIcon><polyline points="3 12 8 12 10 6 14 18 16 12 21 12"/></NavIcon>
-)
-const IconTool = () => (
-  <NavIcon><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></NavIcon>
-)
-const IconInfo = () => (
-  <NavIcon><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></NavIcon>
-)
+const IconActivity = () => <Icon name="activity" />
+const IconTool = () => <Icon name="wrench" />
+const IconInfo = () => <Icon name="info" />
 
 // Grouped navigation with icons. `label` holds an i18n key, resolved with
 // t() at render.
@@ -456,9 +430,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       {/* Header */}
       <div className="stg-header">
         <button className="stg-back" onClick={onClose} title={t('settings.back')}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
+          <Icon name="chevronLeft" />
           {t('settings.back')}
         </button>
         <span className="stg-title">{t('settings.title')}</span>
@@ -1185,11 +1157,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     {t('settings.about.sourceCode')}
                   </a>
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex/releases')}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <Icon name="download" size={14} />
                     {t('settings.about.releases')}
                   </a>
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex/issues')}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <Icon name="info" size={14} />
                     {t('settings.about.reportBug')}
                   </a>
                 </div>

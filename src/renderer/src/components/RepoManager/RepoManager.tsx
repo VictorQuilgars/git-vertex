@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { Icon } from '../Icon/Icon'
 import './RepoManager.css'
 import { useLang } from '../../i18n/LanguageContext'
 
@@ -127,10 +128,10 @@ export default function RepoManager({
         </span>
         <span className="rm-actions">
           <button title={t('repomgmt.openInEditor')} onClick={async () => { const r = await (window.gitAPI as any).openPathInEditor(p); if (r?.error) showToast(t('toast.err', r.error), 'err') }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <Icon name="editor" size={15} />
           </button>
           <button title={t('repomgmt.details')} onClick={() => openDetails(p)}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <Icon name="list" size={15} />
           </button>
           <button title={t('repomgmt.remove')} onClick={() => onRemoveRecent(p)}>✕</button>
         </span>
@@ -165,7 +166,7 @@ export default function RepoManager({
 
       <div className="rm-filters">
         <div className="rm-search">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 1 0-1.4 1.4l3 3a1 1 0 0 0 1.4-1.4l-3-3zM3 7a4 4 0 1 1 8 0 4 4 0 0 1-8 0z"/></svg>
+          <Icon name="search" size={13} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('repomgmt.search')} />
         </div>
         <label className="rm-wip-toggle">
