@@ -14,6 +14,48 @@
 // converging on a vertex, the iris commits DOTTED because they are what the
 // model proposed and you have not applied. It draws itself once, then the vertex
 // breathes while the main window finishes loading.
+//
+// ── Why the timings are up here ─────────────────────────────────────────────
+//
+// The splash is sandboxed with no preload, so it cannot tell the main process
+// that it has finished playing. The main process has to know the duration —
+// and a duration copied into a second file is a duration that drifts. So the
+// numbers live here once, the CSS below interpolates them, and index.ts holds
+// the window open for SPLASH_ANIMATION_MS.
+const T = {
+  armDraw: 1150,
+  irisDelay: 120,
+  nodePop: 500,
+  nodeDelays: [180, 460, 740],
+  vertexIn: 500,
+  vertexDelay: 1020,
+  breatheDelay: 1600,
+  breathe: 2400,
+  wordFade: 600,
+  wordDelay: 1200,
+  sweep: 1500,
+} as const
+
+/**
+ * When the composed sequence lands — the last element of the story, not of the
+ * loops. `breathe` and `sweep` run forever on purpose: they are what says "still
+ * working", and waiting for those would be waiting for nothing.
+ */
+export const SPLASH_ANIMATION_MS = Math.max(
+  T.irisDelay + T.armDraw,
+  Math.max(...T.nodeDelays) + T.nodePop,
+  T.vertexDelay + T.vertexIn,
+  T.wordDelay + T.wordFade,
+)
+
+/**
+ * What to hold instead when the system asks for reduced motion. The stylesheet
+ * below then puts every element straight at its final state, so there is no
+ * story left to wait for — but a splash that appears and vanishes in one frame
+ * still reads as a glitch, so it keeps a floor.
+ */
+export const SPLASH_STILL_MS = 800
+
 export function splashHtml(version: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -61,30 +103,30 @@ export function splashHtml(version: string): string {
      three: one dasharray of the branch's total length draws the whole arm. */
   .arm {
     fill: none; stroke-width: 16; stroke-linecap: round;
-    animation: draw 1.15s cubic-bezier(.55,.15,.25,1) forwards;
+    animation: draw ${T.armDraw}ms cubic-bezier(.55,.15,.25,1) forwards;
   }
   .arm.aqua { stroke: var(--aqua); stroke-dasharray: 165; stroke-dashoffset: 165; }
   .arm.iris { stroke: var(--iris); stroke-dasharray: 179; stroke-dashoffset: 179;
-              animation-delay: .12s; }
+              animation-delay: ${T.irisDelay}ms; }
 
   .node {
     fill: none; opacity: 0; transform: scale(.3);
     transform-box: fill-box; transform-origin: center;
-    animation: pop .5s cubic-bezier(.34,1.56,.64,1) forwards;
+    animation: pop ${T.nodePop}ms cubic-bezier(.34,1.56,.64,1) forwards;
   }
   .node.aqua { stroke: var(--aqua); }
   .node.iris { stroke: var(--iris); }
-  .n-top { animation-delay: .18s; }
-  .n-mid { animation-delay: .46s; }
-  .n-low { animation-delay: .74s; }
+  .n-top { animation-delay: ${T.nodeDelays[0]}ms; }
+  .n-mid { animation-delay: ${T.nodeDelays[1]}ms; }
+  .n-low { animation-delay: ${T.nodeDelays[2]}ms; }
 
   /* The vertex: a real annulus, the one neutral element. It is the decision, so
      it arrives last and is the only thing that keeps moving. */
   .vertex {
     fill: var(--text); opacity: 0;
     transform-box: fill-box; transform-origin: center;
-    animation: vertex-in .5s cubic-bezier(.34,1.56,.64,1) 1.02s forwards,
-               breathe 2.4s ease-in-out 1.6s infinite;
+    animation: vertex-in ${T.vertexIn}ms cubic-bezier(.34,1.56,.64,1) ${T.vertexDelay}ms forwards,
+               breathe ${T.breathe}ms ease-in-out ${T.breatheDelay}ms infinite;
   }
 
   @keyframes draw      { to { stroke-dashoffset: 0; } }
@@ -94,7 +136,7 @@ export function splashHtml(version: string): string {
   @keyframes breathe   { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 
   .wordmark { display: flex; flex-direction: column; align-items: center; gap: 12px;
-    opacity: 0; animation: fade-in .6s ease 1.2s forwards; }
+    opacity: 0; animation: fade-in ${T.wordFade}ms ease ${T.wordDelay}ms forwards; }
   .name { font-size: 21px; font-weight: 600; letter-spacing: .05em; color: var(--text); }
   .name b { color: #fff; font-weight: 650; }
 
@@ -103,7 +145,7 @@ export function splashHtml(version: string): string {
   .track::after {
     content: ""; position: absolute; top: 0; left: 0; height: 100%; width: 42%; border-radius: 3px;
     background: linear-gradient(90deg, transparent, var(--aqua), var(--iris), transparent);
-    animation: sweep 1.5s cubic-bezier(.5,.05,.5,.95) infinite;
+    animation: sweep ${T.sweep}ms cubic-bezier(.5,.05,.5,.95) infinite;
   }
   @keyframes sweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
 

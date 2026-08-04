@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, Notification, systemPreferences } from 'electron'
 import { join, dirname } from 'path'
 import { existsSync, readdirSync } from 'fs'
 import { createHash } from 'crypto'
@@ -19,7 +19,7 @@ import {
 } from './git-service'
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
-import { splashHtml } from './splash'
+import { splashHtml, SPLASH_ANIMATION_MS, SPLASH_STILL_MS } from './splash'
 import iconPng from '../../resources/icon.png?asset'
 import iconIco from '../../resources/icon.ico?asset'
 
@@ -90,13 +90,38 @@ function createSplash(): void {
   splashWindow.once('ready-to-show', () => { splashShownAt = Date.now(); splashWindow?.show() })
 }
 
+/**
+ * How much of the splash's sequence is still to play, in ms.
+ *
+ * On a cold Windows boot the app takes longer than the animation and this is 0.
+ * On macOS it is routinely the other way round — the window is ready in well
+ * under a second — and the delay used to be applied to the WRONG window: the
+ * main window was shown at once and the splash, which is alwaysOnTop, went on
+ * floating over a live app for the rest of its hold. So the wait belongs here,
+ * before the reveal.
+ *
+ * If the splash never came up, splashShownAt is 0, the elapsed time is enormous
+ * and this is 0 — the app must never be held hostage to a splash that failed.
+ */
+function splashRemaining(): number {
+  if (!splashWindow || splashShownAt === 0) return 0
+  let full: number = SPLASH_ANIMATION_MS
+  try {
+    // No story to wait for when the system asks for less motion: the splash's
+    // own media query puts every element straight at its final state.
+    if (systemPreferences.getAnimationSettings().prefersReducedMotion) full = SPLASH_STILL_MS
+  } catch { /* not every platform answers; the full hold is the safe default */ }
+  return Math.max(0, full - (Date.now() - splashShownAt))
+}
+
 function closeSplash(): void {
   if (!splashWindow) return
-  // Keep it up for a beat so it never just flashes on a fast boot.
-  const wait = Math.max(0, 800 - (Date.now() - splashShownAt))
   const win = splashWindow
   splashWindow = null
-  setTimeout(() => { if (!win.isDestroyed()) win.close() }, wait)
+  // A short overlap, not an immediate close: the main window is painted but the
+  // compositor has not necessarily put it on screen, and tearing the splash
+  // down in the same tick can show the desktop between the two.
+  setTimeout(() => { if (!win.isDestroyed()) win.close() }, 120)
 }
 
 // ── Repo file watcher ─────────────────────────────────────────
@@ -170,7 +195,10 @@ function createWindow(): void {
     // Shown in the Windows title bar / taskbar tooltip / Alt-Tab before the
     // renderer's <title> takes over — keep it the product name, not "git-gui".
     title: 'Git Vertex',
-    backgroundColor: '#0d1117',
+    // What shows between the window appearing and the renderer's first paint.
+    // A snapshot of --seed-canvas, for the same reason the splash carries one:
+    // the main process cannot read tokens.css. Guarded by splash-palette.test.
+    backgroundColor: '#0E1116',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     // Windows needs a .ico (an .icns is not a valid window icon there and left
     // the taskbar/title-bar showing the default Electron logo); Linux uses the
@@ -192,8 +220,13 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-    closeSplash()
+    // Ready is not the same as due: hold until the splash has finished playing,
+    // then hand over. Zero on a slow boot, where ready-to-show is already late.
+    setTimeout(() => {
+      if (!mainWindow || mainWindow.isDestroyed()) return
+      mainWindow.show()
+      closeSplash()
+    }, splashRemaining())
   })
 
   // In macOS fullscreen the traffic-light buttons are hidden, so the renderer
