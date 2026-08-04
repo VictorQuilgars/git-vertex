@@ -7,18 +7,21 @@ import { CommitNode, GraphEdge } from '../../types'
 // here, and the rest of the graph keeps receiving plain hex.
 //
 // The fallback is the same list, for jsdom (no stylesheet) and for any host that
-// renders the graph before the CSS lands.
+// renders the graph before the CSS lands. It is a SNAPSHOT of --seed-lane-1..10
+// and drifts silently — a graph painted before the stylesheet lands would show
+// the old palette for a frame, which is exactly what happened to the previous
+// list. __tests__/token-discipline.test.ts fails if it stops matching.
 const LANE_FALLBACK = [
-  '#2dd4bf', // teal
-  '#4d9de0', // blue
-  '#9b59b6', // purple
-  '#e879f9', // fuchsia
-  '#22d3ee', // cyan
-  '#818cf8', // indigo
-  '#a78bfa', // lavender
-  '#34d399', // emerald
-  '#60a5fa', // cornflower
-  '#f472b6', // pink
+  '#3FD8C2', // aqua      — the human act, lane 1 is main
+  '#54C8E8', // sky
+  '#7FB4F5', // blue
+  '#A99FF0', // iris
+  '#D189D9', // orchid
+  '#EE7FAE', // rose
+  '#F0937A', // coral
+  '#D9A85C', // amber
+  '#AEBE5E', // olive
+  '#6FCE8C', // green
 ]
 
 let laneCache: string[] | null = null
@@ -48,7 +51,9 @@ export const LANE_COLORS = LANE_FALLBACK
 // --bg-canvas of the day, written into the TypeScript — so a theme with any
 // other canvas dimmed toward the wrong colour, and a LIGHT one dimmed toward
 // near-black, making faded edges louder than live ones.
-const CANVAS_FALLBACK: [number, number, number] = [13, 17, 23]
+//
+// A snapshot of --seed-canvas, guarded by the same test as the lanes above.
+const CANVAS_FALLBACK: [number, number, number] = [0x0e, 0x11, 0x16]
 
 /** Parse the forms --bg-canvas can hold: #rgb, #rrggbb, rgb()/rgba(). */
 function parseRgb(v: string): [number, number, number] | null {

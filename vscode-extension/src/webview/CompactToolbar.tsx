@@ -5,6 +5,7 @@ import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../../../src/renderer/src/components/ContextMenu/branchMenu'
 import type { PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
+import { Mark } from '../../../src/renderer/src/components/Mark/Mark'
 import type { BranchInfo } from '../../../src/renderer/src/types'
 
 interface Props {
@@ -144,12 +145,14 @@ export default function CompactToolbar(p: Props) {
   return (
     <div className="gvt">
       {/* Logo only — the VS Code panel title already reads "Git Vertex",
-          so the brand name here would be redundant. */}
-      <svg className="gvt-logo" viewBox="0 0 512 512" width="16" height="16" aria-hidden>
-        <line x1="148" y1="82" x2="256" y2="422" stroke="#3fb950" strokeWidth="40" strokeLinecap="round" />
-        <line x1="364" y1="82" x2="256" y2="422" stroke="#58a6ff" strokeWidth="40" strokeLinecap="round" />
-        <circle cx="256" cy="422" r="34" fill="#3fb950" />
-      </svg>
+          so the brand name here would be redundant.
+
+          16px, so Mark picks its `bare` cut on its own: the dotted iris rings
+          go sub-pixel below ~72px and the node would turn to grey mush. This
+          used to be the mark drawn by hand here, in two straight lines and the
+          pre-aqua greens — it kept them right through the palette migration
+          because a copy is not a reference. */}
+      <Mark className="gvt-logo" size={16} />
       {p.onToggleSidebar && (
         <IconBtn title={t('gvt.toggleSidebar')} onClick={p.onToggleSidebar} active={p.sidebarOpen}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0zM1.5 1.75v12.5c0 .138.112.25.25.25H6V1.5H1.75a.25.25 0 0 0-.25.25zM7.5 1.5v13h6.75a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H7.5z"/></svg>

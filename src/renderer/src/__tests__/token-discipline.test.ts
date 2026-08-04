@@ -371,4 +371,43 @@ describe('token discipline', () => {
     }
     expect(offenders).toEqual([])
   })
+
+  // ── The graph's literals ───────────────────────────────────────────────────
+  //
+  // graph-layout.ts is the one place allowed to hold colour literals, because
+  // CommitGraph.dimColor() fades an edge by arithmetic on the hex string and a
+  // var() makes its regex fail. It resolves the tokens at runtime, so the
+  // literals are only a fallback — for jsdom, and for the frame before the
+  // stylesheet lands.
+  //
+  // A fallback that nothing reads on a normal run is a fallback nobody notices
+  // going stale: this file kept the ten pre-aqua lanes and the old GitHub canvas
+  // through the whole migration. These two tests are how it gets noticed.
+  describe('graph-layout fallbacks still mirror the seeds', () => {
+    const layout = fs.readFileSync(
+      path.join(SRC, 'components/CommitGraph/graph-layout.ts'), 'utf8')
+    // The default block's body only — the same cut the seed-parity tests take.
+    // Slicing on markers would not do it: the default block's own selector is
+    // `:root,` and `[data-theme="aqua-dark"]` on two lines, so the first
+    // data-theme in the file opens the default block rather than closing it.
+    const css = fs.readFileSync(TOKENS, 'utf8')
+    const base = /^(?::root,?[^{]*)\{([\s\S]*?)^\}/m.exec(css)![1]
+    const seed = (name: string) =>
+      new RegExp(`--seed-${name}:\\s*(#[0-9A-Fa-f]{6})`).exec(base)![1].toUpperCase()
+
+    it('lists the ten lanes in order', () => {
+      const got = [...(/const LANE_FALLBACK = \[([\s\S]*?)\n\]/.exec(layout)![1])
+        .matchAll(/'(#[0-9A-Fa-f]{6})'/g)].map(m => m[1].toUpperCase())
+      const want = Array.from({ length: 10 }, (_, i) => seed(`lane-${i + 1}`))
+      expect(got).toEqual(want)
+    })
+
+    it('dims toward the canvas seed', () => {
+      const got = [...(/const CANVAS_FALLBACK[^=]*= \[([^\]]*)\]/.exec(layout)![1])
+        .matchAll(/0x([0-9a-fA-F]{2})|\b(\d{1,3})\b/g)]
+        .map(m => (m[1] ? parseInt(m[1], 16) : Number(m[2])))
+      const c = seed('canvas')
+      expect(got).toEqual([1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)))
+    })
+  })
 })

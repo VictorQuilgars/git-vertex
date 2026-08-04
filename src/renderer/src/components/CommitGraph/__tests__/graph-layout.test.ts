@@ -1,5 +1,19 @@
+import * as fs from 'fs'
+import * as path from 'path'
 import { computeGraphLayout, canvasRgb, laneColors, resetThemeCache } from '../graph-layout'
 import { CommitNode } from '../../../types'
+
+// The canvas the graph falls back to is a snapshot of --seed-canvas. Reading the
+// seed rather than repeating the literal is the point: the previous version of
+// these two tests spelled out [13, 17, 23], so when the palette moved they went
+// on asserting the old background was correct instead of catching the drift.
+const SEED_CANVAS: [number, number, number] = (() => {
+  const css = fs.readFileSync(
+    path.resolve(__dirname, '../../../tokens.css'), 'utf8')
+  const base = /^(?::root,?[^{]*)\{([\s\S]*?)^\}/m.exec(css)![1]
+  const hex = /--seed-canvas:\s*#([0-9A-Fa-f]{6})/.exec(base)![1]
+  return [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number]
+})()
 
 // Topology of the "TaskFlow" demo repo (scripts/make-demo-repo.sh), in the same
 // date-order rows the app displays. Each entry is "hash parent[ parent...]".
@@ -161,7 +175,7 @@ describe('computeGraphLayout', () => {
 
 // The graph resolves two things to literals because it does arithmetic on them:
 // the lane palette and the canvas. Both used to be frozen — the lanes in a cache
-// nothing could clear, the canvas as `[13, 17, 23]` written into the TypeScript —
+// nothing could clear, the canvas as a literal written into the TypeScript —
 // so a theme swap left the graph painting the old one. dimColor() blending
 // toward the wrong background is invisible on a dark theme and inverts on a
 // light one: the faded edges come out darker, and louder, than the live ones.
@@ -176,7 +190,7 @@ describe('theme values the graph resolves itself', () => {
 
   it('falls back to the dark canvas when no token is set', () => {
     resetThemeCache()
-    expect(canvasRgb()).toEqual([13, 17, 23])
+    expect(canvasRgb()).toEqual(SEED_CANVAS)
   })
 
   it('reads --bg-canvas, including a light one', () => {
@@ -197,7 +211,7 @@ describe('theme values the graph resolves itself', () => {
   it('keeps the fallback rather than a wrong value when unparseable', () => {
     root().style.setProperty('--bg-canvas', 'not-a-colour')
     resetThemeCache()
-    expect(canvasRgb()).toEqual([13, 17, 23])
+    expect(canvasRgb()).toEqual(SEED_CANVAS)
   })
 
   it('lets resetThemeCache pick up a theme swapped after first paint', () => {
