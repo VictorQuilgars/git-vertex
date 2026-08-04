@@ -762,11 +762,11 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             </button>
             <div className="cd-view-toggle">
               <button className={`cd-view-btn ${!cdTreeMode ? 'active' : ''}`} onClick={() => { setView('files'); setCdTreeMode(false); localStorage.setItem('cd-tree-mode', 'false') }}>
-                <Icon name="layout" size={11} />
+                <Icon name="list" size={11} />
                 Path
               </button>
               <button className={`cd-view-btn ${cdTreeMode ? 'active' : ''}`} onClick={() => setCdTreeMode(v => { localStorage.setItem('cd-tree-mode', String(!v)); return !v })}>
-                <Icon name="list" size={11} />
+                <Icon name="listTree" size={11} />
                 Tree
               </button>
             </div>
