@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- One ink. Now that the iris commits are DOTS rather than a colour, the
+       proposed/sealed distinction survives monochrome — it is carried by
+       shape. The dashed version could not do that. -->
+  <path d="M142.5 119.2L160.2 166.6" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
+  <path d="M183.8 229.4L202.2 278.6" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
+  <path d="M225.8 341.4L247.2 398.6" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="130" cy="86" r="33" stroke="currentColor" stroke-width="11"/>
+  <circle cx="172" cy="198" r="30" stroke="currentColor" stroke-width="9"/>
+  <circle cx="214" cy="310" r="30" stroke="currentColor" stroke-width="9"/>
+  <path d="M369.5 119.2L350.5 169.9" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
+  <path d="M329.5 226.1L308.5 281.9" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
+  <path d="M287.5 338.1L264.8 398.6" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="382" cy="86" r="33" stroke="currentColor" stroke-width="11"/>
+  <circle cx="340" cy="198" r="30" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 18.85" transform="rotate(110.6 340 198)"/>
+  <circle cx="298" cy="310" r="30" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 18.85" transform="rotate(110.6 298 310)"/>
+  <path d="M214 422a42 42 0 1 0 84 0a42 42 0 1 0 -84 0ZM239 422a17 17 0 1 0 34 0a17 17 0 1 0 -34 0Z" fill="currentColor" stroke="none" fill-rule="evenodd"/>
+</svg>

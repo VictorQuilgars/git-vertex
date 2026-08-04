@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Knockout on a brand fill. The mark is punched out of aqua in the canvas
+       ink — for a filled button, a sticker, a badge, a splash panel. -->
+  <rect width="512" height="512" fill="#3FD8C2"/>
+  <path d="M130.0 86.0L244.8 392.0" stroke="#0E1116" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="130" cy="86" r="32" fill="#0E1116" stroke="none"/>
+  <path d="M382.0 86.0L267.2 392.0" stroke="#0E1116" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="382" cy="86" r="32" fill="#0E1116" stroke="none"/>
+  <circle cx="256" cy="422" r="48" fill="#0E1116" stroke="none"/>
+</svg>

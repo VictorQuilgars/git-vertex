@@ -2249,32 +2249,26 @@ export default function App() {
             <div className="app-welcome">
               <div className="welcome-hero">
                 <div className="welcome-brand">
+                  {/* The mark, drawn from tokens so it follows the theme. The arms
+                      use --accent-static and --purple-soft, not --accent: the brand
+                      colours are fixed, the user's accent is theirs to change.
+                      GENERATED — this is resources/icon.svg with its literals swapped
+                      for tokens and the tile dropped. token-discipline.test.ts fails if
+                      the two drift apart; re-run docs-private/logo-piste-g/logo.py. */}
                   <svg className="welcome-logo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <radialGradient id="wmerge" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#5eff8a"/>
-                        <stop offset="100%" stopColor="var(--success)"/>
-                      </radialGradient>
-                      <filter id="wglow">
-                        <feGaussianBlur stdDeviation="6" result="blur"/>
-                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                      </filter>
-                    </defs>
-                    {/* Left arm — green */}
-                    <line x1="148" y1="82" x2="256" y2="422" stroke="var(--success)" strokeWidth="22" strokeLinecap="round"/>
-                    {/* Right arm — blue */}
-                    <line x1="364" y1="82" x2="256" y2="422" stroke="var(--accent-static)" strokeWidth="22" strokeLinecap="round"/>
-                    {/* Left commits */}
-                    <circle cx="148" cy="82"  r="24" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="13"/>
-                    <circle cx="184" cy="192" r="18" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="11"/>
-                    <circle cx="220" cy="302" r="18" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="11"/>
-                    {/* Right commits */}
-                    <circle cx="364" cy="82"  r="24" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="13"/>
-                    <circle cx="328" cy="192" r="18" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="11"/>
-                    <circle cx="292" cy="302" r="18" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="11"/>
-                    {/* Merge node */}
-                    <circle cx="256" cy="422" r="28" fill="url(#wmerge)" filter="url(#wglow)"/>
-                    <circle cx="256" cy="422" r="14" fill="var(--bg-canvas)"/>
+                    <path d="M142.5 119.2L160.2 166.6" stroke="var(--accent-static)" strokeWidth="16" strokeLinecap="round"/>
+                    <path d="M183.8 229.4L202.2 278.6" stroke="var(--accent-static)" strokeWidth="16" strokeLinecap="round"/>
+                    <path d="M225.8 341.4L247.2 398.6" stroke="var(--accent-static)" strokeWidth="16" strokeLinecap="round"/>
+                    <circle cx="130" cy="86" r="33" stroke="var(--accent-static)" strokeWidth="11"/>
+                    <circle cx="172" cy="198" r="30" stroke="var(--accent-static)" strokeWidth="9"/>
+                    <circle cx="214" cy="310" r="30" stroke="var(--accent-static)" strokeWidth="9"/>
+                    <path d="M369.5 119.2L350.5 169.9" stroke="var(--purple-soft)" strokeWidth="16" strokeLinecap="round"/>
+                    <path d="M329.5 226.1L308.5 281.9" stroke="var(--purple-soft)" strokeWidth="16" strokeLinecap="round"/>
+                    <path d="M287.5 338.1L264.8 398.6" stroke="var(--purple-soft)" strokeWidth="16" strokeLinecap="round"/>
+                    <circle cx="382" cy="86" r="33" stroke="var(--purple-soft)" strokeWidth="11"/>
+                    <circle cx="340" cy="198" r="30" stroke="var(--purple-soft)" strokeWidth="12" strokeLinecap="round" strokeDasharray="0 18.85" transform="rotate(110.6 340 198)"/>
+                    <circle cx="298" cy="310" r="30" stroke="var(--purple-soft)" strokeWidth="12" strokeLinecap="round" strokeDasharray="0 18.85" transform="rotate(110.6 298 310)"/>
+                    <path d="M214 422a42 42 0 1 0 84 0a42 42 0 1 0 -84 0ZM239 422a17 17 0 1 0 34 0a17 17 0 1 0 -34 0Z" fill="var(--text-primary)" stroke="none" fillRule="evenodd"/>
                   </svg>
                   <div>
                     <h1 className="welcome-title">Git Vertex</h1>

@@ -5,7 +5,7 @@ import './SettingsModal.css'
 // hidden by onError in production.
 import iconUrl from '../../../../../resources/icon.png'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
-import { useSettings } from '../../contexts/SettingsContext'
+import { useSettings, isVSCodeHost } from '../../contexts/SettingsContext'
 import { parseAutolinks, serializeAutolinks, type Autolink } from '../../utils/autolinks'
 
 /**
@@ -101,14 +101,24 @@ const NAV_GROUPS: { group: string; items: { id: Section; icon: React.ReactNode; 
 ]
 
 // `key` holds an i18n key resolved at render for the swatch tooltip.
+// Every preset is a token, so the offered colours follow the active theme. The
+// last two used to be literals — they were the only two swatches that kept the
+// dark theme's colour after a switch, which read as a rendering bug.
 const ACCENT_PRESETS = [
-  { key: 'settings.color.blue',   value: 'var(--accent-static)' },
-  { key: 'settings.color.purple', value: 'var(--purple-soft)' },
+  { key: 'settings.color.aqua',   value: 'var(--accent-static)' },
+  { key: 'settings.color.iris',   value: 'var(--purple-soft)' },
   { key: 'settings.color.green',  value: 'var(--success)' },
   { key: 'settings.color.orange', value: 'var(--attention)' },
   { key: 'settings.color.red',    value: 'var(--danger)' },
-  { key: 'settings.color.pink',   value: '#f778ba' },
-  { key: 'settings.color.cyan',   value: '#56d4dd' },
+  { key: 'settings.color.pink',   value: 'var(--conflict)' },
+  { key: 'settings.color.cyan',   value: 'var(--agent-accent)' },
+]
+
+// One entry per [data-theme] block in tokens.css. The swatch shows the theme's
+// own canvas, surface and accent rather than a label alone.
+const THEME_PRESETS = [
+  { id: 'aqua-dark',  key: 'settings.theme.dark',  bg: '#0E1116', surface: '#2B3341', accent: '#3FD8C2' },
+  { id: 'aqua-light', key: 'settings.theme.light', bg: '#EDF0F5', surface: '#BFC7D6', accent: '#0D826F' },
 ]
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
@@ -611,6 +621,33 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.appearance.title')}</h2>
                 <p className="stg-desc">{t('settings.appearance.desc')}</p>
+
+                {/* Not offered in the panel: there we follow the editor's theme,
+                    which is what an extension is expected to do. */}
+                {!isVSCodeHost && (
+                  <>
+                    <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.theme.title')}</h2>
+                    <p className="stg-desc">{t('settings.theme.desc')}</p>
+                    <div className="stg-themes">
+                      {THEME_PRESETS.map(th => {
+                        const active = get('theme', 'aqua-dark') === th.id
+                        return (
+                          <button
+                            key={th.id}
+                            className={`stg-theme ${active ? 'active' : ''}`}
+                            onClick={() => set('theme', th.id)}
+                            aria-pressed={active}
+                          >
+                            <span className="stg-theme-chip" style={{ background: th.bg, borderColor: th.surface }}>
+                              <span className="stg-theme-dot" style={{ background: th.accent }} />
+                            </span>
+                            {t(th.key as any)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
 
                 <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.accent.title')}</h2>
                 <p className="stg-desc">{t('settings.accent.desc')}</p>

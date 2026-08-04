@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Social avatar. Round crop, one node per branch so the circle clips nothing. -->
+  <circle cx="256" cy="256" r="256" fill="#151A21"/>
+  <path d="M142.5 119.2L247.2 398.6" stroke="#3FD8C2" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="130" cy="86" r="33" stroke="#3FD8C2" stroke-width="11"/>
+  <path d="M369.5 119.2L264.8 398.6" stroke="#9B8FF5" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="382" cy="86" r="33" stroke="#9B8FF5" stroke-width="11"/>
+  <path d="M214 422a42 42 0 1 0 84 0a42 42 0 1 0 -84 0ZM239 422a17 17 0 1 0 34 0a17 17 0 1 0 -34 0Z" fill="#E8ECF1" stroke="none" fill-rule="evenodd"/>
+</svg>

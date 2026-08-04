@@ -158,6 +158,98 @@ describe('token discipline', () => {
   const SOLID_FILL =
     /background(-color)?:[^;]*var\(--(accent|accent-emphasis|success|success-strong|success-emphasis|danger|danger-solid|purple|purple-deep|warning|install-bg|pr-merged|amend-confirm-bg|amend-cancel-bg)\)|background:\s*linear-gradient/
 
+  // A theme is a block of SEEDS. Two ways that stops being true, and both fail
+  // silently rather than loudly:
+  //
+  //   1. a theme forgets a seed — it inherits the default's, so a light theme
+  //      ships with three dark values scattered through it;
+  //   2. a theme redefines a DERIVED token — it then no longer follows its
+  //      seed, and editing that seed stops working for that theme only, which
+  //      is the worst kind of bug to find by eye.
+  describe('themes redefine seeds and nothing else', () => {
+    const css = fs.readFileSync(TOKENS, 'utf8')
+    const blocks = [...css.matchAll(/^(:root,?[^{]*|\[data-theme="[^"]+"\][^{]*)\{([\s\S]*?)^\}/gm)]
+    const seedsOf = (body: string) =>
+      new Set([...body.matchAll(/^\s*(--seed-[a-z0-9-]+)\s*:/gm)].map(m => m[1]))
+
+    it('finds a default block and at least one theme', () => {
+      expect(blocks.length).toBeGreaterThanOrEqual(2)
+      expect(blocks.some(b => b[1].includes('[data-theme='))).toBe(true)
+    })
+
+    it('gives every theme the same seed set as the default', () => {
+      const [base, ...themes] = blocks
+      const want = seedsOf(base[2])
+      expect(want.size).toBeGreaterThan(10)
+      for (const t of themes) {
+        const got = seedsOf(t[2])
+        const missing = [...want].filter(s => !got.has(s))
+        const extra = [...got].filter(s => !want.has(s))
+        expect({ theme: t[1].trim(), missing, extra })
+          .toEqual({ theme: t[1].trim(), missing: [], extra: [] })
+      }
+    })
+
+    it('never lets a theme override a derived token', () => {
+      const [base, ...themes] = blocks
+      // Derived = defined in the default block, not a seed.
+      const derived = new Set(
+        [...base[2].matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)]
+          .map(m => m[1])
+          .filter(n => !n.startsWith('--seed-')),
+      )
+      for (const t of themes) {
+        const overridden = [...t[2].matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)]
+          .map(m => m[1])
+          .filter(n => derived.has(n))
+        expect({ theme: t[1].trim(), overridden }).toEqual({ theme: t[1].trim(), overridden: [] })
+      }
+    })
+
+    it('resolves every derived token through a seed', () => {
+      const [base] = blocks
+      const offenders: string[] = []
+      for (const line of base[2].split('\n')) {
+        const m = /^\s*(--[a-z0-9-]+)\s*:\s*(.+);/.exec(line)
+        if (!m || m[1].startsWith('--seed-')) continue
+        const [, name, value] = m
+        // Shape tokens (sizes, durations, z-indices) and the two deliberate
+        // literals are not colours and have no seed to point at.
+        if (!/color-mix|var\(--seed-/.test(value) && /#|rgb|transparent|black/.test(value)) {
+          if (!['--syntax-bg', '--scrim'].includes(name)) offenders.push(`${name}: ${value}`)
+        }
+      }
+      expect(offenders).toEqual([])
+    })
+  })
+
+  // The welcome screen draws the mark inline, because it has to follow the
+  // theme and an <img> cannot. That makes it a SECOND copy of a drawing whose
+  // first copy is resources/icon.svg — and a second copy is exactly how the
+  // lockups silently kept dashes after the symbol moved to dots.
+  //
+  // Colours legitimately differ (tokens here, literals there, since an .icns
+  // cannot hold a var()). Geometry must not.
+  it('keeps the welcome logo geometrically identical to the app icon', () => {
+    const app = fs.readFileSync(path.join(SRC, 'App.tsx'), 'utf8')
+    const icon = fs.readFileSync(path.resolve(SRC, '../../../resources/icon.svg'), 'utf8')
+
+    const welcome = app.slice(app.indexOf('className="welcome-logo"'))
+    const shapes = (s: string) =>
+      [...s.matchAll(/<(path|circle)\b([^>]*)>/g)]
+        .map(m => m[2])
+        // the icon carries a tile the welcome screen does not
+        .filter(a => !a.includes('width="512"'))
+        .map(a => [...a.matchAll(/\b(d|cx|cy|r|transform)="([^"]+)"/g)]
+          .map(x => `${x[1]}=${x[2]}`).join(' '))
+        .filter(Boolean)
+
+    const fromApp = shapes(welcome.slice(0, welcome.indexOf('</svg>')))
+    const fromIcon = shapes(icon)
+    expect(fromApp.length).toBeGreaterThan(10)
+    expect(fromApp).toEqual(fromIcon)
+  })
+
   it('uses --text-on-emphasis only on a filled emphasis surface', () => {
     const offenders: string[] = []
     for (const f of COMPONENT_CSS) {

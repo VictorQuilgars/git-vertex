@@ -130,43 +130,59 @@ in the staging area with an `amend` badge (fetched via `getCommitFiles('HEAD')`)
 - Graph layout computed in `src/renderer/src/components/CommitGraph/graph-layout.ts`
 
 ## Icon
-Source: `resources/icon.svg` — V-shaped git graph (Victor's initial), green + blue.
-Built: `resources/icon.icns` — generated with `rsvg-convert` + `iconutil`.
-To regenerate after editing the SVG:
+**Two** SVG masters, and that is deliberate:
+
+| File | Feeds |
+|---|---|
+| `resources/icon.svg` | 64px and up — the full mark, dotted iris commits included |
+| `resources/icon-small.svg` | 16 and 32px — the reduced cut |
+
+The intermediate commit rings are 9 units of stroke on a 416-unit mark, so below
+roughly 72px they go sub-pixel and the node turns to grey mush. Scaling one SVG
+to every size, which the old recipe did, produced a 16px icon that was a smear.
+
+Regenerate every artefact — `.icns`, `.ico`, `.png` — with:
 ```bash
-rm -rf resources/icon.iconset && mkdir resources/icon.iconset
-for size in 16 32 64 128 256 512 1024; do
-  rsvg-convert -w $size -h $size resources/icon.svg -o resources/icon.iconset/icon_${size}x${size}.png
-done
-cp resources/icon.iconset/icon_32x32.png   resources/icon.iconset/icon_16x16@2x.png
-cp resources/icon.iconset/icon_64x64.png   resources/icon.iconset/icon_32x32@2x.png
-cp resources/icon.iconset/icon_256x256.png resources/icon.iconset/icon_128x128@2x.png
-cp resources/icon.iconset/icon_512x512.png resources/icon.iconset/icon_256x256@2x.png
-cp resources/icon.iconset/icon_1024x1024.png resources/icon.iconset/icon_512x512@2x.png
-iconutil -c icns resources/icon.iconset -o resources/icon.icns
+./scripts/gen-icons.sh
 ```
-Windows needs `resources/icon.ico` (multi-res). Without it the packaged `.exe`
-falls back to the default Electron logo in the taskbar/window. Regenerate with:
-```bash
-TMP=$(mktemp -d)
-for s in 16 24 32 48 64 128 256; do rsvg-convert -w $s -h $s resources/icon.svg -o "$TMP/icon_$s.png"; done
-/opt/anaconda3/bin/python - "$TMP" <<'PY'
-import sys, os
-from PIL import Image
-tmp = sys.argv[1]; sizes = [16,24,32,48,64,128,256]
-Image.open(os.path.join(tmp, "icon_256.png")).convert("RGBA").save(
-    "resources/icon.ico", format="ICO", sizes=[(s,s) for s in sizes])
-PY
-```
+Needs `rsvg-convert` (`brew install librsvg`), `iconutil` (Xcode) and Pillow.
+
+Neither master is hand-edited: both are written by
+`docs-private/logo-piste-g/logo.py`, which reads its colours from `tokens.css`.
+**To change the logo's colours, change the seeds in `tokens.css` and re-run it.**
+
 `resources/icon.png` + `resources/icon.ico` are also whitelisted in the
 electron-builder `files` array so the runtime `BrowserWindow` icon resolves
 inside the packaged asar (macOS takes its icon from the app bundle instead).
 
-## Style conventions
-- Dark theme: background `#0d1117`, surface `#161b22`, border `#21262d` / `#30363d`
-- Accent colors: green `#3fb950`, blue `#58a6ff`, red `#f85149`
+The rest of the brand — wordmark, lockups, monochrome and small cuts, the
+knockout, the watermark — is in `resources/brand/`, with its own README.
+
+## Colour, themes, style conventions
+`src/renderer/src/tokens.css` is split in two, and the split is the point:
+
+- **SEEDS** — fifteen colours plus ten graph lanes, the only values in the file.
+  They carry the roles the design board names: `--seed-aqua` is the human act,
+  `--seed-iris` is what the model proposes and is **never** a filled button.
+- **DERIVED** — everything else, as `color-mix()` of seeds, resolved by the
+  browser. Change a seed and every token below it follows. No build step.
+
+A **theme is a block of seeds** and nothing else — see `[data-theme="aqua-light"]`
+at the bottom of the file, which is 25 lines rather than 100.
+`__tests__/token-discipline.test.ts` fails if a theme misses a seed, defines an
+extra one, or overrides a derived token.
+
+Themes are applied by `SettingsContext.applyAppearance` via `data-theme` on
+`<html>`, mirrored to `localStorage` so `main.tsx` can set it before React
+mounts (otherwise a light theme opens with a black flash). Inside VS Code the
+panel follows the editor instead, watched by a `MutationObserver` on
+`body.class`. Any rewrite of the tokens must call `resetThemeCache()` — the
+graph resolves lanes and the canvas to literals once and caches them.
+
 - CSS modules per component, BEM-like class names (`component-element--modifier`)
 - No global CSS framework
+- A colour literal in a component stylesheet or an inline `style={{}}` is a bug,
+  and the test above will say so.
 
 ## User
 Victor Quilgars (VictorQuilgars on GitHub). French speaker; **the shipped UI is

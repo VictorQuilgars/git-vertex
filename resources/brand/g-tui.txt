@@ -1,0 +1,6 @@
+o   o
+ \ /   git vertex
+  *
+
+o = sealed commit   * = the vertex, your decision
+left arm aqua (36), right arm iris (141), vertex white — 256-colour ANSI

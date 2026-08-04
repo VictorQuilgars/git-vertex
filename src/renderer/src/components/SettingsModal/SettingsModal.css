@@ -116,6 +116,25 @@
 }
 .stg-swatch:hover { transform: scale(1.1); }
 .stg-swatch.active { box-shadow: 0 0 0 2px var(--bg-canvas), 0 0 0 4px currentColor; }
+/* Theme picker. The chip previews the theme's own canvas and accent, so the
+   choice is legible without reading the label. */
+.stg-themes { display: flex; flex-wrap: wrap; gap: var(--space-lg); margin-top: var(--space-sm); }
+.stg-theme {
+  display: flex; align-items: center; gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl);
+  background: var(--surface-sunken); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  font-size: var(--text-base); cursor: pointer;
+  transition: border-color var(--dur-base), color var(--dur-base);
+}
+.stg-theme:hover { border-color: var(--border-subtle); color: var(--text-primary); }
+.stg-theme.active { border-color: var(--accent); color: var(--text-primary); }
+.stg-theme-chip {
+  width: 26px; height: 18px; border-radius: var(--radius-xs);
+  border: 1px solid; display: flex; align-items: center; justify-content: center;
+}
+.stg-theme-dot { width: 8px; height: 8px; border-radius: var(--radius-circle); }
+
 .stg-swatch-check { text-shadow: 0 1px 2px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent); }
 .stg-swatch-custom {
   width: 32px; height: 32px; border-radius: var(--radius-circle);
