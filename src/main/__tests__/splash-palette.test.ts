@@ -137,14 +137,34 @@ describe('splash timing', () => {
     expect(segments.map(s => s.name)).toContain('draw')
   })
 
+  // The mark's own animations. `fade-in` is the wordmark, which is a label over
+  // a mark that has already resolved, and is deliberately not waited for.
+  const MARK = ['draw', 'pop', 'vertex-in']
+
   // A shorthand is `name <duration> [timing] [delay]`, so a segment ends at the
   // sum of its times.
   const endOf = (name: string) =>
     segments.filter(s => s.name === name).map(s => s.ms.reduce((a, b) => a + b, 0))
 
-  it('waits for the last element of the sequence, not the first', () => {
-    const ends = segments.filter(s => !s.loops).map(s => s.ms.reduce((a, b) => a + b, 0))
+  it('waits for the mark to land, not for the first stroke', () => {
+    const named = segments.filter(s => !s.loops).map(s => s.name)
+    expect(MARK.every(n => named.includes(n))).toBe(true)
+    const ends = segments.filter(s => MARK.includes(s.name)).flatMap(s => endOf(s.name))
     expect(SPLASH_ANIMATION_MS).toBe(Math.max(...ends))
+  })
+
+  it('lets the wordmark finish after the handover, on purpose', () => {
+    // Stated rather than assumed: the hold is SHORTER than the full sequence,
+    // and that is a choice. If the wordmark ever has to be waited for, this
+    // test is where the decision gets revisited instead of quietly inverting.
+    const word = Math.max(...endOf('fade-in'))
+    expect(word).toBeGreaterThan(SPLASH_ANIMATION_MS)
+    // Still on screen and recognisable at the cut — not a fade that has barely
+    // begun. Under a third of the way up would read as a truncation.
+    const shown = (SPLASH_ANIMATION_MS - (word - Math.max(...segments
+      .filter(s => s.name === 'fade-in').map(s => s.ms[0])))) / Math.max(...segments
+      .filter(s => s.name === 'fade-in').map(s => s.ms[0]))
+    expect(shown).toBeGreaterThan(0.33)
   })
 
   it('waits for the elements whose delay is written on a sibling selector', () => {

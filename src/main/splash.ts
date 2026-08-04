@@ -37,15 +37,23 @@ const T = {
 } as const
 
 /**
- * When the composed sequence lands — the last element of the story, not of the
- * loops. `breathe` and `sweep` run forever on purpose: they are what says "still
- * working", and waiting for those would be waiting for nothing.
+ * How long the window is held back: the moment the MARK is complete — both arms
+ * drawn, the six commits popped, the vertex landed. The vertex is the decision
+ * the whole drawing converges on, so once it is there the drawing has said what
+ * it had to say.
+ *
+ * The wordmark is deliberately NOT waited for. Its fade ends 280ms later and it
+ * is around half way up at the handover — it is a label coming in over a mark
+ * that has already resolved, and holding a launch for it buys nothing.
+ *
+ * `breathe` and `sweep` are not waited for either, and cannot be: they loop
+ * forever on purpose, being what says "still working". Waiting on those would
+ * hang the launch outright.
  */
 export const SPLASH_ANIMATION_MS = Math.max(
   T.irisDelay + T.armDraw,
   Math.max(...T.nodeDelays) + T.nodePop,
   T.vertexDelay + T.vertexIn,
-  T.wordDelay + T.wordFade,
 )
 
 /**
