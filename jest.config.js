@@ -17,12 +17,18 @@ module.exports = {
       testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
       setupFilesAfterEnv: ['<rootDir>/src/renderer/src/__tests__/setupTests.ts'],
       transform: {
-        '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.jest.web.json' }]
+        '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.jest.web.json' }],
+        // An .svg is its source text, matching Vite and esbuild — components/Icon
+        // keeps its drawings as real files in a folder rather than as literals.
+        '\\.svg$': '<rootDir>/src/renderer/src/__tests__/svgTransform.js'
       },
+      // svg is deliberately absent here: moduleNameMapper wins over transform,
+      // so mocking it would hide the icons from the component that reads them.
       moduleNameMapper: {
         '\\.css$': 'identity-obj-proxy',
-        '\\.(png|jpe?g|svg|gif)$': '<rootDir>/src/renderer/src/__mocks__/fileMock.js'
-      }
+        '\\.(png|jpe?g|gif)$': '<rootDir>/src/renderer/src/__mocks__/fileMock.js'
+      },
+      transformIgnorePatterns: []
     }
   ],
 

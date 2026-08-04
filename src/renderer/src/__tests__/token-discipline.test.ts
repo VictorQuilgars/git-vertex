@@ -298,10 +298,61 @@ describe('token discipline', () => {
 
     // `editor` is a category. The product is Microsoft's and lives in BrandMark.
     it('does not name an icon after a third-party product', () => {
-      const icons = fs.readFileSync(path.join(SRC, 'components/Icon/Icon.tsx'), 'utf8')
-      const names = [...icons.matchAll(/^\s{2}([a-zA-Z]+): \(C: Ink\)/gm)].map(m => m[1])
+      const dir = path.join(SRC, 'components/Icon/icons')
+      const names = fs.readdirSync(dir).filter(f => f.endsWith('.svg')).map(f => f.slice(0, -4))
       expect(names.length).toBeGreaterThan(20)
       expect(names.filter(n => /vscode|github|gitlab|jetbrains/i.test(n))).toEqual([])
+    })
+  })
+
+  // The folder is the source, which only holds if the folder and the component
+  // agree. A file nobody imports is invisible; an import with no file breaks the
+  // build. Both are easy to do by hand and neither is visible in review.
+  describe('the icons folder is the icon set', () => {
+    const dir = path.join(SRC, 'components/Icon/icons')
+    const component = fs.readFileSync(path.join(SRC, 'components/Icon/Icon.tsx'), 'utf8')
+    const onDisk = fs.readdirSync(dir).filter(f => f.endsWith('.svg')).map(f => f.slice(0, -4)).sort()
+    const imported = [...component.matchAll(/^import (\w+) from '\.\/icons\/([\w-]+)\.svg'$/gm)]
+
+    it('imports every file, and every import has a file', () => {
+      expect(onDisk.length).toBeGreaterThan(20)
+      expect(imported.map(m => m[2]).sort()).toEqual(onDisk)
+    })
+
+    it('names each import after its file', () => {
+      expect(imported.filter(m => m[1] !== m[2]).map(m => `${m[1]} <- ${m[2]}.svg`)).toEqual([])
+    })
+
+    it('lists every file in the SOURCE map', () => {
+      const map = component.slice(component.indexOf('const SOURCE'), component.indexOf('export type IconName'))
+      expect(onDisk.filter(n => !new RegExp(`\\b${n}\\b`).test(map))).toEqual([])
+    })
+
+    // The component sets the stroke and grows it as the icon shrinks. A width on
+    // a shape would win over it and that icon alone would go sub-pixel at 16.
+    it('never lets a shape carry its own stroke-width', () => {
+      const offenders: string[] = []
+      for (const n of onDisk) {
+        const src = fs.readFileSync(path.join(dir, `${n}.svg`), 'utf8')
+        const shapes = src.replace(/<svg\b[^>]*>/, '').replace(/<!--[\s\S]*?-->/g, '')
+        if (/stroke-width=/.test(shapes)) offenders.push(`${n}.svg`)
+      }
+      expect(offenders).toEqual([])
+    })
+
+    // A literal here would not follow the theme. The ones that carry meaning are
+    // written var(--token, #fallback): the token wins in the app, the fallback
+    // shows when the file is opened on its own.
+    it('writes meaningful colours as tokens with a fallback', () => {
+      const offenders: string[] = []
+      for (const n of onDisk) {
+        const src = fs.readFileSync(path.join(dir, `${n}.svg`), 'utf8')
+        const body = src.replace(/<!--[\s\S]*?-->/g, '')
+        for (const m of body.matchAll(/(?:stroke|fill)="(#[0-9a-fA-F]{3,8})"/g)) {
+          offenders.push(`${n}.svg  ${m[1]}`)
+        }
+      }
+      expect(offenders).toEqual([])
     })
   })
 

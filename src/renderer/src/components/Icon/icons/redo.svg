@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- redo — Git Vertex icon set. Grid 24, stroke 1.7, round caps.
+       undo mirrored about x=12, so the pair reads as one gesture.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it. -->
+  <path d="M20 9.5H9.5a5 5 0 0 0 0 10H15"/>
+  <path d="M16.5 6L20 9.5 16.5 13"/>
+</svg>

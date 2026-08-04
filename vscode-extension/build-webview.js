@@ -35,6 +35,11 @@ async function build() {
   // component could therefore pass tests and the desktop build and still break
   // only here. All three now agree.
   await esbuild.build({
+    // `.svg` imports resolve to the file's source, matching electron-vite's
+    // pre-load hook and jest's svgTransform. components/Icon reads its 25
+    // drawings from a folder of real SVG files; without this the panel would
+    // get a URL and render nothing.
+    loader: { '.svg': 'text' },
     entryPoints: [path.join(__dirname, 'src', 'webview', 'app.tsx')],
     bundle: true,
     outfile: path.join(__dirname, 'media', 'main.js'),
