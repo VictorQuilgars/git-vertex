@@ -8,6 +8,7 @@ import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
 import { PromptDialog, ConfirmDialog } from './components/Dialog/Dialog'
 import CommandPalette, { PaletteCommand } from './components/CommandPalette/CommandPalette'
+import { Mark } from './components/Mark/Mark'
 import { ToastProvider, useToast } from './components/Toast/Toast'
 import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import UpdateOverlay from './components/UpdateOverlay/UpdateOverlay'
@@ -2249,27 +2250,10 @@ export default function App() {
             <div className="app-welcome">
               <div className="welcome-hero">
                 <div className="welcome-brand">
-                  {/* The mark, drawn from tokens so it follows the theme. The arms
-                      use --accent-static and --purple-soft, not --accent: the brand
-                      colours are fixed, the user's accent is theirs to change.
-                      GENERATED — this is resources/icon.svg with its literals swapped
-                      for tokens and the tile dropped. token-discipline.test.ts fails if
-                      the two drift apart; re-run docs-private/logo-piste-g/logo.py. */}
-                  <svg className="welcome-logo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M142.5 119.2L160.2 166.6" stroke="var(--accent-static)" strokeWidth="16" strokeLinecap="round"/>
-                    <path d="M183.8 229.4L202.2 278.6" stroke="var(--accent-static)" strokeWidth="16" strokeLinecap="round"/>
-                    <path d="M225.8 341.4L247.2 398.6" stroke="var(--accent-static)" strokeWidth="16" strokeLinecap="round"/>
-                    <circle cx="130" cy="86" r="33" stroke="var(--accent-static)" strokeWidth="11"/>
-                    <circle cx="172" cy="198" r="30" stroke="var(--accent-static)" strokeWidth="9"/>
-                    <circle cx="214" cy="310" r="30" stroke="var(--accent-static)" strokeWidth="9"/>
-                    <path d="M369.5 119.2L350.5 169.9" stroke="var(--purple-soft)" strokeWidth="16" strokeLinecap="round"/>
-                    <path d="M329.5 226.1L308.5 281.9" stroke="var(--purple-soft)" strokeWidth="16" strokeLinecap="round"/>
-                    <path d="M287.5 338.1L264.8 398.6" stroke="var(--purple-soft)" strokeWidth="16" strokeLinecap="round"/>
-                    <circle cx="382" cy="86" r="33" stroke="var(--purple-soft)" strokeWidth="11"/>
-                    <circle cx="340" cy="198" r="30" stroke="var(--purple-soft)" strokeWidth="12" strokeLinecap="round" strokeDasharray="0 18.85" transform="rotate(110.6 340 198)"/>
-                    <circle cx="298" cy="310" r="30" stroke="var(--purple-soft)" strokeWidth="12" strokeLinecap="round" strokeDasharray="0 18.85" transform="rotate(110.6 298 310)"/>
-                    <path d="M214 422a42 42 0 1 0 84 0a42 42 0 1 0 -84 0ZM239 422a17 17 0 1 0 34 0a17 17 0 1 0 -34 0Z" fill="var(--text-primary)" stroke="none" fillRule="evenodd"/>
-                  </svg>
+                  {/* 72px is exactly the threshold where the intermediate commit
+                      nodes stop being sub-pixel, so the full cut is the right one
+                      here — and Mark picks it from the size on its own. */}
+                  <Mark className="welcome-logo" size={72} title="Git Vertex" />
                   <div>
                     <h1 className="welcome-title">Git Vertex</h1>
                     <p className="welcome-sub">{t('welcome.hint')}</p>

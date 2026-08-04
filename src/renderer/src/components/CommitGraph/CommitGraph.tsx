@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { LayoutCommit, computeGraphLayout, canvasRgb } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import { Mark } from '../Mark/Mark'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import type { BranchMenuExtras } from '../ContextMenu/branchMenu'
 import { useLang } from '../../i18n/LanguageContext'
@@ -1522,7 +1523,12 @@ export default function CommitGraph({
               ))}
             </div>
           ) : (
-            <div className="cg-empty">{commits.length === 0 ? t('graph.emptyRepo') : t('graph.empty')}</div>
+            <div className="cg-empty">
+              {/* The watermark cut: the mark at 35%, as a backdrop rather than a
+                  subject. It is the one declination made for an empty state. */}
+              <Mark size={96} cut="lite" mono className="cg-empty-mark" />
+              {commits.length === 0 ? t('graph.emptyRepo') : t('graph.empty')}
+            </div>
           )
         )}
       </div>

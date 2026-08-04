@@ -223,31 +223,41 @@ describe('token discipline', () => {
     })
   })
 
-  // The welcome screen draws the mark inline, because it has to follow the
-  // theme and an <img> cannot. That makes it a SECOND copy of a drawing whose
-  // first copy is resources/icon.svg — and a second copy is exactly how the
-  // lockups silently kept dashes after the symbol moved to dots.
+  // components/Mark draws the symbol in JSX, because it has to follow the theme
+  // and an <img> cannot. That makes it a SECOND copy of a drawing whose first
+  // copy is resources/icon.svg — and a second copy is exactly how the lockups
+  // silently kept dashed commits after the symbol moved to dots.
   //
   // Colours legitimately differ (tokens here, literals there, since an .icns
-  // cannot hold a var()). Geometry must not.
-  it('keeps the welcome logo geometrically identical to the app icon', () => {
-    const app = fs.readFileSync(path.join(SRC, 'App.tsx'), 'utf8')
+  // cannot hold a var()). Geometry must not. Both files are written by
+  // docs-private/logo-piste-g/logo.py, so a mismatch means one was hand-edited
+  // or the script was run for only one of them.
+  const shapesOf = (s: string) =>
+    [...s.matchAll(/<(path|circle)\b([^>]*)\/?>/g)]
+      .map(m => m[2])
+      .filter(a => !a.includes('width="512"'))          // the icon's tile
+      .map(a => [...a.matchAll(/\b(d|cx|cy|r|transform)=[{"]?"?([^"}]+)"/g)]
+        .map(x => `${x[1]}=${x[2]}`).join(' '))
+      .filter(Boolean)
+
+  it('keeps the Mark component identical to the app icon, full cut', () => {
+    const mark = fs.readFileSync(path.join(SRC, 'components/Mark/Mark.tsx'), 'utf8')
     const icon = fs.readFileSync(path.resolve(SRC, '../../../resources/icon.svg'), 'utf8')
+    const full = mark.slice(mark.indexOf("c === 'full'"), mark.indexOf("c === 'lite'"))
+    const fromMark = shapesOf(full).map(s => s.replace(/^d=VERTEX_FULL$/, 'vertex'))
+    const fromIcon = shapesOf(icon)
+    expect(fromMark.length).toBeGreaterThan(10)
+    // the vertex is a named constant in the component, inlined in the SVG
+    expect(fromMark.filter(s => !s.startsWith('d=VERTEX')))
+      .toEqual(fromIcon.filter(s => !s.startsWith('d=M214 422')))
+  })
 
-    const welcome = app.slice(app.indexOf('className="welcome-logo"'))
-    const shapes = (s: string) =>
-      [...s.matchAll(/<(path|circle)\b([^>]*)>/g)]
-        .map(m => m[2])
-        // the icon carries a tile the welcome screen does not
-        .filter(a => !a.includes('width="512"'))
-        .map(a => [...a.matchAll(/\b(d|cx|cy|r|transform)="([^"]+)"/g)]
-          .map(x => `${x[1]}=${x[2]}`).join(' '))
-        .filter(Boolean)
-
-    const fromApp = shapes(welcome.slice(0, welcome.indexOf('</svg>')))
-    const fromIcon = shapes(icon)
-    expect(fromApp.length).toBeGreaterThan(10)
-    expect(fromApp).toEqual(fromIcon)
+  it('keeps the Mark component identical to the small icon, lite cut', () => {
+    const mark = fs.readFileSync(path.join(SRC, 'components/Mark/Mark.tsx'), 'utf8')
+    const icon = fs.readFileSync(path.resolve(SRC, '../../../resources/icon-small.svg'), 'utf8')
+    const lite = mark.slice(mark.indexOf("c === 'lite'"), mark.indexOf("c === 'bare'"))
+    expect(shapesOf(lite).filter(s => !s.startsWith('d=VERTEX')))
+      .toEqual(shapesOf(icon).filter(s => !s.startsWith('d=M204 422')))
   })
 
   it('uses --text-on-emphasis only on a filled emphasis surface', () => {
