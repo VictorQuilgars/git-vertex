@@ -1,4 +1,5 @@
 import { useLang } from '../../i18n/LanguageContext'
+import { Mark } from '../Mark/Mark'
 import './UpdateOverlay.css'
 
 export type UpdatePhase = 'available' | 'downloading' | 'installing'
@@ -11,32 +12,13 @@ interface Props {
   onDismiss: () => void
 }
 
-// The V-shaped git graph, small and static (the animated draw lives in the
-// launch splash; here it's just the brand mark).
-function Mark() {
-  return (
-    <svg className="upd-mark" viewBox="0 0 512 512" role="img" aria-label="Git Vertex">
-      <path d="M148 82 L256 422" fill="none" stroke="var(--success)" strokeWidth="22" strokeLinecap="round" />
-      <path d="M364 82 L256 422" fill="none" stroke="var(--accent-static)" strokeWidth="22" strokeLinecap="round" />
-      <circle cx="148" cy="82" r="24" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="13" />
-      <circle cx="184" cy="192" r="18" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="12" />
-      <circle cx="220" cy="302" r="18" fill="var(--bg-canvas)" stroke="var(--success)" strokeWidth="12" />
-      <circle cx="364" cy="82" r="24" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="13" />
-      <circle cx="328" cy="192" r="18" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="12" />
-      <circle cx="292" cy="302" r="18" fill="var(--bg-canvas)" stroke="var(--accent-static)" strokeWidth="12" />
-      <circle cx="256" cy="422" r="26" fill="var(--success)" opacity="0.5" />
-      <circle cx="256" cy="422" r="12" fill="var(--bg-canvas)" />
-    </svg>
-  )
-}
-
 export default function UpdateOverlay({ phase, version, progress, onStart, onDismiss }: Props) {
   const { t } = useLang()
 
   return (
     <div className="upd-backdrop" role="dialog" aria-modal="true" aria-label={t('update.available.title')}>
       <div className="upd-card">
-        <Mark />
+        <Mark className="upd-mark" size={78} />
 
         {phase === 'available' && (
           <>

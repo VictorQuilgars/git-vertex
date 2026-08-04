@@ -260,6 +260,21 @@ describe('token discipline', () => {
       .toEqual(shapesOf(icon).filter(s => !s.startsWith('d=M204 422')))
   })
 
+  // Our own mark has exactly one home too, for the same reason. UpdateOverlay
+  // declared a local `Mark()` that shadowed the real component and drew the V
+  // by hand — straight lines, the pre-aqua greens — and it survived the whole
+  // palette migration because nothing looked for it. The symbol is drawn on a
+  // 512 grid; icons are 24 and brand marks 16 or 100, so a 512 viewBox outside
+  // Mark.tsx is a hand-drawn mark and nothing else.
+  it('keeps the Git Vertex mark out of every component but Mark', () => {
+    const HOME = path.join(SRC, 'components/Mark/Mark.tsx')
+    const offenders = COMPONENT_TSX
+      .filter(f => path.resolve(f) !== path.resolve(HOME))
+      .filter(f => /viewBox="0 0 512 512"/.test(fs.readFileSync(f, 'utf8')))
+      .map(rel)
+    expect(offenders).toEqual([])
+  })
+
   // Two families, and the split only holds if nothing crosses it.
   //
   // components/Icon is ours: stroke drawings that inherit currentColor and
@@ -271,15 +286,24 @@ describe('token discipline', () => {
     const BRAND = path.join(SRC, 'components/BrandMark/BrandMark.tsx')
     // A few bytes of each mark, enough to spot a paste and not enough to match
     // anything else.
+    // A mark has more than one published cut, and a signature that knows only
+    // one of them is a guard with a hole in it: this list held the octocat's
+    // 16-grid path only, while SettingsModal carried the 24-grid one in three
+    // places for the whole migration without ever failing a test.
     const SIGNATURES: [string, string][] = [
-      ['GitHub octocat', 'M8 0C3.58 0 0 3.58 0 8c0 3.54'],
+      ['GitHub octocat, 16 grid', 'M8 0C3.58 0 0 3.58 0 8c0 3.54'],
+      ['GitHub octocat, 24 grid', 'M12 0C5.37 0 0 5.37 0 12c0 5.31'],
       ['Git logo', 'M15.698 7.287 8.712.302'],
       ['VS Code ribbon', 'M70.912 99.317a6.223 6.223 0 0 0 4.96-.19'],
     ]
 
+    // Only the cuts BrandMark actually ships. The others are listed above so
+    // they are recognised as pastes, not so they are required to be present.
+    const SHIPPED = SIGNATURES.filter(([l]) => !l.includes('24 grid'))
+
     it('holds every third-party path it claims to', () => {
       const src = fs.readFileSync(BRAND, 'utf8')
-      for (const [label, sig] of SIGNATURES) {
+      for (const [label, sig] of SHIPPED) {
         expect([label, src.includes(sig)]).toEqual([label, true])
       }
     })
