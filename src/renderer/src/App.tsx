@@ -1913,7 +1913,7 @@ export default function App() {
             title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); setWhatsNewActive(false); setRepoMgmtOpen(o => !o) }}><Icon name="folder" size={16} /></button>
           {/* 🚀 Launchpad launcher — always reachable. */}
           <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
-            title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}><Icon name="liftoff" size={16} /></button>
+            title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}><Icon name="rocket" size={16} /></button>
           {tabs.map(tab => (
             <div
               key={tab.id}
@@ -1927,7 +1927,7 @@ export default function App() {
                 <Icon name="repo" size={16} className="app-tab-icon" />
               ) : (
                 <Icon size={16} className="app-tab-icon app-tab-icon--tool"
-                  name={tab.kind === 'launchpad' ? 'liftoff' : tab.kind === 'repomgmt' ? 'folder' : 'home'} />
+                  name={tab.kind === 'launchpad' ? 'rocket' : tab.kind === 'repomgmt' ? 'folder' : 'home'} />
               )}
               <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : tab.kind === 'repomgmt' ? t('repomgmt.title') : t('tabs.home')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
