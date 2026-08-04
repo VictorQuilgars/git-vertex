@@ -1646,7 +1646,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
         {commitProposal && (
           <div className="st2-proposal">
             <div className="st2-proposal-head">
-              <span className="st2-proposal-title">🤖 {t('panel.proposal.title')}</span>
+              <span className="st2-proposal-title"><Icon name="agent" size={15} /> {t('panel.proposal.title')}</span>
               <button className="st2-proposal-close" title={t('panel.proposal.dismiss')}
                 onClick={() => onProposalConsumed?.()}>×</button>
             </div>

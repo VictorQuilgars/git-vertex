@@ -2304,13 +2304,13 @@ export default function App() {
               <div className="welcome-resources">
                 <div className="welcome-res-title">{t('welcome.resources')}</div>
                 <button className="welcome-res-link" onClick={openReleaseNotes}>
-                  <span className="welcome-res-icon">✨</span>{t('welcome.releaseNotes')}
+                  <Icon name="tag" size={16} className="welcome-res-icon" />{t('welcome.releaseNotes')}
                 </button>
                 <button className="welcome-res-link" onClick={() => (window.gitAPI as any).openExternal?.('https://github.com/VictorQuilgars/git-vertex')}>
-                  <span className="welcome-res-icon">{'</>'}</span>{t('welcome.sourceCode')}
+                  <Icon name="editor" size={16} className="welcome-res-icon" />{t('welcome.sourceCode')}
                 </button>
                 <button className="welcome-res-link" onClick={() => (window.gitAPI as any).openExternal?.('https://github.com/VictorQuilgars/git-vertex#readme')}>
-                  <span className="welcome-res-icon">📖</span>{t('welcome.docs')}
+                  <Icon name="book" size={16} className="welcome-res-icon" />{t('welcome.docs')}
                 </button>
               </div>
             </div>

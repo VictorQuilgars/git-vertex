@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { Icon } from '../Icon/Icon'
 import { computeMessageGroups, MessageGroup } from '../../utils/rebaseMessageGroups'
 import { useLang } from '../../i18n/LanguageContext'
 import './InteractiveRebase.css'
@@ -164,7 +165,7 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
     >
       <div className={embedded ? 'ir-panel ir-panel--embedded' : 'ir-panel'}>
         <div className="ir-header">
-          <span className="ir-title">⚡ Interactive Rebase</span>
+          <span className="ir-title"><Icon name="rebase" size={16} /> Interactive Rebase</span>
           <span className="ir-base">{t('ir.from')} <code>{baseHash.slice(0, 7)}</code></span>
           <button className="ir-close" title={t('common.close')} onClick={onClose}>×</button>
         </div>

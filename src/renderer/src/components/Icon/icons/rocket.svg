@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- rocket — the Launchpad view, which is named for it.
+       Three things are deliberate, and each came from the icon failing at 16px.
+       The flanks are VERTICAL below the nose: a fully tapered body plus the
+       fin line read as the letter A. The fins hang off the base rather than the
+       middle, so the silhouette stays a capsule and not a triangle. And the
+       porthole is a FILLED dot, not the set's open ring — at 16px the component
+       thickens the stroke to 2.25, which turns an r=1.9 ring into a solid blob;
+       `merge` gets away with rings because they sit in open space, this one sits
+       inside a narrow fuselage. Same reason `repo` marks its spine with filled
+       dots at r=1.2.
+       Body and fins mirror exactly about x=12.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it, growing it
+       as the icon shrinks so the line never falls under a pixel. -->
+  <path d="M12 2.8c2.1 2.2 3.3 5.1 3.3 8.1V16H8.7v-5.1c0-3 1.2-5.9 3.3-8.1z"/>
+  <circle cx="12" cy="9.6" r="1.3" fill="currentColor" stroke="none"/>
+  <path d="M8.7 13.4 5.6 16.6v3.1l3.1-2"/>
+  <path d="M15.3 13.4l3.1 3.2v3.1l-3.1-2"/>
+</svg>
