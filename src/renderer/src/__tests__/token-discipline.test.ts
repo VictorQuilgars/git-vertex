@@ -274,6 +274,7 @@ describe('token discipline', () => {
     const SIGNATURES: [string, string][] = [
       ['GitHub octocat', 'M8 0C3.58 0 0 3.58 0 8c0 3.54'],
       ['Git logo', 'M15.698 7.287 8.712.302'],
+      ['VS Code ribbon', 'M70.912 99.317a6.223 6.223 0 0 0 4.96-.19'],
     ]
 
     it('holds every third-party path it claims to', () => {

@@ -37,6 +37,8 @@ interface Mark {
   colour?: string
   /** True when the owner publishes the mark for single-ink use. */
   mono: boolean
+  /** Some marks carry a subpath that must be punched, not filled. */
+  evenOdd?: boolean
   label: string
 }
 
@@ -60,16 +62,23 @@ const MARKS: Record<string, Mark> = {
     path: 'M15.698 7.287 8.712.302a1.03 1.03 0 0 0-1.457 0l-1.45 1.45 1.84 1.84a1.223 1.223 0 0 1 1.55 1.56l1.773 1.774a1.224 1.224 0 0 1 1.267 2.025 1.226 1.226 0 0 1-2.002-1.334L8.58 5.963v4.353a1.226 1.226 0 1 1-1.008-.036V5.887a1.226 1.226 0 0 1-.666-1.608L5.093 2.465l-4.79 4.79a1.03 1.03 0 0 0 0 1.457l6.986 6.986a1.03 1.03 0 0 0 1.457 0l6.953-6.953a1.031 1.031 0 0 0-.001-1.458z',
   },
 
-  // Microsoft's Visual Studio Code mark — NOT YET PRESENT.
+  // Microsoft's Visual Studio Code mark, taken verbatim from the inline SVG on
+  // code.visualstudio.com — the copy Microsoft themselves serve. Not traced, not
+  // reconstructed: the path below is byte-for-byte what their own site renders.
   //
-  // There is no official VS Code SVG anywhere in this repo or its dependencies:
-  // the only copy on disk is Code.icns inside the .vscode-test download, which
-  // is a raster. Typing the ribbon's geometry from memory would ship an
-  // approximation of somebody's trademark, so it is deliberately absent rather
-  // than guessed. `Brand` throws for a missing key so this cannot ship half-done.
+  // `mono: true` is not our choice either. Their site sets fill="currentColor"
+  // on this very element, so single-ink use is how the owner uses it. The mark
+  // has no colour of its own in this form, which is why `colour` is absent.
   //
-  // To add it: take the SVG from Microsoft's brand assets, paste the path
-  // verbatim, set colour to the mark's own blue and mono to false.
+  // It needs fillRule evenodd — the notch that makes the ribbon read as folded
+  // is a subpath, and without the rule it fills in and the mark turns to a blob.
+  vscode: {
+    viewBox: '0 0 100 100',
+    mono: true,
+    label: 'Visual Studio Code',
+    evenOdd: true,
+    path: 'M70.912 99.317a6.223 6.223 0 0 0 4.96-.19l20.589-9.907A6.25 6.25 0 0 0 100 83.587V16.413a6.25 6.25 0 0 0-3.54-5.632L75.874.874a6.226 6.226 0 0 0-7.104 1.21L29.355 38.04 12.187 25.01a4.162 4.162 0 0 0-5.318.236l-5.506 5.009a4.168 4.168 0 0 0-.004 6.162L16.247 50 1.36 63.583a4.168 4.168 0 0 0 .004 6.162l5.506 5.01a4.162 4.162 0 0 0 5.318.236l17.168-13.032L68.77 97.917a6.217 6.217 0 0 0 2.143 1.4ZM75.015 27.3 45.11 50l29.906 22.701V27.3Z',
+  },
 }
 
 export type BrandName = keyof typeof MARKS
@@ -103,7 +112,8 @@ export function Brand({ name, size = 16, mono = true, className, title }: Props)
       aria-hidden={title ? undefined : true}
     >
       {title && <title>{title ?? m.label}</title>}
-      <path d={m.path} />
+      <path d={m.path} fillRule={m.evenOdd ? 'evenodd' : undefined}
+            clipRule={m.evenOdd ? 'evenodd' : undefined} />
     </svg>
   )
 }
