@@ -37,8 +37,8 @@ const INK: Ink = {
 }
 
 const PAINT: Record<string, (C: Ink) => JSX.Element> = {
-  agent: (C: Ink) => <><path d="M9 3v4.5M15 3v4.5M7 7.5h10V11a5 5 0 0 1-10 0V7.5zM12 16v5"/></>,
-  ai: (C: Ink) => <><circle cx="12" cy="12" r="7.5" strokeDasharray="2.6 2.6"/><path d="M12 8.5v7M8.5 12h7"/></>,
+  agent: (C: Ink) => <><rect x="4.5" y="9" width="15" height="11.5" rx="3"/><path d="M12 5.5V9M2.5 13.5v3M21.5 13.5v3"/><circle cx="12" cy="4.4" r="1.5" fill="currentColor" stroke="none"/><circle cx="9.3" cy="14.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="14.7" cy="14.5" r="1.5" fill="currentColor" stroke="none"/></>,
+  ai: (C: Ink) => <><circle cx="12" cy="12" r="8" strokeDasharray="0 4.19"/><path d="M8.8 12a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0ZM10.7 12a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0 -2.6 0Z" fill="currentColor" stroke="none" fillRule="evenodd"/></>,
   blame: (C: Ink) => <><path d="M5 4v16M9.5 7h10M9.5 12h10M9.5 17h10"/><circle cx="5" cy="12" r="1.9" stroke={C.aqua}/></>,
   commandPalette: (C: Ink) => <><rect x="3.5" y="6" width="17" height="12" rx="1.5"/><path d="M7 11h10M7 14.5h5"/></>,
   commit: (C: Ink) => <><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v6M12 15.5v6"/></>,
@@ -54,14 +54,14 @@ const PAINT: Record<string, (C: Ink) => JSX.Element> = {
   pullRequest: (C: Ink) => <><circle cx="6" cy="6" r="1.9"/><path d="M6 8.2v7.6"/><circle cx="6" cy="18" r="1.9" fill="currentColor" stroke="none"/><path d="M11.5 6H15a3 3 0 0 1 3 3v6.6"/><circle cx="18" cy="18" r="1.9"/></>,
   rebase: (C: Ink) => <><path d="M4 15.5h16"/><circle cx="7" cy="15.5" r="1.9"/><circle cx="13" cy="15.5" r="1.9"/><path d="M7 11.5c2-6 8-6 10 0M17 8V11.5h-3.5"/></>,
   reflog: (C: Ink) => <><path d="M6 7.2A7.6 7.6 0 1 1 4.4 13"/><path d="M6.5 3.8v3.6H2.9"/><circle cx="11.9" cy="12" r="1.9"/></>,
-  repo: (C: Ink) => <><path d="M6.5 3H19v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z"/><path d="M4 16.5A2.5 2.5 0 0 1 6.5 14H19"/></>,
+  repo: (C: Ink) => <><path d="M6.5 3H19v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z"/><circle cx="8.3" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.3" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.3" cy="16.5" r="1.2" fill="currentColor" stroke="none"/></>,
   staging: (C: Ink) => <><path d="M5 14v5.5h14V14"/><path d="M12 4.5V13M8.8 7.7L12 4.5l3.2 3.2"/></>,
   stash: (C: Ink) => <><rect x="4.5" y="13" width="15" height="7" rx="1.5"/><path d="M10 16.5h4M12 4v5.5M9.8 7.3L12 9.5l2.2-2.2"/></>,
   tag: (C: Ink) => <><path d="M4.5 5v6l9 9 6-6-9-9h-6z"/><circle cx="8.2" cy="8.7" r="1.5"/></>,
   terminal: (C: Ink) => <><rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M7 9.5l3 2.8-3 2.8M13 15.5h4"/></>,
   undo: (C: Ink) => <><path d="M4 9.5h10.5a5 5 0 0 1 0 10H9M7.5 6L4 9.5 7.5 13"/></>,
-  vscode: (C: Ink) => <><rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M8.5 4.5v15"/><path d="M13.5 10l-1.8 2.2 1.8 2.2M16.5 10l1.8 2.2-1.8 2.2"/></>,
-  worktree: (C: Ink) => <><path d="M12 4v4M12 8c-5 0-6 3-6 6M12 8c5 0 6 3 6 6M12 8v6"/><rect x="4" y="15" width="4" height="4" rx="1"/><rect x="10" y="15" width="4" height="4" rx="1"/><rect x="16" y="15" width="4" height="4" rx="1"/></>,
+  vscode: (C: Ink) => <><rect x="4.5" y="3" width="15" height="18" rx="1.5"/><path d="M9.5 3v18"/><path d="M13.5 10l-1.8 2.2 1.8 2.2M16.8 10l1.8 2.2-1.8 2.2"/></>,
+  worktree: (C: Ink) => <><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M12 7.5v2.6M12 13.9v2.6"/><circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/></>,
 }
 
 export type IconName = keyof typeof PAINT
