@@ -75,6 +75,7 @@ import hunk from './icons/hunk.svg'
 import info from './icons/info.svg'
 import issue from './icons/issue.svg'
 import kebab from './icons/kebab.svg'
+import liftoff from './icons/liftoff.svg'
 import link from './icons/link.svg'
 import list from './icons/list.svg'
 import listTree from './icons/listTree.svg'
@@ -95,7 +96,6 @@ import redo from './icons/redo.svg'
 import reflog from './icons/reflog.svg'
 import refresh from './icons/refresh.svg'
 import repo from './icons/repo.svg'
-import rocket from './icons/rocket.svg'
 import search from './icons/search.svg'
 import shield from './icons/shield.svg'
 import sliders from './icons/sliders.svg'
@@ -114,11 +114,11 @@ const SOURCE: Record<string, string> = {
   caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
   download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
-  history, home, hunk, info, issue, kebab, link, list, listTree, mail,
-  merge, newBranch, node, panel, pencil, person, play, plus, pop,
-  pullRequest, push, rebase, redo, reflog, refresh, repo, rocket, search,
-  shield, sliders, sort, staging, stash, tag, terminal, trash, undo,
-  worktree, wrench,
+  history, home, hunk, info, issue, kebab, liftoff, link, list, listTree,
+  mail, merge, newBranch, node, panel, pencil, person, play, plus, pop,
+  pullRequest, push, rebase, redo, reflog, refresh, repo, search, shield,
+  sliders, sort, staging, stash, tag, terminal, trash, undo, worktree,
+  wrench,
 }
 
 export type IconName = keyof typeof SOURCE

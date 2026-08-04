@@ -237,7 +237,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
         {gone && <span className="sb-track sb-track-gone" title={t('sb.branch.goneTitle')}>✂</span>}
         {favorite && <span className="sb-branch-flag sb-branch-star" title={t('sb.branch.favoriteFlag')}>★</span>}
         {issue && <span className="sb-branch-flag" title={issue.title || `#${issue.number}`}>#{issue.number}</span>}
-        {soloed && <span className="sb-branch-flag" title={t('sb.branch.soloFlag')}>👁</span>}
+        {soloed && <Icon name="eye" size={12} className="sb-branch-flag" title={t('sb.branch.soloFlag')} />}
         {hidden && <span className="sb-branch-flag" title={t('sb.branch.hiddenFlag')}>⊘</span>}
         {current && (
           <Icon name="check" size={11} className="current-check" />
@@ -353,7 +353,7 @@ function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemo
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={onGoTo ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`}
       >
-        <span className="sb-tag-icon">🏷</span>
+        <Icon name="tag" size={13} className="sb-tag-icon" />
         <span className="sb-tag-name">{tag.name}</span>
         <code className="sb-tag-hash">{tag.hash}</code>
       </div>
@@ -368,7 +368,7 @@ function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemo
 function ReflogItem({ entry, onSelect }: { entry: ReflogEntry; onSelect: () => void }) {
   return (
     <div className="sb-reflog-item" onClick={onSelect} title={`${entry.ref}: ${entry.message}`}>
-      <span className="sb-reflog-icon">📋</span>
+      <Icon name="reflog" size={13} className="sb-reflog-icon" />
       <div className="sb-reflog-info">
         <span className="sb-reflog-ref">{entry.ref}</span>
         <span className="sb-reflog-msg">{entry.message}</span>

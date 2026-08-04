@@ -120,7 +120,8 @@ function sigBadge(sig: string | undefined, t: TFn) {
     X: t('graph.sig.expired'), Y: t('graph.sig.keyExpired'), R: t('graph.sig.revoked'),
     B: t('graph.sig.invalid'), E: t('graph.sig.unverifiable'),
   }
-  return <span className={`cg-sig ${cls}`} title={titles[sig] ?? t('graph.sig.signed')}>🔏</span>
+  return <Icon name="shield" size={12} className={`cg-sig ${cls}`}
+    title={titles[sig] ?? t('graph.sig.signed')} />
 }
 // Resolves an author's avatar (AI-bot logo, else GitHub/Gravatar via the main
 // process), shared by the SVG graph node and the compact-layout HTML bullet.

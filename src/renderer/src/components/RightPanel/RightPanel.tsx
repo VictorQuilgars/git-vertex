@@ -1508,7 +1508,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                         const isDir = f.endsWith('/')
                         return (
                           <div key={f} className="st-file-row">
-                            <span className="st-badge" style={{ color: 'var(--success)' }}>{isDir ? '📁' : '?'}</span>
+                            <span className="st-badge" style={{ color: 'var(--success)' }}>{isDir ? <Icon name="folder" size={12} /> : '?'}</span>
                             <span className="st-path" title={f}>
                               {f}{isDir && <span className="st-dir-hint"> {t('panel.folder')}</span>}
                             </span>

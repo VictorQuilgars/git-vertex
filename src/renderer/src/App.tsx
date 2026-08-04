@@ -1910,10 +1910,10 @@ export default function App() {
           {/* 📁 Repository Management — a fixed button opening a full-page
               overlay (like Settings), never a tab. */}
           <button className={`app-tab-launch ${repoMgmtOpen ? 'active' : ''}`}
-            title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); setWhatsNewActive(false); setRepoMgmtOpen(o => !o) }}>📁</button>
+            title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); setWhatsNewActive(false); setRepoMgmtOpen(o => !o) }}><Icon name="folder" size={16} /></button>
           {/* 🚀 Launchpad launcher — always reachable. */}
           <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
-            title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}>🚀</button>
+            title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}><Icon name="liftoff" size={16} /></button>
           {tabs.map(tab => (
             <div
               key={tab.id}
@@ -1924,9 +1924,10 @@ export default function App() {
               title={tab.kind === 'repo' ? tab.path : undefined}
             >
               {tab.kind === 'repo' ? (
-                <Icon name="repo" size={12} className="app-tab-icon" />
+                <Icon name="repo" size={16} className="app-tab-icon" />
               ) : (
-                <span className="app-tab-icon app-tab-icon--tool">{tab.kind === 'launchpad' ? '🚀' : tab.kind === 'repomgmt' ? '📁' : '🏠'}</span>
+                <Icon size={16} className="app-tab-icon app-tab-icon--tool"
+                  name={tab.kind === 'launchpad' ? 'rocket' : tab.kind === 'repomgmt' ? 'folder' : 'home'} />
               )}
               <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : tab.kind === 'repomgmt' ? t('repomgmt.title') : t('tabs.home')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
@@ -1935,7 +1936,7 @@ export default function App() {
           ))}
           {rebaseHash && (
             <div className="app-tab app-tab--tool active" title={t('tabs.rebase')}>
-              <span className="app-tab-icon app-tab-icon--tool">⚡</span>
+              <Icon name="rebase" size={16} className="app-tab-icon app-tab-icon--tool" />
               <span className="app-tab-name">{t('tabs.rebase')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); setRebaseHash(null) }}>×</button>
@@ -1944,7 +1945,7 @@ export default function App() {
           {whatsNew && (
             <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title={t('tabs.whatsNew')}
               onClick={() => { setSettingsOpen(false); setRepoMgmtOpen(false); setWhatsNewActive(true) }}>
-              <span className="app-tab-icon app-tab-icon--tool">✨</span>
+              <Icon name="ai" size={16} className="app-tab-icon app-tab-icon--tool" />
               <span className="app-tab-name">{t('tabs.whatsNew')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); setWhatsNew(null); setWhatsNewActive(false) }}>×</button>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <!-- liftoff — the Launchpad view. A dart climbing, and NOT a rocket.
+       Five drawings of an actual rocket failed here, each for a reason worth
+       keeping: upright and outlined it is the letter A; tilted and pointed at
+       both ends, a leaf; tilted with a short flat tail, an eye; a filled
+       triangle over a bar, the eject glyph; and filled with a punched window,
+       a cursor with a hole in it.
+       The last of those is the instructive one. A solid symmetric hull with a
+       nose and a small tail notch IS a dart — that is what the construction
+       makes, and no tuning turns it into a rocket. So it is a dart, which says
+       launch on its own and needs no window to do it.
+       Sized by MEASUREMENT rather than by eye. The first attempt covered 8.2%
+       of the box at 16px, while "folder" — sitting right beside it in the tab
+       bar — covers 79%, which is why it vanished on screen. This covers 21.5%,
+       the band where "play" (22.0), "book" (25.5) and "repo" (26.7) sit, all
+       of which read cleanly at that size.
+       Exactly symmetric about its own axis, and filled rather than stroked
+       because a filled silhouette is the only thing that survives small.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       It is FILLED, so it takes no stroke: the component reads the fill and
+       passes it through untouched. -->
+  <path d="M1.40 14.84 2.82 14.91C4.96 11.01 13.42 6.70 18.72 5.28C17.30 10.58 12.99 19.04 9.09 21.18L9.16 22.60Z"/>
+</svg>

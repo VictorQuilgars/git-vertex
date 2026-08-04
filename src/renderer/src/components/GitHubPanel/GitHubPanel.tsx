@@ -75,7 +75,7 @@ function CopyLinkButton({ url }: { url: string }) {
         setDone(true)
         setTimeout(() => setDone(false), 1500)
       }}
-    >{done ? '✓' : '🔗'}</button>
+    >{done ? '✓' : <Icon name="link" size={12} />}</button>
   )
 }
 

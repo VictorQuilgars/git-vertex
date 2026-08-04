@@ -770,7 +770,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         style={{ flex: 1 }}
                         spellCheck={false}
                       />
-                      <button className="stg-save" style={{ background: 'var(--surface-sunken)', color: 'var(--text-primary-soft)' }} onClick={() => setShowToken(v => !v)}>{showToken ? '🙈' : '👁'}</button>
+                      <button className="stg-save" style={{ background: 'var(--surface-sunken)', color: 'var(--text-primary-soft)' }} onClick={() => setShowToken(v => !v)}><Icon name={showToken ? 'eyeOff' : 'eye'} size={14} /></button>
                       <button className="stg-save" onClick={async () => { await saveGithub(); if (githubToken.trim()) fetchGithubUser() }}>
                         {t('settings.save')}
                       </button>
