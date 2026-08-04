@@ -107,11 +107,11 @@
 .dlg-cancel:hover { background: var(--surface-sunken); color: var(--text-primary-soft); }
 
 .dlg-ok {
-  background: var(--success-strong);
-  border-color: var(--success-emphasis);
+  background: var(--accent-strong);
+  border-color: var(--accent-emphasis);
   color: var(--text-on-emphasis);
 }
-.dlg-ok:hover { background: var(--success-emphasis); }
+.dlg-ok:hover { background: var(--accent-emphasis); }
 
 .dlg-danger {
   background: var(--danger-solid);

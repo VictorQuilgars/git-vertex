@@ -587,8 +587,8 @@
   color: var(--text-tertiary); font-size: var(--text-sm); font-weight: var(--weight-semibold);
   cursor: not-allowed; transition: all var(--dur-fast);
 }
-.st-commit-btn.ready { background: var(--success-strong); border-color: var(--success-emphasis); color: var(--text-on-emphasis); cursor: pointer; }
-.st-commit-btn.ready:hover:not(:disabled) { background: var(--success-emphasis); }
+.st-commit-btn.ready { background: var(--accent-strong); border-color: var(--accent-emphasis); color: var(--text-on-emphasis); cursor: pointer; }
+.st-commit-btn.ready:hover:not(:disabled) { background: var(--accent-emphasis); }
 .st-commit-btn:disabled { opacity: 0.5; }
 
 .st-dir-hint { color: var(--text-disabled); font-size: var(--text-tiny); margin-left: var(--space-2xs); }
@@ -1016,7 +1016,7 @@
 }
 .rp-cf-btn:hover { background: var(--surface-active); border-color: var(--border-strong); }
 .rp-cf-btn--ok { color: var(--success); }
-.rp-cf-btn--ok:hover { background: var(--success-strong); color: var(--text-on-emphasis); border-color: var(--success-emphasis); }
+.rp-cf-btn--ok:hover { background: var(--accent-strong); color: var(--text-on-emphasis); border-color: var(--accent-emphasis); }
 
 /* The unmerged state git reports for this path. Only shown when the host
    supplies it — see conflictKinds in RightPanel.tsx. */
@@ -1087,7 +1087,7 @@
   color: var(--text-on-emphasis) !important;
 }
 .rp-btn-commit:hover:not(:disabled) {
-  background: var(--success-strong) !important;
+  background: var(--accent-strong) !important;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1500,20 +1500,20 @@
   gap: var(--space-md);
   padding: var(--space-lg) var(--space-xl);
   border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in srgb, var(--success-emphasis) var(--alpha-strong), transparent);
-  background: color-mix(in srgb, var(--success-emphasis) var(--alpha-faint), transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-emphasis) var(--alpha-strong), transparent);
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-faint), transparent);
   color: var(--text-tertiary);
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   cursor: default;
 }
 .st2-commit-btn.ready {
-  background: var(--success-strong);
-  border-color: var(--success-emphasis);
+  background: var(--accent-strong);
+  border-color: var(--accent-emphasis);
   color: var(--text-on-emphasis);
   cursor: pointer;
 }
-.st2-commit-btn.ready:hover:not(:disabled) { background: var(--success-emphasis); }
+.st2-commit-btn.ready:hover:not(:disabled) { background: var(--accent-emphasis); }
 .st2-commit-btn:disabled { cursor: default; }
 .st2-abort {
   flex: 0 0 auto;

@@ -93,6 +93,11 @@
   --accent-static: var(--seed-aqua);
   --accent-hover: color-mix(in oklab, var(--seed-aqua) 78%, var(--seed-text));
   --accent-emphasis: color-mix(in oklab, var(--seed-aqua) 52%, #000000);
+  /* The fill of a primary button. The board is explicit — "boutons pleins :
+     encre sur aqua", aqua being the human act — but only the success family
+     had a -strong, so every confirm button in the app was reaching for the
+     STATE colour to get a filled background. */
+  --accent-strong: color-mix(in oklab, var(--seed-aqua) 48%, #000000);
   /* Semantic */
   --success: var(--seed-success);
   --success-hover: color-mix(in oklab, var(--seed-success) 78%, var(--seed-text));

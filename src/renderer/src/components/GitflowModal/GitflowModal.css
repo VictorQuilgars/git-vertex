@@ -55,15 +55,15 @@
 .gf-init p { margin: 0 0 var(--space-2xl); }
 
 .gf-init-btn {
-  background: var(--success-strong);
-  border: 1px solid var(--success-emphasis);
+  background: var(--accent-strong);
+  border: 1px solid var(--accent-emphasis);
   color: var(--text-on-emphasis);
   padding: var(--space-md) var(--space-2xl);
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   cursor: pointer;
 }
-.gf-init-btn:hover:not(:disabled) { background: var(--success-emphasis); }
+.gf-init-btn:hover:not(:disabled) { background: var(--accent-emphasis); }
 .gf-init-btn:disabled { opacity: 0.5; cursor: default; }
 
 .gf-sub {

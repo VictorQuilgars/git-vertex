@@ -178,7 +178,7 @@
 .pm-cancel:hover { border-color: var(--text-tertiary); color: var(--text-primary); }
 
 .pm-push {
-  background: var(--success-strong);
+  background: var(--accent-strong);
   border: none;
   color: var(--text-on-emphasis);
   padding: var(--space-sm) var(--space-3xl);
@@ -189,5 +189,5 @@
   transition: background var(--dur-base);
   white-space: nowrap;
 }
-.pm-push:hover:not(:disabled) { background: var(--success-emphasis); }
+.pm-push:hover:not(:disabled) { background: var(--accent-emphasis); }
 .pm-push:disabled { opacity: 0.5; cursor: not-allowed; }

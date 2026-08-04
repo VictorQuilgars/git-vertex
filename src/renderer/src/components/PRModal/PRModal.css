@@ -193,8 +193,8 @@
 
 .pr-btn-primary {
   padding: var(--space-md) var(--space-2xl);
-  background: var(--success-strong);
-  border: 1px solid var(--success-emphasis);
+  background: var(--accent-strong);
+  border: 1px solid var(--accent-emphasis);
   border-radius: var(--radius-md);
   color: var(--text-on-emphasis);
   font-size: var(--text-base);
@@ -205,7 +205,7 @@
   align-items: center;
   gap: var(--space-sm);
 }
-.pr-btn-primary:hover:not(:disabled) { background: var(--success-emphasis); transform: translateY(-1px); }
+.pr-btn-primary:hover:not(:disabled) { background: var(--accent-emphasis); transform: translateY(-1px); }
 .pr-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .pr-btn-secondary {

@@ -45,7 +45,7 @@
 
 .wn-badge {
   display: inline-block;
-  background: linear-gradient(135deg, var(--success), var(--accent-static));
+  background: linear-gradient(135deg, var(--accent-static), var(--purple-soft));
   color: var(--text-on-bright);
   font-weight: var(--weight-bold);
   font-size: var(--text-base);
@@ -72,7 +72,7 @@
 
 .wn-cta {
   margin-top: var(--space-4xl);
-  background: var(--success-strong);
+  background: var(--accent-strong);
   color: var(--text-on-emphasis);
   border: none;
   padding: var(--space-md) var(--space-2xl);
@@ -81,4 +81,4 @@
   font-size: var(--text-md);
   cursor: pointer;
 }
-.wn-cta:hover { background: var(--success-emphasis); }
+.wn-cta:hover { background: var(--accent-emphasis); }

@@ -156,7 +156,7 @@ describe('token discipline', () => {
   ]
 
   const SOLID_FILL =
-    /background(-color)?:[^;]*var\(--(accent|accent-emphasis|success|success-strong|success-emphasis|danger|danger-solid|purple|purple-deep|warning|install-bg|pr-merged|amend-confirm-bg|amend-cancel-bg)\)|background:\s*linear-gradient/
+    /background(-color)?:[^;]*var\(--(accent|accent-emphasis|accent-strong|success|success-strong|success-emphasis|danger|danger-solid|purple|purple-deep|warning|install-bg|pr-merged|amend-confirm-bg|amend-cancel-bg)\)|background:\s*linear-gradient/
 
   // A theme is a block of SEEDS. Two ways that stops being true, and both fail
   // silently rather than loudly:

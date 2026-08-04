@@ -8,8 +8,8 @@
   padding: var(--space-sm) var(--space-xl); border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: var(--weight-semibold);
 }
 .rm-btn:hover { background: var(--surface-active); color: var(--text-primary); }
-.rm-btn-primary { background: var(--success-strong); border-color: var(--success-emphasis); color: var(--text-on-emphasis); }
-.rm-btn-primary:hover { background: var(--success-emphasis); }
+.rm-btn-primary { background: var(--accent-strong); border-color: var(--accent-emphasis); color: var(--text-on-emphasis); }
+.rm-btn-primary:hover { background: var(--accent-emphasis); }
 .rm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .rm-filters { display: flex; align-items: center; gap: var(--space-xl); padding: var(--space-xs) var(--space-4xl) var(--space-xl); border-bottom: 1px solid var(--border-muted); }

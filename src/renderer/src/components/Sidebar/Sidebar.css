@@ -335,8 +335,8 @@
 
 .sb-open-btn {
   padding: var(--space-md) var(--space-xl);
-  background: var(--success-strong);
-  border: 1px solid var(--success-emphasis);
+  background: var(--accent-strong);
+  border: 1px solid var(--accent-emphasis);
   border-radius: var(--radius-md);
   color: var(--text-on-emphasis);
   font-size: var(--text-sm);
@@ -345,7 +345,7 @@
   margin-bottom: var(--space-xl);
   transition: background var(--dur-base);
 }
-.sb-open-btn:hover { background: var(--success-emphasis); }
+.sb-open-btn:hover { background: var(--accent-emphasis); }
 
 .sb-clone-btn {
   background: var(--surface-hover);

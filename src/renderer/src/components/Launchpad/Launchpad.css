@@ -181,13 +181,13 @@
 /* Split action button — stays on one line */
 .lp-split { position: relative; display: inline-flex; white-space: nowrap; vertical-align: middle; }
 .lp-split-main, .lp-split-caret {
-  background: var(--success-strong); border: 1px solid var(--success-emphasis); color: var(--text-on-emphasis); cursor: pointer;
+  background: var(--accent-strong); border: 1px solid var(--accent-emphasis); color: var(--text-on-emphasis); cursor: pointer;
   font-size: var(--text-sm); font-weight: var(--weight-semibold); padding: var(--space-xs) var(--space-xl); white-space: nowrap;
 }
 .lp-split-main { border-radius: var(--radius-md) 0 0 var(--radius-md); border-right: none; }
 .lp-split-caret { border-radius: 0 var(--radius-md) var(--radius-md) 0; padding: var(--space-xs) var(--space-md); }
-.lp-split-solo { border-radius: var(--radius-md); border-right: 1px solid var(--success-emphasis); }
-.lp-split-main:hover, .lp-split-caret:hover { background: var(--success-emphasis); }
+.lp-split-solo { border-radius: var(--radius-md); border-right: 1px solid var(--accent-emphasis); }
+.lp-split-main:hover, .lp-split-caret:hover { background: var(--accent-emphasis); }
 
 /* WIPs */
 .lp-wip-badge {
