@@ -260,6 +260,50 @@ describe('token discipline', () => {
       .toEqual(shapesOf(icon).filter(s => !s.startsWith('d=M204 422')))
   })
 
+  // Two families, and the split only holds if nothing crosses it.
+  //
+  // components/Icon is ours: stroke drawings that inherit currentColor and
+  // follow the theme. components/BrandMark is somebody else's: fixed geometry
+  // we display and may not redraw. A brand path pasted loose in a component is
+  // how the octocat ended up in App.tsx three times, and how our own `vscode`
+  // icon ended up competing with Microsoft's actual logo for the same meaning.
+  describe('brand marks stay in BrandMark', () => {
+    const BRAND = path.join(SRC, 'components/BrandMark/BrandMark.tsx')
+    // A few bytes of each mark, enough to spot a paste and not enough to match
+    // anything else.
+    const SIGNATURES: [string, string][] = [
+      ['GitHub octocat', 'M8 0C3.58 0 0 3.58 0 8c0 3.54'],
+      ['Git logo', 'M15.698 7.287 8.712.302'],
+    ]
+
+    it('holds every third-party path it claims to', () => {
+      const src = fs.readFileSync(BRAND, 'utf8')
+      for (const [label, sig] of SIGNATURES) {
+        expect([label, src.includes(sig)]).toEqual([label, true])
+      }
+    })
+
+    it('keeps them out of every other component', () => {
+      const offenders: string[] = []
+      for (const f of COMPONENT_TSX) {
+        if (path.resolve(f) === BRAND) continue
+        const src = fs.readFileSync(f, 'utf8')
+        for (const [label, sig] of SIGNATURES) {
+          if (src.includes(sig)) offenders.push(`${rel(f)}  ${label}`)
+        }
+      }
+      expect(offenders).toEqual([])
+    })
+
+    // `editor` is a category. The product is Microsoft's and lives in BrandMark.
+    it('does not name an icon after a third-party product', () => {
+      const icons = fs.readFileSync(path.join(SRC, 'components/Icon/Icon.tsx'), 'utf8')
+      const names = [...icons.matchAll(/^\s{2}([a-zA-Z]+): \(C: Ink\)/gm)].map(m => m[1])
+      expect(names.length).toBeGreaterThan(20)
+      expect(names.filter(n => /vscode|github|gitlab|jetbrains/i.test(n))).toEqual([])
+    })
+  })
+
   it('uses --text-on-emphasis only on a filled emphasis surface', () => {
     const offenders: string[] = []
     for (const f of COMPONENT_CSS) {

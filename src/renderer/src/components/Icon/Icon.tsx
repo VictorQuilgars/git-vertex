@@ -20,6 +20,10 @@
 //    daylight. Both are listed in DENSE below and refuse to go under 20px — ask
 //    for a smaller size and you get 20, rather than a smudge.
 //
+// `editor` is a code editor as a CATEGORY, not Visual Studio Code the product.
+// Microsoft's actual mark lives in components/BrandMark, because a logo that
+// belongs to someone else may not be redrawn to match our hand.
+//
 // Colours: everything inherits `currentColor` except the few strokes that carry
 // meaning — a conflict is always the conflict colour, a diff's + and - are
 // always add and remove. Those come from tokens, so they follow the theme.
@@ -60,7 +64,7 @@ const PAINT: Record<string, (C: Ink) => JSX.Element> = {
   tag: (C: Ink) => <><path d="M4.5 5v6l9 9 6-6-9-9h-6z"/><circle cx="8.2" cy="8.7" r="1.5"/></>,
   terminal: (C: Ink) => <><rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M7 9.5l3 2.8-3 2.8M13 15.5h4"/></>,
   undo: (C: Ink) => <><path d="M4 9.5h10.5a5 5 0 0 1 0 10H9M7.5 6L4 9.5 7.5 13"/></>,
-  vscode: (C: Ink) => <><rect x="4.5" y="3" width="15" height="18" rx="1.5"/><path d="M9.5 3v18"/><path d="M13.5 10l-1.8 2.2 1.8 2.2M16.8 10l1.8 2.2-1.8 2.2"/></>,
+  editor: (C: Ink) => <><rect x="4.5" y="3" width="15" height="18" rx="1.5"/><path d="M9.5 3v18"/><path d="M13.5 10l-1.8 2.2 1.8 2.2M16.8 10l1.8 2.2-1.8 2.2"/></>,
   worktree: (C: Ink) => <><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M12 7.5v2.6M12 13.9v2.6"/><circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/></>,
 }
 
