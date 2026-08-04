@@ -200,3 +200,48 @@ describe('splash timing', () => {
       .toEqual([])
   })
 })
+
+// ── The handover ────────────────────────────────────────────────────────────
+//
+// The splash is alwaysOnTop, so every millisecond it outlives the reveal is a
+// millisecond it spends covering a live, clickable app. That is not a thing you
+// notice in a test or a screenshot — only by launching — and it was measured at
+// 225ms: a 120ms grace that seemed harmless, plus a close() that is not an
+// instruction to disappear but a teardown the window stays on screen for.
+//
+// Both halves are guarded here because both were mine, and neither was caught
+// by anything.
+describe('splash handover', () => {
+  const main = fs.readFileSync(path.resolve(__dirname, '../index.ts'), 'utf8')
+  const body = (fn: string) => {
+    const at = main.indexOf(`function ${fn}(`)
+    expect(at).toBeGreaterThan(-1)
+    return main.slice(at, main.indexOf('\n}', at))
+  }
+
+  it('takes the splash off screen with hide(), never with close()', () => {
+    const fn = body('closeSplash')
+    expect(fn).toMatch(/\.hide\(\)/)
+    // close() returns before the window is gone. destroy() is fine — it runs
+    // after the hide, with nothing left on screen.
+    expect(fn).not.toMatch(/\.close\(\)/)
+  })
+
+  it('hides before it reveals, in the same tick', () => {
+    const at = main.indexOf("mainWindow.on('ready-to-show'")
+    expect(at).toBeGreaterThan(-1)
+    const reveal = main.slice(at, main.indexOf('})', main.indexOf('mainWindow.show()', at)))
+    const hide = reveal.indexOf('closeSplash()')
+    const show = reveal.indexOf('mainWindow.show()')
+    expect(hide).toBeGreaterThan(-1)
+    expect(show).toBeGreaterThan(-1)
+    expect(hide).toBeLessThan(show)
+    // And with nothing between them that could defer one past the other.
+    expect(reveal.slice(hide, show)).not.toMatch(/setTimeout|setImmediate|await|then\(/)
+  })
+
+  it('puts no delay between the two', () => {
+    // The only timer on this path is the hold itself, before either happens.
+    expect(body('closeSplash')).not.toMatch(/setTimeout/)
+  })
+})

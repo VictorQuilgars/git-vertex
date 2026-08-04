@@ -114,14 +114,24 @@ function splashRemaining(): number {
   return Math.max(0, full - (Date.now() - splashShownAt))
 }
 
+/**
+ * Takes the splash OFF SCREEN, synchronously, and disposes of it afterwards.
+ *
+ * The two halves are separate on purpose. `close()` is not an instruction to
+ * disappear: it fires a close event, unloads the page and tears the window
+ * down, and the splash stays on screen for all of it — alwaysOnTop, so on top
+ * of the app that has just appeared. Measured at 225ms with a close() and a
+ * 120ms grace before it, which is plainly visible.
+ *
+ * `hide()` unmaps the window in this tick, so it lands in the same frame as the
+ * reveal it is paired with. The teardown then happens with nothing on screen.
+ */
 function closeSplash(): void {
   if (!splashWindow) return
   const win = splashWindow
   splashWindow = null
-  // A short overlap, not an immediate close: the main window is painted but the
-  // compositor has not necessarily put it on screen, and tearing the splash
-  // down in the same tick can show the desktop between the two.
-  setTimeout(() => { if (!win.isDestroyed()) win.close() }, 120)
+  if (!win.isDestroyed()) win.hide()
+  setImmediate(() => { if (!win.isDestroyed()) win.destroy() })
 }
 
 // ── Repo file watcher ─────────────────────────────────────────
@@ -224,8 +234,11 @@ function createWindow(): void {
     // then hand over. Zero on a slow boot, where ready-to-show is already late.
     setTimeout(() => {
       if (!mainWindow || mainWindow.isDestroyed()) return
-      mainWindow.show()
+      // Splash off FIRST, then the reveal, both in this tick so the compositor
+      // sees one frame. The other order leaves the splash over a live app for
+      // however long its teardown takes, which is the bug this pairing fixes.
       closeSplash()
+      mainWindow.show()
     }, splashRemaining())
   })
 
