@@ -19,7 +19,10 @@ import {
 } from './git-service'
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
-import { splashHtml, SPLASH_ANIMATION_MS, SPLASH_STILL_MS } from './splash'
+import {
+  splashHtml, themeCanvas, SPLASH_THEMES, SPLASH_ANIMATION_MS, SPLASH_STILL_MS,
+} from './splash'
+import type { SplashTheme } from './splash'
 import iconPng from '../../resources/icon.png?asset'
 import iconIco from '../../resources/icon.ico?asset'
 
@@ -70,7 +73,28 @@ async function applySshConfig(): Promise<void> {
 // Small branded splash shown while the main window boots (and right after an
 // update relaunches the app). Frameless + transparent so only the rounded card
 // shows. Self-contained HTML, so nothing extra needs packaging.
-function createSplash(): void {
+/**
+ * The theme the user last chose, for the two things that are painted before the
+ * renderer exists: the splash and the main window's background.
+ *
+ * It comes straight out of settings.json — SettingsModal writes `theme` there,
+ * and SettingsContext reads it back through settings:get-all. The localStorage
+ * mirror is only so main.tsx can beat React to the first paint; it is not the
+ * record, and main could not read it anyway.
+ *
+ * Falls back to the dark theme on anything unexpected, which also covers the
+ * user who has never opened preferences.
+ */
+function bootTheme(): SplashTheme {
+  try {
+    const t = readSettings().theme
+    return (SPLASH_THEMES as string[]).includes(t) ? (t as SplashTheme) : 'aqua-dark'
+  } catch {
+    return 'aqua-dark'
+  }
+}
+
+function createSplash(theme: SplashTheme): void {
   splashWindow = new BrowserWindow({
     width: 360,
     height: 420,
@@ -86,7 +110,8 @@ function createSplash(): void {
     backgroundColor: '#00000000',
     webPreferences: { sandbox: true }
   })
-  splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml(app.getVersion())))
+  splashWindow.loadURL('data:text/html;charset=utf-8,'
+    + encodeURIComponent(splashHtml(app.getVersion(), theme)))
   splashWindow.once('ready-to-show', () => { splashShownAt = Date.now(); splashWindow?.show() })
 }
 
@@ -196,7 +221,8 @@ function notify(title: string, body: string, settingKey?: string, defaultEnabled
 }
 
 function createWindow(): void {
-  createSplash()
+  const theme = bootTheme()
+  createSplash(theme)
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -206,9 +232,12 @@ function createWindow(): void {
     // renderer's <title> takes over — keep it the product name, not "git-gui".
     title: 'Git Vertex',
     // What shows between the window appearing and the renderer's first paint.
-    // A snapshot of --seed-canvas, for the same reason the splash carries one:
-    // the main process cannot read tokens.css. Guarded by splash-palette.test.
-    backgroundColor: '#0E1116',
+    // A snapshot of the theme's --seed-canvas, for the same reason the splash
+    // carries one: the main process cannot read tokens.css. It used to be a
+    // fixed dark value, so a light-theme user got a black flash at the end of
+    // every launch — the very thing main.tsx's pre-mount read exists to avoid,
+    // one layer further out. Guarded by splash-palette.test.
+    backgroundColor: themeCanvas(theme),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     // Windows needs a .ico (an .icns is not a valid window icon there and left
     // the taskbar/title-bar showing the default Electron logo); Linux uses the

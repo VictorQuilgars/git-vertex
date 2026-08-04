@@ -5,8 +5,9 @@
 // ── Why the palette is written out here ─────────────────────────────────────
 //
 // This runs in the MAIN process, before any renderer exists, so it cannot read
-// tokens.css. The values below are a SNAPSHOT of the seeds, and
-// __tests__/splash-palette.test.ts fails if they drift from the real ones.
+// tokens.css. The values below are a SNAPSHOT of the seeds — of every theme's
+// seeds, since the launch has to look like the theme the user actually chose —
+// and __tests__/splash-palette.test.ts fails if any of them drift.
 // That guard exists because this file missed the aqua/iris migration entirely
 // and went on showing the old GitHub palette at every launch.
 //
@@ -64,7 +65,40 @@ export const SPLASH_ANIMATION_MS = Math.max(
  */
 export const SPLASH_STILL_MS = 800
 
-export function splashHtml(version: string): string {
+/**
+ * One entry per `[data-theme]` block in tokens.css, holding the six seeds the
+ * splash actually paints with. Everything else it needs — hairlines, the sheen,
+ * the track — is color-mixed off `text` below rather than listed here, so it
+ * follows whichever theme is in play instead of being a third set of literals.
+ *
+ * `shadow` is not a seed. It is how black the card's drop shadow is, and a
+ * light card under a 0.85 shadow looks like a hole rather than a card.
+ */
+const PALETTE = {
+  'aqua-dark': {
+    canvas: '#0E1116', surface: '#151A21', aqua: '#3FD8C2',
+    iris: '#9B8FF5', text: '#E8ECF1', muted: '#808B9B', shadow: 0.85,
+  },
+  'aqua-light': {
+    canvas: '#EDF0F5', surface: '#E2E6EE', aqua: '#0D826F',
+    iris: '#5F4FC9', text: '#141922', muted: '#565F73', shadow: 0.22,
+  },
+} as const
+
+export type SplashTheme = keyof typeof PALETTE
+export const SPLASH_THEMES = Object.keys(PALETTE) as SplashTheme[]
+
+/**
+ * What the main window opens on, before the renderer's first paint. Same
+ * snapshot, same reason — and on a light theme the old fixed dark value was a
+ * black flash at the end of every launch.
+ */
+export function themeCanvas(theme: SplashTheme): string {
+  return PALETTE[theme].canvas
+}
+
+export function splashHtml(version: string, theme: SplashTheme = 'aqua-dark'): string {
+  const p = PALETTE[theme] ?? PALETTE['aqua-dark']
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,13 +106,19 @@ export function splashHtml(version: string): string {
 <style>
   :root {
     /* Snapshot of tokens.css seeds — see the note above. */
-    --canvas:  #0E1116;
-    --surface: #151A21;
-    --aqua:    #3FD8C2;
-    --iris:    #9B8FF5;
-    --text:    #E8ECF1;
-    --muted:   #808B9B;
-    --hair:    rgba(232,236,241,0.07);
+    --canvas:  ${p.canvas};
+    --surface: ${p.surface};
+    --aqua:    ${p.aqua};
+    --iris:    ${p.iris};
+    --text:    ${p.text};
+    --muted:   ${p.muted};
+    /* Mixed off the text seed rather than written down, so they invert with the
+       theme: a light card needs a dark hairline, not an invisible white one.
+       color-mix() is safe here — this page only ever runs in our own Chromium. */
+    --hair:  color-mix(in oklab, var(--text) 8%, transparent);
+    --sheen: color-mix(in oklab, var(--text) 4%, transparent);
+    --rail:  color-mix(in oklab, var(--text) 7%, transparent);
+    --shadow: ${p.shadow};
   }
   * { box-sizing: border-box; }
   html, body {
@@ -97,9 +137,9 @@ export function splashHtml(version: string): string {
     border: 1px solid var(--hair);
     background: radial-gradient(70% 60% at 50% 40%, var(--surface) 0%, var(--canvas) 72%);
     box-shadow:
-      0 1px 0 rgba(255,255,255,0.04) inset,
-      0 26px 60px -18px rgba(0,0,0,0.85),
-      0 6px 20px -10px rgba(0,0,0,0.6);
+      0 1px 0 var(--sheen) inset,
+      0 26px 60px -18px rgba(0,0,0,var(--shadow)),
+      0 6px 20px -10px rgba(0,0,0,calc(var(--shadow) * 0.7));
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 26px; overflow: hidden;
     -webkit-app-region: drag;
@@ -146,10 +186,13 @@ export function splashHtml(version: string): string {
   .wordmark { display: flex; flex-direction: column; align-items: center; gap: 12px;
     opacity: 0; animation: fade-in ${T.wordFade}ms ease ${T.wordDelay}ms forwards; }
   .name { font-size: 21px; font-weight: 600; letter-spacing: .05em; color: var(--text); }
-  .name b { color: #fff; font-weight: 650; }
+  /* Weight alone, no colour. "Vertex" used to be pinned to #fff, which is an
+     emphasis on a dark card and an erasure on a light one — and there is no
+     seed for "stronger than the text" in the light theme to point at instead. */
+  .name b { font-weight: 700; }
 
   .track { position: relative; width: 128px; height: 3px; border-radius: 3px;
-    background: rgba(232,236,241,0.06); overflow: hidden; }
+    background: var(--rail); overflow: hidden; }
   .track::after {
     content: ""; position: absolute; top: 0; left: 0; height: 100%; width: 42%; border-radius: 3px;
     background: linear-gradient(90deg, transparent, var(--aqua), var(--iris), transparent);

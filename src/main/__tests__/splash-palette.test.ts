@@ -1,6 +1,8 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { splashHtml, SPLASH_ANIMATION_MS, SPLASH_STILL_MS } from '../splash'
+import {
+  splashHtml, themeCanvas, SPLASH_THEMES, SPLASH_ANIMATION_MS, SPLASH_STILL_MS,
+} from '../splash'
 
 // The splash runs in the MAIN process, before any renderer exists, so it cannot
 // read tokens.css — its palette and its mark are written out by hand.
@@ -12,25 +14,35 @@ import { splashHtml, SPLASH_ANIMATION_MS, SPLASH_STILL_MS } from '../splash'
 const TOKENS = path.resolve(__dirname, '../../renderer/src/tokens.css')
 const ICON = path.resolve(__dirname, '../../../resources/icon.svg')
 
-const seeds = (() => {
+// Every theme's seeds, keyed the way tokens.css names its blocks. The default
+// block carries two selectors (`:root,` and `[data-theme="aqua-dark"]`), which
+// is why the key comes from the data-theme when there is one.
+const seedsByTheme: Record<string, Record<string, string>> = (() => {
   const css = fs.readFileSync(TOKENS, 'utf8')
-  // The default block only — a theme's seeds are not what the splash snapshots.
-  // Both markers are matched at the START of a line: the file's header comment
-  // names the light theme too, and indexOf would find that first.
-  const start = /^:root,$/m.exec(css)!.index
-  const end = /^\[data-theme="aqua-light"\]/m.exec(css)!.index
-  const block = css.slice(start, end)
-  return Object.fromEntries(
-    [...block.matchAll(/--seed-([a-z0-9-]+):\s*(#[0-9A-Fa-f]{3,8})/g)].map(m => [m[1], m[2].toUpperCase()]),
-  )
+  const out: Record<string, Record<string, string>> = {}
+  for (const b of css.matchAll(/^((?::root,?\s*)?\[data-theme="([^"]+)"\][^{]*)\{([\s\S]*?)^\}/gm)) {
+    out[b[2]] = Object.fromEntries(
+      [...b[3].matchAll(/--seed-([a-z0-9-]+):\s*(#[0-9A-Fa-f]{3,8})/g)]
+        .map(m => [m[1], m[2].toUpperCase()]),
+    )
+  }
+  return out
 })()
 
-const html = splashHtml('9.9.9')
+// The splash renders one page per theme, and both are asserted: a light theme
+// that nothing checks is a light theme that quietly keeps the dark palette.
+const htmlByTheme = Object.fromEntries(
+  SPLASH_THEMES.map(t => [t, splashHtml('9.9.9', t)]),
+) as Record<string, string>
+
+// Timing and geometry are theme-independent, so those suites read one page.
+const html = htmlByTheme['aqua-dark']
 
 describe('splash palette', () => {
-  it('reads the seeds it is meant to compare against', () => {
-    expect(Object.keys(seeds).length).toBeGreaterThan(10)
-    expect(seeds.aqua).toMatch(/^#[0-9A-F]{6}$/)
+  it('finds a seed block for every theme the splash offers', () => {
+    for (const t of SPLASH_THEMES) {
+      expect(Object.keys(seedsByTheme[t] ?? {}).length).toBeGreaterThan(10)
+    }
   })
 
   // Each --var in the splash maps to the seed it snapshots.
@@ -43,18 +55,39 @@ describe('splash palette', () => {
     ['--muted', 'text-3'],
   ]
 
-  it.each(MIRRORED)('%s still equals the %s seed', (cssVar, seed) => {
-    const m = new RegExp(`${cssVar}:\\s*(#[0-9A-Fa-f]{3,8})`).exec(html)
-    expect(m).not.toBeNull()
-    expect(m![1].toUpperCase()).toBe(seeds[seed])
-  })
+  for (const theme of SPLASH_THEMES) {
+    describe(theme, () => {
+      it.each(MIRRORED)('%s still equals the %s seed', (cssVar, seed) => {
+        const m = new RegExp(`${cssVar}:\\s*(#[0-9A-Fa-f]{3,8})`).exec(htmlByTheme[theme])
+        expect(m).not.toBeNull()
+        expect(m![1].toUpperCase()).toBe(seedsByTheme[theme][seed])
+      })
 
-  it('carries no colour the palette does not define', () => {
-    const inSplash = new Set(
-      [...html.matchAll(/#[0-9A-Fa-f]{6}\b/g)].map(m => m[0].toUpperCase()),
-    )
-    const known = new Set([...Object.values(seeds), '#FFFFFF'])
-    expect([...inSplash].filter(c => !known.has(c))).toEqual([])
+      it('carries no colour the palette does not define', () => {
+        const inSplash = new Set(
+          [...htmlByTheme[theme].matchAll(/#[0-9A-Fa-f]{6}\b/g)].map(m => m[0].toUpperCase()),
+        )
+        const known = new Set(Object.values(seedsByTheme[theme]))
+        expect([...inSplash].filter(c => !known.has(c))).toEqual([])
+      })
+
+      // The window the user actually lands in carries a snapshot too — it is
+      // what shows between the window appearing and the renderer's first paint.
+      // A fixed dark value there was a black flash at the end of every launch
+      // for anyone on a light theme.
+      it('opens the main window on this theme\'s canvas seed', () => {
+        expect(themeCanvas(theme).toUpperCase()).toBe(seedsByTheme[theme].canvas)
+      })
+    })
+  }
+
+  it('takes its background from the theme, not from a literal', () => {
+    const main = fs.readFileSync(path.resolve(__dirname, '../index.ts'), 'utf8')
+    expect(main).toMatch(/backgroundColor: themeCanvas\(/)
+    // No OPAQUE literal. The splash window's own '#00000000' stays — that is
+    // eight digits ending in alpha 00, i.e. "transparent", which is what makes
+    // the frameless card a card rather than a grey box.
+    expect(main.match(/backgroundColor: '#[0-9A-Fa-f]{6}'/g)).toBeNull()
   })
 
   // The splash draws the mark by hand too, for the same reason. Two differences
@@ -81,16 +114,6 @@ describe('splash palette', () => {
     const fromIcon = fs.readFileSync(ICON, 'utf8')
     expect(fromSplash.length).toBeGreaterThan(6)
     expect(fromSplash).toEqual(shapes(fromIcon))
-  })
-
-  // The window the user actually lands in carries a snapshot too — it is what
-  // shows between the window appearing and the renderer's first paint, so it
-  // was flashing the old GitHub canvas at the end of every launch.
-  it('opens the main window on the canvas seed', () => {
-    const main = fs.readFileSync(path.resolve(__dirname, '../index.ts'), 'utf8')
-    const m = /backgroundColor: '(#[0-9A-Fa-f]{6})'/.exec(main)
-    expect(m).not.toBeNull()
-    expect(m![1].toUpperCase()).toBe(seeds.canvas)
   })
 })
 
