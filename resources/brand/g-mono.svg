@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- One ink. Now that the iris commits are DOTS rather than a colour, the
-       proposed/sealed distinction survives monochrome — it is carried by
-       shape. The dashed version could not do that. -->
+  <!-- currentColor. Every cut is one ink now, so what makes this file special is
+       only that it names no ink at all: embedded inline, it follows whatever
+       theme is on. Use it in the app and anywhere the surrounding colour is
+       not known in advance. It falls back to black in an <img>, so the two
+       concrete cuts below still exist. -->
   <path d="M142.5 119.2L160.2 166.6" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
   <path d="M183.8 229.4L202.2 278.6" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
   <path d="M225.8 341.4L247.2 398.6" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>

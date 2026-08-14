@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <!-- 32px. Head rings only; the vertex still holds a hole at this size. -->
-  <path d="M147.0 131.4L242.0 384.5" stroke="#3FD8C2" stroke-width="38" stroke-linecap="round"/>
-  <circle cx="130" cy="86" r="38" stroke="#3FD8C2" stroke-width="17"/>
-  <path d="M365.0 131.4L270.0 384.5" stroke="#9B8FF5" stroke-width="38" stroke-linecap="round"/>
-  <circle cx="382" cy="86" r="38" stroke="#9B8FF5" stroke-width="17"/>
+  <path d="M147.0 131.4L242.0 384.5" stroke="#E8ECF1" stroke-width="38" stroke-linecap="round"/>
+  <circle cx="130" cy="86" r="38" stroke="#E8ECF1" stroke-width="17"/>
+  <path d="M365.0 131.4L270.0 384.5" stroke="#E8ECF1" stroke-width="38" stroke-linecap="round"/>
+  <circle cx="382" cy="86" r="38" stroke="#E8ECF1" stroke-width="17"/>
   <path d="M204 422a52 52 0 1 0 104 0a52 52 0 1 0 -104 0ZM235 422a21 21 0 1 0 42 0a21 21 0 1 0 -42 0Z" fill="#E8ECF1" stroke="none" fill-rule="evenodd"/>
 </svg>

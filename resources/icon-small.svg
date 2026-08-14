@@ -4,10 +4,10 @@
        are 9 units of stroke on a 416-unit mark, so they go sub-pixel and the
        node turns to grey mush. Here they are gone and the rest is
        re-weighted. Same generator as icon.svg. -->
-  <rect width="512" height="512" rx="112" fill="#151A21"/>
-  <path d="M147.0 131.4L242.0 384.5" stroke="#3FD8C2" stroke-width="38" stroke-linecap="round"/>
-  <circle cx="130" cy="86" r="38" stroke="#3FD8C2" stroke-width="17"/>
-  <path d="M365.0 131.4L270.0 384.5" stroke="#9B8FF5" stroke-width="38" stroke-linecap="round"/>
-  <circle cx="382" cy="86" r="38" stroke="#9B8FF5" stroke-width="17"/>
-  <path d="M204 422a52 52 0 1 0 104 0a52 52 0 1 0 -104 0ZM235 422a21 21 0 1 0 42 0a21 21 0 1 0 -42 0Z" fill="#E8ECF1" stroke="none" fill-rule="evenodd"/>
+  <rect width="512" height="512" rx="112" fill="#EDF0F5"/>
+  <path d="M147.0 131.4L242.0 384.5" stroke="#141922" stroke-width="38" stroke-linecap="round"/>
+  <circle cx="130" cy="86" r="38" stroke="#141922" stroke-width="17"/>
+  <path d="M365.0 131.4L270.0 384.5" stroke="#141922" stroke-width="38" stroke-linecap="round"/>
+  <circle cx="382" cy="86" r="38" stroke="#141922" stroke-width="17"/>
+  <path d="M204 422a52 52 0 1 0 104 0a52 52 0 1 0 -104 0ZM235 422a21 21 0 1 0 42 0a21 21 0 1 0 -42 0Z" fill="#141922" stroke="none" fill-rule="evenodd"/>
 </svg>

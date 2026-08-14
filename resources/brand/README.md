@@ -10,7 +10,19 @@ Everything here is generated. The two scripts that write it live in
     python3 lockup.py                     # wordmark + lockups
 
 **To change the logo's colours, change the seeds in `tokens.css` and re-run.**
-Nothing here is hand-edited.
+Nothing here is hand-edited, and nothing here is copied by hand either — the two
+scripts write this directory directly.
+
+## One ink
+
+The mark is achromatic. It used to be told apart twice over — the left branch
+aqua, the right one iris AND dotted — and the dotting carries the sealed /
+proposed distinction on its own. Set in the theme's text ink, the mark sits
+correctly on any theme rather than only on the one it was drawn for, which is
+what a mark has to do once the interface palette belongs to the user.
+
+The dark/light pair below is therefore not two colour schemes; it is one ink,
+cut for a dark surface or a light one.
 
 ## Which file goes where
 
@@ -25,13 +37,13 @@ These carry their own surface, or adapt on their own:
 
 | File | Use |
 |---|---|
-| `g-mono.svg` | one ink, inherits `currentColor` — README badge, macOS template glyph |
+| `g-mono.svg` | names no ink at all, inherits `currentColor` — inline in the app, macOS template glyph |
 | `g-toolbar-24.svg` | 24px monochrome, head nodes go solid |
 | `g-sidebar-16.svg` | 16px monochrome, silhouette only |
-| `g-negative.svg` | knocked out of an aqua fill — sticker, badge, filled button |
+| `g-negative.svg` | knocked out of an ink plate — sticker, badge, filled button |
 | `g-avatar.svg` | round crop for social profiles |
 | `g-watermark.svg` | empty states and document backgrounds; set opacity on the `<svg>` |
-| `g-tui.txt` | the terminal splash, 256-colour ANSI |
+| `g-tui.txt` | the terminal splash — one ink, shape-only, survives a pipe |
 
 The app icon is not here: it is `resources/icon.svg` (full) and
 `resources/icon-small.svg` (16 and 32px cut), built into `.icns`/`.ico`/`.png`

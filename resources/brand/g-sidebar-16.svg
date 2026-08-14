@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <!-- Sidebar / list 16px. Head nodes drop entirely, vertex goes solid.
-       One ink, inherits the text colour. -->
+       Inherits the text colour. -->
   <path d="M130.0 86.0L242.0 384.5" stroke="currentColor" stroke-width="46" stroke-linecap="round"/>
   <path d="M382.0 86.0L270.0 384.5" stroke="currentColor" stroke-width="46" stroke-linecap="round"/>
   <circle cx="256" cy="422" r="58" fill="currentColor" stroke="none"/>
