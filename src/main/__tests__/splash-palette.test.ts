@@ -49,8 +49,6 @@ describe('splash palette', () => {
   const MIRRORED: [string, string][] = [
     ['--canvas', 'canvas'],
     ['--surface', 'surface'],
-    ['--aqua', 'aqua'],
-    ['--iris', 'iris'],
     ['--text', 'text'],
     ['--muted', 'text-3'],
   ]

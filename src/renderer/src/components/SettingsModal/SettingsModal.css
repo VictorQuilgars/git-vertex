@@ -509,7 +509,7 @@
   background: var(--install-bg);
   border: none;
   border-radius: var(--radius-md);
-  color: var(--text-on-bright);
+  color: var(--text-on-emphasis);
   font-size: var(--text-base);
   font-weight: var(--weight-bold);
   cursor: pointer;

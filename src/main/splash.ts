@@ -12,9 +12,11 @@
 // and went on showing the old GitHub palette at every launch.
 //
 // The mark is the app's, geometry identical to resources/icon.svg: two branches
-// converging on a vertex, the iris commits DOTTED because they are what the
-// model proposed and you have not applied. It draws itself once, then the vertex
-// breathes while the main window finishes loading.
+// converging on a vertex, ONE INK, the proposed commits DOTTED because they are
+// what the model offered and you have not applied. The dotting is the whole
+// distinction now — the branches used to be two hues as well, which is a thing
+// a mark can only do on the one theme it was drawn for. It draws itself once,
+// then the vertex breathes while the main window finishes loading.
 //
 // ── Why the timings are up here ─────────────────────────────────────────────
 //
@@ -25,7 +27,7 @@
 // the window open for SPLASH_ANIMATION_MS.
 const T = {
   armDraw: 1150,
-  irisDelay: 120,
+  proposedDelay: 120,
   nodePop: 500,
   nodeDelays: [180, 460, 740],
   vertexIn: 500,
@@ -52,7 +54,7 @@ const T = {
  * hang the launch outright.
  */
 export const SPLASH_ANIMATION_MS = Math.max(
-  T.irisDelay + T.armDraw,
+  T.proposedDelay + T.armDraw,
   Math.max(...T.nodeDelays) + T.nodePop,
   T.vertexDelay + T.vertexIn,
 )
@@ -76,12 +78,12 @@ export const SPLASH_STILL_MS = 800
  */
 const PALETTE = {
   'aqua-dark': {
-    canvas: '#0E1116', surface: '#151A21', aqua: '#3FD8C2',
-    iris: '#9B8FF5', text: '#E8ECF1', muted: '#808B9B', shadow: 0.85,
+    canvas: '#0E1116', surface: '#151A21',
+    text: '#E8ECF1', muted: '#808B9B', shadow: 0.85,
   },
   'aqua-light': {
-    canvas: '#EDF0F5', surface: '#E2E6EE', aqua: '#0D826F',
-    iris: '#5F4FC9', text: '#141922', muted: '#565F73', shadow: 0.22,
+    canvas: '#EDF0F5', surface: '#E2E6EE',
+    text: '#141922', muted: '#565F73', shadow: 0.22,
   },
 } as const
 
@@ -108,8 +110,6 @@ export function splashHtml(version: string, theme: SplashTheme = 'aqua-dark'): s
     /* Snapshot of tokens.css seeds — see the note above. */
     --canvas:  ${p.canvas};
     --surface: ${p.surface};
-    --aqua:    ${p.aqua};
-    --iris:    ${p.iris};
     --text:    ${p.text};
     --muted:   ${p.muted};
     /* Mixed off the text seed rather than written down, so they invert with the
@@ -153,17 +153,17 @@ export function splashHtml(version: string, theme: SplashTheme = 'aqua-dark'): s
     fill: none; stroke-width: 16; stroke-linecap: round;
     animation: draw ${T.armDraw}ms cubic-bezier(.55,.15,.25,1) forwards;
   }
-  .arm.aqua { stroke: var(--aqua); stroke-dasharray: 165; stroke-dashoffset: 165; }
-  .arm.iris { stroke: var(--iris); stroke-dasharray: 179; stroke-dashoffset: 179;
-              animation-delay: ${T.irisDelay}ms; }
+  .arm { stroke: var(--text); }
+  .arm.sealed   { stroke-dasharray: 165; stroke-dashoffset: 165; }
+  .arm.proposed { stroke-dasharray: 179; stroke-dashoffset: 179;
+                  animation-delay: ${T.proposedDelay}ms; }
 
   .node {
     fill: none; opacity: 0; transform: scale(.3);
     transform-box: fill-box; transform-origin: center;
     animation: pop ${T.nodePop}ms cubic-bezier(.34,1.56,.64,1) forwards;
   }
-  .node.aqua { stroke: var(--aqua); }
-  .node.iris { stroke: var(--iris); }
+  .node { stroke: var(--text); }
   .n-top { animation-delay: ${T.nodeDelays[0]}ms; }
   .n-mid { animation-delay: ${T.nodeDelays[1]}ms; }
   .n-low { animation-delay: ${T.nodeDelays[2]}ms; }
@@ -195,7 +195,7 @@ export function splashHtml(version: string, theme: SplashTheme = 'aqua-dark'): s
     background: var(--rail); overflow: hidden; }
   .track::after {
     content: ""; position: absolute; top: 0; left: 0; height: 100%; width: 42%; border-radius: 3px;
-    background: linear-gradient(90deg, transparent, var(--aqua), var(--iris), transparent);
+    background: linear-gradient(90deg, transparent, var(--text), transparent);
     animation: sweep ${T.sweep}ms cubic-bezier(.5,.05,.5,.95) infinite;
   }
   @keyframes sweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
@@ -214,15 +214,15 @@ export function splashHtml(version: string, theme: SplashTheme = 'aqua-dark'): s
 <body>
   <div class="splash">
     <svg class="mark" viewBox="0 0 512 512" fill="none" role="img" aria-label="Git Vertex">
-      <path class="arm aqua" d="M142.5 119.2L160.2 166.6 M183.8 229.4L202.2 278.6 M225.8 341.4L247.2 398.6" />
-      <path class="arm iris" d="M369.5 119.2L350.5 169.9 M329.5 226.1L308.5 281.9 M287.5 338.1L264.8 398.6" />
-      <circle class="node aqua n-top" cx="130" cy="86"  r="33" stroke-width="11" />
-      <circle class="node aqua n-mid" cx="172" cy="198" r="30" stroke-width="9" />
-      <circle class="node aqua n-low" cx="214" cy="310" r="30" stroke-width="9" />
-      <circle class="node iris n-top" cx="382" cy="86"  r="33" stroke-width="11" />
-      <circle class="node iris n-mid" cx="340" cy="198" r="30" stroke-width="12"
+      <path class="arm sealed" d="M142.5 119.2L160.2 166.6 M183.8 229.4L202.2 278.6 M225.8 341.4L247.2 398.6" />
+      <path class="arm proposed" d="M369.5 119.2L350.5 169.9 M329.5 226.1L308.5 281.9 M287.5 338.1L264.8 398.6" />
+      <circle class="node sealed n-top" cx="130" cy="86"  r="33" stroke-width="11" />
+      <circle class="node sealed n-mid" cx="172" cy="198" r="30" stroke-width="9" />
+      <circle class="node sealed n-low" cx="214" cy="310" r="30" stroke-width="9" />
+      <circle class="node proposed n-top" cx="382" cy="86"  r="33" stroke-width="11" />
+      <circle class="node proposed n-mid" cx="340" cy="198" r="30" stroke-width="12"
               stroke-linecap="round" stroke-dasharray="0 18.85" transform="rotate(110.6 340 198)" />
-      <circle class="node iris n-low" cx="298" cy="310" r="30" stroke-width="12"
+      <circle class="node proposed n-low" cx="298" cy="310" r="30" stroke-width="12"
               stroke-linecap="round" stroke-dasharray="0 18.85" transform="rotate(110.6 298 310)" />
       <path class="vertex" fill-rule="evenodd"
             d="M214 422a42 42 0 1 0 84 0a42 42 0 1 0 -84 0ZM239 422a17 17 0 1 0 34 0a17 17 0 1 0 -34 0Z" />

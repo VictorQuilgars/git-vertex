@@ -53,7 +53,7 @@
   font-size: var(--text-xs); font-weight: var(--weight-bold); padding: 0 var(--space-sm); border-radius: var(--radius-pill);
   background: var(--surface-sunken); color: var(--text-secondary); line-height: 17px; min-width: 8px; text-align: center;
 }
-.lp-tab.active .lp-count { background: var(--accent); color: var(--text-on-bright); }
+.lp-tab.active .lp-count { background: var(--accent); color: var(--text-on-emphasis); }
 
 /* Filters row (search · workspace · labels) */
 .lp-filters {

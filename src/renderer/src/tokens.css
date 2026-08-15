@@ -39,14 +39,17 @@
   --seed-text: #E8ECF1;           /* primary text — 15.9:1 */
   --seed-text-2: #A5AEBD;         /* secondary text — 8.5:1 */
   --seed-text-3: #808B9B;         /* tertiary text, metadata — AA on all three depths */
-  --seed-aqua: #3FD8C2;           /* the human act: actions, links, the commit button */
-  --seed-iris: #9B8FF5;           /* what the model proposes. Never a filled button. */
+  --seed-accent: #3FD8C2;         /* the human act: actions, links, the commit button */
+  --seed-agent: #9B8FF5;          /* what the model proposes. Never a filled button. */
   --seed-success: #5FC98F;        /* added lines, succeeded operations */
   --seed-warning: #E0A25C;        /* warnings, work in progress, the update button */
   --seed-danger: #F0645C;         /* removed lines, destructive actions */
   --seed-conflict: #E87DB0;       /* merge conflicts, and only those */
-  --seed-on-bright: #0E1116;      /* ink ON a bright fill — the board's rule */
-  --seed-on-dark: #FFFFFF;        /* ink ON a dark fill */
+  /* The ink that sits ON a filled accent or state surface. Each theme knows
+     what its own fills look like: this one's are bright, so the ink is dark.
+     There used to be a second seed for the other case, but --text-on-emphasis
+     only ever read one of them, so the light theme's answer was ignored. */
+  --seed-on-fill: #0E1116;
 
   /* Ten graph lanes — a family rather than a role, so they stay values.
    * Read at runtime by graph-layout.ts, which does arithmetic on them.
@@ -71,8 +74,8 @@
   --surface-hover: color-mix(in oklab, var(--seed-surface) 55%, var(--seed-sunken));
   --surface-sunken: var(--seed-sunken);
   --surface-active: color-mix(in oklab, var(--seed-sunken) 45%, var(--seed-border));
-  --surface-info: color-mix(in oklab, var(--seed-sunken) 88%, var(--seed-aqua));
-  --surface-selected: color-mix(in oklab, var(--seed-sunken) 80%, var(--seed-aqua));
+  --surface-info: color-mix(in oklab, var(--seed-sunken) 88%, var(--seed-accent));
+  --surface-selected: color-mix(in oklab, var(--seed-sunken) 80%, var(--seed-accent));
   /* Borders */
   --border-default: var(--seed-border);
   --border-muted: color-mix(in oklab, var(--seed-border) 62%, var(--seed-canvas));
@@ -85,43 +88,45 @@
   --text-tertiary: var(--seed-text-3);
   --text-disabled: color-mix(in oklab, var(--seed-text-3) 62%, var(--seed-canvas));
   --text-muted-soft: color-mix(in oklab, var(--seed-text) 60%, var(--seed-text-2));
-  --text-muted-cool: color-mix(in oklab, var(--seed-text-2) 86%, var(--seed-aqua));
-  --text-on-emphasis: var(--seed-on-dark);
-  --text-on-bright: var(--seed-on-bright);
+  --text-muted-cool: color-mix(in oklab, var(--seed-text-2) 86%, var(--seed-accent));
+  --text-on-emphasis: var(--seed-on-fill);
   /* Accent */
-  --accent: var(--seed-aqua);
-  --accent-static: var(--seed-aqua);
-  --accent-hover: color-mix(in oklab, var(--seed-aqua) 78%, var(--seed-text));
-  --accent-emphasis: color-mix(in oklab, var(--seed-aqua) 52%, #000000);
-  /* The fill of a primary button. The board is explicit — "boutons pleins :
-     encre sur aqua", aqua being the human act — but only the success family
-     had a -strong, so every confirm button in the app was reaching for the
-     STATE colour to get a filled background. */
-  --accent-strong: color-mix(in oklab, var(--seed-aqua) 48%, #000000);
+  --accent: var(--seed-accent);
+  --accent-static: var(--seed-accent);
+  --accent-hover: color-mix(in oklab, var(--seed-accent) 78%, var(--seed-text));
+  --accent-emphasis: color-mix(in oklab, var(--seed-accent) 86%, var(--seed-text));
+  /* The fill of a primary button: the seed itself, and the board's rule holds
+     again — "boutons pleins : encre sur la couleur". It used to be the seed
+     mixed half-and-half with BLACK, which in Oklab divides luminance AND
+     chroma: the accent fell from C 0.129 to 0.062, and the light theme's
+     button resolved to #012C24 — a near-black with a hint of green, sitting on
+     a white page under white text. Raising the seed could never fix that,
+     because the black was doing the damage after the seed was read. */
+  --accent-strong: var(--seed-accent);
   /* Semantic */
   --success: var(--seed-success);
   --success-hover: color-mix(in oklab, var(--seed-success) 78%, var(--seed-text));
-  --success-emphasis: color-mix(in oklab, var(--seed-success) 55%, #000000);
-  --success-strong: color-mix(in oklab, var(--seed-success) 48%, #000000);
+  --success-emphasis: color-mix(in oklab, var(--seed-success) 86%, var(--seed-text));
+  --success-strong: var(--seed-success);
   --danger: var(--seed-danger);
   --danger-hover: color-mix(in oklab, var(--seed-danger) 78%, var(--seed-text));
-  --danger-solid: color-mix(in oklab, var(--seed-danger) 50%, #000000);
-  --danger-solid-hover: color-mix(in oklab, var(--seed-danger) 60%, #000000);
+  --danger-solid: var(--seed-danger);
+  --danger-solid-hover: color-mix(in oklab, var(--seed-danger) 86%, var(--seed-text));
   --warning: var(--seed-warning);
   --warning-bright: color-mix(in oklab, var(--seed-warning) 76%, var(--seed-text));
   --attention: color-mix(in oklab, var(--seed-warning) 74%, var(--seed-danger));
   /* Categories */
   --conflict: var(--seed-conflict);
-  --purple: color-mix(in oklab, var(--seed-iris) 58%, #000000);
-  --purple-deep: color-mix(in oklab, var(--seed-iris) 48%, #000000);
-  --purple-soft: var(--seed-iris);
-  --purple-text: color-mix(in oklab, var(--seed-iris) 80%, var(--seed-text));
-  --ai-text: var(--seed-iris);
-  --ai-border: color-mix(in oklab, var(--seed-iris) 74%, #000000);
-  --info-text: color-mix(in oklab, var(--seed-aqua) 70%, var(--seed-text));
-  --agent-accent: color-mix(in oklab, var(--seed-aqua) 62%, var(--seed-iris));
+  --purple: color-mix(in oklab, var(--seed-agent) 58%, #000000);
+  --purple-deep: color-mix(in oklab, var(--seed-agent) 48%, #000000);
+  --purple-soft: var(--seed-agent);
+  --purple-text: color-mix(in oklab, var(--seed-agent) 80%, var(--seed-text));
+  --ai-text: var(--seed-agent);
+  --ai-border: color-mix(in oklab, var(--seed-agent) 74%, #000000);
+  --info-text: color-mix(in oklab, var(--seed-accent) 70%, var(--seed-text));
+  --agent-accent: color-mix(in oklab, var(--seed-accent) 62%, var(--seed-agent));
   --ref-head: color-mix(in oklab, var(--seed-warning) 74%, var(--seed-text));
-  --pr-merged: color-mix(in oklab, var(--seed-iris) 66%, var(--seed-conflict));
+  --pr-merged: color-mix(in oklab, var(--seed-agent) 66%, var(--seed-conflict));
   --install-bg: var(--seed-warning);
   --install-bg-hover: color-mix(in oklab, var(--seed-warning) 82%, var(--seed-text));
   /* Diff */
@@ -140,12 +145,12 @@
   --warning-block-border: color-mix(in oklab, var(--seed-canvas) 62%, var(--seed-warning));
   --toast-success-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-success));
   --toast-danger-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-danger));
-  --toast-info-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-aqua));
+  --toast-info-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-accent));
   --amend-confirm-bg: color-mix(in oklab, var(--seed-success) 52%, #000000);
   --amend-cancel-bg: color-mix(in oklab, var(--seed-danger) 46%, #000000);
-  --wip-bg: color-mix(in oklab, var(--seed-canvas) 78%, var(--seed-aqua));
-  --wip-border: color-mix(in oklab, var(--seed-canvas) 55%, var(--seed-aqua));
-  --wip-text: color-mix(in oklab, var(--seed-aqua) 55%, var(--seed-text));
+  --wip-bg: color-mix(in oklab, var(--seed-canvas) 78%, var(--seed-accent));
+  --wip-border: color-mix(in oklab, var(--seed-canvas) 55%, var(--seed-accent));
+  --wip-text: color-mix(in oklab, var(--seed-accent) 55%, var(--seed-text));
   --scrim: #000000;
   /* Syntax
    * `--syntax-bg` stays transparent so the add/remove row tint reads THROUGH
@@ -156,12 +161,12 @@
   --syntax-text: color-mix(in oklab, var(--seed-text) 76%, var(--seed-text-2));
   --syntax-comment: var(--seed-text-3);
   --syntax-keyword: var(--seed-danger);
-  --syntax-entity: var(--seed-iris);
+  --syntax-entity: var(--seed-agent);
   --syntax-constant: var(--seed-lane-3);
   --syntax-string: var(--seed-lane-2);
   --syntax-variable: var(--seed-warning);
   --syntax-tag: var(--seed-success);
-  --syntax-section: color-mix(in oklab, var(--seed-aqua) 52%, #000000);
+  --syntax-section: color-mix(in oklab, var(--seed-accent) 52%, #000000);
   --syntax-bullet: color-mix(in oklab, var(--seed-warning) 74%, var(--seed-text));
   /* Lanes */
   --lane-1: var(--seed-lane-1);
@@ -281,14 +286,13 @@
   --seed-text: #141922;
   --seed-text-2: #4A5468;
   --seed-text-3: #565F73;
-  --seed-aqua: #0D826F;
-  --seed-iris: #5F4FC9;
+  --seed-accent: #0D826F;
+  --seed-agent: #5F4FC9;
   --seed-success: #137F4F;
   --seed-warning: #9A6212;
   --seed-danger: #C33A32;
   --seed-conflict: #B4437B;
-  --seed-on-bright: #FFFFFF;
-  --seed-on-dark: #FFFFFF;
+  --seed-on-fill: #FFFFFF;        /* this theme's fills are deep, so the ink is light */
 
   /* Ten graph lanes — a family rather than a role, so they stay values.
    * Read at runtime by graph-layout.ts, which does arithmetic on them.

@@ -46,7 +46,7 @@
 .wn-badge {
   display: inline-block;
   background: linear-gradient(135deg, var(--accent-static), var(--purple-soft));
-  color: var(--text-on-bright);
+  color: var(--text-on-emphasis);
   font-weight: var(--weight-bold);
   font-size: var(--text-base);
   padding: var(--space-xs) var(--space-xl);
