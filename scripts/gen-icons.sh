@@ -56,10 +56,15 @@ import sys, os
 from PIL import Image
 tmp = sys.argv[1]
 sizes = [16, 24, 32, 48, 64, 128, 256]
-# Pillow builds every entry by downscaling the one image it is given, so the
-# small entries are handed the small-cut art rather than the full one.
-Image.open(os.path.join(tmp, "icon_256.png")).convert("RGBA").save(
-    "resources/icon.ico", format="ICO", sizes=[(s, s) for s in sizes])
+# Hand Pillow one drawing PER SIZE, via append_images. Given a single image it
+# builds every entry by downscaling that one, which is what this block used to
+# do — the loop above rendered each size from the right master and then all but
+# the 256 were thrown away. The 16px entry came out as the full drawing shrunk,
+# at 5.5% ink coverage against the small cut's 14.8%: the exact smear the two
+# masters exist to prevent, and it shipped that way.
+imgs = [Image.open(os.path.join(tmp, f"icon_{s}.png")).convert("RGBA") for s in sizes]
+imgs[-1].save("resources/icon.ico", format="ICO",
+              sizes=[(s, s) for s in sizes], append_images=imgs[:-1])
 PYEOF
 
 ls -l resources/icon.icns resources/icon.ico resources/icon.png | awk '{printf "  %-24s %8d o\n", $9, $5}'
