@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { useLang } from '../../i18n/LanguageContext'
 import { useSettings, setInstalledThemes } from '../../contexts/SettingsContext'
+import type { InstalledThemeInfo } from '../../contexts/SettingsContext'
 import './ThemeGallery.css'
 
 // The rest of the bank — the themes that are not among the 32 in tokens.css.
@@ -85,8 +86,14 @@ export default function ThemeGallery({ onChanged }: Props) {
   const [installedIds, setInstalledIds] = useState<string[]>([])
   const refreshInstalled = useCallback(() => {
     window.gitAPI.themesInstalled?.()
-      .then((list: any) => {
-        const themes = Array.isArray(list) ? list : []
+      .then((r: { themes?: InstalledThemeInfo[] }) => {
+        // `themes:installed` answers { themes, discarded }, NOT an array. This
+        // read `Array.isArray(list) ? list : []` and therefore always saw
+        // nothing: no "Installed" badge, every tile stuck on "Install" — and
+        // worse, setInstalledThemes([]) then DROPPED the injected rules, so a
+        // theme applied elsewhere stopped painting the moment the gallery
+        // mounted.
+        const themes = r?.themes ?? []
         // Not just local state: setInstalledThemes INJECTS the [data-theme]
         // rule for each installed theme. Without it, applying one sets the
         // attribute on <html> and selects nothing — the id sticks, the colours
@@ -94,7 +101,7 @@ export default function ThemeGallery({ onChanged }: Props) {
         // shipped when this component was made self-managing and copied the
         // fetch without the injection.
         setInstalledThemes(themes)
-        setInstalledIds(themes.map((i: any) => i.id))
+        setInstalledIds(themes.map(i => i.id))
       })
       .catch(() => { /* older host, or nothing installed */ })
   }, [])

@@ -120,6 +120,37 @@
 }
 .stg-tile.active .stg-tile-badge { border-color: var(--accent); color: var(--accent); }
 
+/* Painted from the theme's own SEEDS instead of inline hexes: the settings
+   list has no catalogue row, it has a `data-theme`. Seeds are literal values,
+   so a descendant carrying the attribute reads that theme's block — a derived
+   token would resolve against :root and every tile would show the current
+   theme. Same drawing, two sources. */
+.stg-tile-mock--seeded { background: var(--seed-canvas); }
+.stg-tile-mock--seeded .stg-tile-rail { background: var(--seed-border); }
+.stg-tile-mock--seeded .stg-tile-node { background: var(--seed-accent); }
+.stg-tile-mock--seeded .stg-tile-bar { background: var(--seed-text); }
+.stg-tile-mock--seeded .stg-tile-bar--dim { background: var(--seed-border); opacity: 0.9; }
+.stg-tile-mock--seeded .stg-tile-btn { background: var(--seed-accent); }
+
+/* Narrower columns where the surface is narrow: the settings pane is capped at
+   600px, so the gallery's 190px minimum would give it two columns and a gap. */
+.stg-wall--compact { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-md); }
+.stg-wall--compact .stg-tile-mock { height: 74px; }
+
+/* Removing an installed theme. Hidden until the tile is hovered or the button
+   focused — it is destructive and it is not what anyone came here to do. */
+.stg-tile-remove {
+  position: absolute; top: var(--space-sm); right: var(--space-sm); z-index: 2;
+  width: 20px; height: 20px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--text-tertiary);
+  border: 1px solid var(--border-default); border-radius: var(--radius-circle);
+  font-size: var(--text-sm); cursor: pointer; opacity: 0;
+  transition: opacity var(--dur-base), color var(--dur-base);
+}
+.stg-tile:hover .stg-tile-remove, .stg-tile-remove:focus-visible { opacity: 1; }
+.stg-tile-remove:hover { color: var(--danger); border-color: var(--danger); }
+
 .stg-tile-meta {
   display: flex; flex-direction: column; gap: var(--space-2xs);
   padding: var(--space-md); border-top: 1px solid var(--border-default);

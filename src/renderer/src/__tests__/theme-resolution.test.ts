@@ -131,3 +131,32 @@ describe('every reader of the installed list injects its rules', () => {
     expect(body).toMatch(/setInstalledThemes\s*\(/)
   })
 })
+
+// `themes:installed` answers { themes, discarded } — an OBJECT. Reading it as
+// an array is silent: `Array.isArray(r) ? r : []` yields nothing, so no theme
+// looks installed and setInstalledThemes([]) drops the injected rules on top.
+// That shipped. The shape is the contract; assert both ends of it.
+describe('the installed-list response is unwrapped, not assumed to be an array', () => {
+  it('the handler answers an object with `themes`', () => {
+    const main = fs.readFileSync(
+      path.resolve(__dirname, '../../../main/index.ts'), 'utf8')
+    const handler = main.slice(main.indexOf("ipcMain.handle('themes:installed'"))
+    expect(handler.slice(0, 400)).toMatch(/return\s*\{[^}]*themes/)
+  })
+
+  it.each([
+    'components/ThemeGallery/ThemeGallery.tsx',
+    'components/SettingsModal/SettingsModal.tsx',
+  ])('%s reads .themes off the response', file => {
+    // Comments stripped first: a long note explaining the shape is not the
+    // code reading it, and it pushed the actual unwrap out of any window.
+    const src = fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '')
+    const call = src.indexOf('themesInstalled')
+    if (call < 0) return
+    const after = src.slice(call, call + 400)
+    expect(after).toMatch(/\.themes/)
+    expect(after).not.toMatch(/Array\.isArray\(\s*(list|r)\s*\)/)
+  })
+})

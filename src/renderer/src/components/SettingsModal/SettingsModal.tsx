@@ -74,7 +74,7 @@ const NAV_GROUPS: { group: string; items: { id: Section; icon: React.ReactNode; 
 // `key` holds an i18n key resolved at render for the swatch tooltip.
 // One entry per theme, and NOTHING about how it looks: the chip carries the
 // theme's own `data-theme` and reads the seeds from tokens.css (see
-// .stg-theme-chip). A preset that restates a theme's colours is a second copy
+// .stg-tile-mock--seeded). A preset that restates a theme's colours is a second copy
 // of the palette, and this one had already drifted.
 // THEMES is the list; __tests__/token-discipline.test.ts fails if it and the
 // [data-theme] blocks in tokens.css stop agreeing.
@@ -693,52 +693,76 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                   <p className="stg-gal-note">{t('settings.themes.pickerDisabled')}</p>
                 )}
                 <fieldset className="stg-themes-fieldset" disabled={themePickerDisabled}>
-                  <div className="stg-themes">
+                  {/* The same tile as the gallery. A 26×18 chip could not
+                      show what a theme looks like, which is the one thing this
+                      list exists to do — and it made the thirty that ship with
+                      the app look like a different feature from the four
+                      thousand behind them.
+
+                      The colours come from `data-theme` rather than inline
+                      hexes: seeds are literal values, so a descendant carrying
+                      the attribute reads that theme's block. It works for the
+                      built-ins (blocks in tokens.css) and for installed themes
+                      alike, because SettingsContext injects a real rule for
+                      each of those. A derived token would NOT work here — it
+                      resolves against :root and every tile would show the
+                      current theme. */}
+                  <ul className="stg-wall stg-wall--compact">
                     {THEME_PRESETS.map(th => {
                       const active = get('theme', 'aqua-dark') === th.id
                       return (
-                        <button
-                          key={th.id}
-                          className={`stg-theme ${active ? 'active' : ''}`}
-                          onClick={() => set('theme', th.id)}
-                          aria-pressed={active}
-                        >
-                          <span className="stg-theme-chip" data-theme={th.id}>
-                            <span className="stg-theme-dot" />
+                        <li key={th.id} className={`stg-tile ${active ? 'active' : ''}`}>
+                          <span className="stg-tile-mock stg-tile-mock--seeded" data-theme={th.id} aria-hidden="true">
+                            <span className="stg-tile-rail" />
+                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '64%' }} /></span>
+                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar stg-tile-bar--dim" style={{ width: '44%' }} /></span>
+                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '54%' }} /></span>
+                            <span className="stg-tile-btn" />
                           </span>
-                          {th.name ?? t(th.key as any)}
-                        </button>
+                          <span className="stg-tile-meta">
+                            <span className="stg-tile-name">{th.name ?? t(th.key as any)}</span>
+                          </span>
+                          <button
+                            className="stg-tile-action"
+                            onClick={() => set('theme', th.id)}
+                            disabled={active}
+                            aria-pressed={active}
+                          >{active ? t('settings.themes.applied') : t('settings.themes.use')}</button>
+                        </li>
                       )
                     })}
                     {/* Installed themes sit with the built-in ones — the
-                        distinction is ours, not the user's. The chip reads its
-                        seeds through data-theme exactly like the others,
-                        because SettingsContext injects a real [data-theme]
-                        rule for each installed theme. */}
+                        distinction is ours, not the user's. */}
                     {installed.map(th => {
                       const active = get('theme', 'aqua-dark') === th.id
                       return (
-                        <span key={th.id} className="stg-theme-installed">
+                        <li key={th.id} className={`stg-tile ${active ? 'active' : ''}`}>
+                          <span className="stg-tile-mock stg-tile-mock--seeded" data-theme={th.id} aria-hidden="true">
+                            <span className="stg-tile-rail" />
+                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '64%' }} /></span>
+                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar stg-tile-bar--dim" style={{ width: '44%' }} /></span>
+                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '54%' }} /></span>
+                            <span className="stg-tile-btn" />
+                          </span>
                           <button
-                            className={`stg-theme ${active ? 'active' : ''}`}
-                            onClick={() => set('theme', th.id)}
-                            aria-pressed={active}
-                          >
-                            <span className="stg-theme-chip" data-theme={th.id}>
-                              <span className="stg-theme-dot" />
-                            </span>
-                            {th.name}
-                          </button>
-                          <button
-                            className="stg-theme-remove"
+                            className="stg-tile-remove"
                             title={t('settings.themes.remove')}
                             aria-label={`${t('settings.themes.remove')} ${th.name}`}
                             onClick={() => removeTheme(th.id)}
                           >×</button>
-                        </span>
+                          <span className="stg-tile-meta">
+                            <span className="stg-tile-name">{th.name}</span>
+                          </span>
+                          <button
+                            className="stg-tile-action"
+                            onClick={() => set('theme', th.id)}
+                            disabled={active}
+                            aria-pressed={active}
+                          >{active ? t('settings.themes.applied') : t('settings.themes.use')}</button>
+                        </li>
                       )
                     })}
-                  </div>
+                  </ul>
                 </fieldset>
 
                 {discarded.length > 0 && (

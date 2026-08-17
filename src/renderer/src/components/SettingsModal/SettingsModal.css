@@ -102,57 +102,13 @@
   opacity: 0.85;
 }
 
-/* Theme picker. The chip previews the theme's own canvas and accent, so the
-   choice is legible without reading the label. */
-.stg-themes { display: flex; flex-wrap: wrap; gap: var(--space-lg); margin-top: var(--space-sm); }
-.stg-theme {
-  display: flex; align-items: center; gap: var(--space-md);
-  padding: var(--space-md) var(--space-xl);
-  background: var(--surface-sunken); color: var(--text-secondary);
-  border: 1px solid var(--border-default); border-radius: var(--radius-md);
-  font-size: var(--text-base); cursor: pointer;
-  transition: border-color var(--dur-base), color var(--dur-base);
-}
-.stg-theme:hover { border-color: var(--border-subtle); color: var(--text-primary); }
-.stg-theme.active { border-color: var(--accent); color: var(--text-primary); }
-/* The one place a component may name SEEDS rather than roles. The chip's job is
-   to show what a theme looks like, so it carries that theme's `data-theme` and
-   paints itself from the seeds the block declares — which works because seeds
-   are literal values, where a derived token would have already resolved against
-   :root and shown the CURRENT theme on every chip.
-   The colours used to be copied into THEME_PRESETS as hexes, out of reach of
-   token-discipline.test.ts because they arrived through an identifier rather
-   than a literal. Two of the three were wrong: `surface` held the border seed. */
-.stg-theme-chip {
-  width: 26px; height: 18px; border-radius: var(--radius-xs);
-  border: 1px solid var(--seed-border); display: flex; align-items: center;
-  justify-content: center; background: var(--seed-canvas);
-}
-.stg-theme-dot {
-  width: 8px; height: 8px; border-radius: var(--radius-circle);
-  background: var(--seed-accent);
-}
 
 /* The picker goes flat while the panel is following the editor: the choice
    still exists, it is just not this one's to make yet. */
 .stg-themes-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .stg-themes-fieldset:disabled { opacity: 0.45; }
-.stg-themes-fieldset:disabled .stg-theme { cursor: default; }
+.stg-themes-fieldset:disabled .stg-tile-action { cursor: default; }
 
-/* An installed theme is a chip with a way to take it back off. */
-.stg-theme-installed { position: relative; display: inline-flex; }
-.stg-theme-remove {
-  position: absolute; top: -6px; right: -6px;
-  width: 18px; height: 18px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--surface); color: var(--text-tertiary);
-  border: 1px solid var(--border-default); border-radius: var(--radius-circle);
-  font-size: var(--text-sm); cursor: pointer; opacity: 0;
-  transition: opacity var(--dur-base), color var(--dur-base);
-}
-.stg-theme-installed:hover .stg-theme-remove,
-.stg-theme-remove:focus-visible { opacity: 1; }
-.stg-theme-remove:hover { color: var(--danger); border-color: var(--danger); }
 
 /* ── Segmented control ───────────────────────────────────────── */
 .stg-segment { display: inline-flex; gap: 0; margin-top: var(--space-sm); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow: hidden; }
