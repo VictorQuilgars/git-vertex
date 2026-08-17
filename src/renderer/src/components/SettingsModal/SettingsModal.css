@@ -129,11 +129,23 @@
 }
 .stg-theme:hover { border-color: var(--border-subtle); color: var(--text-primary); }
 .stg-theme.active { border-color: var(--accent); color: var(--text-primary); }
+/* The one place a component may name SEEDS rather than roles. The chip's job is
+   to show what a theme looks like, so it carries that theme's `data-theme` and
+   paints itself from the seeds the block declares — which works because seeds
+   are literal values, where a derived token would have already resolved against
+   :root and shown the CURRENT theme on every chip.
+   The colours used to be copied into THEME_PRESETS as hexes, out of reach of
+   token-discipline.test.ts because they arrived through an identifier rather
+   than a literal. Two of the three were wrong: `surface` held the border seed. */
 .stg-theme-chip {
   width: 26px; height: 18px; border-radius: var(--radius-xs);
-  border: 1px solid; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--seed-border); display: flex; align-items: center;
+  justify-content: center; background: var(--seed-canvas);
 }
-.stg-theme-dot { width: 8px; height: 8px; border-radius: var(--radius-circle); }
+.stg-theme-dot {
+  width: 8px; height: 8px; border-radius: var(--radius-circle);
+  background: var(--seed-accent);
+}
 
 .stg-swatch-check { text-shadow: 0 1px 2px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent); }
 .stg-swatch-custom {

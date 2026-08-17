@@ -190,6 +190,34 @@ describe('token discipline', () => {
       }
     })
 
+    // A theme block nobody can select, or a THEMES entry with no block behind
+    // it, are both invisible: the first never renders, the second falls back to
+    // the default in resolveTheme() and looks like the user's choice not
+    // sticking. Adding a theme is meant to be a block plus a line, and this is
+    // what says so when only one of the two happened.
+    it('registers exactly the themes tokens.css defines', () => {
+      const declared = blocks
+        .flatMap(b => [...b[1].matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]))
+        .sort()
+      const ctx = fs.readFileSync(path.join(SRC, 'contexts', 'SettingsContext.tsx'), 'utf8')
+      const listed = [...ctx.match(/export const THEMES = \[([^\]]*)\]/)![1]
+        .matchAll(/'([^']+)'/g)].map(m => m[1]).sort()
+      expect(listed).toEqual(declared)
+    })
+
+    // The theme picker's chips used to restate each theme's canvas, border and
+    // accent as hexes in the .tsx. They arrived through an identifier rather
+    // than a literal, so the style={{ … }} scan above never saw them, and two
+    // of the three had drifted. The chip reads the seeds now — see
+    // .stg-theme-chip in SettingsModal.css.
+    it('keeps the theme picker off a second copy of the palette', () => {
+      const modal = fs.readFileSync(
+        path.join(SRC, 'components', 'SettingsModal', 'SettingsModal.tsx'), 'utf8')
+      const presets = modal.match(/const THEME_PRESETS[^=]*=\s*\[([\s\S]*?)\]/)
+      expect(presets).not.toBeNull()
+      expect(presets![1]).not.toMatch(/#[0-9A-Fa-f]{3,8}/)
+    })
+
     it('never lets a theme override a derived token', () => {
       const [base, ...themes] = blocks
       // Derived = defined in the default block, not a seed.

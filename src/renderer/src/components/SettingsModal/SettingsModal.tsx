@@ -3,7 +3,7 @@ import { Icon } from '../Icon/Icon'
 import { Brand } from '../BrandMark/BrandMark'
 import './SettingsModal.css'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
-import { useSettings, isVSCodeHost } from '../../contexts/SettingsContext'
+import { useSettings, isVSCodeHost, type ThemeId } from '../../contexts/SettingsContext'
 import { Mark } from '../Mark/Mark'
 import { parseAutolinks, serializeAutolinks, type Autolink } from '../../utils/autolinks'
 
@@ -82,11 +82,15 @@ const ACCENT_PRESETS = [
   { key: 'settings.color.cyan',   value: 'var(--agent-accent)' },
 ]
 
-// One entry per [data-theme] block in tokens.css. The swatch shows the theme's
-// own canvas, surface and accent rather than a label alone.
-const THEME_PRESETS = [
-  { id: 'aqua-dark',  key: 'settings.theme.dark',  bg: '#0E1116', surface: '#2B3341', accent: '#3FD8C2' },
-  { id: 'aqua-light', key: 'settings.theme.light', bg: '#EDF0F5', surface: '#BFC7D6', accent: '#0D826F' },
+// One entry per theme, and NOTHING about how it looks: the chip carries the
+// theme's own `data-theme` and reads the seeds from tokens.css (see
+// .stg-theme-chip). A preset that restates a theme's colours is a second copy
+// of the palette, and this one had already drifted.
+// THEMES is the list; __tests__/token-discipline.test.ts fails if it and the
+// [data-theme] blocks in tokens.css stop agreeing.
+const THEME_PRESETS: { id: ThemeId; key: string }[] = [
+  { id: 'aqua-dark',  key: 'settings.theme.dark' },
+  { id: 'aqua-light', key: 'settings.theme.light' },
 ]
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
@@ -604,8 +608,8 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                             onClick={() => set('theme', th.id)}
                             aria-pressed={active}
                           >
-                            <span className="stg-theme-chip" style={{ background: th.bg, borderColor: th.surface }}>
-                              <span className="stg-theme-dot" style={{ background: th.accent }} />
+                            <span className="stg-theme-chip" data-theme={th.id}>
+                              <span className="stg-theme-dot" />
                             </span>
                             {t(th.key as any)}
                           </button>
