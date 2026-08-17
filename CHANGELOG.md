@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.30.0
 
 ### Added
 - **Thirty themes, and four thousand more a click away.** Appearance shows the ones that ship with the app as real previews — a miniature commit graph in each theme's own colours, not a coloured square. "Browse more themes" opens a gallery in its own tab: search by name, filter by dark or light, by colour, by how vivid it is. Installing one keeps you on the theme you are reading it in; the tile switches to *Use*, and using it is a second click.
