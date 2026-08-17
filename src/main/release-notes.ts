@@ -2,6 +2,13 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🖼️ A darker app icon
+- 1.30.0 shipped the previous mark, and on a pale tile — which all but disappears against a light background: the Finder, a light Dock wallpaper, a README.
+- The tile is dark now, and the mark sits on it in the app's own ink.
+`,
+
   '1.30.0': `## What's new in 1.30.0
 
 ### 🎨 Thirty themes, and four thousand more

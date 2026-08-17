@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **The Marketplace icon is on a dark tile.** 1.28.1 brought the icon up to date but put it on a pale tile, and the listing page is white in its light theme — a pale tile on a white page has no edge at all, and stops reading as an icon.
+
 ## 1.28.1
 
 ### Fixed
