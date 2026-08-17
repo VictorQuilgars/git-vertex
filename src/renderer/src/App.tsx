@@ -2007,8 +2007,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Git action bar — hidden while in preferences */}
-      {!settingsOpen && !whatsNewActive && (
+      {/* Git action bar — hidden while in preferences, and over the theme
+          gallery, which has no repo to act on. It rendered as an empty band. */}
+      {!settingsOpen && !whatsNewActive && !themesActive && (
       <Toolbar
         topRow={tabs.length === 0}
         repoPath={repoPath}

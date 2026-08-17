@@ -163,6 +163,11 @@ export default function ThemeGallery({ onChanged }: Props) {
 
   return (
     <div className="stg-gallery">
+      {/* A view has to lay itself out. This used to sit inside the settings
+          page and inherit its padding; as a tab it is the whole surface, so it
+          carries the page structure the Launchpad carries — padded head, one
+          scrolling body — or the content sits flush against the window edge. */}
+      <div className="stg-gal-head">
       {cat.stale && <p className="stg-gal-note">{t('settings.themes.stale')}</p>}
 
       <div className="stg-gal-controls">
@@ -234,6 +239,9 @@ export default function ThemeGallery({ onChanged }: Props) {
       <p className="stg-desc stg-gal-count">
         {t('settings.themes.matches', String(rows.length), String(cat.count))}
       </p>
+      </div>
+
+      <div className="stg-gal-body">
 
       {/* The site's wall, tile for tile — 42-git-vertex-web, `.thm-*` in
           styles.css. It is a miniature commit graph rather than a coloured
@@ -325,6 +333,7 @@ export default function ThemeGallery({ onChanged }: Props) {
         </button>
       )}
       {rows.length === 0 && <p className="stg-desc">{t('settings.themes.noMatch')}</p>}
+      </div>
     </div>
   )
 }
