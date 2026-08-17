@@ -67,4 +67,17 @@ imgs[-1].save("resources/icon.ico", format="ICO",
               sizes=[(s, s) for s in sizes], append_images=imgs[:-1])
 PYEOF
 
-ls -l resources/icon.icns resources/icon.ico resources/icon.png | awk '{printf "  %-24s %8d o\n", $9, $5}'
+echo "── extension ──"
+# The VS Code extension has its OWN icon file, and nothing regenerated it: it
+# was still the original green-and-blue mark from "Initial release", two
+# generations behind — it had missed the aqua/iris palette and then the
+# achromatic one. The Marketplace listing is the first thing anyone sees of
+# this product, so it comes off the same master as everything else now.
+#
+# 256 rather than the 128 the Marketplace asks for: the listing page draws it
+# at 128 CSS pixels on a retina display, and a 128 file is soft there.
+rsvg-convert -w 256 -h 256 "$BIG" -o vscode-extension/images/icon.png
+printf '  %5s  %s\n' "256px" "$BIG"
+
+ls -l resources/icon.icns resources/icon.ico resources/icon.png \
+      vscode-extension/images/icon.png | awk '{printf "  %-34s %8d o\n", $9, $5}'
