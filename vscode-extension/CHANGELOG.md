@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **The Marketplace icon was two logos out of date.** It had not changed since the first release: still the original green-and-blue mark, having missed both the palette it was drawn for and the achromatic one that replaced it. The listing now shows the same mark as the app.
+
 ## 1.28.0
 
 ### Added
