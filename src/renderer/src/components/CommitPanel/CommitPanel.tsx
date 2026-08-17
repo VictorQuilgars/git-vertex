@@ -19,7 +19,7 @@ interface CommitPanelProps {
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  M: { label: 'M', color: 'var(--accent-static)' },
+  M: { label: 'M', color: 'var(--accent)' },
   A: { label: 'A', color: 'var(--success)' },
   D: { label: 'D', color: 'var(--danger)' },
   R: { label: 'R', color: 'var(--purple-text)' },

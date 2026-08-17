@@ -556,14 +556,6 @@ const fr = {
   'settings.theme.dark': 'Aqua sombre',
   'settings.theme.light': 'Aqua clair',
   // Settings — accent colors
-  'settings.color.aqua': 'Aqua',
-  'settings.color.iris': 'Iris',
-  'settings.color.green': 'Vert',
-  'settings.color.orange': 'Orange',
-  'settings.color.red': 'Rouge',
-  'settings.color.pink': 'Rose',
-  'settings.color.cyan': 'Cyan',
-  'settings.color.custom': 'Couleur personnalisée',
   // Settings — profiles
   'settings.profiles.title': 'Profils enregistrés',
   'settings.profiles.desc': 'Basculez rapidement entre vos identités (pro / perso).',
@@ -598,8 +590,6 @@ const fr = {
   // Settings — appearance
   'settings.appearance.title': 'Apparence',
   'settings.appearance.desc': 'Personnalisez les couleurs et l\'affichage de l\'application.',
-  'settings.accent.title': 'Couleur d\'accent',
-  'settings.accent.desc': 'Couleur principale utilisée pour les sélections, boutons et liens.',
   'settings.date.title': 'Format des dates',
   'settings.date.desc': 'Comment afficher les dates dans le graphe de commits.',
   'settings.date.relative': 'Relatif',
@@ -1885,14 +1875,6 @@ const en: typeof fr = {
   'settings.theme.dark': 'Aqua Dark',
   'settings.theme.light': 'Aqua Light',
   // Settings — accent colors
-  'settings.color.aqua': 'Aqua',
-  'settings.color.iris': 'Iris',
-  'settings.color.green': 'Green',
-  'settings.color.orange': 'Orange',
-  'settings.color.red': 'Red',
-  'settings.color.pink': 'Pink',
-  'settings.color.cyan': 'Cyan',
-  'settings.color.custom': 'Custom color',
   // Settings — profiles
   'settings.profiles.title': 'Saved profiles',
   'settings.profiles.desc': 'Quickly switch between your identities (work / personal).',
@@ -1927,8 +1909,6 @@ const en: typeof fr = {
   // Settings — appearance
   'settings.appearance.title': 'Appearance',
   'settings.appearance.desc': 'Customize the app\'s colors and display.',
-  'settings.accent.title': 'Accent color',
-  'settings.accent.desc': 'Primary color used for selections, buttons and links.',
   'settings.date.title': 'Date format',
   'settings.date.desc': 'How to display dates in the commit graph.',
   'settings.date.relative': 'Relative',

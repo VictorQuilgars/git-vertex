@@ -69,19 +69,6 @@ const NAV_GROUPS: { group: string; items: { id: Section; icon: React.ReactNode; 
 ]
 
 // `key` holds an i18n key resolved at render for the swatch tooltip.
-// Every preset is a token, so the offered colours follow the active theme. The
-// last two used to be literals — they were the only two swatches that kept the
-// dark theme's colour after a switch, which read as a rendering bug.
-const ACCENT_PRESETS = [
-  { key: 'settings.color.aqua',   value: 'var(--accent-static)' },
-  { key: 'settings.color.iris',   value: 'var(--purple-soft)' },
-  { key: 'settings.color.green',  value: 'var(--success)' },
-  { key: 'settings.color.orange', value: 'var(--attention)' },
-  { key: 'settings.color.red',    value: 'var(--danger)' },
-  { key: 'settings.color.pink',   value: 'var(--conflict)' },
-  { key: 'settings.color.cyan',   value: 'var(--agent-accent)' },
-]
-
 // One entry per theme, and NOTHING about how it looks: the chip carries the
 // theme's own `data-theme` and reads the seeds from tokens.css (see
 // .stg-theme-chip). A preset that restates a theme's colours is a second copy
@@ -618,32 +605,6 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     </div>
                   </>
                 )}
-
-                <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.accent.title')}</h2>
-                <p className="stg-desc">{t('settings.accent.desc')}</p>
-                <div className="stg-swatches">
-                  {ACCENT_PRESETS.map(c => {
-                    const active = get('accentColor', 'var(--accent-static)').toLowerCase() === c.value.toLowerCase()
-                    return (
-                      <button
-                        key={c.value}
-                        className={`stg-swatch ${active ? 'active' : ''}`}
-                        style={{ background: c.value }}
-                        title={t(c.key as any)}
-                        onClick={() => set('accentColor', c.value)}
-                      >
-                        {active && <span className="stg-swatch-check">✓</span>}
-                      </button>
-                    )
-                  })}
-                  <label className="stg-swatch-custom" title={t('settings.color.custom')}>
-                    <input
-                      type="color"
-                      value={get('accentColor', 'var(--accent-static)')}
-                      onChange={e => set('accentColor', e.target.value)}
-                    />
-                  </label>
-                </div>
 
                 <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.date.title')}</h2>
                 <p className="stg-desc">{t('settings.date.desc')}</p>

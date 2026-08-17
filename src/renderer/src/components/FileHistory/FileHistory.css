@@ -27,7 +27,7 @@
 .fh-file {
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--text-sm);
-  color: var(--accent-static);
+  color: var(--accent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -114,7 +114,7 @@
 
 .fh-item.selected {
   background: var(--surface);
-  border-left-color: var(--accent-static);
+  border-left-color: var(--accent);
 }
 
 .fh-item-top {
@@ -124,7 +124,7 @@
 }
 
 .fh-item-hash {
-  color: var(--accent-static);
+  color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--text-xs);
 }
@@ -179,7 +179,7 @@
 .fh-blame-hash {
   background: transparent;
   border: none;
-  color: var(--accent-static);
+  color: var(--accent);
   font-family: inherit;
   font-size: inherit;
   padding: 0;

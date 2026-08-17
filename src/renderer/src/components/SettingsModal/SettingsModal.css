@@ -102,20 +102,6 @@
   opacity: 0.85;
 }
 
-/* ── Accent swatches ─────────────────────────────────────────── */
-.stg-swatches { display: flex; flex-wrap: wrap; gap: var(--space-lg); margin-top: var(--space-sm); }
-.stg-swatch {
-  width: 32px; height: 32px;
-  border-radius: var(--radius-circle);
-  border: 2px solid transparent;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-on-emphasis); font-size: var(--text-md); font-weight: var(--weight-bold);
-  transition: transform var(--dur-fast), box-shadow var(--dur-fast);
-  padding: 0;
-}
-.stg-swatch:hover { transform: scale(1.1); }
-.stg-swatch.active { box-shadow: 0 0 0 2px var(--bg-canvas), 0 0 0 4px currentColor; }
 /* Theme picker. The chip previews the theme's own canvas and accent, so the
    choice is legible without reading the label. */
 .stg-themes { display: flex; flex-wrap: wrap; gap: var(--space-lg); margin-top: var(--space-sm); }
@@ -145,17 +131,6 @@
 .stg-theme-dot {
   width: 8px; height: 8px; border-radius: var(--radius-circle);
   background: var(--seed-accent);
-}
-
-.stg-swatch-check { text-shadow: 0 1px 2px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent); }
-.stg-swatch-custom {
-  width: 32px; height: 32px; border-radius: var(--radius-circle);
-  border: 2px dashed var(--border-subtle); cursor: pointer; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-  background: conic-gradient(red, orange, yellow, lime, cyan, blue, magenta, red);
-}
-.stg-swatch-custom input[type="color"] {
-  opacity: 0; width: 40px; height: 40px; cursor: pointer; border: none; padding: 0;
 }
 
 /* ── Segmented control ───────────────────────────────────────── */
@@ -580,7 +555,7 @@
   background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-md);
   color: var(--accent); font-size: var(--text-sm); padding: var(--space-xs) var(--space-xl); cursor: pointer; transition: var(--dur-fast);
 }
-.stg-profile-apply:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent); }
+.stg-profile-apply:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent); }
 .stg-profile-del {
   background: none; border: none; color: var(--text-tertiary); font-size: var(--text-base);
   cursor: pointer; padding: var(--space-2xs) var(--space-sm); transition: var(--dur-fast);

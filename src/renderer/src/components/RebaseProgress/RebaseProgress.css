@@ -51,7 +51,7 @@
 }
 
 .rp-ref-chip--commit {
-  color: var(--accent-static);
+  color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -87,7 +87,7 @@
   align-items: center;
   gap: var(--space-lg);
   padding: var(--space-lg) var(--space-2xl);
-  background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent);
+  background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent);
   border-bottom: 1px solid var(--border-muted);
   flex-shrink: 0;
 }
@@ -101,14 +101,14 @@
 }
 
 .rp-banner-text code {
-  color: var(--accent-static);
+  color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
 }
 
 .rp-banner-link {
   background: transparent;
   border: none;
-  color: var(--accent-static);
+  color: var(--accent);
   font-size: var(--text-sm);
   text-decoration: underline;
   cursor: pointer;
@@ -163,7 +163,7 @@
 
 .rp-conflicts-filter:focus {
   outline: none;
-  border-color: var(--accent-static);
+  border-color: var(--accent);
 }
 
 .rp-conflicts-list {
@@ -240,7 +240,7 @@
 
 .rp-step--current {
   background: var(--surface);
-  border-left: 2px solid var(--accent-static);
+  border-left: 2px solid var(--accent);
   padding-left: var(--space-2xl);
 }
 
@@ -262,8 +262,8 @@
 }
 
 .rp-step-dot--current {
-  background: var(--accent-static);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-static) var(--alpha-muted), transparent);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) var(--alpha-muted), transparent);
 }
 
 .rp-step-dot--conflict {
@@ -306,7 +306,7 @@
 }
 
 .rp-step--editable.drag-over {
-  border-top: 2px solid var(--accent-static);
+  border-top: 2px solid var(--accent);
 }
 
 .rp-step-drag {
@@ -359,7 +359,7 @@
 
 .rp-msg-textarea:focus {
   outline: none;
-  border-color: var(--accent-static);
+  border-color: var(--accent);
 }
 
 .rp-legend {

@@ -249,7 +249,7 @@ function fmtDate(s: string, locale: string) {
   try { return new Date(s).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) } catch { return s }
 }
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  M: { label: 'M', color: 'var(--accent-static)' }, A: { label: 'A', color: 'var(--success)' },
+  M: { label: 'M', color: 'var(--accent)' }, A: { label: 'A', color: 'var(--success)' },
   D: { label: 'D', color: 'var(--danger)' }, R: { label: 'R', color: 'var(--purple-text)' },
   '!': { label: '!', color: 'var(--attention)' }, '?': { label: '?', color: 'var(--text-secondary)' },
 }

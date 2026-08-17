@@ -47,8 +47,8 @@ const SHORTCUT_KEYS: Record<string, EditableAction> = {
 
 const ACTION_COLORS: Record<string, string> = {
   pick: 'var(--success)',
-  reword: 'var(--accent-static)',
-  edit: 'var(--accent-static)',
+  reword: 'var(--accent)',
+  edit: 'var(--accent)',
   squash: 'var(--purple-text)',
   fixup: 'var(--attention)',
   drop: 'var(--danger)',

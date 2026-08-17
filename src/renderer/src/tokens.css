@@ -92,7 +92,6 @@
   --text-on-emphasis: var(--seed-on-fill);
   /* Accent */
   --accent: var(--seed-accent);
-  --accent-static: var(--seed-accent);
   --accent-hover: color-mix(in oklab, var(--seed-accent) 78%, var(--seed-text));
   --accent-emphasis: color-mix(in oklab, var(--seed-accent) 86%, var(--seed-text));
   /* The fill of a primary button: the seed itself, and the board's rule holds

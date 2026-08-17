@@ -4,14 +4,14 @@
 }
 
 .issue-link {
-  color: var(--accent-static);
+  color: var(--accent);
   cursor: pointer;
   border-radius: var(--radius-xs);
 }
 
 .issue-link:hover {
   text-decoration: underline;
-  background: color-mix(in srgb, var(--accent-static) var(--alpha-subtle), transparent);
+  background: color-mix(in srgb, var(--accent) var(--alpha-subtle), transparent);
 }
 
 .issue-tooltip {

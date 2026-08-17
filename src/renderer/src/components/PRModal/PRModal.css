@@ -177,8 +177,8 @@
 .pr-hint {
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-static) var(--alpha-muted), transparent);
+  background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) var(--alpha-muted), transparent);
   border-radius: var(--radius-md);
   padding: var(--space-md) var(--space-xl);
 }

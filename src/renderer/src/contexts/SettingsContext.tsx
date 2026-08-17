@@ -48,7 +48,6 @@ function resolveTheme(s: SettingsMap): ThemeId {
 // before the user ever opens preferences.
 export const SETTING_DEFAULTS: SettingsMap = {
   theme: 'aqua-dark',
-  accentColor: 'var(--accent-static)',
   dateFormat: 'relative',          // 'relative' | 'absolute'
   graphShowAvatars: 'true',
   graphShowAuthor: 'true',
@@ -62,15 +61,15 @@ export const SETTING_DEFAULTS: SettingsMap = {
 
 function applyAppearance(s: SettingsMap) {
   const root = document.documentElement
-  // Theme first: it rewrites the seeds, and the accent below may point at one
-  // of them (`var(--accent-static)` is the default, so the accent follows the
-  // theme unless the user has pinned a colour of their own).
+  // A theme rewrites the seeds, and that is now the ONLY thing that decides
+  // the accent. There used to be an accentColor setting layered on top, set
+  // inline on <html>; a palette the user picks and an accent they pin on top
+  // of it are two answers to one question, and the pinned one won even when it
+  // fought the theme. An old accentColor left in settings.json is ignored.
   const theme = resolveTheme(s)
   root.dataset.theme = theme
   try { localStorage.setItem(THEME_STORAGE_KEY, theme) } catch { /* private mode */ }
 
-  const accent = s.accentColor || SETTING_DEFAULTS.accentColor
-  root.style.setProperty('--accent', accent)
   // The graph resolves --lane-n and --bg-canvas to literals once and caches
   // them, because it does arithmetic on them. Anything that rewrites tokens on
   // <html> has to drop that cache, or the graph keeps painting the old theme.

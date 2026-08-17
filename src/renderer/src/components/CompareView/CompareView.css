@@ -112,7 +112,7 @@
 }
 
 .cv-commit-hash {
-  color: var(--accent-static);
+  color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--text-xs);
   flex-shrink: 0;

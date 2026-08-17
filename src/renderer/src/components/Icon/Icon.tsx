@@ -151,7 +151,7 @@ const parsed: Record<string, Parsed> = Object.fromEntries(
     if (!vb) throw new Error(`Icon: icons/${name}.svg has no viewBox`)
     // A file that declares ANY fill other than `none` is a silhouette, and the
     // fill is kept verbatim: matching on `currentColor` alone missed the ones
-    // that fill with a token — PRModal's arrow is `fill="var(--accent-static)"`
+    // that fill with a token — PRModal's arrow is `fill="var(--accent)"`
     // — and reclassifying those as stroke drawings threw away both the fill and
     // the colour that carried the meaning.
     const f = /\bfill="([^"]+)"/.exec(attrs)

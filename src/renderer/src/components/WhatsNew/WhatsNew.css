@@ -30,7 +30,7 @@
   flex-shrink: 0;
   background: none;
   border: none;
-  color: var(--accent-static);
+  color: var(--accent);
   font-size: var(--text-base);
   cursor: pointer;
   white-space: nowrap;
@@ -45,7 +45,7 @@
 
 .wn-badge {
   display: inline-block;
-  background: linear-gradient(135deg, var(--accent-static), var(--purple-soft));
+  background: linear-gradient(135deg, var(--accent), var(--purple-soft));
   color: var(--text-on-emphasis);
   font-weight: var(--weight-bold);
   font-size: var(--text-base);
@@ -55,7 +55,7 @@
 }
 
 .wn-h2 { font-size: var(--text-2xl); margin: var(--space-4xl) 0 var(--space-md); color: var(--text-primary); font-weight: var(--weight-bold); }
-.wn-h3 { font-size: var(--text-md); margin: var(--space-2xl) 0 var(--space-sm); color: var(--accent-static); font-weight: var(--weight-semibold); }
+.wn-h3 { font-size: var(--text-md); margin: var(--space-2xl) 0 var(--space-sm); color: var(--accent); font-weight: var(--weight-semibold); }
 .wn-p { color: var(--text-muted-soft); line-height: 1.6; margin: var(--space-md) 0; }
 
 .wn-list { margin: var(--space-md) 0; padding-left: var(--space-3xl); }

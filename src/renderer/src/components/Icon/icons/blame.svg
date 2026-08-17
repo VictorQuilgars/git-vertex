@@ -6,5 +6,5 @@
        Do not put stroke-width on a shape: the component sets it, growing it
        as the icon shrinks so a 1.7 stroke never falls under a pixel. -->
   <path d="M5 4v16M9.5 7h10M9.5 12h10M9.5 17h10"/>
-  <circle cx="5" cy="12" r="1.9" stroke="var(--accent-static, #3FD8C2)"/>
+  <circle cx="5" cy="12" r="1.9" stroke="var(--accent, #3FD8C2)"/>
 </svg>

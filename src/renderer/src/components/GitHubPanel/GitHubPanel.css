@@ -234,4 +234,4 @@
   padding: 0 var(--space-xs);
 }
 .ghp-item:hover .ghp-copy-link { opacity: 1; }
-.ghp-copy-link:hover { color: var(--accent-static); }
+.ghp-copy-link:hover { color: var(--accent); }

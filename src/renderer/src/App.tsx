@@ -81,7 +81,7 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
         ) : (
           <div className="bc-grid">
             <div className="bc-col">
-              <div className="bc-col-header" style={{ color: 'var(--accent-static)' }}>
+              <div className="bc-col-header" style={{ color: 'var(--accent)' }}>
                 {t('bc.in')} <code>{otherBranch}</code> {t('bc.butNotIn')} <code>{currentBranch}</code> ({data.ahead.length})
               </div>
               <div className="bc-list">

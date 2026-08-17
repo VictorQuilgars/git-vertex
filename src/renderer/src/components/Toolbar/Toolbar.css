@@ -195,7 +195,7 @@
 .tb-clear:hover { color: var(--text-primary); }
 .tb-search-count {
   background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-muted), transparent);
-  color: var(--accent-static);
+  color: var(--accent);
   font-size: var(--text-tiny);
   font-weight: var(--weight-bold);
   padding: var(--space-px) var(--space-sm);
