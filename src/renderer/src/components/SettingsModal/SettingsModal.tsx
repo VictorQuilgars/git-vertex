@@ -75,9 +75,41 @@ const NAV_GROUPS: { group: string; items: { id: Section; icon: React.ReactNode; 
 // of the palette, and this one had already drifted.
 // THEMES is the list; __tests__/token-discipline.test.ts fails if it and the
 // [data-theme] blocks in tokens.css stop agreeing.
-const THEME_PRESETS: { id: ThemeId; key: string }[] = [
+// `name` rather than a translation key for the imported ones: a theme name is
+// a proper noun. "Rosé Pine" is called that in every language.
+const THEME_PRESETS: { id: ThemeId; key?: string; name?: string }[] = [
   { id: 'aqua-dark',  key: 'settings.theme.dark' },
   { id: 'aqua-light', key: 'settings.theme.light' },
+  { id: 'one-dark-pro', name: "One Dark Pro" },
+  { id: 'catppuccin-frappe', name: "Catppuccin Frappé" },
+  { id: 'gitpod-dark', name: "Gitpod Dark" },
+  { id: 'dracula-theme', name: "Dracula Theme" },
+  { id: 'github-dark', name: "GitHub Dark" },
+  { id: 'monokai-dimmed', name: "Monokai Dimmed" },
+  { id: 'monokai', name: "Monokai" },
+  { id: 'vscode-dark', name: "Dark+" },
+  { id: 'vscode-red', name: "Red" },
+  { id: 'kimbie-dark', name: "Kimbie Dark" },
+  { id: 'solarized-dark', name: "Solarized Dark" },
+  { id: 'gruvbox-dark-hard', name: "Gruvbox Dark Hard" },
+  { id: 'ayu-dark', name: "Ayu Dark" },
+  { id: 'atom-one-dark', name: "Atom One Dark" },
+  { id: 'tokyo-night', name: "Tokyo Night" },
+  { id: 'rose-pine', name: "Rosé Pine" },
+  { id: 'night-owl', name: "Night Owl" },
+  { id: 'community-material-theme', name: "Community Material Theme" },
+  { id: 'shades-of-purple', name: "Shades of Purple" },
+  { id: 'darcula', name: "Darcula" },
+  { id: 'powershell-ise', name: "PowerShell ISE" },
+  { id: 'catppuccin-latte', name: "Catppuccin Latte" },
+  { id: 'gitpod-light', name: "Gitpod Light" },
+  { id: 'github-light', name: "GitHub Light" },
+  { id: 'quiet-light', name: "Quiet Light" },
+  { id: 'vscode-light', name: "Light+" },
+  { id: 'solarized-light', name: "Solarized Light" },
+  { id: 'gruvbox-light-hard', name: "Gruvbox Light Hard" },
+  { id: 'ayu-light', name: "Ayu Light" },
+  { id: 'tokyo-night-light', name: "Tokyo Night Light" },
 ]
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
@@ -598,7 +630,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                             <span className="stg-theme-chip" data-theme={th.id}>
                               <span className="stg-theme-dot" />
                             </span>
-                            {t(th.key as any)}
+                            {th.name ?? t(th.key as any)}
                           </button>
                         )
                       })}

@@ -24,7 +24,18 @@ export const isVSCodeHost =
   typeof window !== 'undefined' && (window as any).appInfo?.platform === 'vscode'
 
 /** Every theme tokens.css defines. A theme is a `[data-theme]` block of seeds. */
-export const THEMES = ['aqua-dark', 'aqua-light'] as const
+export const THEMES = [
+  'aqua-dark', 'aqua-light',
+  // Imported — see the IMPORTED THEMES block in tokens.css.
+  'one-dark-pro', 'catppuccin-frappe', 'gitpod-dark', 'dracula-theme',
+  'github-dark', 'monokai-dimmed', 'monokai', 'vscode-dark',
+  'vscode-red', 'kimbie-dark', 'solarized-dark', 'gruvbox-dark-hard',
+  'ayu-dark', 'atom-one-dark', 'tokyo-night', 'rose-pine',
+  'night-owl', 'community-material-theme', 'shades-of-purple', 'darcula',
+  'powershell-ise', 'catppuccin-latte', 'gitpod-light', 'github-light',
+  'quiet-light', 'vscode-light', 'solarized-light', 'gruvbox-light-hard',
+  'ayu-light', 'tokyo-night-light',
+] as const
 export type ThemeId = (typeof THEMES)[number]
 
 /** Mirrors the chosen theme so main.tsx can apply it before React mounts. */
