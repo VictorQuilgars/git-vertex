@@ -2,7 +2,12 @@
 
 ## Unreleased
 
+### Added
+- **Thirty themes, and four thousand more a click away.** Appearance shows the ones that ship with the app as real previews — a miniature commit graph in each theme's own colours, not a coloured square. "Browse more themes" opens a gallery in its own tab: search by name, filter by dark or light, by colour, by how vivid it is. Installing one keeps you on the theme you are reading it in; the tile switches to *Use*, and using it is a second click.
+- **The themes are the ones you already know.** Catppuccin, Dracula, Gruvbox, Tokyo Night, Rosé Pine, Ayu, One Dark Pro, Night Owl, Nord, and Visual Studio Code's own — Dark+, Light+, Monokai, Solarized, Abyss, Quiet Light. Every palette is mapped onto the app's own roles, so the graph lanes, the diff colours and the buttons all follow, and every one is checked for contrast before it is offered. All are under permissive licences; `THIRD-PARTY.md` credits each author and the version their palette came from.
+
 ### Fixed
+- **Added and removed lines were the same colour in thirteen of the built-in themes.** Dark+, Light+, Solarized, Monokai and nine others painted an addition and a deletion identically — a diff you cannot read. Two causes, both now handled: a theme file may inherit another and carry only its overrides (Dark+ declares no colours at all), and a theme that names no colour for "added" had all four of its meanings collapse onto one.
 - **Hovering a branch's `+1` showed an unreadable pile.** The refs it was hiding — a tag on the same commit, usually — appeared in a panel with no background of its own, drawn straight over the chip of the row below: two names on top of each other, character by character. The panel is now a real popover, as wide as the chip it belongs to — wider only when a name does not fit — and it opens upwards when there is no room beneath, instead of past the bottom of the window.
 
 ## 1.27.0

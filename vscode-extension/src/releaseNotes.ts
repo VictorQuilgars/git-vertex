@@ -18,6 +18,15 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🎨 Thirty themes, and four thousand more
+- Appearance shows the themes that ship with the app as **real previews** — a miniature commit graph in each theme's own colours.
+- **Browse more themes** opens a gallery in its own tab: search by name, filter by dark or light, by colour, by how vivid it is.
+- Installing one **keeps the theme you are on**. The tile switches to *Use*, and using it is a second click.
+- The names you know: Catppuccin, Dracula, Gruvbox, Tokyo Night, Rosé Pine, Ayu, One Dark Pro, Nord — and VS Code's own Dark+, Light+, Monokai and Solarized.
+
+### 🩹 A diff you can read on every theme
+- Thirteen of the built-in themes painted **added and removed lines in the same colour**. They no longer do, and no theme is offered until its four meanings are four different colours.
+
 ### 🏷️ Hovering a branch's \`+1\` is readable again
 - The refs it was hiding — usually a tag on the same commit — appeared in a panel with no background of its own, drawn straight over the chip of the row below. Two names on top of each other, character by character.
 - It is a real popover now, **as wide as the chip it belongs to** — wider only when a name does not fit — and it opens **upwards** when there is no room beneath, instead of past the bottom of the window.
