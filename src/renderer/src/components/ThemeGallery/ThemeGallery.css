@@ -134,8 +134,10 @@
 
 /* Narrower columns where the surface is narrow: the settings pane is capped at
    600px, so the gallery's 190px minimum would give it two columns and a gap. */
-.stg-wall--compact { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-md); }
-.stg-wall--compact .stg-tile-mock { height: 74px; }
+/* auto-fill, so this is one rule for a 600px pane and a 1240px one: the pane
+   decides how many columns it can afford, not a breakpoint per surface. */
+.stg-wall--compact { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--space-lg); }
+.stg-wall--compact .stg-tile-mock { height: 80px; }
 
 /* Removing an installed theme. Hidden until the tile is hovered or the button
    focused — it is destructive and it is not what anyone came here to do. */

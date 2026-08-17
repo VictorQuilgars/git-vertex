@@ -537,7 +537,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
         </nav>
 
           {/* Content */}
-          <div className="stg-content">
+          {/* Appearance is the one pane that is not a column of fields. The
+              600px reading measure is right for prose and inputs and wrong for
+              a grid of theme tiles — it left two thirds of the window empty
+              and made the tiles smaller than they need to be. */}
+          <div className={`stg-content ${section === 'appearance' ? 'stg-content--wide' : ''}`}>
 
             {/* ── Git ── */}
             {section === 'git' && (
