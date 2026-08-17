@@ -49,6 +49,19 @@ describe('label conventions', () => {
     expect(offenders).toEqual([])
   })
 
+  // Interpolation here is a FUNCTION, not a template: `t(key, ...args)` calls
+  // the value. A string with a {0} in it therefore renders the braces — which
+  // is what "Browse {0} more themes" did on the theme card, in the shipped UI.
+  test('no value fakes interpolation with a placeholder', () => {
+    const offenders: string[] = []
+    for (const [name, half] of [['fr', src.slice(0, src.indexOf('const en:'))], ['en', enSrc]] as const) {
+      for (const m of half.matchAll(/^\s*'([a-zA-Z0-9._]+)':\s*(['"`])(.*?)\2\s*,\s*$/gm)) {
+        if (/\{\s*\d+\s*\}|%[sd]\b/.test(m[3])) offenders.push(`${name}: ${m[1]} → ${m[3]}`)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
   test('no duplicate key in either half of the catalogue', () => {
     // A duplicate is not an error in a JS object literal: the last one silently
     // wins. `cp.empty` was declared twice, with two different texts, for months.
