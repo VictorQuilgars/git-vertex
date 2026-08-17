@@ -41,7 +41,7 @@
   cursor: pointer;
   transition: background var(--dur-fast), color var(--dur-fast);
 }
-.notifs-head-btn:hover:not(:disabled) { background: var(--surface-sunken); color: var(--accent-static); }
+.notifs-head-btn:hover:not(:disabled) { background: var(--surface-sunken); color: var(--accent); }
 .notifs-head-btn:disabled { opacity: 0.4; cursor: default; }
 
 .notifs-list { overflow-y: auto; }
@@ -70,7 +70,7 @@
   width: 6px;
   height: 6px;
   border-radius: var(--radius-circle);
-  background: var(--accent-static);
+  background: var(--accent);
 }
 .notifs-item-icon {
   flex: 0 0 auto;

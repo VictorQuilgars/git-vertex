@@ -45,7 +45,7 @@
   gap: var(--space-sm);
   font-variant-numeric: tabular-nums;
 }
-.sb-ahead { color: var(--accent-static); }
+.sb-ahead { color: var(--accent); }
 .sb-behind { color: var(--warning); }
 
 .sb-fetch {

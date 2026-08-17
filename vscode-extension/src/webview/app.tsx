@@ -12,6 +12,7 @@ import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/Langua
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
+import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/ThemeGallery'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import type { ConflictKind } from '../../../src/renderer/src/types'
@@ -821,7 +822,8 @@ function VertexApp() {
       />
       {settingsOpen && (
         <div className="gv-settings-overlay">
-          <SettingsModal embedded onClose={() => setSettingsOpen(false)} showToast={showToast} />
+          <SettingsModal embedded onClose={() => setSettingsOpen(false)} showToast={showToast}
+            onBrowseThemes={() => window.gitAPI.themesOpenGallery?.()} />
         </div>
       )}
       {conflictMode && (
@@ -1123,6 +1125,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                         ? <InteractiveRebaseTab baseHash={boot.baseHash} />
                         : boot?.mode === 'commitMsg'
                           ? <CommitMsgEditorView boot={boot} />
+                          : boot?.mode === 'themes'
+                            ? <ThemeGallery />
                           : boot?.mode === 'whatsNew' && boot.notes
                             ? <WhatsNew version={boot.version ?? ''} notes={boot.notes} tagPrefix="ext-v" />
                             : <VertexApp />}

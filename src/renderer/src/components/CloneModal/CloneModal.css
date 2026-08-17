@@ -20,7 +20,7 @@
 .cm-input { background: var(--bg-inset); border: 1px solid var(--border-default); color: var(--text-primary); border-radius: var(--radius-md); padding: var(--space-md) var(--space-lg); font-size: var(--text-base); width: 100%; }
 .cm-input:focus { outline: none; border-color: var(--accent); }
 .cm-row { display: flex; gap: var(--space-md); }
-.cm-browse { background: var(--surface-sunken); border: 1px solid color-mix(in srgb, var(--accent-hover) var(--alpha-bold), transparent); color: var(--accent-static); cursor: pointer; padding: var(--space-md) var(--space-2xl); border-radius: var(--radius-md); font-size: var(--text-base); font-weight: var(--weight-semibold); flex-shrink: 0; }
+.cm-browse { background: var(--surface-sunken); border: 1px solid color-mix(in srgb, var(--accent-hover) var(--alpha-bold), transparent); color: var(--accent); cursor: pointer; padding: var(--space-md) var(--space-2xl); border-radius: var(--radius-md); font-size: var(--text-base); font-weight: var(--weight-semibold); flex-shrink: 0; }
 .cm-browse:hover { background: var(--surface-active); }
 
 /* Repository picker */

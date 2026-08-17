@@ -89,9 +89,9 @@
 .ir-plan-banner {
   padding: var(--space-sm) var(--space-2xl);
   font-size: var(--text-sm);
-  color: var(--accent-static);
-  background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-static) var(--alpha-strong), transparent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) var(--alpha-strong), transparent);
   flex-shrink: 0;
 }
 

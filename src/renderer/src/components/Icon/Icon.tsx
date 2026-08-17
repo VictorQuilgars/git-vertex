@@ -73,6 +73,7 @@ import history from './icons/history.svg'
 import home from './icons/home.svg'
 import hunk from './icons/hunk.svg'
 import info from './icons/info.svg'
+import ink from './icons/ink.svg'
 import issue from './icons/issue.svg'
 import kebab from './icons/kebab.svg'
 import link from './icons/link.svg'
@@ -114,7 +115,7 @@ const SOURCE: Record<string, string> = {
   caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
   download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
-  history, home, hunk, info, issue, kebab, link, list, listTree, mail,
+  history, home, hunk, info, ink, issue, kebab, link, list, listTree, mail,
   merge, newBranch, node, panel, pencil, person, play, plus, pop,
   pullRequest, push, rebase, redo, reflog, refresh, repo, rocket, search,
   shield, sliders, sort, staging, stash, tag, terminal, trash, undo,
@@ -151,7 +152,7 @@ const parsed: Record<string, Parsed> = Object.fromEntries(
     if (!vb) throw new Error(`Icon: icons/${name}.svg has no viewBox`)
     // A file that declares ANY fill other than `none` is a silhouette, and the
     // fill is kept verbatim: matching on `currentColor` alone missed the ones
-    // that fill with a token — PRModal's arrow is `fill="var(--accent-static)"`
+    // that fill with a token — PRModal's arrow is `fill="var(--accent)"`
     // — and reclassifying those as stroke drawings threw away both the fill and
     // the colour that carried the meaning.
     const f = /\bfill="([^"]+)"/.exec(attrs)

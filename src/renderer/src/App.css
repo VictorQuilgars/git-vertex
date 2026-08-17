@@ -63,7 +63,7 @@ body {
   transition: background var(--dur-fast), color var(--dur-fast);
 }
 .app-tb-icon:hover:not(:disabled) { background: var(--surface-sunken); color: var(--text-primary); }
-.app-tb-icon.active { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); color: var(--accent-static); }
+.app-tb-icon.active { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); color: var(--accent); }
 .app-tb-icon:disabled { opacity: 0.45; cursor: default; }
 
 .app-profile-chip {
@@ -431,7 +431,7 @@ body {
   background: none;
   border: none;
   border-radius: var(--radius-md);
-  color: var(--accent-static);
+  color: var(--accent);
   font-size: var(--text-base);
   text-align: left;
   cursor: pointer;

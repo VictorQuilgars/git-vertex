@@ -20,8 +20,38 @@ import { githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, github
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
 import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
+import { ThemeStore } from '../../../src/main/theme-store'
+import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
+
+// ── Themes ───────────────────────────────────────────────────────────────────
+// The store is shared with the desktop main process rather than reimplemented:
+// it and the validator are free of `electron` and `vscode` precisely so both
+// products enforce the same rules, and esbuild bundles them in from ../../src.
+//
+// The directory is set once at activation instead of threaded through the
+// constructor — GitVertexHost is built in ten places, and none of the other
+// nine care about theme storage.
+let _themeStore: ThemeStore | null = null
+let _themeStorageDir: string | null = null
+
+export function setThemeStorageDir(dir: string): void {
+  _themeStorageDir = dir
+  _themeStore = null
+}
+
+function getThemeStore(): ThemeStore {
+  if (!_themeStore) {
+    _themeStore = new ThemeStore({
+      // globalStorageUri, so a theme installed in one workspace is available in
+      // every other one — a palette is a property of the person, not the repo.
+      baseDir: _themeStorageDir ?? path.join(os.tmpdir(), 'git-vertex-themes'),
+      builtIns: BUILT_IN_THEME_IDS,
+    })
+  }
+  return _themeStore
+}
 
 // An external diff/merge tool outlives the call that opened it: detached and
 // unref'd so it doesn't die with the extension host, with its error swallowed
@@ -361,6 +391,32 @@ export class GitVertexHost implements vscode.Disposable {
           return { error: e.message }
         }
       }
+      // ── Themes ──────────────────────────────────────────────────────────
+      // Real implementations, not not-implemented: the picker is wanted in the
+      // panel too, and the extension host has Node, so it runs the SAME
+      // ThemeStore and the SAME validator as the desktop main process. A
+      // method that exists on both sides with a poorer signature is the
+      // failure mode CLAUDE.md calls the worse case, so there is one
+      // implementation and both products call it.
+      case 'themesCatalogue': return getThemeStore().catalogue(args[0] ?? {})
+      case 'themesInstall': {
+        try {
+          return { success: true, theme: await getThemeStore().install(args[0]) }
+        } catch (e: any) {
+          return { success: false, error: e?.message ?? String(e) }
+        }
+      }
+      case 'themesRemove': {
+        try {
+          getThemeStore().remove(args[0]); return { success: true }
+        } catch (e: any) {
+          return { success: false, error: e?.message ?? String(e) }
+        }
+      }
+      case 'themesInstalled': {
+        const store = getThemeStore()
+        return { themes: store.installed(), discarded: store.takeDiscarded() }
+      }
       case 'appGetInfo': return { platform: process.platform, version: '1.5.0' }
       case 'openExternal': { vscode.env.openExternal(vscode.Uri.parse(args[0])); return { success: true } }
       case 'openInEditor': {
@@ -412,6 +468,15 @@ export class GitVertexHost implements vscode.Disposable {
         }
         return { success: true }
       }
+      // Panel-only, like closeSelf below: the desktop's settings page hands
+      // its App a callback and opens a tab directly, because the renderer owns
+      // the tab strip there and a round trip through main would buy nothing.
+      // Here the webview cannot open an editor tab itself, so it asks.
+      case 'themesOpenGallery': {
+        openGitVertexThemesTab(this._extensionUri, this._state, this._repoPath || '.')
+        return { success: true }
+      }
+
       case 'closeSelf': {
         this._onClose?.()
         return { success: true }
@@ -883,6 +948,52 @@ export function openGitVertexGitHubTab(
     githubHost?.dispose()
     githubHost = undefined
     githubPanel = undefined
+  })
+}
+
+// ── Theme gallery tab ─────────────────────────────────────────────
+// The bank is ~4,000 themes. That does not go in a side panel, and it does not
+// need to: an extension can put a webview in the editor area, which is what
+// the interactive rebase already does. So the panel keeps the 32 chips and the
+// browse card, and the card opens THIS — beside the user's files, the same
+// gesture as on the desktop, where it opens an app tab.
+const THEMES_VIEW_TYPE = 'gitVertex.themes'
+let themesPanel: vscode.WebviewPanel | undefined
+let themesHost: GitVertexHost | undefined
+
+export function openGitVertexThemesTab(
+  extensionUri: vscode.Uri,
+  state: vscode.Memento,
+  repoPath: string,
+): void {
+  // One at a time. Reveal rather than stack: a second gallery would fetch the
+  // catalogue again and disagree with the first about what is installed.
+  if (themesPanel) {
+    themesPanel.reveal(themesPanel.viewColumn)
+    return
+  }
+
+  themesPanel = vscode.window.createWebviewPanel(
+    THEMES_VIEW_TYPE,
+    'Themes',
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      // Filters and the scroll position are the whole value of the view;
+      // rebuilding it on every tab switch would make it unusable.
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+    },
+  )
+  themesPanel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
+
+  themesHost = new GitVertexHost(themesPanel.webview, extensionUri, state, { mode: 'themes' })
+  themesHost.setRepo(repoPath)
+
+  themesPanel.onDidDispose(() => {
+    themesHost?.dispose()
+    themesHost = undefined
+    themesPanel = undefined
   })
 }
 

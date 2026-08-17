@@ -192,7 +192,7 @@
   min-height: 120px;
   max-height: 340px;
   background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--accent-static) var(--alpha-bold), transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) var(--alpha-bold), transparent);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--text-base);
@@ -203,7 +203,7 @@
   outline: none;
   box-sizing: border-box;
 }
-.cd-amend-textarea:focus { border-color: var(--accent-static); }
+.cd-amend-textarea:focus { border-color: var(--accent); }
 
 .cd-amend-actions {
   display: flex;
@@ -1360,9 +1360,9 @@
 
 /* ── Agent proposal banner (MCP propose_commit) ── */
 .st2-proposal {
-  border: 1px solid color-mix(in srgb, var(--accent-static) var(--alpha-strong), transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) var(--alpha-strong), transparent);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent);
+  background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent);
   padding: var(--space-md) var(--space-lg);
   margin-bottom: var(--space-md);
   flex-shrink: 0;
@@ -1374,7 +1374,7 @@
   justify-content: space-between;
 }
 .st2-proposal-title {
-  color: var(--accent-static);
+  color: var(--accent);
   font-weight: var(--weight-semibold);
 }
 .st2-proposal-close {
@@ -1650,7 +1650,7 @@
 .stx-spring { flex: 1; }
 /* Small icon-only sort / path / tree toggles, tucked in the header corner */
 .stx-tool { width: 24px; height: 22px; border-radius: var(--radius-sm); }
-.stx-tool.active { border-color: var(--accent); color: var(--accent-static); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
+.stx-tool.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 /* ── Per-file line counts (v1.22.0) ──────────────────────────── */
 .st-numstat {
   display: inline-flex;

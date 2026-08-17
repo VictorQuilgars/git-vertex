@@ -92,7 +92,6 @@
   --text-on-emphasis: var(--seed-on-fill);
   /* Accent */
   --accent: var(--seed-accent);
-  --accent-static: var(--seed-accent);
   --accent-hover: color-mix(in oklab, var(--seed-accent) 78%, var(--seed-text));
   --accent-emphasis: color-mix(in oklab, var(--seed-accent) 86%, var(--seed-text));
   /* The fill of a primary button: the seed itself, and the board's rule holds
@@ -307,4 +306,925 @@
   --seed-lane-8: #8B6415;
   --seed-lane-9: #5F7118;
   --seed-lane-10: #187F52;
+}
+
+/* ═══ IMPORTED THEMES ═══════════════════════════════════════════════════
+ *
+ * Published VS Code themes, each reduced to this file's own 24 seeds. They are
+ * GENERATED — docs-private/themes/ holds the crawler, the mapper and the
+ * licence filter. Do not hand-edit a block: fix the mapper and re-run
+ * `python3 assemble.py && python3 select30.py && python3 wire.py`.
+ *
+ * Every one is under a permissive licence, verified by reading the licence
+ * FILE rather than trusting the declared field: "SEE LICENSE IN LICENSE.txt"
+ * is an indirection, not a restriction, and one theme whose file opens with
+ * the MIT sentence turns out to forbid redistribution outright. Attribution is
+ * in THIRD-PARTY.md, and the comment above each block names source and version.
+ *
+ * The mapper does not copy colours blindly. A theme's own "title" and
+ * "description" colours are decoration, so the three text tiers are derived;
+ * an accent below 4.5:1 on its own canvas is walked toward the ink along its
+ * own hue; and where nothing legible fits between a theme's text and its input
+ * well, the well is pulled back toward the canvas. Every block below passes the
+ * same contrast checks aqua-dark does.
+ */
+
+/* One Dark Pro — zhuangtongfa.material-theme 3.20.2, MIT */
+[data-theme="one-dark-pro"] {
+  color-scheme: dark;
+
+  --seed-canvas: #282C34;
+  --seed-surface: #21252B;
+  --seed-sunken: #1D1F23;
+  --seed-border: #3E4452;
+  --seed-text: #ABB2BF;
+  --seed-text-2: #8E94A0;
+  --seed-text-3: #808793;
+  --seed-accent: #61AFEF;
+  --seed-agent: #C678DD;
+  --seed-success: #109868;
+  --seed-warning: #948B60;
+  --seed-danger: #9A353D;
+  --seed-conflict: #E06C75;
+  --seed-on-fill: #282C34;
+  --seed-lane-1: #E06C75;
+  --seed-lane-2: #FF0000;
+  --seed-lane-3: #F0A45D;
+  --seed-lane-4: #E5C07B;
+  --seed-lane-5: #A5E075;
+  --seed-lane-6: #109868;
+  --seed-lane-7: #00809B;
+  --seed-lane-8: #4DC4FF;
+  --seed-lane-9: #528BFF;
+  --seed-lane-10: #DE73FF;
+}
+
+/* Catppuccin Frappé — Catppuccin.catppuccin-vsc 3.19.0, MIT */
+[data-theme="catppuccin-frappe"] {
+  color-scheme: dark;
+
+  --seed-canvas: #303446;
+  --seed-surface: #292C3C;
+  --seed-sunken: #414559;
+  --seed-border: #626880;
+  --seed-text: #C6D0F5;
+  --seed-text-2: #B2BCDE;
+  --seed-text-3: #A9B2D3;
+  --seed-accent: #8CAAEE;
+  --seed-agent: #99D1DB;
+  --seed-success: #A6D189;
+  --seed-warning: #E5C890;
+  --seed-danger: #E78284;
+  --seed-conflict: #CA9EE6;
+  --seed-on-fill: #303446;
+  --seed-lane-1: #A57582;
+  --seed-lane-2: #EA999C;
+  --seed-lane-3: #EF9F76;
+  --seed-lane-4: #D9BA73;
+  --seed-lane-5: #81C8BE;
+  --seed-lane-6: #5ABFB5;
+  --seed-lane-7: #85C1DC;
+  --seed-lane-8: #7B9EF0;
+  --seed-lane-9: #BABBF1;
+  --seed-lane-10: #CA9EE6;
+}
+
+/* Gitpod Dark — gitpod.gitpod-theme 0.0.2, MIT */
+[data-theme="gitpod-dark"] {
+  color-scheme: dark;
+
+  --seed-canvas: #12100C;
+  --seed-surface: #1C1917;
+  --seed-sunken: #23211E;
+  --seed-border: #363431;
+  --seed-text: #D4D4D4;
+  --seed-text-2: #939291;
+  --seed-text-3: #898887;
+  --seed-accent: #FFB45B;
+  --seed-agent: #FF8A00;
+  --seed-success: #369432;
+  --seed-warning: #FFB45B;
+  --seed-danger: #F44747;
+  --seed-conflict: #C586C0;
+  --seed-on-fill: #12100C;
+  --seed-lane-1: #F44747;
+  --seed-lane-2: #CE9178;
+  --seed-lane-3: #FFB45B;
+  --seed-lane-4: #CD9731;
+  --seed-lane-5: #6A9955;
+  --seed-lane-6: #4EC9B0;
+  --seed-lane-7: #9CDCFE;
+  --seed-lane-8: #007ACC;
+  --seed-lane-9: #6796E6;
+  --seed-lane-10: #B267E6;
+}
+
+/* Dracula Theme — dracula-theme.theme-dracula 2.25.1, MIT */
+[data-theme="dracula-theme"] {
+  color-scheme: dark;
+
+  --seed-canvas: #282A36;
+  --seed-surface: #21222C;
+  --seed-sunken: #282A36;
+  --seed-border: #BD93F9;
+  --seed-text: #F8F8F2;
+  --seed-text-2: #B3B4B5;
+  --seed-text-3: #909194;
+  --seed-accent: #9798A1;
+  --seed-agent: #FF79C6;
+  --seed-success: #50FA7B;
+  --seed-warning: #8BE9FD;
+  --seed-danger: #FF5555;
+  --seed-conflict: #FFB86C;
+  --seed-on-fill: #282A36;
+  --seed-lane-1: #FF5555;
+  --seed-lane-2: #FFB86C;
+  --seed-lane-3: #50FA7B;
+  --seed-lane-4: #69FF94;
+  --seed-lane-5: #8BE9FE;
+  --seed-lane-6: #6272A4;
+  --seed-lane-7: #BD93F9;
+  --seed-lane-8: #D6ACFF;
+  --seed-lane-9: #FF92DF;
+  --seed-lane-10: #FF79C6;
+}
+
+/* GitHub Dark — GitHub.github-vscode-theme 6.3.5, MIT */
+[data-theme="github-dark"] {
+  color-scheme: dark;
+
+  --seed-canvas: #24292E;
+  --seed-surface: #1F2428;
+  --seed-sunken: #2F363D;
+  --seed-border: #1B1F23;
+  --seed-text: #E1E4E8;
+  --seed-text-2: #A3A7AB;
+  --seed-text-3: #9CA0A5;
+  --seed-accent: #79B8FF;
+  --seed-agent: #C8E1FF;
+  --seed-success: #28A745;
+  --seed-warning: #79B8FF;
+  --seed-danger: #EA4A5A;
+  --seed-conflict: #FFAB70;
+  --seed-on-fill: #24292E;
+  --seed-lane-1: #F97583;
+  --seed-lane-2: #EA4A5A;
+  --seed-lane-3: #931C06;
+  --seed-lane-4: #FFAB70;
+  --seed-lane-5: #C69026;
+  --seed-lane-6: #34D058;
+  --seed-lane-7: #85E89D;
+  --seed-lane-8: #17E5E6;
+  --seed-lane-9: #39C5CF;
+  --seed-lane-10: #2188FF;
+}
+
+/* Monokai Dimmed — vscode.theme-monokai-dimmed 1.95.3, MIT */
+[data-theme="monokai-dimmed"] {
+  color-scheme: dark;
+
+  --seed-canvas: #1E1E1E;
+  --seed-surface: #272727;
+  --seed-sunken: #525252;
+  --seed-border: #3E3F3E;
+  --seed-text: #C5C8C6;
+  --seed-text-2: #C1C4C2;
+  --seed-text-3: #C3C6C4;
+  --seed-accent: #858685;
+  --seed-agent: #9872A2;
+  --seed-success: #008200;
+  --seed-warning: #E58520;
+  --seed-danger: #FF0B00;
+  --seed-conflict: #FF0080;
+  --seed-on-fill: #1E1E1E;
+  --seed-lane-1: #FF0080;
+  --seed-lane-2: #FF0B00;
+  --seed-lane-3: #CE6700;
+  --seed-lane-4: #CD9731;
+  --seed-lane-5: #E2E22E;
+  --seed-lane-6: #A6E22E;
+  --seed-lane-7: #219186;
+  --seed-lane-8: #66D9EF;
+  --seed-lane-9: #3655B5;
+  --seed-lane-10: #AE81FF;
+}
+
+/* Monokai — vscode.theme-monokai 1.95.3, MIT */
+[data-theme="monokai"] {
+  color-scheme: dark;
+
+  --seed-canvas: #272822;
+  --seed-surface: #1E1F1C;
+  --seed-sunken: #414339;
+  --seed-border: #414339;
+  --seed-text: #F8F8F2;
+  --seed-text-2: #BBBCB5;
+  --seed-text-3: #AEAFA8;
+  --seed-accent: #989586;
+  --seed-agent: #B267E6;
+  --seed-success: #A6E22E;
+  --seed-warning: #FD971F;
+  --seed-danger: #F44747;
+  --seed-conflict: #90274A;
+  --seed-on-fill: #272822;
+  --seed-lane-1: #90274A;
+  --seed-lane-2: #F92672;
+  --seed-lane-3: #F44747;
+  --seed-lane-4: #FD971F;
+  --seed-lane-5: #E2E22E;
+  --seed-lane-6: #A6E22E;
+  --seed-lane-7: #66D9EF;
+  --seed-lane-8: #819AFF;
+  --seed-lane-9: #4A4A76;
+  --seed-lane-10: #AE81FF;
+}
+
+/* Dark+ — vscode.theme-defaults 1.95.3, MIT */
+[data-theme="vscode-dark"] {
+  color-scheme: dark;
+
+  --seed-canvas: #1E1E1E;
+  --seed-surface: #272727;
+  --seed-sunken: #2F2F2F;
+  --seed-border: #414141;
+  --seed-text: #D4D4D4;
+  --seed-text-2: #9F9F9F;
+  --seed-text-3: #969696;
+  --seed-accent: #4EC9B0;
+  --seed-agent: #C586C0;
+  --seed-success: #16825D;
+  --seed-warning: #D7BA7D;
+  --seed-danger: #F44747;
+  --seed-conflict: #C586C0;
+  --seed-on-fill: #1E1E1E;
+  --seed-lane-1: #F44747;
+  --seed-lane-2: #CE9178;
+  --seed-lane-3: #D7BA7D;
+  --seed-lane-4: #6A9955;
+  --seed-lane-5: #369432;
+  --seed-lane-6: #4EC9B0;
+  --seed-lane-7: #9CDCFE;
+  --seed-lane-8: #4FC1FF;
+  --seed-lane-9: #6796E6;
+  --seed-lane-10: #646695;
+}
+
+/* Red — vscode.theme-red 1.95.3, MIT */
+[data-theme="vscode-red"] {
+  color-scheme: dark;
+
+  --seed-canvas: #390000;
+  --seed-surface: #330000;
+  --seed-sunken: #580000;
+  --seed-border: #FF6666;
+  --seed-text: #F8F8F8;
+  --seed-text-2: #BEA8A4;
+  --seed-text-3: #A58781;
+  --seed-accent: #FF6666;
+  --seed-agent: #41A83E;
+  --seed-success: #41A83E;
+  --seed-warning: #FFB454;
+  --seed-danger: #FF0000;
+  --seed-conflict: #EB939A;
+  --seed-on-fill: #390000;
+  --seed-lane-1: #EB939A;
+  --seed-lane-2: #FF0000;
+  --seed-lane-3: #F55000;
+  --seed-lane-4: #FD6209;
+  --seed-lane-5: #FB9A4B;
+  --seed-lane-6: #FFB454;
+  --seed-lane-7: #FEC758;
+  --seed-lane-8: #FFE862;
+  --seed-lane-9: #EDEF7D;
+  --seed-lane-10: #96DD3B;
+}
+
+/* Kimbie Dark — vscode.theme-kimbie-dark 1.95.3, MIT */
+[data-theme="kimbie-dark"] {
+  color-scheme: dark;
+
+  --seed-canvas: #221A0F;
+  --seed-surface: #362712;
+  --seed-sunken: #51412C;
+  --seed-border: #443726;
+  --seed-text: #D3AF86;
+  --seed-text-2: #CFAB82;
+  --seed-text-3: #CEAB83;
+  --seed-accent: #9E815F;
+  --seed-agent: #1B60A5;
+  --seed-success: #088649;
+  --seed-warning: #E3B583;
+  --seed-danger: #9D2F23;
+  --seed-conflict: #DC3958;
+  --seed-on-fill: #221A0F;
+  --seed-lane-1: #DC3958;
+  --seed-lane-2: #9D2F23;
+  --seed-lane-3: #F06431;
+  --seed-lane-4: #F79A32;
+  --seed-lane-5: #E3B583;
+  --seed-lane-6: #7E602C;
+  --seed-lane-7: #889B4A;
+  --seed-lane-8: #369432;
+  --seed-lane-9: #088649;
+  --seed-lane-10: #1B60A5;
+}
+
+/* Solarized Dark — vscode.theme-solarized-dark 1.95.3, MIT */
+[data-theme="solarized-dark"] {
+  color-scheme: dark;
+
+  --seed-canvas: #002B36;
+  --seed-surface: #00212B;
+  --seed-sunken: #002F3A;
+  --seed-border: #2B2B4A;
+  --seed-text: #839496;
+  --seed-text-2: #7F9092;
+  --seed-text-3: #839496;
+  --seed-accent: #2AA198;
+  --seed-agent: #D33682;
+  --seed-success: #369432;
+  --seed-warning: #B58900;
+  --seed-danger: #D30102;
+  --seed-conflict: #D33682;
+  --seed-on-fill: #002B36;
+  --seed-lane-1: #AB395B;
+  --seed-lane-2: #A92049;
+  --seed-lane-3: #CB4B16;
+  --seed-lane-4: #B58900;
+  --seed-lane-5: #859900;
+  --seed-lane-6: #2AA198;
+  --seed-lane-7: #1EBCC5;
+  --seed-lane-8: #047AA6;
+  --seed-lane-9: #268BD2;
+  --seed-lane-10: #7744AA;
+}
+
+/* Abyss — vscode.theme-abyss 1.95.3, MIT */
+[data-theme="abyss"] {
+  color-scheme: dark;
+
+  --seed-canvas: #000C18;
+  --seed-surface: #060621;
+  --seed-sunken: #181F2F;
+  --seed-border: #2B2B4A;
+  --seed-text: #6688CC;
+  --seed-text-2: #6284C8;
+  --seed-text-3: #6586CA;
+  --seed-accent: #5979B6;
+  --seed-agent: #F280D0;
+  --seed-success: #22AA44;
+  --seed-warning: #DDBB88;
+  --seed-danger: #DC322F;
+  --seed-conflict: #F280D0;
+  --seed-on-fill: #000C18;
+  --seed-lane-1: #AB395B;
+  --seed-lane-2: #FF7882;
+  --seed-lane-3: #CB4B16;
+  --seed-lane-4: #DDBB88;
+  --seed-lane-5: #B8F171;
+  --seed-lane-6: #22AA44;
+  --seed-lane-7: #78FFFF;
+  --seed-lane-8: #0063A5;
+  --seed-lane-9: #384887;
+  --seed-lane-10: #D778FF;
+}
+
+/* Tomorrow Night Blue — vscode.theme-tomorrow-night-blue 1.95.3, MIT */
+[data-theme="tomorrow-night-blue"] {
+  color-scheme: dark;
+
+  --seed-canvas: #002451;
+  --seed-surface: #001C40;
+  --seed-sunken: #001733;
+  --seed-border: #404F7D;
+  --seed-text: #FFFFFF;
+  --seed-text-2: #ACB9C9;
+  --seed-text-3: #7D90AA;
+  --seed-accent: #BBDAFF;
+  --seed-agent: #D778FF;
+  --seed-success: #B8F171;
+  --seed-warning: #FFC58F;
+  --seed-danger: #F44747;
+  --seed-conflict: #A92049;
+  --seed-on-fill: #002451;
+  --seed-lane-1: #A92049;
+  --seed-lane-2: #F44747;
+  --seed-lane-3: #FFC58F;
+  --seed-lane-4: #CD9731;
+  --seed-lane-5: #718C00;
+  --seed-lane-6: #B8F171;
+  --seed-lane-7: #78FFFF;
+  --seed-lane-8: #0E639C;
+  --seed-lane-9: #007ACC;
+  --seed-lane-10: #003F8E;
+}
+
+/* Gruvbox Dark Hard — jdinhlife.gruvbox 1.29.1, MIT */
+[data-theme="gruvbox-dark-hard"] {
+  color-scheme: dark;
+
+  --seed-canvas: #1D2021;
+  --seed-surface: #1D2021;
+  --seed-sunken: #1D2021;
+  --seed-border: #3C3836;
+  --seed-text: #EBDBB2;
+  --seed-text-2: #A79D83;
+  --seed-text-3: #8D8671;
+  --seed-accent: #83A598;
+  --seed-agent: #458588;
+  --seed-success: #B8BB26;
+  --seed-warning: #D79921;
+  --seed-danger: #FB4934;
+  --seed-conflict: #B16286;
+  --seed-on-fill: #1D2021;
+  --seed-lane-1: #D3869B;
+  --seed-lane-2: #CC241D;
+  --seed-lane-3: #FB4934;
+  --seed-lane-4: #FE8019;
+  --seed-lane-5: #D79921;
+  --seed-lane-6: #FABD2F;
+  --seed-lane-7: #B8BB26;
+  --seed-lane-8: #8EC07C;
+  --seed-lane-9: #689D6A;
+  --seed-lane-10: #458588;
+}
+
+/* Ayu Dark — teabyii.ayu 1.1.12, MIT */
+[data-theme="ayu-dark"] {
+  color-scheme: dark;
+
+  --seed-canvas: #0D1017;
+  --seed-surface: #0D1017;
+  --seed-sunken: #10141C;
+  --seed-border: #1B1F29;
+  --seed-text: #BFBDB6;
+  --seed-text-2: #8A8A88;
+  --seed-text-3: #7F7F7E;
+  --seed-accent: #E6B450;
+  --seed-agent: #E6B450;
+  --seed-success: #70BF56;
+  --seed-warning: #73B8FF;
+  --seed-danger: #F26D78;
+  --seed-conflict: #C594C5;
+  --seed-on-fill: #0D1017;
+  --seed-lane-1: #F26D78;
+  --seed-lane-2: #F06B73;
+  --seed-lane-3: #FF8F40;
+  --seed-lane-4: #FDB04C;
+  --seed-lane-5: #AAD94C;
+  --seed-lane-6: #70BF56;
+  --seed-lane-7: #95E6CB;
+  --seed-lane-8: #4FBFFF;
+  --seed-lane-9: #3388FF;
+  --seed-lane-10: #D0A1FF;
+}
+
+/* Atom One Dark — akamud.vscode-theme-onedark 2.3.0, MIT */
+[data-theme="atom-one-dark"] {
+  color-scheme: dark;
+
+  --seed-canvas: #282C34;
+  --seed-surface: #21252B;
+  --seed-sunken: #1B1D23;
+  --seed-border: #181A1F;
+  --seed-text: #ABB2BF;
+  --seed-text-2: #8E94A0;
+  --seed-text-3: #7F8591;
+  --seed-accent: #7793C7;
+  --seed-agent: #C678DD;
+  --seed-success: #37AF4E;
+  --seed-warning: #D19A66;
+  --seed-danger: #BE5046;
+  --seed-conflict: #E06C75;
+  --seed-on-fill: #282C34;
+  --seed-lane-1: #E06C75;
+  --seed-lane-2: #BE5046;
+  --seed-lane-3: #D19A66;
+  --seed-lane-4: #E5C07B;
+  --seed-lane-5: #98C379;
+  --seed-lane-6: #37AF4E;
+  --seed-lane-7: #56B6C2;
+  --seed-lane-8: #00809B;
+  --seed-lane-9: #61AFEF;
+  --seed-lane-10: #528BFF;
+}
+
+/* Tokyo Night — enkia.tokyo-night 1.1.2, MIT */
+[data-theme="tokyo-night"] {
+  color-scheme: dark;
+
+  --seed-canvas: #1A1B26;
+  --seed-surface: #16161E;
+  --seed-sunken: #14141B;
+  --seed-border: #101014;
+  --seed-text: #A9B1D6;
+  --seed-text-2: #7F86A3;
+  --seed-text-3: #787E9A;
+  --seed-accent: #6787BD;
+  --seed-agent: #7DCFFF;
+  --seed-success: #164846;
+  --seed-warning: #6183BB;
+  --seed-danger: #823C41;
+  --seed-conflict: #E0AF68;
+  --seed-on-fill: #1A1B26;
+  --seed-lane-1: #FF5370;
+  --seed-lane-2: #DB4B4B;
+  --seed-lane-3: #C97018;
+  --seed-lane-4: #E2BD3A;
+  --seed-lane-5: #1ABC9C;
+  --seed-lane-6: #41A6B5;
+  --seed-lane-7: #0DB9D7;
+  --seed-lane-8: #61BDF2;
+  --seed-lane-9: #868BC4;
+  --seed-lane-10: #B267E6;
+}
+
+/* Rosé Pine — mvllow.rose-pine 2.15.2, MIT */
+[data-theme="rose-pine"] {
+  color-scheme: dark;
+
+  --seed-canvas: #191724;
+  --seed-surface: #191724;
+  --seed-sunken: #232034;
+  --seed-border: #6E6A86;
+  --seed-text: #E0DEF4;
+  --seed-text-2: #9E9CAF;
+  --seed-text-3: #89879B;
+  --seed-accent: #C4A7E7;
+  --seed-agent: #C4A7E7;
+  --seed-success: #9CCFD8;
+  --seed-warning: #EBBCBA;
+  --seed-danger: #EB6F92;
+  --seed-conflict: #C4A7E7;
+  --seed-on-fill: #191724;
+  --seed-lane-1: #EB6F92;
+  --seed-lane-2: #EB6F92;
+  --seed-lane-3: #EBBCBA;
+  --seed-lane-4: #EBBCBA;
+  --seed-lane-5: #F6C177;
+  --seed-lane-6: #9CCFD8;
+  --seed-lane-7: #9CCFD8;
+  --seed-lane-8: #31748F;
+  --seed-lane-9: #31748F;
+  --seed-lane-10: #C4A7E7;
+}
+
+/* Night Owl — sdras.night-owl 2.1.1, MIT */
+[data-theme="night-owl"] {
+  color-scheme: dark;
+
+  --seed-canvas: #011627;
+  --seed-surface: #011627;
+  --seed-sunken: #0B253A;
+  --seed-border: #5F7E97;
+  --seed-text: #D6DEEB;
+  --seed-text-2: #8F9CAB;
+  --seed-text-3: #7E8C9D;
+  --seed-accent: #9075CC;
+  --seed-agent: #F6BBE5;
+  --seed-success: #9CCC65;
+  --seed-warning: #A2BFFC;
+  --seed-danger: #EF5350;
+  --seed-conflict: #FFEB95;
+  --seed-on-fill: #011627;
+  --seed-lane-1: #FF5874;
+  --seed-lane-2: #F78C6C;
+  --seed-lane-3: #FAD430;
+  --seed-lane-4: #9CCC65;
+  --seed-lane-5: #41EEC6;
+  --seed-lane-6: #80CBC4;
+  --seed-lane-7: #78CCF0;
+  --seed-lane-8: #00589E;
+  --seed-lane-9: #A599E9;
+  --seed-lane-10: #C792EA;
+}
+
+/* Community Material Theme — Equinusocio.vsc-community-material-theme 1.4.6, Apache-2.0 */
+[data-theme="community-material-theme"] {
+  color-scheme: dark;
+
+  --seed-canvas: #263238;
+  --seed-surface: #263238;
+  --seed-sunken: #303C41;
+  --seed-border: #263238;
+  --seed-text: #EEFFFF;
+  --seed-text-2: #ACBCBE;
+  --seed-text-3: #98A8AA;
+  --seed-accent: #80CBC4;
+  --seed-agent: #EEFFFF;
+  --seed-success: #C3E88D;
+  --seed-warning: #82AAFF;
+  --seed-danger: #FF5370;
+  --seed-conflict: #FFCB6B;
+  --seed-on-fill: #263238;
+  --seed-lane-1: #FF5370;
+  --seed-lane-2: #F07178;
+  --seed-lane-3: #F78C6C;
+  --seed-lane-4: #FFCB6B;
+  --seed-lane-5: #FFCC00;
+  --seed-lane-6: #C3E88D;
+  --seed-lane-7: #80CBC4;
+  --seed-lane-8: #89DDFF;
+  --seed-lane-9: #82AAFF;
+  --seed-lane-10: #C792EA;
+}
+
+/* PowerShell ISE — ms-vscode.powershell 2025.4.0, MIT */
+[data-theme="powershell-ise"] {
+  color-scheme: light;
+
+  --seed-canvas: #FFFFFF;
+  --seed-surface: #E1ECF9;
+  --seed-sunken: #E2E2E2;
+  --seed-border: #C6C6C6;
+  --seed-text: #1A1A1A;
+  --seed-text-2: #565656;
+  --seed-text-3: #636363;
+  --seed-accent: #60737B;
+  --seed-agent: #800080;
+  --seed-success: #006400;
+  --seed-warning: #FF4500;
+  --seed-danger: #8B0000;
+  --seed-conflict: #800080;
+  --seed-on-fill: #FFFFFF;
+  --seed-lane-1: #8B0000;
+  --seed-lane-2: #8B0000;
+  --seed-lane-3: #FF4500;
+  --seed-lane-4: #006400;
+  --seed-lane-5: #008080;
+  --seed-lane-6: #ADD8E6;
+  --seed-lane-7: #94C6F7;
+  --seed-lane-8: #0000FF;
+  --seed-lane-9: #7A3E9D;
+  --seed-lane-10: #800080;
+}
+
+/* Catppuccin Latte — Catppuccin.catppuccin-vsc 3.19.0, MIT */
+[data-theme="catppuccin-latte"] {
+  color-scheme: light;
+
+  --seed-canvas: #EFF1F5;
+  --seed-surface: #E6E9EF;
+  --seed-sunken: #CCD0DA;
+  --seed-border: #ACB0BE;
+  --seed-text: #4C4F69;
+  --seed-text-2: #50536D;
+  --seed-text-3: #555871;
+  --seed-accent: #2565E9;
+  --seed-agent: #04A5E5;
+  --seed-success: #40A02B;
+  --seed-warning: #DF8E1D;
+  --seed-danger: #D20F39;
+  --seed-conflict: #8839EF;
+  --seed-on-fill: #EFF1F5;
+  --seed-lane-1: #BF607C;
+  --seed-lane-2: #D20F39;
+  --seed-lane-3: #DC8A78;
+  --seed-lane-4: #EEA02D;
+  --seed-lane-5: #49AF3D;
+  --seed-lane-6: #209FB5;
+  --seed-lane-7: #A9DAF0;
+  --seed-lane-8: #04A5E5;
+  --seed-lane-9: #7287FD;
+  --seed-lane-10: #8839EF;
+}
+
+/* Gitpod Light — gitpod.gitpod-theme 0.0.2, MIT */
+[data-theme="gitpod-light"] {
+  color-scheme: light;
+
+  --seed-canvas: #FFFFFF;
+  --seed-surface: #FCFCFC;
+  --seed-sunken: #DBDBDB;
+  --seed-border: #B7B7B7;
+  --seed-text: #000000;
+  --seed-text-2: #2E2E2E;
+  --seed-text-3: #5D5D5D;
+  --seed-accent: #916530;
+  --seed-agent: #FF8A00;
+  --seed-success: #098658;
+  --seed-warning: #FFB45B;
+  --seed-danger: #FF0000;
+  --seed-conflict: #811F3F;
+  --seed-on-fill: #FFFFFF;
+  --seed-lane-1: #811F3F;
+  --seed-lane-2: #FF0000;
+  --seed-lane-3: #C72E0F;
+  --seed-lane-4: #FF8A00;
+  --seed-lane-5: #CD9731;
+  --seed-lane-6: #008000;
+  --seed-lane-7: #098658;
+  --seed-lane-8: #007ACC;
+  --seed-lane-9: #0000FF;
+  --seed-lane-10: #AF00DB;
+}
+
+/* GitHub Light — GitHub.github-vscode-theme 6.3.5, MIT */
+[data-theme="github-light"] {
+  color-scheme: light;
+
+  --seed-canvas: #FFFFFF;
+  --seed-surface: #F6F8FA;
+  --seed-sunken: #FAFBFC;
+  --seed-border: #E1E4E8;
+  --seed-text: #24292E;
+  --seed-text-2: #5E6266;
+  --seed-text-3: #707477;
+  --seed-accent: #0366D6;
+  --seed-agent: #005CC5;
+  --seed-success: #28A745;
+  --seed-warning: #005CC5;
+  --seed-danger: #D73A49;
+  --seed-conflict: #E36209;
+  --seed-on-fill: #FFFFFF;
+  --seed-lane-1: #CB2431;
+  --seed-lane-2: #F9826C;
+  --seed-lane-3: #E36209;
+  --seed-lane-4: #F9C513;
+  --seed-lane-5: #FFD33D;
+  --seed-lane-6: #34D058;
+  --seed-lane-7: #1B7C83;
+  --seed-lane-8: #3192AA;
+  --seed-lane-9: #2188FF;
+  --seed-lane-10: #6F42C1;
+}
+
+/* Quiet Light — vscode.theme-quietlight 1.95.3, MIT */
+[data-theme="quiet-light"] {
+  color-scheme: light;
+
+  --seed-canvas: #F5F5F5;
+  --seed-surface: #F2F2F2;
+  --seed-sunken: #F5F5F5;
+  --seed-border: #BFBFBF;
+  --seed-text: #1A1A1A;
+  --seed-text-2: #535353;
+  --seed-text-3: #6F6F6F;
+  --seed-accent: #705697;
+  --seed-agent: #BF9CAC;
+  --seed-success: #448C27;
+  --seed-warning: #9C5D27;
+  --seed-danger: #CD3131;
+  --seed-conflict: #BF9CAC;
+  --seed-on-fill: #F5F5F5;
+  --seed-lane-1: #CD3131;
+  --seed-lane-2: #C73D20;
+  --seed-lane-3: #9C5D27;
+  --seed-lane-4: #FFE055;
+  --seed-lane-5: #448C27;
+  --seed-lane-6: #93C6D6;
+  --seed-lane-7: #4EC1E5;
+  --seed-lane-8: #4B69C6;
+  --seed-lane-9: #9769DC;
+  --seed-lane-10: #7A3E9D;
+}
+
+/* Light+ — vscode.theme-defaults 1.95.3, MIT */
+[data-theme="vscode-light"] {
+  color-scheme: light;
+
+  --seed-canvas: #FFFFFF;
+  --seed-surface: #EBEBEB;
+  --seed-sunken: #DBDBDB;
+  --seed-border: #B7B7B7;
+  --seed-text: #000000;
+  --seed-text-2: #2E2E2E;
+  --seed-text-3: #5D5D5D;
+  --seed-accent: #098658;
+  --seed-agent: #AF00DB;
+  --seed-success: #098658;
+  --seed-warning: #795E26;
+  --seed-danger: #EE0000;
+  --seed-conflict: #811F3F;
+  --seed-on-fill: #FFFFFF;
+  --seed-lane-1: #811F3F;
+  --seed-lane-2: #EE0000;
+  --seed-lane-3: #C72E0F;
+  --seed-lane-4: #795E26;
+  --seed-lane-5: #008000;
+  --seed-lane-6: #098658;
+  --seed-lane-7: #16825D;
+  --seed-lane-8: #267F99;
+  --seed-lane-9: #007ACC;
+  --seed-lane-10: #0000FF;
+}
+
+/* Solarized Light — vscode.theme-solarized-light 1.95.3, MIT */
+[data-theme="solarized-light"] {
+  color-scheme: light;
+
+  --seed-canvas: #FDF6E3;
+  --seed-surface: #EEE8D5;
+  --seed-sunken: #F1EAD5;
+  --seed-border: #DDD6C1;
+  --seed-text: #5A6D75;
+  --seed-text-2: #5E7179;
+  --seed-text-3: #5A6D75;
+  --seed-accent: #667470;
+  --seed-agent: #D33682;
+  --seed-success: #2AA198;
+  --seed-warning: #D3AF86;
+  --seed-danger: #DC322F;
+  --seed-conflict: #D33682;
+  --seed-on-fill: #FDF6E3;
+  --seed-lane-1: #AB395B;
+  --seed-lane-2: #DC322F;
+  --seed-lane-3: #CB4B16;
+  --seed-lane-4: #D3AF86;
+  --seed-lane-5: #B58900;
+  --seed-lane-6: #859900;
+  --seed-lane-7: #2AA198;
+  --seed-lane-8: #268BD2;
+  --seed-lane-9: #6C71C4;
+  --seed-lane-10: #7744AA;
+}
+
+/* Gruvbox Light Hard — jdinhlife.gruvbox 1.29.1, MIT */
+[data-theme="gruvbox-light-hard"] {
+  color-scheme: light;
+
+  --seed-canvas: #F9F5D7;
+  --seed-surface: #F9F5D7;
+  --seed-sunken: #F9F5D7;
+  --seed-border: #EBDBB2;
+  --seed-text: #3C3836;
+  --seed-text-2: #69655D;
+  --seed-text-3: #726E64;
+  --seed-accent: #076678;
+  --seed-agent: #458588;
+  --seed-success: #79740E;
+  --seed-warning: #D79921;
+  --seed-danger: #9D0006;
+  --seed-conflict: #B16286;
+  --seed-on-fill: #F9F5D7;
+  --seed-lane-1: #CC241D;
+  --seed-lane-2: #AF3A03;
+  --seed-lane-3: #D65D0E;
+  --seed-lane-4: #D79921;
+  --seed-lane-5: #EBDBB2;
+  --seed-lane-6: #98971A;
+  --seed-lane-7: #689D6A;
+  --seed-lane-8: #427B58;
+  --seed-lane-9: #458588;
+  --seed-lane-10: #076678;
+}
+
+/* Ayu Light — teabyii.ayu 1.1.12, MIT */
+[data-theme="ayu-light"] {
+  color-scheme: light;
+
+  --seed-canvas: #F8F9FA;
+  --seed-surface: #F8F9FA;
+  --seed-sunken: #FCFCFC;
+  --seed-border: #6B7D8F;
+  --seed-text: #5C6166;
+  --seed-text-2: #6A6E73;
+  --seed-text-3: #71757A;
+  --seed-accent: #80705F;
+  --seed-agent: #F29718;
+  --seed-success: #6CBF43;
+  --seed-warning: #478ACC;
+  --seed-danger: #FF7383;
+  --seed-conflict: #C594C5;
+  --seed-on-fill: #F8F9FA;
+  --seed-lane-1: #FF7383;
+  --seed-lane-2: #E65050;
+  --seed-lane-3: #FA8532;
+  --seed-lane-4: #E59645;
+  --seed-lane-5: #FAD778;
+  --seed-lane-6: #6CBF43;
+  --seed-lane-7: #4CBF99;
+  --seed-lane-8: #22A4E6;
+  --seed-lane-9: #478ACC;
+  --seed-lane-10: #A176CB;
+}
+
+/* Tokyo Night Light — enkia.tokyo-night 1.1.2, MIT */
+[data-theme="tokyo-night-light"] {
+  color-scheme: light;
+
+  --seed-canvas: #E6E7ED;
+  --seed-surface: #D6D8DF;
+  --seed-sunken: #E6E7ED;
+  --seed-border: #C1C2C7;
+  --seed-text: #343B59;
+  --seed-text-2: #596079;
+  --seed-text-3: #606780;
+  --seed-accent: #2959AA;
+  --seed-agent: #363C4D;
+  --seed-success: #71B6BD;
+  --seed-warning: #2959AA;
+  --seed-danger: #A8626A;
+  --seed-conflict: #8F5E15;
+  --seed-on-fill: #E6E7ED;
+  --seed-lane-1: #B05467;
+  --seed-lane-2: #DB4B4B;
+  --seed-lane-3: #965027;
+  --seed-lane-4: #8F5E15;
+  --seed-lane-5: #80A856;
+  --seed-lane-6: #007A75;
+  --seed-lane-7: #0DB9D7;
+  --seed-lane-8: #68B3DE;
+  --seed-lane-9: #506FCA;
+  --seed-lane-10: #7B43BA;
 }

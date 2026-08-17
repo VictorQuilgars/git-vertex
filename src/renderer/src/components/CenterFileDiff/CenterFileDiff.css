@@ -44,7 +44,7 @@
 }
 .cfd-staged   { background: color-mix(in srgb, var(--success) var(--alpha-soft), transparent);  color: var(--success); }
 .cfd-unstaged { background: color-mix(in srgb, var(--attention) var(--alpha-soft), transparent); color: var(--attention); }
-.cfd-commit   { background: color-mix(in srgb, var(--accent-static) var(--alpha-soft), transparent); color: var(--accent); }
+.cfd-commit   { background: color-mix(in srgb, var(--accent) var(--alpha-soft), transparent); color: var(--accent); }
 
 .cfd-filepath {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -73,7 +73,7 @@
   cursor: pointer;
 }
 .cfd-area-toggle button + button { border-left: 1px solid var(--border-default); }
-.cfd-area-toggle button.active { background: color-mix(in srgb, var(--accent-static) var(--alpha-subtle), transparent); color: var(--accent); }
+.cfd-area-toggle button.active { background: color-mix(in srgb, var(--accent) var(--alpha-subtle), transparent); color: var(--accent); }
 .cfd-area-toggle button:not(.active):hover { color: var(--text-primary-soft); background: var(--surface-sunken); }
 
 .cfd-toggle {
@@ -94,7 +94,7 @@
   border-color: var(--border-subtle);
 }
 .cfd-toggle.active {
-  background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent);
+  background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent);
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -169,7 +169,7 @@
   transition: var(--dur-base);
 }
 .cfd-hunk-select:hover { color: var(--text-primary-soft); background: var(--surface-sunken); border-color: var(--border-subtle); }
-.cfd-hunk-select.active { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent); }
+.cfd-hunk-select.active { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent); }
 .cfd-hunk-apply:hover { color: var(--success); border-color: var(--success); background: color-mix(in srgb, var(--success) var(--alpha-faint), transparent); }
 
 .cfd-diff-table {

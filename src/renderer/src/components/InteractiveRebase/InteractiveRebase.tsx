@@ -33,7 +33,7 @@ const ACTIONS: RebaseAction[] = ['pick', 'reword', 'squash', 'fixup', 'drop']
 
 const ACTION_COLORS: Record<RebaseAction, string> = {
   pick: 'var(--success)',
-  reword: 'var(--accent-static)',
+  reword: 'var(--accent)',
   squash: 'var(--purple-text)',
   fixup: 'var(--attention)',
   drop: 'var(--danger)',

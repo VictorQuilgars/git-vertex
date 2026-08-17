@@ -22,6 +22,7 @@ import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import Launchpad from './components/Launchpad/Launchpad'
+import ThemeGallery from './components/ThemeGallery/ThemeGallery'
 import RepoManager from './components/RepoManager/RepoManager'
 import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
 import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
@@ -81,7 +82,7 @@ function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommi
         ) : (
           <div className="bc-grid">
             <div className="bc-col">
-              <div className="bc-col-header" style={{ color: 'var(--accent-static)' }}>
+              <div className="bc-col-header" style={{ color: 'var(--accent)' }}>
                 {t('bc.in')} <code>{otherBranch}</code> {t('bc.butNotIn')} <code>{currentBranch}</code> ({data.ahead.length})
               </div>
               <div className="bc-list">
@@ -245,7 +246,7 @@ type DialogState =
 // Tabs are heterogeneous: the classic repo tab, the "home" welcome screen
 // (multiple allowed — every "+" opens a fresh one) and the full-page
 // Launchpad (opened by the 🚀 button). `path`/`name` are only set on repo tabs.
-type TabKind = 'home' | 'repo' | 'launchpad'
+type TabKind = 'home' | 'repo' | 'launchpad' | 'themes'
 interface AppTab { id: string; kind: TabKind; path?: string; name?: string }
 let tabSeq = 0
 const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
@@ -857,6 +858,25 @@ export default function App() {
       const id = newTabId('launchpad')
       setActiveTabId(id)
       return [...prev, { id, kind: 'launchpad' }]
+    })
+    clearRepoView()
+  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
+
+  // Appearance → "Browse N more themes". A tab rather than a pane: 4,000 rows
+  // want the width, and the choice survives going to a repo and back. One at a
+  // time, like the Launchpad.
+  const openThemesTab = useCallback(() => {
+    if (conflictResolverFile || rebaseHash) return
+    setWhatsNewActive(false)
+    setSettingsOpen(false)
+    setRepoMgmtOpen(false)
+    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
+    setTabs(prev => {
+      const existing = prev.find(tb => tb.kind === 'themes')
+      if (existing) { setActiveTabId(existing.id); return prev }
+      const id = newTabId('themes')
+      setActiveTabId(id)
+      return [...prev, { id, kind: 'themes' }]
     })
     clearRepoView()
   }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
@@ -1895,6 +1915,7 @@ export default function App() {
   }, [])
   const activeTab = tabs.find(tb => tb.id === activeTabId)
   const launchpadActive = activeTab?.kind === 'launchpad'
+  const themesActive = activeTab?.kind === 'themes'
 
   return (
     <div className="app">
@@ -1927,9 +1948,9 @@ export default function App() {
                 <Icon name="repo" size={16} className="app-tab-icon" />
               ) : (
                 <Icon size={16} className="app-tab-icon app-tab-icon--tool"
-                  name={tab.kind === 'launchpad' ? 'rocket' : tab.kind === 'repomgmt' ? 'folder' : 'home'} />
+                  name={tab.kind === 'launchpad' ? 'rocket' : tab.kind === 'themes' ? 'ink' : 'home'} />
               )}
-              <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : tab.kind === 'repomgmt' ? t('repomgmt.title') : t('tabs.home')}</span>
+              <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : tab.kind === 'themes' ? t('tabs.themes') : t('tabs.home')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
             </div>
@@ -1986,8 +2007,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Git action bar — hidden while in preferences */}
-      {!settingsOpen && !whatsNewActive && (
+      {/* Git action bar — hidden while in preferences, and over the theme
+          gallery, which has no repo to act on. It rendered as an empty band. */}
+      {!settingsOpen && !whatsNewActive && !themesActive && (
       <Toolbar
         topRow={tabs.length === 0}
         repoPath={repoPath}
@@ -2057,6 +2079,7 @@ export default function App() {
 
       {settingsOpen && (
         <SettingsModal
+          onBrowseThemes={openThemesTab}
           onClose={() => setSettingsOpen(false)}
           showToast={showToast}
           onUpdateFound={(v) => { setUpdateVersion(v); setUpdatePhase('available'); setUpdateOverlayOpen(true); addUpdateNotification(v) }}
@@ -2223,6 +2246,8 @@ export default function App() {
               onSuccess={loadRepoData}
               showToast={showToast}
             />
+          ) : themesActive ? (
+            <ThemeGallery />
           ) : launchpadActive ? (
             <Launchpad
               recentRepos={recentRepos}

@@ -5,7 +5,7 @@ import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir } from './panel/GitVertexHost'
 import { RELEASE_NOTES } from './releaseNotes'
 import { runFileLinkCommand } from './remoteLinks'
 import { RebaseTodoEditor, isRebaseTodoEditorOpenFor, setOnRebaseTodoEditorClosed } from './panel/RebaseTodoEditor'
@@ -303,6 +303,10 @@ async function showWhatsNewIfUpdated(context: vscode.ExtensionContext): Promise<
 
 export function activate(context: vscode.ExtensionContext): void {
   statusBar = new GitVertexStatusBar('gitVertex.open')
+
+  // Where installed themes live. Global rather than per-workspace: a palette is
+  // a property of the person, not of the repository they happen to have open.
+  setThemeStorageDir(context.globalStorageUri.fsPath)
 
   void showWhatsNewIfUpdated(context)
   void notifyIfGitTooOld(context)

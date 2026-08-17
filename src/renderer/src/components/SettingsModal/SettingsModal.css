@@ -102,49 +102,13 @@
   opacity: 0.85;
 }
 
-/* ── Accent swatches ─────────────────────────────────────────── */
-.stg-swatches { display: flex; flex-wrap: wrap; gap: var(--space-lg); margin-top: var(--space-sm); }
-.stg-swatch {
-  width: 32px; height: 32px;
-  border-radius: var(--radius-circle);
-  border: 2px solid transparent;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-on-emphasis); font-size: var(--text-md); font-weight: var(--weight-bold);
-  transition: transform var(--dur-fast), box-shadow var(--dur-fast);
-  padding: 0;
-}
-.stg-swatch:hover { transform: scale(1.1); }
-.stg-swatch.active { box-shadow: 0 0 0 2px var(--bg-canvas), 0 0 0 4px currentColor; }
-/* Theme picker. The chip previews the theme's own canvas and accent, so the
-   choice is legible without reading the label. */
-.stg-themes { display: flex; flex-wrap: wrap; gap: var(--space-lg); margin-top: var(--space-sm); }
-.stg-theme {
-  display: flex; align-items: center; gap: var(--space-md);
-  padding: var(--space-md) var(--space-xl);
-  background: var(--surface-sunken); color: var(--text-secondary);
-  border: 1px solid var(--border-default); border-radius: var(--radius-md);
-  font-size: var(--text-base); cursor: pointer;
-  transition: border-color var(--dur-base), color var(--dur-base);
-}
-.stg-theme:hover { border-color: var(--border-subtle); color: var(--text-primary); }
-.stg-theme.active { border-color: var(--accent); color: var(--text-primary); }
-.stg-theme-chip {
-  width: 26px; height: 18px; border-radius: var(--radius-xs);
-  border: 1px solid; display: flex; align-items: center; justify-content: center;
-}
-.stg-theme-dot { width: 8px; height: 8px; border-radius: var(--radius-circle); }
 
-.stg-swatch-check { text-shadow: 0 1px 2px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent); }
-.stg-swatch-custom {
-  width: 32px; height: 32px; border-radius: var(--radius-circle);
-  border: 2px dashed var(--border-subtle); cursor: pointer; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-  background: conic-gradient(red, orange, yellow, lime, cyan, blue, magenta, red);
-}
-.stg-swatch-custom input[type="color"] {
-  opacity: 0; width: 40px; height: 40px; cursor: pointer; border: none; padding: 0;
-}
+/* The picker goes flat while the panel is following the editor: the choice
+   still exists, it is just not this one's to make yet. */
+.stg-themes-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.stg-themes-fieldset:disabled { opacity: 0.45; }
+.stg-themes-fieldset:disabled .stg-tile-action { cursor: default; }
+
 
 /* ── Segmented control ───────────────────────────────────────── */
 .stg-segment { display: inline-flex; gap: 0; margin-top: var(--space-sm); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow: hidden; }
@@ -164,6 +128,12 @@
   padding: var(--space-4xl) var(--space-5xl);
   max-width: 600px;
 }
+/* Appearance only — see the note where it is applied. The prose inside keeps
+   the reading measure; it is the tile grid that wants the room. */
+.stg-content--wide { max-width: 1240px; }
+.stg-content--wide .stg-desc,
+.stg-content--wide .stg-section-title { max-width: 600px; }
+.stg-content--wide .stg-browse { max-width: 720px; }
 
 .stg-section {
   display: flex;
@@ -568,7 +538,7 @@
   background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-md);
   color: var(--accent); font-size: var(--text-sm); padding: var(--space-xs) var(--space-xl); cursor: pointer; transition: var(--dur-fast);
 }
-.stg-profile-apply:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent-static) var(--alpha-faint), transparent); }
+.stg-profile-apply:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent); }
 .stg-profile-del {
   background: none; border: none; color: var(--text-tertiary); font-size: var(--text-base);
   cursor: pointer; padding: var(--space-2xs) var(--space-sm); transition: var(--dur-fast);

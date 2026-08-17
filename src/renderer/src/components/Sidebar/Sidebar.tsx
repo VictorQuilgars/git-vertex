@@ -496,7 +496,7 @@ function WorktreeItem({ wt, agents = [], onOpen, onRemove }: {
         title={agents.length ? `${wt.path}\n${agents.map(a => `● ${a.name} (pid ${a.pid})`).join('\n')}` : wt.path}
         style={{ cursor: 'pointer' }}
       >
-        <span className="sb-sub-status" style={{ color: wt.isMain ? 'var(--success)' : 'var(--accent-static)' }}>
+        <span className="sb-sub-status" style={{ color: wt.isMain ? 'var(--success)' : 'var(--accent)' }}>
           {wt.isMain ? '◉' : '○'}
         </span>
         <div className="sb-sub-info">

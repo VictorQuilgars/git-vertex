@@ -21,7 +21,7 @@ interface GitflowModalProps {
 }
 
 const COLORS: Record<FlowType, string> = {
-  feature: 'var(--accent-static)',
+  feature: 'var(--accent)',
   release: 'var(--success)',
   hotfix: 'var(--danger)',
 }

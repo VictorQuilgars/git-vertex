@@ -210,6 +210,42 @@ declare global {
       removeRemote: (name: string) => Promise<R>
       renameRemote: (oldName: string, newName: string) => Promise<R>
       fetchRemote: (name: string) => Promise<R>
+      // Themes beyond the 32 in tokens.css. Optional because the VS Code shim
+      // and older hosts may not carry them — the callers all guard with `?.`
+      // and fall back to the built-in themes, which is the behaviour the
+      // offline path needs anyway.
+      themesCatalogue?: (opts?: { refresh?: boolean }) => Promise<{
+        version: number
+        generatedAt: string
+        count: number
+        themes: Array<{
+          id: string; name: string; dark: boolean
+          canvas: string; text: string; border: string; accent: string
+          lic: string; src: string; version: string
+          hue: string; vivid: string; dl: number
+        }>
+        stale?: boolean
+        error?: string
+      }>
+      themesInstall?: (id: string) => Promise<R & { theme?: InstalledTheme }>
+      themesRemove?: (id: string) => Promise<R>
+      themesInstalled?: () => Promise<{
+        themes: InstalledTheme[]
+        discarded: Array<{ id: string; why: string }>
+      }>
     }
   }
+}
+
+/** An installed theme as the main process hands it back. */
+export interface InstalledTheme {
+  id: string
+  name: string
+  dark: boolean
+  lic: string
+  src: string
+  srcUrl: string
+  notice: string
+  seeds: Record<string, string>
+  installedAt: string
 }

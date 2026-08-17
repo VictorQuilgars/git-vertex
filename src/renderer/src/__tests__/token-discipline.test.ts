@@ -190,6 +190,55 @@ describe('token discipline', () => {
       }
     })
 
+    // A theme block nobody can select, or a BUILT_IN_THEMES entry with no block
+    // behind it, are both invisible: the first never renders, the second falls
+    // back to the default in resolveTheme() and looks like the user's choice not
+    // sticking. Adding a theme is meant to be a block plus a line, and this is
+    // what says so when only one of the two happened.
+    //
+    // Scoped to BUILT_IN_THEMES on purpose. An INSTALLED theme is in neither
+    // tokens.css nor that list — it is downloaded at runtime and injected as a
+    // [data-theme] rule by SettingsContext — so widening this test would fail
+    // the moment anyone installed one. What it still guarantees is the thing it
+    // was written for: nothing ships in tokens.css that cannot be selected.
+    it('registers exactly the themes tokens.css defines', () => {
+      const declared = blocks
+        .flatMap(b => [...b[1].matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]))
+        .sort()
+      const ctx = fs.readFileSync(path.join(SRC, 'contexts', 'SettingsContext.tsx'), 'utf8')
+      const listed = [...ctx.match(/export const BUILT_IN_THEMES = \[([^\]]*)\]/)![1]
+        .matchAll(/'([^']+)'/g)].map(m => m[1]).sort()
+      expect(listed).toEqual(declared)
+    })
+
+    // The main process keeps its own copy of the same ids, because the
+    // validator has to refuse an installed theme that would shadow a built-in,
+    // and it cannot import the renderer — the two are built separately. The
+    // duplication is only safe while something checks it, which is this.
+    it('keeps the main process copy of the built-in ids in step', () => {
+      const declared = blocks
+        .flatMap(b => [...b[1].matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]))
+        .sort()
+      const main = fs.readFileSync(
+        path.join(SRC, '..', '..', 'main', 'theme-validate.ts'), 'utf8')
+      const listed = [...main.match(/export const BUILT_IN_THEME_IDS: readonly string\[\] = \[([^\]]*)\]/)![1]
+        .matchAll(/'([^']+)'/g)].map(m => m[1]).sort()
+      expect(listed).toEqual(declared)
+    })
+
+    // The theme picker's chips used to restate each theme's canvas, border and
+    // accent as hexes in the .tsx. They arrived through an identifier rather
+    // than a literal, so the style={{ … }} scan above never saw them, and two
+    // of the three had drifted. The chip reads the seeds now — see
+    // .stg-theme-chip in SettingsModal.css.
+    it('keeps the theme picker off a second copy of the palette', () => {
+      const modal = fs.readFileSync(
+        path.join(SRC, 'components', 'SettingsModal', 'SettingsModal.tsx'), 'utf8')
+      const presets = modal.match(/const THEME_PRESETS[^=]*=\s*\[([\s\S]*?)\]/)
+      expect(presets).not.toBeNull()
+      expect(presets![1]).not.toMatch(/#[0-9A-Fa-f]{3,8}/)
+    })
+
     it('never lets a theme override a derived token', () => {
       const [base, ...themes] = blocks
       // Derived = defined in the default block, not a seed.
