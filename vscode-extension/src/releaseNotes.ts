@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.28.2': `## What's new in 1.28.2
 
 ### 🖼️ A darker Marketplace icon
 - 1.28.1 brought the icon up to date but put it on a pale tile. This listing page is white in its light theme, where a pale tile has no edge at all.
