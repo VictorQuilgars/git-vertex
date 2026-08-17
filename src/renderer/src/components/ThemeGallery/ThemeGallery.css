@@ -108,6 +108,18 @@
 .stg-tile-rail { position: absolute; left: 15.5px; top: 18px; bottom: 30px; width: 1px; }
 .stg-tile-btn { position: absolute; right: 12px; bottom: 12px; width: 34px; height: 12px; border-radius: 3px; }
 
+/* Says what it IS; the button below says what you can DO. Conflating the two
+   is how "Install" stayed on a tile that was already installed. */
+.stg-tile-badge {
+  position: absolute; top: var(--space-sm); right: var(--space-sm); z-index: 1;
+  padding: var(--space-2xs) var(--space-sm); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  font-size: var(--text-tiny); font-weight: var(--weight-medium);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.stg-tile.active .stg-tile-badge { border-color: var(--accent); color: var(--accent); }
+
 .stg-tile-meta {
   display: flex; flex-direction: column; gap: var(--space-2xs);
   padding: var(--space-md); border-top: 1px solid var(--border-default);

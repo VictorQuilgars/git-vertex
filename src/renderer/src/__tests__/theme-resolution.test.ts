@@ -1,3 +1,5 @@
+import fs from 'fs'
+import path from 'path'
 // Which theme gets painted, and whether an installed one survives a restart.
 //
 // The bug these guard against is the quiet one: a downloaded theme that reverts
@@ -100,5 +102,32 @@ describe('the rule injected before React mounts', () => {
   it('refuses a seed name that is not a seed name', () => {
     const rule = cssRuleFor(installed.id, { 'canvas: red; --x': '#FFFFFF' })
     expect(rule).toBe('')
+  })
+})
+
+// Setting `data-theme` to an installed id only paints if a rule for that id
+// exists in the document, and setInstalledThemes() is the only thing that
+// writes one. Every place that learns what is installed therefore has to go
+// through it, not just keep a local list.
+//
+// This is a source check rather than a DOM one because the failure is not in
+// what the component renders — it is in what it forgets to call. The gallery
+// shipped with its own refresh that fetched the list and skipped the
+// injection: installing a theme selected it, and the colours never arrived.
+describe('every reader of the installed list injects its rules', () => {
+  const files = [
+    'components/ThemeGallery/ThemeGallery.tsx',
+    'components/SettingsModal/SettingsModal.tsx',
+    'contexts/SettingsContext.tsx',
+  ]
+
+  it.each(files)('%s calls setInstalledThemes where it reads themesInstalled', file => {
+    const src = fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
+    if (!src.includes('themesInstalled')) return          // does not read it: nothing to check
+    // A CALL, not the identifier: the import line alone satisfies `includes`,
+    // which is how the first version of this guard passed with the call
+    // deleted. Strip the imports, then look for an invocation.
+    const body = src.replace(/^import[\s\S]*?from '[^']*'$/gm, '')
+    expect(body).toMatch(/setInstalledThemes\s*\(/)
   })
 })

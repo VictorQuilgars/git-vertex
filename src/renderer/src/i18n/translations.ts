@@ -558,6 +558,7 @@ const fr = {
   // Settings — la banque de thèmes
   'settings.themes.browse': 'Parcourir d\'autres thèmes',
   'settings.themes.browseCount': 'Parcourir {0} thèmes de plus',
+  'settings.themes.installed': 'Installé',
   'settings.themes.browseSub': 'Recherche, filtres par couleur et aperçu — s\'ouvre dans un onglet',
   'settings.themes.hide': 'Masquer la liste',
   'settings.themes.loading': 'Chargement de la liste…',
@@ -1915,6 +1916,7 @@ const en: typeof fr = {
   // Settings — the theme bank
   'settings.themes.browse': 'Browse more themes',
   'settings.themes.browseCount': 'Browse {0} more themes',
+  'settings.themes.installed': 'Installed',
   'settings.themes.browseSub': 'Search, filter by colour, preview — opens in a tab',
   'settings.themes.hide': 'Hide the list',
   'settings.themes.loading': 'Loading the list…',

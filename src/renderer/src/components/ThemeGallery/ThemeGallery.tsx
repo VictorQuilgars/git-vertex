@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { useLang } from '../../i18n/LanguageContext'
-import { useSettings } from '../../contexts/SettingsContext'
+import { useSettings, setInstalledThemes } from '../../contexts/SettingsContext'
 import './ThemeGallery.css'
 
 // The rest of the bank — the themes that are not among the 32 in tokens.css.
@@ -85,7 +85,17 @@ export default function ThemeGallery({ onChanged }: Props) {
   const [installedIds, setInstalledIds] = useState<string[]>([])
   const refreshInstalled = useCallback(() => {
     window.gitAPI.themesInstalled?.()
-      .then((list: any) => setInstalledIds(Array.isArray(list) ? list.map((i: any) => i.id) : []))
+      .then((list: any) => {
+        const themes = Array.isArray(list) ? list : []
+        // Not just local state: setInstalledThemes INJECTS the [data-theme]
+        // rule for each installed theme. Without it, applying one sets the
+        // attribute on <html> and selects nothing — the id sticks, the colours
+        // do not, and it reads as "my choice was ignored". That is exactly what
+        // shipped when this component was made self-managing and copied the
+        // fetch without the injection.
+        setInstalledThemes(themes)
+        setInstalledIds(themes.map((i: any) => i.id))
+      })
       .catch(() => { /* older host, or nothing installed */ })
   }, [])
   useEffect(() => { refreshInstalled() }, [refreshInstalled])
@@ -142,7 +152,11 @@ export default function ThemeGallery({ onChanged }: Props) {
     setBusy(id); setFailed(null)
     try {
       const r = await window.gitAPI.themesInstall?.(id)
-      if (r?.success) { refreshInstalled(); onChanged?.(); onApply(id); setExpanded(null) }
+      // Installing does NOT apply. Browsing a gallery and adding one to your
+      // collection should not repaint the app under you — the theme you are
+      // reading it in is the theme you chose. The tile switches to "Use", and
+      // using it is a second, deliberate click.
+      if (r?.success) { refreshInstalled(); onChanged?.(); setExpanded(null) }
       else setFailed({ id, why: r?.error ?? t('settings.themes.installFailed') })
     } catch (e: any) {
       setFailed({ id, why: e?.message ?? String(e) })
@@ -274,6 +288,10 @@ export default function ThemeGallery({ onChanged }: Props) {
                 </span>
                 <span className="stg-tile-btn" style={{ background: r.accent }} />
               </span>
+
+              {isInstalled && (
+                <span className="stg-tile-badge">{t('settings.themes.installed')}</span>
+              )}
 
               <span className="stg-tile-meta">
                 <span className="stg-tile-name" title={r.name}>{r.name}</span>
