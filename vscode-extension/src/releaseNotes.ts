@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.28.0': `## What's new in 1.28.0
 
 ### 🎨 Thirty themes, and four thousand more
 - Appearance shows the themes that ship with the app as **real previews** — a miniature commit graph in each theme's own colours.

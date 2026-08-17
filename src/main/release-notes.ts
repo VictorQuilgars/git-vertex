@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.30.0': `## What's new in 1.30.0
 
 ### 🎨 Thirty themes, and four thousand more
 - Appearance shows the themes that ship with the app as **real previews** — a miniature commit graph in each theme's own colours.
