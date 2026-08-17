@@ -343,9 +343,9 @@
   --seed-accent: #61AFEF;
   --seed-agent: #C678DD;
   --seed-success: #109868;
-  --seed-warning: #D19A66;
-  --seed-danger: #C24038;
-  --seed-conflict: #61AFEF;
+  --seed-warning: #948B60;
+  --seed-danger: #9A353D;
+  --seed-conflict: #E06C75;
   --seed-on-fill: #282C34;
   --seed-lane-1: #E06C75;
   --seed-lane-2: #FF0000;
@@ -402,10 +402,10 @@
   --seed-text-3: #898887;
   --seed-accent: #FFB45B;
   --seed-agent: #FF8A00;
-  --seed-success: #FFB45B;
+  --seed-success: #369432;
   --seed-warning: #FFB45B;
-  --seed-danger: #FFB45B;
-  --seed-conflict: #FFB45B;
+  --seed-danger: #F44747;
+  --seed-conflict: #C586C0;
   --seed-on-fill: #12100C;
   --seed-lane-1: #F44747;
   --seed-lane-2: #CE9178;
@@ -462,7 +462,7 @@
   --seed-text-3: #9CA0A5;
   --seed-accent: #79B8FF;
   --seed-agent: #C8E1FF;
-  --seed-success: #34D058;
+  --seed-success: #28A745;
   --seed-warning: #79B8FF;
   --seed-danger: #EA4A5A;
   --seed-conflict: #FFAB70;
@@ -492,10 +492,10 @@
   --seed-text-3: #C3C6C4;
   --seed-accent: #858685;
   --seed-agent: #9872A2;
-  --seed-success: #858685;
-  --seed-warning: #858685;
-  --seed-danger: #858685;
-  --seed-conflict: #858685;
+  --seed-success: #008200;
+  --seed-warning: #E58520;
+  --seed-danger: #FF0B00;
+  --seed-conflict: #FF0080;
   --seed-on-fill: #1E1E1E;
   --seed-lane-1: #FF0080;
   --seed-lane-2: #FF0B00;
@@ -522,10 +522,10 @@
   --seed-text-3: #AEAFA8;
   --seed-accent: #989586;
   --seed-agent: #B267E6;
-  --seed-success: #989586;
-  --seed-warning: #989586;
-  --seed-danger: #989586;
-  --seed-conflict: #989586;
+  --seed-success: #A6E22E;
+  --seed-warning: #FD971F;
+  --seed-danger: #F44747;
+  --seed-conflict: #90274A;
   --seed-on-fill: #272822;
   --seed-lane-1: #90274A;
   --seed-lane-2: #F92672;
@@ -543,30 +543,30 @@
 [data-theme="vscode-dark"] {
   color-scheme: dark;
 
-  --seed-canvas: #101010;
-  --seed-surface: #1A1A1A;
-  --seed-sunken: #232323;
-  --seed-border: #373737;
-  --seed-text: #E6E6E6;
-  --seed-text-2: #9E9E9E;
-  --seed-text-3: #8A8A8A;
+  --seed-canvas: #1E1E1E;
+  --seed-surface: #272727;
+  --seed-sunken: #2F2F2F;
+  --seed-border: #414141;
+  --seed-text: #D4D4D4;
+  --seed-text-2: #9F9F9F;
+  --seed-text-3: #969696;
   --seed-accent: #4EC9B0;
   --seed-agent: #C586C0;
-  --seed-success: #4EC9B0;
-  --seed-warning: #4EC9B0;
-  --seed-danger: #4EC9B0;
-  --seed-conflict: #4EC9B0;
-  --seed-on-fill: #101010;
-  --seed-lane-1: #D16969;
-  --seed-lane-2: #D16969;
-  --seed-lane-3: #CE9178;
-  --seed-lane-4: #D7BA7D;
-  --seed-lane-5: #DCDCAA;
+  --seed-success: #16825D;
+  --seed-warning: #D7BA7D;
+  --seed-danger: #F44747;
+  --seed-conflict: #C586C0;
+  --seed-on-fill: #1E1E1E;
+  --seed-lane-1: #F44747;
+  --seed-lane-2: #CE9178;
+  --seed-lane-3: #D7BA7D;
+  --seed-lane-4: #6A9955;
+  --seed-lane-5: #369432;
   --seed-lane-6: #4EC9B0;
-  --seed-lane-7: #4EC9B0;
-  --seed-lane-8: #9CDCFE;
-  --seed-lane-9: #4FC1FF;
-  --seed-lane-10: #C586C0;
+  --seed-lane-7: #9CDCFE;
+  --seed-lane-8: #4FC1FF;
+  --seed-lane-9: #6796E6;
+  --seed-lane-10: #646695;
 }
 
 /* Red — vscode.theme-red 1.95.3, MIT */
@@ -582,10 +582,10 @@
   --seed-text-3: #A58781;
   --seed-accent: #FF6666;
   --seed-agent: #41A83E;
-  --seed-success: #FF6666;
-  --seed-warning: #FF6666;
-  --seed-danger: #FF6666;
-  --seed-conflict: #FF6666;
+  --seed-success: #41A83E;
+  --seed-warning: #FFB454;
+  --seed-danger: #FF0000;
+  --seed-conflict: #EB939A;
   --seed-on-fill: #390000;
   --seed-lane-1: #EB939A;
   --seed-lane-2: #FF0000;
@@ -612,10 +612,10 @@
   --seed-text-3: #CEAB83;
   --seed-accent: #9E815F;
   --seed-agent: #1B60A5;
-  --seed-success: #9E815F;
-  --seed-warning: #9E815F;
-  --seed-danger: #9E815F;
-  --seed-conflict: #9E815F;
+  --seed-success: #088649;
+  --seed-warning: #E3B583;
+  --seed-danger: #9D2F23;
+  --seed-conflict: #DC3958;
   --seed-on-fill: #221A0F;
   --seed-lane-1: #DC3958;
   --seed-lane-2: #9D2F23;
@@ -642,10 +642,10 @@
   --seed-text-3: #839496;
   --seed-accent: #2AA198;
   --seed-agent: #D33682;
-  --seed-success: #2AA198;
-  --seed-warning: #2AA198;
-  --seed-danger: #2AA198;
-  --seed-conflict: #2AA198;
+  --seed-success: #369432;
+  --seed-warning: #B58900;
+  --seed-danger: #D30102;
+  --seed-conflict: #D33682;
   --seed-on-fill: #002B36;
   --seed-lane-1: #AB395B;
   --seed-lane-2: #A92049;
@@ -657,6 +657,66 @@
   --seed-lane-8: #047AA6;
   --seed-lane-9: #268BD2;
   --seed-lane-10: #7744AA;
+}
+
+/* Abyss — vscode.theme-abyss 1.95.3, MIT */
+[data-theme="abyss"] {
+  color-scheme: dark;
+
+  --seed-canvas: #000C18;
+  --seed-surface: #060621;
+  --seed-sunken: #181F2F;
+  --seed-border: #2B2B4A;
+  --seed-text: #6688CC;
+  --seed-text-2: #6284C8;
+  --seed-text-3: #6586CA;
+  --seed-accent: #5979B6;
+  --seed-agent: #F280D0;
+  --seed-success: #22AA44;
+  --seed-warning: #DDBB88;
+  --seed-danger: #DC322F;
+  --seed-conflict: #F280D0;
+  --seed-on-fill: #000C18;
+  --seed-lane-1: #AB395B;
+  --seed-lane-2: #FF7882;
+  --seed-lane-3: #CB4B16;
+  --seed-lane-4: #DDBB88;
+  --seed-lane-5: #B8F171;
+  --seed-lane-6: #22AA44;
+  --seed-lane-7: #78FFFF;
+  --seed-lane-8: #0063A5;
+  --seed-lane-9: #384887;
+  --seed-lane-10: #D778FF;
+}
+
+/* Tomorrow Night Blue — vscode.theme-tomorrow-night-blue 1.95.3, MIT */
+[data-theme="tomorrow-night-blue"] {
+  color-scheme: dark;
+
+  --seed-canvas: #002451;
+  --seed-surface: #001C40;
+  --seed-sunken: #001733;
+  --seed-border: #404F7D;
+  --seed-text: #FFFFFF;
+  --seed-text-2: #ACB9C9;
+  --seed-text-3: #7D90AA;
+  --seed-accent: #BBDAFF;
+  --seed-agent: #D778FF;
+  --seed-success: #B8F171;
+  --seed-warning: #FFC58F;
+  --seed-danger: #F44747;
+  --seed-conflict: #A92049;
+  --seed-on-fill: #002451;
+  --seed-lane-1: #A92049;
+  --seed-lane-2: #F44747;
+  --seed-lane-3: #FFC58F;
+  --seed-lane-4: #CD9731;
+  --seed-lane-5: #718C00;
+  --seed-lane-6: #B8F171;
+  --seed-lane-7: #78FFFF;
+  --seed-lane-8: #0E639C;
+  --seed-lane-9: #007ACC;
+  --seed-lane-10: #003F8E;
 }
 
 /* Gruvbox Dark Hard — jdinhlife.gruvbox 1.29.1, MIT */
@@ -672,9 +732,9 @@
   --seed-text-3: #8D8671;
   --seed-accent: #83A598;
   --seed-agent: #458588;
-  --seed-success: #EBDBB2;
+  --seed-success: #B8BB26;
   --seed-warning: #D79921;
-  --seed-danger: #CC241D;
+  --seed-danger: #FB4934;
   --seed-conflict: #B16286;
   --seed-on-fill: #1D2021;
   --seed-lane-1: #D3869B;
@@ -705,7 +765,7 @@
   --seed-success: #70BF56;
   --seed-warning: #73B8FF;
   --seed-danger: #F26D78;
-  --seed-conflict: #E6B450;
+  --seed-conflict: #C594C5;
   --seed-on-fill: #0D1017;
   --seed-lane-1: #F26D78;
   --seed-lane-2: #F06B73;
@@ -732,10 +792,10 @@
   --seed-text-3: #7F8591;
   --seed-accent: #7793C7;
   --seed-agent: #C678DD;
-  --seed-success: #7793C7;
-  --seed-warning: #7793C7;
-  --seed-danger: #7793C7;
-  --seed-conflict: #7793C7;
+  --seed-success: #37AF4E;
+  --seed-warning: #D19A66;
+  --seed-danger: #BE5046;
+  --seed-conflict: #E06C75;
   --seed-on-fill: #282C34;
   --seed-lane-1: #E06C75;
   --seed-lane-2: #BE5046;
@@ -762,9 +822,9 @@
   --seed-text-3: #787E9A;
   --seed-accent: #6787BD;
   --seed-agent: #7DCFFF;
-  --seed-success: #449DAB;
+  --seed-success: #164846;
   --seed-warning: #6183BB;
-  --seed-danger: #914C54;
+  --seed-danger: #823C41;
   --seed-conflict: #E0AF68;
   --seed-on-fill: #1A1B26;
   --seed-lane-1: #FF5370;
@@ -794,8 +854,8 @@
   --seed-agent: #C4A7E7;
   --seed-success: #9CCFD8;
   --seed-warning: #EBBCBA;
-  --seed-danger: #908CAA;
-  --seed-conflict: #EB6F92;
+  --seed-danger: #EB6F92;
+  --seed-conflict: #C4A7E7;
   --seed-on-fill: #191724;
   --seed-lane-1: #EB6F92;
   --seed-lane-2: #EB6F92;
@@ -869,66 +929,6 @@
   --seed-lane-10: #C792EA;
 }
 
-/* Shades of Purple — ahmadawais.shades-of-purple 7.3.6, MIT */
-[data-theme="shades-of-purple"] {
-  color-scheme: dark;
-
-  --seed-canvas: #2D2B55;
-  --seed-surface: #222244;
-  --seed-sunken: #2D2B55;
-  --seed-border: #FAD000;
-  --seed-text: #FFFFFF;
-  --seed-text-2: #B9BACA;
-  --seed-text-3: #9596AD;
-  --seed-accent: #BE7EFF;
-  --seed-agent: #B362FF;
-  --seed-success: #35AD68;
-  --seed-warning: #FAD000;
-  --seed-danger: #EC3A37;
-  --seed-conflict: #FF7200;
-  --seed-on-fill: #2D2B55;
-  --seed-lane-1: #FF2C70;
-  --seed-lane-2: #EE3A43;
-  --seed-lane-3: #FF7200;
-  --seed-lane-4: #FFC600;
-  --seed-lane-5: #FAD000;
-  --seed-lane-6: #3AD900;
-  --seed-lane-7: #80FFBB;
-  --seed-lane-8: #80FCFF;
-  --seed-lane-9: #6943FF;
-  --seed-lane-10: #B362FF;
-}
-
-/* Darcula — Dracula-2.dracula-2 0.3.8, MIT */
-[data-theme="darcula"] {
-  color-scheme: dark;
-
-  --seed-canvas: #1E1F35;
-  --seed-surface: #1E1F35;
-  --seed-sunken: #282A36;
-  --seed-border: #BD93F9;
-  --seed-text: #F8F8F2;
-  --seed-text-2: #AFB0B5;
-  --seed-text-3: #91939B;
-  --seed-accent: #868893;
-  --seed-agent: #FF1DAF;
-  --seed-success: #50FA7B;
-  --seed-warning: #8BE9FD;
-  --seed-danger: #FF5555;
-  --seed-conflict: #FF9E95;
-  --seed-on-fill: #1E1F35;
-  --seed-lane-1: #FF6188;
-  --seed-lane-2: #F44747;
-  --seed-lane-3: #CD9731;
-  --seed-lane-4: #FDE181;
-  --seed-lane-5: #21E4B3;
-  --seed-lane-6: #2CCCFF;
-  --seed-lane-7: #6796E6;
-  --seed-lane-8: #9B87FD;
-  --seed-lane-9: #AC72FF;
-  --seed-lane-10: #FF2CED;
-}
-
 /* PowerShell ISE — ms-vscode.powershell 2025.4.0, MIT */
 [data-theme="powershell-ise"] {
   color-scheme: light;
@@ -942,10 +942,10 @@
   --seed-text-3: #636363;
   --seed-accent: #60737B;
   --seed-agent: #800080;
-  --seed-success: #60737B;
-  --seed-warning: #60737B;
-  --seed-danger: #60737B;
-  --seed-conflict: #60737B;
+  --seed-success: #006400;
+  --seed-warning: #FF4500;
+  --seed-danger: #8B0000;
+  --seed-conflict: #800080;
   --seed-on-fill: #FFFFFF;
   --seed-lane-1: #8B0000;
   --seed-lane-2: #8B0000;
@@ -1002,10 +1002,10 @@
   --seed-text-3: #5D5D5D;
   --seed-accent: #916530;
   --seed-agent: #FF8A00;
-  --seed-success: #916530;
-  --seed-warning: #916530;
-  --seed-danger: #916530;
-  --seed-conflict: #916530;
+  --seed-success: #098658;
+  --seed-warning: #FFB45B;
+  --seed-danger: #FF0000;
+  --seed-conflict: #811F3F;
   --seed-on-fill: #FFFFFF;
   --seed-lane-1: #811F3F;
   --seed-lane-2: #FF0000;
@@ -1062,10 +1062,10 @@
   --seed-text-3: #6F6F6F;
   --seed-accent: #705697;
   --seed-agent: #BF9CAC;
-  --seed-success: #705697;
-  --seed-warning: #705697;
-  --seed-danger: #705697;
-  --seed-conflict: #705697;
+  --seed-success: #448C27;
+  --seed-warning: #9C5D27;
+  --seed-danger: #CD3131;
+  --seed-conflict: #BF9CAC;
   --seed-on-fill: #F5F5F5;
   --seed-lane-1: #CD3131;
   --seed-lane-2: #C73D20;
@@ -1084,29 +1084,29 @@
   color-scheme: light;
 
   --seed-canvas: #FFFFFF;
-  --seed-surface: #EFEFEF;
-  --seed-sunken: #E2E2E2;
-  --seed-border: #C6C6C6;
-  --seed-text: #1A1A1A;
-  --seed-text-2: #565656;
-  --seed-text-3: #636363;
-  --seed-accent: #267F99;
+  --seed-surface: #EBEBEB;
+  --seed-sunken: #DBDBDB;
+  --seed-border: #B7B7B7;
+  --seed-text: #000000;
+  --seed-text-2: #2E2E2E;
+  --seed-text-3: #5D5D5D;
+  --seed-accent: #098658;
   --seed-agent: #AF00DB;
-  --seed-success: #267F99;
-  --seed-warning: #267F99;
-  --seed-danger: #267F99;
-  --seed-conflict: #267F99;
+  --seed-success: #098658;
+  --seed-warning: #795E26;
+  --seed-danger: #EE0000;
+  --seed-conflict: #811F3F;
   --seed-on-fill: #FFFFFF;
   --seed-lane-1: #811F3F;
-  --seed-lane-2: #811F3F;
-  --seed-lane-3: #EE0000;
+  --seed-lane-2: #EE0000;
+  --seed-lane-3: #C72E0F;
   --seed-lane-4: #795E26;
-  --seed-lane-5: #795E26;
-  --seed-lane-6: #267F99;
-  --seed-lane-7: #0070C1;
-  --seed-lane-8: #0070C1;
-  --seed-lane-9: #0000FF;
-  --seed-lane-10: #AF00DB;
+  --seed-lane-5: #008000;
+  --seed-lane-6: #098658;
+  --seed-lane-7: #16825D;
+  --seed-lane-8: #267F99;
+  --seed-lane-9: #007ACC;
+  --seed-lane-10: #0000FF;
 }
 
 /* Solarized Light — vscode.theme-solarized-light 1.95.3, MIT */
@@ -1122,10 +1122,10 @@
   --seed-text-3: #5A6D75;
   --seed-accent: #667470;
   --seed-agent: #D33682;
-  --seed-success: #667470;
-  --seed-warning: #667470;
-  --seed-danger: #667470;
-  --seed-conflict: #667470;
+  --seed-success: #2AA198;
+  --seed-warning: #D3AF86;
+  --seed-danger: #DC322F;
+  --seed-conflict: #D33682;
   --seed-on-fill: #FDF6E3;
   --seed-lane-1: #AB395B;
   --seed-lane-2: #DC322F;
@@ -1152,9 +1152,9 @@
   --seed-text-3: #726E64;
   --seed-accent: #076678;
   --seed-agent: #458588;
-  --seed-success: #3C3836;
+  --seed-success: #79740E;
   --seed-warning: #D79921;
-  --seed-danger: #CC241D;
+  --seed-danger: #9D0006;
   --seed-conflict: #B16286;
   --seed-on-fill: #F9F5D7;
   --seed-lane-1: #CC241D;
@@ -1185,7 +1185,7 @@
   --seed-success: #6CBF43;
   --seed-warning: #478ACC;
   --seed-danger: #FF7383;
-  --seed-conflict: #80705F;
+  --seed-conflict: #C594C5;
   --seed-on-fill: #F8F9FA;
   --seed-lane-1: #FF7383;
   --seed-lane-2: #E65050;
@@ -1212,9 +1212,9 @@
   --seed-text-3: #606780;
   --seed-accent: #2959AA;
   --seed-agent: #363C4D;
-  --seed-success: #166775;
+  --seed-success: #71B6BD;
   --seed-warning: #2959AA;
-  --seed-danger: #914C54;
+  --seed-danger: #A8626A;
   --seed-conflict: #8F5E15;
   --seed-on-fill: #E6E7ED;
   --seed-lane-1: #B05467;

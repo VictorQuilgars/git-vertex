@@ -29,9 +29,9 @@ export const THEMES = [
   // Imported — see the IMPORTED THEMES block in tokens.css.
   'one-dark-pro', 'catppuccin-frappe', 'gitpod-dark', 'dracula-theme',
   'github-dark', 'monokai-dimmed', 'monokai', 'vscode-dark',
-  'vscode-red', 'kimbie-dark', 'solarized-dark', 'gruvbox-dark-hard',
-  'ayu-dark', 'atom-one-dark', 'tokyo-night', 'rose-pine',
-  'night-owl', 'community-material-theme', 'shades-of-purple', 'darcula',
+  'vscode-red', 'kimbie-dark', 'solarized-dark', 'abyss',
+  'tomorrow-night-blue', 'gruvbox-dark-hard', 'ayu-dark', 'atom-one-dark',
+  'tokyo-night', 'rose-pine', 'night-owl', 'community-material-theme',
   'powershell-ise', 'catppuccin-latte', 'gitpod-light', 'github-light',
   'quiet-light', 'vscode-light', 'solarized-light', 'gruvbox-light-hard',
   'ayu-light', 'tokyo-night-light',
