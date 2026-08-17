@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.28.1': `## What's new in 1.28.1
 
 ### 🖼️ The Marketplace icon is the app's icon again
 - It had not changed since the first release — the original green-and-blue mark, two palettes behind. The listing now shows the same mark you see in the app.
