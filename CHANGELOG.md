@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **The app icon is the current mark, on a dark tile.** 1.30.0 shipped the previous one, and the tile it was drawn on was pale — which all but disappears against a light background: the Finder, a light Dock wallpaper, a README page. Measured across the surfaces an icon actually lands on, a pale tile loses its edge on five of nine and a dark one on three.
+
 ## 1.30.0
 
 ### Added
