@@ -190,17 +190,38 @@ describe('token discipline', () => {
       }
     })
 
-    // A theme block nobody can select, or a THEMES entry with no block behind
-    // it, are both invisible: the first never renders, the second falls back to
-    // the default in resolveTheme() and looks like the user's choice not
+    // A theme block nobody can select, or a BUILT_IN_THEMES entry with no block
+    // behind it, are both invisible: the first never renders, the second falls
+    // back to the default in resolveTheme() and looks like the user's choice not
     // sticking. Adding a theme is meant to be a block plus a line, and this is
     // what says so when only one of the two happened.
+    //
+    // Scoped to BUILT_IN_THEMES on purpose. An INSTALLED theme is in neither
+    // tokens.css nor that list — it is downloaded at runtime and injected as a
+    // [data-theme] rule by SettingsContext — so widening this test would fail
+    // the moment anyone installed one. What it still guarantees is the thing it
+    // was written for: nothing ships in tokens.css that cannot be selected.
     it('registers exactly the themes tokens.css defines', () => {
       const declared = blocks
         .flatMap(b => [...b[1].matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]))
         .sort()
       const ctx = fs.readFileSync(path.join(SRC, 'contexts', 'SettingsContext.tsx'), 'utf8')
-      const listed = [...ctx.match(/export const THEMES = \[([^\]]*)\]/)![1]
+      const listed = [...ctx.match(/export const BUILT_IN_THEMES = \[([^\]]*)\]/)![1]
+        .matchAll(/'([^']+)'/g)].map(m => m[1]).sort()
+      expect(listed).toEqual(declared)
+    })
+
+    // The main process keeps its own copy of the same ids, because the
+    // validator has to refuse an installed theme that would shadow a built-in,
+    // and it cannot import the renderer — the two are built separately. The
+    // duplication is only safe while something checks it, which is this.
+    it('keeps the main process copy of the built-in ids in step', () => {
+      const declared = blocks
+        .flatMap(b => [...b[1].matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]))
+        .sort()
+      const main = fs.readFileSync(
+        path.join(SRC, '..', '..', 'main', 'theme-validate.ts'), 'utf8')
+      const listed = [...main.match(/export const BUILT_IN_THEME_IDS: readonly string\[\] = \[([^\]]*)\]/)![1]
         .matchAll(/'([^']+)'/g)].map(m => m[1]).sort()
       expect(listed).toEqual(declared)
     })

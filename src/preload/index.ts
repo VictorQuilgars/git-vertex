@@ -241,6 +241,14 @@ const gitAPI = {
   installManual: () => ipcRenderer.invoke('updater:install-manual'),
   isFullscreen: () => ipcRenderer.invoke('app:is-fullscreen'),
   onFullscreenChanged: (cb: (fs: boolean) => void) => subscribe('app:fullscreen-changed', (fs) => cb(fs)),
+  // Themes beyond the 32 in tokens.css. Implemented in BOTH products, not
+  // classified desktop-only: the picker is wanted in the VS Code panel too and
+  // the extension host has Node, so GitVertexHost answers these with the same
+  // ThemeStore. The renderer never fetches — it is sandboxed and shared.
+  themesCatalogue: (opts?: { refresh?: boolean }) => ipcRenderer.invoke('themes:catalogue', opts),
+  themesInstall: (id: string) => ipcRenderer.invoke('themes:install', id),
+  themesRemove: (id: string) => ipcRenderer.invoke('themes:remove', id),
+  themesInstalled: () => ipcRenderer.invoke('themes:installed'),
 }
 
 contextBridge.exposeInMainWorld('gitAPI', gitAPI)

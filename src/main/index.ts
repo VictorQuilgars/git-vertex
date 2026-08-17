@@ -18,6 +18,8 @@ import {
   parseGitVersion, isGitVersionAtLeast, MIN_GIT_FOR_CONFLICT_PREDICTION,
 } from './git-service'
 import { initGitBinary, gitBinaryReady } from './git-binary'
+import { ThemeStore } from './theme-store'
+import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 import {
   splashHtml, themeCanvas, SPLASH_THEMES, SPLASH_ANIMATION_MS, SPLASH_STILL_MS,
@@ -1374,6 +1376,51 @@ function readSettings(): Record<string, string> {
 function writeSettings(data: Record<string, string>): void {
   writeFileSync(getSettingsPath(), JSON.stringify(data, null, 2), 'utf-8')
 }
+
+// ── Themes ───────────────────────────────────────────────────────────────────
+// The renderer never fetches: it is sandboxed and shared with the extension, so
+// the network lives here and the same ThemeStore backs GitVertexHost. Installed
+// themes go under userData/themes/, next to settings.json.
+let themeStore: ThemeStore | null = null
+function getThemeStore(): ThemeStore {
+  if (!themeStore) {
+    themeStore = new ThemeStore({
+      baseDir: app.getPath('userData'),
+      builtIns: BUILT_IN_THEME_IDS,
+    })
+  }
+  return themeStore
+}
+
+ipcMain.handle('themes:catalogue', async (_event, opts?: { refresh?: boolean }) => {
+  // Deliberately never rejects — the settings page must open with no network.
+  return getThemeStore().catalogue(opts ?? {})
+})
+
+ipcMain.handle('themes:install', async (_event, id: string) => {
+  try {
+    return { success: true, theme: await getThemeStore().install(id) }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+ipcMain.handle('themes:remove', (_event, id: string) => {
+  try {
+    getThemeStore().remove(id)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+ipcMain.handle('themes:installed', () => {
+  const store = getThemeStore()
+  const themes = store.installed()
+  // Anything validation threw away is reported rather than silently missing —
+  // "my theme vanished" with no reason is the bug this avoids.
+  return { themes, discarded: store.takeDiscarded() }
+})
 
 ipcMain.handle('ai:get-api-key', () => {
   return { key: readSettings().groqApiKey ?? '' }

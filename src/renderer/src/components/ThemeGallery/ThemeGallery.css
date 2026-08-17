@@ -1,0 +1,181 @@
+/* The theme bank's gallery.
+ *
+ * Lifted out of SettingsModal.css when the gallery became a VIEW rather than a
+ * section: it opens as a tab on the desktop and as an editor tab in the VS Code
+ * panel, so it must not depend on the settings page having been imported for
+ * its styles to exist. The class prefix stays `stg-` — renaming 40 selectors
+ * would have buried the actual change in noise.
+ */
+/* ── The theme bank ──────────────────────────────────────────────
+   The gallery over /themes/v1/index.json. Everything below paints from
+   tokens, with two deliberate exceptions:
+
+   1. `.stg-tile-*` takes its colours from the catalogue ROW, inline. Those
+      four hexes are the theme being previewed — they arrive from the server at
+      runtime and cannot be tokens, because the whole point is to show a
+      palette this app does not have. token-discipline.test.ts allows it: it
+      bans colour LITERALS in inline styles, and these are variables.
+   2. `.stg-hue--*` uses `oklch()`. The eleven buckets are DEFINED by cuts on
+      the OKLCH hue wheel (20/50/80/120/160/195/225/265/295/325/350°), so each
+      swatch is drawn at its own bucket's centre hue rather than copying a hex
+      out of some palette. It is the same colour space the facet was computed
+      in, which is why it is honest rather than a way around the hex scan. */
+.stg-gallery { margin-top: var(--space-lg); }
+.stg-gal-controls {
+  display: flex; flex-wrap: wrap; gap: var(--space-md);
+  align-items: center; margin-bottom: var(--space-md);
+}
+.stg-gal-search { flex: 1 1 220px; min-width: 180px; }
+
+.stg-hues { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; }
+.stg-hue {
+  width: 20px; height: 20px; padding: 0;
+  border: 1px solid var(--border-default); border-radius: var(--radius-circle);
+  cursor: pointer; transition: transform var(--dur-base), border-color var(--dur-base);
+}
+.stg-hue:hover { transform: scale(1.15); }
+.stg-hue.active { border-color: var(--text-primary); border-width: 2px; }
+.stg-hue-any {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--surface-sunken); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: var(--radius-lg);
+  font-size: var(--text-sm); cursor: pointer;
+}
+.stg-hue-any.active { border-color: var(--accent); color: var(--text-primary); }
+
+/* Centre hue of each bucket. Lightness and chroma are held constant so the
+   ring reads as one family and only the hue varies — which is what is being
+   chosen. */
+.stg-hue--red    { background: oklch(0.65 0.19 5); }
+.stg-hue--orange { background: oklch(0.65 0.19 35); }
+.stg-hue--amber  { background: oklch(0.65 0.19 65); }
+.stg-hue--lime   { background: oklch(0.65 0.19 100); }
+.stg-hue--green  { background: oklch(0.65 0.19 140); }
+.stg-hue--teal   { background: oklch(0.65 0.19 177); }
+.stg-hue--cyan   { background: oklch(0.65 0.19 210); }
+.stg-hue--blue   { background: oklch(0.65 0.19 245); }
+.stg-hue--indigo { background: oklch(0.65 0.19 280); }
+.stg-hue--violet { background: oklch(0.65 0.19 310); }
+.stg-hue--pink   { background: oklch(0.65 0.19 337); }
+
+.stg-vivids { display: flex; gap: var(--space-sm); margin-top: var(--space-md); }
+.stg-chipfilter {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--surface-sunken); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: var(--radius-lg);
+  font-size: var(--text-sm); cursor: pointer;
+}
+.stg-chipfilter:hover { color: var(--text-primary); }
+.stg-chipfilter.active { border-color: var(--accent); color: var(--text-primary); }
+
+.stg-gal-count { margin-top: var(--space-md); }
+
+/* The wall. Same tile as the marketing site's gallery — 42-git-vertex-web,
+   `.thm-*` — so the two read as one product. Auto-fill rather than a fixed
+   column count: the panel is narrow and the desktop tab is wide, and the same
+   grid has to serve both without a breakpoint per surface. */
+.stg-wall {
+  list-style: none; margin: var(--space-md) 0 0; padding: 0;
+  display: grid; gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+.stg-tile {
+  position: relative;
+  border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  background: var(--surface-sunken); overflow: hidden;
+  transition: border-color var(--dur-fast), transform var(--dur-fast);
+}
+.stg-tile:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.stg-tile.active { border-color: var(--accent); }
+
+/* The miniature commit graph. Every colour here is inline, off the catalogue
+   row — see the note at the top of this file. */
+.stg-tile-mock {
+  position: relative; display: flex; flex-direction: column;
+  gap: 7px; height: 92px; padding: var(--space-md);
+}
+.stg-tile-row { display: flex; align-items: center; gap: 7px; }
+.stg-tile-node { width: 8px; height: 8px; border-radius: var(--radius-circle); flex: none; }
+.stg-tile-bar { height: 4px; border-radius: 2px; }
+.stg-tile-rail { position: absolute; left: 15.5px; top: 18px; bottom: 30px; width: 1px; }
+.stg-tile-btn { position: absolute; right: 12px; bottom: 12px; width: 34px; height: 12px; border-radius: 3px; }
+
+.stg-tile-meta {
+  display: flex; flex-direction: column; gap: var(--space-2xs);
+  padding: var(--space-md); border-top: 1px solid var(--border-default);
+}
+.stg-tile-name {
+  color: var(--text-primary); font-size: var(--text-sm); font-weight: var(--weight-medium);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.stg-tile-sub { color: var(--text-tertiary); font-size: var(--text-xs); }
+
+.stg-tile-action {
+  width: 100%; padding: var(--space-sm); border: 0;
+  border-top: 1px solid var(--border-default);
+  background: var(--surface); color: var(--text-secondary);
+  font-size: var(--text-sm); cursor: pointer;
+}
+.stg-tile-action:hover:not(:disabled) { background: var(--surface-hover); color: var(--text-primary); }
+.stg-tile-action:disabled { opacity: 0.5; cursor: default; }
+
+/* Covers its own tile instead of pushing the grid around: opening one licence
+   must not reflow every other row. */
+.stg-tile-notice {
+  position: absolute; inset: 0; z-index: 1;
+  background: var(--surface-sunken);
+  padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm);
+  overflow: auto;
+}
+.stg-tile-notice-text { font-size: var(--text-xs); color: var(--text-secondary); margin: 0; line-height: 1.5; }
+
+.stg-gal-btn {
+  flex: none; padding: var(--space-sm) var(--space-lg);
+  background: var(--surface); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  font-size: var(--text-sm); cursor: pointer;
+}
+.stg-gal-btn:hover:not(:disabled) { border-color: var(--border-strong); color: var(--text-primary); }
+.stg-gal-btn:disabled { opacity: 0.5; cursor: default; }
+.stg-gal-btn--primary { background: var(--accent); color: var(--text-on-emphasis); border-color: var(--accent); }
+
+.stg-gal-notice {
+  border-top: 1px solid var(--border-default);
+  padding: var(--space-md);
+}
+.stg-gal-notice-actions { display: flex; gap: var(--space-sm); margin-top: var(--space-sm); }
+.stg-gal-more { margin-top: var(--space-sm); }
+
+.stg-gal-note {
+  margin-top: var(--space-sm); font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+.stg-gal-note--warn { color: var(--warning); }
+
+/* ── The way in, from Appearance ─────────────────────────────────
+   A card rather than a text button. It carries the count, four real palettes
+   off the catalogue, and says where it goes — a link that opens a tab should
+   say so before it is clicked. */
+.stg-browse {
+  display: flex; align-items: center; gap: var(--space-lg); width: 100%;
+  margin-top: var(--space-lg); padding: var(--space-lg);
+  background: var(--surface-sunken); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  cursor: pointer; text-align: left;
+  transition: border-color var(--dur-fast), background var(--dur-fast);
+}
+.stg-browse:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-hover); }
+.stg-browse:disabled { opacity: 0.55; cursor: default; }
+.stg-browse-strip { display: flex; flex: none; gap: var(--space-xs); }
+/* A row, not a fanned stack. Overlapping them read as a rendering glitch the
+   moment the first one was a light theme. */
+.stg-browse-chip {
+  width: 22px; height: 30px; border-radius: var(--radius-xs);
+  border: 1px solid;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;
+}
+.stg-browse-chip i { width: 12px; height: 4px; border-radius: 2px; }
+.stg-browse-text { display: flex; flex-direction: column; gap: var(--space-2xs); flex: 1; min-width: 0; }
+.stg-browse-title { color: var(--text-primary); font-size: var(--text-base); font-weight: var(--weight-medium); }
+.stg-browse-sub { color: var(--text-tertiary); font-size: var(--text-sm); }
+.stg-browse-go { flex: none; opacity: 0.7; }

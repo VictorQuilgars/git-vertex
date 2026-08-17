@@ -133,6 +133,27 @@
   background: var(--seed-accent);
 }
 
+/* The picker goes flat while the panel is following the editor: the choice
+   still exists, it is just not this one's to make yet. */
+.stg-themes-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.stg-themes-fieldset:disabled { opacity: 0.45; }
+.stg-themes-fieldset:disabled .stg-theme { cursor: default; }
+
+/* An installed theme is a chip with a way to take it back off. */
+.stg-theme-installed { position: relative; display: inline-flex; }
+.stg-theme-remove {
+  position: absolute; top: -6px; right: -6px;
+  width: 18px; height: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--text-tertiary);
+  border: 1px solid var(--border-default); border-radius: var(--radius-circle);
+  font-size: var(--text-sm); cursor: pointer; opacity: 0;
+  transition: opacity var(--dur-base), color var(--dur-base);
+}
+.stg-theme-installed:hover .stg-theme-remove,
+.stg-theme-remove:focus-visible { opacity: 1; }
+.stg-theme-remove:hover { color: var(--danger); border-color: var(--danger); }
+
 /* ── Segmented control ───────────────────────────────────────── */
 .stg-segment { display: inline-flex; gap: 0; margin-top: var(--space-sm); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow: hidden; }
 .stg-segment-btn {

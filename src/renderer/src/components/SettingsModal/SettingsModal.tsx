@@ -3,7 +3,10 @@ import { Icon } from '../Icon/Icon'
 import { Brand } from '../BrandMark/BrandMark'
 import './SettingsModal.css'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
-import { useSettings, isVSCodeHost, type ThemeId } from '../../contexts/SettingsContext'
+import {
+  useSettings, isVSCodeHost, setInstalledThemes, followsEditor,
+  type ThemeId, type InstalledThemeInfo,
+} from '../../contexts/SettingsContext'
 import { Mark } from '../Mark/Mark'
 import { parseAutolinks, serializeAutolinks, type Autolink } from '../../utils/autolinks'
 
@@ -137,12 +140,66 @@ interface SettingsModalProps {
   // for a manual token field. Behaviour toggles (auto-stash, conflict warning,
   // external editor) stay available.
   embedded?: boolean
+  /** Opens the gallery as a tab. Absent on a host that has no tabs, in which
+   *  case the card is inert rather than hidden — the bank still exists. */
+  onBrowseThemes?: () => void
 }
 
-export default function SettingsModal({ onClose, showToast, onUpdateFound, embedded = false }: SettingsModalProps) {
+export default function SettingsModal({ onClose, showToast, onUpdateFound, embedded = false, onBrowseThemes }: SettingsModalProps) {
   const { t, lang, setLang } = useLang()
-  const { get, getBool, set } = useSettings()
+  const { settings, get, getBool, set } = useSettings()
   const [section, setSection] = useState<Section>('git')
+
+  // ── Themes ────────────────────────────────────────────────────────────────
+  const [installed, setInstalled] = useState<InstalledThemeInfo[]>([])
+  const [discarded, setDiscarded] = useState<Array<{ id: string; why: string }>>([])
+  // The card shows how many themes are behind it and four of them. That is one
+  // catalogue read, cached by the main process, and it never blocks the page:
+  // with no answer the card falls back to a wordier label and still opens.
+  const [bankCount, setBankCount] = useState(0)
+  const [preview, setPreview] = useState<{ id: string; canvas: string; border: string; accent: string }[]>([])
+
+  // In the panel the picker is dead while the editor is being followed —
+  // disabled with the reason shown, rather than hidden, so it is clear that
+  // the choice exists and what is holding it.
+  const themePickerDisabled = followsEditor(settings)
+
+  const refreshInstalled = React.useCallback(() => {
+    window.gitAPI.themesInstalled?.()
+      .then((r: { themes?: InstalledThemeInfo[]; discarded?: Array<{ id: string; why: string }> }) => {
+        const list = r?.themes ?? []
+        setInstalled(list)
+        setDiscarded(r?.discarded ?? [])
+        // Keeps resolveTheme and the injected [data-theme] rules in step with
+        // what is actually on disk.
+        setInstalledThemes(list)
+      })
+      .catch(() => { /* older host, or nothing installed */ })
+  }, [])
+
+  useEffect(() => { refreshInstalled() }, [refreshInstalled])
+
+  useEffect(() => {
+    let alive = true
+    window.gitAPI.themesCatalogue?.()
+      .then((c: any) => {
+        if (!alive || !c?.themes?.length) return
+        setBankCount(c.count ?? c.themes.length)
+        setPreview(c.themes.slice(0, 4).map((r: any) => ({
+          id: r.id, canvas: r.canvas, border: r.border, accent: r.accent,
+        })))
+      })
+      .catch(() => { /* offline: the card keeps its plain label */ })
+    return () => { alive = false }
+  }, [])
+
+  const removeTheme = React.useCallback(async (id: string) => {
+    await window.gitAPI.themesRemove?.(id)
+    // Falling back before the list refreshes, so the UI never sits on a theme
+    // whose rule has just been withdrawn.
+    if (get('theme', 'aqua-dark') === id) set('theme', 'aqua-dark')
+    refreshInstalled()
+  }, [get, set, refreshInstalled])
 
   const navGroups = embedded
     ? NAV_GROUPS
@@ -611,18 +668,58 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 <h2 className="stg-section-title">{t('settings.appearance.title')}</h2>
                 <p className="stg-desc">{t('settings.appearance.desc')}</p>
 
-                {/* Not offered in the panel: there we follow the editor's theme,
-                    which is what an extension is expected to do. */}
-                {!isVSCodeHost && (
+                {/* The picker is offered in BOTH products now. In the panel it
+                    is governed by "Follow the editor" below, which is on by
+                    default — a panel that does not match its editor reads as
+                    broken, so choosing your own is something you opt into. */}
+                {isVSCodeHost && (
                   <>
-                    <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.theme.title')}</h2>
-                    <p className="stg-desc">{t('settings.theme.desc')}</p>
-                    <div className="stg-themes">
-                      {THEME_PRESETS.map(th => {
-                        const active = get('theme', 'aqua-dark') === th.id
-                        return (
+                    <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.themes.followEditor')}</h2>
+                    <p className="stg-desc">{t('settings.themes.followEditorDesc')}</p>
+                    <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={followsEditor(settings)}
+                        onChange={e => set('panelFollowEditorTheme', e.target.checked ? 'true' : 'false')}
+                      />
+                      <span>{t('settings.themes.followEditor')}</span>
+                    </label>
+                  </>
+                )}
+
+                <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.theme.title')}</h2>
+                <p className="stg-desc">{t('settings.theme.desc')}</p>
+                {themePickerDisabled && (
+                  <p className="stg-gal-note">{t('settings.themes.pickerDisabled')}</p>
+                )}
+                <fieldset className="stg-themes-fieldset" disabled={themePickerDisabled}>
+                  <div className="stg-themes">
+                    {THEME_PRESETS.map(th => {
+                      const active = get('theme', 'aqua-dark') === th.id
+                      return (
+                        <button
+                          key={th.id}
+                          className={`stg-theme ${active ? 'active' : ''}`}
+                          onClick={() => set('theme', th.id)}
+                          aria-pressed={active}
+                        >
+                          <span className="stg-theme-chip" data-theme={th.id}>
+                            <span className="stg-theme-dot" />
+                          </span>
+                          {th.name ?? t(th.key as any)}
+                        </button>
+                      )
+                    })}
+                    {/* Installed themes sit with the built-in ones — the
+                        distinction is ours, not the user's. The chip reads its
+                        seeds through data-theme exactly like the others,
+                        because SettingsContext injects a real [data-theme]
+                        rule for each installed theme. */}
+                    {installed.map(th => {
+                      const active = get('theme', 'aqua-dark') === th.id
+                      return (
+                        <span key={th.id} className="stg-theme-installed">
                           <button
-                            key={th.id}
                             className={`stg-theme ${active ? 'active' : ''}`}
                             onClick={() => set('theme', th.id)}
                             aria-pressed={active}
@@ -630,13 +727,51 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                             <span className="stg-theme-chip" data-theme={th.id}>
                               <span className="stg-theme-dot" />
                             </span>
-                            {th.name ?? t(th.key as any)}
+                            {th.name}
                           </button>
-                        )
-                      })}
-                    </div>
-                  </>
+                          <button
+                            className="stg-theme-remove"
+                            title={t('settings.themes.remove')}
+                            aria-label={`${t('settings.themes.remove')} ${th.name}`}
+                            onClick={() => removeTheme(th.id)}
+                          >×</button>
+                        </span>
+                      )
+                    })}
+                  </div>
+                </fieldset>
+
+                {discarded.length > 0 && (
+                  <p className="stg-gal-note stg-gal-note--warn">
+                    {t('settings.themes.discarded', String(discarded.length))}
+                  </p>
                 )}
+
+                {/* The way into the rest of the bank. It used to be a text
+                    toggle that expanded the gallery in place, which read as a
+                    minor option and gave 3,960 themes a column the width of a
+                    settings pane. It is a card now, it carries the count, and
+                    it opens the gallery as a TAB — the same gesture as opening
+                    a repo, and in the panel the same one as the interactive
+                    rebase. */}
+                <button className="stg-browse" onClick={onBrowseThemes} disabled={!onBrowseThemes}>
+                  <span className="stg-browse-strip" aria-hidden="true">
+                    {preview.map(r => (
+                      <span key={r.id} className="stg-browse-chip" style={{ background: r.canvas, borderColor: r.border }}>
+                        <i style={{ background: r.accent }} />
+                      </span>
+                    ))}
+                  </span>
+                  <span className="stg-browse-text">
+                    <span className="stg-browse-title">
+                      {bankCount
+                        ? t('settings.themes.browseCount', bankCount.toLocaleString())
+                        : t('settings.themes.browse')}
+                    </span>
+                    <span className="stg-browse-sub">{t('settings.themes.browseSub')}</span>
+                  </span>
+                  <Icon name="chevronRight" size={16} className="stg-browse-go" />
+                </button>
 
                 <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.date.title')}</h2>
                 <p className="stg-desc">{t('settings.date.desc')}</p>

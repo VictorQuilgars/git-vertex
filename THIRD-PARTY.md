@@ -90,53 +90,6 @@ version named here is the version the palette came from.
 | [`vscode.theme-red`](https://open-vsx.org/extension/vscode/theme-red) | 1.95.3 | MIT | Red |
 | [`vscode.theme-kimbie-dark`](https://open-vsx.org/extension/vscode/theme-kimbie-dark) | 1.95.3 | MIT | Kimbie Dark |
 | [`vscode.theme-solarized-dark`](https://open-vsx.org/extension/vscode/theme-solarized-dark) | 1.95.3 | MIT | Solarized Dark |
-| [`jdinhlife.gruvbox`](https://open-vsx.org/extension/jdinhlife/gruvbox) | 1.29.1 | MIT | Gruvbox Dark Hard, Gruvbox Light Hard |
-| [`teabyii.ayu`](https://open-vsx.org/extension/teabyii/ayu) | 1.1.12 | MIT | Ayu Dark, Ayu Light |
-| [`akamud.vscode-theme-onedark`](https://open-vsx.org/extension/akamud/vscode-theme-onedark) | 2.3.0 | MIT | Atom One Dark |
-| [`enkia.tokyo-night`](https://open-vsx.org/extension/enkia/tokyo-night) | 1.1.2 | MIT | Tokyo Night, Tokyo Night Light |
-| [`mvllow.rose-pine`](https://open-vsx.org/extension/mvllow/rose-pine) | 2.15.2 | MIT | Rosé Pine |
-| [`sdras.night-owl`](https://open-vsx.org/extension/sdras/night-owl) | 2.1.1 | MIT | Night Owl |
-| [`Equinusocio.vsc-community-material-theme`](https://open-vsx.org/extension/Equinusocio/vsc-community-material-theme) | 1.4.6 | Apache-2.0 | Community Material Theme |
-| [`ahmadawais.shades-of-purple`](https://open-vsx.org/extension/ahmadawais/shades-of-purple) | 7.3.6 | MIT | Shades of Purple |
-| [`Dracula-2.dracula-2`](https://open-vsx.org/extension/Dracula-2/dracula-2) | 0.3.8 | MIT | Darcula |
-| [`ms-vscode.powershell`](https://open-vsx.org/extension/ms-vscode/powershell) | 2025.4.0 | MIT | PowerShell ISE |
-| [`vscode.theme-quietlight`](https://open-vsx.org/extension/vscode/theme-quietlight) | 1.95.3 | MIT | Quiet Light |
-| [`vscode.theme-solarized-light`](https://open-vsx.org/extension/vscode/theme-solarized-light) | 1.95.3 | MIT | Solarized Light |
-
-Copyright in each palette remains with its author. The full licence text of
-each is served by Open VSX alongside the extension, and is reproduced in the
-extension's own repository, linked above.
-
----
-
-## VS Code themes — the `[data-theme]` blocks in `tokens.css`
-
-Thirty published themes, each reduced to this project's own 24 seeds. The
-palettes are theirs; the mapping onto our roles, and the contrast repairs it
-makes, are ours. No code, no icon and no name is used as our own.
-
-Each licence was verified by reading the licence FILE, not the declared field.
-`SEE LICENSE IN LICENSE.txt` is an indirection rather than a restriction, and
-it hides both answers: Microsoft's built-in themes are MIT that way, while
-another theme's file opens with the MIT sentence and then forbids
-redistribution outright. The generator refuses that one.
-
-The version below is pinned: an upstream release can change a licence, so the
-version named here is the version the palette came from.
-
-| Extension | Version | Licence | Themes |
-|---|---|---|---|
-| [`zhuangtongfa.material-theme`](https://open-vsx.org/extension/zhuangtongfa/material-theme) | 3.20.2 | MIT | One Dark Pro |
-| [`Catppuccin.catppuccin-vsc`](https://open-vsx.org/extension/Catppuccin/catppuccin-vsc) | 3.19.0 | MIT | Catppuccin Frappé, Catppuccin Latte |
-| [`gitpod.gitpod-theme`](https://open-vsx.org/extension/gitpod/gitpod-theme) | 0.0.2 | MIT | Gitpod Dark, Gitpod Light |
-| [`dracula-theme.theme-dracula`](https://open-vsx.org/extension/dracula-theme/theme-dracula) | 2.25.1 | MIT | Dracula Theme |
-| [`GitHub.github-vscode-theme`](https://open-vsx.org/extension/GitHub/github-vscode-theme) | 6.3.5 | MIT | GitHub Dark, GitHub Light |
-| [`vscode.theme-monokai-dimmed`](https://open-vsx.org/extension/vscode/theme-monokai-dimmed) | 1.95.3 | MIT | Monokai Dimmed |
-| [`vscode.theme-monokai`](https://open-vsx.org/extension/vscode/theme-monokai) | 1.95.3 | MIT | Monokai |
-| [`vscode.theme-defaults`](https://open-vsx.org/extension/vscode/theme-defaults) | 1.95.3 | MIT | Dark+, Light+ |
-| [`vscode.theme-red`](https://open-vsx.org/extension/vscode/theme-red) | 1.95.3 | MIT | Red |
-| [`vscode.theme-kimbie-dark`](https://open-vsx.org/extension/vscode/theme-kimbie-dark) | 1.95.3 | MIT | Kimbie Dark |
-| [`vscode.theme-solarized-dark`](https://open-vsx.org/extension/vscode/theme-solarized-dark) | 1.95.3 | MIT | Solarized Dark |
 | [`vscode.theme-abyss`](https://open-vsx.org/extension/vscode/theme-abyss) | 1.95.3 | MIT | Abyss |
 | [`vscode.theme-tomorrow-night-blue`](https://open-vsx.org/extension/vscode/theme-tomorrow-night-blue) | 1.95.3 | MIT | Tomorrow Night Blue |
 | [`jdinhlife.gruvbox`](https://open-vsx.org/extension/jdinhlife/gruvbox) | 1.29.1 | MIT | Gruvbox Dark Hard, Gruvbox Light Hard |

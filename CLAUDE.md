@@ -174,15 +174,91 @@ extra one, or overrides a derived token.
 
 Themes are applied by `SettingsContext.applyAppearance` via `data-theme` on
 `<html>`, mirrored to `localStorage` so `main.tsx` can set it before React
-mounts (otherwise a light theme opens with a black flash). Inside VS Code the
-panel follows the editor instead, watched by a `MutationObserver` on
-`body.class`. Any rewrite of the tokens must call `resetThemeCache()` — the
-graph resolves lanes and the canvas to literals once and caches them.
+mounts (otherwise a light theme opens with a black flash). An **installed**
+theme has no block in `tokens.css`, so its seeds are mirrored alongside the id
+and `main.tsx` injects a real `[data-theme="id"]` rule before mounting — a rule
+rather than inline properties on `<html>`, because the picker's chips carry
+`data-theme` on a descendant and only a rule reaches them.
+
+Inside VS Code the panel follows the editor by default, watched by a
+`MutationObserver` on `body.class`, but that is now the `panelFollowEditorTheme`
+setting rather than a law: turn it off and the panel takes its own theme. Any
+rewrite of the tokens must call `resetThemeCache()` — the graph resolves lanes
+and the canvas to literals once and caches them.
 
 - CSS modules per component, BEM-like class names (`component-element--modifier`)
 - No global CSS framework
 - A colour literal in a component stylesheet or an inline `style={{}}` is a bug,
   and the test above will say so.
+
+## Themes: where they live and how they are regenerated
+
+**Three tiers, and only the first is in this repository.**
+
+| Tier | Where | How many |
+|---|---|---|
+| Built-in | `src/renderer/src/tokens.css`, listed in `BUILT_IN_THEMES` | 32 |
+| Installed | `userData/themes/` (desktop) · `globalStorageUri` (extension) | up to 200 |
+| The bank | `https://gitvertex.vi-lab.fr/themes/v1/` | 3,960 |
+
+The bank is generated from Open VSX by the pipeline in `docs-private/themes/`,
+which is **git-ignored** — a fresh clone does not have it, and CI cannot see it.
+That is why publishing is a laptop command and not a workflow:
+
+```bash
+scripts/publish-themes.sh            # regenerate, verify, rsync to the homelab
+scripts/publish-themes.sh --dry-run
+```
+
+Regenerating the palettes themselves is upstream of that and rarely needed:
+`python3 crawl.py fetch` (two hours, network), then `crawl.py remap` (seconds,
+offline, re-maps from the raw cache) and `assemble.py`.
+
+**`catalogue.py` wipes its output tree before writing, and the publish uses
+`rsync --delete`.** Both are load-bearing. The tree was once written on top of a
+previous generation and kept 491 files that were no longer in the index, 449 of
+them carrying a palette bug that had already been fixed; they were absent from
+`index.json` so nothing listed them, but they still answered on their own URLs —
+and `theme/{id}.json` is served `immutable, max-age=31536000`.
+
+### The rules a theme has to pass, and why they are what they are
+
+`src/main/theme-validate.ts` is the single validator: free of `electron` and
+`vscode`, imported by the desktop main process and bundled into the extension
+host, so both products enforce the same thing. It runs **on install and on
+read** — a file in `userData` can be hand-edited after it was installed, and the
+read path is the one that feeds the stylesheet.
+
+It rejects, and never repairs. In order: the 24 seeds exactly, each matching
+`/^#[0-9A-Fa-f]{6}$/` (this is the only thing between a served file and the
+document's CSS); a valid id that is also a safe filename; the five contrast
+pairs at 4.5:1; **all four semantic seeds distinct**; and `success`/`danger`
+within 60° of their meaning's OKLCH hue.
+
+Two of those have history worth keeping:
+
+- **Distinctness** is the one that matters. The generator used to fall back to
+  the accent when a theme declared no semantic colour, and 13 of the 30 embedded
+  themes shipped with `success == danger` — added and removed lines the same
+  colour, in Dark+, Light+, Solarized, Monokai and nine others. Contrast was
+  checked; distinctness was not.
+- **`warning` and `conflict` get no hue rule at all.** Measured over the bank,
+  blocking on them would reject 42.9% and 34.2% respectively. GitHub Dark calls
+  "modified" blue, which is GitHub's own convention and none of our business.
+
+**Re-measure before changing any threshold.** `crawl.py remap` re-maps the whole
+bank offline in seconds, and `map_seeds.py::report()` must agree with the
+validator — when it did not, 71 themes were served that the client refused.
+
+### Two lists that must not drift
+
+`BUILT_IN_THEMES` (renderer, a `const` tuple so `BuiltInTheme` is a literal
+union) and `BUILT_IN_THEME_IDS` (`src/main/theme-validate.ts`, so the validator
+can refuse an id that shadows a built-in) are the same 32 ids in two places,
+because the renderer and the main process are built separately. `ThemeId` itself
+is `string`: an installed id arrives at runtime and cannot be in a compile-time
+union. `token-discipline.test.ts` checks both lists against the `[data-theme]`
+blocks in `tokens.css`, which is what makes the duplication safe.
 
 ## User
 Victor Quilgars (VictorQuilgars on GitHub). French speaker; **the shipped UI is

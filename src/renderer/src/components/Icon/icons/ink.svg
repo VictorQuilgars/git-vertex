@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- ink — the theme gallery, and the word this project already uses for a
+       theme's colours (see tokens.css: a theme is a block of seeds, the mark
+       is one ink).
+       A drop rather than a painter's palette: the classic blob needs a thumb
+       hole and a lobed outline, and both turn to mush at 16px, which is the
+       size the tab strip and the panel actually use. Three overlapping discs
+       were tried first and read as a face — the negative space made two eyes
+       and a mouth.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it, growing it
+       as the icon shrinks so the line never falls under a pixel. -->
+  <path d="M12 3.5c3.6 4.2 5.8 7 5.8 9.6a5.8 5.8 0 0 1-11.6 0c0-2.6 2.2-5.4 5.8-9.6Z"/>
+</svg>
