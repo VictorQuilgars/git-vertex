@@ -25,6 +25,6 @@
 .init-check { display: flex; align-items: center; gap: var(--space-md); font-size: var(--text-base); color: var(--text-primary-soft); margin: 0 0 var(--space-xl) 164px; cursor: pointer; }
 
 .init-foot { display: flex; justify-content: flex-end; margin-top: var(--space-3xl); }
-.init-create { background: var(--success-strong); border: 1px solid var(--success-emphasis); color: var(--text-on-emphasis); cursor: pointer; padding: var(--space-md) var(--space-2xl); border-radius: var(--radius-md); font-size: var(--text-base); font-weight: var(--weight-semibold); }
-.init-create:hover { background: var(--success-emphasis); }
+.init-create { background: var(--accent-strong); border: 1px solid var(--accent-emphasis); color: var(--text-on-emphasis); cursor: pointer; padding: var(--space-md) var(--space-2xl); border-radius: var(--radius-md); font-size: var(--text-base); font-weight: var(--weight-semibold); }
+.init-create:hover { background: var(--accent-emphasis); }
 .init-create:disabled { opacity: 0.5; cursor: not-allowed; }

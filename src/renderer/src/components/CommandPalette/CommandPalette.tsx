@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { Icon } from '../Icon/Icon'
 import { useLang } from '../../i18n/LanguageContext'
 import './CommandPalette.css'
 
@@ -61,9 +62,7 @@ export default function CommandPalette({ commands, onClose }: CommandPaletteProp
     <div className="cp-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <div className="cp-panel">
         <div className="cp-search">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="cp-search-icon">
-            <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
-          </svg>
+          <Icon name="search" size={14} className="cp-search-icon" />
           <input
             ref={inputRef}
             className="cp-input"

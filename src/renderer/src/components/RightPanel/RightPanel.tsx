@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { Icon } from '../Icon/Icon'
 import hljs from 'highlight.js'
 import { CommitNode, ConflictKind, FileChange, WorkingChanges } from '../../types'
 
@@ -117,9 +118,7 @@ function buildTree(files: { path: string; status: string }[]): TreeNode[] {
 }
 
 const TreePencil = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="var(--warning-bright)" style={{ flexShrink: 0 }}>
-    <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
-  </svg>
+  <Icon name="pencil" size={12} />
 )
 
 function treeStats(node: TreeNode): { mod: number; add: number; del: number } {
@@ -579,7 +578,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             setAiMenu({ x: rect.left, y: rect.bottom + 4 })
           }}
         >
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>
+          <Icon name="ai" size={13} />
           <span className="cd-ai-label">{aiBusy ? t('panel.aiWorking') : 'Recompose commit with AI'}</span>
           <span className="cd-ai-sep" />
           <span className="cd-ai-arrow">▼</span>
@@ -747,9 +746,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             return (
               <div className="cd-files-count-row">
                 {nMod > 0 && <>
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="var(--warning-bright)" style={{ flexShrink: 0 }}>
-                    <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
-                  </svg>
+                  <Icon name="pencil" size={12} />
                   <span className="cd-count-mod">{nMod} modified</span>
                 </>}
                 {nAdd > 0 && <span className="cd-count-add">+ {nAdd} added</span>}
@@ -761,17 +758,15 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           {/* Files bar */}
           <div className="cd-files-bar">
             <button className="cd-sort-btn" title={t('rp.sort')}>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2 4.75a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 2 4.75ZM2 8a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 2 8Zm0 3.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z"/>
-              </svg>
+              <Icon name="sort" size={13} />
             </button>
             <div className="cd-view-toggle">
               <button className={`cd-view-btn ${!cdTreeMode ? 'active' : ''}`} onClick={() => { setView('files'); setCdTreeMode(false); localStorage.setItem('cd-tree-mode', 'false') }}>
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A.5.5 0 0 1 2.5 2h11a.5.5 0 0 1 0 1H3v10h9.5a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 13.5v-11Z"/></svg>
+                <Icon name="list" size={11} />
                 Path
               </button>
               <button className={`cd-view-btn ${cdTreeMode ? 'active' : ''}`} onClick={() => setCdTreeMode(v => { localStorage.setItem('cd-tree-mode', String(!v)); return !v })}>
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm0 4a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5zm9.5-8a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3zm0 4a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3z"/></svg>
+                <Icon name="listTree" size={11} />
                 Tree
               </button>
             </div>
@@ -828,9 +823,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                         </span>
                         <button className="rp-history-btn" title={t('panel.history')}
                           onClick={e => { e.stopPropagation(); setFileHistoryPath(f.path) }}>
-                          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M1.643 3.143L.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458.75.75 0 1 0-1.493.154 8.001 8.001 0 1 0 1.6-5.684zM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4z"/>
-                          </svg>
+                          <Icon name="history" size={11} />
                         </button>
                       </div>
                     )
@@ -862,14 +855,14 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 interface SelectedDiffFile { path: string; area: 'staged' | 'unstaged' }
 
 // Inline icons (currentColor)
-const IcoTrash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15Z"/></svg>)
-const IcoSpark = ({ size = 14 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>)
-const IcoSort = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.25 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 4.25 2Zm5 1h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm0 3.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Zm0 3.5h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5Z"/></svg>)
-const IcoPathView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75Zm0 4A.75.75 0 0 1 2.75 7h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.75Zm0 4a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z"/></svg>)
-const IcoSearch = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>)
+const IcoTrash = () => (<Icon name="trash" size={15} />)
+const IcoSpark = ({ size = 14 }: { size?: number }) => (<Icon name="ai" />)
+const IcoSort = () => (<Icon name="sort" size={15} />)
+const IcoPathView = () => (<Icon name="list" size={12} />)
+const IcoSearch = () => (<Icon name="search" size={12} />)
 
-const IcoCopy = () => (<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>)
-const IcoOpenDiff = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8.75 1.75a.75.75 0 0 0 0 1.5h2.44L6.72 7.72a.75.75 0 1 0 1.06 1.06l4.47-4.47v2.44a.75.75 0 0 0 1.5 0v-4.25a.75.75 0 0 0-.75-.75H8.75ZM2.5 4.25c0-.138.112-.25.25-.25H6a.75.75 0 0 0 0-1.5H2.75A1.75 1.75 0 0 0 1 4.25v9c0 .966.784 1.75 1.75 1.75h9a1.75 1.75 0 0 0 1.75-1.75V10a.75.75 0 0 0-1.5 0v3.25a.25.25 0 0 1-.25.25h-9a.25.25 0 0 1-.25-.25v-9Z"/></svg>)
+const IcoCopy = () => (<Icon name="copy" size={13} />)
+const IcoOpenDiff = () => (<Icon name="externalLink" size={12} />)
 
 // Per-file line counts (v1.22.0). Renders nothing when git reported none —
 // untracked files and binaries — so "unknown" never reads as "+0 −0".
@@ -882,13 +875,13 @@ function DiffStat({ additions, deletions }: { additions?: number; deletions?: nu
     </span>
   )
 }
-const IcoTreeView = () => (<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 2.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Zm5 0a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM6 7.75A.75.75 0 0 1 6.75 7h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 6 7.75Zm.75 3.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 5.5a.75.75 0 0 0-1.5 0v6.75c0 .414.336.75.75.75H4.5a.75.75 0 0 0 0-1.5H2.5V5.5Z"/></svg>)
-const IcoCommit = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10.95 7.25a3.001 3.001 0 0 0-5.9 0H1.75a.75.75 0 0 0 0 1.5h3.3a3.001 3.001 0 0 0 5.9 0h3.3a.75.75 0 0 0 0-1.5h-3.3ZM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg>)
-const IcoStash = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 1A1.75 1.75 0 0 0 1 2.75v7.5C1 11.216 1.784 12 2.75 12h2.5a.75.75 0 0 0 0-1.5h-2.5a.25.25 0 0 1-.25-.25V6h11v.25a.75.75 0 0 0 1.5 0v-3.5A1.75 1.75 0 0 0 13.25 1H2.75Zm10.75 3.5h-11v-1.75a.25.25 0 0 1 .25-.25h10.5a.25.25 0 0 1 .25.25V4.5ZM10 11.25a.75.75 0 0 1 .75-.75h1.69l-.97-.97a.75.75 0 1 1 1.06-1.06l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 1 1-1.06-1.06l.97-.97h-1.69a.75.75 0 0 1-.75-.75Z"/></svg>)
-const IcoCheck = ({ size = 16 }: { size?: number }) => (<svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.97 8.53a.75.75 0 0 1 1.06-1.06L6 10.44l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>)
-const IcoHunks = () => (<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75A.75.75 0 0 1 2.75 2h10.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75V2.75ZM3.5 3.5v9H7.25v-9H3.5Zm5.25 0v9H12.5v-9H8.75Z"/></svg>)
-const IcoCloud = () => (<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.878 1.464-2.383Zm4.843 5.804a.75.75 0 0 0 1.06-1.06L8.53 5.946a.75.75 0 0 0-1.06 0L5.69 8.086a.75.75 0 1 0 1.06 1.06l.75-.75v3.073a.75.75 0 0 0 1.5 0V8.396l.75.75Z"/></svg>)
-const IcoChevron = ({ open }: { open: boolean }) => (<svg className={`st2-chev ${open ? 'open' : ''}`} width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>)
+const IcoTreeView = () => (<Icon name="listTree" size={12} />)
+const IcoCommit = () => (<Icon name="commit" size={15} />)
+const IcoStash = () => (<Icon name="stash" size={15} />)
+const IcoCheck = ({ size = 16 }: { size?: number }) => (<Icon name="check" />)
+const IcoHunks = () => (<Icon name="hunk" size={13} />)
+const IcoCloud = () => (<Icon name="cloud" size={15} />)
+const IcoChevron = ({ open }: { open: boolean }) => (<Icon name="chevronRight" size={11} />)
 
 // ── Embedded (VS Code) single-list staging: checkbox helpers ──────
 type StageState = 'staged' | 'unstaged' | 'partial'
@@ -1515,7 +1508,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                         const isDir = f.endsWith('/')
                         return (
                           <div key={f} className="st-file-row">
-                            <span className="st-badge" style={{ color: 'var(--success)' }}>{isDir ? '📁' : '?'}</span>
+                            <span className="st-badge" style={{ color: 'var(--success)' }}>{isDir ? <Icon name="folder" size={12} /> : '?'}</span>
                             <span className="st-path" title={f}>
                               {f}{isDir && <span className="st-dir-hint"> {t('panel.folder')}</span>}
                             </span>
@@ -1653,7 +1646,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
         {commitProposal && (
           <div className="st2-proposal">
             <div className="st2-proposal-head">
-              <span className="st2-proposal-title">🤖 {t('panel.proposal.title')}</span>
+              <span className="st2-proposal-title"><Icon name="agent" size={15} /> {t('panel.proposal.title')}</span>
               <button className="st2-proposal-close" title={t('panel.proposal.dismiss')}
                 onClick={() => onProposalConsumed?.()}>×</button>
             </div>

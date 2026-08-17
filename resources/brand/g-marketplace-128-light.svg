@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Marketplace 128, for a light listing page. -->
+  <path d="M143.7 122.5L180.0 219.4" stroke="#141922" stroke-width="20" stroke-linecap="round"/>
+  <path d="M206.0 288.6L245.8 394.8" stroke="#141922" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="130" cy="86" r="36" stroke="#141922" stroke-width="14"/>
+  <circle cx="193" cy="254" r="33" stroke="#141922" stroke-width="12"/>
+  <path d="M368.3 122.5L330.6 223.1" stroke="#141922" stroke-width="20" stroke-linecap="round"/>
+  <path d="M307.4 284.9L266.2 394.8" stroke="#141922" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="382" cy="86" r="36" stroke="#141922" stroke-width="14"/>
+  <circle cx="319" cy="254" r="33" stroke="#141922" stroke-width="16" stroke-linecap="round" stroke-dasharray="0 25.92" transform="rotate(110.6 319 254)"/>
+  <path d="M210 422a46 46 0 1 0 92 0a46 46 0 1 0 -92 0ZM237 422a19 19 0 1 0 38 0a19 19 0 1 0 -38 0Z" fill="#141922" stroke="none" fill-rule="evenodd"/>
+</svg>

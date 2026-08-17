@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- info — interface furniture, not part of the git vocabulary.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it, growing it
+       as the icon shrinks so the line never falls under a pixel. -->
+  <circle cx="12" cy="12" r="10"/>
+  <line x1="12" y1="8" x2="12" y2="12"/>
+  <line x1="12" y1="16" x2="12.01" y2="16"/>
+</svg>

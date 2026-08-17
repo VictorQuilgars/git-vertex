@@ -129,12 +129,12 @@
 .mt-ai-explain-close:hover { color: var(--text-primary); }
 
 .mt-btn-save {
-  background: var(--success-strong);
+  background: var(--accent-strong);
   color: var(--text-on-emphasis);
   border-color: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
 }
 .mt-btn-save:hover {
-  background: var(--success-emphasis);
+  background: var(--accent-emphasis);
 }
 .mt-btn-all-a {
   border-color: var(--accent-emphasis);

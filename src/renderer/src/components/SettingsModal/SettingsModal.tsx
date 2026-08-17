@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
+import { Icon } from '../Icon/Icon'
+import { Brand } from '../BrandMark/BrandMark'
 import './SettingsModal.css'
-// Bundled through Vite so the logo resolves in the packaged app — the old
-// relative "../../resources/icon.png" path only worked in dev and was silently
-// hidden by onError in production.
-import iconUrl from '../../../../../resources/icon.png'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
-import { useSettings } from '../../contexts/SettingsContext'
+import { useSettings, isVSCodeHost } from '../../contexts/SettingsContext'
+import { Mark } from '../Mark/Mark'
 import { parseAutolinks, serializeAutolinks, type Autolink } from '../../utils/autolinks'
 
 /**
@@ -30,53 +29,22 @@ type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
 const DESKTOP_ONLY_SECTIONS: Section[] = ['externalTools', 'ssh', 'about']
 
 // ── Nav icons ─────────────────────────────────────────────────
-// Monochrome line icons (stroke = currentColor) so they follow the same
-// hover/active color as the nav label, instead of colored emoji.
-function NavIcon({ children }: { children: React.ReactNode }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {children}
-    </svg>
-  )
-}
-const IconIdentity = () => (
-  <NavIcon><circle cx="12" cy="8" r="3.3"/><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></NavIcon>
-)
-const IconAppearance = () => (
-  <NavIcon>
-    <line x1="4" y1="20" x2="4" y2="14"/><circle cx="4" cy="11" r="2"/><line x1="4" y1="8" x2="4" y2="4"/>
-    <line x1="12" y1="20" x2="12" y2="12"/><circle cx="12" cy="9" r="2"/><line x1="12" y1="6" x2="12" y2="4"/>
-    <line x1="20" y1="20" x2="20" y2="16"/><circle cx="20" cy="13" r="2"/><line x1="20" y1="10" x2="20" y2="4"/>
-  </NavIcon>
-)
-const IconGraph = () => (
-  <NavIcon><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/></NavIcon>
-)
-const IconShield = () => (
-  <NavIcon><path d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z"/></NavIcon>
-)
-const IconGithubMark = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-  </svg>
-)
+// These were seven `<path>` sets inside a local NavIcon wrapper that spelled
+// out our own spec a second time — grid 24, stroke 1.7, round caps. They are
+// files in components/Icon/icons now, like everything else.
+const IconIdentity = () => <Icon name="person" />
+const IconAppearance = () => <Icon name="sliders" />
+const IconGraph = () => <Icon name="node" />
+const IconShield = () => <Icon name="shield" />
+const IconGithubMark = () => <Brand name="github" size={16} />
 // Same sparkle glyph already used for the AI actions in ConflictResolver —
 // reused here instead of a new one, so "AI" reads the same everywhere.
 const IconSparkle = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-    <path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/>
-  </svg>
+  <Icon name="ai" />
 )
-const IconActivity = () => (
-  <NavIcon><polyline points="3 12 8 12 10 6 14 18 16 12 21 12"/></NavIcon>
-)
-const IconTool = () => (
-  <NavIcon><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></NavIcon>
-)
-const IconInfo = () => (
-  <NavIcon><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></NavIcon>
-)
+const IconActivity = () => <Icon name="activity" />
+const IconTool = () => <Icon name="wrench" />
+const IconInfo = () => <Icon name="info" />
 
 // Grouped navigation with icons. `label` holds an i18n key, resolved with
 // t() at render.
@@ -101,14 +69,24 @@ const NAV_GROUPS: { group: string; items: { id: Section; icon: React.ReactNode; 
 ]
 
 // `key` holds an i18n key resolved at render for the swatch tooltip.
+// Every preset is a token, so the offered colours follow the active theme. The
+// last two used to be literals — they were the only two swatches that kept the
+// dark theme's colour after a switch, which read as a rendering bug.
 const ACCENT_PRESETS = [
-  { key: 'settings.color.blue',   value: 'var(--accent-static)' },
-  { key: 'settings.color.purple', value: 'var(--purple-soft)' },
+  { key: 'settings.color.aqua',   value: 'var(--accent-static)' },
+  { key: 'settings.color.iris',   value: 'var(--purple-soft)' },
   { key: 'settings.color.green',  value: 'var(--success)' },
   { key: 'settings.color.orange', value: 'var(--attention)' },
   { key: 'settings.color.red',    value: 'var(--danger)' },
-  { key: 'settings.color.pink',   value: '#f778ba' },
-  { key: 'settings.color.cyan',   value: '#56d4dd' },
+  { key: 'settings.color.pink',   value: 'var(--conflict)' },
+  { key: 'settings.color.cyan',   value: 'var(--agent-accent)' },
+]
+
+// One entry per [data-theme] block in tokens.css. The swatch shows the theme's
+// own canvas, surface and accent rather than a label alone.
+const THEME_PRESETS = [
+  { id: 'aqua-dark',  key: 'settings.theme.dark',  bg: '#0E1116', surface: '#2B3341', accent: '#3FD8C2' },
+  { id: 'aqua-light', key: 'settings.theme.light', bg: '#EDF0F5', surface: '#BFC7D6', accent: '#0D826F' },
 ]
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
@@ -452,9 +430,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       {/* Header */}
       <div className="stg-header">
         <button className="stg-back" onClick={onClose} title={t('settings.back')}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
+          <Icon name="chevronLeft" />
           {t('settings.back')}
         </button>
         <span className="stg-title">{t('settings.title')}</span>
@@ -612,6 +588,33 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 <h2 className="stg-section-title">{t('settings.appearance.title')}</h2>
                 <p className="stg-desc">{t('settings.appearance.desc')}</p>
 
+                {/* Not offered in the panel: there we follow the editor's theme,
+                    which is what an extension is expected to do. */}
+                {!isVSCodeHost && (
+                  <>
+                    <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.theme.title')}</h2>
+                    <p className="stg-desc">{t('settings.theme.desc')}</p>
+                    <div className="stg-themes">
+                      {THEME_PRESETS.map(th => {
+                        const active = get('theme', 'aqua-dark') === th.id
+                        return (
+                          <button
+                            key={th.id}
+                            className={`stg-theme ${active ? 'active' : ''}`}
+                            onClick={() => set('theme', th.id)}
+                            aria-pressed={active}
+                          >
+                            <span className="stg-theme-chip" style={{ background: th.bg, borderColor: th.surface }}>
+                              <span className="stg-theme-dot" style={{ background: th.accent }} />
+                            </span>
+                            {t(th.key as any)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+
                 <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.accent.title')}</h2>
                 <p className="stg-desc">{t('settings.accent.desc')}</p>
                 <div className="stg-swatches">
@@ -709,9 +712,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                 )}
                 {!githubUser && (
                   <button className="stg-gh-login-btn" onClick={handleGithubLogin} disabled={githubLoading}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-                    </svg>
+                    <Brand name="github" size={18} />
                     {githubLoading ? t('settings.github.connecting') : t('settings.github.login')}
                   </button>
                 )}
@@ -769,7 +770,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         style={{ flex: 1 }}
                         spellCheck={false}
                       />
-                      <button className="stg-save" style={{ background: 'var(--surface-sunken)', color: 'var(--text-primary-soft)' }} onClick={() => setShowToken(v => !v)}>{showToken ? '🙈' : '👁'}</button>
+                      <button className="stg-save" style={{ background: 'var(--surface-sunken)', color: 'var(--text-primary-soft)' }} onClick={() => setShowToken(v => !v)}><Icon name={showToken ? 'eyeOff' : 'eye'} size={14} /></button>
                       <button className="stg-save" onClick={async () => { await saveGithub(); if (githubToken.trim()) fetchGithubUser() }}>
                         {t('settings.save')}
                       </button>
@@ -1141,7 +1142,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
             {section === 'about' && (
               <div className="stg-section">
                 <div className="stg-about-hero">
-                  <img src={iconUrl} className="stg-about-icon" alt="Git Vertex" onError={e => (e.currentTarget.style.display = 'none')} />
+                  <Mark size={64} className="stg-about-icon" title="Git Vertex" />
                   <div>
                     <h1 className="stg-about-name">Git Vertex</h1>
                     <span className="stg-about-version">v{appInfo?.version ?? '—'}</span>
@@ -1152,15 +1153,15 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
                 <div className="stg-about-links">
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex')}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                    <Brand name="github" size={14} />
                     {t('settings.about.sourceCode')}
                   </a>
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex/releases')}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <Icon name="download" size={14} />
                     {t('settings.about.releases')}
                   </a>
                   <a className="stg-about-link" onClick={() => (window as any).gitAPI.openExternal?.('https://github.com/VictorQuilgars/git-vertex/issues')}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <Icon name="info" size={14} />
                     {t('settings.about.reportBug')}
                   </a>
                 </div>

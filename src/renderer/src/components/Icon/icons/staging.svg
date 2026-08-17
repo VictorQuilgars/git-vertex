@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- staging — Git Vertex icon set. Grid 24, stroke 1.7, round caps.
+       Nodes are open rings, arrival points filled: the mark's own vocabulary.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it, growing it
+       as the icon shrinks so a 1.7 stroke never falls under a pixel. -->
+  <path d="M5 14v5.5h14V14"/>
+  <path d="M12 4.5V13M8.8 7.7L12 4.5l3.2 3.2"/>
+</svg>

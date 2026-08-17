@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+  <!-- caretDown — a FILLED shape, not a stroke drawing, and the file says so:
+       components/Icon reads the fill and passes it through. Imposing our stroke
+       on it would render the outline of the silhouette rather than the icon.
+       EDIT THIS FILE to change the icon — the folder is the source. -->
+  <path d="M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z"/>
+</svg>

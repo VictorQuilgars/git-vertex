@@ -66,7 +66,7 @@
 }
 
 .upd-btn--primary {
-  background: linear-gradient(90deg, var(--success), var(--success-emphasis));
+  background: linear-gradient(90deg, var(--accent-static), var(--accent-emphasis));
   color: var(--bg-canvas);
 }
 .upd-btn--primary:hover { filter: brightness(1.08); }
@@ -95,7 +95,7 @@
 .upd-track-fill {
   height: 100%;
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--success), var(--accent-static));
+  background: linear-gradient(90deg, var(--accent-static), var(--purple-soft));
   transition: width var(--dur-slow) ease;
 }
 
@@ -107,7 +107,7 @@
   height: 100%;
   width: 40%;
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, transparent, var(--success), var(--accent-static), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent-static), var(--purple-soft), transparent);
   animation: upd-sweep 1.4s cubic-bezier(0.5, 0.05, 0.5, 0.95) infinite;
 }
 

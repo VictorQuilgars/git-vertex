@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Icon } from '../Icon/Icon'
 import './CloneModal.css'
 import { useLang } from '../../i18n/LanguageContext'
 
@@ -125,7 +126,7 @@ export default function CloneModal({ onClose, onCloned }: Props) {
                 <label>{t('clone.repoToClone')}</label>
                 <div className="cm-picker">
                   <div className="cm-search-row">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <Icon name="search" size={13} />
                     <input className="cm-search" placeholder={t('clone.search')} value={search} onChange={e => setSearch(e.target.value)} autoFocus />
                     {search && <button className="cm-clear" title={t('common.clearSearch')} onClick={() => setSearch('')}>×</button>}
                   </div>

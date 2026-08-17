@@ -550,9 +550,14 @@ const fr = {
   'settings.sec.externalTools': 'Outils externes',
   'settings.sec.ssh': 'SSH',
   'settings.sec.about': 'À propos',
+  // Settings — theme
+  'settings.theme.title': 'Thème',
+  'settings.theme.desc': 'Le thème redéfinit la palette entière. Dans VS Code, le panneau suit celui de l\'éditeur.',
+  'settings.theme.dark': 'Aqua sombre',
+  'settings.theme.light': 'Aqua clair',
   // Settings — accent colors
-  'settings.color.blue': 'Bleu',
-  'settings.color.purple': 'Violet',
+  'settings.color.aqua': 'Aqua',
+  'settings.color.iris': 'Iris',
   'settings.color.green': 'Vert',
   'settings.color.orange': 'Orange',
   'settings.color.red': 'Rouge',
@@ -1874,9 +1879,14 @@ const en: typeof fr = {
   'settings.sec.externalTools': 'External Tools',
   'settings.sec.ssh': 'SSH',
   'settings.sec.about': 'About',
+  // Settings — theme
+  'settings.theme.title': 'Theme',
+  'settings.theme.desc': 'A theme redefines the whole palette. Inside VS Code the panel follows the editor\'s.',
+  'settings.theme.dark': 'Aqua Dark',
+  'settings.theme.light': 'Aqua Light',
   // Settings — accent colors
-  'settings.color.blue': 'Blue',
-  'settings.color.purple': 'Purple',
+  'settings.color.aqua': 'Aqua',
+  'settings.color.iris': 'Iris',
   'settings.color.green': 'Green',
   'settings.color.orange': 'Orange',
   'settings.color.red': 'Red',

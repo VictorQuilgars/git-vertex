@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Icon } from '../Icon/Icon'
 import './GitHubPanel.css'
 import { useLang } from '../../i18n/LanguageContext'
+import { Brand } from '../BrandMark/BrandMark'
 
 interface Label { name: string; color: string }
 
@@ -73,7 +75,7 @@ function CopyLinkButton({ url }: { url: string }) {
         setDone(true)
         setTimeout(() => setDone(false), 1500)
       }}
-    >{done ? '✓' : '🔗'}</button>
+    >{done ? '✓' : <Icon name="link" size={12} />}</button>
   )
 }
 
@@ -91,7 +93,7 @@ function PRItem({ pr }: { pr: PR }) {
       <div className="ghp-item-meta">
         <span className="ghp-refs">
           <code>{pr.headRef}</code>
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 9l3-3-3-3"/><path d="M2 12V6a2 2 0 0 1 2-2h8"/></svg>
+          <Icon name="arrowSwitch" size={10} />
           <code>{pr.baseRef}</code>
         </span>
         <span className="ghp-dot">·</span>
@@ -102,9 +104,7 @@ function PRItem({ pr }: { pr: PR }) {
           <>
             <span className="ghp-dot">·</span>
             <span className="ghp-comments">
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Z"/>
-              </svg>
+              <Icon name="comment" size={11} />
               {pr.comments}
             </span>
           </>
@@ -137,9 +137,7 @@ function IssueItem({ issue }: { issue: Issue }) {
           <>
             <span className="ghp-dot">·</span>
             <span className="ghp-comments">
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Z"/>
-              </svg>
+              <Icon name="comment" size={11} />
               {issue.comments}
             </span>
           </>
@@ -204,20 +202,14 @@ export default function GitHubPanel({ repoPath }: Props) {
   return (
     <div className="ghp-panel">
       <div className="ghp-header">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--text-secondary)">
-          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-        </svg>
+        <Brand name="github" size={14} />
         <span className="ghp-repo-name">
           {owner && repo ? `${owner}/${repo}` : 'GitHub'}
         </span>
         <div style={{ flex: 1 }} />
         {owner && repo && !noAuth && (
           <button className="ghp-refresh" onClick={() => load(owner, repo)} title={t('gh.panel.refresh')}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              style={{ animation: loading ? 'ghp-spin 0.8s linear infinite' : 'none' }}>
-              <polyline points="23 4 23 10 17 10"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
+            <Icon name="refresh" size={13} />
           </button>
         )}
       </div>
@@ -225,17 +217,12 @@ export default function GitHubPanel({ repoPath }: Props) {
       {!noRepo && !noAuth && (
         <div className="ghp-tabs">
           <button className={`ghp-tab ${tab === 'prs' ? 'active' : ''}`} onClick={() => setTab('prs')}>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z"/>
-            </svg>
+            <Icon name="pullRequest" size={13} />
             {t('gh.panel.tabPRs')}
             {prs.length > 0 && <span className="ghp-count">{prs.length}</span>}
           </button>
           <button className={`ghp-tab ${tab === 'issues' ? 'active' : ''}`} onClick={() => setTab('issues')}>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/>
-              <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"/>
-            </svg>
+            <Icon name="issue" size={13} />
             {t('gh.panel.tabIssues')}
             {issues.length > 0 && <span className="ghp-count">{issues.length}</span>}
           </button>

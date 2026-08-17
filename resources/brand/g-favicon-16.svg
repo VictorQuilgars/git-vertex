@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- 16px. Every ring is gone and the vertex goes solid. What survives is the
+       silhouette: two arms, one node. -->
+  <path d="M130.0 86.0L240.6 380.8" stroke="#E8ECF1" stroke-width="54" stroke-linecap="round"/>
+  <path d="M382.0 86.0L271.4 380.8" stroke="#E8ECF1" stroke-width="54" stroke-linecap="round"/>
+  <circle cx="256" cy="422" r="62" fill="#E8ECF1" stroke="none"/>
+</svg>

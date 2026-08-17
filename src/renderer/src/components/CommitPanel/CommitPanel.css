@@ -240,13 +240,13 @@
 }
 
 .commit-btn.ready {
-  background: var(--success-strong);
-  border-color: var(--success-emphasis);
+  background: var(--accent-strong);
+  border-color: var(--accent-emphasis);
   color: var(--text-on-emphasis);
   cursor: pointer;
 }
 .commit-btn.ready:hover:not(:disabled) {
-  background: var(--success-emphasis);
+  background: var(--accent-emphasis);
   transform: translateY(-1px);
 }
 .commit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }

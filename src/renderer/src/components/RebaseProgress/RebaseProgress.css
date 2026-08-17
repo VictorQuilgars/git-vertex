@@ -422,12 +422,12 @@
 }
 
 .rp-btn--continue {
-  background: var(--success-strong);
-  border-color: var(--success-emphasis);
+  background: var(--accent-strong);
+  border-color: var(--accent-emphasis);
 }
 
 .rp-btn--continue:hover:not(:disabled) {
-  background: var(--success-emphasis);
+  background: var(--accent-emphasis);
 }
 
 .rp-btn--abort {

@@ -3,161 +3,182 @@
  * Imported from App.css, which both products load (the desktop renderer and the
  * VS Code webview), so every component sees these.
  *
+ * ── HOW THIS FILE IS ORGANISED ──────────────────────────────────────────────
+ *
+ * SEEDS are the only colours written as values. There are fifteen of them plus
+ * ten graph lanes, and they carry the roles piste G names.
+ *
+ * DERIVED tokens are `color-mix()` of seeds, resolved by the browser. Change a
+ * seed and every token below it follows — no build step, no script, no second
+ * place to edit. Changing five colours means changing five seeds.
+ *
+ * A THEME therefore redefines SEEDS ONLY. See `[data-theme="aqua-light"]` at the
+ * bottom: twenty-five lines, not a hundred. `__tests__/token-discipline.test.ts`
+ * fails if a theme defines a seed the default does not, or forgets one.
+ *
  * Two rules when adding to this file:
  *   1. Name the ROLE, never the value. `--text-secondary`, not `--gray-500`.
- *      Two roles that happen to share a value today still get two tokens —
- *      that is the point, it is what lets one of them move later.
- *   2. A literal in a component stylesheet is a bug unless it is listed in the
- *      exceptions block at the bottom of this file.
+ *   2. A literal in a component stylesheet is a bug. There are none left —
+ *      the tokenisation finished in v1.28, and the test above keeps it that way.
  *
- * The values here are exactly the ones the components used before tokenisation;
- * nothing was normalised or "cleaned up" on the way in. See
- * docs-private/ui-audit.md for how the value → role mapping was established.
+ * `color-mix()` needs Chromium 111. Electron 32 ships 128 and the extension
+ * targets VS Code >= 1.85 (Chromium 114), so both are clear. Relative colour
+ * syntax — `oklch(from …)` — would be nicer but lands only in 119, which the
+ * extension's floor does not reach.
  */
 
-:root {
-  /* ── Surfaces ──────────────────────────────────────────────────────────
-   * Ordered darkest → lightest. `canvas` is the app background, `inset` sits
-   * below it (tab strip, wells), the rest sit above.
+:root,
+[data-theme="aqua-dark"] {
+  color-scheme: dark;
+
+  /* ══ SEEDS ══ the only values you edit ══════════════════════════════ */
+  --seed-canvas: #0E1116;         /* app background — "fond encre" */
+  --seed-surface: #151A21;        /* panels, toolbars, raised rows — "surface 1" */
+  --seed-sunken: #1C222C;         /* inputs, chips, wells — "surface 2" */
+  --seed-border: #2B3341;         /* every outline */
+  --seed-text: #E8ECF1;           /* primary text — 15.9:1 */
+  --seed-text-2: #A5AEBD;         /* secondary text — 8.5:1 */
+  --seed-text-3: #808B9B;         /* tertiary text, metadata — AA on all three depths */
+  --seed-accent: #3FD8C2;         /* the human act: actions, links, the commit button */
+  --seed-agent: #9B8FF5;          /* what the model proposes. Never a filled button. */
+  --seed-success: #5FC98F;        /* added lines, succeeded operations */
+  --seed-warning: #E0A25C;        /* warnings, work in progress, the update button */
+  --seed-danger: #F0645C;         /* removed lines, destructive actions */
+  --seed-conflict: #E87DB0;       /* merge conflicts, and only those */
+  /* The ink that sits ON a filled accent or state surface. Each theme knows
+     what its own fills look like: this one's are bright, so the ink is dark.
+     There used to be a second seed for the other case, but --text-on-emphasis
+     only ever read one of them, so the light theme's answer was ignored. */
+  --seed-on-fill: #0E1116;
+
+  /* Ten graph lanes — a family rather than a role, so they stay values.
+   * Read at runtime by graph-layout.ts, which does arithmetic on them.
    */
-  --bg-canvas: #0d1117;
-  --bg-inset: #010409;
-  --surface: #161b22;          /* toolbars, panels, raised rows */
-  --surface-sunken: #21262d;   /* inputs, chips, secondary buttons */
-  --surface-hover: #1c2128;    /* row and icon hover */
-  --surface-active: #30363d;   /* pressed, or hover on an already-raised thing */
-  --surface-info: #1f2d3d;     /* informational blocks */
+  --seed-lane-1: #3FD8C2;
+  --seed-lane-2: #54C8E8;
+  --seed-lane-3: #7FB4F5;
+  --seed-lane-4: #A99FF0;
+  --seed-lane-5: #D189D9;
+  --seed-lane-6: #EE7FAE;
+  --seed-lane-7: #F0937A;
+  --seed-lane-8: #D9A85C;
+  --seed-lane-9: #AEBE5E;
+  --seed-lane-10: #6FCE8C;
 
-  /* ── Borders ───────────────────────────────────────────────────────────
-   * `default` and `surface-active` share a value today. They are different
-   * roles — one outlines, the other fills — and will not always match.
+  /* ══ DERIVED ══ do not edit: every one is a mix of the seeds above ══ */
+  /* Surfaces */
+  --bg-canvas: var(--seed-canvas);
+  --bg-inset: color-mix(in oklab, var(--seed-canvas) 82%, #000000);
+  --bg-statusbar: color-mix(in oklab, var(--seed-canvas) 91%, #000000);
+  --surface: var(--seed-surface);
+  --surface-hover: color-mix(in oklab, var(--seed-surface) 55%, var(--seed-sunken));
+  --surface-sunken: var(--seed-sunken);
+  --surface-active: color-mix(in oklab, var(--seed-sunken) 45%, var(--seed-border));
+  --surface-info: color-mix(in oklab, var(--seed-sunken) 88%, var(--seed-accent));
+  --surface-selected: color-mix(in oklab, var(--seed-sunken) 80%, var(--seed-accent));
+  /* Borders */
+  --border-default: var(--seed-border);
+  --border-muted: color-mix(in oklab, var(--seed-border) 62%, var(--seed-canvas));
+  --border-subtle: color-mix(in oklab, var(--seed-border) 55%, var(--seed-text-3));
+  --border-strong: var(--seed-text-3);
+  /* Text */
+  --text-primary: var(--seed-text);
+  --text-primary-soft: color-mix(in oklab, var(--seed-text) 76%, var(--seed-text-2));
+  --text-secondary: var(--seed-text-2);
+  --text-tertiary: var(--seed-text-3);
+  --text-disabled: color-mix(in oklab, var(--seed-text-3) 62%, var(--seed-canvas));
+  --text-muted-soft: color-mix(in oklab, var(--seed-text) 60%, var(--seed-text-2));
+  --text-muted-cool: color-mix(in oklab, var(--seed-text-2) 86%, var(--seed-accent));
+  --text-on-emphasis: var(--seed-on-fill);
+  /* Accent */
+  --accent: var(--seed-accent);
+  --accent-static: var(--seed-accent);
+  --accent-hover: color-mix(in oklab, var(--seed-accent) 78%, var(--seed-text));
+  --accent-emphasis: color-mix(in oklab, var(--seed-accent) 86%, var(--seed-text));
+  /* The fill of a primary button: the seed itself, and the board's rule holds
+     again — "boutons pleins : encre sur la couleur". It used to be the seed
+     mixed half-and-half with BLACK, which in Oklab divides luminance AND
+     chroma: the accent fell from C 0.129 to 0.062, and the light theme's
+     button resolved to #012C24 — a near-black with a hint of green, sitting on
+     a white page under white text. Raising the seed could never fix that,
+     because the black was doing the damage after the seed was read. */
+  --accent-strong: var(--seed-accent);
+  /* Semantic */
+  --success: var(--seed-success);
+  --success-hover: color-mix(in oklab, var(--seed-success) 78%, var(--seed-text));
+  --success-emphasis: color-mix(in oklab, var(--seed-success) 86%, var(--seed-text));
+  --success-strong: var(--seed-success);
+  --danger: var(--seed-danger);
+  --danger-hover: color-mix(in oklab, var(--seed-danger) 78%, var(--seed-text));
+  --danger-solid: var(--seed-danger);
+  --danger-solid-hover: color-mix(in oklab, var(--seed-danger) 86%, var(--seed-text));
+  --warning: var(--seed-warning);
+  --warning-bright: color-mix(in oklab, var(--seed-warning) 76%, var(--seed-text));
+  --attention: color-mix(in oklab, var(--seed-warning) 74%, var(--seed-danger));
+  /* Categories */
+  --conflict: var(--seed-conflict);
+  --purple: color-mix(in oklab, var(--seed-agent) 58%, #000000);
+  --purple-deep: color-mix(in oklab, var(--seed-agent) 48%, #000000);
+  --purple-soft: var(--seed-agent);
+  --purple-text: color-mix(in oklab, var(--seed-agent) 80%, var(--seed-text));
+  --ai-text: var(--seed-agent);
+  --ai-border: color-mix(in oklab, var(--seed-agent) 74%, #000000);
+  --info-text: color-mix(in oklab, var(--seed-accent) 70%, var(--seed-text));
+  --agent-accent: color-mix(in oklab, var(--seed-accent) 62%, var(--seed-agent));
+  --ref-head: color-mix(in oklab, var(--seed-warning) 74%, var(--seed-text));
+  --pr-merged: color-mix(in oklab, var(--seed-agent) 66%, var(--seed-conflict));
+  --install-bg: var(--seed-warning);
+  --install-bg-hover: color-mix(in oklab, var(--seed-warning) 82%, var(--seed-text));
+  /* Diff */
+  --diff-add-bg: color-mix(in oklab, var(--seed-canvas) 87%, var(--seed-success));
+  --diff-add-bg-emphasis: color-mix(in oklab, var(--seed-canvas) 78%, var(--seed-success));
+  --diff-add-text: color-mix(in oklab, var(--seed-success) 42%, var(--seed-text));
+  --diff-remove-bg: color-mix(in oklab, var(--seed-canvas) 87%, var(--seed-danger));
+  --diff-remove-bg-emphasis: color-mix(in oklab, var(--seed-canvas) 78%, var(--seed-danger));
+  --diff-remove-text: color-mix(in oklab, var(--seed-danger) 42%, var(--seed-text));
+  --conflict-take-hover: color-mix(in oklab, var(--seed-success) 84%, var(--seed-text));
+  --conflict-drop-hover: color-mix(in oklab, var(--seed-danger) 84%, var(--seed-text));
+  /* Blocks */
+  --danger-block-bg: color-mix(in oklab, var(--seed-canvas) 88%, var(--seed-danger));
+  --danger-block-border: color-mix(in oklab, var(--seed-canvas) 62%, var(--seed-danger));
+  --warning-block-bg: color-mix(in oklab, var(--seed-canvas) 88%, var(--seed-warning));
+  --warning-block-border: color-mix(in oklab, var(--seed-canvas) 62%, var(--seed-warning));
+  --toast-success-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-success));
+  --toast-danger-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-danger));
+  --toast-info-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-accent));
+  --amend-confirm-bg: color-mix(in oklab, var(--seed-success) 52%, #000000);
+  --amend-cancel-bg: color-mix(in oklab, var(--seed-danger) 46%, #000000);
+  --wip-bg: color-mix(in oklab, var(--seed-canvas) 78%, var(--seed-accent));
+  --wip-border: color-mix(in oklab, var(--seed-canvas) 55%, var(--seed-accent));
+  --wip-text: color-mix(in oklab, var(--seed-accent) 55%, var(--seed-text));
+  --scrim: #000000;
+  /* Syntax
+   * `--syntax-bg` stays transparent so the add/remove row tint reads THROUGH
+   * the code, which is what the diff always meant to show. highlight.js's own
+   * theme painted an opaque block here and pinned the diff to one canvas.
    */
-  --border-default: #30363d;
-  --border-muted: #21262d;     /* internal rules, table separators */
-  --border-strong: #8b949e;    /* focused or deliberately louder outlines */
-  --border-subtle: #484f58;
-
-  /* ── Text ──────────────────────────────────────────────────────────────
-   * `primary` and `primary-soft` are two competing primaries inherited from
-   * before tokenisation (audit I7). Kept apart so the difference stays
-   * visible and can be resolved deliberately rather than by accident.
-   */
-  --text-primary: #e6edf3;
-  --text-primary-soft: #c9d1d9;
-  --text-secondary: #8b949e;
-  --text-tertiary: #6e7681;
-  --text-disabled: #484f58;
-  --text-on-emphasis: #ffffff; /* on a filled accent/success/danger button */
-  --text-on-bright: #0d1117;   /* on a light or vivid fill */
-
-  /* ── Accent ────────────────────────────────────────────────────────────
-   * `--accent` is overwritten at runtime from the user's `accentColor`
-   * setting — see contexts/SettingsContext.tsx. The value below is the
-   * default, and what the UI shows until settings load.
-   */
-  --accent: #58a6ff;
-  --accent-emphasis: #1f6feb;  /* filled accent surfaces, selected states */
-
-  /* Sites that read as the accent but do NOT follow the user's setting.
-   * Pointing these at `--accent` is a behaviour change, not a rendering one,
-   * so it is deliberately not done here — see audit I1. When that change is
-   * made, it is this one line: `--accent-static: var(--accent);`
-   */
-  --accent-static: #58a6ff;
-
-  /* ── Semantic ──────────────────────────────────────────────────────────*/
-  --success: #3fb950;
-  --success-emphasis: #2ea043; /* filled success surfaces and their borders */
-  --success-strong: #238636;   /* primary confirm button */
-  --danger: #f85149;
-  --warning: #d29922;
-  --warning-bright: #e3b341;
-  --attention: #ffa657;        /* WIP, in-progress, "look here" */
-
-  /* ── Accents used for categories (tags, labels, AI) ───────────────────*/
-  --purple: #8957e5;
-  --purple-deep: #6e40c9;
-  --purple-soft: #b895f2;
-  --purple-text: #d2a8ff;
-  --info-text: #79c0ff;
-
-  /* ── Hover variants ────────────────────────────────────────────────────
-   * Lighter siblings used on :hover. Kept as their own tokens rather than
-   * derived, so a redesign can change the hover relationship itself.
-   */
-  --accent-hover: #388bfd;
-  --success-hover: #56d364;
-  --danger-hover: #ff7b72;
-
-  /* ── Filled danger (destructive confirm buttons) ───────────────────────*/
-  --danger-solid: #b91c1c;
-  --danger-solid-hover: #dc2626;
-
-  /* ── Diff ──────────────────────────────────────────────────────────────
-   * The diff has its own tints because it needs two depths per side: the line
-   * body and the (stronger) gutter.
-   */
-  --diff-add-bg: #1a3a1a;
-  --diff-add-bg-emphasis: #1f4a1f;
-  --diff-add-text: #aff5b4;
-  --diff-remove-bg: #3a1a1a;
-  --diff-remove-bg-emphasis: #4a1f1f;
-  --diff-remove-text: #ffdcd7;
-
-  /* ── Conflict resolver ─────────────────────────────────────────────────*/
-  --conflict-take-hover: #57d96a;   /* keep this line */
-  --conflict-drop-hover: #ff6b63;   /* drop this line */
-
-  /* ── Feedback blocks (push errors, force-push warning) ─────────────────
-   * Opaque tints over the canvas rather than translucent overlays — they sit
-   * on top of scrolling content and must stay legible.
-   */
-  --danger-block-bg: #2d1117;
-  --danger-block-border: #6e2c2c;
-  --warning-block-bg: #2b2410;
-  --warning-block-border: #5c4813;
-
-  /* ── Amend controls ────────────────────────────────────────────────────*/
-  --amend-confirm-bg: #2d6a31;
-  --amend-cancel-bg: #6e1f1f;
-
-  /* ── WIP banner ────────────────────────────────────────────────────────*/
-  --wip-bg: #1b4472;
-  --wip-border: #2d6aa0;
-  --wip-text: #a5c8f0;
-
-  /* ── Selection ─────────────────────────────────────────────────────────
-   * The selected commit row. Its own token because it is the single most
-   * frequent state in the product — and because today it does NOT follow
-   * --accent (audit I1). Pointing it at the accent is one line here.
-   */
-  --surface-selected: #1a3a5c;
-
-  /* ── Misc roles ────────────────────────────────────────────────────────*/
-  --text-muted-soft: #adbac7;   /* body copy in menus and release notes */
-  --text-muted-cool: #9aa7b4;
-  --ref-head: #f1e05a;          /* the HEAD ref chip */
-  --agent-accent: #5eead4;      /* agent/worktree chips */
-  --ai-border: #9d6ef0;         /* the AI action buttons */
-  --ai-text: #b083f0;
-  --install-bg: #f0883e;        /* the "install update" button */
-  --install-bg-hover: #e07830;
-
-  /* ── Graph lanes ───────────────────────────────────────────────────────
-   * Read once at runtime by graph-layout.ts, because CommitGraph does
-   * arithmetic on these (dimColor) and cannot work from a var() string.
-   * Editing them here still changes the graph — that is the point.
-   */
-  --lane-1: #2dd4bf;
-  --lane-2: #4d9de0;
-  --lane-3: #9b59b6;
-  --lane-4: #e879f9;
-  --lane-5: #22d3ee;
-  --lane-6: #818cf8;
-  --lane-7: #a78bfa;
-  --lane-8: #34d399;
-  --lane-9: #60a5fa;
-  --lane-10: #f472b6;
+  --syntax-bg: transparent;
+  --syntax-text: color-mix(in oklab, var(--seed-text) 76%, var(--seed-text-2));
+  --syntax-comment: var(--seed-text-3);
+  --syntax-keyword: var(--seed-danger);
+  --syntax-entity: var(--seed-agent);
+  --syntax-constant: var(--seed-lane-3);
+  --syntax-string: var(--seed-lane-2);
+  --syntax-variable: var(--seed-warning);
+  --syntax-tag: var(--seed-success);
+  --syntax-section: color-mix(in oklab, var(--seed-accent) 52%, #000000);
+  --syntax-bullet: color-mix(in oklab, var(--seed-warning) 74%, var(--seed-text));
+  /* Lanes */
+  --lane-1: var(--seed-lane-1);
+  --lane-2: var(--seed-lane-2);
+  --lane-3: var(--seed-lane-3);
+  --lane-4: var(--seed-lane-4);
+  --lane-5: var(--seed-lane-5);
+  --lane-6: var(--seed-lane-6);
+  --lane-7: var(--seed-lane-7);
+  --lane-8: var(--seed-lane-8);
+  --lane-9: var(--seed-lane-9);
+  --lane-10: var(--seed-lane-10);
 
   /* ── Opacity scale ─────────────────────────────────────────────────────
    * Used as `color-mix(in srgb, var(--x) var(--alpha-muted), transparent)`.
@@ -174,46 +195,6 @@
   --alpha-half: 55%;
   --alpha-heavy: 70%;
   --alpha-dense: 85%;
-
-  /* Scrims sit over the whole app, so they get their own base. */
-  --scrim: #000000;
-
-  /* ── Toasts ────────────────────────────────────────────────────────────
-   * Opaque tints, not translucent: a toast floats over scrolling content and
-   * has to stay readable whatever is underneath.
-   */
-  --toast-success-bg: #0f2a15;
-  --toast-danger-bg: #2a0f0f;
-  --toast-info-bg: #0d1f38;
-
-  /* The status bar sits a shade below the canvas. */
-  --bg-statusbar: #0a0d12;
-
-  /* Pull-request state, alongside --success (open) and --danger (closed). */
-  --pr-merged: #a371f7;
-
-  /* ── Syntax highlighting ───────────────────────────────────────────────
-   * The diff is a core screen, so its colours belong here like everything
-   * else. These replace `highlight.js/styles/github-dark.css`, which was
-   * imported by DiffViewer.tsx and hardcoded its own palette — including
-   * `background: #0d1117`, which painted an opaque block behind every line of
-   * code and pinned the diff to one canvas. syntax.css maps highlight.js's
-   * classes onto these; the values below are github-dark's, unchanged.
-   *
-   * `--syntax-bg` is transparent so the add/remove row tint reads THROUGH the
-   * code, which is what the diff always meant to show.
-   */
-  --syntax-bg: transparent;
-  --syntax-text: #c9d1d9;      /* base code, and subst/emphasis/strong */
-  --syntax-keyword: #ff7b72;
-  --syntax-entity: #d2a8ff;    /* class and function names */
-  --syntax-constant: #79c0ff;  /* numbers, literals, attributes, operators */
-  --syntax-string: #a5d6ff;
-  --syntax-variable: #ffa657;  /* built-ins and symbols */
-  --syntax-comment: #8b949e;
-  --syntax-tag: #7ee787;       /* tag names, selectors, quotes */
-  --syntax-section: #1f6feb;   /* markdown headings */
-  --syntax-bullet: #f2cc60;    /* markdown list markers */
 
   /* ── Type scale ────────────────────────────────────────────────────────
    * `base` is the body size. Replaced 22 sizes, including 12.5px, 13.5px and
@@ -290,25 +271,40 @@
   --z-tooltip: 9000;
 }
 
-/* ── Exceptions ──────────────────────────────────────────────────────────
- * Deliberately still literals in component stylesheets. Do not "fix" these by
- * inventing a token — each one needs a decision first.
- *
- * 1. ALPHA VARIANTS (~158 sites). The palette carries hand-tuned opacities:
- *    `--accent-emphasis` alone appears at 13 different alphas (0d, 11, 12, 14,
- *    18, 1a, 22, 26, 28, 30, 33, 35, 44, 55), `--success-emphasis` at 12.
- *    Collapsing them to an opacity scale of 4-5 steps is the obvious cleanup,
- *    but it MOVES PIXELS, so it cannot ride along with a tokenisation that
- *    guarantees it does not. Left literal so `grep -E '#[0-9a-f]{8}'` still
- *    finds the whole worklist.
- *
- * 2. ONE-OFF COLOURS (48 values used 1-3 times). They belong to no family:
- *    `#1a3a5c` (the selected commit row), `#0f2a15`/`#2a0f0f`/`#0d1f38` (toast
- *    tints), `#1a3a1a`/`#1f4a1f`/`#3a1a1a`/`#4a1f1f`/`#6e2c2c` (conflict
- *    ours/theirs tints), `#2b2410`/`#5c4813` (warning tints), `#b91c1c`/
- *    `#dc2626`/`#5eead4` (stray Tailwind), and others. Naming them now would
- *    invent roles the design does not actually have.
- *
- * 3. DOMAIN COLOURS in .ts/.tsx: GitHub language colours, AI provider brand
- *    colours, and the app logo's SVG fills. These are data, not design.
+/* The light theme redefines SEEDS ONLY. Everything derived above follows.
+ * `:root` still matches <html> whatever its data-theme, so the derivations
+ * stay in scope; this rule has equal specificity and comes later, so its
+ * seeds win. That is the whole mechanism.
  */
+[data-theme="aqua-light"] {
+  color-scheme: light;
+
+  --seed-canvas: #EDF0F5;
+  --seed-surface: #E2E6EE;
+  --seed-sunken: #D4DAE6;
+  --seed-border: #BFC7D6;
+  --seed-text: #141922;
+  --seed-text-2: #4A5468;
+  --seed-text-3: #565F73;
+  --seed-accent: #0D826F;
+  --seed-agent: #5F4FC9;
+  --seed-success: #137F4F;
+  --seed-warning: #9A6212;
+  --seed-danger: #C33A32;
+  --seed-conflict: #B4437B;
+  --seed-on-fill: #FFFFFF;        /* this theme's fills are deep, so the ink is light */
+
+  /* Ten graph lanes — a family rather than a role, so they stay values.
+   * Read at runtime by graph-layout.ts, which does arithmetic on them.
+   */
+  --seed-lane-1: #0E8A76;
+  --seed-lane-2: #0F7C93;
+  --seed-lane-3: #2E6BB8;
+  --seed-lane-4: #5B54BE;
+  --seed-lane-5: #8B45A8;
+  --seed-lane-6: #A93F72;
+  --seed-lane-7: #B25336;
+  --seed-lane-8: #8B6415;
+  --seed-lane-9: #5F7118;
+  --seed-lane-10: #187F52;
+}

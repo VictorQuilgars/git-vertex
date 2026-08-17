@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
+import { Icon } from '../Icon/Icon'
 import './PRModal.css'
 import { useLang } from '../../i18n/LanguageContext'
 import type { PRIntent } from '../ContextMenu/prIntent'
+import { Brand } from '../BrandMark/BrandMark'
 
 interface Props {
   owner: string
@@ -83,9 +85,7 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
     <div className="pr-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="pr-modal">
         <div className="pr-header">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z"/>
-          </svg>
+          <Icon name="pullRequest" />
           <span className="pr-header-title">{t('pr.title')}</span>
           <div className="pr-repo-badge">{owner}/{repo}</div>
           <button className="pr-close" title={t('common.close')} onClick={onClose}>×</button>
@@ -93,15 +93,11 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
 
         {createdUrl ? (
           <div className="pr-success">
-            <svg width="32" height="32" viewBox="0 0 16 16" fill="var(--success)">
-              <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
-            </svg>
+            <Icon name="check" size={32} />
             <p className="pr-success-text">{t('pr.success', createdNumber!)}</p>
             <div className="pr-success-actions">
               <button className="pr-btn-primary" onClick={() => window.gitAPI.openExternal(createdUrl)}>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-                </svg>
+                <Brand name="github" size={13} />
                 {t('pr.openInBrowser')}
               </button>
               <button className="pr-btn-secondary" onClick={onClose}>{t('pr.close')}</button>
@@ -115,10 +111,7 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
                 <span className="pr-branch-label">{t('pr.headLabel')}</span>
                 <span className="pr-branch-value pr-branch-head">{head}</span>
               </div>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--accent-static)">
-                <path d="M8 9l3-3-3-3M5 6H2M14 6h-3"/>
-                <path d="M2 6h12" strokeWidth="1.5" stroke="var(--accent-static)" fill="none"/>
-              </svg>
+              <Icon name="arrowRight" />
               <div className="pr-branch-item">
                 <span className="pr-branch-label">{t('pr.baseLabel')}</span>
                 <select className="pr-branch-select" value={base} onChange={e => setBase(e.target.value)}>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+  <!-- kebab — a FILLED shape, not a stroke drawing, and the file says so:
+       components/Icon reads the fill and passes it through. Imposing our stroke
+       on it would render the outline of the silhouette rather than the icon.
+       EDIT THIS FILE to change the icon — the folder is the source. -->
+  <path d="M8 4a1.25 1.25 0 1 1 0-2.5A1.25 1.25 0 0 1 8 4Zm0 5.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1.25 4a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Z" />
+</svg>

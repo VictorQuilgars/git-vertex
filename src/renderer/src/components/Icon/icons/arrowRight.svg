@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="var(--accent-static, #3FD8C2)">
+  <!-- arrowRight — a FILLED shape, not a stroke drawing, and the file says so:
+       components/Icon reads the fill and passes it through. Imposing our stroke
+       on it would render the outline of the silhouette rather than the icon.
+       EDIT THIS FILE to change the icon — the folder is the source. -->
+  <path d="M8 9l3-3-3-3M5 6H2M14 6h-3"/>
+  <path d="M2 6h12" stroke="var(--accent-static, #3FD8C2)" fill="none"/>
+</svg>

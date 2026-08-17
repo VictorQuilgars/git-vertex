@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- person — interface furniture, not part of the git vocabulary.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it, growing it
+       as the icon shrinks so the line never falls under a pixel. -->
+  <circle cx="12" cy="8" r="3.3"/>
+  <path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/>
+</svg>

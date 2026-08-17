@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { Icon } from '../Icon/Icon'
 import { useLang } from '../../i18n/LanguageContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import './ConflictResolver.css'
@@ -584,7 +585,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
 
       {/* AI resolution bar — proposal goes to the manual output for review */}
       <div className="mt-ai-bar">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" className="mt-ai-icon"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-6.5 6.5a1.516 1.516 0 0 1-2.56-1.31L5.811 10.5H3.688c-1.57 0-2.347-1.909-1.22-3.004l6.5-6.5.536-.565z"/></svg>
+        <Icon name="ai" size={13} className="mt-ai-icon" />
         <input
           className="mt-ai-input"
           type="text"

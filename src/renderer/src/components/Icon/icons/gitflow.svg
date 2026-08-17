@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- gitflow — Git Vertex icon set. Grid 24, stroke 1.7, round caps.
+       three lanes of decreasing length, one node each — main, develop,
+       feature. The hierarchy is the length, which survives 16px.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it. -->
+  <path d="M5 3v18M12 6v12M19 9v6"/>
+  <circle cx="5" cy="12" r="1.9"/>
+  <circle cx="12" cy="12" r="1.9"/>
+  <circle cx="19" cy="12" r="1.9"/>
+</svg>

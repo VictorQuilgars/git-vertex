@@ -1,0 +1,7 @@
+o   .
+ \ /   git vertex
+  *
+
+o = sealed   . = proposed   * = the vertex, your decision
+One ink. The arms are told apart by shape, so this survives a pipe,
+a log file and a terminal with no colour at all.

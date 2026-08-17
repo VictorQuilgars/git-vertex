@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, Notification, systemPreferences } from 'electron'
 import { join, dirname } from 'path'
 import { existsSync, readdirSync } from 'fs'
 import { createHash } from 'crypto'
@@ -19,7 +19,10 @@ import {
 } from './git-service'
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
-import { splashHtml } from './splash'
+import {
+  splashHtml, themeCanvas, SPLASH_THEMES, SPLASH_ANIMATION_MS, SPLASH_STILL_MS,
+} from './splash'
+import type { SplashTheme } from './splash'
 import iconPng from '../../resources/icon.png?asset'
 import iconIco from '../../resources/icon.ico?asset'
 
@@ -70,7 +73,28 @@ async function applySshConfig(): Promise<void> {
 // Small branded splash shown while the main window boots (and right after an
 // update relaunches the app). Frameless + transparent so only the rounded card
 // shows. Self-contained HTML, so nothing extra needs packaging.
-function createSplash(): void {
+/**
+ * The theme the user last chose, for the two things that are painted before the
+ * renderer exists: the splash and the main window's background.
+ *
+ * It comes straight out of settings.json — SettingsModal writes `theme` there,
+ * and SettingsContext reads it back through settings:get-all. The localStorage
+ * mirror is only so main.tsx can beat React to the first paint; it is not the
+ * record, and main could not read it anyway.
+ *
+ * Falls back to the dark theme on anything unexpected, which also covers the
+ * user who has never opened preferences.
+ */
+function bootTheme(): SplashTheme {
+  try {
+    const t = readSettings().theme
+    return (SPLASH_THEMES as string[]).includes(t) ? (t as SplashTheme) : 'aqua-dark'
+  } catch {
+    return 'aqua-dark'
+  }
+}
+
+function createSplash(theme: SplashTheme): void {
   splashWindow = new BrowserWindow({
     width: 360,
     height: 420,
@@ -86,17 +110,53 @@ function createSplash(): void {
     backgroundColor: '#00000000',
     webPreferences: { sandbox: true }
   })
-  splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml(app.getVersion())))
+  splashWindow.loadURL('data:text/html;charset=utf-8,'
+    + encodeURIComponent(splashHtml(app.getVersion(), theme)))
   splashWindow.once('ready-to-show', () => { splashShownAt = Date.now(); splashWindow?.show() })
 }
 
+/**
+ * How much of the splash's sequence is still to play, in ms.
+ *
+ * On a cold Windows boot the app takes longer than the animation and this is 0.
+ * On macOS it is routinely the other way round — the window is ready in well
+ * under a second — and the delay used to be applied to the WRONG window: the
+ * main window was shown at once and the splash, which is alwaysOnTop, went on
+ * floating over a live app for the rest of its hold. So the wait belongs here,
+ * before the reveal.
+ *
+ * If the splash never came up, splashShownAt is 0, the elapsed time is enormous
+ * and this is 0 — the app must never be held hostage to a splash that failed.
+ */
+function splashRemaining(): number {
+  if (!splashWindow || splashShownAt === 0) return 0
+  let full: number = SPLASH_ANIMATION_MS
+  try {
+    // No story to wait for when the system asks for less motion: the splash's
+    // own media query puts every element straight at its final state.
+    if (systemPreferences.getAnimationSettings().prefersReducedMotion) full = SPLASH_STILL_MS
+  } catch { /* not every platform answers; the full hold is the safe default */ }
+  return Math.max(0, full - (Date.now() - splashShownAt))
+}
+
+/**
+ * Takes the splash OFF SCREEN, synchronously, and disposes of it afterwards.
+ *
+ * The two halves are separate on purpose. `close()` is not an instruction to
+ * disappear: it fires a close event, unloads the page and tears the window
+ * down, and the splash stays on screen for all of it — alwaysOnTop, so on top
+ * of the app that has just appeared. Measured at 225ms with a close() and a
+ * 120ms grace before it, which is plainly visible.
+ *
+ * `hide()` unmaps the window in this tick, so it lands in the same frame as the
+ * reveal it is paired with. The teardown then happens with nothing on screen.
+ */
 function closeSplash(): void {
   if (!splashWindow) return
-  // Keep it up for a beat so it never just flashes on a fast boot.
-  const wait = Math.max(0, 800 - (Date.now() - splashShownAt))
   const win = splashWindow
   splashWindow = null
-  setTimeout(() => { if (!win.isDestroyed()) win.close() }, wait)
+  if (!win.isDestroyed()) win.hide()
+  setImmediate(() => { if (!win.isDestroyed()) win.destroy() })
 }
 
 // ── Repo file watcher ─────────────────────────────────────────
@@ -161,7 +221,8 @@ function notify(title: string, body: string, settingKey?: string, defaultEnabled
 }
 
 function createWindow(): void {
-  createSplash()
+  const theme = bootTheme()
+  createSplash(theme)
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -170,7 +231,13 @@ function createWindow(): void {
     // Shown in the Windows title bar / taskbar tooltip / Alt-Tab before the
     // renderer's <title> takes over — keep it the product name, not "git-gui".
     title: 'Git Vertex',
-    backgroundColor: '#0d1117',
+    // What shows between the window appearing and the renderer's first paint.
+    // A snapshot of the theme's --seed-canvas, for the same reason the splash
+    // carries one: the main process cannot read tokens.css. It used to be a
+    // fixed dark value, so a light-theme user got a black flash at the end of
+    // every launch — the very thing main.tsx's pre-mount read exists to avoid,
+    // one layer further out. Guarded by splash-palette.test.
+    backgroundColor: themeCanvas(theme),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     // Windows needs a .ico (an .icns is not a valid window icon there and left
     // the taskbar/title-bar showing the default Electron logo); Linux uses the
@@ -192,8 +259,16 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-    closeSplash()
+    // Ready is not the same as due: hold until the splash has finished playing,
+    // then hand over. Zero on a slow boot, where ready-to-show is already late.
+    setTimeout(() => {
+      if (!mainWindow || mainWindow.isDestroyed()) return
+      // Splash off FIRST, then the reveal, both in this tick so the compositor
+      // sees one frame. The other order leaves the splash over a live app for
+      // however long its teardown takes, which is the bug this pairing fixes.
+      closeSplash()
+      mainWindow.show()
+    }, splashRemaining())
   })
 
   // In macOS fullscreen the traffic-light buttons are hidden, so the renderer

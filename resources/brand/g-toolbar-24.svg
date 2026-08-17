@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Toolbar / sidebar 24px. Inherits the surrounding text colour.
+       Head nodes go SOLID: an 11-wide ring is 1.4px at this size and
+       dissolves, a disc holds. The vertex keeps its hole. -->
+  <path d="M130.0 86.0L243.0 387.4" stroke="currentColor" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="130" cy="86" r="34" fill="currentColor" stroke="none"/>
+  <path d="M382.0 86.0L269.0 387.4" stroke="currentColor" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="382" cy="86" r="34" fill="currentColor" stroke="none"/>
+  <path d="M208 422a48 48 0 1 0 96 0a48 48 0 1 0 -96 0ZM236 422a20 20 0 1 0 40 0a20 20 0 1 0 -40 0Z" fill="currentColor" stroke="none" fill-rule="evenodd"/>
+</svg>

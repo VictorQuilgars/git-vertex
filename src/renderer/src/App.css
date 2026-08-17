@@ -92,7 +92,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--success);
+  background: var(--accent);
   color: var(--text-on-emphasis);
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
@@ -128,7 +128,10 @@ body {
   border-bottom: 1px solid var(--bg-canvas);
   margin-bottom: -var(--space-px);
 }
-.app-tab-icon { flex-shrink: 0; color: var(--success); }
+/* A repository is not a success. Green here was the old brand colour, and
+   --success is a STATE token — using it decoratively means a repo tab and a
+   passing check say the same thing. */
+.app-tab-icon { flex-shrink: 0; color: var(--accent); }
 .app-tab-icon--tool { color: var(--purple-text); font-size: var(--text-sm); }
 .app-tab--tool { cursor: default; }
 .app-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -159,16 +162,24 @@ body {
 .app-tab-add.active { color: var(--text-primary); background: var(--surface); }
 
 /* 🚀 Launchpad launcher — sits at the far left of the tab bar. */
+/* These held an emoji until the icon set covered them, and were styled for
+   text: a font-size, a line-height, and a grayscale filter that existed to
+   desaturate a coloured glyph. An inline <svg> sits on the TEXT BASELINE
+   rather than in the middle of the button, which left the folder and the
+   rocket 3.2px above the icons in the tabs beside them.
+   So the button centres its child explicitly, and takes the same vertical box
+   as .app-tab — stretched to the bar, pushed down by the same margin-top —
+   which is what puts every icon in this row on one line. */
 .app-tab-launch {
+  display: flex;
+  align-items: center;
   background: none;
   border: none;
-  font-size: var(--text-md);
-  line-height: 1;
   cursor: pointer;
   padding: 0 var(--space-md);
-  align-self: center;
+  align-self: stretch;
+  margin-top: var(--space-xs);
   border-radius: var(--radius-sm);
-  filter: grayscale(0.35);
   opacity: 0.8;
 }
 .app-tab-launch:hover { filter: none; opacity: 1; background: var(--surface); }
@@ -275,8 +286,11 @@ body {
      expands to `#58a6ff 25` — a colour and a stray number — which makes the
      whole declaration invalid at computed-value time, so `filter` fell back to
      `none` and BOTH glows were lost. */
-  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--success) var(--alpha-strong), transparent))
-          drop-shadow(0 0 40px color-mix(in srgb, var(--accent) var(--alpha-soft), transparent));
+  /* The mark glows in its own two colours: aqua for the human act, iris for
+     what the model proposes. The inner glow used to be --success, from when
+     green was the brand. */
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--accent) var(--alpha-strong), transparent))
+          drop-shadow(0 0 40px color-mix(in srgb, var(--purple-soft) var(--alpha-soft), transparent));
 }
 
 .welcome-title {
@@ -315,14 +329,14 @@ body {
 }
 
 .welcome-btn-primary {
-  background: var(--success-strong);
-  border: 1px solid var(--success-emphasis);
+  background: var(--accent-strong);
+  border: 1px solid var(--accent-emphasis);
   color: var(--text-on-emphasis);
 }
 .welcome-btn-primary:hover {
-  background: var(--success-emphasis);
+  background: var(--accent-emphasis);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--success-emphasis) var(--alpha-muted), transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-emphasis) var(--alpha-muted), transparent);
 }
 
 .welcome-btn-secondary {
@@ -453,7 +467,7 @@ body {
 }
 .welcome-recent-item:hover .welcome-recent-arrow { opacity: 1; }
 
-.welcome-recent-icon { color: var(--success); flex-shrink: 0; }
+.welcome-recent-icon { color: var(--accent); flex-shrink: 0; }
 
 .welcome-recent-info { flex: 1; min-width: 0; }
 
@@ -487,11 +501,11 @@ body {
 
 /* Legacy (kept for safety) */
 .btn-primary {
-  padding: var(--space-md) var(--space-3xl); background: var(--success-strong); border: 1px solid var(--success-emphasis);
+  padding: var(--space-md) var(--space-3xl); background: var(--accent-strong); border: 1px solid var(--accent-emphasis);
   border-radius: var(--radius-md); color: var(--text-on-emphasis); font-size: var(--text-base); font-weight: var(--weight-semibold);
   cursor: pointer; transition: background var(--dur-base), transform var(--dur-fast);
 }
-.btn-primary:hover { background: var(--success-emphasis); transform: translateY(-1px); }
+.btn-primary:hover { background: var(--accent-emphasis); transform: translateY(-1px); }
 
 /* ── View transition (activity bar switch) ───────────────────── */
 @keyframes view-in {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Icon } from '../Icon/Icon'
 import './Launchpad.css'
 import { useLang } from '../../i18n/LanguageContext'
 
@@ -216,15 +217,14 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
   return (
     <div className="lp-page">
       <div className="lp-header">
-        <span className="lp-rocket">🚀</span>
+        <Icon name="rocket" size={24} className="lp-rocket" />
         <h1 className="lp-title">{t('launchpad.title')}</h1>
         <div style={{ flex: 1 }} />
-        <button className={`lp-manage ${manageOpen ? 'active' : ''}`} onClick={() => setManageOpen(o => !o)} title={t('launchpad.manage')}>⚙</button>
+        <button className={`lp-manage ${manageOpen ? 'active' : ''}`} onClick={() => setManageOpen(o => !o)} title={t('launchpad.manage')}>
+          <Icon name="gear" size={15} />
+        </button>
         <button className="lp-refresh" onClick={() => load(true)} title={t('launchpad.refresh')}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            style={{ animation: loading ? 'lp-spin 0.8s linear infinite' : 'none' }}>
-            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-          </svg>
+          <Icon name="refresh" size={15} />
         </button>
       </div>
 
@@ -239,7 +239,7 @@ export default function Launchpad({ recentRepos, workspaces, onSetWorkspace, onO
 
       <div className="lp-filters">
         <div className="lp-search">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 1 0-1.4 1.4l3 3a1 1 0 0 0 1.4-1.4l-3-3zM3 7a4 4 0 1 1 8 0 4 4 0 0 1-8 0z"/></svg>
+          <Icon name="search" size={13} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('launchpad.search')} />
         </div>
         <select className="lp-select" value={wsFilter} onChange={e => setWsFilter(e.target.value)} title={t('launchpad.workspaceFilter')}>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- book — documentation. An OPEN book, deliberately: `repo` is already a
+       closed one (a rounded cover with three commits down its spine), and two
+       closed books at 16px are one book.
+       Both pages are the exact mirror of each other about x=12 — every control
+       point on the right is 24 minus its twin on the left — so the spine reads
+       as straight even though the pages are curved.
+       EDIT THIS FILE to change the icon — components/Icon reads the folder.
+       Do not put stroke-width on a shape: the component sets it, growing it
+       as the icon shrinks so the line never falls under a pixel. -->
+  <path d="M12 6.5v12.5"/>
+  <path d="M12 6.5C10 5 7 5 4.5 5.6v12C7 17 10 17 12 19"/>
+  <path d="M12 6.5C14 5 17 5 19.5 5.6v12C17 17 14 17 12 19"/>
+</svg>

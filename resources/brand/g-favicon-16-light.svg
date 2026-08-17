@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- 16px favicon on a light surface. -->
+  <path d="M130.0 86.0L240.6 380.8" stroke="#141922" stroke-width="54" stroke-linecap="round"/>
+  <path d="M382.0 86.0L271.4 380.8" stroke="#141922" stroke-width="54" stroke-linecap="round"/>
+  <circle cx="256" cy="422" r="62" fill="#141922" stroke="none"/>
+</svg>
