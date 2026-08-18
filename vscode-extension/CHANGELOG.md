@@ -3,12 +3,16 @@
 ## Unreleased
 
 ### Added
+- **The comparison view says which question it is answering, and defaults to the useful one.** Comparing two branches now shows what the target did *since the two parted* — the same set its commit list describes, and what a pull request shows — with the commit they parted at named next to it. *End to end*, one click away, is the old behaviour: the difference between the two trees as they stand.
+- **Compare a branch against your working tree**, uncommitted changes included: pick *Working tree* as the target.
+- **The comparisons you have looked at are kept**, per repository, as chips under the header. Click one to go back to it, or clear the lot. The view used to forget everything the moment it closed.
 - **Hide anything from the graph, not just a branch.** A tag, a whole remote and the stash can now be taken out of the view the way a branch already could — right-click the row and *Hide from Graph*. Each section also hides in one go: LOCAL, REMOTE, TAGS, REMOTES and STASH carry *Hide All from Graph* and *Show All in Graph* on their header, and hiding a whole family keeps hiding what arrives later.
 - **A section says how much of it the graph is not showing**, on its header, and clicking that count brings it all back.
 - **Restore a file to the version in a commit.** Right-click it in a commit's file list. It asks first, then leaves the change unstaged — so what you brought back is a diff you can read before you keep it, rather than something already staged. A file deleted since comes back on disk.
 - **Start a branch from an issue.** Right-click an issue in the GitHub panel: it suggests `123-the-issue-title`, you edit it or accept it, and the branch is created, checked out and linked to that issue — so the branch shows its issue number from then on. Linking a branch to an issue already existed; this is the direction you actually reach for.
 
 ### Fixed
+- **A comparison no longer claims a branch deleted files it never touched.** The diff was measured end to end (`git diff A..B`), so every file the *other* side had gained since the split appeared in it as a deletion — while the commit list beside it answered a different question entirely. Both now answer the same one.
 - **Hiding a branch no longer takes your stashes with it.** Hiding handed git the list of branches that remained, and an explicit list of refs replaces `--all` — so every commit that only a tag or the stash reached vanished along with the branch you hid. What is hidden is now named and excluded, and a commit something visible still reaches keeps its place.
 - **A change to what the graph shows now always reaches the graph.** A reload asked for while another one was running was dropped and never retried — invisible for a background refresh, since the next file-watcher event covers it, but not for hiding a branch: there is no next event, so the graph kept showing what you had just hidden until something else in the repository changed. Found by driving the real app; no test saw it.
 

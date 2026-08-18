@@ -6,7 +6,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import simpleGit from 'simple-git'
 
-import { GitService } from './git-service'
+import { GitService, type CompareAxis } from './git-service'
 import { RELEASE_NOTES } from './release-notes'
 import {
   parseAutoFetchMinutes, shouldUseSshCommand, buildSshCommand, buildToolInvocation,
@@ -694,14 +694,19 @@ ipcMain.handle('git:get-diff', async (_event, commitHash: string) => {
   return gitService.getDiff(commitHash)
 })
 
-ipcMain.handle('git:diff-between-commits', async (_event, fromHash: string, toHash: string) => {
+ipcMain.handle('git:diff-between-commits', async (_event, fromHash: string, toHash: string | null, axis?: CompareAxis) => {
   if (!gitService) return { diff: '', error: 'No repo open' }
-  return gitService.diffBetweenCommits(fromHash, toHash)
+  return gitService.diffBetweenCommits(fromHash, toHash, axis)
 })
 
-ipcMain.handle('git:files-between-commits', async (_event, fromHash: string, toHash: string) => {
+ipcMain.handle('git:files-between-commits', async (_event, fromHash: string, toHash: string | null, axis?: CompareAxis) => {
   if (!gitService) return { files: [], error: 'No repo open' }
-  return gitService.filesBetweenCommits(fromHash, toHash)
+  return gitService.filesBetweenCommits(fromHash, toHash, axis)
+})
+
+ipcMain.handle('git:get-merge-base', async (_event, a: string, b: string) => {
+  if (!gitService) return { base: null, error: 'No repo open' }
+  return gitService.getMergeBase(a, b)
 })
 
 ipcMain.handle('git:get-commit-files', async (_event, commitHash: string) => {

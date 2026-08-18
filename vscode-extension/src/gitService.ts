@@ -65,6 +65,15 @@ function simpleGitEnv(): Record<string, string> {
   return env
 }
 
+/** Which question a comparison answers — see diffBetweenCommits. */
+export type CompareAxis = 'diverged' | 'endpoints'
+
+/** The arguments `git diff` needs for one comparison, in one place. */
+function compareRange(from: string, to: string | null, axis: CompareAxis): string[] {
+  if (to === null) return [from]
+  return [axis === 'diverged' ? `${from}...${to}` : `${from}..${to}`]
+}
+
 // The conflict prediction runs `git merge-tree --write-tree --merge-base=<commit>`,
 // and --merge-base only landed in git 2.40. Older git makes that call fail, the
 // prediction comes back empty and the operation proceeds — so the "a conflict is
@@ -2132,11 +2141,30 @@ exit 0
     } catch { return { ahead: [], behind: [] } }
   }
 
-  async diffBetweenCommits(fromHash: string, toHash: string): Promise<{ diff: string; error?: string }> {
-    const bad = this.assertRef(fromHash, 'commit') || this.assertRef(toHash, 'commit')
+  /**
+   * The twin of the desktop's, and it must stay one: the comparison view is
+   * shared renderer code, so the axis it asks for has to mean the same thing on
+   * both sides. `endpoints` is `A..B`, `diverged` is `A...B` (what B did since
+   * the two parted — the question the commit list beside it already answers).
+   * `to: null` compares against the working tree.
+   */
+  async diffBetweenCommits(
+    fromHash: string,
+    toHash: string | null,
+    axis: CompareAxis = 'endpoints',
+  ): Promise<{ diff: string; error?: string }> {
+    const bad = this.assertRef(fromHash, 'commit') || (toHash !== null && this.assertRef(toHash, 'commit'))
     if (bad) return { diff: '', error: bad }
-    try { return { diff: await this.git.raw(['diff', `${fromHash}..${toHash}`]) } }
+    try { return { diff: await this.git.raw(['diff', ...compareRange(fromHash, toHash, axis)]) } }
     catch (e: any) { return { diff: '', error: e.message } }
+  }
+
+  /** The commit two refs last had in common, or null when they share none. */
+  async getMergeBase(a: string, b: string): Promise<{ base: string | null; error?: string }> {
+    const bad = this.assertRef(a, 'ref') || this.assertRef(b, 'ref')
+    if (bad) return { base: null, error: bad }
+    try { return { base: (await this.git.raw(['merge-base', a, b])).trim() || null } }
+    catch { return { base: null } }
   }
 
   // Combine `--name-status` + `--numstat` outputs into FileChange entries
@@ -2162,14 +2190,18 @@ exit 0
     return files
   }
 
-  async filesBetweenCommits(fromHash: string, toHash: string): Promise<{ files: FileChange[]; error?: string }> {
-    const bad = this.assertRef(fromHash, 'commit') || this.assertRef(toHash, 'commit')
+  async filesBetweenCommits(
+    fromHash: string,
+    toHash: string | null,
+    axis: CompareAxis = 'endpoints',
+  ): Promise<{ files: FileChange[]; error?: string }> {
+    const bad = this.assertRef(fromHash, 'commit') || (toHash !== null && this.assertRef(toHash, 'commit'))
     if (bad) return { files: [], error: bad }
     try {
-      const range = `${fromHash}..${toHash}`
+      const range = compareRange(fromHash, toHash, axis)
       const [nameStatus, numStat] = await Promise.all([
-        this.git.raw(['diff', '--name-status', range]),
-        this.git.raw(['diff', '--numstat', range]),
+        this.git.raw(['diff', '--name-status', ...range]),
+        this.git.raw(['diff', '--numstat', ...range]),
       ])
       return { files: this.parseNameAndNumStat(nameStatus, numStat) }
     } catch (e: any) {

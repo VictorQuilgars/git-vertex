@@ -1966,6 +1966,86 @@ describe('GitService', () => {
     })
   })
 
+  // Comparing two branches asks a question, and there are two of them. The
+  // commit list beside the diff has always answered "what did B do since they
+  // parted" (`git log A..B`); the diff answered "how do the two trees differ",
+  // which reports every file A gained since the split as deleted. These pin
+  // both, because the difference is invisible until a branch has moved on.
+  describe('comparing along an axis', () => {
+    /** main and feature part, then each adds a file of its own. */
+    const diverge = () => {
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'base\n')
+      execSync(`cd ${tempDir} && git add . && git commit -qm base`)
+      const base = execSync(`cd ${tempDir} && git rev-parse HEAD`).toString().trim()
+      execSync(`cd ${tempDir} && git checkout -qb feature`)
+      fs.writeFileSync(path.join(tempDir, 'feat.txt'), 'feature work\n')
+      execSync(`cd ${tempDir} && git add . && git commit -qm "feature adds a file"`)
+      execSync(`cd ${tempDir} && git checkout -q main`)
+      fs.writeFileSync(path.join(tempDir, 'mainonly.txt'), 'main moved on\n')
+      execSync(`cd ${tempDir} && git add . && git commit -qm "main adds another file"`)
+      return base
+    }
+
+    test('endpoints reports what the other side gained as a deletion', async () => {
+      diverge()
+      const r = await git.filesBetweenCommits('main', 'feature', 'endpoints')
+      const byPath = Object.fromEntries(r.files.map(f => [f.path, f.status]))
+      expect(byPath['feat.txt']).toBe('A')
+      expect(byPath['mainonly.txt']).toBe('D')   // feature never touched it
+    })
+
+    test('diverged reports only what the branch itself did', async () => {
+      diverge()
+      const r = await git.filesBetweenCommits('main', 'feature', 'diverged')
+      expect(r.files.map(f => f.path)).toEqual(['feat.txt'])
+    })
+
+    test('and that is the same set the commit list describes', async () => {
+      diverge()
+      const cmp = await git.compareBranches('main', 'feature')
+      expect(cmp.ahead.map(c => c.message)).toEqual(['feature adds a file'])
+      const files = await git.filesBetweenCommits('main', 'feature', 'diverged')
+      expect(files.files).toHaveLength(1)
+    })
+
+    // Why `endpoints` stays the default for callers that compare two commits
+    // the user picked by hand: three-dot against an ancestor is empty, and a
+    // comparison that silently shows nothing is worse than a noisy one.
+    test('diverged is empty when the target is an ancestor', async () => {
+      diverge()
+      const r = await git.filesBetweenCommits('main', 'main~1', 'diverged')
+      expect(r.files).toEqual([])
+      const endpoints = await git.filesBetweenCommits('main', 'main~1', 'endpoints')
+      expect(endpoints.files.map(f => f.path)).toEqual(['mainonly.txt'])
+    })
+
+    test('a null target compares against the working tree', async () => {
+      diverge()
+      fs.writeFileSync(path.join(tempDir, 'shared.txt'), 'edited in the working tree\n')
+
+      const r = await git.filesBetweenCommits('HEAD', null)
+
+      expect(r.files.map(f => f.path)).toEqual(['shared.txt'])
+      expect((await git.diffBetweenCommits('HEAD', null)).diff).toContain('edited in the working tree')
+    })
+
+    test('getMergeBase names the commit they parted at', async () => {
+      const base = diverge()
+      expect((await git.getMergeBase('main', 'feature')).base).toBe(base)
+      expect((await git.getMergeBase('main', 'main')).base).toBe(
+        execSync(`cd ${tempDir} && git rev-parse main`).toString().trim())
+    })
+
+    test('unrelated histories have no base, and say so rather than throwing', async () => {
+      diverge()
+      execSync(`cd ${tempDir} && git checkout -q --orphan lonely && git rm -rq --cached . && git clean -qfd`)
+      fs.writeFileSync(path.join(tempDir, 'alone.txt'), 'no ancestor\n')
+      execSync(`cd ${tempDir} && git add . && git commit -qm orphan`)
+
+      expect((await git.getMergeBase('main', 'lonely')).base).toBeNull()
+    })
+  })
+
   // Restoring is `restore --source=<sha> --worktree`, not `checkout <sha> --`:
   // checkout writes the index too, so the file would come back already staged
   // and the only way to look at what you restored would be to unstage it first.
