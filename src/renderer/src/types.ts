@@ -102,7 +102,7 @@ declare global {
       }>
       removeRecentRepo: (path: string) => Promise<string[]>
       // Read
-      getLog: (o?: { maxCount?: number; all?: boolean; refs?: string[] }) => Promise<{ commits?: CommitNode[]; error?: string }>
+      getLog: (o?: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] }) => Promise<{ commits?: CommitNode[]; error?: string }>
       getBranches: () => Promise<{ branches?: BranchInfo[]; error?: string }>
       getDiff: (h: string) => Promise<{ diff?: string; error?: string }>
       getCommitFiles: (h: string) => Promise<{ files?: FileChange[]; error?: string }>

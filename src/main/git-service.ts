@@ -203,7 +203,7 @@ export class GitService {
     }
   }
 
-  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
+  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
     // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
@@ -219,10 +219,15 @@ export class GitService {
       '--date-order', // children always before parents (like --topo-order), but sibling
                     // commits are sorted by commit date
     ]
-    // Explicit refs (for solo/mute branch filtering) take precedence over --all.
+    // Explicit refs (for solo branch filtering) take precedence over --all.
     if (options.refs && options.refs.length) {
       args.push(...options.refs)
     } else if (options.all) {
+      // Hidden refs are taken away from --all rather than replaced by a list of
+      // the visible ones: git keeps deciding what is reachable, so a commit a
+      // visible ref still reaches stays. --exclude only applies to the next
+      // ref-collecting option, hence immediately before --all and nowhere else.
+      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
       args.push('--all')
     }
 

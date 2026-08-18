@@ -679,7 +679,7 @@ ipcMain.handle('app:select-directory', async (_event, title?: string) => {
 })
 
 // ── IPC: Git read operations ───────────────────────────────────
-ipcMain.handle('git:get-log', async (_event, options: { maxCount?: number; all?: boolean } = {}) => {
+ipcMain.handle('git:get-log', async (_event, options: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] } = {}) => {
   if (!gitService) return { error: 'No repo open' }
   return gitService.getLog(options)
 })

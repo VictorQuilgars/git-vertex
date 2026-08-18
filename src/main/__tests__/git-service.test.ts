@@ -1966,4 +1966,65 @@ describe('GitService', () => {
     })
   })
 
+  // Hiding a ref from the graph is `--exclude=<refname>` before `--all`. The
+  // rules are git's and they are easy to get wrong from the documentation
+  // alone — patterns are full refnames here (the `--exclude=topic --branches`
+  // shorthand does not apply to `--all`), and the option only affects the ref
+  // collector that follows it. So the semantics are pinned here, on a real
+  // repository, rather than assumed by the renderer that builds the list.
+  describe('getLog — refs excluded from --all', () => {
+    /** main ← A, B (tag v-reachable) · side ← C · v-orphan on a commit nothing reaches · one stash */
+    const build = () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync(`cd ${tempDir} && git add . && git commit -qm A`)
+      fs.writeFileSync(path.join(tempDir, 'b.txt'), 'b')
+      execSync(`cd ${tempDir} && git add . && git commit -qm B && git tag v-reachable`)
+      execSync(`cd ${tempDir} && git checkout -qb side`)
+      fs.writeFileSync(path.join(tempDir, 'c.txt'), 'c')
+      execSync(`cd ${tempDir} && git add . && git commit -qm C`)
+      execSync(`cd ${tempDir} && git checkout -q main`)
+      fs.writeFileSync(path.join(tempDir, 'd.txt'), 'd')
+      execSync(`cd ${tempDir} && git add . && git commit -qm D && git tag v-orphan && git reset -q --hard HEAD~1`)
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'stashed')
+      execSync(`cd ${tempDir} && git stash -q`)
+    }
+    const messages = async (excludes?: string[]) =>
+      (await git.getLog({ all: true, excludes })).commits.map(c => c.message)
+
+    test('--all carries every tip: branches, tags, the stash', async () => {
+      build()
+      const msgs = await messages()
+      expect(msgs).toEqual(expect.arrayContaining(['A', 'B', 'C', 'D']))
+      expect(msgs.some(m => m.startsWith('WIP on main'))).toBe(true)
+    })
+
+    test('excluding a branch drops what only it reached', async () => {
+      build()
+      expect(await messages(['refs/heads/side'])).not.toContain('C')
+    })
+
+    test('excluding a tag drops an orphan commit, and leaves a reachable one alone', async () => {
+      build()
+      const msgs = await messages(['refs/tags/*'])
+      expect(msgs).not.toContain('D')   // v-orphan was its only tip
+      expect(msgs).toContain('B')       // v-reachable sits on main, which stays
+    })
+
+    test('excluding refs/stash drops the stash and its index commit', async () => {
+      build()
+      const msgs = await messages(['refs/stash'])
+      expect(msgs.some(m => m.startsWith('WIP on') || m.startsWith('index on'))).toBe(false)
+      expect(msgs).toEqual(expect.arrayContaining(['A', 'B', 'C']))
+    })
+
+    test('several exclusions at once, and none of them touches HEAD', async () => {
+      build()
+      const msgs = await messages(['refs/heads/side', 'refs/tags/*', 'refs/stash'])
+      expect(msgs).toEqual(['B', 'A'])
+      // Hiding the branch you are on cannot empty the graph: --all carries HEAD
+      // whatever the excludes say, which is why the chip stays too.
+      expect(await messages(['refs/heads/main'])).toContain('B')
+    })
+  })
+
 })

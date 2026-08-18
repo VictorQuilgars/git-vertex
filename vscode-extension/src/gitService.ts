@@ -188,7 +188,7 @@ export class GitService {
 
   // ── Read operations ────────────────────────────────────────────
 
-  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
+  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
     // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
@@ -199,9 +199,15 @@ export class GitService {
       `--max-count=${maxCount}`,
       '--date-order',
     ]
-    // Explicit refs (solo/hide branch filtering) take precedence over --all.
+    // Explicit refs (solo branch filtering) take precedence over --all. Hidden
+    // refs are excluded from --all instead, so that a commit a visible ref
+    // still reaches keeps its place — see the desktop service for the whole
+    // reasoning, this half must stay identical to it.
     if (options.refs && options.refs.length) args.push(...options.refs)
-    else if (options.all) args.push('--all')
+    else if (options.all) {
+      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
+      args.push('--all')
+    }
 
     const result = await this.git.raw(['log', ...args])
     const commits: CommitNode[] = []

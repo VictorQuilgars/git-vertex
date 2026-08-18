@@ -32,7 +32,7 @@ const gitAPI = {
   onDeepLink: (cb: (link: { repo: string; view: string; file?: string; hash?: string }) => void) =>
     subscribe('deeplink:open', (link) => cb(link)),
   // Read
-  getLog: (options?: { maxCount?: number; all?: boolean; refs?: string[] }) => ipcRenderer.invoke('git:get-log', options),
+  getLog: (options?: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] }) => ipcRenderer.invoke('git:get-log', options),
   getBranches: () => ipcRenderer.invoke('git:get-branches'),
   getDiff: (commitHash: string) => ipcRenderer.invoke('git:get-diff', commitHash),
   getCommitFiles: (commitHash: string) => ipcRenderer.invoke('git:get-commit-files', commitHash),
