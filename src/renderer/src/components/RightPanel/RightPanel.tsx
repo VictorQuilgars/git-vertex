@@ -794,12 +794,14 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                 }] : []),
                 { label: t('panel.file.copyPath'), action: () => navigator.clipboard.writeText(fileMenu.path) },
                 ...(onRestoreFile ? [
+                  // `as MenuItemDef[]`: a separator is typed `separator: true`,
+                  // and an array literal widens it to boolean.
                   { separator: true },
                   {
                     label: t('panel.file.restore'),
                     action: () => onRestoreFile(commit.hash, fileMenu.path),
                   },
-                ] : []),
+                ] as MenuItemDef[] : []),
               ]}
               onClose={() => setFileMenu(null)}
             />
