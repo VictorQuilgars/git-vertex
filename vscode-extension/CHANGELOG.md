@@ -10,6 +10,7 @@
 
 ### Fixed
 - **Hiding a branch no longer takes your stashes with it.** Hiding handed git the list of branches that remained, and an explicit list of refs replaces `--all` — so every commit that only a tag or the stash reached vanished along with the branch you hid. What is hidden is now named and excluded, and a commit something visible still reaches keeps its place.
+- **A change to what the graph shows now always reaches the graph.** A reload asked for while another one was running was dropped and never retried — invisible for a background refresh, since the next file-watcher event covers it, but not for hiding a branch: there is no next event, so the graph kept showing what you had just hidden until something else in the repository changed. Found by driving the real app; no test saw it.
 
 ## 1.28.3
 

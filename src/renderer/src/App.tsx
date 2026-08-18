@@ -494,19 +494,36 @@ export default function App() {
 
   // ── Load repo data ─────────────────────────────────────────
   const isLoadingRef = React.useRef(false)
+  // A load that arrives while another is running used to be dropped and never
+  // retried. That is invisible for a refresh — the next file-watcher event
+  // covers it — but not for a filter: hiding a ref would leave the graph
+  // showing it until something else happened to trigger a reload.
+  const reloadQueued = React.useRef(false)
+  // The filter is read through refs rather than from the closure. The
+  // watcher's handler is registered once per identity of loadRepoData, and the
+  // old registrations are NOT removed: contextBridge hands the preload a fresh
+  // proxy for the same function, so `removeListener` never matches the one it
+  // was given. The callbacks that fire are therefore usually stale ones, and a
+  // stale closure must still query with the filter the user can see.
+  const visibilityRef = React.useRef(visibility); visibilityRef.current = visibility
+  const soloRef = React.useRef(soloBranch); soloRef.current = soloBranch
+  const showAllRef = React.useRef(showAllBranches); showAllRef.current = showAllBranches
 
   const loadRepoData = useCallback(async (silent = false) => {
     if (!repoPath) return
-    if (isLoadingRef.current) return   // prevent concurrent executions
+    if (isLoadingRef.current) { reloadQueued.current = true; return }
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
       // Branches are still read first: the sidebar needs them, and the log
       // query is built from the visibility state rather than from them.
       const branchRes = await window.gitAPI.getBranches()
-      const logRes = await window.gitAPI.getLog(
-        logOptionsFor({ maxCount: 500, all: showAllBranches, solo: soloBranch, visibility })
-      )
+      const logRes = await window.gitAPI.getLog(logOptionsFor({
+        maxCount: 500,
+        all: showAllRef.current,
+        solo: soloRef.current,
+        visibility: visibilityRef.current,
+      }))
       if (logRes.commits) setCommits(logRes.commits)
       if (branchRes.branches) {
         setBranches(branchRes.branches)
@@ -534,10 +551,27 @@ export default function App() {
     } finally {
       if (!silent) setLoading(false)
       isLoadingRef.current = false
+      if (reloadQueued.current) {
+        reloadQueued.current = false
+        void loadRepoDataRef.current?.(true)
+      }
     }
-  }, [repoPath, showAllBranches, soloBranch, visibility, loadStashes, loadTags])
+  }, [repoPath, loadStashes, loadTags])
+  // Re-entry after a queued load, without making loadRepoData depend on itself.
+  const loadRepoDataRef = React.useRef(loadRepoData); loadRepoDataRef.current = loadRepoData
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
+
+  // The filter changed — reload with it. Separate from the effect above so
+  // that loadRepoData keeps a stable identity across a hide or a solo: every
+  // change of its identity re-registers the file watcher, and those
+  // registrations accumulate.
+  const filterFirstRun = React.useRef(true)
+  useEffect(() => {
+    if (filterFirstRun.current) { filterFirstRun.current = false; return }
+    loadRepoData(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibility, soloBranch, showAllBranches])
 
   // GitHub profile (for the top-bar profile chip). Refresh after OAuth too.
   useEffect(() => {
@@ -1655,7 +1689,7 @@ export default function App() {
       extras
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branches, currentBranch, soloBranch, hiddenBranches, branchMeta, prIntentFor, githubOwnerRepo, t])
+  }, [branches, currentBranch, soloBranch, visibility, remoteNames, branchMeta, prIntentFor, githubOwnerRepo, t])
 
   // Branch strip above the staging file list (v1.22.0) — same actions as the
   // toolbar and the ⋮ menu, just brought next to the files they apply to.

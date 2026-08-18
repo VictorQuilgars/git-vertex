@@ -109,6 +109,11 @@ function VertexApp() {
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
   const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
   const isLoadingRef = useRef(false)
+  // A load asked for while another runs is remembered and re-run rather than
+  // dropped: for a background refresh the next watcher event would cover it,
+  // but a filter change has no next event — the graph would keep showing what
+  // you just hid.
+  const reloadQueued = useRef(false)
   const showAllRef = useRef(showAllBranches)
   showAllRef.current = showAllBranches
   const soloRef = useRef(soloBranch); soloRef.current = soloBranch
@@ -118,7 +123,7 @@ function VertexApp() {
   // `silent` reloads (from file watchers) skip the loading flag so the toolbar
   // icons don't flicker on every background refresh.
   const loadRepoData = useCallback(async (silent = false) => {
-    if (isLoadingRef.current) return
+    if (isLoadingRef.current) { reloadQueued.current = true; return }
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
@@ -182,8 +187,14 @@ function VertexApp() {
     } finally {
       isLoadingRef.current = false
       if (!silent) setLoading(false)
+      if (reloadQueued.current) {
+        reloadQueued.current = false
+        void loadRepoDataRef.current?.(true)
+      }
     }
   }, [])
+  const loadRepoDataRef = useRef<((silent?: boolean) => Promise<void>) | null>(null)
+  loadRepoDataRef.current = loadRepoData
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
 
