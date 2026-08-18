@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.28.3': `## What's new in 1.28.3
 
 ### 🩹 A short panel no longer goes blank
 - The activity rail moves the icons that do not fit into a **…** button, and that button drew its icon through a helper deleted in 1.28.0's icon refactor — the one call site the refactor missed.

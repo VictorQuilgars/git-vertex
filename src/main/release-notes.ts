@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.30.2': `## What's new in 1.30.2
 
 ### 🩹 The staging area no longer goes blank in Tree view
 - A folder's stage/unstage button built its tooltip through the translation function, from a component that never received it. The moment a folder row carried an action, the panel threw and drew nothing.

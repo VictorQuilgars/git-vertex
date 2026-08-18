@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.28.3
 
 ### Fixed
 - **The panel no longer goes blank when it is short.** The activity rail moves the icons that do not fit into a "…" button, and that button drew an icon through a helper deleted in 1.28.0's icon refactor — one call site the refactor missed. Nothing failed at build time: the panel's own code was not type-checked. Anyone with a panel too short for the seven icons — a bottom panel, usually — got a render error instead of Git Vertex.
