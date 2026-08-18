@@ -174,10 +174,10 @@ export function repoFromRemotes(remotes: Remote[], preferred?: string | null): R
  * Both then asked GitHub about a repository that does not exist, and the panel
  * showed an empty list with nothing to say why.
  *
- * ⚠️ The extension host uses this; **the desktop main process still carries four
- * copies of that regex** (`src/main/index.ts`), so the bug is still live there.
- * Moving it over means `src/main` importing from `src/renderer` for the first
- * time, which is a build question rather than a rename — tracked on its own.
+ * Both products read remotes through it: the extension host, and the four
+ * places in `src/main/index.ts` that each had their own copy. That import is
+ * the first thing the desktop main process takes from this tree — it is pure
+ * string handling, and electron-vite inlines it into the main bundle.
  */
 export function githubRepo(url: string | null | undefined): { owner: string | null; repo: string | null } {
   const parsed = parseRemote(url)

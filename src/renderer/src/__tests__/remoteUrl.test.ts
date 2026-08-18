@@ -175,8 +175,8 @@ describe('rangeFromSelection — the off-by-one', () => {
 // githubRepo is what the pull-request and issue lists ask before they call
 // api.github.com. It replaced the regex the extension host had written out for
 // itself, and these are the shapes that regex got wrong — every one of them an
-// ordinary remote, not an exotic one. The desktop main process still has four
-// copies of it, so these cases still fail there; that move is tracked on its own.
+// ordinary remote, not an exotic one. Both products go through it now, so these
+// are the cases that used to fail in five separate places.
 describe('githubRepo — which repository to ask GitHub about', () => {
   test('the plain shapes', () => {
     expect(githubRepo('https://github.com/o/r.git')).toEqual({ owner: 'o', repo: 'r' })

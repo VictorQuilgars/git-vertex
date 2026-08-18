@@ -25,6 +25,11 @@ import {
   splashHtml, themeCanvas, SPLASH_THEMES, SPLASH_ANIMATION_MS, SPLASH_STILL_MS,
 } from './splash'
 import type { SplashTheme } from './splash'
+// The one parser for "which repository is this remote on github.com". It lives
+// in the renderer tree because both products' UI already builds links with it;
+// this is the first thing the main process takes from there, and it is pure
+// string handling — no DOM, no React, nothing electron-vite cannot bundle.
+import { githubRepo } from '../renderer/src/utils/remoteUrl'
 import iconPng from '../../resources/icon.png?asset'
 import iconIco from '../../resources/icon.ico?asset'
 
@@ -2022,9 +2027,9 @@ async function detectGithubRepo(): Promise<{ owner: string; repo: string } | nul
     const origin = remotes.find((r: any) => r.name === 'origin') ?? remotes[0]
     if (!origin) return null
     const url: string = origin.refs?.fetch ?? origin.refs?.push ?? ''
-    const match = url.match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
-    if (!match) return null
-    return { owner: match[1], repo: match[2] }
+    const { owner, repo } = githubRepo(url)
+    if (!owner || !repo) return null
+    return { owner, repo }
   } catch { return null }
 }
 
@@ -2272,11 +2277,10 @@ ipcMain.handle('github:detect-repo', async () => {
     const remotes = await (gitService as any).git.getRemotes(true)
     const origin = remotes.find((r: any) => r.name === 'origin') ?? remotes[0]
     if (!origin) return { owner: null, repo: null }
-    const url: string = origin.refs?.fetch ?? origin.refs?.push ?? ''
-    // https://github.com/owner/repo.git  or  git@github.com:owner/repo.git
-    const match = url.match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
-    if (!match) return { owner: null, repo: null }
-    return { owner: match[1], repo: match[2] }
+    // https://github.com/owner/repo.git  or  git@github.com:owner/repo.git,
+    // and the shapes the hand-written pattern used to get wrong: a dot in the
+    // repository name, an ssh port, credentials in the URL.
+    return githubRepo(origin.refs?.fetch ?? origin.refs?.push ?? '')
   } catch { return { owner: null, repo: null } }
 })
 
@@ -2288,9 +2292,7 @@ ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
     const { promisify } = await import('util')
     const exec = promisify(execFile)
     const r = await exec(gitBinary(), ['-C', repoPath, 'remote', 'get-url', 'origin'])
-    const match = r.stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
-    if (!match) return { owner: null, repo: null }
-    return { owner: match[1], repo: match[2] }
+    return githubRepo(r.stdout.trim())
   } catch { return { owner: null, repo: null } }
 })
 
@@ -2489,8 +2491,8 @@ ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
     if (!fullnameCache.has(p)) {
       try {
         const r = await exec(gitBinary(), ['-C', p, 'remote', 'get-url', 'origin'])
-        const m = r.stdout.trim().match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
-        fullnameCache.set(p, m ? `${m[1]}/${m[2]}` : null)
+        const { owner, repo } = githubRepo(r.stdout.trim())
+        fullnameCache.set(p, owner && repo ? `${owner}/${repo}` : null)
       } catch { fullnameCache.set(p, null) }
     }
     return { path: p, name: p.split('/').pop() ?? p, changed, added, deleted, branch, fullname: fullnameCache.get(p) ?? null }
