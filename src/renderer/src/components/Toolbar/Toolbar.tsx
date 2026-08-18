@@ -38,7 +38,6 @@ interface ToolbarProps {
   onToggleAiSearch?: () => void
   onAiSearchSubmit?: () => void
   onSettings?: () => void
-  settingsOpen?: boolean
   updateReady?: boolean
   onInstallUpdate?: () => void
   githubRepoUrl?: string | null

@@ -24,6 +24,24 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🧹 The app stops piling up file-watcher listeners
 - Subscribing to repository changes handed the callback straight to Electron's bridge and unsubscribing handed it back — but the bridge makes a **new proxy** of the same function on every crossing, so the removal never matched the subscription.
 - Every hide, solo or branch switch added a listener and removed none. Git was being run several times for a single change, with filters you had already moved on from.
+
+### 🗂 Views open in tabs, not over the graph
+- A file's **diff**, the **GitHub** panel and the **settings** join the comparison, the file history and the stash: each opens as a tab, using the whole width.
+- A file's diff used to take the middle of the repo view with the sidebar still around it; the GitHub lists were squeezed into the sidebar's width; the settings took the window without being a tab, so nothing could stay open beside them.
+- A file **staged** and the same file **unstaged** are two tabs — reading one against the other is the point.
+- A comparison, a file's history, a stash's contents: each opens as **a tab** with its own name, stays put when you click elsewhere, and closes when you are done. Opening the same one twice returns you to the tab you already have.
+- The tab uses **the whole width**: no sidebar, no commit panel, no action bar around it. None of them acts on what the tab is showing, and the point of moving these out of the graph was to stop stacking surfaces.
+- What stays a window is what **asks** something — confirm, name this branch, pick a remote before pushing. What **holds** something is a tab.
+
+### 🔀 And the comparison is the full one
+- Clicking a commit in either list **opens that commit on its own** in the pane beside it; a click back returns to the comparison. The lists used to be inert.
+- **The list of changed files resizes**, wherever a diff is shown. It was 120 pixels whatever it held: three rows, and the rest behind a scrollbar in a box you could not drag. It opens at 200, goes to 640, and stays where you put it — as does the comparison's split between the commit lists and the diff.
+- **The comparison says which way round it is reading.** The selectors carry their roles — *from* and *what* — and a line under them spells it out. The order is the whole thing: the commit lists show both sides, the diff only ever describes one, exactly like a pull request.
+- An empty comparison **says why**: *since they diverged* reports what the target did, so a branch that is ahead of a \`main\` that has not moved compares to nothing. It names the side that has done nothing, says where the commits are, and offers to compare the other way round.
+- The same view the VS Code panel has: since they diverged / end to end, the working tree as a target, and the comparisons you already looked at. The app had three smaller windows, each answering a part of it.
+
+### 🕰 A file's history, in the app
+- The button in a commit's file list opened a bare list of commits. It now opens the history view — diff and blame beside the list.
 `,
 
   '1.30.2': `## What's new in 1.30.2

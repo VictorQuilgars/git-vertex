@@ -212,10 +212,17 @@ body {
   position: relative;
 }
 .act-btn:hover { color: var(--text-primary-soft); background: var(--surface); }
+/* The rail used to switch the side panel between git and GitHub. GitHub is a
+   tab now, so this one is a marker rather than a control: it says where you
+   are, it does not offer to take you somewhere. It keeps the active mark and
+   drops the hover, which is what tells the two apart. */
+.act-btn--current { color: var(--text-primary); cursor: default; }
+.act-btn--current:hover { background: transparent; color: var(--text-primary); }
 .act-btn.active {
   color: var(--text-primary);
 }
-.act-btn.active::before {
+.act-btn.active::before,
+.act-btn--current::before {
   content: '';
   position: absolute;
   left: -1px;
@@ -534,25 +541,22 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--surface-sunken); border-radius: var(--radius-xs); }
 ::-webkit-scrollbar-thumb:hover { background: var(--surface-active); }
 
-/* Branch Compare Modal */
-.bc-overlay {
-  position: fixed; inset: 0; background: color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
-  z-index: var(--z-overlay); display: flex; align-items: center; justify-content: center;
-}
-.bc-modal {
-  background: var(--surface); border: 1px solid var(--border-default); border-radius: var(--radius-lg);
-  width: 80vw; max-width: 900px; max-height: 70vh;
-  display: flex; flex-direction: column; overflow: hidden;
-  box-shadow: 0 16px 48px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent);
-}
-.bc-header {
+/* A view that used to be a modal, now filling a tab: no scrim, no shadow, no
+   close button — the tab is the close button. Same header proportions as the
+   panels around it so the switch does not feel like another application. */
+.view-page { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--bg-canvas); }
+.view-page-header {
   display: flex; align-items: center; gap: var(--space-lg);
-  padding: var(--space-xl) var(--space-2xl); border-bottom: 1px solid var(--border-default);
+  padding: var(--space-lg) var(--space-2xl);
+  border-bottom: 1px solid var(--border-default);
 }
-.bc-title { font-size: var(--text-base); font-weight: var(--weight-semibold); color: var(--text-primary); flex: 1; }
-.bc-title code { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
-.bc-close { background: transparent; border: none; color: var(--text-secondary); font-size: var(--text-xl); cursor: pointer; padding: 0 var(--space-xs); }
-.bc-close:hover { color: var(--text-primary); }
+.view-page-title { font-size: var(--text-base); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.view-page-title code { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+.view-page-body { flex: 1; overflow: auto; min-height: 0; }
+
+/* What is left of the old compare modals: the two states the stash view
+   still uses. The overlay, the panel and its header went with the modals
+   themselves when comparisons became tabs. */
 .bc-loading { padding: var(--space-3xl); text-align: center; color: var(--text-disabled); font-size: var(--text-base); }
 .bc-grid { display: grid; grid-template-columns: 1fr 1fr; flex: 1; overflow: hidden; }
 .bc-col { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--border-default); }

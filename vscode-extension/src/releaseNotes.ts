@@ -48,6 +48,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🕘 And it remembers
 - The comparisons you have looked at stay as chips under the header, per repository. Click one to go back to it, or clear the lot.
+
+### 🕰 A file's history always opens the same way
+- The button in a commit's file list opened a small modal inside the panel, with no diff; the richer view was only in the command palette. Both now open the same editor tab.
 `,
 
   '1.28.3': `## What's new in 1.28.3

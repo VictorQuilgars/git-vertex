@@ -18,6 +18,12 @@ const fr = {
   'tabs.new': 'Nouvel onglet',
   'tabs.home': 'Accueil',
   'tabs.whatsNew': 'Quoi de neuf',
+  'tabs.github': 'GitHub — PR & issues',
+  'tabs.settings': 'Réglages',
+  'tabs.staged': 'indexé',
+  'tabs.unstaged': 'non indexé',
+  'tabs.history': (file: string) => `Historique — ${file}`,
+  'tabs.stash': (i: number) => `Stash #${i}`,
   'tabs.close': 'Fermer l\'onglet',
 
   // Launchpad (cross-repo PRs & issues)
@@ -1011,6 +1017,7 @@ const fr = {
   'dv.unifiedTitle': 'Vue unifiée',
   'dv.splitTitle': 'Vue côte à côte',
   'dv.selectCommit': 'Sélectionnez un commit pour voir son contenu',
+  'dv.resizeFiles': 'Glisser pour agrandir la liste des fichiers',
 
   // CommitPanel (extras)
   'cp.fileStage': 'Stager ce fichier',
@@ -1044,6 +1051,17 @@ const fr = {
   'cv.axisEndpointsTitle': 'La différence entre les deux arbres tels quels : les fichiers gagnés par l\'autre côté depuis la séparation y apparaissent comme supprimés',
   'cv.baseTitle': 'Le commit où les deux se sont séparées',
   'cv.recent': 'Récentes',
+  'cv.showCommit': 'Voir ce commit seul',
+  'cv.roleBase': 'Depuis',
+  'cv.resizeLists': 'Glisser pour partager la largeur',
+  'cv.roleSubject': 'ce qu\'a fait',
+  'cv.readingDiverged': (subject: string, base: string) => `Ce que ${subject} a fait depuis qu'elle a quitté ${base}. ${base} n'est pas décrite : elle sert de point de départ.`,
+  'cv.readingEndpoints': (a: string, b: string) => `Tout ce qui distingue les deux arbres, ${a} d'un côté, ${b} de l'autre — les avancées de ${a} y apparaissent comme des suppressions.`,
+  'cv.readingWorking': (base: string) => `Ce que votre copie de travail a de différent de ${base}, changements non validés compris.`,
+  'cv.backToComparison': 'Revenir à la comparaison',
+  'cv.emptyLead': (target: string) => `${target} n'a rien fait depuis la séparation.`,
+  'cv.emptyWhy': (other: string, n: number) => `${n === 1 ? 'Le commit listé est' : `Les ${n} commits listés sont`} sur ${other} : la comparaison mesure ce qu'a fait l'autre côté.`,
+  'cv.emptySwap': 'Comparer dans l\'autre sens',
   'cv.clearRecent': 'Effacer',
 
   // InteractiveRebase (extras)
@@ -1404,6 +1422,12 @@ const en: typeof fr = {
   'tabs.new': 'New tab',
   'tabs.home': 'Home',
   'tabs.whatsNew': "What's new",
+  'tabs.github': 'GitHub — PRs & issues',
+  'tabs.settings': 'Settings',
+  'tabs.staged': 'staged',
+  'tabs.unstaged': 'unstaged',
+  'tabs.history': (file: string) => `History — ${file}`,
+  'tabs.stash': (i: number) => `Stash #${i}`,
   'tabs.close': 'Close tab',
   'tabs.closeOthers': 'Close other tabs',
 
@@ -2396,6 +2420,7 @@ const en: typeof fr = {
   'rp2.markResolvedTitle': 'Mark resolved (stage the edited file)',
   'dv.unifiedTitle': 'Unified view',
   'dv.splitTitle': 'Side-by-side view',
+  'dv.resizeFiles': 'Drag to resize the file list',
   'dv.selectCommit': 'Select a commit to view its content',
 
   // CommitPanel (extras)
@@ -2430,6 +2455,17 @@ const en: typeof fr = {
   'cv.axisEndpointsTitle': 'The difference between the two trees as they stand: files the other side gained since the split appear here as deletions',
   'cv.baseTitle': 'The commit the two parted at',
   'cv.recent': 'Recent',
+  'cv.showCommit': 'Show this commit on its own',
+  'cv.roleBase': 'From',
+  'cv.resizeLists': 'Drag to share the width',
+  'cv.roleSubject': 'what',
+  'cv.readingDiverged': (subject: string, base: string) => `What ${subject} has done since it left ${base}. ${base} itself is not described — it is the starting point.`,
+  'cv.readingEndpoints': (a: string, b: string) => `Everything that tells the two trees apart, ${a} on one side and ${b} on the other — whatever ${a} gained appears here as a deletion.`,
+  'cv.readingWorking': (base: string) => `What your working copy has that ${base} does not, uncommitted changes included.`,
+  'cv.backToComparison': 'Back to the comparison',
+  'cv.emptyLead': (target: string) => `${target} has done nothing since they parted.`,
+  'cv.emptyWhy': (other: string, n: number) => `${n === 1 ? 'The one commit listed is' : `The ${n} commits listed are`} on ${other}: this comparison measures what the other side did.`,
+  'cv.emptySwap': 'Compare the other way round',
   'cv.clearRecent': 'Clear',
 
   // InteractiveRebase (extras)
