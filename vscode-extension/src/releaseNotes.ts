@@ -16,6 +16,25 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🙈 Hide anything from the graph
+- A tag, a whole remote and the stash can be taken out of the view now, the way a branch already could — right-click the row, **Hide from Graph**.
+- Whole sections hide in one go: **Hide All from Graph** / **Show All in Graph** on the header of LOCAL, REMOTE, TAGS, REMOTES and STASH.
+- A section whose rows are hidden **says how many** on its header. Click the count to bring them all back.
+
+### ↩️ Restore a file to the version in a commit
+- Right-click it in a commit's file list. It asks first, then leaves the change **unstaged** — what you brought back is a diff you can read before you keep it, not something already staged.
+- A file that was deleted since comes back on disk.
+
+### 🌱 Start a branch from an issue
+- Right-click an issue in the GitHub panel. It suggests \`123-the-issue-title\`, you edit it or take it, and the branch is created, checked out and **linked to that issue**.
+- Linking a branch to an issue has existed since 1.21.0. This is the direction you actually reach for.
+
+### 🩹 Hiding a branch no longer takes your stashes with it
+- Hiding handed git the list of branches that remained — and a list of refs replaces \`--all\`, so every commit that only a tag or the stash reached disappeared with it. What you hide is now named and excluded instead.
+`,
+
   '1.28.3': `## What's new in 1.28.3
 
 ### 🩹 A short panel no longer goes blank

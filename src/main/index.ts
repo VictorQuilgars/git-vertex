@@ -679,7 +679,7 @@ ipcMain.handle('app:select-directory', async (_event, title?: string) => {
 })
 
 // ── IPC: Git read operations ───────────────────────────────────
-ipcMain.handle('git:get-log', async (_event, options: { maxCount?: number; all?: boolean } = {}) => {
+ipcMain.handle('git:get-log', async (_event, options: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] } = {}) => {
   if (!gitService) return { error: 'No repo open' }
   return gitService.getLog(options)
 })
@@ -1111,6 +1111,11 @@ ipcMain.handle('git:get-file-content', async (_event, filepath: string) => {
 ipcMain.handle('git:get-file-at-commit', async (_event, commitHash: string, filepath: string) => {
   if (!gitService) return { content: '', error: 'No repo open' }
   return gitService.getFileAtCommit(commitHash, filepath)
+})
+
+ipcMain.handle('git:restore-file', async (_event, commitHash: string, paths: string[]) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.restoreFileFromCommit(commitHash, paths)
 })
 
 ipcMain.handle('git:apply-patch', async (_event, patch: string, reverse: boolean) => {

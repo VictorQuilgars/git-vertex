@@ -188,7 +188,7 @@ export class GitService {
 
   // ── Read operations ────────────────────────────────────────────
 
-  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
+  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
     // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
@@ -199,9 +199,15 @@ export class GitService {
       `--max-count=${maxCount}`,
       '--date-order',
     ]
-    // Explicit refs (solo/hide branch filtering) take precedence over --all.
+    // Explicit refs (solo branch filtering) take precedence over --all. Hidden
+    // refs are excluded from --all instead, so that a commit a visible ref
+    // still reaches keeps its place — see the desktop service for the whole
+    // reasoning, this half must stay identical to it.
     if (options.refs && options.refs.length) args.push(...options.refs)
-    else if (options.all) args.push('--all')
+    else if (options.all) {
+      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
+      args.push('--all')
+    }
 
     const result = await this.git.raw(['log', ...args])
     const commits: CommitNode[] = []
@@ -1668,6 +1674,18 @@ exit 0
     const bad = this.assertRef(commitHash, 'commit hash'); if (bad) return { content: '', error: bad }
     try { return { content: await this.git.raw(['show', `${commitHash}:${filepath}`]) } }
     catch (e: any) { return { content: '', error: e.message } }
+  }
+
+  /**
+   * Put a file back the way it was at a commit — the twin of the desktop's.
+   * `restore --worktree`, so it lands as a pending change you can read rather
+   * than staged with the diff already hidden behind an unstage.
+   */
+  async restoreFileFromCommit(commitHash: string, paths: string[]): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(commitHash, 'commit hash'); if (bad) return { success: false, error: bad }
+    if (!paths.length) return { success: false, error: 'No file to restore' }
+    try { await this.git.raw(['restore', `--source=${commitHash}`, '--worktree', '--', ...paths]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
   }
 
   async markResolved(filepath: string): Promise<{ success: boolean; error?: string }> {

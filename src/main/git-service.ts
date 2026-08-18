@@ -203,7 +203,7 @@ export class GitService {
     }
   }
 
-  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
+  async getLog(options: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] } = {}): Promise<{ commits: CommitNode[] }> {
     // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
@@ -219,10 +219,15 @@ export class GitService {
       '--date-order', // children always before parents (like --topo-order), but sibling
                     // commits are sorted by commit date
     ]
-    // Explicit refs (for solo/mute branch filtering) take precedence over --all.
+    // Explicit refs (for solo branch filtering) take precedence over --all.
     if (options.refs && options.refs.length) {
       args.push(...options.refs)
     } else if (options.all) {
+      // Hidden refs are taken away from --all rather than replaced by a list of
+      // the visible ones: git keeps deciding what is reachable, so a commit a
+      // visible ref still reaches stays. --exclude only applies to the next
+      // ref-collecting option, hence immediately before --all and nowhere else.
+      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
       args.push('--all')
     }
 
@@ -1922,6 +1927,29 @@ exit 0
       return { content }
     } catch (e: any) {
       return { content: '', error: e.message }
+    }
+  }
+
+  /**
+   * Put a file back the way it was at a commit.
+   *
+   * `restore --worktree` and not `checkout <sha> -- <path>`: checkout writes
+   * the index as well, so the file comes back already staged and the only way
+   * to look at what you restored is to unstage it first. This lands as a
+   * pending change instead — a modification you can read in the diff before
+   * you keep it, or an untracked file when it had been deleted.
+   *
+   * The paths are passed after `--`, so a file called `-f` is a file.
+   */
+  async restoreFileFromCommit(commitHash: string, paths: string[]): Promise<{ success: boolean; error?: string }> {
+    const err = this.assertRef(commitHash, 'commit hash')
+    if (err) return { success: false, error: err }
+    if (!paths.length) return { success: false, error: 'No file to restore' }
+    try {
+      await this.git.raw(['restore', `--source=${commitHash}`, '--worktree', '--', ...paths])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
     }
   }
 

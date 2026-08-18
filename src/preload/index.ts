@@ -32,7 +32,7 @@ const gitAPI = {
   onDeepLink: (cb: (link: { repo: string; view: string; file?: string; hash?: string }) => void) =>
     subscribe('deeplink:open', (link) => cb(link)),
   // Read
-  getLog: (options?: { maxCount?: number; all?: boolean; refs?: string[] }) => ipcRenderer.invoke('git:get-log', options),
+  getLog: (options?: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] }) => ipcRenderer.invoke('git:get-log', options),
   getBranches: () => ipcRenderer.invoke('git:get-branches'),
   getDiff: (commitHash: string) => ipcRenderer.invoke('git:get-diff', commitHash),
   getCommitFiles: (commitHash: string) => ipcRenderer.invoke('git:get-commit-files', commitHash),
@@ -122,6 +122,7 @@ const gitAPI = {
   getConflictVersions: (filepath: string) => ipcRenderer.invoke('git:get-conflict-versions', filepath),
   getFileContent: (filepath: string) => ipcRenderer.invoke('git:get-file-content', filepath),
   getFileAtCommit: (commitHash: string, filepath: string) => ipcRenderer.invoke('git:get-file-at-commit', commitHash, filepath),
+  restoreFileFromCommit: (commitHash: string, paths: string[]) => ipcRenderer.invoke('git:restore-file', commitHash, paths),
   applyPatch: (patch: string, reverse: boolean) => ipcRenderer.invoke('git:apply-patch', patch, reverse),
   markResolved: (filepath: string) => ipcRenderer.invoke('git:mark-resolved', filepath),
   resolveConflict: (filepath: string, content: string) => ipcRenderer.invoke('git:resolve-conflict', filepath, content),

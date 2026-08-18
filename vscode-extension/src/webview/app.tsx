@@ -32,6 +32,11 @@ import PRModal from '../../../src/renderer/src/components/PRModal/PRModal'
 import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
+import { issueBranchName } from '../../../src/renderer/src/utils/issueBranch'
+import {
+  emptyVisibility, isRefHidden, logOptionsFor,
+  type GraphVisibility, type RefFamily,
+} from '../../../src/renderer/src/utils/graphVisibility'
 import CommitMsgEditorView from './CommitMsgEditorView'
 import WhatsNew from '../../../src/renderer/src/components/WhatsNew/WhatsNew'
 import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
@@ -73,7 +78,12 @@ function VertexApp() {
   const [stashes, setStashes] = useState<{ index: number; message: string }[]>([])
   const [tags, setTags] = useState<{ name: string; hash: string }[]>([])
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
-  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set())
+  // Hidden refs — branches, tags, remotes, the stash. Same model and same
+  // query builder as the desktop host: the two used to carry a copy each of
+  // the log-options logic, identical down to the `refs/` strip.
+  const [visibility, setVisibility] = useState<GraphVisibility>(emptyVisibility())
+  // The remotes, so `origin/x` reads as a remote branch and `feature/x` does not.
+  const [remoteNames, setRemoteNames] = useState<string[]>([])
   // Favorites / graph pins / linked issues (v1.21.0). The panel is always the
   // workspace repo, so the repo name is a stable enough storage key.
   const branchMeta = useBranchMeta(repoName || 'repo')
@@ -99,33 +109,30 @@ function VertexApp() {
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
   const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
   const isLoadingRef = useRef(false)
+  // A load asked for while another runs is remembered and re-run rather than
+  // dropped: for a background refresh the next watcher event would cover it,
+  // but a filter change has no next event — the graph would keep showing what
+  // you just hid.
+  const reloadQueued = useRef(false)
   const showAllRef = useRef(showAllBranches)
   showAllRef.current = showAllBranches
   const soloRef = useRef(soloBranch); soloRef.current = soloBranch
-  const hiddenRef = useRef(hiddenBranches); hiddenRef.current = hiddenBranches
+  const hiddenRef = useRef(visibility); hiddenRef.current = visibility
 
   // ── Data loading (mirrors desktop App.loadRepoData) ──────────
   // `silent` reloads (from file watchers) skip the loading flag so the toolbar
   // icons don't flicker on every background refresh.
   const loadRepoData = useCallback(async (silent = false) => {
-    if (isLoadingRef.current) return
+    if (isLoadingRef.current) { reloadQueued.current = true; return }
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
       const branchRes = await window.gitAPI.getBranches()
       // Solo (show one branch) / hide (hide some) drive an explicit refs list,
       // which takes precedence over --all in getLog.
-      const refForGit = (n: string) => n.replace(/^remotes\//, '')
-      let logOpts: { maxCount: number; all?: boolean; refs?: string[] } = { maxCount: 500, all: showAllRef.current }
-      if (soloRef.current) {
-        logOpts = { maxCount: 500, refs: [refForGit(soloRef.current)] }
-      } else if (hiddenRef.current.size > 0 && branchRes?.branches) {
-        const visible = branchRes.branches
-          .filter((b: BranchInfo) => !hiddenRef.current.has(b.name))
-          .map((b: BranchInfo) => refForGit(b.name))
-        logOpts = { maxCount: 500, refs: visible.length ? visible : ['HEAD'] }
-      }
-      const logRes = await window.gitAPI.getLog(logOpts)
+      const logRes = await window.gitAPI.getLog(logOptionsFor({
+        maxCount: 500, all: showAllRef.current, solo: soloRef.current, visibility: hiddenRef.current,
+      }))
       if (logRes?.commits) setCommits(logRes.commits)
       if (branchRes?.branches) {
         setBranches(branchRes.branches)
@@ -174,13 +181,20 @@ function VertexApp() {
       try {
         const rem = await window.gitAPI.getRemotes()
         const def = await window.gitAPI.getDefaultRemote?.().catch(() => null)
+        setRemoteNames((rem?.remotes ?? []).map((r: { name: string }) => r.name))
         setRemoteRepo(repoFromRemotes(rem?.remotes ?? [], def?.remote))
       } catch { setRemoteRepo(null) }
     } finally {
       isLoadingRef.current = false
       if (!silent) setLoading(false)
+      if (reloadQueued.current) {
+        reloadQueued.current = false
+        void loadRepoDataRef.current?.(true)
+      }
     }
   }, [])
+  const loadRepoDataRef = useRef<((silent?: boolean) => Promise<void>) | null>(null)
+  loadRepoDataRef.current = loadRepoData
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
 
@@ -459,6 +473,28 @@ function VertexApp() {
     showToast(t('toast.linkCopied'))
   }, [showToast, remoteRepo])
 
+  // The reverse of associating an issue with a branch — the direction people
+  // actually reach for. The suggested name is a suggestion; what is typed wins.
+  const handleCreateBranchFromIssue = useCallback(async (issue: { number: number; title: string; url: string }) => {
+    const name = await showPrompt(t('gh.issue.branchPrompt', issue.number), issueBranchName(issue.number, issue.title))
+    if (!name) return
+    const r = await window.gitAPI.createBranch(name)
+    if (!r?.success) { showToast(r?.error ?? t('toast.branchFailed'), 'err'); return }
+    branchMeta.setIssue(name, { number: issue.number, title: issue.title, url: issue.url })
+    showToast(t('toast.branchFromIssue', name, issue.number))
+    loadRepoData()
+  }, [showPrompt, showToast, loadRepoData, branchMeta])
+
+  // Same as the desktop: it asks, then leaves the change pending rather than
+  // staged, so what you restored can be read before you keep it.
+  const handleRestoreFile = useCallback(async (hash: string, filePath: string) => {
+    const ok = await showConfirm(t('confirm.restoreFile', filePath, hash.slice(0, 7)))
+    if (!ok) return
+    const r = await window.gitAPI.restoreFileFromCommit(hash, [filePath])
+    if (r?.success) { showToast(t('toast.fileRestored', filePath)); loadRepoData(true) }
+    else showToast(r?.error ?? t('toast.restoreFailed'), 'err')
+  }, [showConfirm, showToast, loadRepoData])
+
   const handleOpenBranchesOnRemote = useCallback(() => {
     if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
     window.gitAPI.openExternal(remoteUrl.branches(remoteRepo))
@@ -592,10 +628,38 @@ function VertexApp() {
     setSoloBranch(prev => { const next = prev === name ? null : name; soloRef.current = next; return next })
     setTimeout(() => loadRepoData(), 0)
   }, [loadRepoData])
-  const handleToggleHide = useCallback((name: string) => {
-    setHiddenBranches(prev => {
-      const next = new Set(prev)
-      if (next.has(name)) next.delete(name); else next.add(name)
+  /** Toggle one hidden ref, leaving the rest of the visibility alone. */
+  const toggleHidden = useCallback((kind: 'branches' | 'tags' | 'remotes', name: string) => {
+    setVisibility(prev => {
+      const set = new Set(prev[kind])
+      if (set.has(name)) set.delete(name); else set.add(name)
+      const next = { ...prev, [kind]: set }
+      hiddenRef.current = next
+      return next
+    })
+    setTimeout(() => loadRepoData(), 0)
+  }, [loadRepoData])
+  const handleToggleHide = useCallback((name: string) => toggleHidden('branches', name), [toggleHidden])
+
+  // "Hide all" is one flag rather than N marked rows; "Show all" clears it and
+  // the rows hidden one by one, which is what the section's chip promises.
+  const handleSetFamilyHidden = useCallback((family: RefFamily, hidden: boolean) => {
+    setVisibility(prev => {
+      const families = new Set(prev.families)
+      if (hidden) families.add(family); else families.delete(family)
+      let next: GraphVisibility = { ...prev, families }
+      if (!hidden) {
+        if (family === 'tags') next = { ...next, tags: new Set() }
+        if (family === 'remotes') next = {
+          ...next,
+          remotes: new Set(),
+          branches: new Set([...prev.branches].filter(b => !b.startsWith('remotes/'))),
+        }
+        if (family === 'branches') next = {
+          ...next,
+          branches: new Set([...prev.branches].filter(b => b.startsWith('remotes/'))),
+        }
+      }
       hiddenRef.current = next
       return next
     })
@@ -752,7 +816,7 @@ function VertexApp() {
     pr: currentBranchPR,
     menuState: {
       soloed: soloBranch === currentBranch,
-      hidden: hiddenBranches.has(currentBranch),
+      hidden: isRefHidden(currentBranch, visibility, remoteNames),
       favorite: branchMeta.isFavorite(currentBranch),
     },
     menuActions: {
@@ -813,7 +877,7 @@ function VertexApp() {
         isFavorite={branchMeta.isFavorite}
         issueFor={branchMeta.issueFor}
         soloBranch={soloBranch}
-        hiddenBranches={hiddenBranches}
+        hiddenBranches={visibility.branches}
         pr={currentBranchPR}
         onCreatePR={handleStartPR}
       />
@@ -888,9 +952,12 @@ function VertexApp() {
             onSelectCommit={handleSelectCommitByHash}
             onCompareBranch={(name: string) => window.gitAPI.openCompare(currentBranch, name)}
             soloBranch={soloBranch}
-            hiddenBranches={hiddenBranches}
+            visibility={visibility}
             onToggleSolo={handleToggleSolo}
             onToggleHide={handleToggleHide}
+            onToggleHideTag={(name: string) => toggleHidden('tags', name)}
+            onToggleHideRemote={(name: string) => toggleHidden('remotes', name)}
+            onSetFamilyHidden={handleSetFamilyHidden}
             onFetch={handleFetch}
             onPull={handlePull}
             isFavorite={branchMeta.isFavorite}
@@ -913,6 +980,8 @@ function VertexApp() {
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph
             commits={commits}
+            visibility={visibility}
+            remoteNames={remoteNames}
             selectedHash={selectedCommit?.hash ?? null}
             onSelectCommit={c => setSelectedCommit(prev => prev?.hash === c.hash ? null : c)}
             searchQuery={searchQuery}
@@ -1002,6 +1071,7 @@ function VertexApp() {
                 onRewordMessage={applyReword}
                 onOpenFileOnRemote={handleOpenFileOnRemote}
                 onCopyFileLink={handleCopyFileLink}
+                onRestoreFile={handleRestoreFile}
                 branchStrip={branchStripProps}
               />
             </div>
@@ -1113,7 +1183,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 : boot?.mode === 'compareWorking' && boot.hash
                   ? <CompareWorkingView hash={boot.hash} />
                 : boot?.mode === 'github'
-                  ? <GitHubPanel repoPath="." />
+                  ? <GitHubPanel repoPath="." onCreateBranchFromIssue={handleCreateBranchFromIssue} />
                   : boot?.mode === 'rebase'
                     ? <RebaseProgress />
                     : boot?.mode === 'todo'

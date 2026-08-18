@@ -5,6 +5,7 @@ import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { publishedNameFor } from '../ContextMenu/branchRefs'
+import { isRefHidden, type GraphVisibility, type RefFamily } from '../../utils/graphVisibility'
 import { useLang } from '../../i18n/LanguageContext'
 import './Sidebar.css'
 import { Brand } from '../BrandMark/BrandMark'
@@ -67,9 +68,28 @@ interface SidebarProps {
   onSelectCommit: (hash: string) => void
   onCompareBranch: (branchName: string) => void
   soloBranch: string | null
-  hiddenBranches: Set<string>
+  /**
+   * Everything hidden from the graph — branches, tags, remotes, and the
+   * families hidden wholesale. One object rather than a set per kind: the host
+   * builds the log query from the same value, and two sources of truth for
+   * "what is hidden" would drift the moment one of them gained an entry.
+   */
+  visibility: GraphVisibility
   onToggleSolo: (name: string) => void
   onToggleHide: (name: string) => void
+  // Hiding beyond branches. Omitted ⇒ the matching menu rows disappear, which
+  // is how a host that has not wired them avoids offering a dead action.
+  onToggleHideTag?: (name: string) => void
+  onToggleHideRemote?: (name: string) => void
+  /**
+   * "Hide all" / "Show all" for a whole family — the group action.
+   *
+   * Hiding sets one flag rather than marking the N rows on screen, so a branch
+   * pushed after the fact is hidden too. Showing clears that flag *and* the
+   * rows hidden one by one, which is what someone reaching for "Show all"
+   * means and what the section's chip promises.
+   */
+  onSetFamilyHidden?: (family: RefFamily, hidden: boolean) => void
   // Pull for the checked-out branch. Fetch is deliberately absent: it acts on
   // the repo, not on the branch you right-clicked, and lives on the toolbar.
   onPull?: () => void
@@ -103,7 +123,7 @@ interface SidebarProps {
 }
 
 // ── Collapse section ─────────────────────────────────────────────
-function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }: {
+function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll }: {
   title: string
   count?: number
   children: React.ReactNode
@@ -112,15 +132,37 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }
   // (the stash one offers a scope) instead of acting straight away.
   onAdd?: (e: React.MouseEvent) => void
   addLabel?: string
+  // Actions that act on everything the section lists — hide all, show all.
+  // Right-click on the header, like every other menu here.
+  menuItems?: MenuItemDef[]
+  // How many of the rows are hidden from the graph. Above zero the header
+  // carries a chip that says so and restores them: the group actions live in a
+  // menu nobody thinks to open, and a section quietly filtering the graph with
+  // nothing on screen to say so is how you end up mistrusting the graph.
+  hiddenCount?: number
+  onShowAll?: () => void
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
   return (
     <div className="sb-section">
-      <div className="sb-section-header" onClick={() => setOpen(o => !o)}>
+      <div className="sb-section-header"
+        onClick={() => setOpen(o => !o)}
+        onContextMenu={menuItems?.length
+          ? e => { e.preventDefault(); e.stopPropagation(); setCtx({ x: e.clientX, y: e.clientY }) }
+          : undefined}
+      >
         <Icon name="play" size={10} />
         <span className="sb-section-title">{title}</span>
         {count !== undefined && <span className="sb-section-count">{count}</span>}
+        {!!hiddenCount && onShowAll && (
+          <button className="sb-section-hidden" title={t('sb.hidden.chipTitle', hiddenCount)}
+            onClick={e => { e.stopPropagation(); onShowAll() }}>
+            <Icon name="eyeOff" size={11} />
+            {hiddenCount}
+          </button>
+        )}
         {onAdd && (
           <button className="sb-add-btn" title={addLabel ?? t('sb.add')}
             onClick={e => { e.stopPropagation(); onAdd(e) }}>
@@ -129,6 +171,9 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel }
         )}
       </div>
       {open && <div className="sb-section-body">{children}</div>}
+      {ctx && !!menuItems?.length && (
+        <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
+      )}
     </div>
   )
 }
@@ -264,13 +309,20 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
 }
 
 // ── Stash item ────────────────────────────────────────────────────
-function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename }: {
+function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, hidden }: {
   stash: StashEntry
   onApply: () => void
   onPop: () => void
   onDrop: () => void
   onPreview?: () => void
   onRename?: () => void
+  /**
+   * Dimmed, but with no row action to undo it: the entries of `git stash list`
+   * are the reflog of a single ref, `refs/stash`, so git can take all of them
+   * out of the graph or none. Hiding lives on the section, and offering it per
+   * row would promise something git cannot do.
+   */
+  hidden?: boolean
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -288,7 +340,7 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename }: {
   return (
     <>
       <div
-        className="sb-stash-item"
+        className={`sb-stash-item${hidden ? ' is-hidden' : ''}`}
         onClick={onPreview}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={onPreview ? t('sb.stash.title', stash.message) : stash.message}
@@ -305,13 +357,15 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename }: {
 }
 
 // ── Tag item ──────────────────────────────────────────────────────
-function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote }: {
+function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemote, hidden, onToggleHide }: {
   tag: TagEntry
   /** Double-click: take me here, landing on a branch. Never detaches HEAD. */
   onGoTo?: () => void
   /** Menu only: check out the COMMIT the tag points at, detaching HEAD. */
   onCheckoutCommit?: () => void
   onDelete: () => void; onPush: () => void; onDeleteRemote: () => void
+  hidden?: boolean
+  onToggleHide?: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -324,6 +378,11 @@ function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemo
     ...(onCheckoutCommit ? [{ label: t('sb.tag.checkoutCommit'), action: onCheckoutCommit }] : []),
     { label: t('sb.copyName'), action: () => navigator.clipboard.writeText(tag.name) },
     { label: t('sb.tag.push'), action: onPush },
+    ...(onToggleHide ? [{
+      label: hidden ? t('sb.tag.show') : t('sb.tag.hide'),
+      action: onToggleHide,
+      checked: !!hidden,
+    }] : []),
     { separator: true },
     { label: t('sb.tag.deleteLocal'), action: onDelete, danger: true },
     { label: t('sb.tag.deleteRemote'), action: onDeleteRemote, danger: true },
@@ -348,13 +407,14 @@ function TagItem({ tag, onGoTo, onCheckoutCommit, onDelete, onPush, onDeleteRemo
   return (
     <>
       <div
-        className="sb-tag-item"
+        className={`sb-tag-item${hidden ? ' is-hidden' : ''}`}
         onMouseDown={handleMouseDown}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={onGoTo ? t('sb.tag.hint', tag.name, tag.hash) : `${tag.name} → ${tag.hash}`}
       >
         <Icon name="tag" size={13} className="sb-tag-icon" />
         <span className="sb-tag-name">{tag.name}</span>
+        {hidden && <span className="sb-row-flag" title={t('sb.hidden.flag')}>⊘</span>}
         <code className="sb-tag-hash">{tag.hash}</code>
       </div>
       {ctx && (
@@ -380,7 +440,7 @@ function ReflogItem({ entry, onSelect }: { entry: ReflogEntry; onSelect: () => v
 
 // ── Remote item ───────────────────────────────────────────────────
 function RemoteItem({
-  remote, isDefault, onSetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl
+  remote, isDefault, onSetDefault, onFetch, onPrune, onRename, onRemove, onCopyUrl, hidden, onToggleHide
 }: {
   remote: RemoteEntry
   isDefault: boolean
@@ -390,6 +450,9 @@ function RemoteItem({
   onRename: () => void
   onRemove: () => void
   onCopyUrl: () => void
+  /** Hidden here means all of this remote's branches are out of the graph. */
+  hidden?: boolean
+  onToggleHide?: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -400,6 +463,11 @@ function RemoteItem({
     { label: t('sb.remote.setDefault'), action: onSetDefault, checked: isDefault },
     { label: t('sb.remote.copyUrl'), action: onCopyUrl },
     { label: t('sb.rename'), action: onRename },
+    ...(onToggleHide ? [{
+      label: hidden ? t('sb.remote.show') : t('sb.remote.hide'),
+      action: onToggleHide,
+      checked: !!hidden,
+    }] : []),
     { separator: true },
     { label: t('sb.delete'), action: onRemove, danger: true },
   ]
@@ -407,7 +475,7 @@ function RemoteItem({
   return (
     <>
       <div
-        className="sb-remote-item"
+        className={`sb-remote-item${hidden ? ' is-hidden' : ''}`}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={remote.fetchUrl}
       >
@@ -416,6 +484,7 @@ function RemoteItem({
           <span className="sb-remote-name">
             {remote.name}
             {isDefault && <span className="sb-remote-default" title={t('sb.remote.defaultFlag')}>{t('sb.remote.defaultBadge')}</span>}
+            {hidden && <span className="sb-row-flag" title={t('sb.hidden.flag')}>⊘</span>}
           </span>
           <span className="sb-remote-url">{remote.fetchUrl}</span>
         </div>
@@ -528,7 +597,8 @@ export default function Sidebar({
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
-  soloBranch, hiddenBranches, onToggleSolo, onToggleHide,
+  soloBranch, visibility, onToggleSolo, onToggleHide,
+  onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
@@ -749,6 +819,27 @@ export default function Sidebar({
     .filter(b => !b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
     .sort((a, b) => Number(isFavorite?.(b.name) ?? false) - Number(isFavorite?.(a.name) ?? false))
+  // ── What each section hides from the graph ────────────────────
+  // A row is hidden in its own right or because its family is; the count on a
+  // section header has to say both, or "Hide all tags" would leave every tag
+  // looking visible.
+  // `getBranches` names a remote branch `remotes/origin/x`, which is the one
+  // decoration form isRefHidden reads without being told the remotes — so the
+  // rule that decides a chip decides a row, rather than a second copy of it.
+  const branchHidden = (b: BranchInfo) => isRefHidden(b.name, visibility)
+  const tagHidden = (name: string) => visibility.families.has('tags') || visibility.tags.has(name)
+  const remoteHidden = (name: string) => visibility.families.has('remotes') || visibility.remotes.has(name)
+  const stashesHidden = visibility.families.has('stashes')
+  const familyMenu = (family: RefFamily): MenuItemDef[] | undefined => onSetFamilyHidden && [
+    {
+      label: t('sb.hidden.hideAll'),
+      action: () => onSetFamilyHidden(family, true),
+      checked: visibility.families.has(family),
+    },
+    { label: t('sb.hidden.showAll'), action: () => onSetFamilyHidden(family, false) },
+  ]
+  const showAll = (family: RefFamily) => onSetFamilyHidden && (() => onSetFamilyHidden(family, false))
+
   const remoteBranches = branches
     .filter(b => b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
@@ -878,7 +969,10 @@ export default function Sidebar({
 
           {/* LOCAL (also shown in the overview "current work" home) */}
           {(show('branches') || view === 'overview') && (
-          <Section title="LOCAL" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}>
+          <Section title="LOCAL" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
+            menuItems={familyMenu('branches')}
+            hiddenCount={localBranches.filter(branchHidden).length}
+            onShowAll={showAll('branches')}>
             {localBranches.length === 0 && <div className="sb-empty">{t('sb.noLocalBranch')}</div>}
             {localBranches.map(b => (
               <BranchItem
@@ -896,7 +990,7 @@ export default function Sidebar({
                 onSetUpstream={() => onSetUpstream(b.name)}
                 onPull={b.current ? onPull : undefined}
                 soloed={soloBranch === b.name}
-                hidden={hiddenBranches.has(b.name)}
+                hidden={branchHidden(b)}
                 onToggleSolo={() => onToggleSolo(b.name)}
                 onToggleHide={() => onToggleHide(b.name)}
                 favorite={isFavorite?.(b.name)}
@@ -926,7 +1020,10 @@ export default function Sidebar({
 
           {/* REMOTE */}
           {show('branches') && remoteBranches.length > 0 && (
-            <Section title="REMOTE" count={remoteBranches.length} defaultOpen={single}>
+            <Section title="REMOTE" count={remoteBranches.length} defaultOpen={single}
+              menuItems={familyMenu('remotes')}
+              hiddenCount={remoteBranches.filter(branchHidden).length}
+              onShowAll={showAll('remotes')}>
               {remoteBranches.map(b => (
                 <BranchItem
                   key={b.name}
@@ -938,7 +1035,7 @@ export default function Sidebar({
                   onCheckout={() => onGoTo(b.name)}
                   onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
                   soloed={soloBranch === b.name}
-                  hidden={hiddenBranches.has(b.name)}
+                  hidden={branchHidden(b)}
                   onToggleSolo={() => onToggleSolo(b.name)}
                   onToggleHide={() => onToggleHide(b.name)}
                   favorite={isFavorite?.(b.name)}
@@ -956,7 +1053,10 @@ export default function Sidebar({
           {/* TAGS */}
           {show('tags') && (
           <Section title="TAGS" count={tags.length} defaultOpen={single}
-            onAdd={onCreateTag} addLabel={t('sb.newTag')}>
+            onAdd={onCreateTag} addLabel={t('sb.newTag')}
+            menuItems={familyMenu('tags')}
+            hiddenCount={tags.filter(tg => tagHidden(tg.name)).length}
+            onShowAll={showAll('tags')}>
             {tags.length === 0
               ? <div className="sb-empty">{t('sb.noTag')}</div>
               : tags.map(t => (
@@ -964,7 +1064,9 @@ export default function Sidebar({
                     onGoTo={() => onGoTo(t.name)}
                     onCheckoutCommit={() => onCheckoutTag(t.name)}
                     onDelete={() => onDeleteTag(t.name)}
-                    onPush={() => onPushTag(t.name)} onDeleteRemote={() => onDeleteRemoteTag(t.name)} />
+                    onPush={() => onPushTag(t.name)} onDeleteRemote={() => onDeleteRemoteTag(t.name)}
+                    hidden={tagHidden(t.name)}
+                    onToggleHide={onToggleHideTag && (() => onToggleHideTag(t.name))} />
                 ))
             }
           </Section>
@@ -973,7 +1075,10 @@ export default function Sidebar({
           {/* REMOTES */}
           {show('remotes') && (
           <Section title="REMOTES" count={remotes.length} defaultOpen={single}
-            onAdd={handleAddRemote} addLabel={t('sb.addRemote')}>
+            onAdd={handleAddRemote} addLabel={t('sb.addRemote')}
+            menuItems={familyMenu('remotes')}
+            hiddenCount={remotes.filter(r => remoteHidden(r.name)).length}
+            onShowAll={showAll('remotes')}>
             {remotes.length === 0
               ? <div className="sb-empty">{t('sb.noRemote')}</div>
               : remotes.map(r => (
@@ -987,6 +1092,8 @@ export default function Sidebar({
                     onRename={() => handleRenameRemote(r.name)}
                     onRemove={() => handleRemoveRemote(r.name)}
                     onCopyUrl={() => navigator.clipboard.writeText(r.fetchUrl)}
+                    hidden={remoteHidden(r.name)}
+                    onToggleHide={onToggleHideRemote && (() => onToggleHideRemote(r.name))}
                   />
                 ))
             }
@@ -1054,6 +1161,9 @@ export default function Sidebar({
               setStashMenu({ x: r.left, y: r.bottom + 4 })
             }}
             addLabel={t('sb.stash.create')}
+            menuItems={familyMenu('stashes')}
+            hiddenCount={stashesHidden ? stashes.length : 0}
+            onShowAll={showAll('stashes')}
           >
             {stashes.length === 0
               ? <div className="sb-empty">{t('sb.noStash')}</div>
@@ -1066,6 +1176,7 @@ export default function Sidebar({
                     onDrop={() => onDropStash(s.index)}
                     onPreview={onPreviewStash ? () => onPreviewStash(s.index, s.message) : undefined}
                     onRename={() => handleRenameStash(s.index, s.message)}
+                    hidden={stashesHidden}
                   />
                 ))
             }

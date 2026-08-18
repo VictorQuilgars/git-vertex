@@ -26,6 +26,11 @@ import ThemeGallery from './components/ThemeGallery/ThemeGallery'
 import RepoManager from './components/RepoManager/RepoManager'
 import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
 import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
+import { issueBranchName } from './utils/issueBranch'
+import {
+  emptyVisibility, isRefHidden, logOptionsFor,
+  type GraphVisibility, type RefFamily,
+} from './utils/graphVisibility'
 import InitModal from './components/InitModal/InitModal'
 import PRModal from './components/PRModal/PRModal'
 import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
@@ -275,10 +280,46 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [searchMatches, setSearchMatches] = useState(-1)
   const [showAllBranches, setShowAllBranches] = useState<boolean>(true)
-  // Solo/hide branch filtering for the graph. Solo shows only one branch;
-  // hidden branches are excluded from the --all view.
+  // Solo/hide filtering for the graph. Solo shows only one branch; everything
+  // else hidden — branches, tags, remotes, the stash — is taken away from the
+  // --all view by name. In memory only: it is a view of this session, and a
+  // hidden ref that survived a restart would be a graph lying to you on
+  // opening, with the thing that explains it three clicks away.
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
-  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set())
+  const [visibility, setVisibility] = useState<GraphVisibility>(emptyVisibility())
+  // The remotes, so `origin/x` can be told from a local `feature/x` when the
+  // graph decides which chips a hidden remote takes with it.
+  const [remoteNames, setRemoteNames] = useState<string[]>([])
+
+  /** Toggle one entry of one set, leaving the rest of the visibility alone. */
+  const toggleHidden = useCallback((kind: 'branches' | 'tags' | 'remotes', name: string) => {
+    setVisibility(prev => {
+      const next = new Set(prev[kind])
+      next.has(name) ? next.delete(name) : next.add(name)
+      return { ...prev, [kind]: next }
+    })
+  }, [])
+
+  // "Hide all" is one flag, not N marked rows: a branch pushed afterwards is
+  // hidden too. "Show all" clears the flag *and* the rows hidden one by one,
+  // which is what the section chip promises when it says how many are gone.
+  const setFamilyHidden = useCallback((family: RefFamily, hidden: boolean) => {
+    setVisibility(prev => {
+      const families = new Set(prev.families)
+      hidden ? families.add(family) : families.delete(family)
+      if (hidden) return { ...prev, families }
+      const cleared: Partial<GraphVisibility> = { families }
+      if (family === 'tags') cleared.tags = new Set()
+      if (family === 'remotes') {
+        cleared.remotes = new Set()
+        cleared.branches = new Set([...prev.branches].filter(b => !b.startsWith('remotes/')))
+      }
+      if (family === 'branches') {
+        cleared.branches = new Set([...prev.branches].filter(b => b.startsWith('remotes/')))
+      }
+      return { ...prev, ...cleared }
+    })
+  }, [])
   // Favorites / graph pins / linked issues, per repo (v1.21.0).
   const branchMeta = useBranchMeta(repoPath)
   const [issueModalBranch, setIssueModalBranch] = useState<string | null>(null)
@@ -453,26 +494,39 @@ export default function App() {
 
   // ── Load repo data ─────────────────────────────────────────
   const isLoadingRef = React.useRef(false)
+  // A load that arrives while another is running used to be dropped and never
+  // retried. That is invisible for a refresh — the next file-watcher event
+  // covers it — but not for a filter: hiding a ref would leave the graph
+  // showing it until something else happened to trigger a reload.
+  const reloadQueued = React.useRef(false)
+  // The filter is read through refs rather than from the closure, so a load
+  // always queries with the filter the user can see, whichever callback started
+  // it. This mattered urgently while the watcher's subscriptions leaked — what
+  // fired was an accumulation of stale handlers, which is how this was found —
+  // and that leak is fixed (v1.30.2, the preload hands back its unsubscribe).
+  // It stays because it also keeps loadRepoData's identity stable across a hide
+  // or a solo: the effect below re-registers on every change of it, and a
+  // subscription that is torn down and rebuilt four times a second is worth
+  // avoiding whether or not the teardown works.
+  const visibilityRef = React.useRef(visibility); visibilityRef.current = visibility
+  const soloRef = React.useRef(soloBranch); soloRef.current = soloBranch
+  const showAllRef = React.useRef(showAllBranches); showAllRef.current = showAllBranches
 
   const loadRepoData = useCallback(async (silent = false) => {
     if (!repoPath) return
-    if (isLoadingRef.current) return   // prevent concurrent executions
+    if (isLoadingRef.current) { reloadQueued.current = true; return }
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
-      // Branches first so we can compute solo/hide refs for the log query.
+      // Branches are still read first: the sidebar needs them, and the log
+      // query is built from the visibility state rather than from them.
       const branchRes = await window.gitAPI.getBranches()
-      const refForGit = (n: string) => n.replace(/^remotes\//, '')
-      let logOpts: { maxCount: number; all?: boolean; refs?: string[] } = { maxCount: 500, all: showAllBranches }
-      if (soloBranch) {
-        logOpts = { maxCount: 500, refs: [refForGit(soloBranch)] }
-      } else if (hiddenBranches.size > 0 && branchRes.branches) {
-        const visible = branchRes.branches
-          .filter((b: BranchInfo) => !hiddenBranches.has(b.name))
-          .map((b: BranchInfo) => refForGit(b.name))
-        logOpts = { maxCount: 500, refs: visible.length ? visible : ['HEAD'] }
-      }
-      const logRes = await window.gitAPI.getLog(logOpts)
+      const logRes = await window.gitAPI.getLog(logOptionsFor({
+        maxCount: 500,
+        all: showAllRef.current,
+        solo: soloRef.current,
+        visibility: visibilityRef.current,
+      }))
       if (logRes.commits) setCommits(logRes.commits)
       if (branchRes.branches) {
         setBranches(branchRes.branches)
@@ -500,10 +554,27 @@ export default function App() {
     } finally {
       if (!silent) setLoading(false)
       isLoadingRef.current = false
+      if (reloadQueued.current) {
+        reloadQueued.current = false
+        void loadRepoDataRef.current?.(true)
+      }
     }
-  }, [repoPath, showAllBranches, soloBranch, hiddenBranches, loadStashes, loadTags])
+  }, [repoPath, loadStashes, loadTags])
+  // Re-entry after a queued load, without making loadRepoData depend on itself.
+  const loadRepoDataRef = React.useRef(loadRepoData); loadRepoDataRef.current = loadRepoData
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
+
+  // The filter changed — reload with it. Separate from the effect above so
+  // that loadRepoData keeps a stable identity across a hide or a solo: every
+  // change of its identity re-registers the file watcher, and those
+  // registrations accumulate.
+  const filterFirstRun = React.useRef(true)
+  useEffect(() => {
+    if (filterFirstRun.current) { filterFirstRun.current = false; return }
+    loadRepoData(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibility, soloBranch, showAllBranches])
 
   // GitHub profile (for the top-bar profile chip). Refresh after OAuth too.
   useEffect(() => {
@@ -685,6 +756,7 @@ export default function App() {
     // every link below is built from, and the only thing that knows the host.
     const rem = await window.gitAPI.getRemotes().catch(() => ({ remotes: [] }))
     const def = await (window.gitAPI as any).getDefaultRemote?.().catch(() => null)
+    setRemoteNames((rem?.remotes ?? []).map((r: { name: string }) => r.name))
     const parsed = repoFromRemotes(rem?.remotes ?? [], def?.remote)
     setRemoteRepo(parsed)
     setGithubRepoUrl(parsed ? remoteUrl.repo(parsed) : null)
@@ -1536,6 +1608,31 @@ export default function App() {
     showToast(t('toast.linkCopied'))
   }
 
+  // The other direction of the v1.21.0 issue link, and the one people reach
+  // for: you pick up an issue and you need a branch for it. The suggested name
+  // is only a suggestion — what is typed wins — and the link is written for
+  // the branch that was actually created, not for the one we proposed.
+  const handleCreateBranchFromIssue = async (issue: { number: number; title: string; url: string }) => {
+    const name = await showPrompt(t('gh.issue.branchPrompt', issue.number), issueBranchName(issue.number, issue.title))
+    if (!name) return
+    const r = await window.gitAPI.createBranch(name)
+    if (!r.success) { showToast(r.error ?? t('toast.branchFailed'), 'err'); return }
+    branchMeta.setIssue(name, { number: issue.number, title: issue.title, url: issue.url })
+    showToast(t('toast.branchFromIssue', name, issue.number))
+    loadRepoData()
+  }
+
+  // Restoring writes over the working copy, so it asks first — and it lands as
+  // a pending change rather than a staged one, which is what makes "I did not
+  // mean that" a diff you can read instead of an unstage.
+  const handleRestoreFile = async (hash: string, filePath: string) => {
+    const ok = await showConfirm(t('confirm.restoreFile', filePath, hash.slice(0, 7)), true)
+    if (!ok) return
+    const r = await window.gitAPI.restoreFileFromCommit(hash, [filePath])
+    if (r.success) { showToast(t('toast.fileRestored', filePath)); loadRepoData(true) }
+    else showToast(r.error ?? t('toast.restoreFailed'), 'err')
+  }
+
   const handleOpenBranchesOnRemote = () => {
     if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
     window.gitAPI.openExternal(remoteUrl.branches(remoteRepo))
@@ -1566,7 +1663,7 @@ export default function App() {
       {
         currentBranch,
         soloed: soloBranch === ref,
-        hidden: hiddenBranches.has(ref),
+        hidden: isRefHidden(ref, visibility, remoteNames),
         favorite: branchMeta.isFavorite(ref),
         issue: branchMeta.issueFor(ref),
       },
@@ -1583,11 +1680,7 @@ export default function App() {
         onAssociateIssue: () => setIssueModalBranch(ref),
         onToggleFavorite: () => branchMeta.toggleFavorite(ref),
         onToggleSolo: () => setSoloBranch(prev => prev === ref ? null : ref),
-        onToggleHide: () => setHiddenBranches(prev => {
-          const next = new Set(prev)
-          next.has(ref) ? next.delete(ref) : next.add(ref)
-          return next
-        }),
+        onToggleHide: () => toggleHidden('branches', ref),
         onCopyName: () => navigator.clipboard.writeText(target.display),
         onCopyLink: () => handleCopyBranchLink(ref),
         onRename: () => handleRenameBranch(ref),
@@ -1599,7 +1692,7 @@ export default function App() {
       extras
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branches, currentBranch, soloBranch, hiddenBranches, branchMeta, prIntentFor, githubOwnerRepo, t])
+  }, [branches, currentBranch, soloBranch, visibility, remoteNames, branchMeta, prIntentFor, githubOwnerRepo, t])
 
   // Branch strip above the staging file list (v1.22.0) — same actions as the
   // toolbar and the ⋮ menu, just brought next to the files they apply to.
@@ -1618,7 +1711,7 @@ export default function App() {
     },
     menuState: {
       soloed: soloBranch === currentBranch,
-      hidden: hiddenBranches.has(currentBranch),
+      hidden: isRefHidden(currentBranch, visibility, remoteNames),
       favorite: branchMeta.isFavorite(currentBranch),
     },
     menuActions: {
@@ -2177,15 +2270,12 @@ export default function App() {
               }}
               onCompareBranch={(name) => setCompareBranchModal(name)}
               soloBranch={soloBranch}
-              hiddenBranches={hiddenBranches}
+              visibility={visibility}
               onToggleSolo={(name) => { setSoloBranch(prev => prev === name ? null : name) }}
-              onToggleHide={(name) => {
-                setHiddenBranches(prev => {
-                  const next = new Set(prev)
-                  next.has(name) ? next.delete(name) : next.add(name)
-                  return next
-                })
-              }}
+              onToggleHide={(name) => toggleHidden('branches', name)}
+              onToggleHideTag={(name) => toggleHidden('tags', name)}
+              onToggleHideRemote={(name) => toggleHidden('remotes', name)}
+              onSetFamilyHidden={setFamilyHidden}
               onPull={handlePull}
               isFavorite={branchMeta.isFavorite}
               issueFor={branchMeta.issueFor}
@@ -2202,7 +2292,7 @@ export default function App() {
             />
           )}
           {activeView === 'github' && (
-            <GitHubPanel repoPath={repoPath} />
+            <GitHubPanel repoPath={repoPath} onCreateBranchFromIssue={handleCreateBranchFromIssue} />
           )}
         </div>
         )}
@@ -2340,6 +2430,8 @@ export default function App() {
           ) : (
             <CommitGraph
               commits={commits}
+              visibility={visibility}
+              remoteNames={remoteNames}
               selectedHash={selectedCommit?.hash ?? null}
               onSelectCommit={c => { setCenterDiff(null); setSelectedCommit(prev => prev?.hash === c.hash ? null : c) }}
               searchQuery={aiSearch ? '' : searchQuery}
@@ -2414,6 +2506,7 @@ export default function App() {
                 githubRepo={githubOwnerRepo}
                 onOpenFileOnRemote={handleOpenFileOnRemote}
                 onCopyFileLink={handleCopyFileLink}
+                onRestoreFile={handleRestoreFile}
                 onRewordMessage={applyReword}
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}

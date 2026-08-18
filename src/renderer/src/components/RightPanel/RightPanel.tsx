@@ -381,7 +381,7 @@ function formatPath(path: string): { dir: string; name: string } {
 const MIN_MSG_H = 48
 const MAX_MSG_H = 400
 
-function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast, onOpenFileOnRemote, onCopyFileLink }: {
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast, onOpenFileOnRemote, onCopyFileLink, onRestoreFile }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
   wipCount?: number
@@ -396,6 +396,8 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   // this lot exists to delete. Omitted ⇒ the menu rows simply do not appear.
   onOpenFileOnRemote?: (hash: string, filePath: string) => void
   onCopyFileLink?: (hash: string, filePath: string) => void
+  /** Put this file back the way it was at this commit. Asks first. */
+  onRestoreFile?: (hash: string, filePath: string) => void
   /**
    * Apply a message to a commit that is NOT the tip — a replay of everything
    * after it. The host owns it because it is a rebase: loading state, conflict
@@ -791,6 +793,15 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                   action: () => onCopyFileLink(commit.hash, fileMenu.path),
                 }] : []),
                 { label: t('panel.file.copyPath'), action: () => navigator.clipboard.writeText(fileMenu.path) },
+                ...(onRestoreFile ? [
+                  // `as MenuItemDef[]`: a separator is typed `separator: true`,
+                  // and an array literal widens it to boolean.
+                  { separator: true },
+                  {
+                    label: t('panel.file.restore'),
+                    action: () => onRestoreFile(commit.hash, fileMenu.path),
+                  },
+                ] as MenuItemDef[] : []),
               ]}
               onClose={() => setFileMenu(null)}
             />
@@ -1972,6 +1983,8 @@ interface RightPanelProps {
   /** Right-click on a file in a commit: link to it on the remote. */
   onOpenFileOnRemote?: (hash: string, filePath: string) => void
   onCopyFileLink?: (hash: string, filePath: string) => void
+  /** Put this file back the way it was at this commit. Asks first. */
+  onRestoreFile?: (hash: string, filePath: string) => void
   /** Apply a message to a commit that is not the tip — see CommitDetail. */
   onRewordMessage?: (hash: string, message: string) => void | Promise<void>
   // Agent-proposed commit (MCP propose_commit): message preloaded into the
@@ -1990,7 +2003,7 @@ interface RightPanelProps {
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
-  onOpenFileOnRemote, onCopyFileLink,
+  onOpenFileOnRemote, onCopyFileLink, onRestoreFile,
   onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
@@ -2040,6 +2053,7 @@ export default function RightPanel({
           githubRepo={githubRepo}
           onOpenFileOnRemote={onOpenFileOnRemote}
           onCopyFileLink={onCopyFileLink}
+          onRestoreFile={onRestoreFile}
           onRewordMessage={onRewordMessage}
           showToast={showToast}
         />
