@@ -32,6 +32,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🔀 And the comparison is the full one
 - Clicking a commit in either list **opens that commit on its own** in the pane beside it; a click back returns to the comparison. The lists used to be inert.
+- **The comparison says which way round it is reading.** The selectors carry their roles — *from* and *what* — and a line under them spells it out. The order is the whole thing: the commit lists show both sides, the diff only ever describes one, exactly like a pull request.
 - An empty comparison **says why**: *since they diverged* reports what the target did, so a branch that is ahead of a \`main\` that has not moved compares to nothing. It names the side that has done nothing, says where the commits are, and offers to compare the other way round.
 - The same view the VS Code panel has: since they diverged / end to end, the working tree as a target, and the comparisons you already looked at. The app had three smaller windows, each answering a part of it.
 

@@ -208,8 +208,10 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
     <div className="cv-page">
       <div className="cv-header">
         <span className="cv-title">{t('cv.title')}</span>
+        <span className="cv-role">{t('cv.roleBase')}</span>
         {renderRefSelect(refA, setRefA)}
         <button className="cv-swap" onClick={swap} title={t('cv.swapTitle')} disabled={refB === WORKING}>⇄</button>
+        <span className="cv-role">{t('cv.roleSubject')}</span>
         {renderRefSelect(refB, setRefB, true)}
         {against !== null && (
           <span className="cv-axis" role="group" aria-label={t('cv.axisLabel')}>
@@ -247,6 +249,16 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
           </button>
         )}
       </div>
+
+      {ready && (
+        <div className="cv-reading">
+          {against === null
+            ? t('cv.readingWorking', refA)
+            : axis === 'diverged'
+              ? t('cv.readingDiverged', refB, refA)
+              : t('cv.readingEndpoints', refA, refB)}
+        </div>
+      )}
 
       {history.length > 1 && (
         <div className="cv-history">
