@@ -27,6 +27,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🗂 Views open in tabs, not over the graph
 - A comparison, a file's history, a stash's contents: each opens as **a tab** with its own name, stays put when you click elsewhere, and closes when you are done. Opening the same one twice returns you to the tab you already have.
+- The tab uses **the whole width**: no sidebar, no commit panel, no action bar around it. None of them acts on what the tab is showing, and the point of moving these out of the graph was to stop stacking surfaces.
 - What stays a window is what **asks** something — confirm, name this branch, pick a remote before pushing. What **holds** something is a tab.
 
 ### 🔀 And the comparison is the full one

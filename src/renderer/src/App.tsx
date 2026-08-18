@@ -2025,9 +2025,10 @@ export default function App() {
         </div>
       )}
 
-      {/* Git action bar — hidden while in preferences, and over the theme
-          gallery, which has no repo to act on. It rendered as an empty band. */}
-      {!settingsOpen && !whatsNewActive && !themesActive && (
+      {/* Git action bar — hidden while in preferences, over the theme gallery,
+          which has no repo to act on, and over a view tab: its search searches
+          the graph, and the tab it would sit above is not the graph. */}
+      {!settingsOpen && !whatsNewActive && !themesActive && !viewTab && (
       <Toolbar
         topRow={tabs.length === 0}
         repoPath={repoPath}
@@ -2134,8 +2135,9 @@ export default function App() {
       )}
 
       <div className="app-body" style={{ display: settingsOpen || whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
-        {/* ── Activity bar — only with a repo open (useless/empty on the home) ── */}
-        {repoPath && (
+        {/* ── Activity bar — only with a repo open (useless/empty on the home),
+             and never over a view tab: that tab IS the surface, full width. ── */}
+        {repoPath && !viewTab && (
         <div className="app-activity-bar">
           <button
             className={`act-btn ${activeView === 'git' ? 'active' : ''}`}
@@ -2155,7 +2157,7 @@ export default function App() {
         )}
 
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
-        {repoPath && (
+        {repoPath && !viewTab && (
         <div className="app-sidebar" style={{ width: sidebarW }}>
           {activeView === 'git' && (
             <Sidebar
@@ -2225,7 +2227,7 @@ export default function App() {
         </div>
         )}
 
-        {repoPath && <div className="resize-handle" onMouseDown={startResizeSidebar} />}
+        {repoPath && !viewTab && <div className="resize-handle" onMouseDown={startResizeSidebar} />}
 
         <div className="app-center">
           {centerDiff && !conflictResolverFile ? (
@@ -2425,7 +2427,7 @@ export default function App() {
           )}
         </div>
 
-        {repoPath && !rebaseHash && (selectedCommit || conflictMode) && (
+        {repoPath && !rebaseHash && !viewTab && (selectedCommit || conflictMode) && (
           <>
             <div className="resize-handle" onMouseDown={startResizeRight} />
             <div className="app-right" style={{ width: rightW }}>

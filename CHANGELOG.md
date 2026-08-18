@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- **Comparisons, a file's history and a stash's contents open in a tab**, not in a window over the graph. They have a name in the tab bar, they stay put when you click elsewhere, you can keep several open, and you close them when you are done. Opening the same one twice takes you back to the tab you already have.
+- **Comparisons, a file's history and a stash's contents open in a tab**, not in a window over the graph. The tab is the whole window — no sidebar, no commit panel, no toolbar around it, because none of them acts on what you are looking at. They have a name in the tab bar, they stay put when you click elsewhere, you can keep several open, and opening the same one twice takes you back to the tab you already have.
 - **The comparison view is the full one now** — the same one the VS Code panel has: which question it answers (since they diverged / end to end), the working tree as a target, and the comparisons you have already looked at. The app had three smaller windows instead, each answering a part of it.
 - **A file's history is in the app at last.** The button in a commit's file list opened a modal list of commits with no diff; it now opens the history view, with the diff and the blame beside it.
 - **Hide anything from the graph, not just a branch.** A tag, a whole remote and the stash can now be taken out of the view the way a branch already could — right-click the row and *Hide from Graph*. Each section also hides in one go: LOCAL, REMOTE, TAGS, REMOTES and STASH carry *Hide All from Graph* and *Show All in Graph* on their header, and hiding a whole family keeps hiding what arrives later, so a branch pushed afterwards does not reappear on its own.
