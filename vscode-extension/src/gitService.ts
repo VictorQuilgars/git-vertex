@@ -1676,6 +1676,18 @@ exit 0
     catch (e: any) { return { content: '', error: e.message } }
   }
 
+  /**
+   * Put a file back the way it was at a commit — the twin of the desktop's.
+   * `restore --worktree`, so it lands as a pending change you can read rather
+   * than staged with the diff already hidden behind an unstage.
+   */
+  async restoreFileFromCommit(commitHash: string, paths: string[]): Promise<{ success: boolean; error?: string }> {
+    const bad = this.assertRef(commitHash, 'commit hash'); if (bad) return { success: false, error: bad }
+    if (!paths.length) return { success: false, error: 'No file to restore' }
+    try { await this.git.raw(['restore', `--source=${commitHash}`, '--worktree', '--', ...paths]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
   async markResolved(filepath: string): Promise<{ success: boolean; error?: string }> {
     try { await this.git.raw(['add', '--', filepath]); return { success: true } }
     catch (e: any) { return { success: false, error: e.message } }

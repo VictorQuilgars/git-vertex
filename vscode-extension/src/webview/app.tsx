@@ -461,6 +461,16 @@ function VertexApp() {
     showToast(t('toast.linkCopied'))
   }, [showToast, remoteRepo])
 
+  // Same as the desktop: it asks, then leaves the change pending rather than
+  // staged, so what you restored can be read before you keep it.
+  const handleRestoreFile = useCallback(async (hash: string, filePath: string) => {
+    const ok = await showConfirm(t('confirm.restoreFile', filePath, hash.slice(0, 7)))
+    if (!ok) return
+    const r = await window.gitAPI.restoreFileFromCommit(hash, [filePath])
+    if (r?.success) { showToast(t('toast.fileRestored', filePath)); loadRepoData(true) }
+    else showToast(r?.error ?? t('toast.restoreFailed'), 'err')
+  }, [showConfirm, showToast, loadRepoData])
+
   const handleOpenBranchesOnRemote = useCallback(() => {
     if (!remoteRepo) { showToast(t('ext.app.noGithub'), 'err'); return }
     window.gitAPI.openExternal(remoteUrl.branches(remoteRepo))
@@ -1037,6 +1047,7 @@ function VertexApp() {
                 onRewordMessage={applyReword}
                 onOpenFileOnRemote={handleOpenFileOnRemote}
                 onCopyFileLink={handleCopyFileLink}
+                onRestoreFile={handleRestoreFile}
                 branchStrip={branchStripProps}
               />
             </div>

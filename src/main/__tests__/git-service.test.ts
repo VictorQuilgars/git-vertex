@@ -1966,6 +1966,59 @@ describe('GitService', () => {
     })
   })
 
+  // Restoring is `restore --source=<sha> --worktree`, not `checkout <sha> --`:
+  // checkout writes the index too, so the file would come back already staged
+  // and the only way to look at what you restored would be to unstage it first.
+  describe('restoreFileFromCommit', () => {
+    const twoCommits = () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'first\n')
+      fs.writeFileSync(path.join(tempDir, 'gone.txt'), 'doomed\n')
+      execSync(`cd ${tempDir} && git add . && git commit -qm one`)
+      const old = execSync(`cd ${tempDir} && git rev-parse HEAD`).toString().trim()
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'second\n')
+      execSync(`cd ${tempDir} && git rm -q gone.txt && git add . && git commit -qm two`)
+      return old
+    }
+    const status = () => execSync(`cd ${tempDir} && git status --short`).toString()
+
+    test('brings the old content back, as a change left to review', async () => {
+      const old = twoCommits()
+
+      const r = await git.restoreFileFromCommit(old, ['a.txt'])
+
+      expect(r.success).toBe(true)
+      expect(fs.readFileSync(path.join(tempDir, 'a.txt'), 'utf8')).toBe('first\n')
+      expect(status()).toContain(' M a.txt')   // unstaged, not staged
+    })
+
+    test('a file deleted since comes back on disk', async () => {
+      const old = twoCommits()
+
+      expect((await git.restoreFileFromCommit(old, ['gone.txt'])).success).toBe(true)
+
+      expect(fs.existsSync(path.join(tempDir, 'gone.txt'))).toBe(true)
+      expect(status()).toContain('?? gone.txt')
+    })
+
+    test('several files in one call', async () => {
+      const old = twoCommits()
+
+      expect((await git.restoreFileFromCommit(old, ['a.txt', 'gone.txt'])).success).toBe(true)
+
+      expect(fs.readFileSync(path.join(tempDir, 'a.txt'), 'utf8')).toBe('first\n')
+      expect(fs.existsSync(path.join(tempDir, 'gone.txt'))).toBe(true)
+    })
+
+    test('refuses rather than guesses', async () => {
+      twoCommits()
+      expect((await git.restoreFileFromCommit('', ['a.txt'])).success).toBe(false)
+      expect((await git.restoreFileFromCommit('HEAD', [])).error).toBe('No file to restore')
+      // A path is a path: it goes after `--`, so a file named like a flag is
+      // read as a file and a missing one is an error, not a silent no-op.
+      expect((await git.restoreFileFromCommit('HEAD', ['nope.txt'])).success).toBe(false)
+    })
+  })
+
   // Hiding a ref from the graph is `--exclude=<refname>` before `--all`. The
   // rules are git's and they are easy to get wrong from the documentation
   // alone — patterns are full refnames here (the `--exclude=topic --branches`

@@ -9,6 +9,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Whole sections hide in one go: **Hide All from Graph** / **Show All in Graph** on the header of LOCAL, REMOTE, TAGS, REMOTES and STASH. Hiding a family keeps hiding what arrives later, so a branch pushed afterwards does not turn up on its own.
 - A section whose rows are hidden **says how many** on its header. Click the count to bring them all back.
 
+### ↩️ Restore a file to the version in a commit
+- Right-click it in a commit's file list. It asks first, then leaves the change **unstaged** — what you brought back is a diff you can read before you keep it, not something already staged.
+- A file that was deleted since comes back on disk.
+
 ### 🩹 Hiding a branch no longer takes your stashes with it
 - Hiding handed git the list of branches that remained — and a list of refs replaces \`--all\`, so every commit that only a tag or the stash reached disappeared along with the branch you hid.
 - What you hide is now named and excluded. Git keeps deciding what is reachable, so a commit something visible still reaches keeps its place.

@@ -1113,6 +1113,11 @@ ipcMain.handle('git:get-file-at-commit', async (_event, commitHash: string, file
   return gitService.getFileAtCommit(commitHash, filepath)
 })
 
+ipcMain.handle('git:restore-file', async (_event, commitHash: string, paths: string[]) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.restoreFileFromCommit(commitHash, paths)
+})
+
 ipcMain.handle('git:apply-patch', async (_event, patch: string, reverse: boolean) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.applyPatch(patch, reverse)

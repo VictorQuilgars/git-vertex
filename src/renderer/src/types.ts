@@ -141,6 +141,7 @@ declare global {
       getWorkingChanges: () => Promise<WorkingChanges>
       getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => Promise<{ diff: string }>
       getFileAtCommit: (commitHash: string, filepath: string) => Promise<{ content: string; error?: string }>
+      restoreFileFromCommit: (commitHash: string, paths: string[]) => Promise<{ success: boolean; error?: string }>
       applyPatch: (patch: string, reverse: boolean) => Promise<R>
       stage: (files: string[]) => Promise<R>
       stageAll: () => Promise<R>

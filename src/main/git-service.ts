@@ -1930,6 +1930,29 @@ exit 0
     }
   }
 
+  /**
+   * Put a file back the way it was at a commit.
+   *
+   * `restore --worktree` and not `checkout <sha> -- <path>`: checkout writes
+   * the index as well, so the file comes back already staged and the only way
+   * to look at what you restored is to unstage it first. This lands as a
+   * pending change instead — a modification you can read in the diff before
+   * you keep it, or an untracked file when it had been deleted.
+   *
+   * The paths are passed after `--`, so a file called `-f` is a file.
+   */
+  async restoreFileFromCommit(commitHash: string, paths: string[]): Promise<{ success: boolean; error?: string }> {
+    const err = this.assertRef(commitHash, 'commit hash')
+    if (err) return { success: false, error: err }
+    if (!paths.length) return { success: false, error: 'No file to restore' }
+    try {
+      await this.git.raw(['restore', `--source=${commitHash}`, '--worktree', '--', ...paths])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   async applyPatch(patch: string, reverse: boolean = false): Promise<{ success: boolean; error?: string }> {
     const fs = await import('fs')
     const path = await import('path')

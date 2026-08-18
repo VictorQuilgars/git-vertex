@@ -122,6 +122,7 @@ const gitAPI = {
   getConflictVersions: (filepath: string) => ipcRenderer.invoke('git:get-conflict-versions', filepath),
   getFileContent: (filepath: string) => ipcRenderer.invoke('git:get-file-content', filepath),
   getFileAtCommit: (commitHash: string, filepath: string) => ipcRenderer.invoke('git:get-file-at-commit', commitHash, filepath),
+  restoreFileFromCommit: (commitHash: string, paths: string[]) => ipcRenderer.invoke('git:restore-file', commitHash, paths),
   applyPatch: (patch: string, reverse: boolean) => ipcRenderer.invoke('git:apply-patch', patch, reverse),
   markResolved: (filepath: string) => ipcRenderer.invoke('git:mark-resolved', filepath),
   resolveConflict: (filepath: string, content: string) => ipcRenderer.invoke('git:resolve-conflict', filepath, content),

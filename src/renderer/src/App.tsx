@@ -1570,6 +1570,17 @@ export default function App() {
     showToast(t('toast.linkCopied'))
   }
 
+  // Restoring writes over the working copy, so it asks first — and it lands as
+  // a pending change rather than a staged one, which is what makes "I did not
+  // mean that" a diff you can read instead of an unstage.
+  const handleRestoreFile = async (hash: string, filePath: string) => {
+    const ok = await showConfirm(t('confirm.restoreFile', filePath, hash.slice(0, 7)), true)
+    if (!ok) return
+    const r = await window.gitAPI.restoreFileFromCommit(hash, [filePath])
+    if (r.success) { showToast(t('toast.fileRestored', filePath)); loadRepoData(true) }
+    else showToast(r.error ?? t('toast.restoreFailed'), 'err')
+  }
+
   const handleOpenBranchesOnRemote = () => {
     if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
     window.gitAPI.openExternal(remoteUrl.branches(remoteRepo))
@@ -2443,6 +2454,7 @@ export default function App() {
                 githubRepo={githubOwnerRepo}
                 onOpenFileOnRemote={handleOpenFileOnRemote}
                 onCopyFileLink={handleCopyFileLink}
+                onRestoreFile={handleRestoreFile}
                 onRewordMessage={applyReword}
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}
