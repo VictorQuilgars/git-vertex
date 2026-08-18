@@ -32,6 +32,7 @@ import PRModal from '../../../src/renderer/src/components/PRModal/PRModal'
 import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
+import { issueBranchName } from '../../../src/renderer/src/utils/issueBranch'
 import {
   emptyVisibility, isRefHidden, logOptionsFor,
   type GraphVisibility, type RefFamily,
@@ -460,6 +461,18 @@ function VertexApp() {
     navigator.clipboard.writeText(remoteUrl.file(remoteRepo, hash, filePath))
     showToast(t('toast.linkCopied'))
   }, [showToast, remoteRepo])
+
+  // The reverse of associating an issue with a branch — the direction people
+  // actually reach for. The suggested name is a suggestion; what is typed wins.
+  const handleCreateBranchFromIssue = useCallback(async (issue: { number: number; title: string; url: string }) => {
+    const name = await showPrompt(t('gh.issue.branchPrompt', issue.number), issueBranchName(issue.number, issue.title))
+    if (!name) return
+    const r = await window.gitAPI.createBranch(name)
+    if (!r?.success) { showToast(r?.error ?? t('toast.branchFailed'), 'err'); return }
+    branchMeta.setIssue(name, { number: issue.number, title: issue.title, url: issue.url })
+    showToast(t('toast.branchFromIssue', name, issue.number))
+    loadRepoData()
+  }, [showPrompt, showToast, loadRepoData, branchMeta])
 
   // Same as the desktop: it asks, then leaves the change pending rather than
   // staged, so what you restored can be read before you keep it.
@@ -1159,7 +1172,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 : boot?.mode === 'compareWorking' && boot.hash
                   ? <CompareWorkingView hash={boot.hash} />
                 : boot?.mode === 'github'
-                  ? <GitHubPanel repoPath="." />
+                  ? <GitHubPanel repoPath="." onCreateBranchFromIssue={handleCreateBranchFromIssue} />
                   : boot?.mode === 'rebase'
                     ? <RebaseProgress />
                     : boot?.mode === 'todo'

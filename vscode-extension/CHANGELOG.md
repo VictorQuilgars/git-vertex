@@ -6,6 +6,7 @@
 - **Hide anything from the graph, not just a branch.** A tag, a whole remote and the stash can now be taken out of the view the way a branch already could — right-click the row and *Hide from Graph*. Each section also hides in one go: LOCAL, REMOTE, TAGS, REMOTES and STASH carry *Hide All from Graph* and *Show All in Graph* on their header, and hiding a whole family keeps hiding what arrives later.
 - **A section says how much of it the graph is not showing**, on its header, and clicking that count brings it all back.
 - **Restore a file to the version in a commit.** Right-click it in a commit's file list. It asks first, then leaves the change unstaged — so what you brought back is a diff you can read before you keep it, rather than something already staged. A file deleted since comes back on disk.
+- **Start a branch from an issue.** Right-click an issue in the GitHub panel: it suggests `123-the-issue-title`, you edit it or accept it, and the branch is created, checked out and linked to that issue — so the branch shows its issue number from then on. Linking a branch to an issue already existed; this is the direction you actually reach for.
 
 ### Fixed
 - **Hiding a branch no longer takes your stashes with it.** Hiding handed git the list of branches that remained, and an explicit list of refs replaces `--all` — so every commit that only a tag or the stash reached vanished along with the branch you hid. What is hidden is now named and excluded, and a commit something visible still reaches keeps its place.

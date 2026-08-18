@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Icon } from '../Icon/Icon'
+import ContextMenu from '../ContextMenu/ContextMenu'
 import './GitHubPanel.css'
 import { useLang } from '../../i18n/LanguageContext'
 import { Brand } from '../BrandMark/BrandMark'
@@ -34,6 +35,12 @@ interface Issue {
 
 interface Props {
   repoPath: string | null
+  /**
+   * Start work on an issue: create the branch it suggests and link the two.
+   * Omitted ⇒ the row's menu disappears, so a host that cannot create a branch
+   * does not offer to.
+   */
+  onCreateBranchFromIssue?: (issue: { number: number; title: string; url: string }) => void
 }
 
 function timeAgo(dateStr: string, t: (key: any, ...args: any[]) => string): string {
@@ -119,10 +126,20 @@ function PRItem({ pr }: { pr: PR }) {
   )
 }
 
-function IssueItem({ issue }: { issue: Issue }) {
+function IssueItem({ issue, onCreateBranch }: {
+  issue: Issue
+  onCreateBranch?: () => void
+}) {
   const { t } = useLang()
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   return (
-    <div className="ghp-item" onClick={() => window.gitAPI.openExternal(issue.url)} title={t('gh.panel.openIn')}>
+    <>
+    <div className="ghp-item"
+      onClick={() => window.gitAPI.openExternal(issue.url)}
+      onContextMenu={onCreateBranch
+        ? e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }
+        : undefined}
+      title={t('gh.panel.openIn')}>
       <div className="ghp-item-top">
         {issue.repoLabel && <span className="ghp-repo-badge">{issue.repoLabel}</span>}
         <span className="ghp-number">#{issue.number}</span>
@@ -149,10 +166,15 @@ function IssueItem({ issue }: { issue: Issue }) {
         </div>
       )}
     </div>
+    {ctx && onCreateBranch && (
+      <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)}
+        items={[{ label: t('gh.issue.createBranch'), action: onCreateBranch }]} />
+    )}
+    </>
   )
 }
 
-export default function GitHubPanel({ repoPath }: Props) {
+export default function GitHubPanel({ repoPath, onCreateBranchFromIssue }: Props) {
   const { t } = useLang()
   const [tab, setTab] = useState<'prs' | 'issues'>('prs')
   const [owner, setOwner] = useState<string | null>(null)
@@ -247,7 +269,11 @@ export default function GitHubPanel({ repoPath }: Props) {
         {!noRepo && !noAuth && !error && !loading && tab === 'issues' && (
           issues.length === 0
             ? <div className="ghp-state">{t('gh.panel.noIssues')}</div>
-            : issues.map(issue => <IssueItem key={issue.number} issue={issue} />)
+            : issues.map(issue => (
+                <IssueItem key={issue.number} issue={issue}
+                  onCreateBranch={onCreateBranchFromIssue
+                    && (() => onCreateBranchFromIssue({ number: issue.number, title: issue.title, url: issue.url }))} />
+              ))
         )}
       </div>
     </div>

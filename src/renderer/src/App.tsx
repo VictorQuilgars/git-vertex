@@ -26,6 +26,7 @@ import ThemeGallery from './components/ThemeGallery/ThemeGallery'
 import RepoManager from './components/RepoManager/RepoManager'
 import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
 import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
+import { issueBranchName } from './utils/issueBranch'
 import {
   emptyVisibility, isRefHidden, logOptionsFor,
   type GraphVisibility, type RefFamily,
@@ -1570,6 +1571,20 @@ export default function App() {
     showToast(t('toast.linkCopied'))
   }
 
+  // The other direction of the v1.21.0 issue link, and the one people reach
+  // for: you pick up an issue and you need a branch for it. The suggested name
+  // is only a suggestion — what is typed wins — and the link is written for
+  // the branch that was actually created, not for the one we proposed.
+  const handleCreateBranchFromIssue = async (issue: { number: number; title: string; url: string }) => {
+    const name = await showPrompt(t('gh.issue.branchPrompt', issue.number), issueBranchName(issue.number, issue.title))
+    if (!name) return
+    const r = await window.gitAPI.createBranch(name)
+    if (!r.success) { showToast(r.error ?? t('toast.branchFailed'), 'err'); return }
+    branchMeta.setIssue(name, { number: issue.number, title: issue.title, url: issue.url })
+    showToast(t('toast.branchFromIssue', name, issue.number))
+    loadRepoData()
+  }
+
   // Restoring writes over the working copy, so it asks first — and it lands as
   // a pending change rather than a staged one, which is what makes "I did not
   // mean that" a diff you can read instead of an unstage.
@@ -2240,7 +2255,7 @@ export default function App() {
             />
           )}
           {activeView === 'github' && (
-            <GitHubPanel repoPath={repoPath} />
+            <GitHubPanel repoPath={repoPath} onCreateBranchFromIssue={handleCreateBranchFromIssue} />
           )}
         </div>
         )}
