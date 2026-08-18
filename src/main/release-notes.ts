@@ -17,6 +17,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Right-click an issue in the GitHub panel. It suggests \`123-the-issue-title\`, you edit it or take it, and the branch is created, checked out and **linked to that issue**.
 - Linking a branch to an issue has existed since 1.21.0. This is the direction you actually reach for.
 
+### 🩹 GitHub finds a repository whose name has a dot in it
+- Reading \`owner/repo\` off the remote stopped at the first dot, so \`my.app\` was read as \`my\` — and an SSH remote with a port handed the **port** over as the owner. Git Vertex then asked GitHub about a repository that does not exist: empty pull request and issue lists, \`#123\` references that never resolved, and a Launchpad that could not name the repository a row came from.
+- Four places read the remote by hand; they now all use the parser that builds the links. A remote that is not on github.com is reported as such rather than guessed at.
+
 ### 🩹 Hiding a branch no longer takes your stashes with it
 - Hiding handed git the list of branches that remained — and a list of refs replaces \`--all\`, so every commit that only a tag or the stash reached disappeared along with the branch you hid.
 - What you hide is now named and excluded. Git keeps deciding what is reachable, so a commit something visible still reaches keeps its place.

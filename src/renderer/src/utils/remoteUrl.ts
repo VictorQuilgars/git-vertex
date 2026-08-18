@@ -159,6 +159,33 @@ export function repoFromRemotes(remotes: Remote[], preferred?: string | null): R
 }
 
 /**
+ * The repository a remote points at **on github.com**, for the callers that are
+ * about to phone `api.github.com` — the pull request and issue lists, and every
+ * saved filter over them.
+ *
+ * ⚠️ The host check is the whole reason this is not just `parseRemote`.
+ * `parseRemote` deliberately reads an unknown host as GitHub so a self-hosted
+ * Enterprise still gets a plausible *link*; here that would turn "this remote
+ * is not on GitHub" into a 404 against the wrong API.
+ *
+ * It replaces a `github\.com[:/]([^/]+)\/([^/.]+)` regex that misread two
+ * ordinary shapes: `[^/.]+` stops at a dot, so `my.app` came back as `my`, and
+ * `ssh://git@github.com:22/o/r.git` came back with the **port** as the owner.
+ * Both then asked GitHub about a repository that does not exist, and the panel
+ * showed an empty list with nothing to say why.
+ *
+ * Both products read remotes through it: the extension host, and the four
+ * places in `src/main/index.ts` that each had their own copy. That import is
+ * the first thing the desktop main process takes from this tree — it is pure
+ * string handling, and electron-vite inlines it into the main bundle.
+ */
+export function githubRepo(url: string | null | undefined): { owner: string | null; repo: string | null } {
+  const parsed = parseRemote(url)
+  if (!parsed || parsed.host.toLowerCase() !== 'github.com') return { owner: null, repo: null }
+  return { owner: parsed.owner, repo: parsed.repo }
+}
+
+/**
  * A ref as it goes into a URL. Slashes are real path separators in every shape
  * above — `feature/x` must stay `feature/x`, not become `feature%2Fx` — so each
  * segment is encoded on its own.

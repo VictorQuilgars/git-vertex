@@ -162,3 +162,163 @@ export async function githubListBranches(
     return { branches: data.map(b => b.name) }
   } catch { return { branches: [] } }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The six the panel used to answer `not-implemented` for.
+//
+// Everything above was written for a surface the panel already had. What
+// follows was owed: it lived only in the desktop's IPC handlers, so the shared
+// renderer could call it and the host had nothing to answer with. The REST half
+// is here; the two that need a patch out of git are assembled by the host,
+// which is the only side that has a repository.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A GitHub issue search — `is:open is:pr author:@me` and the like. This is the
+ * only call here that can answer questions about the *user* rather than about
+ * one repository, which is why the panel's saved filters and its "assigned to
+ * me" groups all come through here.
+ *
+ * Cached for 20 s. The search API allows 30 requests a minute where the plain
+ * list endpoints allow 5,000 an hour, and a panel that remounts on every tab
+ * switch will spend that budget in a minute and then show an empty list with no
+ * explanation. `force` is the refresh button.
+ */
+const searchCache = new Map<string, { ts: number; data: any }>()
+
+/** Drop the cache. Exported for the close path, which invalidates every query. */
+export function clearSearchCache(): void { searchCache.clear() }
+
+export async function githubSearchIssues(
+  token: string | undefined, q: string, force?: boolean,
+): Promise<any> {
+  if (!token) return { error: 'not_authenticated' }
+  const hit = searchCache.get(q)
+  if (!force && hit && Date.now() - hit.ts < 20_000) return hit.data
+  try {
+    const res = await fetch(
+      `https://api.github.com/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
+      { headers: HEADERS(token) },
+    )
+    // 403 does NOT go through failure() here, and that is deliberate: on the
+    // search endpoint it is the rate limit far more often than a permission,
+    // and the reset header says how long to wait. Telling the caller "HTTP 403"
+    // would lose the one piece of information that makes it actionable.
+    if (res.status === 403 || res.status === 429) {
+      const reset = Number(res.headers.get('x-ratelimit-reset')) * 1000
+      const secs = reset ? Math.max(1, Math.ceil((reset - Date.now()) / 1000)) : 60
+      return { error: 'rate_limited', retryIn: secs }
+    }
+    if (!res.ok) return failure(res)
+    const data = await res.json() as any
+    const result = {
+      total: data.total_count ?? 0,
+      items: (data.items ?? []).map((x: any) => {
+        // A search result names its repository by API URL, not by owner/repo.
+        const repo = (x.repository_url ?? '').split('/').slice(-2).join('/')
+        return {
+          type: x.pull_request ? 'pr' : 'issue',
+          number: x.number,
+          title: x.title,
+          draft: x.draft ?? false,
+          author: x.user?.login ?? '',
+          authorAvatar: x.user?.avatar_url ?? '',
+          createdAt: x.created_at,
+          updatedAt: x.updated_at,
+          comments: x.comments ?? 0,
+          labels: (x.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+          url: x.html_url,
+          repo,
+          repoUrl: `https://github.com/${repo}`,
+        }
+      }),
+    }
+    searchCache.set(q, { ts: Date.now(), data: result })
+    return result
+  } catch (e: any) { return { error: e.message } }
+}
+
+/**
+ * Close an issue or a pull request — GitHub's issues endpoint closes both.
+ * Every cached search is dropped afterwards: the thing just closed is in an
+ * unknown number of them, and a list that still shows it reads as a failure.
+ */
+export async function githubCloseIssue(
+  token: string | undefined, owner: string, repo: string, num: number,
+): Promise<any> {
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${num}`, {
+      method: 'PATCH',
+      headers: { ...HEADERS(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state: 'closed' }),
+    })
+    if (!res.ok) return failure(res)
+    clearSearchCache()
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+}
+
+/** Every repository the account can reach, newest first. Paginated to the end. */
+export async function githubListRepos(token: string | undefined): Promise<any> {
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    let repos: any[] = []
+    let page = 1
+    // A short page is the last page — GitHub sends no total for this endpoint.
+    for (;;) {
+      const res = await fetch(
+        `https://api.github.com/user/repos?per_page=100&sort=updated&page=${page}`,
+        { headers: HEADERS(token) },
+      )
+      if (!res.ok) return failure(res)
+      const batch = await res.json() as any[]
+      repos = repos.concat(batch)
+      if (batch.length < 100) break
+      page++
+    }
+    return {
+      repos: repos.map(r => ({
+        id: r.id,
+        name: r.name,
+        fullName: r.full_name,
+        description: r.description ?? '',
+        private: r.private,
+        language: r.language ?? null,
+        stars: r.stargazers_count,
+        updatedAt: r.updated_at,
+        cloneUrl: r.clone_url,
+        sshUrl: r.ssh_url,
+      })),
+    }
+  } catch (e: any) { return { error: e.message } }
+}
+
+/**
+ * Share a patch as a SECRET gist under the user's own account, and hand back
+ * the link. Secret means unlisted, not private: anyone with the link reads it,
+ * which is what "have a look at this before I open the PR" needs, and deleting
+ * the gist revokes it. No server of ours is involved.
+ *
+ * The caller supplies the patch text — producing it is git's job, and this file
+ * has no repository.
+ */
+export async function githubCreateGist(
+  token: string | undefined, description: string, filename: string, content: string,
+): Promise<any> {
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: { ...HEADERS(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description, public: false, files: { [filename]: { content } } }),
+    })
+    // 404 on this endpoint almost always means the token has no `gist` scope —
+    // GitHub hides the endpoint rather than refusing it — so it is reported as
+    // the missing scope rather than as a mysteriously absent URL.
+    if (res.status === 404) return { error: 'gist_scope' }
+    if (!res.ok) return failure(res)
+    const data = await res.json() as any
+    return { url: data.html_url }
+  } catch (e: any) { return { error: e.message } }
+}
