@@ -29,6 +29,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A file's **diff**, the **GitHub** panel and the **settings** join the comparison, the file history and the stash: each opens as a tab, using the whole width.
 - A file's diff used to take the middle of the repo view with the sidebar still around it; the GitHub lists were squeezed into the sidebar's width; the settings took the window without being a tab, so nothing could stay open beside them.
 - A file **staged** and the same file **unstaged** are two tabs — reading one against the other is the point.
+- **Settings stays on the section you were reading.** Leaving that tab is a click elsewhere, not a decision to close it.
 - A comparison, a file's history, a stash's contents: each opens as **a tab** with its own name, stays put when you click elsewhere, and closes when you are done. Opening the same one twice returns you to the tab you already have.
 - The tab uses **the whole width**: no sidebar, no commit panel, no action bar around it. None of them acts on what the tab is showing, and the point of moving these out of the graph was to stop stacking surfaces.
 - What stays a window is what **asks** something — confirm, name this branch, pick a remote before pushing. What **holds** something is a tab.
