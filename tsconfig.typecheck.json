@@ -1,0 +1,13 @@
+{
+  "//": "The gate, and only the gate. `npm run typecheck` runs this and CI runs it on every pull request — because nothing type-checked the renderer until v1.30.2, and two ReferenceErrors shipped through the gap: `I is not defined` in the panel's rail, `t is not defined` in the staging tree. What this has to catch is a name that does not exist and a call that cannot work.",
+  "extends": "./tsconfig.web.json",
+  "compilerOptions": {
+    "composite": false,
+    "jsx": "react-jsx",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "//noUnused": "Tidiness is a different job from correctness, and one with judgement in it: half of what noUnusedLocals reports is a state pair whose setter is used and whose value is not, which cannot be deleted without reading the component. Both flags are off here so the gate stays about correctness; the dead-code sweep is its own task.",
+  "//tests": "The suites are compiled by ts-jest with tsconfig.jest.web.json, which is what `npm test` reports on. They also do on purpose what this config forbids — render a component with the three props a test needs rather than the thirty it declares — so checking them twice, by two different standards, only produces noise.",
+  "exclude": ["src/renderer/src/**/__tests__/**"]
+}

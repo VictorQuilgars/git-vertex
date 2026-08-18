@@ -65,13 +65,17 @@ const overrides: Record<string, (...a: any[]) => any> = {
   zoomGet: () => 1,
   zoomSet: () => 1,
   // Event subscription helpers
-  onRepoChanged: (cb: () => void) => { listeners.repoChanged.push(cb) },
-  onWorkingChanged: (cb: () => void) => { listeners.workingChanged.push(cb) },
-  offRepoChanged: (cb: () => void) => {
-    listeners.repoChanged = listeners.repoChanged.filter(f => f !== cb)
+  // Same shape as the desktop preload: subscribe, get your unsubscribe back.
+  // Nothing was broken here — a function passed inside one realm keeps its
+  // identity, so the old off(cb) did match — but the renderer is shared, so the
+  // two hosts have to offer the same call.
+  onRepoChanged: (cb: () => void) => {
+    listeners.repoChanged.push(cb)
+    return () => { listeners.repoChanged = listeners.repoChanged.filter(f => f !== cb) }
   },
-  offWorkingChanged: (cb: () => void) => {
-    listeners.workingChanged = listeners.workingChanged.filter(f => f !== cb)
+  onWorkingChanged: (cb: () => void) => {
+    listeners.workingChanged.push(cb)
+    return () => { listeners.workingChanged = listeners.workingChanged.filter(f => f !== cb) }
   },
   onGithubAuthChanged: (cb: () => void) => { listeners.githubAuthChanged.push(cb) },
   offGithubAuthChanged: (cb: () => void) => {

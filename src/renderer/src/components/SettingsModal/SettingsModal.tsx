@@ -1357,7 +1357,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                           }
                         }}
                       >
-                        {t('settings.installAndRestart', updateVersion)}
+                        {t('settings.installAndRestart', updateVersion ?? '')}
                       </button>
                     </div>
                   ) : (

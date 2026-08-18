@@ -321,12 +321,9 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
       load(false)
       showToast(t('cr.fileChangedReloaded', file))
     }
-    window.gitAPI.onWorkingChanged(handler)
-    window.gitAPI.onRepoChanged(handler)
-    return () => {
-      window.gitAPI.offWorkingChanged(handler)
-      window.gitAPI.offRepoChanged(handler)
-    }
+    const offWorking = window.gitAPI.onWorkingChanged(handler)
+    const offRepo = window.gitAPI.onRepoChanged(handler)
+    return () => { offWorking(); offRepo() }
   }, [file, load, showToast])
 
   const conflictIndexMap = useMemo(() => {
@@ -445,7 +442,7 @@ export default function ConflictResolver({ file, initialProposal, onFinish, onAb
     }
     const r = await window.gitAPI.resolveConflict(file, currentOutput)
     if (r.success) { showToast(t('cr.fileResolved', file)); onFinish() }
-    else showToast(t('cr.error', r.error), 'err')
+    else showToast(t('cr.error', r.error ?? ''), 'err')
   }
 
   const handleScroll = (source: 'ours' | 'theirs') => {

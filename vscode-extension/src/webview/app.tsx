@@ -221,12 +221,9 @@ function VertexApp() {
   // toolbar doesn't flicker.
   useEffect(() => {
     const handler = () => loadRepoData(true)
-    window.gitAPI.onRepoChanged(handler)
-    window.gitAPI.onWorkingChanged(handler)
-    return () => {
-      window.gitAPI.offRepoChanged(handler)
-      window.gitAPI.offWorkingChanged(handler)
-    }
+    const offRepo = window.gitAPI.onRepoChanged(handler)
+    const offWorking = window.gitAPI.onWorkingChanged(handler)
+    return () => { offRepo(); offWorking() }
   }, [loadRepoData])
 
   // Keep the selected commit object in sync with reloaded commits

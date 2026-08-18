@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **The app stops piling up file-watcher listeners.** Subscribing to repository changes handed the callback straight to Electron's bridge, and unsubscribing handed it back — but the bridge builds a *new* proxy for the same function every time it crosses, so the removal never matched what the subscription had registered. Every hide, solo or branch switch added a listener and removed none, and the ones that fired were an accumulation of stale ones: git was run several times for a single change, with filters you had already moved on from. Subscribing now hands back its own unsubscribe, which is the pattern every other event in the app already used.
+
 ## 1.30.2
 
 ### Fixed

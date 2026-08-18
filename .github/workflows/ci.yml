@@ -48,6 +48,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Nothing type-checked the renderer until v1.30.2, and two ReferenceErrors
+      # shipped through the gap — a helper deleted in a refactor, a `t` called
+      # from a component that never took it. Both are compile errors; nobody
+      # could read the compiler, because one bad signature made every `t('key')`
+      # call wrong (1049 of them). Now that it is at zero, it stays at zero.
+      - run: npm run typecheck
       - run: npm test
       # VITE_GITHUB_CLIENT_ID / VITE_GITHUB_PROXY_URL are absent here, as they
       # are for anyone building from a fork. They only reach the bundle as

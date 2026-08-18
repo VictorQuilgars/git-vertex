@@ -225,10 +225,15 @@ const gitAPI = {
   onGithubAuthComplete: (cb: (result: { token?: string; error?: string }) => void) =>
     subscribe('github:auth-complete', (result) => cb(result)),
   // Auto-updater
-  onRepoChanged: (cb: () => void) => ipcRenderer.on('git:repo-changed', cb),
-  onWorkingChanged: (cb: () => void) => ipcRenderer.on('git:working-changed', cb),
-  offRepoChanged: (cb: () => void) => ipcRenderer.removeListener('git:repo-changed', cb),
-  offWorkingChanged: (cb: () => void) => ipcRenderer.removeListener('git:working-changed', cb),
+  // These two used to be an on/off pair that handed `cb` straight to
+  // ipcRenderer, and the off half never removed anything: contextBridge builds a
+  // NEW proxy for the same function on every crossing, so `removeListener` was
+  // given an object `on` had never registered. Every re-render of the effect
+  // added a listener and removed none, and the callbacks that fired were an
+  // accumulation of stale closures. `subscribe` — right there at the top of this
+  // file, and used by every other event — closes over the listener it made.
+  onRepoChanged: (cb: () => void) => subscribe('git:repo-changed', cb),
+  onWorkingChanged: (cb: () => void) => subscribe('git:working-changed', cb),
   onUpdateAvailable: (cb: (version: string) => void) => subscribe('updater:update-available', (v) => cb(v)),
   onUpdateDownloaded: (cb: (version: string) => void) => subscribe('updater:update-downloaded', (v) => cb(v)),
   onUpdateError: (cb: (err: string) => void) => subscribe('updater:error', (err) => cb(err)),

@@ -99,12 +99,9 @@ export default function RebaseProgress() {
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    api.onRepoChanged(load)
-    api.onWorkingChanged(load)
-    return () => {
-      api.offRepoChanged(load)
-      api.offWorkingChanged(load)
-    }
+    const offRepo = api.onRepoChanged(load)
+    const offWorking = api.onWorkingChanged(load)
+    return () => { offRepo(); offWorking() }
   }, [load])
 
   // Groups over the remaining (editable) steps only. A group whose leader

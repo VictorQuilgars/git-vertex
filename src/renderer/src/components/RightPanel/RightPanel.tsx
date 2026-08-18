@@ -1088,12 +1088,9 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 
   useEffect(() => {
     const handler = () => load()
-    window.gitAPI.onRepoChanged(handler)
-    window.gitAPI.onWorkingChanged(handler)
-    return () => {
-      window.gitAPI.offRepoChanged(handler)
-      window.gitAPI.offWorkingChanged(handler)
-    }
+    const offRepo = window.gitAPI.onRepoChanged(handler)
+    const offWorking = window.gitAPI.onWorkingChanged(handler)
+    return () => { offRepo(); offWorking() }
   }, [load])
 
   useEffect(() => {

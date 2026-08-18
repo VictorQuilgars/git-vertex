@@ -152,7 +152,7 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
     if (!window.confirm(t('cp.discardConfirm', path))) return
     const result = await window.gitAPI.discardFile(path)
     if (result.success) await load()
-    else showToast(t('cp.error', result.error), 'err')
+    else showToast(t('cp.error', result.error ?? ''), 'err')
   }
 
   const handleCommit = async () => {
@@ -167,7 +167,7 @@ export default function CommitPanel({ onCommitSuccess, showToast }: CommitPanelP
       await load()
       onCommitSuccess()
     } else {
-      showToast(t('cp.commitErr', result.error), 'err')
+      showToast(t('cp.commitErr', result.error ?? ''), 'err')
     }
     setCommitting(false)
   }

@@ -2,6 +2,13 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🧹 The app stops piling up file-watcher listeners
+- Subscribing to repository changes handed the callback straight to Electron's bridge and unsubscribing handed it back — but the bridge makes a **new proxy** of the same function on every crossing, so the removal never matched the subscription.
+- Every hide, solo or branch switch added a listener and removed none. Git was being run several times for a single change, with filters you had already moved on from.
+`,
+
   '1.30.2': `## What's new in 1.30.2
 
 ### 🩹 The staging area no longer goes blank in Tree view

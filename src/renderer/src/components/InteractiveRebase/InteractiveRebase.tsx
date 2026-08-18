@@ -154,7 +154,7 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
       onSuccess()
       onClose()
     } else {
-      showToast(t('ir.failed', r.error), 'err')
+      showToast(t('ir.failed', r.error ?? ''), 'err')
     }
   }
 
