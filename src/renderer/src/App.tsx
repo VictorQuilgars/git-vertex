@@ -126,18 +126,38 @@ type ViewTab =
   | { view: 'compare'; a: string; b: string | null; axis?: CompareAxis; label: string }
   | { view: 'fileHistory'; file: string }
   | { view: 'stash'; index: number; message: string }
+  | { view: 'fileDiff'; target: CenterDiffTarget }
+  | { view: 'github' }
+  | { view: 'settings' }
 
 interface AppTab { id: string; kind: TabKind; path?: string; name?: string; body?: ViewTab }
 
 /** What the tab bar calls a view, and draws for it. */
 function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): string {
-  if (body.view === 'compare') return body.label
-  if (body.view === 'fileHistory') return t('tabs.history', body.file.split('/').pop() ?? body.file)
-  return t('tabs.stash', body.index)
+  switch (body.view) {
+    case 'compare': return body.label
+    case 'fileHistory': return t('tabs.history', body.file.split('/').pop() ?? body.file)
+    case 'stash': return t('tabs.stash', body.index)
+    case 'github': return t('tabs.github')
+    case 'settings': return t('tabs.settings')
+    case 'fileDiff': {
+      const name = body.target.filePath.split('/').pop() ?? body.target.filePath
+      return body.target.type === 'commit'
+        ? `${name} (${body.target.commitHash.slice(0, 7)})`
+        : `${name} (${t(body.target.area === 'staged' ? 'tabs.staged' : 'tabs.unstaged')})`
+    }
+  }
 }
 
-function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' {
-  return body.view === 'compare' ? 'compare' : body.view === 'fileHistory' ? 'history' : 'stash'
+function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 'gear' | 'pullRequest' {
+  switch (body.view) {
+    case 'compare': return 'compare'
+    case 'fileHistory': return 'history'
+    case 'stash': return 'stash'
+    case 'fileDiff': return 'diff'
+    case 'settings': return 'gear'
+    case 'github': return 'pullRequest'
+  }
 }
 
 /** Two view tabs are the same tab when they show the same thing. */
@@ -146,6 +166,17 @@ export function sameView(a: ViewTab, b: ViewTab): boolean {
   if (a.view === 'compare' && b.view === 'compare') return a.a === b.a && a.b === b.b
   if (a.view === 'fileHistory' && b.view === 'fileHistory') return a.file === b.file
   if (a.view === 'stash' && b.view === 'stash') return a.index === b.index
+  if (a.view === 'fileDiff' && b.view === 'fileDiff') return sameDiffTarget(a.target, b.target)
+  // One GitHub tab, one settings tab: they show the whole of a thing, so a
+  // second one would be the same tab twice.
+  return a.view === 'github' || a.view === 'settings'
+}
+
+/** The same file, of the same version — a staged diff is not the unstaged one. */
+function sameDiffTarget(a: CenterDiffTarget, b: CenterDiffTarget): boolean {
+  if (a.type !== b.type) return false
+  if (a.type === 'commit' && b.type === 'commit') return a.commitHash === b.commitHash && a.filePath === b.filePath
+  if (a.type === 'working' && b.type === 'working') return a.filePath === b.filePath && a.area === b.area
   return false
 }
 let tabSeq = 0
@@ -270,7 +301,6 @@ export default function App() {
   const [commitProposal, setCommitProposal] = useState<{ message: string; files: string[] } | null>(null)
   const [rebasePlanProposal, setRebasePlanProposal] = useState<{ hash: string; action: string; message?: string }[] | null>(null)
   const [pushModalOpen, setPushModalOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   // Repository Management is a full-page overlay (like Settings), reached from
   // the fixed 📁 button — it is NOT a tab.
   const [repoMgmtOpen, setRepoMgmtOpen] = useState(false)
@@ -282,7 +312,6 @@ export default function App() {
   const [cloneOpen, setCloneOpen] = useState(false)
   const [initModalOpen, setInitModalOpen] = useState(false)
   const [githubConnected, setGithubConnected] = useState(false)
-  const [activeView, setActiveView] = useState<'git' | 'github'>('git')
   const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
   const [githubOwnerRepo, setGithubOwnerRepo] = useState<{ owner: string; repo: string } | null>(null)
   // The repository behind the remote, for building links. Separate from
@@ -335,7 +364,6 @@ export default function App() {
   // Agent-proposed resolution (from a gitgui://open deep link) to preload into
   // the resolver's manual editor — review-only until the user saves it.
   const [conflictResolverProposal, setConflictResolverProposal] = useState<string | null>(null)
-  const [centerDiff, setCenterDiff] = useState<CenterDiffTarget | null>(null)
   const [wipCount, setWipCount] = useState(0)
   const autoFetchEnabled = useRef(
     localStorage.getItem('autoFetch') !== 'false'
@@ -699,7 +727,7 @@ export default function App() {
   // Open the current release notes on demand (welcome "Notes de version" link).
   const openReleaseNotes = async () => {
     const w = await (window.gitAPI as any).getReleaseNotes?.().catch(() => null)
-    if (w) { setWhatsNew(w); setWhatsNewActive(true); setSettingsOpen(false) }
+    if (w) { setWhatsNew(w); setWhatsNewActive(true) }
     else showToast(t('toast.noReleaseNotes'), 'err')
   }
   const handleRemoveRecent = async (path: string) => {
@@ -791,7 +819,6 @@ export default function App() {
     setGithubRepoUrl(null)
     setGithubOwnerRepo(null)
     setDefaultBranch(null)
-    setActiveView('git')
   }, [])
 
   // "+" → a fresh home ("New Tab") every time.
@@ -810,7 +837,6 @@ export default function App() {
   const openLaunchpadTab = useCallback(() => {
     if (conflictResolverFile || rebaseHash) return
     setWhatsNewActive(false)
-    setSettingsOpen(false)
     setRepoMgmtOpen(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setTabs(prev => {
@@ -829,7 +855,6 @@ export default function App() {
   const openThemesTab = useCallback(() => {
     if (conflictResolverFile || rebaseHash) return
     setWhatsNewActive(false)
-    setSettingsOpen(false)
     setRepoMgmtOpen(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setTabs(prev => {
@@ -853,7 +878,6 @@ export default function App() {
     if (conflictResolverFile || rebaseHash) return
     if (!repoPath) return
     setWhatsNewActive(false)
-    setSettingsOpen(false)
     setRepoMgmtOpen(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setTabs(prev => {
@@ -864,6 +888,8 @@ export default function App() {
       return [...prev, { id, kind: 'view', path: repoPath, name: repoName, body }]
     })
   }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, repoPath, repoName])
+
+  const openSettingsTab = useCallback(() => openViewTab({ view: 'settings' }), [openViewTab])
 
   const switchTab = useCallback(async (tab: AppTab) => {
     setWhatsNewActive(false)   // clicking a tab leaves the what's-new view (tab stays open)
@@ -974,7 +1000,7 @@ export default function App() {
       }
       // Cmd/Ctrl+, opens preferences (macOS convention)
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
-        e.preventDefault(); setSettingsOpen(o => !o); return
+        e.preventDefault(); openSettingsTab(); return
       }
       if (e.key === 'F5' || ((e.metaKey || e.ctrlKey) && e.key === 'r')) {
         if (!isInput(e)) { e.preventDefault(); loadRepoData() }; return
@@ -1940,15 +1966,15 @@ export default function App() {
           {/* 📁 Repository Management — a fixed button opening a full-page
               overlay (like Settings), never a tab. */}
           <button className={`app-tab-launch ${repoMgmtOpen ? 'active' : ''}`}
-            title={t('repomgmt.tooltip')} onClick={() => { setSettingsOpen(false); setWhatsNewActive(false); setRepoMgmtOpen(o => !o) }}><Icon name="folder" size={16} /></button>
+            title={t('repomgmt.tooltip')} onClick={() => { setWhatsNewActive(false); setRepoMgmtOpen(o => !o) }}><Icon name="folder" size={16} /></button>
           {/* 🚀 Launchpad launcher — always reachable. */}
-          <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
-            title={t('launchpad.tooltip')} onClick={() => { setSettingsOpen(false); openLaunchpadTab() }}><Icon name="rocket" size={16} /></button>
+          <button className={`app-tab-launch ${tabs.find(tb => tb.id === activeTabId)?.kind === 'launchpad' && !whatsNewActive ? 'active' : ''}`}
+            title={t('launchpad.tooltip')} onClick={() => openLaunchpadTab()}><Icon name="rocket" size={16} /></button>
           {tabs.map(tab => (
             <div
               key={tab.id}
-              className={`app-tab ${tab.id === activeTabId && !settingsOpen && !whatsNewActive ? 'active' : ''}`}
-              onClick={() => { setSettingsOpen(false); switchTab(tab) }}
+              className={`app-tab ${tab.id === activeTabId && !whatsNewActive ? 'active' : ''}`}
+              onClick={() => switchTab(tab)}
               onAuxClick={e => { if (e.button === 1) { e.preventDefault(); closeTab(tab.id) } }}
               onContextMenu={e => { e.preventDefault(); setTabMenu({ x: e.clientX, y: e.clientY, id: tab.id }) }}
               title={tab.kind === 'repo' ? tab.path : undefined}
@@ -1982,8 +2008,8 @@ export default function App() {
             </div>
           )}
           {whatsNew && (
-            <div className={`app-tab app-tab--tool ${whatsNewActive && !settingsOpen ? 'active' : ''}`} title={t('tabs.whatsNew')}
-              onClick={() => { setSettingsOpen(false); setRepoMgmtOpen(false); setWhatsNewActive(true) }}>
+            <div className={`app-tab app-tab--tool ${whatsNewActive ? 'active' : ''}`} title={t('tabs.whatsNew')}
+              onClick={() => { setRepoMgmtOpen(false); setWhatsNewActive(true) }}>
               <Icon name="ai" size={16} className="app-tab-icon app-tab-icon--tool" />
               <span className="app-tab-name">{t('tabs.whatsNew')}</span>
               <button className="app-tab-close" title={t('tabs.close')}
@@ -1991,7 +2017,7 @@ export default function App() {
             </div>
           )}
           <button className="app-tab-add"
-            title={t('tabs.new')} onClick={() => { setSettingsOpen(false); openHomeTab() }}>+</button>
+            title={t('tabs.new')} onClick={() => openHomeTab()}>+</button>
 
           {/* Right cluster: update · notifications · settings · profile */}
           <div className="app-tabs-right">
@@ -2009,12 +2035,12 @@ export default function App() {
                 <span className="app-tb-bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
               )}
             </button>
-            <button className={`app-tb-icon ${settingsOpen ? 'active' : ''}`}
-              title={t('settings.title')} onClick={() => { setRepoMgmtOpen(false); setSettingsOpen(v => !v) }}>
+            <button className={`app-tb-icon ${viewTab?.view === 'settings' ? 'active' : ''}`}
+              title={t('settings.title')} onClick={() => { setRepoMgmtOpen(false); openSettingsTab() }}>
               <Icon name="gear" />
             </button>
             <button className="app-profile-chip" title={githubUser?.login ?? t('settings.profile')}
-              onClick={() => { setRepoMgmtOpen(false); setSettingsOpen(true) }}>
+              onClick={() => { setRepoMgmtOpen(false); openSettingsTab() }}>
               {githubUser?.avatar
                 ? <img className="app-profile-avatar" src={githubUser.avatar} alt={githubUser.login} />
                 : <span className="app-profile-avatar app-profile-avatar--fallback">{(githubUser?.login ?? '?').slice(0, 1).toUpperCase()}</span>}
@@ -2028,7 +2054,7 @@ export default function App() {
       {/* Git action bar — hidden while in preferences, over the theme gallery,
           which has no repo to act on, and over a view tab: its search searches
           the graph, and the tab it would sit above is not the graph. */}
-      {!settingsOpen && !whatsNewActive && !themesActive && !viewTab && (
+      {!whatsNewActive && !themesActive && !viewTab && (
       <Toolbar
         topRow={tabs.length === 0}
         repoPath={repoPath}
@@ -2061,8 +2087,7 @@ export default function App() {
         aiSearchLoading={aiSearchLoading}
         onToggleAiSearch={() => setAiSearch(v => !v)}
         onAiSearchSubmit={runAiSearch}
-        onSettings={() => setSettingsOpen(v => !v)}
-        settingsOpen={settingsOpen}
+        onSettings={openSettingsTab}
         githubRepoUrl={githubRepoUrl}
         onCreatePR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
         onGitflow={repoPath ? () => setGitflowOpen(true) : undefined}
@@ -2096,25 +2121,17 @@ export default function App() {
         />
       )}
 
-      {settingsOpen && (
-        <SettingsModal
-          onBrowseThemes={openThemesTab}
-          onClose={() => setSettingsOpen(false)}
-          showToast={showToast}
-          onUpdateFound={(v) => { setUpdateVersion(v); setUpdatePhase('available'); setUpdateOverlayOpen(true); addUpdateNotification(v) }}
-        />
-      )}
 
       {/* "What's new" is a full-page tab: no repo sidebar/toolbar behind it, so
           repo actions aren't reachable while it's the active view. */}
-      {whatsNewActive && whatsNew && !settingsOpen && !repoMgmtOpen && (
+      {whatsNewActive && whatsNew && !repoMgmtOpen && (
         <div className="app-fullpage-view">
           <WhatsNew version={whatsNew.version} notes={whatsNew.notes} />
         </div>
       )}
 
       {/* Repository Management — full-page overlay (like Settings). */}
-      {repoMgmtOpen && !settingsOpen && (
+      {repoMgmtOpen && (
         <div className="app-fullpage-view">
           <RepoManager
             recentRepos={recentRepos}
@@ -2134,22 +2151,21 @@ export default function App() {
         </div>
       )}
 
-      <div className="app-body" style={{ display: settingsOpen || whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
+      <div className="app-body" style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
         {/* ── Activity bar — only with a repo open (useless/empty on the home),
              and never over a view tab: that tab IS the surface, full width. ── */}
         {repoPath && !viewTab && (
         <div className="app-activity-bar">
-          <button
-            className={`act-btn ${activeView === 'git' ? 'active' : ''}`}
-            onClick={() => setActiveView('git')}
-            title="Git"
-          >
+          {/* The rail used to switch the side panel between git and GitHub.
+              GitHub is a tab now — a list of pull requests and issues wants the
+              width — so this is a way in, not a mode. */}
+          <button className="act-btn act-btn--current" title="Git" disabled>
             <Brand name="git" size={22} />
           </button>
           <button
-            className={`act-btn ${activeView === 'github' ? 'active' : ''}`}
-            onClick={() => setActiveView('github')}
-            title="GitHub — PRs & Issues"
+            className="act-btn"
+            onClick={() => openViewTab({ view: 'github' })}
+            title={t('tabs.github')}
           >
             <Brand name="github" size={22} />
           </button>
@@ -2159,7 +2175,7 @@ export default function App() {
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
         {repoPath && !viewTab && (
         <div className="app-sidebar" style={{ width: sidebarW }}>
-          {activeView === 'git' && (
+          {(
             <Sidebar
               repoPath={repoPath}
               repoName={repoName}
@@ -2221,18 +2237,13 @@ export default function App() {
               showConfirm={showConfirm}
             />
           )}
-          {activeView === 'github' && (
-            <GitHubPanel repoPath={repoPath} onCreateBranchFromIssue={handleCreateBranchFromIssue} />
-          )}
         </div>
         )}
 
         {repoPath && !viewTab && <div className="resize-handle" onMouseDown={startResizeSidebar} />}
 
         <div className="app-center">
-          {centerDiff && !conflictResolverFile ? (
-            <CenterFileDiff target={centerDiff} onClose={() => setCenterDiff(null)} onStaged={() => loadRepoData(true)} />
-          ) : conflictResolverFile ? (
+          {conflictResolverFile ? (
             <ConflictResolver
               file={conflictResolverFile}
               initialProposal={conflictResolverProposal ?? undefined}
@@ -2277,6 +2288,21 @@ export default function App() {
               />
             ) : viewTab.view === 'fileHistory' ? (
               <FileHistory file={viewTab.file} />
+            ) : viewTab.view === 'fileDiff' ? (
+              <CenterFileDiff
+                target={viewTab.target}
+                onClose={() => closeTab(activeTabId!)}
+                onStaged={() => loadRepoData(true)}
+              />
+            ) : viewTab.view === 'github' ? (
+              <GitHubPanel repoPath={repoPath} onCreateBranchFromIssue={handleCreateBranchFromIssue} />
+            ) : viewTab.view === 'settings' ? (
+              <SettingsModal
+                onBrowseThemes={openThemesTab}
+                onClose={() => closeTab(activeTabId!)}
+                showToast={showToast}
+                onUpdateFound={(v) => { setUpdateVersion(v); setUpdatePhase('available'); setUpdateOverlayOpen(true); addUpdateNotification(v) }}
+              />
             ) : (
               <StashPreview index={viewTab.index} message={viewTab.message} />
             )
@@ -2380,7 +2406,7 @@ export default function App() {
               visibility={visibility}
               remoteNames={remoteNames}
               selectedHash={selectedCommit?.hash ?? null}
-              onSelectCommit={c => { setCenterDiff(null); setSelectedCommit(prev => prev?.hash === c.hash ? null : c) }}
+              onSelectCommit={c => setSelectedCommit(prev => prev?.hash === c.hash ? null : c)}
               searchQuery={aiSearch ? '' : searchQuery}
               searchHashes={graphSearchHashes}
               currentBranch={currentBranch}
@@ -2457,7 +2483,7 @@ export default function App() {
                 onConflictFinish={handleConflictFinish}
                 onConflictAbort={handleConflictAbort}
                 onOpenResolver={(file) => setConflictResolverFile(file)}
-                onOpenFileDiff={setCenterDiff}
+                onOpenFileDiff={(target) => openViewTab({ view: 'fileDiff', target })}
                 githubRepo={githubOwnerRepo}
                 onOpenFileOnRemote={handleOpenFileOnRemote}
                 onCopyFileLink={handleCopyFileLink}
@@ -2474,7 +2500,7 @@ export default function App() {
       </div>
 
       {/* ── Status bar (bottom) ── */}
-      {!settingsOpen && repoPath && (
+      {repoPath && (
         <StatusBar
           repoName={repoName}
           branch={currentBranch}

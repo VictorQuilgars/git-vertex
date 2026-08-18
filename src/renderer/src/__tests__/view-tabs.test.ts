@@ -32,6 +32,32 @@ describe('sameView', () => {
     expect(sameView({ view: 'stash', index: 0, message: 'x' }, { view: 'stash', index: 1, message: 'x' })).toBe(false)
   })
 
+  test('a file diff is that file, at that version', () => {
+    const at = (hash: string, file: string) =>
+      ({ view: 'fileDiff', target: { type: 'commit', commitHash: hash, filePath: file } }) as const
+    expect(sameView(at('abc', 'a.ts'), at('abc', 'a.ts'))).toBe(true)
+    expect(sameView(at('abc', 'a.ts'), at('def', 'a.ts'))).toBe(false)
+    expect(sameView(at('abc', 'a.ts'), at('abc', 'b.ts'))).toBe(false)
+  })
+
+  // Staged and unstaged are two different diffs of one file, and reading one
+  // while the other is open is the whole point of them being tabs.
+  test('and a working file staged is not the same as unstaged', () => {
+    const work = (area: 'staged' | 'unstaged') =>
+      ({ view: 'fileDiff', target: { type: 'working', filePath: 'a.ts', area } }) as const
+    expect(sameView(work('staged'), work('staged'))).toBe(true)
+    expect(sameView(work('staged'), work('unstaged'))).toBe(false)
+    expect(sameView(work('staged'), { view: 'fileDiff', target: { type: 'commit', commitHash: 'abc', filePath: 'a.ts' } })).toBe(false)
+  })
+
+  // These two show the whole of a thing rather than one of many, so a second
+  // one would be the same tab twice.
+  test('there is one GitHub tab and one settings tab', () => {
+    expect(sameView({ view: 'github' }, { view: 'github' })).toBe(true)
+    expect(sameView({ view: 'settings' }, { view: 'settings' })).toBe(true)
+    expect(sameView({ view: 'github' }, { view: 'settings' })).toBe(false)
+  })
+
   test('two different kinds are never the same view', () => {
     expect(sameView(compare('main', 'feature'), { view: 'fileHistory', file: 'a.ts' })).toBe(false)
   })

@@ -212,10 +212,17 @@ body {
   position: relative;
 }
 .act-btn:hover { color: var(--text-primary-soft); background: var(--surface); }
+/* The rail used to switch the side panel between git and GitHub. GitHub is a
+   tab now, so this one is a marker rather than a control: it says where you
+   are, it does not offer to take you somewhere. It keeps the active mark and
+   drops the hover, which is what tells the two apart. */
+.act-btn--current { color: var(--text-primary); cursor: default; }
+.act-btn--current:hover { background: transparent; color: var(--text-primary); }
 .act-btn.active {
   color: var(--text-primary);
 }
-.act-btn.active::before {
+.act-btn.active::before,
+.act-btn--current::before {
   content: '';
   position: absolute;
   left: -1px;
