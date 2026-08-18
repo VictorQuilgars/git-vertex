@@ -6,6 +6,7 @@ import hljs from 'highlight.js'
 // imported here, which meant the diff's palette lived outside tokens.css.
 import { CommitNode, FileChange } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
+import { useStoredSize } from '../../hooks/useStoredSize'
 import './DiffViewer.css'
 
 interface DiffViewerProps {
@@ -137,10 +138,15 @@ function buildSplitRows(lines: DiffLine[]): SplitRow[] {
   return rows
 }
 
-function FileList({ files }: { files: FileChange[] }) {
+function FileList({ files, t }: { files: FileChange[]; t: (k: any, ...a: any[]) => string }) {
+  // 120px held three rows. A comparison routinely has twenty files, and the
+  // list is how you decide what to read — so it is as tall as you want it,
+  // and it remembers.
+  const [height, startResize] = useStoredSize('gv-dv-files-h', 200, 64, 640)
   if (!files.length) return null
   return (
-    <div className="file-list">
+    <>
+    <div className="file-list" style={{ maxHeight: height }}>
       {files.map((f, i) => (
         <div key={i} className="file-item">
           <span className={`file-status status-${f.status.toLowerCase()}`}>{f.status}</span>
@@ -152,6 +158,12 @@ function FileList({ files }: { files: FileChange[] }) {
         </div>
       ))}
     </div>
+    <div
+      className="file-list-resize"
+      onMouseDown={e => startResize(e, { axis: 'y' })}
+      title={t('dv.resizeFiles')}
+    />
+    </>
   )
 }
 
@@ -290,7 +302,7 @@ export default function DiffViewer({ commit, diff, files, loading, headerLabel }
         </div>
       ) : (
         <>
-          <FileList files={files} />
+          <FileList files={files} t={t} />
 
           {parsedDiff.length === 0 && !loading && (
             <div className="diff-empty-inner">{t('diff.empty')}</div>

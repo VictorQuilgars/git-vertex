@@ -102,11 +102,22 @@
 /* File list */
 .file-list {
   background: var(--bg-canvas);
-  border-bottom: 1px solid var(--border-default);
-  max-height: 120px;
   overflow-y: auto;
   flex-shrink: 0;
 }
+
+/* The list is how you choose what to read, so its height is yours. The strip
+   is 5px of grab area over a 1px line — the same trick as the app's own panes,
+   because a 1px target is not a target. */
+.file-list-resize {
+  height: 5px;
+  margin-bottom: -1px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  border-bottom: 1px solid var(--border-default);
+  background: transparent;
+}
+.file-list-resize:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
 .file-item {
   display: flex;

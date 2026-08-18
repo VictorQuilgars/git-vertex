@@ -68,12 +68,22 @@
 }
 
 .cv-left {
-  width: 300px;
-  min-width: 240px;
-  border-right: 1px solid var(--border-muted);
+  /* width comes from the drag, and is remembered */
+  min-width: 180px;
   overflow-y: auto;
   flex-shrink: 0;
 }
+
+/* 5px of grab area over the 1px rule that used to be the only divider. */
+.cv-resize {
+  width: 5px;
+  margin-left: -1px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  border-left: 1px solid var(--border-muted);
+  background: transparent;
+}
+.cv-resize:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
 .cv-commits-section {
   padding: var(--space-md) 0;

@@ -1013,6 +1013,7 @@ const fr = {
   'dv.unifiedTitle': 'Vue unifiée',
   'dv.splitTitle': 'Vue côte à côte',
   'dv.selectCommit': 'Sélectionnez un commit pour voir son contenu',
+  'dv.resizeFiles': 'Glisser pour agrandir la liste des fichiers',
 
   // CommitPanel (extras)
   'cp.fileStage': 'Stager ce fichier',
@@ -1048,6 +1049,7 @@ const fr = {
   'cv.recent': 'Récentes',
   'cv.showCommit': 'Voir ce commit seul',
   'cv.roleBase': 'Depuis',
+  'cv.resizeLists': 'Glisser pour partager la largeur',
   'cv.roleSubject': 'ce qu\'a fait',
   'cv.readingDiverged': (subject: string, base: string) => `Ce que ${subject} a fait depuis qu'elle a quitté ${base}. ${base} n'est pas décrite : elle sert de point de départ.`,
   'cv.readingEndpoints': (a: string, b: string) => `Tout ce qui distingue les deux arbres, ${a} d'un côté, ${b} de l'autre — les avancées de ${a} y apparaissent comme des suppressions.`,
@@ -2410,6 +2412,7 @@ const en: typeof fr = {
   'rp2.markResolvedTitle': 'Mark resolved (stage the edited file)',
   'dv.unifiedTitle': 'Unified view',
   'dv.splitTitle': 'Side-by-side view',
+  'dv.resizeFiles': 'Drag to resize the file list',
   'dv.selectCommit': 'Select a commit to view its content',
 
   // CommitPanel (extras)
@@ -2446,6 +2449,7 @@ const en: typeof fr = {
   'cv.recent': 'Recent',
   'cv.showCommit': 'Show this commit on its own',
   'cv.roleBase': 'From',
+  'cv.resizeLists': 'Drag to share the width',
   'cv.roleSubject': 'what',
   'cv.readingDiverged': (subject: string, base: string) => `What ${subject} has done since it left ${base}. ${base} itself is not described — it is the starting point.`,
   'cv.readingEndpoints': (a: string, b: string) => `Everything that tells the two trees apart, ${a} on one side and ${b} on the other — whatever ${a} gained appears here as a deletion.`,

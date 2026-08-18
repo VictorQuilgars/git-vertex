@@ -8,6 +8,7 @@ import type { FileChange } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../utils/remoteUrl'
 import { useCompareHistory, type SavedComparison } from '../../hooks/useCompareHistory'
+import { useStoredSize } from '../../hooks/useStoredSize'
 import type { CompareAxis } from '../../types'
 import './CompareView.css'
 
@@ -58,6 +59,10 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
   const [axis, setAxis] = useState<CompareAxis>(initialAxis ?? 'diverged')
   const [mergeBase, setMergeBase] = useState<string | null>(null)
   const { history, remember, clear } = useCompareHistory(repoKey ?? null)
+  // The commit lists and the diff share the width, and which one deserves it
+  // depends on what you are reading: long messages on one side, a wide diff
+  // on the other.
+  const [leftW, startResizeLeft] = useStoredSize('gv-cv-left-w', 320, 180, 720)
   const [ahead, setAhead] = useState<CompareCommit[]>([])
   const [behind, setBehind] = useState<CompareCommit[]>([])
   const [diff, setDiff] = useState('')
@@ -276,10 +281,11 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
         <div className="cv-empty">{t('cv.chooseTwo')}</div>
       ) : (
         <div className="cv-body">
-          <div className="cv-left">
+          <div className="cv-left" style={{ width: leftW }}>
             {renderCommitList(t('cv.inOnly', refB), ahead, 'var(--success)')}
             {renderCommitList(t('cv.inOnly', refA), behind, 'var(--danger)')}
           </div>
+          <div className="cv-resize" onMouseDown={e => startResizeLeft(e, { axis: 'x' })} title={t('cv.resizeLists')} />
           <div className="cv-right">
             {picked ? (
               <>
