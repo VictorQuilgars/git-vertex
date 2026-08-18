@@ -16,6 +16,16 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🩹 A short panel no longer goes blank
+- The activity rail moves the icons that do not fit into a **…** button, and that button drew its icon through a helper deleted in 1.28.0's icon refactor — the one call site the refactor missed.
+- Nothing failed at build time: the panel's own code was not type-checked. If your panel was too short for the seven icons — a bottom panel, usually — you got a render error instead of Git Vertex.
+
+### 🩹 And the staging area no longer goes blank in Tree view
+- Same shape of fault, in code shared with the desktop app: a folder row's tooltip called a function that was not in scope.
+`,
+
   '1.28.2': `## What's new in 1.28.2
 
 ### 🖼️ A darker Marketplace icon

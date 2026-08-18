@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **The panel no longer goes blank when it is short.** The activity rail moves the icons that do not fit into a "…" button, and that button drew an icon through a helper deleted in 1.28.0's icon refactor — one call site the refactor missed. Nothing failed at build time: the panel's own code was not type-checked. Anyone with a panel too short for the seven icons — a bottom panel, usually — got a render error instead of Git Vertex.
+- **The staging area no longer goes blank in Tree view**, from the same shared fix as the desktop app: a folder row's stage/unstage tooltip called a function that was not in scope.
+
 ## 1.28.2
 
 ### Fixed

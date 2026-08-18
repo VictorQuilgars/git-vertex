@@ -147,6 +147,9 @@ declare global {
       diffBetweenCommits: (fromHash: string, toHash: string) => Promise<{ diff: string; error?: string }>
       filesBetweenCommits: (fromHash: string, toHash: string) => Promise<{ files: FileChange[]; error?: string }>
       getLastCommitMessage: (ref?: string) => Promise<{ message: string }>
+      // The preload has had this since the AI commit message shipped; the
+      // declaration never followed, so the one caller was typed as a mistake.
+      aiGenerateCommitMessage: () => Promise<{ message?: string; error?: string }>
       getUpstream: () => Promise<{ upstream: string | null }>
       // Tags
       createTag: (name: string, hash?: string, message?: string) => Promise<R>

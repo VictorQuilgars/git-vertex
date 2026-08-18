@@ -1,10 +1,24 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
 import { Lang, TranslationKey, translations } from './translations'
 
+/**
+ * What a key expects after itself: a plain string entry takes nothing, an
+ * entry that is a function takes that function's parameters.
+ *
+ * It used to be `Parameters<Extract<value, Function>>`, which is right for the
+ * function half and `never` for the other — and a `never` rest parameter
+ * rejects the empty argument list, so *every* `t('some.key')` in the codebase
+ * was a type error. There were 891 of them in the panel and 1049 in the
+ * desktop renderer, which is why nothing type-checked either surface, which is
+ * how `I is not defined` shipped.
+ */
+type TArgs<K extends TranslationKey> =
+  (typeof translations)['fr'][K] extends (...a: infer A) => any ? A : []
+
 interface LanguageContextValue {
   lang: Lang
   setLang: (l: Lang) => void
-  t: <K extends TranslationKey>(key: K, ...args: Parameters<Extract<(typeof translations)['fr'][K], (...a: any[]) => any>>) => string
+  t: <K extends TranslationKey>(key: K, ...args: TArgs<K>) => string
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null)
