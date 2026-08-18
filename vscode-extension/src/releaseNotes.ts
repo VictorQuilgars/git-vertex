@@ -33,6 +33,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🩹 Hiding a branch no longer takes your stashes with it
 - Hiding handed git the list of branches that remained — and a list of refs replaces \`--all\`, so every commit that only a tag or the stash reached disappeared with it. What you hide is now named and excluded instead.
+`,
+
   '1.28.3': `## What's new in 1.28.3
 
 ### 🩹 A short panel no longer goes blank

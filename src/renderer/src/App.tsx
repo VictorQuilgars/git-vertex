@@ -499,12 +499,15 @@ export default function App() {
   // covers it — but not for a filter: hiding a ref would leave the graph
   // showing it until something else happened to trigger a reload.
   const reloadQueued = React.useRef(false)
-  // The filter is read through refs rather than from the closure. The
-  // watcher's handler is registered once per identity of loadRepoData, and the
-  // old registrations are NOT removed: contextBridge hands the preload a fresh
-  // proxy for the same function, so `removeListener` never matches the one it
-  // was given. The callbacks that fire are therefore usually stale ones, and a
-  // stale closure must still query with the filter the user can see.
+  // The filter is read through refs rather than from the closure, so a load
+  // always queries with the filter the user can see, whichever callback started
+  // it. This mattered urgently while the watcher's subscriptions leaked — what
+  // fired was an accumulation of stale handlers, which is how this was found —
+  // and that leak is fixed (v1.30.2, the preload hands back its unsubscribe).
+  // It stays because it also keeps loadRepoData's identity stable across a hide
+  // or a solo: the effect below re-registers on every change of it, and a
+  // subscription that is torn down and rebuilt four times a second is worth
+  // avoiding whether or not the teardown works.
   const visibilityRef = React.useRef(visibility); visibilityRef.current = visibility
   const soloRef = React.useRef(soloBranch); soloRef.current = soloBranch
   const showAllRef = React.useRef(showAllBranches); showAllRef.current = showAllBranches
