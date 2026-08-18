@@ -521,12 +521,9 @@ export default function App() {
   // ── Auto-refresh via file watcher events from main process ────
   useEffect(() => {
     const handler = () => loadRepoData(true)
-    window.gitAPI.onRepoChanged(handler)
-    window.gitAPI.onWorkingChanged(handler)
-    return () => {
-      window.gitAPI.offRepoChanged(handler)
-      window.gitAPI.offWorkingChanged(handler)
-    }
+    const offRepo = window.gitAPI.onRepoChanged(handler)
+    const offWorking = window.gitAPI.onWorkingChanged(handler)
+    return () => { offRepo(); offWorking() }
   }, [loadRepoData])
 
   // Auto-close the resolver if its file gets resolved+staged OUTSIDE the app

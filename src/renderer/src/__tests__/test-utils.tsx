@@ -57,10 +57,10 @@ export function createMockGitAPI(overrides: Record<string, any> = {}) {
     getConflictVersions: jest.fn().mockResolvedValue({ base: '', ours: '', theirs: '' }),
     getFileContent: jest.fn().mockResolvedValue({ content: '' }),
     resolveConflict: jest.fn().mockResolvedValue({ success: true }),
-    onRepoChanged: jest.fn(),
-    onWorkingChanged: jest.fn(),
-    offRepoChanged: jest.fn(),
-    offWorkingChanged: jest.fn(),
+    // Both hand back an unsubscribe now; a mock returning undefined would make
+    // every effect cleanup throw.
+    onRepoChanged: jest.fn(() => jest.fn()),
+    onWorkingChanged: jest.fn(() => jest.fn()),
     // Diff viewing
     getDiff: jest.fn().mockResolvedValue({ diff: '' }),
     getWorkingFileDiff: jest.fn().mockResolvedValue({ diff: '' }),

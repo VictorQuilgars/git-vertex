@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Icon } from '../../../src/renderer/src/components/Icon/Icon'
 import type { SidebarView } from '../../../src/renderer/src/components/Sidebar/Sidebar'
+import type { TranslationKey } from '../../../src/renderer/src/i18n/translations'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
 
@@ -11,7 +12,9 @@ import ContextMenu from '../../../src/renderer/src/components/ContextMenu/Contex
 
 interface RailItem {
   view: SidebarView
-  labelKey: string
+  // A real key, not a string: the fallback below hides a missing one, so
+  // nothing but the compiler can tell a typo from a key nobody added yet.
+  labelKey: TranslationKey
   fallback: string
   icon: React.ReactNode
 }
@@ -62,7 +65,7 @@ export default function ActivityRail({
   onSelect: (v: SidebarView) => void
 }) {
   const { t } = useLang()
-  const label = (key: string, fallback: string) => {
+  const label = (key: TranslationKey, fallback: string) => {
     const s = t(key)
     return s === key ? fallback : s
   }
