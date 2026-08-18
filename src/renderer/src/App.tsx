@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Icon } from './components/Icon/Icon'
-import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope } from './types'
+import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope, type CompareAxis } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
@@ -23,6 +23,8 @@ import CloneModal from './components/CloneModal/CloneModal'
 import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import Launchpad from './components/Launchpad/Launchpad'
 import ThemeGallery from './components/ThemeGallery/ThemeGallery'
+import CompareView from './components/CompareView/CompareView'
+import FileHistory from './components/FileHistory/FileHistory'
 import RepoManager from './components/RepoManager/RepoManager'
 import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
 import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
@@ -54,107 +56,12 @@ function kindsByPath(entries?: { path: string; kind: ConflictKind }[]): Record<s
   return Object.fromEntries(entries.map(e => [e.path, e.kind]))
 }
 
-// ── Branch Compare Modal ───────────────────────────────────────
-function BranchCompareModal({ otherBranch, currentBranch, onClose, onSelectCommit }: {
-  otherBranch: string
-  currentBranch: string
-  onClose: () => void
-  onSelectCommit: (hash: string) => void
-}) {
-  const { t } = useLang()
-  const [data, setData] = useState<{
-    ahead: { hash: string; shortHash: string; message: string }[]
-    behind: { hash: string; shortHash: string; message: string }[]
-  }>({ ahead: [], behind: [] })
-  const [loading, setLoading] = useState(true)
 
-  React.useEffect(() => {
-    window.gitAPI.compareBranches(currentBranch, otherBranch).then(r => {
-      setData(r)
-      setLoading(false)
-    })
-  }, [currentBranch, otherBranch])
-
-  return (
-    <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bc-modal">
-        <div className="bc-header">
-          <span className="bc-title">{t('bc.title')} <code>{currentBranch}</code> ↔ <code>{otherBranch}</code></span>
-          <button className="bc-close" onClick={onClose}>×</button>
-        </div>
-        {loading ? (
-          <div className="bc-loading">{t('bc.loading')}</div>
-        ) : (
-          <div className="bc-grid">
-            <div className="bc-col">
-              <div className="bc-col-header" style={{ color: 'var(--accent)' }}>
-                {t('bc.in')} <code>{otherBranch}</code> {t('bc.butNotIn')} <code>{currentBranch}</code> ({data.ahead.length})
-              </div>
-              <div className="bc-list">
-                {data.ahead.length === 0 && <div className="bc-empty">{t('bc.noCommit')}</div>}
-                {data.ahead.map(c => (
-                  <div key={c.hash} className="bc-row" onClick={() => { onSelectCommit(c.hash); onClose() }}>
-                    <code className="bc-hash">{c.shortHash}</code>
-                    <span className="bc-msg">{c.message}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="bc-col">
-              <div className="bc-col-header" style={{ color: 'var(--success)' }}>
-                {t('bc.in')} <code>{currentBranch}</code> {t('bc.butNotIn')} <code>{otherBranch}</code> ({data.behind.length})
-              </div>
-              <div className="bc-list">
-                {data.behind.length === 0 && <div className="bc-empty">{t('bc.noCommit')}</div>}
-                {data.behind.map(c => (
-                  <div key={c.hash} className="bc-row" onClick={() => { onSelectCommit(c.hash); onClose() }}>
-                    <code className="bc-hash">{c.shortHash}</code>
-                    <span className="bc-msg">{c.message}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Compare commit against working directory ───────────────────
-function CompareWorkingModal({ hash, onClose }: { hash: string; onClose: () => void }) {
-  const [diff, setDiff] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const { t } = useLang()
-
-  React.useEffect(() => {
-    window.gitAPI.diffCommitToWorking(hash).then(r => {
-      setDiff(r.diff ?? '')
-      setLoading(false)
-    })
-  }, [hash])
-
-  return (
-    <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bc-modal" style={{ width: '80vw', maxWidth: 1100, height: '80vh' }}>
-        <div className="bc-header">
-          <span className="bc-title">{t('compare.titlePre')}<code>{hash.slice(0, 7)}</code>{t('compare.vsWorking')}</span>
-          <button className="bc-close" onClick={onClose}>×</button>
-        </div>
-        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-          {loading
-            ? <div className="bc-loading">{t('common.loading')}</div>
-            : diff.trim() === ''
-              ? <div className="bc-empty" style={{ padding: 24 }}>{t('compare.noDiff')}</div>
-              : <DiffViewer commit={syntheticCommit(hash.slice(0, 7), t('compare.workingTree'))} diff={diff} files={[]} loading={false} />}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Stash content preview ───────────────────────────────────────
-function StashPreviewModal({ index, message, onClose }: { index: number; message: string; onClose: () => void }) {
+// A view, so it opens in a tab: you read a stash while looking at the graph
+// that made it, and it stays put when you click elsewhere.
+function StashPreview({ index, message }: { index: number; message: string }) {
   const [diff, setDiff] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const { t } = useLang()
@@ -167,19 +74,16 @@ function StashPreviewModal({ index, message, onClose }: { index: number; message
   }, [index])
 
   return (
-    <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bc-modal" style={{ width: '80vw', maxWidth: 1100, height: '80vh' }}>
-        <div className="bc-header">
-          <span className="bc-title">Stash <code>#{index}</code> — {message}</span>
-          <button className="bc-close" onClick={onClose}>×</button>
-        </div>
-        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-          {loading
-            ? <div className="bc-loading">{t('common.loading')}</div>
-            : diff.trim() === ''
-              ? <div className="bc-empty" style={{ padding: 24 }}>{t('stash.empty')}</div>
-              : <DiffViewer commit={syntheticCommit(`stash@{${index}}`, message)} diff={diff} files={[]} loading={false} />}
-        </div>
+    <div className="view-page">
+      <div className="view-page-header">
+        <span className="view-page-title">Stash <code>#{index}</code> — {message}</span>
+      </div>
+      <div className="view-page-body">
+        {loading
+          ? <div className="bc-loading">{t('common.loading')}</div>
+          : diff.trim() === ''
+            ? <div className="bc-empty" style={{ padding: 24 }}>{t('stash.empty')}</div>
+            : <DiffViewer commit={syntheticCommit(`stash@{${index}}`, message)} diff={diff} files={[]} loading={false} />}
       </div>
     </div>
   )
@@ -193,54 +97,6 @@ function syntheticCommit(shortHash: string, message: string): CommitNode {
   }
 }
 
-// ── Compare two arbitrary commits ──────────────────────────────
-function CompareCommitsModal({ from, to, onClose }: { from: string; to: string; onClose: () => void }) {
-  const [diff, setDiff] = useState<string>('')
-  const [files, setFiles] = useState<FileChange[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { t } = useLang()
-
-  React.useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    Promise.all([
-      window.gitAPI.diffBetweenCommits(from, to),
-      window.gitAPI.filesBetweenCommits(from, to)
-    ]).then(([d, f]) => {
-      if (cancelled) return
-      if (d.error) setError(d.error)
-      setDiff(d.diff ?? '')
-      setFiles(f.files ?? [])
-      setLoading(false)
-    })
-    return () => { cancelled = true }
-  }, [from, to])
-
-  return (
-    <div className="bc-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bc-modal" style={{ width: '85vw', maxWidth: 1200, height: '82vh' }}>
-        <div className="bc-header">
-          <span className="bc-title">
-            {t('compare.titlePre')}<code>{from.slice(0, 7)}</code> → <code>{to.slice(0, 7)}</code>
-          </span>
-          <button className="bc-close" onClick={onClose}>×</button>
-        </div>
-        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-          {loading
-            ? <div className="bc-loading">{t('common.loading')}</div>
-            : error
-              ? <div className="bc-empty" style={{ padding: 24, color: 'var(--danger)' }}>{error}</div>
-              : diff.trim() === ''
-                ? <div className="bc-empty" style={{ padding: 24 }}>{t('compare.noDiffCommits')}</div>
-                : <DiffViewer
-                    commit={syntheticCommit(to.slice(0, 7), `${from.slice(0, 7)} → ${to.slice(0, 7)}`)}
-                    diff={diff} files={files} loading={false} />}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Imperative dialog helpers ──────────────────────────────────
 type DialogState =
@@ -251,8 +107,47 @@ type DialogState =
 // Tabs are heterogeneous: the classic repo tab, the "home" welcome screen
 // (multiple allowed — every "+" opens a fresh one) and the full-page
 // Launchpad (opened by the 🚀 button). `path`/`name` are only set on repo tabs.
-type TabKind = 'home' | 'repo' | 'launchpad' | 'themes'
-interface AppTab { id: string; kind: TabKind; path?: string; name?: string }
+type TabKind = 'home' | 'repo' | 'launchpad' | 'themes' | 'view'
+
+/**
+ * A view that used to be a window drawn over the graph.
+ *
+ * The rule, and the reason this exists: a surface that HOLDS something — a
+ * comparison, a file's history, a stash's contents — is a tab. It has a title,
+ * it survives clicking elsewhere, you can have two, and you close it when you
+ * are done. A surface that ASKS something — confirm, name this, pick a remote
+ * before pushing — stays a modal: transient, blocking, nothing to come back to.
+ *
+ * The VS Code panel has worked this way from the start (openGitVertexCompareTab
+ * and its siblings); the app drew modals over the graph instead, which is what
+ * made it dense.
+ */
+type ViewTab =
+  | { view: 'compare'; a: string; b: string | null; axis?: CompareAxis; label: string }
+  | { view: 'fileHistory'; file: string }
+  | { view: 'stash'; index: number; message: string }
+
+interface AppTab { id: string; kind: TabKind; path?: string; name?: string; body?: ViewTab }
+
+/** What the tab bar calls a view, and draws for it. */
+function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): string {
+  if (body.view === 'compare') return body.label
+  if (body.view === 'fileHistory') return t('tabs.history', body.file.split('/').pop() ?? body.file)
+  return t('tabs.stash', body.index)
+}
+
+function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' {
+  return body.view === 'compare' ? 'compare' : body.view === 'fileHistory' ? 'history' : 'stash'
+}
+
+/** Two view tabs are the same tab when they show the same thing. */
+export function sameView(a: ViewTab, b: ViewTab): boolean {
+  if (a.view !== b.view) return false
+  if (a.view === 'compare' && b.view === 'compare') return a.a === b.a && a.b === b.b
+  if (a.view === 'fileHistory' && b.view === 'fileHistory') return a.file === b.file
+  if (a.view === 'stash' && b.view === 'stash') return a.index === b.index
+  return false
+}
 let tabSeq = 0
 const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
 
@@ -330,11 +225,8 @@ export default function App() {
   const [aiSearch, setAiSearch] = useState(false)
   const [aiSearchHashes, setAiSearchHashes] = useState<Set<string> | null>(null)
   const [aiSearchLoading, setAiSearchLoading] = useState(false)
-  const [compareBranchModal, setCompareBranchModal] = useState<string | null>(null)
-  const [compareWorkingHash, setCompareWorkingHash] = useState<string | null>(null)
-  const [stashPreview, setStashPreview] = useState<{ index: number; message: string } | null>(null)
+  // Comparisons and previews are tabs now, not overlays — see ViewTab.
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
-  const [comparePair, setComparePair] = useState<{ from: string; to: string } | null>(null)
   const [gitflowOpen, setGitflowOpen] = useState(false)
   // ── Tabs (home / repo / launchpad) ──
   const [tabs, setTabs] = useState<AppTab[]>(() => [{ id: 'home-initial', kind: 'home' }])
@@ -950,6 +842,29 @@ export default function App() {
     clearRepoView()
   }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
 
+  /**
+   * Open a view in a tab — or reveal the one already showing it.
+   *
+   * The tab carries the repository it belongs to, because the main process
+   * holds one repo at a time: a comparison tab left over from another
+   * repository would quietly answer with this one's history.
+   */
+  const openViewTab = useCallback((body: ViewTab) => {
+    if (conflictResolverFile || rebaseHash) return
+    if (!repoPath) return
+    setWhatsNewActive(false)
+    setSettingsOpen(false)
+    setRepoMgmtOpen(false)
+    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
+    setTabs(prev => {
+      const existing = prev.find(tb => tb.kind === 'view' && tb.path === repoPath && tb.body && sameView(tb.body, body))
+      if (existing) { setActiveTabId(existing.id); return prev }
+      const id = newTabId('view')
+      setActiveTabId(id)
+      return [...prev, { id, kind: 'view', path: repoPath, name: repoName, body }]
+    })
+  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, repoPath, repoName])
+
   const switchTab = useCallback(async (tab: AppTab) => {
     setWhatsNewActive(false)   // clicking a tab leaves the what's-new view (tab stays open)
     setRepoMgmtOpen(false)
@@ -957,7 +872,10 @@ export default function App() {
     if (conflictResolverFile || rebaseHash) return
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setActiveTabId(tab.id)
-    if (tab.kind !== 'repo') { clearRepoView(); return }
+    // A view tab is bound to a repository too: its queries go through the main
+    // process, which serves whichever repo was last set.
+    if (tab.kind !== 'repo' && tab.kind !== 'view') { clearRepoView(); return }
+    if (tab.kind === 'view' && tab.path === repoPath) return
     const r = await window.gitAPI.setRepo(tab.path!)
     if (r.path) {
       setRepoPath(r.path)
@@ -968,7 +886,7 @@ export default function App() {
     } else if (r.error) {
       showToast(t('toast.err', r.error), 'err')
     }
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, detectGithub, showToast, clearRepoView])
+  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, repoPath, detectGithub, showToast, clearRepoView])
 
   const closeTab = useCallback((id: string) => {
     selectedByTab.current.delete(id)
@@ -1675,7 +1593,7 @@ export default function App() {
         onCreatePR: pr ? () => handleStartPR(pr) : undefined,
         onMerge: () => handleMergeBranch(ref),
         onRebaseOnto: () => handleRebaseOnto(ref),
-        onCompare: () => setCompareBranchModal(ref),
+        onCompare: () => openViewTab({ view: 'compare', a: currentBranch, b: ref, axis: 'diverged', label: `${currentBranch} … ${ref}` }),
         onOpenOnRemote: () => handleOpenBranchOnRemote(ref),
         onAssociateIssue: () => setIssueModalBranch(ref),
         onToggleFavorite: () => branchMeta.toggleFavorite(ref),
@@ -2006,6 +1924,7 @@ export default function App() {
   const activeTab = tabs.find(tb => tb.id === activeTabId)
   const launchpadActive = activeTab?.kind === 'launchpad'
   const themesActive = activeTab?.kind === 'themes'
+  const viewTab = activeTab?.kind === 'view' ? activeTab.body : undefined
 
   return (
     <div className="app">
@@ -2038,9 +1957,18 @@ export default function App() {
                 <Icon name="repo" size={16} className="app-tab-icon" />
               ) : (
                 <Icon size={16} className="app-tab-icon app-tab-icon--tool"
-                  name={tab.kind === 'launchpad' ? 'rocket' : tab.kind === 'themes' ? 'ink' : 'home'} />
+                  name={tab.kind === 'launchpad' ? 'rocket'
+                    : tab.kind === 'themes' ? 'ink'
+                    : tab.kind === 'view' ? viewTabIcon(tab.body!)
+                    : 'home'} />
               )}
-              <span className="app-tab-name">{tab.kind === 'repo' ? tab.name : tab.kind === 'launchpad' ? t('launchpad.title') : tab.kind === 'themes' ? t('tabs.themes') : t('tabs.home')}</span>
+              <span className="app-tab-name">{
+                tab.kind === 'repo' ? tab.name
+                  : tab.kind === 'launchpad' ? t('launchpad.title')
+                  : tab.kind === 'themes' ? t('tabs.themes')
+                  : tab.kind === 'view' ? viewTabName(tab.body!, t)
+                  : t('tabs.home')
+              }</span>
               <button className="app-tab-close" title={t('tabs.close')}
                 onClick={e => { e.stopPropagation(); closeTab(tab.id) }}>×</button>
             </div>
@@ -2256,7 +2184,7 @@ export default function App() {
               onApplyStash={handleApplyStash}
               onPopStash={handlePopStash}
               onDropStash={handleDropStash}
-              onPreviewStash={(index, message) => setStashPreview({ index, message })}
+              onPreviewStash={(index, message) => openViewTab({ view: 'stash', index, message })}
               onRefreshStashes={loadStashes}
               onCreateTag={handleCreateTag}
               onDeleteTag={handleDeleteTag}
@@ -2268,7 +2196,7 @@ export default function App() {
                 const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                 if (found) setSelectedCommit(found)
               }}
-              onCompareBranch={(name) => setCompareBranchModal(name)}
+              onCompareBranch={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
               soloBranch={soloBranch}
               visibility={visibility}
               onToggleSolo={(name) => { setSoloBranch(prev => prev === name ? null : name) }}
@@ -2333,6 +2261,19 @@ export default function App() {
               onSuccess={loadRepoData}
               showToast={showToast}
             />
+          ) : viewTab ? (
+            viewTab.view === 'compare' ? (
+              <CompareView
+                initialA={viewTab.a}
+                initialB={viewTab.b}
+                initialAxis={viewTab.axis}
+                repoKey={repoPath}
+              />
+            ) : viewTab.view === 'fileHistory' ? (
+              <FileHistory file={viewTab.file} />
+            ) : (
+              <StashPreview index={viewTab.index} message={viewTab.message} />
+            )
           ) : themesActive ? (
             <ThemeGallery />
           ) : launchpadActive ? (
@@ -2453,10 +2394,18 @@ export default function App() {
               onInteractiveRebase={(hash) => setRebaseHash(hash)}
               onCheckoutCommit={handleCheckout}
               onRewordCommit={handleRewordCommit}
-              onCompareWorking={(hash) => setCompareWorkingHash(hash)}
+              onCompareWorking={(hash) => openViewTab({ view: 'compare', a: hash, b: null, label: `${hash.slice(0, 7)} → ${t('cv.workingTree')}` })}
               compareBaseHash={compareBaseHash}
               onSelectForCompare={(hash) => { setCompareBaseHash(hash); showToast(t('toast.commitSelectedForCompare')) }}
-              onCompareWithSelected={(hash) => { if (compareBaseHash) setComparePair({ from: compareBaseHash, to: hash }) }}
+              onCompareWithSelected={(hash) => {
+                if (!compareBaseHash) return
+                // Two commits picked by hand, in the order they were picked:
+                // `endpoints`, because three-dot against an ancestor is empty.
+                openViewTab({
+                  view: 'compare', a: compareBaseHash, b: hash, axis: 'endpoints',
+                  label: `${compareBaseHash.slice(0, 7)} ‥ ${hash.slice(0, 7)}`,
+                })
+              }}
               onDropCommit={handleDropCommit}
               onMoveCommit={handleMoveCommit}
               onBranchDrop={handleBranchDrop}
@@ -2507,6 +2456,7 @@ export default function App() {
                 onOpenFileOnRemote={handleOpenFileOnRemote}
                 onCopyFileLink={handleCopyFileLink}
                 onRestoreFile={handleRestoreFile}
+                onOpenFileHistory={(file) => openViewTab({ view: 'fileHistory', file })}
                 onRewordMessage={applyReword}
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}
@@ -2581,18 +2531,6 @@ export default function App() {
         />
       )}
 
-      {/* Branch Comparison */}
-      {compareBranchModal && (
-        <BranchCompareModal
-          otherBranch={compareBranchModal}
-          currentBranch={currentBranch}
-          onClose={() => setCompareBranchModal(null)}
-          onSelectCommit={(hash) => {
-            const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
-            if (found) setSelectedCommit(found)
-          }}
-        />
-      )}
 
       {/* Tab context menu */}
       {tabMenu && (
@@ -2618,30 +2556,9 @@ export default function App() {
       )}
 
       {/* Compare commit vs working directory */}
-      {compareWorkingHash && (
-        <CompareWorkingModal
-          hash={compareWorkingHash}
-          onClose={() => setCompareWorkingHash(null)}
-        />
-      )}
 
       {/* Stash content preview */}
-      {stashPreview && (
-        <StashPreviewModal
-          index={stashPreview.index}
-          message={stashPreview.message}
-          onClose={() => setStashPreview(null)}
-        />
-      )}
 
-      {/* Compare two commits */}
-      {comparePair && (
-        <CompareCommitsModal
-          from={comparePair.from}
-          to={comparePair.to}
-          onClose={() => setComparePair(null)}
-        />
-      )}
 
       {issueModalBranch && (
         <AssociateIssueModal

@@ -256,48 +256,6 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 }
 
 // ── File History modal ────────────────────────────────────────
-function FileHistoryModal({ filepath, onClose, onSelectCommit }: {
-  filepath: string
-  onClose: () => void
-  onSelectCommit: (hash: string) => void
-}) {
-  const { t } = useLang()
-  const [history, setHistory] = useState<{ hash: string; shortHash: string; message: string; author: string; date: string }[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    setLoading(true)
-    window.gitAPI.getFileHistory(filepath).then(r => {
-      setHistory(r.commits ?? [])
-      setLoading(false)
-    })
-  }, [filepath])
-
-  return (
-    <div className="fh-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="fh-modal">
-        <div className="fh-header">
-          <span className="fh-title">{t('panel.fileHistory', filepath.split('/').pop() ?? '')}</span>
-          <button className="fh-close" title={t('common.close')} onClick={onClose}>×</button>
-        </div>
-        <div className="fh-path">{filepath}</div>
-        <div className="fh-list">
-          {loading && <div className="fh-empty">{t('panel.loading')}</div>}
-          {!loading && history.length === 0 && <div className="fh-empty">{t('panel.noHistory')}</div>}
-          {history.map(c => (
-            <div key={c.hash} className="fh-row" onClick={() => { onSelectCommit(c.hash); onClose() }}>
-              <code className="fh-hash">{c.shortHash}</code>
-              <div className="fh-info">
-                <span className="fh-msg">{c.message}</span>
-                <span className="fh-meta">{c.author} · {fmtDate(c.date, t('graph.dateLocale'))}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Blame view ────────────────────────────────────────────────
 interface BlameLine {
@@ -381,7 +339,7 @@ function formatPath(path: string): { dir: string; name: string } {
 const MIN_MSG_H = 48
 const MAX_MSG_H = 400
 
-function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast, onOpenFileOnRemote, onCopyFileLink, onRestoreFile }: {
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast, onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
   wipCount?: number
@@ -398,6 +356,12 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   onCopyFileLink?: (hash: string, filePath: string) => void
   /** Put this file back the way it was at this commit. Asks first. */
   onRestoreFile?: (hash: string, filePath: string) => void
+  /**
+   * Show this file's history — the host decides where a view goes: a tab in the
+   * app, an editor tab in the panel. Omitted ⇒ the button disappears rather
+   * than opening nothing.
+   */
+  onOpenFileHistory?: (filePath: string) => void
   /**
    * Apply a message to a commit that is NOT the tip — a replay of everything
    * after it. The host owns it because it is a rebase: loading state, conflict
@@ -417,7 +381,6 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [view, setView] = useState<'files' | 'blame'>('files')
   const [cdTreeMode, setCdTreeMode] = useState(() => localStorage.getItem('cd-tree-mode') === 'true')
-  const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
   const [viewAll, setViewAll] = useState(false)
   const [msgHeight, setMsgHeight] = useState(120)
   const [amendEditing, setAmendEditing] = useState(false)
@@ -833,10 +796,12 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                           {dir && <span className="rp-file-dir">{dir}</span>}
                           <span className="rp-file-name">{name}</span>
                         </span>
-                        <button className="rp-history-btn" title={t('panel.history')}
-                          onClick={e => { e.stopPropagation(); setFileHistoryPath(f.path) }}>
-                          <Icon name="history" size={11} />
-                        </button>
+                        {onOpenFileHistory && (
+                          <button className="rp-history-btn" title={t('panel.history')}
+                            onClick={e => { e.stopPropagation(); onOpenFileHistory(f.path) }}>
+                            <Icon name="history" size={11} />
+                          </button>
+                        )}
                       </div>
                     )
                   })
@@ -847,11 +812,6 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                 </div>
               )}
             </div>
-          )}
-
-          {fileHistoryPath && (
-            <FileHistoryModal filepath={fileHistoryPath}
-              onClose={() => setFileHistoryPath(null)} onSelectCommit={onSelectCommit} />
           )}
 
           {view === 'blame' && selectedFile && (
@@ -1985,6 +1945,12 @@ interface RightPanelProps {
   onCopyFileLink?: (hash: string, filePath: string) => void
   /** Put this file back the way it was at this commit. Asks first. */
   onRestoreFile?: (hash: string, filePath: string) => void
+  /**
+   * Show this file's history — the host decides where a view goes: a tab in the
+   * app, an editor tab in the panel. Omitted ⇒ the button disappears rather
+   * than opening nothing.
+   */
+  onOpenFileHistory?: (filePath: string) => void
   /** Apply a message to a commit that is not the tip — see CommitDetail. */
   onRewordMessage?: (hash: string, message: string) => void | Promise<void>
   // Agent-proposed commit (MCP propose_commit): message preloaded into the
@@ -2003,7 +1969,7 @@ interface RightPanelProps {
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
-  onOpenFileOnRemote, onCopyFileLink, onRestoreFile,
+  onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory,
   onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
@@ -2054,6 +2020,7 @@ export default function RightPanel({
           onOpenFileOnRemote={onOpenFileOnRemote}
           onCopyFileLink={onCopyFileLink}
           onRestoreFile={onRestoreFile}
+          onOpenFileHistory={onOpenFileHistory}
           onRewordMessage={onRewordMessage}
           showToast={showToast}
         />

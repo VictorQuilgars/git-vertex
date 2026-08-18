@@ -1072,6 +1072,7 @@ function VertexApp() {
                 onOpenFileOnRemote={handleOpenFileOnRemote}
                 onCopyFileLink={handleCopyFileLink}
                 onRestoreFile={handleRestoreFile}
+                onOpenFileHistory={(file: string) => (window.gitAPI as any).openFileHistory(file)}
                 branchStrip={branchStripProps}
               />
             </div>

@@ -24,6 +24,16 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🧹 The app stops piling up file-watcher listeners
 - Subscribing to repository changes handed the callback straight to Electron's bridge and unsubscribing handed it back — but the bridge makes a **new proxy** of the same function on every crossing, so the removal never matched the subscription.
 - Every hide, solo or branch switch added a listener and removed none. Git was being run several times for a single change, with filters you had already moved on from.
+
+### 🗂 Views open in tabs, not over the graph
+- A comparison, a file's history, a stash's contents: each opens as **a tab** with its own name, stays put when you click elsewhere, and closes when you are done. Opening the same one twice returns you to the tab you already have.
+- What stays a window is what **asks** something — confirm, name this branch, pick a remote before pushing. What **holds** something is a tab.
+
+### 🔀 And the comparison is the full one
+- The same view the VS Code panel has: since they diverged / end to end, the working tree as a target, and the comparisons you already looked at. The app had three smaller windows, each answering a part of it.
+
+### 🕰 A file's history, in the app
+- The button in a commit's file list opened a bare list of commits. It now opens the history view — diff and blame beside the list.
 `,
 
   '1.30.2': `## What's new in 1.30.2

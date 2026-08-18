@@ -534,6 +534,19 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--surface-sunken); border-radius: var(--radius-xs); }
 ::-webkit-scrollbar-thumb:hover { background: var(--surface-active); }
 
+/* A view that used to be a modal, now filling a tab: no scrim, no shadow, no
+   close button — the tab is the close button. Same header proportions as the
+   panels around it so the switch does not feel like another application. */
+.view-page { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--bg-canvas); }
+.view-page-header {
+  display: flex; align-items: center; gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-2xl);
+  border-bottom: 1px solid var(--border-default);
+}
+.view-page-title { font-size: var(--text-base); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.view-page-title code { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+.view-page-body { flex: 1; overflow: auto; min-height: 0; }
+
 /* Branch Compare Modal */
 .bc-overlay {
   position: fixed; inset: 0; background: color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);

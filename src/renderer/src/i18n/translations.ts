@@ -18,6 +18,8 @@ const fr = {
   'tabs.new': 'Nouvel onglet',
   'tabs.home': 'Accueil',
   'tabs.whatsNew': 'Quoi de neuf',
+  'tabs.history': (file: string) => `Historique — ${file}`,
+  'tabs.stash': (i: number) => `Stash #${i}`,
   'tabs.close': 'Fermer l\'onglet',
 
   // Launchpad (cross-repo PRs & issues)
@@ -1404,6 +1406,8 @@ const en: typeof fr = {
   'tabs.new': 'New tab',
   'tabs.home': 'Home',
   'tabs.whatsNew': "What's new",
+  'tabs.history': (file: string) => `History — ${file}`,
+  'tabs.stash': (i: number) => `Stash #${i}`,
   'tabs.close': 'Close tab',
   'tabs.closeOthers': 'Close other tabs',
 

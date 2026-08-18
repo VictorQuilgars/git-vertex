@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **A file's history opens as an editor tab.** The button in a commit's file list used to open a small modal inside the panel — a list of commits with no diff — while the richer history view was reachable only from the command palette. Both roads now lead to the same tab.
 - **The comparison view says which question it is answering, and defaults to the useful one.** Comparing two branches now shows what the target did *since the two parted* — the same set its commit list describes, and what a pull request shows — with the commit they parted at named next to it. *End to end*, one click away, is the old behaviour: the difference between the two trees as they stand.
 - **Compare a branch against your working tree**, uncommitted changes included: pick *Working tree* as the target.
 - **Compare the line under the cursor** with the revision before the one that wrote it, or with the file as it stands — *Git Vertex: Compare Line With Previous Revision* / *…With Working Tree*. The blame already knew which commit wrote a line; this is the jump from there to what that commit did.

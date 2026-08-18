@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- **Comparisons, a file's history and a stash's contents open in a tab**, not in a window over the graph. They have a name in the tab bar, they stay put when you click elsewhere, you can keep several open, and you close them when you are done. Opening the same one twice takes you back to the tab you already have.
+- **The comparison view is the full one now** — the same one the VS Code panel has: which question it answers (since they diverged / end to end), the working tree as a target, and the comparisons you have already looked at. The app had three smaller windows instead, each answering a part of it.
+- **A file's history is in the app at last.** The button in a commit's file list opened a modal list of commits with no diff; it now opens the history view, with the diff and the blame beside it.
 - **Hide anything from the graph, not just a branch.** A tag, a whole remote and the stash can now be taken out of the view the way a branch already could — right-click the row and *Hide from Graph*. Each section also hides in one go: LOCAL, REMOTE, TAGS, REMOTES and STASH carry *Hide All from Graph* and *Show All in Graph* on their header, and hiding a whole family keeps hiding what arrives later, so a branch pushed afterwards does not reappear on its own.
 - **A section says how much of it the graph is not showing.** Its header carries a count of what is hidden, and clicking that count brings everything in the section back. Hiding used to leave nothing on screen to say the graph was filtered.
 - **Restore a file to the version in a commit.** Right-click it in a commit's file list. It asks first, then leaves the change unstaged — so what you brought back is a diff you can read before you keep it, rather than something already staged. A file deleted since comes back on disk.

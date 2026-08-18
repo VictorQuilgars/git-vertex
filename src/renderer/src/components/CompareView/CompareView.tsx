@@ -28,21 +28,28 @@ const api: any = new Proxy({}, { get: (_t, p) => (window as any).gitAPI?.[p as s
  */
 const WORKING = ':working'
 
-export default function CompareView({ initialA, initialB, repoKey }: {
+export default function CompareView({ initialA, initialB, initialAxis, repoKey }: {
   initialA?: string
-  initialB?: string
+  /** `null` opens against the working tree. */
+  initialB?: string | null
+  /**
+   * Which question to open on. Branches want `diverged`; two commits picked by
+   * hand want `endpoints`, because three-dot against an ancestor is empty and
+   * the pair may well have been picked newest-first.
+   */
+  initialAxis?: CompareAxis
   /** Which repository's saved comparisons to show. Omitted ⇒ none are kept. */
   repoKey?: string | null
 }) {
   const { t } = useLang()
   const [refs, setRefs] = useState<string[]>([])
   const [refA, setRefA] = useState(initialA ?? '')
-  const [refB, setRefB] = useState(initialB ?? '')
+  const [refB, setRefB] = useState(initialB === null ? WORKING : (initialB ?? ''))
   // Which question the diff answers. `diverged` by default because it is the
   // one the commit lists below already answer: two-dot would report every file
   // the other side gained since the split as a deletion, and claim this branch
   // removed files it never touched.
-  const [axis, setAxis] = useState<CompareAxis>('diverged')
+  const [axis, setAxis] = useState<CompareAxis>(initialAxis ?? 'diverged')
   const [mergeBase, setMergeBase] = useState<string | null>(null)
   const { history, remember, clear } = useCompareHistory(repoKey ?? null)
   const [ahead, setAhead] = useState<CompareCommit[]>([])
