@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **The staging area no longer goes blank in Tree view.** A folder row's stage/unstage button built its tooltip through the translation function, in a component that never received it — so the moment a folder carried an action, the panel threw and rendered nothing. Present since 1.24.0.
+
 ## 1.30.1
 
 ### Fixed

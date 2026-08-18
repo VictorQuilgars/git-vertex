@@ -150,6 +150,7 @@ function TreeFileRow({ node, depth, onAction, actionIcon, actionTitle, onSelect,
   /** Right-click on a FILE row (folders have nothing to link to). */
   onContextMenu?: (e: React.MouseEvent, path: string) => void
 }) {
+  const { t } = useLang()
   const [open, setOpen] = React.useState(true)
   const indent = depth * 10
 
