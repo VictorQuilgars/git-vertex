@@ -24,6 +24,23 @@ function parseAutolinksLoose(raw: string): Autolink[] {
 }
 
 type Section = 'git' | 'appearance' | 'graph' | 'github' | 'ai' | 'notifications' | 'externalTools' | 'ssh' | 'about'
+
+const SECTIONS: Section[] = ['git', 'appearance', 'graph', 'github', 'ai', 'notifications', 'externalTools', 'ssh', 'about']
+
+/**
+ * Which section was last read.
+ *
+ * Settings is a tab now, so leaving it is a click on another tab rather than a
+ * decision to close it — and coming back to the top of the list every time is
+ * the tab forgetting what you were doing. React unmounts the body of a tab you
+ * are not looking at, so this outlives the component rather than sitting in it.
+ */
+const SECTION_KEY = 'gv-settings-section'
+
+function lastSection(): Section {
+  const saved = localStorage.getItem(SECTION_KEY) as Section | null
+  return saved && SECTIONS.includes(saved) ? saved : 'git'
+}
 type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
 
 // Sections hidden in the VS Code panel (`embedded`) — desktop-only concerns
@@ -148,7 +165,8 @@ interface SettingsModalProps {
 export default function SettingsModal({ onClose, showToast, onUpdateFound, embedded = false, onBrowseThemes }: SettingsModalProps) {
   const { t, lang, setLang } = useLang()
   const { settings, get, getBool, set } = useSettings()
-  const [section, setSection] = useState<Section>('git')
+  const [section, setSection] = useState<Section>(lastSection)
+  useEffect(() => { localStorage.setItem(SECTION_KEY, section) }, [section])
 
   // ── Themes ────────────────────────────────────────────────────────────────
   const [installed, setInstalled] = useState<InstalledThemeInfo[]>([])

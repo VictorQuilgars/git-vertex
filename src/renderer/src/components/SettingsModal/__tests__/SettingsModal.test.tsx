@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event'
 import SettingsModal from '../SettingsModal'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
+// The settings page remembers the section you were last on (it is a tab, and
+// leaving a tab unmounts its body). Each test here navigates, so each has to
+// start from the same place rather than from wherever the last one stopped.
+afterEach(() => localStorage.removeItem('gv-settings-section'))
+
 describe('SettingsModal — navigation', () => {
   test('does not render two nav items with the same label (regression: General/General collision)', async () => {
     installMockGitAPI()
