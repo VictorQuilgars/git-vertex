@@ -136,6 +136,37 @@ export function postCommitMenuAction(action: string, hash: string): void {
   activeCommitMenuWebview?.postMessage({ type: 'menuAction', action, hash })
 }
 
+/**
+ * `gitvertex:<file>?<ref>` — a file's content at a ref, for VS Code's own diff
+ * editor. Exported because the blame commands open diffs too, and they run
+ * whether or not the panel has ever been opened.
+ */
+export function refUri(ref: string, filepath: string): vscode.Uri {
+  return vscode.Uri.from({ scheme: DIFF_SCHEME, path: '/' + filepath, query: ref })
+}
+
+/**
+ * Serve that scheme, and remember which repository answers for it.
+ *
+ * The host calls this when it opens; `activate` calls it too, because a blame
+ * command can be the first thing that needs a revision's content and the panel
+ * may never have been opened at all — in which case the diff editor would have
+ * shown two empty documents.
+ */
+export function ensureDiffProvider(service: GitService): void {
+  activeGitService = service
+  if (diffProviderRegistered) return
+  diffProviderRegistered = true
+  vscode.workspace.registerTextDocumentContentProvider(DIFF_SCHEME, {
+    provideTextDocumentContent: async (uri): Promise<string> => {
+      const ref = uri.query
+      const filepath = uri.path.replace(/^\//, '')
+      if (!activeGitService || !ref) return ''
+      return (await activeGitService.getFileAtCommit(ref, filepath)).content ?? ''
+    },
+  })
+}
+
 export class GitVertexHost implements vscode.Disposable {
   private _gitService?: GitService
   private _fsWatcher?: vscode.FileSystemWatcher
@@ -162,7 +193,6 @@ export class GitVertexHost implements vscode.Disposable {
       localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'media')],
     }
     if (!this._boot) activeCommitMenuWebview = this._webview
-    this._registerDiffProvider()
     this._webview.html = this._getHtml(this._webview)
     this._webview.onDidReceiveMessage(
       (msg: GitApiRequest) => { if (msg?.type === 'gitApi') this._handleApi(msg) },
@@ -184,7 +214,8 @@ export class GitVertexHost implements vscode.Disposable {
     if (this._repoPath === repoPath) return
     this._repoPath = repoPath
     this._gitService = new GitService(repoPath)
-    activeGitService = this._gitService
+    // Registers the `gitvertex:` provider on first use and points it here.
+    ensureDiffProvider(this._gitService)
     this._setupWatcher(repoPath)
     this._broadcast('repoChanged')
   }
@@ -235,24 +266,8 @@ export class GitVertexHost implements vscode.Disposable {
   // ── Native diff editor support ────────────────────────────────
   // Register a content provider that resolves `gitvertex:<file>?<ref>` to the
   // file's content at that ref (via the live GitService). Registered once.
-  private _registerDiffProvider(): void {
-    if (diffProviderRegistered) return
-    diffProviderRegistered = true
-    const provider: vscode.TextDocumentContentProvider = {
-      provideTextDocumentContent: async (uri): Promise<string> => {
-        const ref = uri.query
-        const filepath = uri.path.replace(/^\//, '')
-        if (!activeGitService || !ref) return ''
-        const res = await activeGitService.getFileAtCommit(ref, filepath)
-        return res.content ?? ''
-      },
-    }
-    // Registered for the extension lifetime — not tied to a single host.
-    vscode.workspace.registerTextDocumentContentProvider(DIFF_SCHEME, provider)
-  }
-
   private _refUri(ref: string, filepath: string): vscode.Uri {
-    return vscode.Uri.from({ scheme: DIFF_SCHEME, path: '/' + filepath, query: ref })
+    return refUri(ref, filepath)
   }
 
   // Open a native side-by-side diff for a commit file or a working-tree file.

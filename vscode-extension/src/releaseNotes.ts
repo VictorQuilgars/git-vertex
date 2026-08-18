@@ -33,6 +33,21 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🩹 Hiding a branch no longer takes your stashes with it
 - Hiding handed git the list of branches that remained — and a list of refs replaces \`--all\`, so every commit that only a tag or the stash reached disappeared with it. What you hide is now named and excluded instead.
+
+### 🔀 Comparing says which question it answers
+- Two branches now compare on **what the target did since they parted** — the same set the commit list beside it describes, and what a pull request shows. The commit they parted at is named next to it.
+- **End to end** is one click away, and is the old behaviour: the difference between the two trees as they stand.
+- It used to be measured end to end only, so every file the *other* branch had gained since the split appeared as a **deletion** — a comparison claiming a branch removed files it never touched.
+
+### 📍 Compare the line you are on
+- **Compare Line With Previous Revision** opens what the commit that wrote this line actually did; **Compare Line With Working Tree** compares that revision to the file as it stands.
+- The blame already knew which commit wrote a line. These are the jump from there, and they work whether or not the annotations are switched on.
+
+### 🌳 Compare against your working tree
+- Pick **Working tree** as the target to see a branch against your uncommitted changes.
+
+### 🕘 And it remembers
+- The comparisons you have looked at stay as chips under the header, per repository. Click one to go back to it, or clear the lot.
 `,
 
   '1.28.3': `## What's new in 1.28.3

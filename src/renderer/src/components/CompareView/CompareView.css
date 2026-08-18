@@ -154,3 +154,51 @@
   cursor: pointer;
 }
 .cv-copy-link:hover { background: var(--surface-active); border-color: var(--border-strong); }
+
+/* The axis: which question the diff answers. Two states, always both visible —
+   the choice only means something if you can see there is one. */
+.cv-axis { display: inline-flex; border: 1px solid var(--border-default); border-radius: var(--radius-sm); overflow: hidden; }
+.cv-axis-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: var(--text-tiny);
+  font-family: inherit;
+  padding: var(--space-2xs) var(--space-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cv-axis-btn:hover { color: var(--text-primary-soft); }
+.cv-axis-btn.is-on { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); color: var(--accent); }
+
+/* The commit they parted at — shown only when the diff is measured from it. */
+.cv-base { font-size: var(--text-tiny); color: var(--text-tertiary); }
+
+/* The register of comparisons already looked at. */
+.cv-history {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  padding: var(--space-2xs) var(--space-lg);
+  border-bottom: 1px solid var(--border-default);
+}
+.cv-history-label { font-size: var(--text-tiny); color: var(--text-tertiary); }
+.cv-history-chip,
+.cv-history-clear {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: var(--text-tiny);
+  font-family: inherit;
+  padding: var(--space-px) var(--space-sm);
+  cursor: pointer;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cv-history-chip:hover { color: var(--accent); border-color: var(--accent); }
+.cv-history-clear { background: none; border-color: transparent; color: var(--text-tertiary); }
+.cv-history-clear:hover { color: var(--danger); }

@@ -19,6 +19,8 @@ export interface BlameLine {
 }
 
 export interface BlameOptions {
+  /** 1-based line to blame on its own, instead of the whole file. */
+  line?: number
   /** Buffer contents to blame instead of the file on disk (unsaved edits). */
   contents?: string
   /** Pass -w, so re-indenting a file doesn't reassign every line to whoever did it. */
@@ -113,6 +115,9 @@ export async function blameFile(
 ): Promise<BlameLine[]> {
   const args = ['blame', '--line-porcelain']
   if (opts.ignoreWhitespace) args.push('-w')
+  // One line asked for, one line blamed: the commands that act on the cursor
+  // do not need the other ten thousand.
+  if (opts.line !== undefined) args.push('-L', `${opts.line},${opts.line}`)
   // No revision with --contents: git blames the given buffer against history,
   // which is what lets unsaved edits show up as uncommitted lines.
   if (opts.contents !== undefined) args.push('--contents', '-')

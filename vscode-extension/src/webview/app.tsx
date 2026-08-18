@@ -1179,7 +1179,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             : boot?.mode === 'history' && boot.file
               ? <FileHistory file={boot.file} />
               : boot?.mode === 'compare'
-                ? <CompareView initialA={boot.refA} initialB={boot.refB} />
+                ? <CompareView initialA={boot.refA} initialB={boot.refB} repoKey={repoName || 'repo'} />
                 : boot?.mode === 'compareWorking' && boot.hash
                   ? <CompareWorkingView hash={boot.hash} />
                 : boot?.mode === 'github'

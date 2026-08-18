@@ -1036,6 +1036,15 @@ const fr = {
   'cv.swapTitle': 'Inverser les références',
   'cv.chooseTwo': 'Choisissez deux références à comparer',
   'cv.inOnly': (ref: string) => `Dans ${ref} seulement`,
+  'cv.workingTree': 'Arbre de travail',
+  'cv.axisLabel': 'Ce que la comparaison mesure',
+  'cv.axisDiverged': 'Depuis la divergence',
+  'cv.axisDivergedTitle': 'Ce que la cible a fait depuis que les deux se sont séparées — la question à laquelle répond déjà la liste de commits, et ce qu\'affiche une pull request',
+  'cv.axisEndpoints': 'D\'un bout à l\'autre',
+  'cv.axisEndpointsTitle': 'La différence entre les deux arbres tels quels : les fichiers gagnés par l\'autre côté depuis la séparation y apparaissent comme supprimés',
+  'cv.baseTitle': 'Le commit où les deux se sont séparées',
+  'cv.recent': 'Récentes',
+  'cv.clearRecent': 'Effacer',
 
   // InteractiveRebase (extras)
   'ir.firstKept': 'Le premier commit conservé ne peut pas être « squash »/« fixup » — choisissez « pick » ou incluez un commit plus ancien.',
@@ -2413,6 +2422,15 @@ const en: typeof fr = {
   'cv.swapTitle': 'Swap references',
   'cv.chooseTwo': 'Choose two references to compare',
   'cv.inOnly': (ref: string) => `In ${ref} only`,
+  'cv.workingTree': 'Working tree',
+  'cv.axisLabel': 'What the comparison measures',
+  'cv.axisDiverged': 'Since they diverged',
+  'cv.axisDivergedTitle': 'What the target did since the two parted — the question the commit list already answers, and what a pull request shows',
+  'cv.axisEndpoints': 'End to end',
+  'cv.axisEndpointsTitle': 'The difference between the two trees as they stand: files the other side gained since the split appear here as deletions',
+  'cv.baseTitle': 'The commit the two parted at',
+  'cv.recent': 'Recent',
+  'cv.clearRecent': 'Clear',
 
   // InteractiveRebase (extras)
   'ir.firstKept': 'The first kept commit cannot be "squash"/"fixup" — choose "pick" or include an older commit.',

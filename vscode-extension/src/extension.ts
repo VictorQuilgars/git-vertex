@@ -5,7 +5,9 @@ import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider } from './panel/GitVertexHost'
+import { blameFile } from './blame/blame'
+import { GitService } from './gitService'
 import { RELEASE_NOTES } from './releaseNotes'
 import { runFileLinkCommand } from './remoteLinks'
 import { RebaseTodoEditor, isRebaseTodoEditorOpenFor, setOnRebaseTodoEditorClosed } from './panel/RebaseTodoEditor'
@@ -324,6 +326,47 @@ export function activate(context: vscode.ExtensionContext): void {
   )
 
   // Inline blame annotations + Git CodeLens (they share one blame cache).
+  /**
+   * Diff the line under the cursor against the revision before the one that
+   * wrote it, or against the file as it stands.
+   *
+   * `git blame -L n,n` for one line, then VS Code's own diff editor over the
+   * `gitvertex:` scheme — the same pair of documents the panel opens, so a
+   * revision is read through the one provider that knows how.
+   */
+  const diffLine = async (against: 'previous' | 'working'): Promise<void> => {
+    const editor = vscode.window.activeTextEditor
+    if (!editor || editor.document.uri.scheme !== 'file') {
+      vscode.window.showWarningMessage('Open a file to compare one of its lines.')
+      return
+    }
+    const root = getRepoRootForFile(editor.document.uri.fsPath)
+    if (!root) { vscode.window.showWarningMessage('This file is not inside a Git repository.'); return }
+    const rel = path.relative(root, editor.document.uri.fsPath).split(path.sep).join('/')
+    const line = editor.selection.active.line + 1
+
+    const [blamed] = await blameFile(root, rel, { line })
+    if (!blamed) { vscode.window.showWarningMessage('Git has no history for this line.'); return }
+    if (blamed.uncommitted) {
+      // The line is not in any commit yet: there is no "previous revision" of
+      // it, and comparing it to the working tree compares it to itself.
+      vscode.window.showInformationMessage('This line is not committed yet.')
+      return
+    }
+
+    ensureDiffProvider(new GitService(root))
+    const name = path.basename(rel)
+    if (against === 'previous') {
+      await vscode.commands.executeCommand('vscode.diff',
+        refUri(`${blamed.hash}~1`, rel), refUri(blamed.hash, rel),
+        `${name} (${blamed.shortHash})`)
+    } else {
+      await vscode.commands.executeCommand('vscode.diff',
+        refUri(blamed.hash, rel), editor.document.uri,
+        `${name} (${blamed.shortHash} ↔ Working Tree)`)
+    }
+  }
+
   const blame = new InlineBlameController()
   const codeLens = new BlameCodeLensProvider(blame)
   context.subscriptions.push(
@@ -429,6 +472,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.previousChange', () => blame.goToChange('previous')),
     vscode.commands.registerCommand('gitVertex.toggleCodeLens', () => codeLens.toggle()),
     // Invoked from the blame hover, never from the palette.
+    // The blame knows which commit wrote the line under the cursor; these two
+    // are the jump from there to what that commit actually did. Reaching for
+    // them from an editor is the point, so they resolve the line themselves
+    // rather than depending on the annotations being switched on.
+    vscode.commands.registerCommand('gitVertex.diffLineWithPrevious', () => diffLine('previous')),
+    vscode.commands.registerCommand('gitVertex.diffLineWithWorking', () => diffLine('working')),
     vscode.commands.registerCommand('gitVertex.blame.copyHash', async (hash?: string) => {
       if (!hash) return
       await vscode.env.clipboard.writeText(hash)

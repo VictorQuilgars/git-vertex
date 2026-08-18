@@ -66,6 +66,17 @@ export interface WorkingChanges {
 type R = { success: boolean; error?: string }
 
 /**
+ * Which question a comparison answers.
+ *
+ * `endpoints` (`A..B`) is the difference between the two trees as they stand.
+ * `diverged` (`A...B`) is what B did since the two parted — the question the
+ * commit list beside it has always answered, and the one a pull request shows.
+ * Declared here as well as in the two services because the view that picks it
+ * is shared renderer code.
+ */
+export type CompareAxis = 'diverged' | 'endpoints'
+
+/**
  * A response this mirror has not narrowed yet.
  *
  * It exists so the surface can be COMPLETE without inventing shapes for
@@ -156,8 +167,9 @@ declare global {
       dropCommit: (hash: string) => Promise<R>
       moveCommit: (hash: string, direction: 'up' | 'down') => Promise<R>
       diffCommitToWorking: (hash: string) => Promise<{ diff: string }>
-      diffBetweenCommits: (fromHash: string, toHash: string) => Promise<{ diff: string; error?: string }>
-      filesBetweenCommits: (fromHash: string, toHash: string) => Promise<{ files: FileChange[]; error?: string }>
+      diffBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ diff: string; error?: string }>
+      filesBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ files: FileChange[]; error?: string }>
+      getMergeBase: (a: string, b: string) => Promise<{ base: string | null; error?: string }>
       getLastCommitMessage: (ref?: string) => Promise<{ message: string }>
       // The preload has had this since the AI commit message shipped; the
       // declaration never followed, so the one caller was typed as a mistake.

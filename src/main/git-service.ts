@@ -151,6 +151,15 @@ export function makeSimpleGit(repoPath?: string): SimpleGit {
 // git-service keeps working unchanged.
 export { MIN_GIT_FOR_CONFLICT_PREDICTION, parseGitVersion, isGitVersionAtLeast } from './git-version'
 
+/** Which question a comparison answers — see diffBetweenCommits. */
+export type CompareAxis = 'diverged' | 'endpoints'
+
+/** The arguments `git diff` needs for one comparison, in one place. */
+function compareRange(from: string, to: string | null, axis: CompareAxis): string[] {
+  if (to === null) return [from]                      // …against the working tree
+  return [axis === 'diverged' ? `${from}...${to}` : `${from}..${to}`]
+}
+
 export class GitService {
   private git: SimpleGit
   public repoPath: string
@@ -432,27 +441,68 @@ export class GitService {
 
   // Diff between two arbitrary commits (or any two revisions).
   // Order matters: changes are expressed as going from `fromHash` to `toHash`.
-  async diffBetweenCommits(fromHash: string, toHash: string): Promise<{ diff: string; error?: string }> {
-    const bad = this.assertRef(fromHash, 'commit') || this.assertRef(toHash, 'commit')
+  /**
+   * The diff between two refs — along the axis the caller asks for.
+   *
+   * `endpoints` is two-dot, `A..B`: the difference between the two trees as
+   * they stand. `diverged` is three-dot, `A...B`: what B did since the two
+   * parted, which is what a pull request shows and what `git log A..B` — the
+   * commit list beside it — has always answered.
+   *
+   * The distinction is not cosmetic. On `main..feature`, two-dot reports every
+   * file main gained since the split as *deleted*, because they are absent
+   * from feature's tree; the comparison then claims a branch deleted files it
+   * never touched.
+   *
+   * ⚠️ `diverged` is empty when `to` is an ANCESTOR of `from`: the merge base
+   * is `to` itself, so there is nothing between them. That is correct and
+   * useless, which is why the default here stays `endpoints` — a caller
+   * comparing two commits the user picked by hand, in the order they picked
+   * them, must not silently show nothing.
+   *
+   * `to: null` compares against the working tree.
+   */
+  async diffBetweenCommits(
+    fromHash: string,
+    toHash: string | null,
+    axis: CompareAxis = 'endpoints',
+  ): Promise<{ diff: string; error?: string }> {
+    const bad = this.assertRef(fromHash, 'commit') || (toHash !== null && this.assertRef(toHash, 'commit'))
     if (bad) return { diff: '', error: bad }
     try {
-      // Two-dot: show the difference between the two endpoints' trees.
-      const diff = await this.git.raw(['diff', `${fromHash}..${toHash}`])
-      return { diff }
+      return { diff: await this.git.raw(['diff', ...compareRange(fromHash, toHash, axis)]) }
     } catch (e: any) {
       return { diff: '', error: e.message }
     }
   }
 
+  /** The commit two refs last had in common, or null when they share none. */
+  async getMergeBase(a: string, b: string): Promise<{ base: string | null; error?: string }> {
+    const bad = this.assertRef(a, 'ref') || this.assertRef(b, 'ref')
+    if (bad) return { base: null, error: bad }
+    try {
+      const base = (await this.git.raw(['merge-base', a, b])).trim()
+      return { base: base || null }
+    } catch {
+      // Unrelated histories: git fails loudly and there is no base to name.
+      return { base: null }
+    }
+  }
+
   // File list (with per-file add/del counts) between two commits.
-  async filesBetweenCommits(fromHash: string, toHash: string): Promise<{ files: FileChange[]; error?: string }> {
-    const bad = this.assertRef(fromHash, 'commit') || this.assertRef(toHash, 'commit')
+  /** The file list of the same comparison — same axis, same rules. */
+  async filesBetweenCommits(
+    fromHash: string,
+    toHash: string | null,
+    axis: CompareAxis = 'endpoints',
+  ): Promise<{ files: FileChange[]; error?: string }> {
+    const bad = this.assertRef(fromHash, 'commit') || (toHash !== null && this.assertRef(toHash, 'commit'))
     if (bad) return { files: [], error: bad }
     try {
-      const range = `${fromHash}..${toHash}`
+      const range = compareRange(fromHash, toHash, axis)
       const [nameStatus, numStat] = await Promise.all([
-        this.git.raw(['diff', '--name-status', range]),
-        this.git.raw(['diff', '--numstat', range]),
+        this.git.raw(['diff', '--name-status', ...range]),
+        this.git.raw(['diff', '--numstat', ...range]),
       ])
       return { files: this.parseNameAndNumStat(nameStatus, numStat) }
     } catch (e: any) {

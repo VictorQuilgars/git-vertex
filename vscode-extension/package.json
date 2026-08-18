@@ -107,6 +107,14 @@
         "title": "Git Vertex: Clear File Blame Annotations"
       },
       {
+        "command": "gitVertex.diffLineWithPrevious",
+        "title": "Git Vertex: Compare Line With Previous Revision"
+      },
+      {
+        "command": "gitVertex.diffLineWithWorking",
+        "title": "Git Vertex: Compare Line With Working Tree"
+      },
+      {
         "command": "gitVertex.nextChange",
         "title": "Git Vertex: Go to Next Change"
       },

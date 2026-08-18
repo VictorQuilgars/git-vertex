@@ -70,8 +70,11 @@ const gitAPI = {
   dropCommit: (hash: string) => ipcRenderer.invoke('git:drop-commit', hash),
   moveCommit: (hash: string, direction: 'up' | 'down') => ipcRenderer.invoke('git:move-commit', hash, direction),
   diffCommitToWorking: (hash: string) => ipcRenderer.invoke('git:diff-commit-to-working', hash),
-  diffBetweenCommits: (fromHash: string, toHash: string) => ipcRenderer.invoke('git:diff-between-commits', fromHash, toHash),
-  filesBetweenCommits: (fromHash: string, toHash: string) => ipcRenderer.invoke('git:files-between-commits', fromHash, toHash),
+  diffBetweenCommits: (fromHash: string, toHash: string | null, axis?: 'diverged' | 'endpoints') =>
+    ipcRenderer.invoke('git:diff-between-commits', fromHash, toHash, axis),
+  filesBetweenCommits: (fromHash: string, toHash: string | null, axis?: 'diverged' | 'endpoints') =>
+    ipcRenderer.invoke('git:files-between-commits', fromHash, toHash, axis),
+  getMergeBase: (a: string, b: string) => ipcRenderer.invoke('git:get-merge-base', a, b),
   // Branch operations
   createBranchAt: (name: string, hash: string, checkout: boolean) => ipcRenderer.invoke('git:create-branch-at', name, hash, checkout),
   renameBranch: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-branch', oldName, newName),
