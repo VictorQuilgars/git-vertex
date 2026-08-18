@@ -5,6 +5,7 @@
 ### Added
 - **The comparison view says which question it is answering, and defaults to the useful one.** Comparing two branches now shows what the target did *since the two parted* — the same set its commit list describes, and what a pull request shows — with the commit they parted at named next to it. *End to end*, one click away, is the old behaviour: the difference between the two trees as they stand.
 - **Compare a branch against your working tree**, uncommitted changes included: pick *Working tree* as the target.
+- **Compare the line under the cursor** with the revision before the one that wrote it, or with the file as it stands — *Git Vertex: Compare Line With Previous Revision* / *…With Working Tree*. The blame already knew which commit wrote a line; this is the jump from there to what that commit did.
 - **The comparisons you have looked at are kept**, per repository, as chips under the header. Click one to go back to it, or clear the lot. The view used to forget everything the moment it closed.
 - **Hide anything from the graph, not just a branch.** A tag, a whole remote and the stash can now be taken out of the view the way a branch already could — right-click the row and *Hide from Graph*. Each section also hides in one go: LOCAL, REMOTE, TAGS, REMOTES and STASH carry *Hide All from Graph* and *Show All in Graph* on their header, and hiding a whole family keeps hiding what arrives later.
 - **A section says how much of it the graph is not showing**, on its header, and clicking that count brings it all back.

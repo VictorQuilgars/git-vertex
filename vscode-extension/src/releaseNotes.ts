@@ -39,6 +39,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **End to end** is one click away, and is the old behaviour: the difference between the two trees as they stand.
 - It used to be measured end to end only, so every file the *other* branch had gained since the split appeared as a **deletion** — a comparison claiming a branch removed files it never touched.
 
+### 📍 Compare the line you are on
+- **Compare Line With Previous Revision** opens what the commit that wrote this line actually did; **Compare Line With Working Tree** compares that revision to the file as it stands.
+- The blame already knew which commit wrote a line. These are the jump from there, and they work whether or not the annotations are switched on.
+
 ### 🌳 Compare against your working tree
 - Pick **Working tree** as the target to see a branch against your uncommitted changes.
 
