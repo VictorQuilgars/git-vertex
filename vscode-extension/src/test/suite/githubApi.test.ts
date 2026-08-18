@@ -1,5 +1,8 @@
 import * as assert from 'assert'
-import { githubListPRs, githubListIssues, githubGetIssue } from '../../githubApi'
+import {
+  githubListPRs, githubListIssues, githubGetIssue,
+  githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, clearSearchCache,
+} from '../../githubApi'
 
 // The first GitHub logic here with real coverage. githubApi.ts imports nothing
 // from `vscode`, so unlike githubAuth.ts and GitVertexHost it runs in plain node
@@ -55,5 +58,214 @@ suite('githubApi — what an unhappy response means', () => {
   test('no token at all still short-circuits before any request', async () => {
     // No fetch stub on purpose: reaching the network here would be the bug.
     assert.deepStrictEqual(await githubListPRs(undefined, 'o', 'r'), { error: 'not_authenticated' })
+  })
+})
+
+/**
+ * A fetch that answers a scripted sequence and records what it was asked for.
+ * The single-answer `withStatus` above cannot express what the calls below are
+ * about: how many requests actually left, and in what order.
+ */
+function stubFetch(
+  steps: Array<{ status?: number; body?: unknown; headers?: Record<string, string> }>,
+): { calls: string[]; restore: () => void } {
+  const real = globalThis.fetch
+  const calls: string[] = []
+  let i = 0
+  globalThis.fetch = (async (url: any) => {
+    calls.push(String(url))
+    const step = steps[Math.min(i, steps.length - 1)]
+    i++
+    const status = step.status ?? 200
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      headers: { get: (k: string) => step.headers?.[k.toLowerCase()] ?? null },
+      json: async () => step.body ?? {},
+    }
+  }) as unknown as typeof globalThis.fetch
+  return { calls, restore: () => { globalThis.fetch = real } }
+}
+
+const repoPage = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({ id: i, name: `r${i}`, full_name: `o/r${i}` }))
+
+suite('githubApi — searching, and not spending the rate limit on it', () => {
+  setup(() => clearSearchCache())
+
+  // The search endpoint allows 30 requests a minute where the plain list
+  // endpoints allow 5,000 an hour, and the panel remounts on every tab switch.
+  // Without the cache a few switches exhaust the budget, and what the user then
+  // sees is an empty list rather than an error.
+  test('the same query twice makes one request', async () => {
+    const f = stubFetch([{ body: { total_count: 1, items: [] } }])
+    try {
+      await githubSearchIssues('tok', 'is:open is:pr author:@me')
+      await githubSearchIssues('tok', 'is:open is:pr author:@me')
+      assert.strictEqual(f.calls.length, 1)
+    } finally { f.restore() }
+  })
+
+  test('force asks again — it is what a refresh button is for', async () => {
+    const f = stubFetch([{ body: { total_count: 0, items: [] } }])
+    try {
+      await githubSearchIssues('tok', 'is:open')
+      await githubSearchIssues('tok', 'is:open', true)
+      assert.strictEqual(f.calls.length, 2)
+    } finally { f.restore() }
+  })
+
+  test('a different query is a different entry', async () => {
+    const f = stubFetch([{ body: { total_count: 0, items: [] } }])
+    try {
+      await githubSearchIssues('tok', 'is:open is:pr')
+      await githubSearchIssues('tok', 'is:open is:issue')
+      assert.strictEqual(f.calls.length, 2)
+    } finally { f.restore() }
+  })
+
+  // 403 on this endpoint is the rate limit far more often than a permission,
+  // and the reset header is the only thing that makes it actionable. Reported
+  // as `HTTP 403` — which is what the shared failure() would say — the caller
+  // has nothing to tell the user except a number.
+  test('a rate limit says how long to wait, not which status it got', async () => {
+    const reset = Math.floor(Date.now() / 1000) + 30
+    const f = stubFetch([{ status: 403, headers: { 'x-ratelimit-reset': String(reset) } }])
+    try {
+      const res = await githubSearchIssues('tok', 'is:open')
+      assert.strictEqual(res.error, 'rate_limited')
+      assert.ok(res.retryIn >= 29 && res.retryIn <= 31, `retryIn was ${res.retryIn}`)
+    } finally { f.restore() }
+  })
+
+  test('a rate limit with no reset header still says something usable', async () => {
+    const f = stubFetch([{ status: 429 }])
+    try {
+      assert.deepStrictEqual(
+        await githubSearchIssues('tok', 'is:open'),
+        { error: 'rate_limited', retryIn: 60 },
+      )
+    } finally { f.restore() }
+  })
+
+  test('a rate limit is not cached — it is not an answer', async () => {
+    const f = stubFetch([{ status: 429 }, { body: { total_count: 0, items: [] } }])
+    try {
+      await githubSearchIssues('tok', 'is:open')
+      const res = await githubSearchIssues('tok', 'is:open')
+      assert.strictEqual(f.calls.length, 2)
+      assert.strictEqual(res.error, undefined)
+    } finally { f.restore() }
+  })
+
+  // A search result names its repository by API URL and nothing else, so the
+  // owner/repo every caller needs has to be read back out of it.
+  test('a result carries owner/repo, taken from the API url', async () => {
+    const f = stubFetch([{
+      body: {
+        total_count: 1,
+        items: [{
+          number: 7, title: 'x', repository_url: 'https://api.github.com/repos/o/r',
+          user: { login: 'u' }, pull_request: {},
+        }],
+      },
+    }])
+    try {
+      const res = await githubSearchIssues('tok', 'is:pr')
+      assert.strictEqual(res.items[0].repo, 'o/r')
+      assert.strictEqual(res.items[0].repoUrl, 'https://github.com/o/r')
+      assert.strictEqual(res.items[0].type, 'pr')
+    } finally { f.restore() }
+  })
+})
+
+suite('githubApi — closing, listing, sharing', () => {
+  setup(() => clearSearchCache())
+
+  // The thing just closed sits in an unknown number of cached queries, and a
+  // list still showing it reads as the close having failed.
+  test('closing an issue drops every cached search', async () => {
+    const f = stubFetch([{ body: { total_count: 0, items: [] } }])
+    try {
+      await githubSearchIssues('tok', 'is:open')
+      await githubCloseIssue('tok', 'o', 'r', 7)
+      await githubSearchIssues('tok', 'is:open')
+      // search, close, search — the third call is the proof the first was dropped.
+      assert.strictEqual(f.calls.length, 3)
+    } finally { f.restore() }
+  })
+
+  test('a failed close leaves the cache alone', async () => {
+    const f = stubFetch([{ body: { total_count: 0, items: [] } }, { status: 500 }])
+    try {
+      await githubSearchIssues('tok', 'is:open')
+      assert.deepStrictEqual(await githubCloseIssue('tok', 'o', 'r', 7), { error: 'HTTP 500' })
+      await githubSearchIssues('tok', 'is:open')
+      assert.strictEqual(f.calls.length, 2, 'the second search should have been served from cache')
+    } finally { f.restore() }
+  })
+
+  // This endpoint sends no total, so a short page is the only end-of-list
+  // signal there is. Stopping at the first page would quietly cap the list at
+  // 100 repositories for anyone who has more.
+  test('listing repositories follows the pages until one is short', async () => {
+    const f = stubFetch([{ body: repoPage(100) }, { body: repoPage(100) }, { body: repoPage(3) }])
+    try {
+      const res = await githubListRepos('tok')
+      assert.strictEqual(f.calls.length, 3)
+      assert.strictEqual(res.repos.length, 203)
+      assert.ok(f.calls[2].includes('page=3'))
+    } finally { f.restore() }
+  })
+
+  test('an exactly-full last page costs one more request, and ends there', async () => {
+    const f = stubFetch([{ body: repoPage(100) }, { body: [] }])
+    try {
+      const res = await githubListRepos('tok')
+      assert.strictEqual(f.calls.length, 2)
+      assert.strictEqual(res.repos.length, 100)
+    } finally { f.restore() }
+  })
+
+  // GitHub hides the gists endpoint from a token without the `gist` scope
+  // rather than refusing the call, so a 404 here is almost never a missing
+  // gist — it is a token that cannot make one. "HTTP 404" would send the user
+  // looking for something that was never there.
+  test('a 404 on gists reads as the missing scope', async () => {
+    const f = stubFetch([{ status: 404 }])
+    try {
+      assert.deepStrictEqual(
+        await githubCreateGist('tok', 'd', 'f.patch', 'diff'),
+        { error: 'gist_scope' },
+      )
+    } finally { f.restore() }
+  })
+
+  test('a shared patch comes back as its link', async () => {
+    const f = stubFetch([{ body: { html_url: 'https://gist.github.com/abc' } }])
+    try {
+      assert.deepStrictEqual(
+        await githubCreateGist('tok', 'd', 'f.patch', 'diff'),
+        { url: 'https://gist.github.com/abc' },
+      )
+      assert.strictEqual(f.calls[0], 'https://api.github.com/gists')
+    } finally { f.restore() }
+  })
+
+  test('the ported calls short-circuit without a token, like the others', async () => {
+    // No fetch stub on purpose: reaching the network here would be the bug.
+    const denied = { error: 'not_authenticated' }
+    assert.deepStrictEqual(await githubSearchIssues(undefined, 'is:open'), denied)
+    assert.deepStrictEqual(await githubCloseIssue(undefined, 'o', 'r', 1), denied)
+    assert.deepStrictEqual(await githubListRepos(undefined), denied)
+    assert.deepStrictEqual(await githubCreateGist(undefined, 'd', 'f', 'c'), denied)
+  })
+
+  test('401 reads as not authenticated here too', async () => {
+    const restore = withStatus(401)
+    try {
+      assert.deepStrictEqual(await githubListRepos('tok'), { error: 'not_authenticated' })
+      assert.deepStrictEqual(await githubCloseIssue('tok', 'o', 'r', 1), { error: 'not_authenticated' })
+    } finally { restore() }
   })
 })

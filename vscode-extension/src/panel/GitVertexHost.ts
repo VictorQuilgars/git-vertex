@@ -13,10 +13,14 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
-import { GitService } from '../gitService'
+import { GitService, gitEnv } from '../gitService'
 import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
-import { githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches } from '../githubApi'
+import {
+  githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches,
+  githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist,
+} from '../githubApi'
+import { githubRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
 import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
@@ -558,9 +562,19 @@ export class GitVertexHost implements vscode.Disposable {
       case 'githubDetectRepo': {
         const { remotes } = await svc.getRemotes()
         const origin = remotes.find(r => r.name === 'origin') ?? remotes[0]
-        const url = origin?.fetchUrl || origin?.pushUrl || ''
-        const m = url.match(/github\.com[:/]([^/]+)\/([^/.]+)(\.git)?/)
-        return m ? { owner: m[1], repo: m[2] } : { owner: null, repo: null }
+        return githubRepo(origin?.fetchUrl || origin?.pushUrl || '')
+      }
+      // The same detection for a path that is not the open repository. The
+      // desktop uses it to read the recent-repos list; here it is one more
+      // repository the panel may be asked about.
+      case 'githubDetectRepoAt': {
+        try {
+          const exec = promisify(execFile)
+          const { stdout } = await exec(
+            'git', ['-C', args[0], 'remote', 'get-url', 'origin'], { env: gitEnv() },
+          )
+          return githubRepo(stdout.trim())
+        } catch { return { owner: null, repo: null } }
       }
       case 'githubListPRs': return githubListPRs(await this._githubToken(), args[0], args[1])
       case 'githubListIssues': return githubListIssues(await this._githubToken(), args[0], args[1])
@@ -571,6 +585,49 @@ export class GitVertexHost implements vscode.Disposable {
       case 'githubCreatePR':
         return githubCreatePR(await this._githubToken(), args[0], args[1], args[2], args[3], args[4], args[5])
       case 'githubListBranches': return githubListBranches(await this._githubToken(), args[0], args[1])
+      // A search across everything the account can see, rather than one
+      // repository — what a saved filter and an "assigned to me" group are.
+      case 'githubSearchIssues': return githubSearchIssues(await this._githubToken(), args[0], args[1])
+      case 'githubCloseIssue':
+        return githubCloseIssue(await this._githubToken(), args[0], args[1], args[2])
+      case 'githubListRepos': return githubListRepos(await this._githubToken())
+      // Share a commit's patch as a secret gist. git makes the patch, the API
+      // stores it — so the two halves are assembled here rather than in
+      // githubApi.ts, which has no repository to ask.
+      case 'githubSharePatch': {
+        const { patch, error } = await svc.createPatch(args[0])
+        if (error) return { error }
+        const short = String(args[0]).slice(0, 7)
+        // The subject is decoration on the gist's description; a repository
+        // that cannot produce one is not a reason to refuse to share.
+        let subject = short
+        try { subject = (await svc.getLastCommitMessage(args[0])).message.split('\n')[0] || short } catch { /* cosmetic */ }
+        return githubCreateGist(
+          await this._githubToken(),
+          `git-vertex patch — ${short}: ${subject}`, `${short}.patch`, patch,
+        )
+      }
+      // The same, for work that is not committed yet: the working tree against
+      // HEAD. Tracked changes only — that is what `git diff HEAD` gives, and an
+      // untracked file is not something the sharer has said they want out.
+      case 'githubShareWipPatch': {
+        const repoPath = String(args[0])
+        let patch: string
+        try {
+          const exec = promisify(execFile)
+          const { stdout } = await exec(
+            'git', ['-C', repoPath, 'diff', 'HEAD'],
+            { env: gitEnv(), maxBuffer: 20 * 1024 * 1024 },
+          )
+          patch = stdout
+        } catch (e: any) { return { error: e.message } }
+        if (!patch.trim()) return { error: 'no_changes' }
+        const name = repoPath.split(/[\\/]/).filter(Boolean).pop() || 'wip'
+        return githubCreateGist(
+          await this._githubToken(),
+          `git-vertex WIP patch — ${name}`, `${name}-wip.patch`, patch,
+        )
+      }
       // Sign-in. The desktop's OAuth proxy and gitgui:// deep link have no
       // equivalent here, so this asks VS Code's own GitHub provider instead —
       // which for most people means confirming a session they already have.

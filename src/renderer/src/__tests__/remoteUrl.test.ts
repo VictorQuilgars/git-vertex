@@ -1,4 +1,4 @@
-import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch, rangeFromSelection } from '../utils/remoteUrl'
+import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch, rangeFromSelection, githubRepo } from '../utils/remoteUrl'
 
 // Before this existed, one URL shape was written out by hand in three places
 // with github.com hardcoded, and nothing else in either product could be linked
@@ -169,5 +169,54 @@ describe('rangeFromSelection — the off-by-one', () => {
 
   test('column 0 on the SAME line is a caret, not a wrap', () => {
     expect(rangeFromSelection(11, 11, 0)).toEqual({ from: 12, to: 12 })
+  })
+})
+
+// githubRepo is what the pull-request and issue lists ask before they call
+// api.github.com. It replaced the regex the extension host had written out for
+// itself, and these are the shapes that regex got wrong — every one of them an
+// ordinary remote, not an exotic one. The desktop main process still has four
+// copies of it, so these cases still fail there; that move is tracked on its own.
+describe('githubRepo — which repository to ask GitHub about', () => {
+  test('the plain shapes', () => {
+    expect(githubRepo('https://github.com/o/r.git')).toEqual({ owner: 'o', repo: 'r' })
+    expect(githubRepo('git@github.com:o/r.git')).toEqual({ owner: 'o', repo: 'r' })
+    expect(githubRepo('https://github.com/o/r')).toEqual({ owner: 'o', repo: 'r' })
+  })
+
+  // The old regex read the repository name as `[^/.]+`, which stops at a dot.
+  test('a dot in the repository name is part of the name', () => {
+    expect(githubRepo('https://github.com/o/my.app.git')).toEqual({ owner: 'o', repo: 'my.app' })
+    expect(githubRepo('git@github.com:o/my.app.git')).toEqual({ owner: 'o', repo: 'my.app' })
+    expect(githubRepo('https://github.com/o/dotfiles.v2')).toEqual({ owner: 'o', repo: 'dotfiles.v2' })
+  })
+
+  // The old regex matched `github.com:22` as host:owner and answered
+  // { owner: '22', repo: 'o' } — confidently, and completely wrong.
+  test('an ssh port is not the owner', () => {
+    expect(githubRepo('ssh://git@github.com:22/o/r.git')).toEqual({ owner: 'o', repo: 'r' })
+  })
+
+  test('credentials in the url are not the owner either', () => {
+    expect(githubRepo('https://user:token@github.com/o/r.git')).toEqual({ owner: 'o', repo: 'r' })
+  })
+
+  // Everything downstream calls api.github.com, so a remote that is not there
+  // has to come back empty rather than plausible — this is the one place where
+  // parseRemote's "an unknown host reads as GitHub" would do harm.
+  test('another host is not a GitHub repository', () => {
+    expect(githubRepo('git@gitlab.com:group/sub/r.git')).toEqual({ owner: null, repo: null })
+    expect(githubRepo('https://bitbucket.org/o/r.git')).toEqual({ owner: null, repo: null })
+    expect(githubRepo('https://git.example.com/o/r.git')).toEqual({ owner: null, repo: null })
+  })
+
+  test('the host is matched whatever its case', () => {
+    expect(githubRepo('https://GitHub.com/o/r.git')).toEqual({ owner: 'o', repo: 'r' })
+  })
+
+  test('nothing to read is not a repository', () => {
+    expect(githubRepo('')).toEqual({ owner: null, repo: null })
+    expect(githubRepo(null)).toEqual({ owner: null, repo: null })
+    expect(githubRepo('/home/me/repo')).toEqual({ owner: null, repo: null })
   })
 })

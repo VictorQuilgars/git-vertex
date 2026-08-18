@@ -49,12 +49,22 @@ export const DESKTOP_ONLY = new Set([
  * not-implemented. Each is claimed by a planned lot — this list must shrink,
  * never grow. See docs-private/gitvertex-plan-versions.md.
  */
-export const KNOWN_GAPS = new Set([
-  // → lot D, "GitHub : au-delà du read-only"
-  'githubSharePatch', 'githubShareWipPatch',
-  'githubSearchIssues', 'githubCloseIssue', 'githubListRepos',
-  'githubDetectRepoAt',
-  // githubStartAuth / githubDisconnect / githubGetToken left this list in the
-  // lot that put sign-in behind VS Code's own GitHub provider (src/githubAuth.ts).
-  // They were the reason the panel offered a PAT field and nothing else.
+// Typed explicitly: an empty literal would infer Set<never>, and every
+// `.has(someString)` against it would stop compiling.
+export const KNOWN_GAPS = new Set<string>([
+  // Empty, and that is the point: every method the shared renderer can call is
+  // now either implemented in the host or a stated DESKTOP_ONLY decision. The
+  // list stays here because it is the honest place for the next debt to land —
+  // an empty set is a state, not a reason to delete the concept.
+  //
+  // What left it, in order:
+  //   githubCreatePR, githubListBranches, getDefaultBranch — the host-parity
+  //     lot that made the "open a pull request" row do something.
+  //   githubGetIssue — the dead-buttons lot, which is what the `#123` hover
+  //     card had been asking for.
+  //   githubStartAuth, githubDisconnect, githubGetToken — the lot that put
+  //     sign-in behind VS Code's own GitHub provider (src/githubAuth.ts).
+  //     They were the reason the panel offered a PAT field and nothing else.
+  //   githubSearchIssues, githubCloseIssue, githubListRepos,
+  //     githubDetectRepoAt, githubSharePatch, githubShareWipPatch — this lot.
 ])
