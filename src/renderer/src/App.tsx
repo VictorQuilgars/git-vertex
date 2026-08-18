@@ -26,6 +26,10 @@ import ThemeGallery from './components/ThemeGallery/ThemeGallery'
 import RepoManager from './components/RepoManager/RepoManager'
 import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
 import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
+import {
+  emptyVisibility, isRefHidden, logOptionsFor,
+  type GraphVisibility, type RefFamily,
+} from './utils/graphVisibility'
 import InitModal from './components/InitModal/InitModal'
 import PRModal from './components/PRModal/PRModal'
 import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
@@ -275,10 +279,46 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [searchMatches, setSearchMatches] = useState(-1)
   const [showAllBranches, setShowAllBranches] = useState<boolean>(true)
-  // Solo/hide branch filtering for the graph. Solo shows only one branch;
-  // hidden branches are excluded from the --all view.
+  // Solo/hide filtering for the graph. Solo shows only one branch; everything
+  // else hidden — branches, tags, remotes, the stash — is taken away from the
+  // --all view by name. In memory only: it is a view of this session, and a
+  // hidden ref that survived a restart would be a graph lying to you on
+  // opening, with the thing that explains it three clicks away.
   const [soloBranch, setSoloBranch] = useState<string | null>(null)
-  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set())
+  const [visibility, setVisibility] = useState<GraphVisibility>(emptyVisibility())
+  // The remotes, so `origin/x` can be told from a local `feature/x` when the
+  // graph decides which chips a hidden remote takes with it.
+  const [remoteNames, setRemoteNames] = useState<string[]>([])
+
+  /** Toggle one entry of one set, leaving the rest of the visibility alone. */
+  const toggleHidden = useCallback((kind: 'branches' | 'tags' | 'remotes', name: string) => {
+    setVisibility(prev => {
+      const next = new Set(prev[kind])
+      next.has(name) ? next.delete(name) : next.add(name)
+      return { ...prev, [kind]: next }
+    })
+  }, [])
+
+  // "Hide all" is one flag, not N marked rows: a branch pushed afterwards is
+  // hidden too. "Show all" clears the flag *and* the rows hidden one by one,
+  // which is what the section chip promises when it says how many are gone.
+  const setFamilyHidden = useCallback((family: RefFamily, hidden: boolean) => {
+    setVisibility(prev => {
+      const families = new Set(prev.families)
+      hidden ? families.add(family) : families.delete(family)
+      if (hidden) return { ...prev, families }
+      const cleared: Partial<GraphVisibility> = { families }
+      if (family === 'tags') cleared.tags = new Set()
+      if (family === 'remotes') {
+        cleared.remotes = new Set()
+        cleared.branches = new Set([...prev.branches].filter(b => !b.startsWith('remotes/')))
+      }
+      if (family === 'branches') {
+        cleared.branches = new Set([...prev.branches].filter(b => b.startsWith('remotes/')))
+      }
+      return { ...prev, ...cleared }
+    })
+  }, [])
   // Favorites / graph pins / linked issues, per repo (v1.21.0).
   const branchMeta = useBranchMeta(repoPath)
   const [issueModalBranch, setIssueModalBranch] = useState<string | null>(null)
@@ -460,19 +500,12 @@ export default function App() {
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
-      // Branches first so we can compute solo/hide refs for the log query.
+      // Branches are still read first: the sidebar needs them, and the log
+      // query is built from the visibility state rather than from them.
       const branchRes = await window.gitAPI.getBranches()
-      const refForGit = (n: string) => n.replace(/^remotes\//, '')
-      let logOpts: { maxCount: number; all?: boolean; refs?: string[] } = { maxCount: 500, all: showAllBranches }
-      if (soloBranch) {
-        logOpts = { maxCount: 500, refs: [refForGit(soloBranch)] }
-      } else if (hiddenBranches.size > 0 && branchRes.branches) {
-        const visible = branchRes.branches
-          .filter((b: BranchInfo) => !hiddenBranches.has(b.name))
-          .map((b: BranchInfo) => refForGit(b.name))
-        logOpts = { maxCount: 500, refs: visible.length ? visible : ['HEAD'] }
-      }
-      const logRes = await window.gitAPI.getLog(logOpts)
+      const logRes = await window.gitAPI.getLog(
+        logOptionsFor({ maxCount: 500, all: showAllBranches, solo: soloBranch, visibility })
+      )
       if (logRes.commits) setCommits(logRes.commits)
       if (branchRes.branches) {
         setBranches(branchRes.branches)
@@ -501,7 +534,7 @@ export default function App() {
       if (!silent) setLoading(false)
       isLoadingRef.current = false
     }
-  }, [repoPath, showAllBranches, soloBranch, hiddenBranches, loadStashes, loadTags])
+  }, [repoPath, showAllBranches, soloBranch, visibility, loadStashes, loadTags])
 
   useEffect(() => { loadRepoData() }, [loadRepoData])
 
@@ -685,6 +718,7 @@ export default function App() {
     // every link below is built from, and the only thing that knows the host.
     const rem = await window.gitAPI.getRemotes().catch(() => ({ remotes: [] }))
     const def = await (window.gitAPI as any).getDefaultRemote?.().catch(() => null)
+    setRemoteNames((rem?.remotes ?? []).map((r: { name: string }) => r.name))
     const parsed = repoFromRemotes(rem?.remotes ?? [], def?.remote)
     setRemoteRepo(parsed)
     setGithubRepoUrl(parsed ? remoteUrl.repo(parsed) : null)
@@ -1566,7 +1600,7 @@ export default function App() {
       {
         currentBranch,
         soloed: soloBranch === ref,
-        hidden: hiddenBranches.has(ref),
+        hidden: isRefHidden(ref, visibility, remoteNames),
         favorite: branchMeta.isFavorite(ref),
         issue: branchMeta.issueFor(ref),
       },
@@ -1583,11 +1617,7 @@ export default function App() {
         onAssociateIssue: () => setIssueModalBranch(ref),
         onToggleFavorite: () => branchMeta.toggleFavorite(ref),
         onToggleSolo: () => setSoloBranch(prev => prev === ref ? null : ref),
-        onToggleHide: () => setHiddenBranches(prev => {
-          const next = new Set(prev)
-          next.has(ref) ? next.delete(ref) : next.add(ref)
-          return next
-        }),
+        onToggleHide: () => toggleHidden('branches', ref),
         onCopyName: () => navigator.clipboard.writeText(target.display),
         onCopyLink: () => handleCopyBranchLink(ref),
         onRename: () => handleRenameBranch(ref),
@@ -1618,7 +1648,7 @@ export default function App() {
     },
     menuState: {
       soloed: soloBranch === currentBranch,
-      hidden: hiddenBranches.has(currentBranch),
+      hidden: isRefHidden(currentBranch, visibility, remoteNames),
       favorite: branchMeta.isFavorite(currentBranch),
     },
     menuActions: {
@@ -2177,15 +2207,12 @@ export default function App() {
               }}
               onCompareBranch={(name) => setCompareBranchModal(name)}
               soloBranch={soloBranch}
-              hiddenBranches={hiddenBranches}
+              visibility={visibility}
               onToggleSolo={(name) => { setSoloBranch(prev => prev === name ? null : name) }}
-              onToggleHide={(name) => {
-                setHiddenBranches(prev => {
-                  const next = new Set(prev)
-                  next.has(name) ? next.delete(name) : next.add(name)
-                  return next
-                })
-              }}
+              onToggleHide={(name) => toggleHidden('branches', name)}
+              onToggleHideTag={(name) => toggleHidden('tags', name)}
+              onToggleHideRemote={(name) => toggleHidden('remotes', name)}
+              onSetFamilyHidden={setFamilyHidden}
               onPull={handlePull}
               isFavorite={branchMeta.isFavorite}
               issueFor={branchMeta.issueFor}
@@ -2340,6 +2367,8 @@ export default function App() {
           ) : (
             <CommitGraph
               commits={commits}
+              visibility={visibility}
+              remoteNames={remoteNames}
               selectedHash={selectedCommit?.hash ?? null}
               onSelectCommit={c => { setCenterDiff(null); setSelectedCommit(prev => prev?.hash === c.hash ? null : c) }}
               searchQuery={aiSearch ? '' : searchQuery}

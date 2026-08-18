@@ -84,6 +84,30 @@ export function excludeGlobs(v: GraphVisibility): string[] {
 }
 
 /**
+ * The `getLog` options for the graph as it is currently filtered.
+ *
+ * Both hosts had this inline and identical, down to the `refs/` strip — the
+ * desktop App.tsx and the panel's app.tsx. It is one function now for the same
+ * reason the URL builder became one: the second copy is the one that does not
+ * get the fix.
+ *
+ * Solo still wins and still passes an explicit ref, because "show only this
+ * branch" *is* a single tip. Everything else is `--all` minus what is hidden.
+ */
+export function logOptionsFor(opts: {
+  maxCount: number
+  all: boolean
+  solo: string | null
+  visibility: GraphVisibility
+}): { maxCount: number; all?: boolean; refs?: string[]; excludes?: string[] } {
+  if (opts.solo) {
+    return { maxCount: opts.maxCount, refs: [opts.solo.replace(/^remotes\//, '')] }
+  }
+  const excludes = excludeGlobs(opts.visibility)
+  return { maxCount: opts.maxCount, all: opts.all, ...(excludes.length ? { excludes } : {}) }
+}
+
+/**
  * Should this decoration be drawn on a commit?
  *
  * `%D` gives us `HEAD -> main`, `main`, `origin/main`, `tag: v1.2.0` and

@@ -2,7 +2,13 @@
 
 ## Unreleased
 
+### Added
+- **Hide anything from the graph, not just a branch.** A tag, a whole remote and the stash can now be taken out of the view the way a branch already could — right-click the row and *Hide from Graph*. Each section also hides in one go: LOCAL, REMOTE, TAGS, REMOTES and STASH carry *Hide All from Graph* and *Show All in Graph* on their header, and hiding a whole family keeps hiding what arrives later, so a branch pushed afterwards does not reappear on its own.
+- **A section says how much of it the graph is not showing.** Its header carries a count of what is hidden, and clicking that count brings everything in the section back. Hiding used to leave nothing on screen to say the graph was filtered.
+
 ### Fixed
+- **Hiding a branch no longer takes your stashes with it.** Hiding handed git the list of branches that remained, and an explicit list of refs replaces `--all` — so every commit that only a tag or the stash reached vanished along with the branch you hid. What is hidden is now named and excluded, git keeps deciding what is reachable, and a commit something visible still reaches keeps its place.
+- **The stash hides as a group, and says so.** The entries of `git stash list` are the reflog of a single ref, so git can take all of them out of the graph or none — the action lives on the section rather than promising, per row, something git cannot do.
 - **The app stops piling up file-watcher listeners.** Subscribing to repository changes handed the callback straight to Electron's bridge, and unsubscribing handed it back — but the bridge builds a *new* proxy for the same function every time it crosses, so the removal never matched what the subscription had registered. Every hide, solo or branch switch added a listener and removed none, and the ones that fired were an accumulation of stale ones: git was run several times for a single change, with filters you had already moved on from. Subscribing now hands back its own unsubscribe, which is the pattern every other event in the app already used.
 
 ## 1.30.2

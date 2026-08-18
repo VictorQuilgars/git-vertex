@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { emptyVisibility } from '../../../utils/graphVisibility'
 import Sidebar from '../Sidebar'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
@@ -23,7 +24,7 @@ function renderTags(overrides: Record<string, any> = {}) {
   const props: Record<string, any> = {
     repoPath: '/repo', repoName: 'repo', currentBranch: 'main',
     branches: [], recentRepos: [], stashes: [], tags: TAGS,
-    soloBranch: null, hiddenBranches: new Set<string>(),
+    soloBranch: null, visibility: emptyVisibility(),
     view: 'tags',
     showToast: jest.fn(), showPrompt: jest.fn(), showConfirm: jest.fn(),
   }

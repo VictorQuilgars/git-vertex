@@ -807,6 +807,8 @@ const fr = {
   'sb.tag.checkoutCommit': 'Checkout du commit (HEAD détaché)',
   'sb.tag.hint': (name: string, hash: string) => `${name} → ${hash} — double-clic : créer une branche ici`,
   'sb.tag.push': 'Pousser le tag',
+  'sb.tag.hide': 'Masquer du graphe',
+  'sb.tag.show': 'Réafficher dans le graphe',
   'sb.tag.deleteLocal': 'Supprimer (local)',
   'sb.tag.deleteRemote': 'Supprimer (distant)',
   'sb.newTag': 'Nouveau tag',
@@ -818,6 +820,8 @@ const fr = {
   'sb.remote.defaultFlag': 'Remote visé par défaut pour push / pull / tags',
   'sb.remote.defaultSet': (n: string) => `✓ "${n}" est le remote par défaut`,
   'sb.remote.copyUrl': 'Copier l\'URL',
+  'sb.remote.hide': 'Masquer du graphe',
+  'sb.remote.show': 'Réafficher dans le graphe',
   'sb.remote.namePrompt': 'Nom du remote :',
   'sb.remote.urlPrompt': 'URL du remote :',
   'sb.remote.renamePrompt': (n: string) => `Renommer "${n}" en :`,
@@ -828,6 +832,12 @@ const fr = {
   'sb.remote.fetchOk': (n: string) => `✓ Fetch "${n}" réussi`,
   'sb.remote.pruneOk': (n: string, c: number) => `✓ ${n} : ${c} réf${c > 1 ? 's' : ''} de suivi obsolète${c > 1 ? 's' : ''} supprimée${c > 1 ? 's' : ''}`,
   'sb.remote.pruneNone': (n: string) => `${n} : aucune réf obsolète`,
+
+  // Masquage en masse — les actions de groupe d'une section.
+  'sb.hidden.hideAll': 'Tout masquer du graphe',
+  'sb.hidden.showAll': 'Tout réafficher dans le graphe',
+  'sb.hidden.chipTitle': (n: number) => `${n} élément${n > 1 ? 's' : ''} masqué${n > 1 ? 's' : ''} du graphe — cliquer pour tout réafficher`,
+  'sb.hidden.flag': 'Masqué du graphe',
   'sb.branch.pruneGoneConfirm': (c: number, names: string) =>
     `${c} branche${c > 1 ? 's' : ''} locale${c > 1 ? 's' : ''} n'${c > 1 ? 'ont' : 'a'} plus d'upstream : ${names}.\n\nLes supprimer ?`,
   'sb.branch.pruneGoneOk': (c: number) => `✓ ${c} branche${c > 1 ? 's' : ''} locale${c > 1 ? 's' : ''} supprimée${c > 1 ? 's' : ''}`,
@@ -2166,6 +2176,8 @@ const en: typeof fr = {
   'sb.tag.checkoutCommit': 'Check out the commit (detached HEAD)',
   'sb.tag.hint': (name: string, hash: string) => `${name} → ${hash} — double-click: create a branch here`,
   'sb.tag.push': 'Push tag',
+  'sb.tag.hide': 'Hide from Graph',
+  'sb.tag.show': 'Show in Graph',
   'sb.tag.deleteLocal': 'Delete (local)',
   'sb.tag.deleteRemote': 'Delete (remote)',
   'sb.newTag': 'New tag',
@@ -2177,6 +2189,8 @@ const en: typeof fr = {
   'sb.remote.defaultFlag': 'The remote push / pull / tags target by default',
   'sb.remote.defaultSet': (n: string) => `✓ "${n}" is now the default remote`,
   'sb.remote.copyUrl': 'Copy URL',
+  'sb.remote.hide': 'Hide from Graph',
+  'sb.remote.show': 'Show in Graph',
   'sb.remote.namePrompt': 'Remote name:',
   'sb.remote.urlPrompt': 'Remote URL:',
   'sb.remote.renamePrompt': (n: string) => `Rename "${n}" to:`,
@@ -2187,6 +2201,12 @@ const en: typeof fr = {
   'sb.remote.fetchOk': (n: string) => `✓ Fetch "${n}" successful`,
   'sb.remote.pruneOk': (n: string, c: number) => `✓ ${n}: ${c} stale tracking ref${c > 1 ? 's' : ''} removed`,
   'sb.remote.pruneNone': (n: string) => `${n}: no stale refs`,
+
+  // Hiding in bulk — a section's group actions.
+  'sb.hidden.hideAll': 'Hide All from Graph',
+  'sb.hidden.showAll': 'Show All in Graph',
+  'sb.hidden.chipTitle': (n: number) => `${n} hidden from the graph — click to show them all`,
+  'sb.hidden.flag': 'Hidden from the graph',
   'sb.branch.pruneGoneConfirm': (c: number, names: string) =>
     `${c} local branch${c > 1 ? 'es have' : ' has'} no upstream left: ${names}.\n\nDelete ${c > 1 ? 'them' : 'it'}?`,
   'sb.branch.pruneGoneOk': (c: number) => `✓ ${c} local branch${c > 1 ? 'es' : ''} deleted`,

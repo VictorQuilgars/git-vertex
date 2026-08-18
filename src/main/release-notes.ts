@@ -4,6 +4,15 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🙈 Hide anything from the graph
+- A tag, a whole remote and the stash can be taken out of the view now, the way a branch already could — right-click the row, **Hide from Graph**.
+- Whole sections hide in one go: **Hide All from Graph** / **Show All in Graph** on the header of LOCAL, REMOTE, TAGS, REMOTES and STASH. Hiding a family keeps hiding what arrives later, so a branch pushed afterwards does not turn up on its own.
+- A section whose rows are hidden **says how many** on its header. Click the count to bring them all back.
+
+### 🩹 Hiding a branch no longer takes your stashes with it
+- Hiding handed git the list of branches that remained — and a list of refs replaces \`--all\`, so every commit that only a tag or the stash reached disappeared along with the branch you hid.
+- What you hide is now named and excluded. Git keeps deciding what is reachable, so a commit something visible still reaches keeps its place.
+
 ### 🧹 The app stops piling up file-watcher listeners
 - Subscribing to repository changes handed the callback straight to Electron's bridge and unsubscribing handed it back — but the bridge makes a **new proxy** of the same function on every crossing, so the removal never matched the subscription.
 - Every hide, solo or branch switch added a listener and removed none. Git was being run several times for a single change, with filters you had already moved on from.
@@ -73,6 +82,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The sidebar rail says **Stashes**, like Branches, Remotes, Tags and Worktrees next to it.
 - *Hide from graph* and *Show in graph* replace the old mute/unmute wording — the menu already said "hide", only the code disagreed.
 `,
+
   '1.27.0': `## What's new in 1.27.0
 
 ### 🎯 A double-click always lands on a branch
@@ -97,6 +107,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A commit **not in the current branch's history**: the replay is built from \`<parent>..HEAD\`, so it would have rewritten a range that does not even contain it.
 - In all three cases the message stays plain text rather than offering an edit that would fail, or quietly do the wrong thing.
 `,
+
   '1.26.0': `## What's new in 1.26.0
 
 ### 🩺 The app now uses the same git as your terminal
@@ -108,6 +119,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The warning and **Settings → Git** both show the path next to the version — *git 2.39.3 — /usr/bin/git* — plus how it was chosen. On a machine with two gits installed, the version alone points you at the wrong one.
 - **Settings → Git** also takes an explicit path if you want to force one, checked on the spot: no restart, and a binary that will not run says so instead of silently reverting.
 `,
+
   '1.25.0': `## What's new in 1.25.0
 
 ### 🔀 Pull requests, from the branch you are looking at
@@ -130,6 +142,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Pin to Graph Edge** never pinned anything — the state was stored and read back to draw a badge, and no layout code ever looked. Favorites already keeps a branch in view.
 - **Switch to Commit** and **Cherry-pick** no longer show on the tip of the branch you are on, where they would detach HEAD where you already are, or pick a commit onto itself.
 `,
+
   '1.24.1': `## What's new in 1.24.1
 
 ### 🔢 Line numbers that follow the merged output
@@ -141,6 +154,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🇫🇷 One last French label
 - The line above the message box when **squashing or rewording** a commit in the interactive rebase was still in French.
 `,
+
   '1.24.0': `## What's new in 1.24.0
 
 ### 🌍 English, everywhere
@@ -157,6 +171,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### ⚠️ A notice when git is too old
 - Predicting conflicts before a merge, rebase, cherry-pick or revert needs **git 2.40** (\`merge-tree --merge-base\`). On an older git — macOS still ships 2.39 — that prediction quietly returned nothing and the warning never appeared. The app now says so once. Everything else works from git 2.28 on.
 `,
+
   '1.23.0': `## What's new in 1.23.0
 
 ### 🏷 Tags you can actually check out
@@ -173,6 +188,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Mark a remote as the default from its context menu — it carries a **default** badge, and push, pull, branch publishing and tag actions all target it instead of assuming \`origin\`.
 - Stored as \`gitvertex.defaultRemote\` in the repository's own git config, so it stays readable from the command line.
 `,
+
   '1.22.0': `## What's new in 1.22.0
 
 ### ⬇️ Pull, your way
@@ -182,11 +198,13 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The **command palette** (⌘P) crashed to a black screen every single time it was opened.
 - Branches sharing a name across remotes now show their prefix (**origin/main**, **archive/main**) instead of two identical rows — and only when the name actually collides.
 `,
+
   '1.21.1': `## What's new in 1.21.1
 
 ### ♿ Accessibility
 - Every **icon-only button** now carries an accessible label, so screen readers announce what it does instead of reading an unlabelled control. A test guards this from now on: a new unlabelled button fails the build.
 `,
+
   '1.21.0': `## What's new in 1.21.0
 
 ### 🌿 Branch strip in the changes panel
@@ -199,6 +217,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Stash** and **Discard all** now reachable straight from the staging header.
 - **Open changes** on a file row for a direct diff, and **copy the list** of changed files.
 `,
+
   '1.20.0': `## What's new in 1.20.0
 
 ### 🌿 One menu for every branch action
@@ -210,6 +229,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🔍 Filter the staging list
 - A search box over the changed files, in both list and tree view. It is a display lens only — counters, the master checkbox and staging actions still act on the full set.
 `,
+
   '1.19.0': `## What's new in 1.19.0
 
 ### ⚙️ Settings: General, External Tools, SSH
@@ -222,11 +242,13 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A Settings navigation label collision (two items both named "General").
 - The default branch name wasn't applied when the Init modal opened before settings finished loading.
 `,
+
   '1.18.2': `## What's new in 1.18.2
 
 ### 🧹 Settings cleanup
 - Removed the **Environment** block (Electron / Node.js / Chrome versions) from **Settings → About**.
 `,
+
   '1.18.1': `## What's new in 1.18.1
 
 ### ✍️ Commit message, simplified
@@ -239,6 +261,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🐛 Fixed
 - The commit-form resize handle is no longer capped by short window sizes — drag it as tall as you want.
 `,
+
   '1.18.0': `## What's new in 1.18.0
 
 ### 🗂️ Repository Management
@@ -256,6 +279,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🐛 Fixed
 - Tabs now stick to the left in macOS **fullscreen** (the traffic-light spacer is dropped).
 `,
+
   '1.17.0': `## What's new in 1.17.0
 
 ### 🚀 Launchpad
@@ -276,11 +300,13 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🐛 Fixed
 - Sharing a patch now requests the **gist** scope (reconnect GitHub to grant it).
 `,
+
   '1.16.2': `## What's new in 1.16.2
 
 ### 🌍 Internationalization cleanup
 - Removed all remaining hardcoded French strings from the entire project (including the VS Code extension) and fully adopted the application's i18n system (\`useLang\`), ensuring a clean English-only default experience.
 `,
+
   '1.16.1': `## What's new in 1.16.1
 
 ### 🇬🇧 English-only, fully applied
@@ -289,6 +315,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🐛 Fixed
 - Undo/redo and Gitflow merge messages now correctly show the commit subject / branch name again (an earlier cleanup had dropped it).
 `,
+
   '1.16.0': `## What's new in 1.16.0
 
 ### 🔔 Notification center
@@ -300,16 +327,19 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🇬🇧 English-only app
 - The app now ships in **English only**. French is disconnected, not removed — it can be re-enabled later with a one-line change.
 `,
+
   '1.15.4': `## What's new in 1.15.4
 
 ### 🟢 Clearer "Update" button
 - When an update is available, a small **"Update" button** (with a label) shows in the top-right, replacing the plain icon with a green dot. Clicking it opens the update screen.
 `,
+
   '1.15.3': `## What's new in 1.15.3
 
 ### 🪟 Readable recent repos on Windows
 - On the home screen, **recent repos** now show the **folder name** on top and the **parent path** below, like on macOS. Before, on Windows, only the full path was shown.
 `,
+
   '1.15.2': `## What's new in 1.15.2
 
 ### 🔔 More discreet and more reliable updates
@@ -317,6 +347,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Auto-detection** shortly after startup and then every 30 minutes.
 - From Settings, "Check for updates" opens the screen on top: **"Later" returns to Settings** (instead of the home screen).
 `,
+
   '1.15.0': `## What's new in 1.15.0
 
 ### ✨ Animated launch splash
@@ -327,6 +358,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The **download starts on your click**, so you really see its progress; the installing phase tells you the app **restarts in a moment**.
 - "Check for updates" in Settings now opens the same screen.
 `,
+
   '1.14.2': `## What's new in 1.14.2
 
 ### 🐛 Fixes
@@ -334,6 +366,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Commit graph**: the dashed **WIP** line (working changes) no longer **cuts through** another branch's commit — it now sits **offset** on its own lane and only joins its branch at the bottom.
 - No more **MaxListeners** warning in the console: internal subscriptions (deep-link, updates, GitHub connection) no longer pile up.
 `,
+
   '1.14.1': `## What's new in 1.14.1
 
 ### 🐛 Windows fixes
@@ -343,6 +376,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🧭 Commit graph
 - The **+/−** column is no longer **clipped** by the window's right edge: all columns fit by default, scrollbar included.
 `,
+
   '1.14.0': `## What's new in 1.14.0
 
 ### 🚀 New home screen
@@ -353,6 +387,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📝 Release notes
 - Available **anytime** from *Resources › Release notes*, with an **Open in browser** link.
 `,
+
   '1.13.0': `## What's new in 1.13.0
 
 ### 🖱️ Redesigned graph menus
@@ -361,6 +396,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Clearer drag-and-drop**: dragging a branch A onto a branch B offers *"Merge A into B"* / *"Rebase A onto B"* with the **real names** (no more SHA), in the right direction.
 - The branch chip in the graph finally offers **Merge / Rebase** (they were missing).
 `,
+
   '1.12.0': `## What's new in 1.12.0
 
 ### 🆕 What's new after each update

@@ -9,6 +9,7 @@ import type { PRIntent } from '../ContextMenu/prIntent'
 import type { BranchMenuExtras } from '../ContextMenu/branchMenu'
 import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
+import { isRefHidden, type GraphVisibility } from '../../utils/graphVisibility'
 import { useSettings } from '../../contexts/SettingsContext'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
@@ -225,8 +226,19 @@ interface ProcessedRef {
   hasRemote?: boolean  // has a remote counterpart (origin/...)
 }
 
-function processRefs(refs: string[]): ProcessedRef[] {
-  const filtered = refs.filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
+/**
+ * The chips a commit's decorations turn into.
+ *
+ * `hidden` drops the refs the user has hidden from the graph. Excluding a ref
+ * from the log only removes the commits nothing else reaches, so a tag sitting
+ * on `main` keeps its commit *and* its chip — filtering here is what makes
+ * "hide all tags" visible in the repositories where tags always sit on a
+ * branch, which is most of them.
+ */
+function processRefs(refs: string[], hidden?: (ref: string) => boolean): ProcessedRef[] {
+  const filtered = refs
+    .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
+    .filter(r => !hidden?.(r))
 
   const headSet    = new Set<string>()   // branch names that are HEAD
   const localSet   = new Set<string>()   // all local branch names
@@ -467,6 +479,12 @@ interface CommitGraphProps {
   // live in prIntentFor. Omitted when the repo has no GitHub remote.
   prIntentFor?: (branchRef: string) => PRIntent | null
   onCreatePR?: (intent: PRIntent) => void
+  // What the user has hidden from the graph, and the remote names needed to
+  // read `origin/x` as a remote branch rather than a local `feature/x`.
+  // Omitted ⇒ every decoration is drawn, which is what a host that does not
+  // offer hiding wants.
+  visibility?: GraphVisibility
+  remoteNames?: string[]
   // The whole branch menu, built by a host that holds the branch state this
   // component does not. Supplied ⇒ chips and branch-tip commits use it instead
   // of the reduced menu assembled from the individual handlers above.
@@ -533,13 +551,21 @@ export default function CommitGraph({
   onCopyCommitLink, onCreateAnnotatedTag, onDeleteRemoteBranch, onPushTag, onDeleteTag,
   onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch,
   onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false,
-  onNativeMenuTarget,
+  onNativeMenuTarget, visibility, remoteNames,
 }: CommitGraphProps) {
   const { t } = useLang()
   const { getBool, get, set } = useSettings()
   // Configured reference patterns (Jira, Linear…). Parsed once per render pass
   // rather than per row: a graph is hundreds of messages.
   const autolinks = React.useMemo(() => parseAutolinks(get('autolinks', '')), [get])
+  // Applied to what is DRAWN and nothing else. `buildMenuItems` and
+  // `localBranchAt` below answer "which branch is at this commit" for actions —
+  // a menu, a drop target — and hiding is a view filter: it must not change
+  // what an action does to the repository.
+  const hiddenChip = useCallback(
+    (ref: string) => !!visibility && isRefHidden(ref, visibility, remoteNames),
+    [visibility, remoteNames],
+  )
   const showAvatars = getBool('graphShowAvatars', true)
   const showAuthor = getBool('graphShowAuthor', true)
   const showDate = getBool('graphShowDate', true)
@@ -1388,7 +1414,7 @@ export default function CommitGraph({
             const keep = filtered ?? hoverHighlight
             const isDimmed = !isWip && keep !== null && !keep.has(commit.row)
             const isDropTarget = dragOverRow === commit.row && !isWip
-            const prefs = processRefs(commit.refs)
+            const prefs = processRefs(commit.refs, hiddenChip)
             const primary = prefs[0]
             const stackCount = prefs.length - 1
             const rowIsHead = !isWip && commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
@@ -1562,7 +1588,7 @@ export default function CommitGraph({
       {refExpand && (() => {
         const expandCommit = displayLayout.find(c => c.row === refExpand.row)
         if (!expandCommit) return null
-        const hiddenPrefs = processRefs(expandCommit.refs).slice(1)
+        const hiddenPrefs = processRefs(expandCommit.refs, hiddenChip).slice(1)
         if (hiddenPrefs.length === 0) return null
         return createPortal(
           <RefExpansionPopup

@@ -252,6 +252,24 @@
 }
 .sb-add-btn:hover { color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
+/* How many of a section's rows are out of the graph, and the way back.
+   Sits next to the count it qualifies: the count says what the section holds,
+   this says how much of it the graph is not showing. */
+.sb-section-hidden {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: var(--space-px) var(--space-2xs);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-tiny);
+  font-family: inherit;
+}
+.sb-section-hidden:hover { color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
+
 .sb-section-body { padding: var(--space-2xs) 0 var(--space-sm); }
 
 .sb-empty {
@@ -289,6 +307,16 @@
 .branch-icon { flex-shrink: 0; pointer-events: none; }
 .sb-branch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); pointer-events: none; user-select: none; -webkit-user-select: none; }
 .sb-branch-flag { flex-shrink: 0; font-size: var(--text-tiny); pointer-events: none; }
+/* The same ⊘ the branch rows carry, for the kinds that gained hiding later.
+   One class rather than one per row type: they read identically and drifting
+   apart would say "these are different states" when they are the same one. */
+.sb-row-flag { flex-shrink: 0; font-size: var(--text-tiny); pointer-events: none; margin-left: var(--space-2xs); }
+.sb-tag-item.is-hidden,
+.sb-remote-item.is-hidden,
+.sb-stash-item.is-hidden { opacity: 0.4; }
+.sb-tag-item.is-hidden .sb-tag-name,
+.sb-remote-item.is-hidden .sb-remote-name,
+.sb-stash-item.is-hidden .sb-stash-label { text-decoration: line-through; }
 .current-check { flex-shrink: 0; }
 
 .sb-delete-btn {

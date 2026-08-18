@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { emptyVisibility } from '../../../utils/graphVisibility'
 import Sidebar from '../Sidebar'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
@@ -23,7 +24,7 @@ function renderStash(overrides: Record<string, any> = {}) {
   const props: Record<string, any> = {
     repoPath: '/repo', repoName: 'repo', currentBranch: 'main',
     branches: [], recentRepos: [], stashes: STASHES, tags: [],
-    soloBranch: null, hiddenBranches: new Set<string>(),
+    soloBranch: null, visibility: emptyVisibility(),
     view: 'stash',
     showToast: jest.fn(),
     showPrompt: jest.fn().mockResolvedValue(null),
