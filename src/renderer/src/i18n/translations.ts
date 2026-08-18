@@ -1046,6 +1046,11 @@ const fr = {
   'cv.axisEndpointsTitle': 'La différence entre les deux arbres tels quels : les fichiers gagnés par l\'autre côté depuis la séparation y apparaissent comme supprimés',
   'cv.baseTitle': 'Le commit où les deux se sont séparées',
   'cv.recent': 'Récentes',
+  'cv.showCommit': 'Voir ce commit seul',
+  'cv.backToComparison': 'Revenir à la comparaison',
+  'cv.emptyLead': (target: string) => `${target} n'a rien fait depuis la séparation.`,
+  'cv.emptyWhy': (other: string, n: number) => `${n === 1 ? 'Le commit listé est' : `Les ${n} commits listés sont`} sur ${other} : la comparaison mesure ce qu'a fait l'autre côté.`,
+  'cv.emptySwap': 'Comparer dans l\'autre sens',
   'cv.clearRecent': 'Effacer',
 
   // InteractiveRebase (extras)
@@ -2434,6 +2439,11 @@ const en: typeof fr = {
   'cv.axisEndpointsTitle': 'The difference between the two trees as they stand: files the other side gained since the split appear here as deletions',
   'cv.baseTitle': 'The commit the two parted at',
   'cv.recent': 'Recent',
+  'cv.showCommit': 'Show this commit on its own',
+  'cv.backToComparison': 'Back to the comparison',
+  'cv.emptyLead': (target: string) => `${target} has done nothing since they parted.`,
+  'cv.emptyWhy': (other: string, n: number) => `${n === 1 ? 'The one commit listed is' : `The ${n} commits listed are`} on ${other}: this comparison measures what the other side did.`,
+  'cv.emptySwap': 'Compare the other way round',
   'cv.clearRecent': 'Clear',
 
   // InteractiveRebase (extras)

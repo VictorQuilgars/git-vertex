@@ -31,6 +31,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 - What stays a window is what **asks** something — confirm, name this branch, pick a remote before pushing. What **holds** something is a tab.
 
 ### 🔀 And the comparison is the full one
+- Clicking a commit in either list **opens that commit on its own** in the pane beside it; a click back returns to the comparison. The lists used to be inert.
+- An empty comparison **says why**: *since they diverged* reports what the target did, so a branch that is ahead of a \`main\` that has not moved compares to nothing. It names the side that has done nothing, says where the commits are, and offers to compare the other way round.
 - The same view the VS Code panel has: since they diverged / end to end, the working tree as a target, and the comparisons you already looked at. The app had three smaller windows, each answering a part of it.
 
 ### 🕰 A file's history, in the app

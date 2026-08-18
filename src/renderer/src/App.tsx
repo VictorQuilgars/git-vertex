@@ -2270,6 +2270,10 @@ export default function App() {
                 initialB={viewTab.b}
                 initialAxis={viewTab.axis}
                 repoKey={repoPath}
+                onTitleChange={(title) => setTabs(prev => prev.map(tb =>
+                  tb.id === activeTabId && tb.body?.view === 'compare'
+                    ? { ...tb, body: { ...tb.body, label: title } }
+                    : tb))}
               />
             ) : viewTab.view === 'fileHistory' ? (
               <FileHistory file={viewTab.file} />

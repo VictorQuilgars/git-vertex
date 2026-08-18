@@ -28,7 +28,7 @@ const api: any = new Proxy({}, { get: (_t, p) => (window as any).gitAPI?.[p as s
  */
 const WORKING = ':working'
 
-export default function CompareView({ initialA, initialB, initialAxis, repoKey }: {
+export default function CompareView({ initialA, initialB, initialAxis, repoKey, onTitleChange }: {
   initialA?: string
   /** `null` opens against the working tree. */
   initialB?: string | null
@@ -40,6 +40,12 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey }
   initialAxis?: CompareAxis
   /** Which repository's saved comparisons to show. Omitted ⇒ none are kept. */
   repoKey?: string | null
+  /**
+   * The comparison changed inside the view. The host names its tab from this:
+   * the selectors are here, so the tab title would otherwise keep saying what
+   * it was opened for long after you had moved on.
+   */
+  onTitleChange?: (title: string) => void
 }) {
   const { t } = useLang()
   const [refs, setRefs] = useState<string[]>([])
@@ -56,6 +62,12 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey }
   const [behind, setBehind] = useState<CompareCommit[]>([])
   const [diff, setDiff] = useState('')
   const [files, setFiles] = useState<FileChange[]>([])
+  // A commit picked from either list: the right pane shows that commit alone
+  // until it is dropped. The lists were inert, which in a full-width tab means
+  // two columns of commits that do nothing.
+  const [picked, setPicked] = useState<CompareCommit | null>(null)
+  const [pickedDiff, setPickedDiff] = useState<{ diff: string; files: FileChange[]; loading: boolean }>(
+    { diff: '', files: [], loading: false })
   const [loading, setLoading] = useState(false)
   // This view is its own tab with no host around it, so it resolves the remote
   // itself rather than being handed one.
@@ -111,6 +123,12 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey }
     return () => { stale = true }
   }, [refA, refB, against, axis])
 
+  useEffect(() => {
+    if (!refA || !refB) return
+    onTitleChange?.(`${refA} ${axis === 'diverged' ? '…' : '‥'} ${against === null ? t('cv.workingTree') : refB}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refA, refB, axis, against])
+
   // Remembered once the comparison has actually resolved, not on every
   // keystroke of the selectors: a pair nobody ever looked at is not history.
   useEffect(() => {
@@ -118,6 +136,23 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey }
     remember({ a: refA, b: against, axis })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refA, refB, axis, loading])
+
+  useEffect(() => {
+    if (!picked) return
+    let stale = false
+    setPickedDiff({ diff: '', files: [], loading: true })
+    Promise.all([api.getDiff(picked.hash), api.getCommitFiles(picked.hash)])
+      .then(([d, f]: any[]) => {
+        if (stale) return
+        setPickedDiff({ diff: d?.diff ?? '', files: f?.files ?? [], loading: false })
+      })
+      .catch(() => { if (!stale) setPickedDiff({ diff: '', files: [], loading: false }) })
+    return () => { stale = true }
+  }, [picked])
+
+  // Changing what is being compared drops the commit that was being read: it
+  // belonged to the other comparison.
+  useEffect(() => { setPicked(null) }, [refA, refB, axis])
 
   const swap = useCallback(() => {
     // Swapping with the working tree would mean "the working tree, compared to
@@ -148,15 +183,26 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey }
       </div>
       {list.length === 0 && <div className="cv-commits-empty">{t('cv.noCommit')}</div>}
       {list.map(c => (
-        <div key={c.hash} className="cv-commit">
+        <button
+          key={c.hash}
+          className={`cv-commit ${picked?.hash === c.hash ? 'is-picked' : ''}`}
+          onClick={() => setPicked(prev => prev?.hash === c.hash ? null : c)}
+          title={t('cv.showCommit')}
+        >
           <code className="cv-commit-hash">{c.shortHash}</code>
           <span className="cv-commit-msg">{c.message}</span>
-        </div>
+        </button>
       ))}
     </div>
   )
 
   const ready = refA && refB
+  // Who the comparison is *about*: `A...B` reports what B did. Naming it is
+  // what turns an empty pane from "broken" into "nothing to show, and here is
+  // where the commits actually are".
+  const axisTargetLabel = against === null ? t('cv.workingTree') : refB
+  const otherSideLabel = refA
+  const otherSideCount = ahead.length > 0 ? ahead.length : behind.length
 
   return (
     <div className="cv-page">
@@ -223,15 +269,46 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey }
             {renderCommitList(t('cv.inOnly', refA), behind, 'var(--danger)')}
           </div>
           <div className="cv-right">
-            <DiffViewer
-              commit={null}
-              headerLabel={against === null
-                ? `${refA} → ${t('cv.workingTree')}`
-                : `${refA}${axis === 'diverged' ? '...' : '..'}${refB}`}
-              diff={diff}
-              files={files}
-              loading={loading}
-            />
+            {picked ? (
+              <>
+                <div className="cv-picked-bar">
+                  <span className="cv-picked-label">
+                    <code>{picked.shortHash}</code> {picked.message}
+                  </span>
+                  <button className="cv-picked-back" onClick={() => setPicked(null)}>
+                    {t('cv.backToComparison')}
+                  </button>
+                </div>
+                <DiffViewer
+                  commit={null}
+                  headerLabel={picked.shortHash}
+                  diff={pickedDiff.diff}
+                  files={pickedDiff.files}
+                  loading={pickedDiff.loading}
+                />
+              </>
+            ) : !loading && !diff.trim() && (ahead.length > 0 || behind.length > 0) ? (
+              // Empty, with commits listed beside it: that is the axis doing its
+              // job, not a failure. `A...B` is what B did since the fork, and
+              // here B has done nothing — the commits are all on the other side.
+              <div className="cv-explain">
+                <p className="cv-explain-lead">{t('cv.emptyLead', axisTargetLabel)}</p>
+                <p className="cv-explain-why">{t('cv.emptyWhy', otherSideLabel, otherSideCount)}</p>
+                <button className="cv-explain-action" onClick={swap} disabled={refB === WORKING}>
+                  {t('cv.emptySwap')}
+                </button>
+              </div>
+            ) : (
+              <DiffViewer
+                commit={null}
+                headerLabel={against === null
+                  ? `${refA} → ${t('cv.workingTree')}`
+                  : `${refA}${axis === 'diverged' ? '...' : '..'}${refB}`}
+                diff={diff}
+                files={files}
+                loading={loading}
+              />
+            )}
           </div>
         </div>
       )}

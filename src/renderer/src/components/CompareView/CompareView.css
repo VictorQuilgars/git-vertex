@@ -105,7 +105,15 @@
   gap: var(--space-md);
   padding: var(--space-2xs) var(--space-xl);
   line-height: 1.5;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
+.cv-commit.is-picked { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
 .cv-commit:hover {
   background: var(--surface);
@@ -202,3 +210,38 @@
 .cv-history-chip:hover { color: var(--accent); border-color: var(--accent); }
 .cv-history-clear { background: none; border-color: transparent; color: var(--text-tertiary); }
 .cv-history-clear:hover { color: var(--danger); }
+
+/* One commit, read on its own, with the way back to the whole comparison. */
+.cv-picked-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-xl);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface);
+}
+.cv-picked-label { flex: 1; font-size: var(--text-sm); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-picked-label code { color: var(--accent); font-family: 'JetBrains Mono', monospace; margin-right: var(--space-sm); }
+.cv-picked-back {
+  background: none; border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  color: var(--text-secondary); font-family: inherit; font-size: var(--text-tiny);
+  padding: var(--space-2xs) var(--space-md); cursor: pointer; flex-shrink: 0;
+}
+.cv-picked-back:hover { color: var(--accent); border-color: var(--accent); }
+
+/* An empty comparison that has commits listed beside it is not a failure — it
+   is the axis answering about the other side. Say which side, and offer the
+   one gesture that shows what the user is looking for. */
+.cv-explain {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-md); height: 100%; padding: var(--space-3xl); text-align: center;
+}
+.cv-explain-lead { font-size: var(--text-base); color: var(--text-primary-soft); margin: 0; }
+.cv-explain-why { font-size: var(--text-sm); color: var(--text-tertiary); margin: 0; max-width: 52ch; line-height: 1.6; }
+.cv-explain-action {
+  margin-top: var(--space-sm);
+  background: var(--accent); border: none; border-radius: var(--radius-sm);
+  color: var(--text-on-emphasis); font-family: inherit; font-size: var(--text-sm);
+  padding: var(--space-sm) var(--space-xl); cursor: pointer;
+}
+.cv-explain-action:disabled { opacity: 0.5; cursor: default; }
