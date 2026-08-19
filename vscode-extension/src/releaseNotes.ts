@@ -18,6 +18,10 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧺 Working Changes is always there, and selected on open
+- A clean tree used to mean no row — and no way into the staging pane. The row is permanent now: \`✎N\` when there is something, a **✓ that stages all of it**, and nothing under it when the tree is clean.
+- The panel opens on it, so there are always two panes.
+
 ### 📐 The commit list is rows, not a grid
 - The panel carried the desktop's columns in a fraction of the width, dropping an author here and a date there depending on how deep the graph was.
 - A commit is a row of two lines now: the message, then the branch it is on, its hash, its author and its date — each placed rather than columned. The date sits at the right edge.

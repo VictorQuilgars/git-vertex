@@ -53,6 +53,12 @@ declare global { interface Window { gitAPI: any; appInfo: any } }
 
 const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags']
 
+/** The virtual commit that stands for the working tree. One literal, not three. */
+const WIP_NODE: CommitNode = {
+  hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
+  author: '', authorEmail: '', date: '', parents: [], refs: [],
+}
+
 function VertexApp() {
   const { t } = useLang();
   const { get: getSetting } = useSettings()
@@ -85,7 +91,11 @@ function VertexApp() {
   const [currentBranch, setCurrentBranch] = useState('')
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
   const [repoName, setRepoName] = useState('')
-  const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
+  // Working Changes is selected on open, so the panel always has two panes:
+  // the graph and whatever the selection is. Nothing selected used to mean no
+  // right pane at all — which read as a broken panel, and for a clean tree it
+  // meant the staging pane could not be reached.
+  const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(WIP_NODE)
   const [wipCount, setWipCount] = useState(0)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   // path → unmerged state, so the panel can tell a modify/delete from a content
@@ -1010,6 +1020,12 @@ function VertexApp() {
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              alwaysShowWip
+              onStageAll={async () => {
+                const r = await window.gitAPI.stageAll()
+                if (r?.success === false) showToast(r.error ?? t('toast.err', ''), 'err')
+                loadRepoData(true)
+              }}
               trackingFor={(name) => {
                 const b = branches.find(x => x.name === name)
                 return b ? { ahead: b.ahead, behind: b.behind } : null
@@ -1086,12 +1102,7 @@ function VertexApp() {
                 showToast={showToast}
                 currentBranch={currentBranch}
                 wipCount={wipCount}
-                onViewWip={() => setSelectedCommit(prev =>
-                  prev?.hash === '__WIP__' ? null : {
-                    hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
-                    author: '', authorEmail: '', date: '', parents: [], refs: []
-                  }
-                )}
+                onViewWip={() => setSelectedCommit(prev => prev?.hash === '__WIP__' ? null : WIP_NODE)}
                 onSelectCommit={(hash) => {
                   const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                   if (found) setSelectedCommit(found)

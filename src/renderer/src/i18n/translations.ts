@@ -311,6 +311,8 @@ const fr = {
   'graph.timeShort.months': (n: number) => `-${n} m.`,
   'graph.timeShort.years': (n: number) => `-${n} a`,
   'graph.wip': (n: number) => `//WIP  ✏ ${n} fichier${n !== 1 ? 's' : ''} modifié${n !== 1 ? 's' : ''}`,
+  'graph.wipClean': 'Modifications en cours',
+  'graph.stageAll': 'Tout indexer',
   'graph.drop.reset': (b: string, h: string) => `⏪ Déplacer "${b}" ici (reset --hard ${h})`,
   'graph.drop.rebase': (b: string, h: string) => `⚡ Rebaser "${b}" sur ${h}`,
   // Dropped on a branch tip — name both sides, direction = dragged into/onto target.
@@ -1727,6 +1729,8 @@ const en: typeof fr = {
   'graph.timeShort.months': (n: number) => `-${n} mo`,
   'graph.timeShort.years': (n: number) => `-${n} y`,
   'graph.wip': (n: number) => `//WIP  ✏ ${n} file${n !== 1 ? 's' : ''} changed`,
+  'graph.wipClean': 'Working Changes',
+  'graph.stageAll': 'Stage all changes',
   'graph.drop.reset': (b: string, h: string) => `⏪ Move "${b}" here (reset --hard ${h})`,
   'graph.drop.rebase': (b: string, h: string) => `⚡ Rebase "${b}" onto ${h}`,
   'graph.drop.mergeBranch': (a: string, b: string) => `⇒ Merge "${a}" into "${b}"`,

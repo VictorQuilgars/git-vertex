@@ -576,6 +576,15 @@ interface CommitGraphProps {
    * chip and has no business holding every branch.
    */
   trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null
+  /**
+   * The Working Changes row is always there, clean tree or not. It is the way
+   * into the staging pane, and a pane nobody can reach is a pane that does not
+   * exist. The panel passes this; the desktop keeps its row only when there is
+   * something to show.
+   */
+  alwaysShowWip?: boolean
+  /** Stage everything — the ✓ on the Working Changes row. Absent ⇒ no button. */
+  onStageAll?: () => void
   commits: CommitNode[]
   selectedHash: string | null
   onSelectCommit: (c: CommitNode) => void
@@ -665,6 +674,8 @@ export default function CommitGraph({
   issueForBranch,
   refsBelow = false,
   trackingFor,
+  alwaysShowWip = false,
+  onStageAll,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit,
@@ -727,7 +738,7 @@ export default function CommitGraph({
     return () => ro.disconnect()
   }, [])
 
-  const hasWipNode = wipCount > 0 || conflictMode !== null
+  const hasWipNode = alwaysShowWip || wipCount > 0 || conflictMode !== null
   const headHash = useMemo(() => {
     const h = commits.find(c => c.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch)))
     return h?.hash ?? commits[0]?.hash
@@ -741,7 +752,7 @@ export default function CommitGraph({
     if (!hasWipNode) return computeGraphLayout(commits)
     const wipMessage = conflictMode
       ? `⚠️ A file conflict was found when attempting to ${conflictMode}`
-      : t('graph.wip', wipCount)
+      : wipCount > 0 ? t('graph.wip', wipCount) : t('graph.wipClean')
     // No headHash = empty repo (no commit yet): the WIP node stands alone as
     // a root so the user can stage files and create the very first commit.
     const wip: CommitNode = {
@@ -1745,6 +1756,22 @@ export default function CommitGraph({
                         <span className="cg-meta-author">{commit.author}</span>
                         <span className="cg-meta-date">{fmtDateShort(commit.date, t)}</span>
                       </>}
+                      {/* The Working Changes row: ✎N when there is something, and
+                          the ✓ that stages all of it. Nothing when the tree is
+                          clean — a button that can do nothing is not shown. */}
+                      {isWip && wipCount > 0 && (
+                        <span className="cg-wip-meta">
+                          <span className="cg-wip-count" title={t('graph.wip', wipCount)}>
+                            <Icon name="pencil" size={11} />{wipCount}
+                          </span>
+                          {onStageAll && (
+                            <button className="cg-wip-stage-all" title={t('graph.stageAll')}
+                              onClick={e => { e.stopPropagation(); onStageAll() }}>
+                              <Icon name="check" size={12} />
+                            </button>
+                          )}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
