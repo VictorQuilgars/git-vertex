@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import { createPortal } from 'react-dom'
-import { LayoutCommit, computeGraphLayout, canvasRgb } from './graph-layout'
+import { LayoutCommit, computeGraphLayout, canvasRgb, rowOffsets } from './graph-layout'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { Mark } from '../Mark/Mark'
@@ -16,6 +16,8 @@ import { parseAutolinks } from '../../utils/autolinks'
 import './CommitGraph.css'
 
 const ROW_HEIGHT  = 28
+/** Extra height a row takes when its refs are drawn under the subject. */
+const REF_LINE_H  = 19
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
 const SVG_PAD_L   = 36
@@ -572,6 +574,12 @@ export default function CommitGraph({
   const showSha = getBool('graphShowSha', true)
   const showStats = getBool('graphShowStats', true)
   const compactColumns = getBool('graphCompactColumns', false)
+  // Refs under the subject rather than in a column of their own. The column is
+  // 164px wide by default and every row pays it, while only a handful of
+  // commits carry a ref — which is a sixth of a 1000px panel spent on nothing.
+  // Below the subject, the width is spent only on the rows that have something
+  // to show. The cost is that a row is no longer a fixed height.
+  const refsBelow = getBool('graphRefsBelow', false)
   const dateFormat = get('dateFormat', 'relative')
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -717,8 +725,8 @@ export default function CommitGraph({
     const row = displayLayout.find(c => c.hash === selectedHash)?.row
     const body = bodyRef.current
     if (row == null || !body) return
-    const top = row * ROW_HEIGHT
-    if (top < body.scrollTop || top + ROW_HEIGHT > body.scrollTop + body.clientHeight) {
+    const top = rowTop(row)
+    if (top < body.scrollTop || top + rowHeight(row) > body.scrollTop + body.clientHeight) {
       body.scrollTo({ top: Math.max(0, top - body.clientHeight / 2), behavior: 'smooth' })
     }
   }, [selectedHash])  // eslint-disable-line react-hooks/exhaustive-deps
@@ -745,10 +753,10 @@ export default function CommitGraph({
       onSelectCommit(displayLayout[next])
       const body = bodyRef.current
       if (body) {
-        const top = next * ROW_HEIGHT
+        const top = rowTop(next)
         if (top < body.scrollTop) body.scrollTop = top
-        else if (top + ROW_HEIGHT > body.scrollTop + body.clientHeight) {
-          body.scrollTop = top + ROW_HEIGHT - body.clientHeight
+        else if (top + rowHeight(next) > body.scrollTop + body.clientHeight) {
+          body.scrollTop = top + rowHeight(next) - body.clientHeight
         }
       }
     }
@@ -756,9 +764,33 @@ export default function CommitGraph({
     return () => window.removeEventListener('keydown', onKey)
   }, [displayLayout, selectedHash, onSelectCommit, ctx, drop])
 
+  /**
+   * Where each row starts, and how tall it is.
+   *
+   * Rows used to be `index * ROW_HEIGHT` everywhere — the node, the edges, the
+   * bands, the scroll maths and the absolute `top` of the row itself. That only
+   * holds while every row is the same height, which stops being true the moment
+   * refs are drawn under the subject: a row with a ref is taller, and a row
+   * without one must not be.
+   *
+   * ⚠️ The **node stays centred on the subject line**, not on the middle of a
+   * taller row. Centring it on the row would make the graph drift away from the
+   * text it describes, one half-line at a time, wherever a ref appears.
+   */
+  const rowTops = useMemo(
+    () => rowOffsets(
+      displayLayout.map(c => refsBelow && c.refs.length > 0), ROW_HEIGHT, REF_LINE_H),
+    [displayLayout, refsBelow])
+
+  const rowTop = useCallback((row: number) => rowTops[row] ?? row * ROW_HEIGHT, [rowTops])
+  /** The middle of a row's first line — where the node and every edge meet it. */
+  const rowMid = useCallback((row: number) => rowTop(row) + ROW_HEIGHT / 2, [rowTop])
+  const rowHeight = useCallback(
+    (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || ROW_HEIGHT, [rowTops])
+
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
-  const svgH = displayLayout.length * ROW_HEIGHT
+  const svgH = rowTops[displayLayout.length] ?? displayLayout.length * ROW_HEIGHT
 
   // Availability-based column visibility. The message column must always keep
   // MSG_MIN px; the optional columns are granted space in priority order
@@ -909,9 +941,9 @@ export default function CommitGraph({
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
     const x1 = SVG_PAD_L + edge.fromLane * LANE_WIDTH
-    const y1 = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+    const y1 = rowMid(commit.row)
     const x2 = SVG_PAD_L + edge.toLane * LANE_WIDTH
-    const y2 = edge.toRow * ROW_HEIGHT + ROW_HEIGHT / 2
+    const y2 = rowMid(edge.toRow)
     const key = `${commit.hash}-${edge.fromLane}-${edge.toLane}-${edge.toRow}`
     const dashArray = isWip || edge.dashed ? '4 3' : undefined
 
@@ -1224,6 +1256,7 @@ export default function CommitGraph({
     { label: t('graph.col.stats'), checked: showStats, action: () => set('graphShowStats', showStats ? 'false' : 'true') },
     { separator: true },
     { label: t('graph.menu.compactCols'), checked: compactColumns, action: () => set('graphCompactColumns', compactColumns ? 'false' : 'true') },
+    { label: t('graph.menu.refsBelow'), checked: refsBelow, action: () => set('graphRefsBelow', refsBelow ? 'false' : 'true') },
     { separator: true },
     { label: t('graph.menu.resetCols'), action: () => {
       set('graphShowAvatars', 'true')
@@ -1232,8 +1265,9 @@ export default function CommitGraph({
       set('graphShowSha', 'true')
       set('graphShowStats', 'true')
       set('graphCompactColumns', 'false')
+      set('graphRefsBelow', 'false')
     } },
-  ], [showAvatars, showAuthor, showDate, showSha, showStats, compactColumns, set])
+  ], [showAvatars, showAuthor, showDate, showSha, showStats, compactColumns, refsBelow, set])
 
   return (
     <div className="cg-container" ref={containerRef}>
@@ -1292,7 +1326,7 @@ export default function CommitGraph({
               if (commit.hash === WIP_HASH) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
               const bandH = 24
-              const y = commit.row * ROW_HEIGHT + (ROW_HEIGHT - bandH) / 2
+              const y = rowTop(commit.row) + (ROW_HEIGHT - bandH) / 2
               const right = svgW - SVG_PAD_R
               const w = Math.max(right - cx, 0)
               if (w <= 0) return null
@@ -1311,7 +1345,7 @@ export default function CommitGraph({
             {displayLayout.map(commit => {
               if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
-              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              const cy = rowMid(commit.row)
               if (cx - NODE_RADIUS <= 0) return null
               return (
                 <line key={`conn-${commit.hash}`}
@@ -1327,7 +1361,7 @@ export default function CommitGraph({
             {/* Nodes */}
             {displayLayout.map(commit => {
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
-              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              const cy = rowMid(commit.row)
               const isSelected = commit.hash === selectedHash
               const isWip = commit.hash === WIP_HASH
 
@@ -1415,6 +1449,7 @@ export default function CommitGraph({
             const isDimmed = !isWip && keep !== null && !keep.has(commit.row)
             const isDropTarget = dragOverRow === commit.row && !isWip
             const prefs = processRefs(commit.refs, hiddenChip)
+            let renderRefs: (withStub: boolean) => React.ReactNode = () => null
             const primary = prefs[0]
             const stackCount = prefs.length - 1
             const rowIsHead = !isWip && commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
@@ -1424,7 +1459,7 @@ export default function CommitGraph({
               <div
                 key={commit.hash}
                 className={`cg-row ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
-                style={{ top: commit.row * ROW_HEIGHT }}
+                style={{ top: rowTop(commit.row), height: rowHeight(commit.row) }}
                 onClick={() => onSelectCommit(commit)}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
                 data-vscode-context={nativeContextMenu && !isWip ? JSON.stringify({
@@ -1446,8 +1481,11 @@ export default function CommitGraph({
                 {/* Colored left stripe based on branch */}
                 <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />
 
-                {/* BRANCH / TAG column */}
-                <div className="cg-refs-col" style={{ width: refsColW }}>
+                {/* The refs, either in their own column or under the subject.
+                    One definition, placed twice — the hover that reveals the
+                    hidden names is delicate enough that a second copy would be
+                    the one that stops matching. */}
+                {(() => { renderRefs = (withStub: boolean) => withStub ? (<>
                   {primary ? (
                     <>
                       <div
@@ -1485,15 +1523,62 @@ export default function CommitGraph({
                       <div className="cg-ref-line-stub" style={{ background: dimColor(commit.color) }} />
                     </>
                   ) : null}
-                </div>
+                </>) : (<>
+                  {primary ? (
+                    <>
+                      <div
+                        className="cg-refs-chips"
+                        onMouseEnter={e => {
+                          // Highlight after 2s delay — avoids accidental triggers while scrolling
+                          if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
+                          hoverDelayTimer.current = setTimeout(() => setHoverHash(commit.hash), 1000)
+                          if (stackCount < 1) return
+                          if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
+                          if (refExpand?.row !== commit.row) {
+                            // Anchor on the CHIP, not on this wrapper: the wrapper
+                            // also holds the "+N" badge, so using it made the panel
+                            // wider than the name it sits under for no reason.
+                            const el = e.currentTarget as HTMLElement
+                            const chip = el.querySelector('.ref-chip') ?? el
+                            setRefExpand({ row: commit.row, rect: chip.getBoundingClientRect() })
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (hoverDelayTimer.current) { clearTimeout(hoverDelayTimer.current); hoverDelayTimer.current = null }
+                          setHoverHash(null)
+                          refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
+                        }}
+                      >
+                        <RefChip pref={primary} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
+                          onDragStartBranch={setDragBranch}
+                          onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
+                          onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
+                        {stackCount > 0 && refExpand?.row !== commit.row && (
+                          <span className="rc-stack-badge">+{stackCount}</span>
+                        )}
+                      </div>
+                    </>
+                  ) : null}
+                </>); return null })()}
+
+                {!refsBelow && (
+                  <div className="cg-refs-col" style={{ width: refsColW }}>
+                    {renderRefs(true)}
+                  </div>
+                )}
 
                 {/* Spacer for SVG */}
                 <div style={{ width: svgW, flexShrink: 0 }} />
 
                 {/* Message */}
-                <div className="cg-col-msg">
-                  {!isWip && sigBadge(commit.signature, t)}
-                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
+                <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>
+                  <div className="cg-msg-line">
+                    {!isWip && sigBadge(commit.signature, t)}
+                    <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
+                  </div>
+                  {refsBelow && primary && (
+                    <div className="cg-refs-under">{renderRefs(false)}</div>
+                  )}
                 </div>
 
                 {/* Author */}

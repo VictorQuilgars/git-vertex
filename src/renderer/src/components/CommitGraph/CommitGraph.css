@@ -441,3 +441,29 @@
 .cg-body::-webkit-scrollbar-track { background: transparent; }
 .cg-body::-webkit-scrollbar-thumb { background: var(--surface-sunken); border-radius: var(--radius-xs); }
 .cg-body::-webkit-scrollbar-thumb:hover { background: var(--surface-active); }
+
+/* Refs under the subject — the layout that trades a fixed row height for the
+   164px the BRANCH/TAG column charged every row, ref or not. The subject keeps
+   the first line, so the graph node stays level with the text it describes. */
+.cg-col-msg--stacked {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+}
+.cg-col-msg--stacked .cg-msg-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  height: 28px;   /* ROW_HEIGHT — the node is centred on this line, not on the row */
+}
+.cg-refs-under {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  overflow: hidden;
+  padding-bottom: 2px;
+}

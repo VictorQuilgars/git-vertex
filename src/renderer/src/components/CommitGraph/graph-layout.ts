@@ -271,3 +271,33 @@ export function computeGraphLayout(commits: CommitNode[]): LayoutCommit[] {
 
   return result
 }
+
+/**
+ * Where each row starts, when rows are not all the same height.
+ *
+ * A row used to be `index × ROW_HEIGHT`, which is true only while every row is
+ * the same height. Drawing refs under the subject breaks that: a commit that
+ * carries a branch or a tag needs a second line, and one that does not must not
+ * pay for it — that is the whole point of moving them out of a column that
+ * charged every row 164px whether or not it had anything to show.
+ *
+ * Returns prefix sums, so `tops[i]` is the top of row `i` and `tops[n]` is the
+ * total height. Every caller — the node, the edges, the lane bands, the scroll
+ * maths and the row's own `top` — reads this instead of multiplying.
+ *
+ * ⚠️ The node and the edges stay on the **first line** of a row (`top + base/2`),
+ * never in the middle of a taller one. Centring them on the row would let the
+ * graph drift half a line away from the text it describes at every ref.
+ */
+export function rowOffsets(
+  hasExtra: readonly boolean[], base: number, extra: number,
+): number[] {
+  const tops = new Array<number>(hasExtra.length + 1)
+  let y = 0
+  for (let i = 0; i < hasExtra.length; i++) {
+    tops[i] = y
+    y += base + (hasExtra[i] ? extra : 0)
+  }
+  tops[hasExtra.length] = y
+  return tops
+}
