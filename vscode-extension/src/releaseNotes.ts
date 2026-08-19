@@ -18,6 +18,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧾 The commit pane says more per row
+- The header is **one line** — hash, parent, branch, and what the commit cost as \`+A ✎N −D\` — where it took four. The author's line reads *7 hours ago*; the full date is a tooltip away.
+- Each file row carries its own \`+N −M\`, puts the **name before the folder**, and offers history / open on remote / copy path on hover.
+- **Compare** against the working tree is a button beside the author. The AI action is an icon with a menu, not a full-width bar.
+
 ### 📐 The commit list is rows, not a grid
 - The panel carried the desktop's columns in a fraction of the width, dropping an author here and a date there depending on how deep the graph was.
 - A commit is a row of two lines now: the message, then the branch it is on, its hash, its author and its date — each placed rather than columned. The date sits at the right edge.
