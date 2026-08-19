@@ -99,9 +99,9 @@ describe('buildBranchMenu (v1.21.0)', () => {
 
   test('a linked issue is shown on the associate row instead of the generic label', () => {
     const items = buildBranchMenu(
-      local(), { currentBranch: 'main', issue: { number: 42, title: 'Login bug' } }, allActions(), t
+      local(), { currentBranch: 'main', issue: { provider: 'github', key: '42', title: 'Login bug' } }, allActions(), t
     )
-    expect(labels(items)).toContain('sb.branch.issueLinked(42)')
+    expect(labels(items)).toContain('sb.branch.issueLinked(#42)')
     expect(labels(items)).not.toContain('sb.branch.associateIssue')
   })
 
@@ -245,7 +245,7 @@ describe('buildBranchMenu (v1.21.0)', () => {
   test('stays short enough not to need scrolling', () => {
     const worst = buildBranchMenu(
       local({ publishedAs: 'origin/feature/x' }),
-      { currentBranch: 'main', favorite: true, issue: { number: 1 } },
+      { currentBranch: 'main', favorite: true, issue: { provider: 'github', key: '1' } },
       allActions(), t
     )
     expect(rows(worst).length).toBeLessThanOrEqual(15)

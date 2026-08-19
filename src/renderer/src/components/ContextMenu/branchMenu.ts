@@ -10,6 +10,7 @@
 // Any handler left undefined drops its row, so a caller that cannot (say) merge
 // simply omits onMerge rather than passing a no-op.
 import type { MenuItemDef } from './ContextMenu'
+import { issueRefLabel, type IssueRef } from '../../utils/issueRef'
 
 export interface BranchMenuTarget {
   /** Full ref as git knows it, e.g. `feature/x` or `remotes/origin/x`. */
@@ -39,7 +40,7 @@ export interface BranchMenuState {
   hidden?: boolean
   favorite?: boolean
   /** Issue currently linked to this branch, if any. */
-  issue?: { number: number; title?: string } | null
+  issue?: IssueRef | null
 }
 
 export interface BranchMenuActions {
@@ -218,7 +219,7 @@ export function buildBranchMenu(
   if (actions.onAssociateIssue) {
     inspect.push({
       label: state.issue
-        ? t('sb.branch.issueLinked', state.issue.number)
+        ? t('sb.branch.issueLinked', issueRefLabel(state.issue))
         : t('sb.branch.associateIssue'),
       action: actions.onAssociateIssue,
     })

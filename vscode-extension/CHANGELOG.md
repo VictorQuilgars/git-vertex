@@ -13,6 +13,9 @@
 - **Restore a file to the version in a commit.** Right-click it in a commit's file list. It asks first, then leaves the change unstaged — so what you brought back is a diff you can read before you keep it, rather than something already staged. A file deleted since comes back on disk.
 - **Start a branch from an issue.** Right-click an issue in the GitHub panel: it suggests `123-the-issue-title`, you edit it or accept it, and the branch is created, checked out and linked to that issue — so the branch shows its issue number from then on. Linking a branch to an issue already existed; this is the direction you actually reach for.
 
+### Changed
+- **The issue a branch is working on no longer has to be a GitHub number.** *Associate issue* still lists this repository's GitHub issues, but the box under them now takes any reference you type — `PROJ-421`, `ABC-9`, a closed issue the list does not carry. If it matches one of the reference patterns from Settings › GitHub, the link opens where that pattern points; if it matches nothing, the reference is still kept and shown on the branch. Branch names follow: a branch created from `PROJ-421` is suggested as `PROJ-421-the-title`, with the key's case left alone.
+
 ### Fixed
 - **The pull request and issue lists find your repository when its name has a dot in it** — or when the remote is an SSH URL with a port. Both lists start by reading `owner/repo` off the remote, and the pattern doing that stopped at the first dot, so `my.app` was read as `my`; a remote like `ssh://git@github.com:22/owner/repo.git` handed over the **port** as the owner. Either way Git Vertex then asked GitHub about a repository that does not exist, and the panel showed an empty list with nothing to say why. It now reads the remote with the same parser the link builder uses, and a remote that is not on github.com is reported as such instead of being guessed at.
 

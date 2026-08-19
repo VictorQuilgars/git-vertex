@@ -154,7 +154,7 @@ describe('Branch strip (v1.22.0)', () => {
   test('a linked issue is shown with its number and opens on click', async () => {
     const onOpenIssue = jest.fn()
     render({ branchStrip: strip({
-      issue: { number: 42, title: 'Login bug' },
+      issue: { provider: 'github', key: '42', title: 'Login bug' },
       onAssociateIssue: jest.fn(), onOpenIssue,
     }) })
     await waitFor(() => expect(document.querySelector('.bstrip')).not.toBeNull())
@@ -162,6 +162,6 @@ describe('Branch strip (v1.22.0)', () => {
     expect(screen.getByText('#42')).toBeInTheDocument()
     expect(screen.getByText('Login bug')).toBeInTheDocument()
     await userEvent.click(screen.getByText('#42'))
-    expect(onOpenIssue).toHaveBeenCalledWith(42)
+    expect(onOpenIssue).toHaveBeenCalledWith({ provider: 'github', key: '42', title: 'Login bug' })
   })
 })
