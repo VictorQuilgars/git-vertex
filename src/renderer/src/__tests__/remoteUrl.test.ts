@@ -1,4 +1,4 @@
-import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch, rangeFromSelection, githubRepo } from '../utils/remoteUrl'
+import { parseRemote, pickRemote, repoFromRemotes, remoteUrl, shortBranch, rangeFromSelection, githubRepo, githubApiBase } from '../utils/remoteUrl'
 
 // Before this existed, one URL shape was written out by hand in three places
 // with github.com hardcoded, and nothing else in either product could be linked
@@ -179,44 +179,77 @@ describe('rangeFromSelection — the off-by-one', () => {
 // are the cases that used to fail in five separate places.
 describe('githubRepo — which repository to ask GitHub about', () => {
   test('the plain shapes', () => {
-    expect(githubRepo('https://github.com/o/r.git')).toEqual({ owner: 'o', repo: 'r' })
-    expect(githubRepo('git@github.com:o/r.git')).toEqual({ owner: 'o', repo: 'r' })
-    expect(githubRepo('https://github.com/o/r')).toEqual({ owner: 'o', repo: 'r' })
+    expect(githubRepo('https://github.com/o/r.git')).toEqual({ owner: 'o', repo: 'r', host: 'github.com' })
+    expect(githubRepo('git@github.com:o/r.git')).toEqual({ owner: 'o', repo: 'r', host: 'github.com' })
+    expect(githubRepo('https://github.com/o/r')).toEqual({ owner: 'o', repo: 'r', host: 'github.com' })
   })
 
   // The old regex read the repository name as `[^/.]+`, which stops at a dot.
   test('a dot in the repository name is part of the name', () => {
-    expect(githubRepo('https://github.com/o/my.app.git')).toEqual({ owner: 'o', repo: 'my.app' })
-    expect(githubRepo('git@github.com:o/my.app.git')).toEqual({ owner: 'o', repo: 'my.app' })
-    expect(githubRepo('https://github.com/o/dotfiles.v2')).toEqual({ owner: 'o', repo: 'dotfiles.v2' })
+    expect(githubRepo('https://github.com/o/my.app.git')).toEqual({ owner: 'o', repo: 'my.app', host: 'github.com' })
+    expect(githubRepo('git@github.com:o/my.app.git')).toEqual({ owner: 'o', repo: 'my.app', host: 'github.com' })
+    expect(githubRepo('https://github.com/o/dotfiles.v2')).toEqual({ owner: 'o', repo: 'dotfiles.v2', host: 'github.com' })
   })
 
   // The old regex matched `github.com:22` as host:owner and answered
   // { owner: '22', repo: 'o' } — confidently, and completely wrong.
   test('an ssh port is not the owner', () => {
-    expect(githubRepo('ssh://git@github.com:22/o/r.git')).toEqual({ owner: 'o', repo: 'r' })
+    expect(githubRepo('ssh://git@github.com:22/o/r.git')).toEqual({ owner: 'o', repo: 'r', host: 'github.com' })
   })
 
   test('credentials in the url are not the owner either', () => {
-    expect(githubRepo('https://user:token@github.com/o/r.git')).toEqual({ owner: 'o', repo: 'r' })
+    expect(githubRepo('https://user:token@github.com/o/r.git')).toEqual({ owner: 'o', repo: 'r', host: 'github.com' })
   })
 
   // Everything downstream calls api.github.com, so a remote that is not there
   // has to come back empty rather than plausible — this is the one place where
   // parseRemote's "an unknown host reads as GitHub" would do harm.
   test('another host is not a GitHub repository', () => {
-    expect(githubRepo('git@gitlab.com:group/sub/r.git')).toEqual({ owner: null, repo: null })
-    expect(githubRepo('https://bitbucket.org/o/r.git')).toEqual({ owner: null, repo: null })
-    expect(githubRepo('https://git.example.com/o/r.git')).toEqual({ owner: null, repo: null })
+    expect(githubRepo('git@gitlab.com:group/sub/r.git')).toEqual({ owner: null, repo: null, host: null })
+    expect(githubRepo('https://bitbucket.org/o/r.git')).toEqual({ owner: null, repo: null, host: null })
+    expect(githubRepo('https://git.example.com/o/r.git')).toEqual({ owner: null, repo: null, host: null })
   })
 
   test('the host is matched whatever its case', () => {
-    expect(githubRepo('https://GitHub.com/o/r.git')).toEqual({ owner: 'o', repo: 'r' })
+    expect(githubRepo('https://GitHub.com/o/r.git')).toEqual({ owner: 'o', repo: 'r', host: 'github.com' })
   })
 
   test('nothing to read is not a repository', () => {
-    expect(githubRepo('')).toEqual({ owner: null, repo: null })
-    expect(githubRepo(null)).toEqual({ owner: null, repo: null })
-    expect(githubRepo('/home/me/repo')).toEqual({ owner: null, repo: null })
+    expect(githubRepo('')).toEqual({ owner: null, repo: null, host: null })
+    expect(githubRepo(null)).toEqual({ owner: null, repo: null, host: null })
+    expect(githubRepo('/home/me/repo')).toEqual({ owner: null, repo: null, host: null })
+  })
+})
+
+// An Enterprise Server instance is the same API on another host — which is the
+// entire reason supporting it is a variable rather than an integration.
+describe('githubApiBase', () => {
+  test('github.com answers from its own domain, an instance from itself', () => {
+    expect(githubApiBase('github.com')).toBe('https://api.github.com')
+    expect(githubApiBase('GitHub.com')).toBe('https://api.github.com')
+    expect(githubApiBase('github.acme.com')).toBe('https://github.acme.com/api/v3')
+  })
+})
+
+describe('githubRepo — a host is GitHub only once someone says so', () => {
+  test('an Enterprise host is refused until it is declared, then read', () => {
+    expect(githubRepo('git@github.acme.com:team/app.git'))
+      .toEqual({ owner: null, repo: null, host: null })
+    expect(githubRepo('git@github.acme.com:team/app.git', ['github.acme.com']))
+      .toEqual({ owner: 'team', repo: 'app', host: 'github.acme.com' })
+  })
+
+  test('declaring a host is case-insensitive and tolerates stray spaces', () => {
+    expect(githubRepo('https://GITHUB.ACME.com/t/a.git', ['  GitHub.Acme.com ']))
+      .toEqual({ owner: 't', repo: 'a', host: 'github.acme.com' })
+  })
+
+  // The guard that matters: declaring one instance must not turn every other
+  // host into GitHub, or a token goes to a server that is not GitHub.
+  test('declaring one instance says nothing about any other host', () => {
+    expect(githubRepo('git@gitlab.com:g/p.git', ['github.acme.com']))
+      .toEqual({ owner: null, repo: null, host: null })
+    expect(githubRepo('git@github.other.com:g/p.git', ['github.acme.com']))
+      .toEqual({ owner: null, repo: null, host: null })
   })
 })

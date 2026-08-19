@@ -236,6 +236,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
   // GitHub
   const [githubToken, setGithubToken] = useState('')
+  // GitHub Enterprise Server: the same API on the customer's own host. A host
+  // is only treated as GitHub once it is named here, and its token is only ever
+  // sent there — see src/main/github-host.ts.
+  const [ghEnterpriseHost, setGhEnterpriseHost] = useState('')
+  const [ghEnterpriseToken, setGhEnterpriseToken] = useState('')
   const [showToken, setShowToken] = useState(false)
   const [githubUser, setGithubUser] = useState<{ login: string; avatar: string } | null>(null)
   // Where the identity came from, when the host says: 'vscode' for a session
@@ -341,6 +346,8 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       }
       setAutolinksRaw(s.autolinks ?? '')
       const token = s.githubToken ?? ''
+      setGhEnterpriseHost(s.githubEnterpriseHost ?? '')
+      setGhEnterpriseToken(s.githubEnterpriseToken ?? '')
       setGithubToken(token)
       // Embedded, a stored token is no longer the only way to be signed in: a
       // VS Code session writes nothing here, so gating on it showed "Sign in
@@ -511,6 +518,13 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
   const saveGithub = async () => {
     await window.gitAPI.settingsSet('githubToken', githubToken.trim())
+    // The host is stored bare — no scheme, no trailing slash — because it is
+    // compared against what a git remote reports, which is a hostname.
+    await window.gitAPI.settingsSet(
+      'githubEnterpriseHost',
+      ghEnterpriseHost.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase(),
+    )
+    await window.gitAPI.settingsSet('githubEnterpriseToken', ghEnterpriseToken.trim())
     showToast(t('settings.github.tokenSaved'))
   }
 
@@ -956,6 +970,36 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     <p className="stg-desc" style={{ marginTop: 6 }}>{t('settings.github.patHint')}</p>
                   </div>
                 )}
+
+                {/* GitHub Enterprise Server. Deliberately its own host and its
+                    own token: a credential belongs to one server, and sending
+                    the github.com one to someone's instance would hand it over.
+                    Naming the host here is also what makes Git Vertex treat it
+                    as GitHub at all — nothing in a hostname says whether a
+                    self-hosted forge is GitHub or something else. */}
+                <div className="stg-field" style={{ marginTop: 24 }}>
+                  <h2 className="stg-section-title">{t('settings.github.enterprise')}</h2>
+                  <p className="stg-desc">{t('settings.github.enterpriseDesc')}</p>
+                  <label style={{ marginTop: 12 }}>{t('settings.github.enterpriseHost')}</label>
+                  <input
+                    value={ghEnterpriseHost}
+                    placeholder="github.acme.com"
+                    onChange={e => setGhEnterpriseHost(e.target.value)}
+                    spellCheck={false}
+                  />
+                  <label style={{ marginTop: 12 }}>{t('settings.github.enterpriseToken')}</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type={showToken ? 'text' : 'password'}
+                      value={ghEnterpriseToken}
+                      onChange={e => setGhEnterpriseToken(e.target.value)}
+                      style={{ flex: 1 }}
+                      spellCheck={false}
+                    />
+                    <button className="stg-save" onClick={saveGithub}>{t('settings.save')}</button>
+                  </div>
+                  <p className="stg-desc" style={{ marginTop: 6 }}>{t('settings.github.enterpriseHint')}</p>
+                </div>
               </div>
             )}
 

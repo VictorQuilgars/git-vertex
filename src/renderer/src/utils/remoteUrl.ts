@@ -158,15 +158,38 @@ export function repoFromRemotes(remotes: Remote[], preferred?: string | null): R
   return parseRemote(remote.fetchUrl || remote.pushUrl)
 }
 
+/** github.com, plus any Enterprise host the user has told us about. */
+export const GITHUB_COM = 'github.com'
+
 /**
- * The repository a remote points at **on github.com**, for the callers that are
- * about to phone `api.github.com` — the pull request and issue lists, and every
- * saved filter over them.
+ * Where a GitHub host answers its API.
+ *
+ * github.com serves it from a separate domain; every Enterprise Server instance
+ * serves it from the same host under `/api/v3`. That is the whole difference,
+ * and it is the reason this phase is a variable rather than an integration.
+ *
+ * ⚠️ It is deliberately **not** guessed from an arbitrary host. Nothing in a
+ * hostname distinguishes a self-hosted GitHub from a self-hosted GitLab, so a
+ * host reaches this function only once the user has said it is GitHub — by
+ * configuring a token for it. Guessing would send someone's credential to a
+ * server that is not GitHub.
+ */
+export function githubApiBase(host: string): string {
+  return host.toLowerCase() === GITHUB_COM ? 'https://api.github.com' : `https://${host}/api/v3`
+}
+
+/**
+ * The repository a remote points at, on a host we know to be GitHub.
+ *
+ * `knownHosts` is what the user has configured beyond github.com — an
+ * Enterprise Server instance. Empty by default, so the answer for anything else
+ * stays "not GitHub".
  *
  * ⚠️ The host check is the whole reason this is not just `parseRemote`.
  * `parseRemote` deliberately reads an unknown host as GitHub so a self-hosted
  * Enterprise still gets a plausible *link*; here that would turn "this remote
- * is not on GitHub" into a 404 against the wrong API.
+ * is not on GitHub" into a 404 against the wrong API — or worse, into a token
+ * sent to a stranger's server.
  *
  * It replaces a `github\.com[:/]([^/]+)\/([^/.]+)` regex that misread two
  * ordinary shapes: `[^/.]+` stops at a dot, so `my.app` came back as `my`, and
@@ -179,10 +202,15 @@ export function repoFromRemotes(remotes: Remote[], preferred?: string | null): R
  * the first thing the desktop main process takes from this tree — it is pure
  * string handling, and electron-vite inlines it into the main bundle.
  */
-export function githubRepo(url: string | null | undefined): { owner: string | null; repo: string | null } {
+export function githubRepo(
+  url: string | null | undefined, knownHosts: string[] = [],
+): { owner: string | null; repo: string | null; host: string | null } {
   const parsed = parseRemote(url)
-  if (!parsed || parsed.host.toLowerCase() !== 'github.com') return { owner: null, repo: null }
-  return { owner: parsed.owner, repo: parsed.repo }
+  if (!parsed) return { owner: null, repo: null, host: null }
+  const host = parsed.host.toLowerCase()
+  const known = host === GITHUB_COM || knownHosts.some(h => h.trim().toLowerCase() === host)
+  if (!known) return { owner: null, repo: null, host: null }
+  return { owner: parsed.owner, repo: parsed.repo, host }
 }
 
 /**

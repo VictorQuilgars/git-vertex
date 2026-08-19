@@ -18,9 +18,9 @@ import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../
 import { findAppPath, launchApp } from '../appLocator'
 import {
   githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches,
-  githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist,
+  githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, type GithubApi,
 } from '../githubApi'
-import { githubRepo } from '../../../src/renderer/src/utils/remoteUrl'
+import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
 import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
@@ -576,21 +576,21 @@ export class GitVertexHost implements vscode.Disposable {
           return githubRepo(stdout.trim())
         } catch { return { owner: null, repo: null } }
       }
-      case 'githubListPRs': return githubListPRs(await this._githubToken(), args[0], args[1])
-      case 'githubListIssues': return githubListIssues(await this._githubToken(), args[0], args[1])
+      case 'githubListPRs': return githubListPRs(await this._githubApi(), args[0], args[1])
+      case 'githubListIssues': return githubListIssues(await this._githubApi(), args[0], args[1])
       // Backs the `#123` hover card the shared renderer renders on every commit
       // message. Without it the card resolved to nothing and the panel showed a
       // bare "#123 — owner/repo" with no title or state.
-      case 'githubGetIssue': return githubGetIssue(await this._githubToken(), args[0], args[1], args[2])
+      case 'githubGetIssue': return githubGetIssue(await this._githubApi(), args[0], args[1], args[2])
       case 'githubCreatePR':
-        return githubCreatePR(await this._githubToken(), args[0], args[1], args[2], args[3], args[4], args[5])
-      case 'githubListBranches': return githubListBranches(await this._githubToken(), args[0], args[1])
+        return githubCreatePR(await this._githubApi(), args[0], args[1], args[2], args[3], args[4], args[5])
+      case 'githubListBranches': return githubListBranches(await this._githubApi(), args[0], args[1])
       // A search across everything the account can see, rather than one
       // repository — what a saved filter and an "assigned to me" group are.
-      case 'githubSearchIssues': return githubSearchIssues(await this._githubToken(), args[0], args[1])
+      case 'githubSearchIssues': return githubSearchIssues(await this._githubApi(), args[0], args[1])
       case 'githubCloseIssue':
-        return githubCloseIssue(await this._githubToken(), args[0], args[1], args[2])
-      case 'githubListRepos': return githubListRepos(await this._githubToken())
+        return githubCloseIssue(await this._githubApi(), args[0], args[1], args[2])
+      case 'githubListRepos': return githubListRepos(await this._githubApi())
       // Share a commit's patch as a secret gist. git makes the patch, the API
       // stores it — so the two halves are assembled here rather than in
       // githubApi.ts, which has no repository to ask.
@@ -603,7 +603,7 @@ export class GitVertexHost implements vscode.Disposable {
         let subject = short
         try { subject = (await svc.getLastCommitMessage(args[0])).message.split('\n')[0] || short } catch { /* cosmetic */ }
         return githubCreateGist(
-          await this._githubToken(),
+          await this._githubApi(),
           `git-vertex patch — ${short}: ${subject}`, `${short}.patch`, patch,
         )
       }
@@ -624,7 +624,7 @@ export class GitVertexHost implements vscode.Disposable {
         if (!patch.trim()) return { error: 'no_changes' }
         const name = repoPath.split(/[\\/]/).filter(Boolean).pop() || 'wip'
         return githubCreateGist(
-          await this._githubToken(),
+          await this._githubApi(),
           `git-vertex WIP patch — ${name}`, `${name}-wip.patch`, patch,
         )
       }
@@ -833,6 +833,41 @@ export class GitVertexHost implements vscode.Disposable {
    */
   private async _githubToken(): Promise<string | undefined> {
     return (await this._identity())?.token
+  }
+
+  /** The Enterprise host the user has declared, if any. */
+  private _enterpriseHost(): string {
+    const all = this._state.get<Record<string, string>>('gvSettings', {})
+    return (all.githubEnterpriseHost ?? '').trim().toLowerCase()
+  }
+
+  /**
+   * Where this repository's GitHub answers, and what may be sent there.
+   *
+   * ⚠️ VS Code's GitHub session is a **github.com** credential. Sending it to
+   * an Enterprise Server instance would hand the user's github.com token to
+   * whoever runs that server, so an instance takes its own PAT and nothing
+   * else — which is also why a host is not treated as GitHub at all until the
+   * user has declared it.
+   */
+  private async _githubApi(): Promise<GithubApi & { host: string }> {
+    const all = this._state.get<Record<string, string>>('gvSettings', {})
+    const enterprise = this._enterpriseHost()
+    let host = GITHUB_COM
+    try {
+      const svc = this._gitService
+      if (svc && enterprise) {
+        const { remotes } = await svc.getRemotes()
+        const origin = remotes.find(r => r.name === 'origin') ?? remotes[0]
+        const parsed = githubRepo(origin?.fetchUrl || origin?.pushUrl || '', [enterprise])
+        if (parsed.host) host = parsed.host
+      }
+    } catch { /* no repo, or no remotes — github.com it is */ }
+
+    const token = host === GITHUB_COM
+      ? await this._githubToken()
+      : (all.githubEnterpriseToken || undefined)
+    return { base: githubApiBase(host), host, token }
   }
 
   private _getHtml(webview: vscode.Webview): string {
