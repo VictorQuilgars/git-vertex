@@ -41,6 +41,11 @@ export const RELEASE_NOTES: Record<string, string> = {
 - If it matches one of your patterns in **Settings › GitHub**, it opens where that pattern points. If it matches nothing, it is still kept and shown on the branch.
 - Branch names follow: from \`PROJ-421\` the suggestion is \`PROJ-421-the-title\`, and the key keeps its case.
 
+### 🩹 The panel opens again
+- It rendered nothing at all — *Cannot access 'showPrompt' before initialization*. A dependency array is read while the component renders, and two recent handlers listed a value declared further down.
+- The comparison tab and the GitHub tab had the same fault in another form, reading values that only exist inside the main panel component. Opening either showed an empty tab.
+- None of it reached a release. A build check now refuses any name the panel cannot resolve.
+
 ### 🩹 The GitHub lists find a repository whose name has a dot in it
 - Reading \`owner/repo\` off the remote stopped at the first dot, so \`my.app\` was read as \`my\` — and an SSH remote with a port handed the **port** over as the owner. Git Vertex then asked GitHub about a repository that does not exist, and the lists were empty with nothing to say why.
 - A remote that is not on github.com is now reported as such, rather than guessed at.
