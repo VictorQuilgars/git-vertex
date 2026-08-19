@@ -2452,6 +2452,10 @@ export default function App() {
           ) : (
             <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              trackingFor={(name) => {
+                const b = branches.find(x => x.name === name)
+                return b ? { ahead: b.ahead, behind: b.behind } : null
+              }}
               commits={commits}
               visibility={visibility}
               remoteNames={remoteNames}

@@ -30,6 +30,11 @@ export interface ChipSegment {
    * collapsed: a pill that says nothing at rest is a pill nobody reads.
    */
   collapsible?: boolean
+  /**
+   * Always shown, even when the label is collapsed — `↓1 ↑1` beside a remote
+   * icon. The label is the detail; this is the point.
+   */
+  detail?: string
   onClick?: () => void
   onDoubleClick?: () => void
   onContextMenu?: (e: React.MouseEvent) => void
@@ -82,6 +87,7 @@ export default function MessageChip({ segments, refsHidden = 0, tone, emphasis =
         >
           <Icon name={KIND_ICON[seg.kind] as never} size={10} className="mchip-ico" />
           <span className="mchip-label">{seg.label}</span>
+          {seg.detail && <span className="mchip-detail">{seg.detail}</span>}
         </span>
       ))}
       {refsHidden > 0 && <span className="mchip-more">+{refsHidden}</span>}

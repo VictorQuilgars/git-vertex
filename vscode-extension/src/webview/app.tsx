@@ -1010,6 +1010,10 @@ function VertexApp() {
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              trackingFor={(name) => {
+                const b = branches.find(x => x.name === name)
+                return b ? { ahead: b.ahead, behind: b.behind } : null
+              }}
               refsBelow
             commits={commits}
             visibility={visibility}

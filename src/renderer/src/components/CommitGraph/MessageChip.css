@@ -88,3 +88,12 @@
   border-left: 1px solid var(--mchip-border);
   color: var(--text-tertiary);
 }
+
+/* The counts beside a remote — ↓1 ↑1 — stay visible when the name collapses.
+   They are why the chip is looked at; the name is what the hover reveals. */
+.mchip-detail {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+.mchip-collapsible .mchip-detail { margin-left: 2px; }

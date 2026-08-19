@@ -47,6 +47,28 @@ describe('messageChipSegments — what goes in the pill', () => {
     expect(segs[1]).toMatchObject({ kind: 'issue', label: 'PROJ-421' })
   })
 
+  // ↓N ↑M beside the remote. They are the reason a branch chip is looked at,
+  // so they stay visible when the remote's name collapses — and nothing is drawn
+  // for a branch level with its upstream, which has nothing to say.
+  test('a published branch carries how far it is from its upstream', () => {
+    const published = { ...local, hasRemote: true, tooltip: 'feat/x  +  origin/feat/x' }
+    const tracking = (b: string) => b === 'feat/x' ? { ahead: 1, behind: 2 } : null
+    const segs = messageChipSegments(published as any, undefined, undefined, tracking)
+    expect(segs[1]).toMatchObject({ kind: 'remote', label: 'origin', detail: '↓2 ↑1' })
+  })
+
+  test('level with its upstream draws no counts at all', () => {
+    const published = { ...local, hasRemote: true, tooltip: 'feat/x  +  origin/feat/x' }
+    const segs = messageChipSegments(published as any, undefined, undefined, () => ({ ahead: 0, behind: 0 }))
+    expect(segs[1].detail).toBeUndefined()
+  })
+
+  test('only the side that differs is shown', () => {
+    const published = { ...local, hasRemote: true, tooltip: 'feat/x  +  origin/feat/x' }
+    expect(messageChipSegments(published as any, undefined, undefined, () => ({ ahead: 3 }))[1].detail).toBe('↑3')
+    expect(messageChipSegments(published as any, undefined, undefined, () => ({ behind: 1 }))[1].detail).toBe('↓1')
+  })
+
   test('a tag is a tag, not a branch', () => {
     const segs = messageChipSegments({ display: 'v1.2.0', cls: 'rc-tag' } as any)
     expect(segs[0]).toMatchObject({ kind: 'tag', label: 'v1.2.0' })

@@ -277,6 +277,7 @@ export function messageChipSegments(
   pref: ProcessedRef,
   issueForBranch?: (branch: string) => { key: string; provider: string } | null,
   handlers?: { onCheckout?: (b: string) => void; onMenu?: (e: React.MouseEvent) => void },
+  trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null,
 ): ChipSegment[] {
   const segments: ChipSegment[] = []
   const isTag = pref.cls === 'rc-tag'
@@ -299,7 +300,17 @@ export function messageChipSegments(
     // is how this said "feat" instead of "origin" the first time.
     const full = pref.tooltip?.split('+').pop()?.trim() ?? ''
     const remote = /^(?:remotes\/)?([^/]+)\//.exec(full)?.[1] ?? 'origin'
-    segments.push({ kind: 'remote', label: remote, title: pref.tooltip, collapsible: true })
+    // ↓N ↑M next to the remote: behind, then ahead. They are the reason a
+    // branch chip is looked at, so they are NOT collapsed — the remote's name
+    // is the detail, the numbers are the point. Nothing is drawn for 0/0: a
+    // branch level with its upstream has nothing to say.
+    const tr = pref.branchName ? trackingFor?.(pref.branchName) : null
+    const behind = tr?.behind ?? 0, ahead = tr?.ahead ?? 0
+    const counts = [behind ? `↓${behind}` : '', ahead ? `↑${ahead}` : ''].filter(Boolean).join(' ')
+    segments.push({
+      kind: 'remote', label: remote, title: pref.tooltip, collapsible: true,
+      detail: counts || undefined,
+    })
   }
 
   const issue = pref.branchName ? issueForBranch?.(pref.branchName) : null
@@ -558,6 +569,13 @@ interface CommitGraphProps {
    * knows how much width it has — not a setting the user has to find.
    */
   refsBelow?: boolean
+  /**
+   * How far a local branch is from its upstream. Read by the chip under the
+   * message: `↓1 ↑1` is the reason someone looks at a branch chip at all.
+   * A resolver rather than the list, because the graph wants one answer per
+   * chip and has no business holding every branch.
+   */
+  trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null
   commits: CommitNode[]
   selectedHash: string | null
   onSelectCommit: (c: CommitNode) => void
@@ -646,6 +664,7 @@ interface DropState { x: number; y: number; hash: string; branch: string }
 export default function CommitGraph({
   issueForBranch,
   refsBelow = false,
+  trackingFor,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit,
@@ -1718,7 +1737,7 @@ export default function CommitGraph({
                           segments={messageChipSegments(prefs[0], issueForBranch, {
                             onCheckout: onCheckoutBranch,
                             onMenu: (e) => openRefMenu(e, prefs[0], commit),
-                          })}
+                          }, trackingFor)}
                         />
                       )}
                       {!isWip && <>
