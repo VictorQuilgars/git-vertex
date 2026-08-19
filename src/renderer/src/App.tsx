@@ -160,6 +160,19 @@ function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 
   }
 }
 
+/**
+ * Whether a view is about a repository at all.
+ *
+ * Every one of them is, except the settings: a comparison, a file's history, a
+ * stash and a diff are all *of* something checked out, and the main process
+ * serves one repository at a time — which is why those tabs carry their path.
+ * The settings are the application's own screen, and tying them to a repository
+ * meant the gear did nothing at all until one was open.
+ */
+export function viewNeedsRepo(body: ViewTab): boolean {
+  return body.view !== 'settings'
+}
+
 /** Two view tabs are the same tab when they show the same thing. */
 export function sameView(a: ViewTab, b: ViewTab): boolean {
   if (a.view !== b.view) return false
@@ -875,17 +888,27 @@ export default function App() {
    * repository would quietly answer with this one's history.
    */
   const openViewTab = useCallback((body: ViewTab) => {
+    // An operation in progress is a different matter from a missing repository:
+    // switchTab already refuses to move while one runs, so opening a tab under
+    // it would strand the user.
     if (conflictResolverFile || rebaseHash) return
-    if (!repoPath) return
+    const needsRepo = viewNeedsRepo(body)
+    if (needsRepo && !repoPath) return
     setWhatsNewActive(false)
     setRepoMgmtOpen(false)
     if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
     setTabs(prev => {
-      const existing = prev.find(tb => tb.kind === 'view' && tb.path === repoPath && tb.body && sameView(tb.body, body))
+      // A repository's view is the same tab only within that repository; an
+      // application view is the same tab everywhere, so it does not match on a
+      // path it does not have.
+      const existing = prev.find(tb => tb.kind === 'view' && tb.body && sameView(tb.body, body)
+        && (!needsRepo || tb.path === repoPath))
       if (existing) { setActiveTabId(existing.id); return prev }
       const id = newTabId('view')
       setActiveTabId(id)
-      return [...prev, { id, kind: 'view', path: repoPath, name: repoName, body }]
+      return needsRepo
+        ? [...prev, { id, kind: 'view' as const, path: repoPath!, name: repoName, body }]
+        : [...prev, { id, kind: 'view' as const, body }]
     })
   }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, repoPath, repoName])
 
@@ -901,6 +924,10 @@ export default function App() {
     // A view tab is bound to a repository too: its queries go through the main
     // process, which serves whichever repo was last set.
     if (tab.kind !== 'repo' && tab.kind !== 'view') { clearRepoView(); return }
+    // A view with no path is about the application, not about a repository:
+    // there is nothing to set, and whatever repository is open stays open
+    // behind it so leaving the tab returns to it.
+    if (tab.kind === 'view' && !tab.path) return
     if (tab.kind === 'view' && tab.path === repoPath) return
     const r = await window.gitAPI.setRepo(tab.path!)
     if (r.path) {

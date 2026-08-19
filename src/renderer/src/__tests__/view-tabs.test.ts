@@ -1,4 +1,4 @@
-import { sameView } from '../App'
+import { sameView, viewNeedsRepo } from '../App'
 
 // Opening a view twice should land you back on the tab you already have, not
 // give you a second one — the rule the theme gallery already followed and that
@@ -60,5 +60,22 @@ describe('sameView', () => {
 
   test('two different kinds are never the same view', () => {
     expect(sameView(compare('main', 'feature'), { view: 'fileHistory', file: 'a.ts' })).toBe(false)
+  })
+
+  // Reported: with no repository open, the gear, the profile chip and ⌘, all
+  // did nothing. The tabs batch gave every view tab a repository — right for
+  // the ones that are *of* something checked out, wrong for the settings, which
+  // are the application's own screen. The guard now asks this rather than
+  // assuming, so the two cannot drift apart again.
+  test('the settings are not about a repository; everything else is', () => {
+    expect(viewNeedsRepo({ view: 'settings' })).toBe(false)
+
+    expect(viewNeedsRepo(compare('main', 'feature'))).toBe(true)
+    expect(viewNeedsRepo({ view: 'fileHistory', file: 'a.ts' })).toBe(true)
+    expect(viewNeedsRepo({ view: 'stash', index: 0, message: 'x' })).toBe(true)
+    expect(viewNeedsRepo({ view: 'github' })).toBe(true)
+    expect(viewNeedsRepo({
+      view: 'fileDiff', target: { type: 'commit', commitHash: 'abc', filePath: 'a.ts' },
+    })).toBe(true)
   })
 })
