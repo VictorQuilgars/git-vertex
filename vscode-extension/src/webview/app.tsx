@@ -64,6 +64,22 @@ function VertexApp() {
     if (type === 'err') toast.error(msg); else toast.success(msg)
   }, [toast])
 
+  // Declared here, with showToast, and not further down beside the stash
+  // handlers where they used to sit.
+  //
+  // ⚠️ A `useCallback` dependency array is evaluated **while the component
+  // renders**, not when the callback runs. Two handlers added later — start a
+  // branch from an issue, restore a file from a commit — list these in their
+  // dependencies, so a declaration below them threw
+  // `Cannot access 'showPrompt' before initialization` and the panel rendered
+  // nothing at all. Neither depends on anything, so the top of the component is
+  // where they belong.
+  const showPrompt = useCallback(async (msg: string, def?: string): Promise<string | null> => {
+    const r = await window.gitAPI.uiPrompt(msg, def)
+    return (r ?? null) as string | null
+  }, [])
+  const showConfirm = useCallback((msg: string): Promise<boolean> => window.gitAPI.uiConfirm(msg), [])
+
   const [commits, setCommits] = useState<CommitNode[]>([])
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [currentBranch, setCurrentBranch] = useState('')
@@ -614,11 +630,6 @@ function VertexApp() {
     try { const st = await window.gitAPI.getStashes(); setStashes(st?.stashes ?? []); setStashCount(st?.stashes?.length ?? 0) }
     catch { /* ignore */ }
   }, [])
-  const showPrompt = useCallback(async (msg: string, def?: string): Promise<string | null> => {
-    const r = await window.gitAPI.uiPrompt(msg, def)
-    return (r ?? null) as string | null
-  }, [])
-  const showConfirm = useCallback((msg: string): Promise<boolean> => window.gitAPI.uiConfirm(msg), [])
   const handleApplyStash = useCallback((index: number) =>
     runOp(t('ext.app.stashApplied'), () => window.gitAPI.applyStash(index)), [runOp])
   const handlePopStashIndex = useCallback((index: number) =>
@@ -1187,6 +1198,52 @@ class PanelErrorBoundary extends React.Component<
   }
 }
 
+/**
+ * The standalone tabs are not `VertexApp` — they mount one shared component and
+ * nothing else, in their own React root.
+ *
+ * ⚠️ Two of them were passing `VertexApp`'s locals from module scope, where
+ * those names do not exist: `repoName` for the comparison and
+ * `handleCreateBranchFromIssue` for the issue list. TypeScript said so
+ * (`Cannot find name`) and nothing read it, because this file is in no
+ * typecheck program — the same hole that shipped `I is not defined` in 1.28.0.
+ * Opening either tab threw a ReferenceError and rendered nothing.
+ *
+ * Rather than dropping the props — which would have lost the comparison
+ * registry and the branch-from-issue action in those tabs, silently — each tab
+ * is a component that does what VertexApp does for it.
+ */
+function CompareTab({ refA, refB }: { refA?: string; refB?: string }) {
+  const [repoKey, setRepoKey] = useState<string | null>(null)
+  useEffect(() => {
+    void (async () => {
+      try {
+        const info = await window.gitAPI.appGetInfo()
+        setRepoKey(info?.repoName ?? null)
+      } catch { /* the registry simply stays empty */ }
+    })()
+  }, [])
+  return <CompareView initialA={refA} initialB={refB} repoKey={repoKey ?? 'repo'} />
+}
+
+function GitHubTab() {
+  const { t } = useLang()
+  // The same gesture as in the panel, with the two things VertexApp supplies
+  // taken from the bridge directly: there is no toast host in this tab, so a
+  // failure is reported where the panel would have put one — in the log.
+  const onCreateBranchFromIssue = useCallback(async (issue: { number: number; title: string; url: string }) => {
+    const ref: IssueRef = {
+      provider: 'github', key: String(issue.number), title: issue.title, url: issue.url,
+    }
+    const suggested = issueBranchName(ref.key, ref.title)
+    const name = await window.gitAPI.uiPrompt(t('gh.issue.branchPrompt', issueRefLabel(ref)), suggested)
+    if (!name) return
+    const r = await window.gitAPI.createBranch(String(name))
+    if (!r?.success) console.warn('[GitVertex] could not create the branch:', r?.error)
+  }, [])
+  return <GitHubPanel repoPath="." onCreateBranchFromIssue={onCreateBranchFromIssue} />
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <PanelErrorBoundary>
   <SettingsProvider>
@@ -1199,11 +1256,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             : boot?.mode === 'history' && boot.file
               ? <FileHistory file={boot.file} />
               : boot?.mode === 'compare'
-                ? <CompareView initialA={boot.refA} initialB={boot.refB} repoKey={repoName || 'repo'} />
+                ? <CompareTab refA={boot.refA} refB={boot.refB} />
                 : boot?.mode === 'compareWorking' && boot.hash
                   ? <CompareWorkingView hash={boot.hash} />
                 : boot?.mode === 'github'
-                  ? <GitHubPanel repoPath="." onCreateBranchFromIssue={handleCreateBranchFromIssue} />
+                  ? <GitHubTab />
                   : boot?.mode === 'rebase'
                     ? <RebaseProgress />
                     : boot?.mode === 'todo'
