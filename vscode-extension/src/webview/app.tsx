@@ -4,10 +4,10 @@
 // come first: it installs window.gitAPI before any component mounts.
 import './gitApiShim'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
 
-import { SettingsProvider } from '../../../src/renderer/src/contexts/SettingsContext'
+import { SettingsProvider, useSettings } from '../../../src/renderer/src/contexts/SettingsContext'
 import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
@@ -33,6 +33,8 @@ import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/rend
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
 import { issueBranchName } from '../../../src/renderer/src/utils/issueBranch'
+import { issueRefLabel, issueRefUrl, type IssueRef } from '../../../src/renderer/src/utils/issueRef'
+import { parseAutolinks } from '../../../src/renderer/src/utils/autolinks'
 import {
   emptyVisibility, isRefHidden, logOptionsFor,
   type GraphVisibility, type RefFamily,
@@ -53,6 +55,10 @@ const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches'
 
 function VertexApp() {
   const { t } = useLang();
+  const { get: getSetting } = useSettings()
+  // The reference patterns from Settings › GitHub — what lets a linked
+  // reference open even when no tracker API is wired for it.
+  const autolinks = useMemo(() => parseAutolinks(getSetting('autolinks', '')), [getSetting])
   const toast = useToast()
   const showToast = useCallback((msg: string, type?: 'ok' | 'err') => {
     if (type === 'err') toast.error(msg); else toast.success(msg)
@@ -476,12 +482,18 @@ function VertexApp() {
   // The reverse of associating an issue with a branch — the direction people
   // actually reach for. The suggested name is a suggestion; what is typed wins.
   const handleCreateBranchFromIssue = useCallback(async (issue: { number: number; title: string; url: string }) => {
-    const name = await showPrompt(t('gh.issue.branchPrompt', issue.number), issueBranchName(issue.number, issue.title))
+    // The GitHub panel is the only list we can enumerate, so it is a GitHub
+    // reference by construction — made into one here, at the boundary.
+    const ref: IssueRef = {
+      provider: 'github', key: String(issue.number), title: issue.title, url: issue.url,
+    }
+    const label = issueRefLabel(ref)
+    const name = await showPrompt(t('gh.issue.branchPrompt', label), issueBranchName(ref.key, ref.title))
     if (!name) return
     const r = await window.gitAPI.createBranch(name)
     if (!r?.success) { showToast(r?.error ?? t('toast.branchFailed'), 'err'); return }
-    branchMeta.setIssue(name, { number: issue.number, title: issue.title, url: issue.url })
-    showToast(t('toast.branchFromIssue', name, issue.number))
+    branchMeta.setIssue(name, ref)
+    showToast(t('toast.branchFromIssue', name, label))
     loadRepoData()
   }, [showPrompt, showToast, loadRepoData, branchMeta])
 
@@ -810,8 +822,15 @@ function VertexApp() {
     onFetch: handleFetch,
     issue: branchMeta.issueFor(currentBranch),
     onAssociateIssue: () => setIssueModalBranch(currentBranch),
-    onOpenIssue: (n: number) => {
-      if (remoteRepo) window.gitAPI.openExternal(remoteUrl.issue(remoteRepo, n))
+    // The tracker's own URL first, then the configured patterns; a GitHub
+    // number falls back to this repository's issue URL, which is the one thing
+    // issueRefUrl cannot build for itself.
+    onOpenIssue: (ref: IssueRef) => {
+      const url = issueRefUrl(ref, autolinks)
+        ?? (ref.provider === 'github' && remoteRepo && /^\d+$/.test(ref.key)
+          ? remoteUrl.issue(remoteRepo, Number(ref.key))
+          : null)
+      if (url) window.gitAPI.openExternal(url)
     },
     pr: currentBranchPR,
     menuState: {

@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import ContextMenu from '../ContextMenu/ContextMenu'
+import { issueRefLabel, type IssueRef } from '../../utils/issueRef'
 import { buildBranchMenu, type BranchMenuActions, type BranchMenuState } from '../ContextMenu/branchMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { useLang } from '../../i18n/LanguageContext'
@@ -25,9 +26,9 @@ export interface BranchStripProps {
   onPull?: () => void
   onFetch?: () => void
   /** Issue linked to this branch, if any (v1.21.0 metadata). */
-  issue?: { number: number; title?: string } | null
+  issue?: IssueRef | null
   onAssociateIssue?: () => void
-  onOpenIssue?: (number: number) => void
+  onOpenIssue?: (ref: IssueRef) => void
   /** The pull request this branch offers, if any — see prIntentFor. */
   pr?: PRIntent | null
   /** Everything else lands in the ⋮ menu. */
@@ -96,12 +97,12 @@ export default function BranchStrip(p: BranchStripProps) {
       {p.onAssociateIssue && (
         <button
           className={`bstrip-issue${p.issue ? ' bstrip-issue--linked' : ''}`}
-          onClick={() => p.issue && p.onOpenIssue ? p.onOpenIssue(p.issue.number) : p.onAssociateIssue!()}
-          title={p.issue ? (p.issue.title || `#${p.issue.number}`) : t('sb.branch.associateIssue')}
+          onClick={() => p.issue && p.onOpenIssue ? p.onOpenIssue(p.issue) : p.onAssociateIssue!()}
+          title={p.issue ? (p.issue.title || issueRefLabel(p.issue)) : t('sb.branch.associateIssue')}
         >
           <IcoLink />
           {p.issue
-            ? <><span className="bstrip-issue-num">#{p.issue.number}</span>
+            ? <><span className="bstrip-issue-num">{issueRefLabel(p.issue)}</span>
                 {p.issue.title && <span className="bstrip-issue-title">{p.issue.title}</span>}</>
             : <span>{t('sb.branch.associateIssue')}</span>}
           {p.issue && (

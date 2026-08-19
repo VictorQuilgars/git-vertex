@@ -31,6 +31,11 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Right-click an issue in the GitHub panel. It suggests \`123-the-issue-title\`, you edit it or take it, and the branch is created, checked out and **linked to that issue**.
 - Linking a branch to an issue has existed since 1.21.0. This is the direction you actually reach for.
 
+### 🔖 A branch can be linked to any tracker's reference
+- *Associate issue* still lists this repository's GitHub issues, and the box under them now takes **anything you type**: \`PROJ-421\`, a closed issue the list does not carry, a reference from a tracker we have no integration for.
+- If it matches one of your patterns in **Settings › GitHub**, it opens where that pattern points. If it matches nothing, it is still kept and shown on the branch.
+- Branch names follow: from \`PROJ-421\` the suggestion is \`PROJ-421-the-title\`, and the key keeps its case.
+
 ### 🩹 The GitHub lists find a repository whose name has a dot in it
 - Reading \`owner/repo\` off the remote stopped at the first dot, so \`my.app\` was read as \`my\` — and an SSH remote with a port handed the **port** over as the owner. Git Vertex then asked GitHub about a repository that does not exist, and the lists were empty with nothing to say why.
 - A remote that is not on github.com is now reported as such, rather than guessed at.
