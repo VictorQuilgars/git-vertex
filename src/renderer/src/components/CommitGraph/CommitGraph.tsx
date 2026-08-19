@@ -846,8 +846,11 @@ export default function CommitGraph({
    * text it describes, one half-line at a time, wherever a ref appears.
    */
   const rowTops = useMemo(
-    () => rowOffsets(
-      displayLayout.map(c => refsBelow && c.refs.length > 0), ROW_HEIGHT, REF_LINE_H),
+    // Every row carries a second line in the stacked layout, whether or not it
+    // has a ref: the sha, the author and the date live there now, so a row
+    // without a branch is not a shorter row — it is the same row with one fewer
+    // thing on its second line.
+    () => rowOffsets(displayLayout.map(() => refsBelow), ROW_HEIGHT, REF_LINE_H),
     [displayLayout, refsBelow])
 
   const rowTop = useCallback((row: number) => rowTops[row] ?? row * ROW_HEIGHT, [rowTops])
@@ -867,14 +870,20 @@ export default function CommitGraph({
   // overflowing — and being clipped to invisibility — when the graph is deep
   // or the panel is narrow (the VS Code panel case). (MSG_MIN is declared
   // above, next to the resize handles that also need it.)
+  //
+  // ⚠️ In the stacked layout there are **no optional columns at all**. The sha,
+  // the author and the date are not narrower there — they are somewhere else:
+  // on the row's second line, where a panel can afford them. Leaving them as
+  // columns and hoping the budget fits is what made the panel show a date and
+  // hide an author depending on how deep the graph happened to be.
   let colBudget = measured ? containerW - refsColW - svgW - MSG_MIN : Infinity
-  const effShowSha = showSha && colBudget >= shaColW
+  const effShowSha = !refsBelow && showSha && colBudget >= shaColW
   if (effShowSha) colBudget -= shaColW
-  const effShowStats = showStats && colBudget >= statsColW
+  const effShowStats = !refsBelow && showStats && colBudget >= statsColW
   if (effShowStats) colBudget -= statsColW
-  const effShowDate = showDate && colBudget >= dateColW
+  const effShowDate = !refsBelow && showDate && colBudget >= dateColW
   if (effShowDate) colBudget -= dateColW
-  const effShowAuthor = showAuthor && colBudget >= authorColW
+  const effShowAuthor = !refsBelow && showAuthor && colBudget >= authorColW
 
   // Keep the resize-drag handlers' view of the world current (see maxWidthFor).
   liveLayout.current = {
@@ -1337,8 +1346,10 @@ export default function CommitGraph({
 
   return (
     <div className="cg-container" ref={containerRef}>
-      {/* ── Header ── */}
-      <div
+      {/* ── Header ── The column headers only mean something when there are
+           columns. In the stacked layout the row carries its own labels by
+           position, so a header would name a grid that is not there. */}
+      {!refsBelow && <div
         className="cg-header"
         style={{ paddingRight: scrollbarW }}
         onContextMenu={e => { e.preventDefault(); setHeaderCtx({ x: e.clientX, y: e.clientY }) }}
@@ -1369,7 +1380,7 @@ export default function CommitGraph({
           <div className="cg-col-handle" onMouseDown={onDragStats} />
           <div className="cg-h-stats" style={{ width: statsColW }}>{compactColumns ? '±' : '+ / −'}</div>
         </>}
-      </div>
+      </div>}
 
       {/* ── Body ── */}
       <div className="cg-body" ref={bodyRef}>
@@ -1532,7 +1543,7 @@ export default function CommitGraph({
             return (
               <div
                 key={commit.hash}
-                className={`cg-row ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
+                className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
                 style={{ top: rowTop(commit.row), height: rowHeight(commit.row) }}
                 onClick={() => onSelectCommit(commit)}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
@@ -1650,16 +1661,30 @@ export default function CommitGraph({
                     {!isWip && sigBadge(commit.signature, t)}
                     <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
                   </div>
-                  {refsBelow && prefs.length > 0 && (
-                    <div className="cg-refs-under">
-                      <MessageChip
-                        tone={commit.color}
-                        refsHidden={Math.max(0, prefs.length - 1)}
-                        segments={messageChipSegments(prefs[0], issueForBranch, {
-                          onCheckout: onCheckoutBranch,
-                          onMenu: (e) => openRefMenu(e, prefs[0], commit),
-                        })}
-                      />
+                  {/* The second line. What the columns used to say, said by
+                      position instead: the chip and the identity on the left,
+                      the date pushed to the right edge. A panel does not have
+                      the width for a grid, but every row has a second line. */}
+                  {refsBelow && (
+                    <div className="cg-row-meta">
+                      {prefs.length > 0 && (
+                        <MessageChip
+                          tone={commit.color}
+                          refsHidden={Math.max(0, prefs.length - 1)}
+                          segments={messageChipSegments(prefs[0], issueForBranch, {
+                            onCheckout: onCheckoutBranch,
+                            onMenu: (e) => openRefMenu(e, prefs[0], commit),
+                          })}
+                        />
+                      )}
+                      {!isWip && <>
+                        <code className="cg-meta-sha">{commit.shortHash}</code>
+                        <span className="cg-meta-author">{commit.author}</span>
+                        {showStats && (
+                          <StatsBar additions={commit.additions} deletions={commit.deletions} compact />
+                        )}
+                        <span className="cg-meta-date">{fmtDate(commit.date, dateFormat, t)}</span>
+                      </>}
                     </div>
                   )}
                 </div>

@@ -467,3 +467,45 @@
   overflow: hidden;
   padding-bottom: 2px;
 }
+
+/* ── The stacked row (VS Code panel) ───────────────────────────────────────
+   No columns: the sha, the author and the date are placed inside the row
+   instead. A panel cannot afford a grid, but every row has a second line. */
+.cg-col-msg--stacked {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  min-width: 0;
+}
+.cg-col-msg--stacked .cg-msg-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  height: 28px;   /* ROW_HEIGHT — the node is centred on this line, not the row */
+}
+.cg-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  height: 19px;   /* REF_LINE_H */
+  padding-bottom: 2px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.cg-meta-sha { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.cg-meta-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* The date goes to the right edge, which is where a date is looked for. */
+.cg-meta-date { margin-left: auto; flex-shrink: 0; padding-left: var(--space-sm); }
+
+/* A separator per row. Without it two stacked rows read as one four-line block:
+   the second line of a commit and the first line of the next are the same
+   distance apart as the two lines of one commit. */
+.cg-row--stacked { border-bottom: 1px solid var(--border-subtle); }
+
+/* ⚠️ The stripe spans the whole row, second line included. It is the lane's
+   colour applied to the commit, so stopping at the height of the bullet made a
+   row look half-coloured as soon as it had a line under the message. */
+.cg-row--stacked .cg-color-bar { align-self: stretch; }

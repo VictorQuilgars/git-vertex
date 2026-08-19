@@ -106,3 +106,48 @@ describe('the two layouts are decided by the host', () => {
     expect(src).not.toContain("getBool('graphRefsBelow'")
   })
 })
+
+// The stacked layout is a redesign of the row, not a column moved. What the
+// columns used to say is said by position now, so these hold the decisions that
+// make it readable rather than the markup that renders it.
+describe('the stacked row', () => {
+  const src = require('fs').readFileSync(
+    'src/renderer/src/components/CommitGraph/CommitGraph.tsx', 'utf8')
+  const css = require('fs').readFileSync(
+    'src/renderer/src/components/CommitGraph/CommitGraph.css', 'utf8')
+
+  // A panel cannot afford a grid, and a column that appears only when the graph
+  // happens to be shallow is worse than no column.
+  test('no optional column survives in the stacked layout', () => {
+    for (const flag of ['effShowSha', 'effShowStats', 'effShowDate', 'effShowAuthor']) {
+      expect(src).toContain(`const ${flag} = !refsBelow &&`)
+    }
+  })
+
+  test('and no column header either, since there is no grid to name', () => {
+    expect(src).toContain('{!refsBelow && <div')
+  })
+
+  // Every row has a second line, ref or not — the sha, the author and the date
+  // live there now, so a row without a branch is not a shorter row.
+  test('every row is two lines, not only the ones carrying a ref', () => {
+    expect(src).toContain('displayLayout.map(() => refsBelow)')
+  })
+
+  // Two stacked rows read as one four-line block without it: the gap between one
+  // commit's second line and the next commit's first is the same as the gap
+  // inside a single commit.
+  test('rows are separated by a line', () => {
+    expect(css).toMatch(/\.cg-row--stacked \{[^}]*border-bottom/)
+  })
+
+  // The stripe is the lane's colour applied to the commit. Stopping at the
+  // bullet's height left the row looking half-coloured.
+  test('the colour stripe spans the whole row, second line included', () => {
+    expect(css).toMatch(/\.cg-row--stacked \.cg-color-bar \{[^}]*align-self: stretch/)
+  })
+
+  test('the date is pushed to the right edge, where a date is looked for', () => {
+    expect(css).toMatch(/\.cg-meta-date \{[^}]*margin-left: auto/)
+  })
+})

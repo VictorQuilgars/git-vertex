@@ -18,11 +18,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
-### 📐 Branches under the message, not in a column
-- The BRANCH / TAG column was 164 px that every row paid, while only a handful of commits carry a ref — a sixth of the panel spent on nothing.
-- They hang under their message now, as one chip: the branch, the remote it is published on, the issue its branch is working on. Everything but the first is an icon until you hover it.
-- The graph moves to the far left, where it starts.
-- The desktop app keeps its column — a window with room to spare should use it.
+### 📐 The commit list is rows, not a grid
+- The panel carried the desktop's columns in a fraction of the width, dropping an author here and a date there depending on how deep the graph was.
+- A commit is a row of two lines now: the message, then the branch it is on, its hash, its author and its date — each placed rather than columned. The date sits at the right edge.
+- A line separates each commit, and the graph is at the far left where it starts.
+- The desktop keeps its columns; a window with room to spare should use it.
 
 ### 🏢 GitHub Enterprise Server
 - Settings › GitHub takes an **instance host** and a **token for it**. Every call about a repository on that host goes there rather than to github.com — pull requests, issues, \`#123\` cards, opening a pull request, sharing a patch.
