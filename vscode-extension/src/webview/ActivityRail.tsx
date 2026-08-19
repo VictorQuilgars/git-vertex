@@ -48,6 +48,14 @@ const ITEMS: RailItem[] = [
     view: 'tags', labelKey: 'rail.tags', fallback: 'Tags',
     icon: <Icon name="tag" />,
   },
+  {
+    view: 'prs', labelKey: 'rail.prs', fallback: 'Pull Requests',
+    icon: <Icon name="pullRequest" />,
+  },
+  {
+    view: 'issues', labelKey: 'rail.issues', fallback: 'Issues',
+    icon: <Icon name="issue" />,
+  },
 ]
 
 const KANBAN_ICON = <Icon name="panel" />

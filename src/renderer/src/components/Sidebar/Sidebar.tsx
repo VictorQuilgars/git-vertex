@@ -19,8 +19,17 @@ interface TagEntry   { name: string; hash: string }
 // Sidebar renders its classic stacked layout (desktop app).
 export type SidebarView =
   | 'overview' | 'agents' | 'worktrees' | 'branches' | 'remotes' | 'stash' | 'tags'
+  | 'prs' | 'issues'
 
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
+/** A row of the two GitHub sections. Only what a list needs — the rest is a click away. */
+export interface GithubListItem {
+  number: number
+  title: string
+  author?: string
+  draft?: boolean
+  url: string
+}
 interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
 interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }
 interface WorktreeEntry { path: string; branch: string; head: string; isMain: boolean; locked: boolean }
@@ -115,6 +124,17 @@ interface SidebarProps {
   // Branch/commit state lives in the host, so actions that invalidate it
   // (prune) ask for a reload instead of trying to patch it locally.
   onRefresh?: () => void
+  /**
+   * Pull requests and issues, as sections of this panel rather than a view of
+   * their own — the place they are looked at is beside the branches.
+   *
+   * `undefined` means "this host has no GitHub for this repository" and the
+   * section does not render at all; an empty array means "asked, and there are
+   * none", which is a different thing and says so.
+   */
+  githubPRs?: GithubListItem[]
+  githubIssues?: GithubListItem[]
+  onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
   embedded?: boolean
@@ -603,6 +623,7 @@ export default function Sidebar({
   soloBranch, visibility, onToggleSolo, onToggleHide,
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
+  githubPRs, githubIssues, onOpenGithubItem,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   onCopyBranchLink, onDeleteBranchBoth,
@@ -1151,6 +1172,41 @@ export default function Sidebar({
                 ))
             }
           </Section>
+          )}
+
+          {/* PULL REQUESTS — a section, not a view of its own: it is read
+              beside the branches, and a tab would replace what is being worked
+              on. Absent entirely when the host has no GitHub here. */}
+          {githubPRs && show('prs') && (
+            <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single || githubPRs.length > 0}>
+              {githubPRs.length === 0
+                ? <div className="sb-empty">{t('sb.github.noPRs')}</div>
+                : githubPRs.map(pr => (
+                  <div key={pr.number} className="sb-item sb-gh-item"
+                    title={pr.title}
+                    onClick={() => onOpenGithubItem?.(pr.url)}>
+                    <span className="sb-gh-num">#{pr.number}</span>
+                    <span className="sb-gh-title">{pr.title}</span>
+                    {pr.draft && <span className="sb-gh-draft">{t('sb.github.draft')}</span>}
+                  </div>
+                ))}
+            </Section>
+          )}
+
+          {/* GITHUB ISSUES */}
+          {githubIssues && show('issues') && (
+            <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single || githubIssues.length > 0}>
+              {githubIssues.length === 0
+                ? <div className="sb-empty">{t('sb.github.noIssues')}</div>
+                : githubIssues.map(issue => (
+                  <div key={issue.number} className="sb-item sb-gh-item"
+                    title={issue.title}
+                    onClick={() => onOpenGithubItem?.(issue.url)}>
+                    <span className="sb-gh-num">#{issue.number}</span>
+                    <span className="sb-gh-title">{issue.title}</span>
+                  </div>
+                ))}
+            </Section>
           )}
 
           {/* STASH */}
