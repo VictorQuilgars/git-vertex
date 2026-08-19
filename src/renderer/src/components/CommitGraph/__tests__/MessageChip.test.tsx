@@ -190,3 +190,43 @@ describe('the stacked row, after the screenshots', () => {
     expect(src).toContain('emphasis={!!prefs[0].isHead}')
   })
 })
+
+// The "line pointing at no commit" of the third screenshot. renderEdge read
+// rowMid inside a useCallback with an empty dependency list, so it captured the
+// offsets of the first render and never let go: rows became variable in height,
+// the offsets moved, and every edge kept pointing at where its target row used
+// to be. Anything that reads the row geometry has to declare it.
+describe('no closure captures the row geometry and keeps it', () => {
+  const src = require('fs').readFileSync(
+    'src/renderer/src/components/CommitGraph/CommitGraph.tsx', 'utf8')
+
+  // Every useCallback / useMemo / useEffect whose body calls rowTop, rowMid or
+  // rowHeight must list one of them (or rowTops) in its dependencies.
+  test('every hook that reads rowTop/rowMid/rowHeight depends on them', () => {
+    const hookRe = /(useCallback|useMemo|useEffect)\(\s*(?:async\s*)?\([^)]*\)\s*=>\s*\{/g
+    const offenders: string[] = []
+    let m: RegExpExecArray | null
+    while ((m = hookRe.exec(src))) {
+      // find the matching close of this hook: scan for `}, [` then `])`
+      const bodyStart = m.index
+      const depsIdx = src.indexOf('}, [', bodyStart)
+      if (depsIdx < 0) continue
+      const depsEnd = src.indexOf(']', depsIdx + 4)
+      const body = src.slice(bodyStart, depsIdx)
+      const deps = src.slice(depsIdx + 4, depsEnd)
+      const readsGeometry = /\b(rowTop|rowMid|rowHeight)\(/.test(body)
+      // the geometry's own definitions read rowTops, which is fine
+      const isDefinition = /const (rowTop|rowMid|rowHeight) = useCallback/.test(
+        src.slice(Math.max(0, bodyStart - 40), bodyStart + 10))
+      if (readsGeometry && !isDefinition && !/\b(rowTop|rowMid|rowHeight|rowTops)\b/.test(deps)) {
+        const line = src.slice(0, bodyStart).split('\n').length
+        offenders.push(`line ${line}: ${src.slice(bodyStart, bodyStart + 50).split('\n')[0]}`)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  test('renderEdge in particular', () => {
+    expect(src).toMatch(/const renderEdge = useCallback\([\s\S]*?\}, \[rowMid\]\)/)
+  })
+})

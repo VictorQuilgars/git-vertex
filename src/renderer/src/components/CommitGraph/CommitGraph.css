@@ -465,20 +465,20 @@
 .cg-row-meta {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   min-width: 0;
   height: 22px;   /* REF_LINE_H — must match CommitGraph.tsx */
   padding-bottom: 2px;
   color: var(--text-tertiary);
   font-size: 11px;
 }
-/* The sha reads as a small plate, the way the reference panel writes it. */
+/* The sha is bare text in the row's secondary colour — the reference writes it
+   that way, and a plate around it was one more box on a line that already has
+   the chip. */
 .cg-meta-sha {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  background: color-mix(in srgb, var(--surface-sunken) 70%, transparent);
-  border-radius: var(--radius-xs);
-  padding: 1px 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 .cg-meta-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

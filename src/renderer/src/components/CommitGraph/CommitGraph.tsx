@@ -205,6 +205,31 @@ function AuthorBullet({ email, name, sha, color }: { email: string; name: string
     </span>
   )
 }
+/**
+ * The short form the stacked row uses at its right edge: `-6 h`, `-1 j`,
+ * `-2 sem.`, `-3 m.`. A relative date is a count with a unit; the words around
+ * it ("il y a", "ago") are what a right-aligned column cannot afford and does
+ * not need — the minus sign says "ago" in three pixels.
+ */
+function fmtDateShort(s: string, t: TFn): string {
+  try {
+    const d = new Date(s)
+    const sec = Math.floor((Date.now() - d.getTime()) / 1000)
+    if (!Number.isFinite(sec)) return ''
+    const min = Math.floor(sec / 60)
+    if (min < 1) return t('graph.timeShort.now')
+    if (min < 60) return t('graph.timeShort.min', min)
+    const h = Math.floor(min / 60)
+    if (h < 24) return t('graph.timeShort.hours', h)
+    const j = Math.floor(h / 24)
+    if (j < 7) return t('graph.timeShort.days', j)
+    if (j < 30) return t('graph.timeShort.weeks', Math.floor(j / 7))
+    const mo = Math.floor(j / 30)
+    if (mo < 12) return t('graph.timeShort.months', mo)
+    return t('graph.timeShort.years', Math.floor(mo / 12))
+  } catch { return '' }
+}
+
 function fmtDate(s: string, format: string, t: TFn) {
   try {
     const d = new Date(s)
@@ -793,6 +818,33 @@ export default function CommitGraph({
   }, [layout, hasWipNode, conflictMode, headHash])
 
   // When the selection changes from outside the graph (parent-commit link,
+  /**
+   * Where each row starts, and how tall it is.
+   *
+   * Rows used to be `index * ROW_HEIGHT` everywhere — the node, the edges, the
+   * bands, the scroll maths and the absolute `top` of the row itself. That only
+   * holds while every row is the same height, which stops being true the moment
+   * refs are drawn under the subject: a row with a ref is taller, and a row
+   * without one must not be.
+   *
+   * ⚠️ The **node stays centred on the subject line**, not on the middle of a
+   * taller row. Centring it on the row would make the graph drift away from the
+   * text it describes, one half-line at a time, wherever a ref appears.
+   */
+  const rowTops = useMemo(
+    // Every row carries a second line in the stacked layout, whether or not it
+    // has a ref: the sha, the author and the date live there now, so a row
+    // without a branch is not a shorter row — it is the same row with one fewer
+    // thing on its second line.
+    () => rowOffsets(displayLayout.map(() => refsBelow), ROW_HEIGHT, REF_LINE_H),
+    [displayLayout, refsBelow])
+
+  const rowTop = useCallback((row: number) => rowTops[row] ?? row * ROW_HEIGHT, [rowTops])
+  /** The middle of a row's first line — where the node and every edge meet it. */
+  const rowMid = useCallback((row: number) => rowTop(row) + ROW_HEIGHT / 2, [rowTop])
+  const rowHeight = useCallback(
+    (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || ROW_HEIGHT, [rowTops])
+
   // keyboard …), make sure the selected row is visible.
   useEffect(() => {
     if (!selectedHash) return
@@ -803,7 +855,7 @@ export default function CommitGraph({
     if (top < body.scrollTop || top + rowHeight(row) > body.scrollTop + body.clientHeight) {
       body.scrollTo({ top: Math.max(0, top - body.clientHeight / 2), behavior: 'smooth' })
     }
-  }, [selectedHash])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedHash, rowTop, rowHeight])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel.
   // Skipped while an input/textarea has focus.
@@ -836,34 +888,8 @@ export default function CommitGraph({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop])
+  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight])
 
-  /**
-   * Where each row starts, and how tall it is.
-   *
-   * Rows used to be `index * ROW_HEIGHT` everywhere — the node, the edges, the
-   * bands, the scroll maths and the absolute `top` of the row itself. That only
-   * holds while every row is the same height, which stops being true the moment
-   * refs are drawn under the subject: a row with a ref is taller, and a row
-   * without one must not be.
-   *
-   * ⚠️ The **node stays centred on the subject line**, not on the middle of a
-   * taller row. Centring it on the row would make the graph drift away from the
-   * text it describes, one half-line at a time, wherever a ref appears.
-   */
-  const rowTops = useMemo(
-    // Every row carries a second line in the stacked layout, whether or not it
-    // has a ref: the sha, the author and the date live there now, so a row
-    // without a branch is not a shorter row — it is the same row with one fewer
-    // thing on its second line.
-    () => rowOffsets(displayLayout.map(() => refsBelow), ROW_HEIGHT, REF_LINE_H),
-    [displayLayout, refsBelow])
-
-  const rowTop = useCallback((row: number) => rowTops[row] ?? row * ROW_HEIGHT, [rowTops])
-  /** The middle of a row's first line — where the node and every edge meet it. */
-  const rowMid = useCallback((row: number) => rowTop(row) + ROW_HEIGHT / 2, [rowTop])
-  const rowHeight = useCallback(
-    (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || ROW_HEIGHT, [rowTops])
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
@@ -1021,6 +1047,11 @@ export default function CommitGraph({
     return rows.size ? rows : null
   }, [hoverHash, displayLayout])
 
+  // ⚠️ `rowMid` is read inside. With `[]` as the dependency list this captured
+  // the offsets of the first render and never let go: rows became variable in
+  // height, the offsets changed, and every edge kept pointing at where its
+  // target row *used* to be — a line ending in the gap between two commits.
+  // That was the "line pointing at no commit" in the third screenshot.
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
     const x1 = SVG_PAD_L + edge.fromLane * LANE_WIDTH
@@ -1074,7 +1105,7 @@ export default function CommitGraph({
         fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
         strokeDasharray={dashArray} />
     )
-  }, [])
+  }, [rowMid])
 
   // The "start a Pull Request" row, pointing whichever way prIntentFor decided
   // — from this branch, or into it, depending on where you are standing.
@@ -1693,10 +1724,7 @@ export default function CommitGraph({
                       {!isWip && <>
                         <code className="cg-meta-sha">{commit.shortHash}</code>
                         <span className="cg-meta-author">{commit.author}</span>
-                        {showStats && (
-                          <StatsBar additions={commit.additions} deletions={commit.deletions} compact />
-                        )}
-                        <span className="cg-meta-date">{fmtDate(commit.date, dateFormat, t)}</span>
+                        <span className="cg-meta-date">{fmtDateShort(commit.date, t)}</span>
                       </>}
                     </div>
                   )}
