@@ -18,6 +18,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🏢 GitHub Enterprise Server
+- Settings › GitHub takes an **instance host** and a **token for it**. Every call about a repository on that host goes there rather than to github.com — pull requests, issues, \`#123\` cards, opening a pull request, sharing a patch.
+- It is the same API on your own domain, so nothing else changes.
+- ⚠️ A host counts as GitHub only once you name it here, and a token is **only ever sent to the host it was entered for** — your github.com credential never reaches your company's server, nor the other way round.
+
 ### 🙈 Hide anything from the graph
 - A tag, a whole remote and the stash can be taken out of the view now, the way a branch already could — right-click the row, **Hide from Graph**.
 - Whole sections hide in one go: **Hide All from Graph** / **Show All in Graph** on the header of LOCAL, REMOTE, TAGS, REMOTES and STASH.
