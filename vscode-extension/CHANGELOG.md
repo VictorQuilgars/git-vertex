@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **Git Vertex talks to a GitHub Enterprise Server instance.** Settings › GitHub takes the instance's host and a token for it, and every call about a repository on that host goes there instead of github.com — pull requests, issues, `#123` cards, creating a pull request, sharing a patch. It is the same API on your own domain, so nothing else changes. ⚠️ A host is only treated as GitHub once you have named it: nothing in a hostname says whether a self-hosted forge is GitHub or something else. And a token is only ever sent to the host it was entered for — your github.com credential does not go to your company's server, nor the other way round.
 - **A file's history opens as an editor tab.** The button in a commit's file list used to open a small modal inside the panel — a list of commits with no diff — while the richer history view was reachable only from the command palette. Both roads now lead to the same tab.
 - **The comparison view says which question it is answering, and defaults to the useful one.** Comparing two branches now shows what the target did *since the two parted* — the same set its commit list describes, and what a pull request shows — with the commit they parted at named next to it. *End to end*, one click away, is the old behaviour: the difference between the two trees as they stand.
 - **Compare a branch against your working tree**, uncommitted changes included: pick *Working tree* as the target.
@@ -12,6 +13,9 @@
 - **A section says how much of it the graph is not showing**, on its header, and clicking that count brings it all back.
 - **Restore a file to the version in a commit.** Right-click it in a commit's file list. It asks first, then leaves the change unstaged — so what you brought back is a diff you can read before you keep it, rather than something already staged. A file deleted since comes back on disk.
 - **Start a branch from an issue.** Right-click an issue in the GitHub panel: it suggests `123-the-issue-title`, you edit it or accept it, and the branch is created, checked out and linked to that issue — so the branch shows its issue number from then on. Linking a branch to an issue already existed; this is the direction you actually reach for.
+
+### Changed
+- **The issue a branch is working on no longer has to be a GitHub number.** *Associate issue* still lists this repository's GitHub issues, but the box under them now takes any reference you type — `PROJ-421`, `ABC-9`, a closed issue the list does not carry. If it matches one of the reference patterns from Settings › GitHub, the link opens where that pattern points; if it matches nothing, the reference is still kept and shown on the branch. Branch names follow: a branch created from `PROJ-421` is suggested as `PROJ-421-the-title`, with the key's case left alone.
 
 ### Fixed
 - **The pull request and issue lists find your repository when its name has a dot in it** — or when the remote is an SSH URL with a port. Both lists start by reading `owner/repo` off the remote, and the pattern doing that stopped at the first dot, so `my.app` was read as `my`; a remote like `ssh://git@github.com:22/owner/repo.git` handed over the **port** as the owner. Either way Git Vertex then asked GitHub about a repository that does not exist, and the panel showed an empty list with nothing to say why. It now reads the remote with the same parser the link builder uses, and a remote that is not on github.com is reported as such instead of being guessed at.

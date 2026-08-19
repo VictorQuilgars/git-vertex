@@ -29,6 +29,9 @@ import RepoManager from './components/RepoManager/RepoManager'
 import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
 import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
 import { issueBranchName } from './utils/issueBranch'
+import { issueRefLabel, issueRefUrl } from './utils/issueRef'
+import { parseAutolinks } from './utils/autolinks'
+import { useSettings } from './contexts/SettingsContext'
 import {
   emptyVisibility, isRefHidden, logOptionsFor,
   type GraphVisibility, type RefFamily,
@@ -385,6 +388,10 @@ export default function App() {
   // ── Toast (via ToastProvider) ──────────────────────────────
   const toastApi = useToast()
   const { t } = useLang()
+  const { get: getSetting } = useSettings()
+  // The reference patterns from Settings › GitHub — what lets a linked
+  // reference open even when no tracker API is wired for it.
+  const autolinks = useMemo(() => parseAutolinks(getSetting('autolinks', '')), [getSetting])
   type ToastAction = { label: string; onClick: () => void }
   const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok', action?: ToastAction | ToastAction[], sticky?: boolean) => {
     if (type === 'ok') toastApi.success(msg, action, sticky)
@@ -1584,12 +1591,20 @@ export default function App() {
   // is only a suggestion — what is typed wins — and the link is written for
   // the branch that was actually created, not for the one we proposed.
   const handleCreateBranchFromIssue = async (issue: { number: number; title: string; url: string }) => {
-    const name = await showPrompt(t('gh.issue.branchPrompt', issue.number), issueBranchName(issue.number, issue.title))
+    // The GitHub panel is the only list we can enumerate, so what arrives here
+    // is always a GitHub issue. It becomes a reference at this boundary rather
+    // than deeper down, so the shape stored is the same one a typed reference
+    // produces.
+    const ref: LinkedIssue = {
+      provider: 'github', key: String(issue.number), title: issue.title, url: issue.url,
+    }
+    const label = issueRefLabel(ref)
+    const name = await showPrompt(t('gh.issue.branchPrompt', label), issueBranchName(ref.key, ref.title))
     if (!name) return
     const r = await window.gitAPI.createBranch(name)
     if (!r.success) { showToast(r.error ?? t('toast.branchFailed'), 'err'); return }
-    branchMeta.setIssue(name, { number: issue.number, title: issue.title, url: issue.url })
-    showToast(t('toast.branchFromIssue', name, issue.number))
+    branchMeta.setIssue(name, ref)
+    showToast(t('toast.branchFromIssue', name, label))
     loadRepoData()
   }
 
@@ -1677,8 +1692,15 @@ export default function App() {
     issue: branchMeta.issueFor(currentBranch),
     pr: currentBranchPR,
     onAssociateIssue: () => setIssueModalBranch(currentBranch),
-    onOpenIssue: (n: number) => {
-      if (remoteRepo) window.gitAPI.openExternal(remoteUrl.issue(remoteRepo, n))
+    // Where a linked reference points. The tracker's own URL first, then the
+    // configured patterns; a GitHub number falls back to the repository's own
+    // issue URL, which is the one thing issueRefUrl cannot build for itself.
+    onOpenIssue: (ref: LinkedIssue) => {
+      const url = issueRefUrl(ref, autolinks)
+        ?? (ref.provider === 'github' && remoteRepo && /^\d+$/.test(ref.key)
+          ? remoteUrl.issue(remoteRepo, Number(ref.key))
+          : null)
+      if (url) window.gitAPI.openExternal(url)
     },
     menuState: {
       soloed: soloBranch === currentBranch,

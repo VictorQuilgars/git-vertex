@@ -25,6 +25,7 @@ import {
   splashHtml, themeCanvas, SPLASH_THEMES, SPLASH_ANIMATION_MS, SPLASH_STILL_MS,
 } from './splash'
 import type { SplashTheme } from './splash'
+import { apiForUser, type GithubApi } from './github-host'
 // The one parser for "which repository is this remote on github.com". It lives
 // in the renderer tree because both products' UI already builds links with it;
 // this is the first thing the main process takes from there, and it is pure
@@ -593,18 +594,19 @@ ipcMain.handle('git:init-advanced', async (_e, opts: { location: string; name: s
     const target = join(opts.location, opts.name)
     mkdirSync(target, { recursive: true })
     await makeSimpleGit(target).init(['-b', opts.branch?.trim() || 'main'])
-    const token = readSettings().githubToken
+    const api = await ghApi()
+    const token = api.token
     const ghHeaders: Record<string, string> = { Accept: 'application/vnd.github+json' }
     if (token) ghHeaders.Authorization = `Bearer ${token}`
     if (opts.gitignore) {
       try {
-        const r = await fetch(`https://api.github.com/gitignore/templates/${opts.gitignore}`, { headers: ghHeaders })
+        const r = await fetch(`${api.base}/gitignore/templates/${opts.gitignore}`, { headers: ghHeaders })
         if (r.ok) { const d = await r.json() as any; writeFileSync(join(target, '.gitignore'), d.source ?? '') }
       } catch { /* optional */ }
     }
     if (opts.license) {
       try {
-        const r = await fetch(`https://api.github.com/licenses/${opts.license}`, { headers: ghHeaders })
+        const r = await fetch(`${api.base}/licenses/${opts.license}`, { headers: ghHeaders })
         if (r.ok) { const d = await r.json() as any; writeFileSync(join(target, 'LICENSE'), d.body ?? '') }
       } catch { /* optional */ }
     }
@@ -621,16 +623,18 @@ ipcMain.handle('git:init-advanced', async (_e, opts: { location: string; name: s
 
 ipcMain.handle('github:list-gitignore-templates', async () => {
   try {
-    const token = readSettings().githubToken
-    const r = await fetch('https://api.github.com/gitignore/templates', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    const api = await ghApi()
+    const token = api.token
+    const r = await fetch(`${api.base}/gitignore/templates`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
     return r.ok ? { templates: await r.json() } : { templates: [] }
   } catch { return { templates: [] } }
 })
 
 ipcMain.handle('github:list-licenses', async () => {
   try {
-    const token = readSettings().githubToken
-    const r = await fetch('https://api.github.com/licenses', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    const api = await ghApi()
+    const token = api.token
+    const r = await fetch(`${api.base}/licenses`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
     if (!r.ok) return { licenses: [] }
     const d = await r.json() as any[]
     return { licenses: d.map(l => ({ key: l.key, name: l.name })) }
@@ -640,10 +644,11 @@ ipcMain.handle('github:list-licenses', async () => {
 // Init on GitHub.com: create the remote repo, optionally clone
 // it to a chosen local folder.
 ipcMain.handle('github:create-repo', async (_e, opts: { name: string; description?: string; private?: boolean; gitignore?: string; license?: string; cloneTo?: string }) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const r = await fetch('https://api.github.com/user/repos', {
+    const r = await fetch(`${api.base}/user/repos`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       body: JSON.stringify({
@@ -1384,6 +1389,31 @@ function getSettingsPath(): string {
   return pathJoin(dir, 'settings.json')
 }
 
+/**
+ * The GitHub this repository belongs to, and the token that may be sent there.
+ *
+ * Every call below used to write `${api.base}` out by hand and read
+ * one global token, which is why an Enterprise Server instance was unreachable:
+ * it is the same API on the customer's own host, under `/api/v3`.
+ *
+ * The host follows the **open repository**, and is github.com when there is
+ * none. That rule also settles the calls that are about the user rather than a
+ * repository — asking github.com for `/user` while the repository lives on an
+ * instance would answer with the wrong person.
+ */
+async function currentRemoteUrl(): Promise<string | null> {
+  if (!gitService) return null
+  try {
+    const remotes = await (gitService as any).git.getRemotes(true)
+    const origin = remotes.find((r: any) => r.name === 'origin') ?? remotes[0]
+    return origin?.refs?.fetch ?? origin?.refs?.push ?? null
+  } catch { return null }
+}
+
+async function ghApi(): Promise<GithubApi> {
+  return apiForUser(readSettings(), await currentRemoteUrl())
+}
+
 function readSettings(): Record<string, string> {
   try { return JSON.parse(readFileSync(getSettingsPath(), 'utf-8')) } catch { return {} }
 }
@@ -2051,7 +2081,7 @@ function loadAuthedUserEmails(token: string): Promise<void> {
   if (authedEmailsLoaded) return authedEmailsLoaded
   authedEmailsLoaded = (async () => {
     try {
-      const userRes = await fetch('https://api.github.com/user', {
+      const userRes = await fetch(`${api.base}/user`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (!userRes.ok) return
@@ -2062,7 +2092,7 @@ function loadAuthedUserEmails(token: string): Promise<void> {
       const emails = new Set<string>()
       if (user?.email) emails.add(String(user.email).trim().toLowerCase())
 
-      const emailsRes = await fetch('https://api.github.com/user/emails', {
+      const emailsRes = await fetch(`${api.base}/user/emails`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (emailsRes.ok) {
@@ -2086,7 +2116,8 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
   // `{id}+{login}@users.noreply.github.com` → avatar by user id (covers Copilot
   // and any human hiding their email). Older `{login}@...` form needs a lookup.
   const noreply = key.match(/^(?:(\d+)\+)?([^@]+)@users\.noreply\.github\.com$/)
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (noreply) {
     const [, id, login] = noreply
     if (id) {
@@ -2096,7 +2127,7 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
     }
     if (token) {
       try {
-        const res = await fetch(`https://api.github.com/users/${login}`, {
+        const res = await fetch(`${api.base}/users/${login}`, {
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         })
         if (res.ok) {
@@ -2122,7 +2153,7 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
       if (repo) {
         try {
           const res = await fetch(
-            `https://api.github.com/repos/${repo.owner}/${repo.repo}/commits/${sha}`,
+            `${api.base}/repos/${repo.owner}/${repo.repo}/commits/${sha}`,
             { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
           )
           if (res.ok) {
@@ -2143,7 +2174,7 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
     // Fallback: search the user by public email.
     try {
       const res = await fetch(
-        `https://api.github.com/search/users?q=${encodeURIComponent(key)}+in:email&per_page=1`,
+        `${api.base}/search/users?q=${encodeURIComponent(key)}+in:email&per_page=1`,
         { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
       )
       if (res.ok) {
@@ -2297,11 +2328,12 @@ ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
 })
 
 ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
+      `${api.base}/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
       { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
     )
     if (!res.ok) return { error: `HTTP ${res.status}` }
@@ -2331,7 +2363,8 @@ ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
 // for "feedback before the PR", and revocable by deleting the gist.
 ipcMain.handle('github:share-patch', async (_e, hash: string) => {
   if (!gitService) return { error: 'No repo open' }
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   const patchRes = await gitService.createPatch(hash)
   if ((patchRes as any).error) return { error: (patchRes as any).error }
@@ -2341,7 +2374,7 @@ ipcMain.handle('github:share-patch', async (_e, hash: string) => {
     try {
       subject = (await (gitService as any).git.raw(['log', '-1', '--pretty=format:%s', hash])).trim() || short
     } catch { /* subject is cosmetic */ }
-    const res = await fetch('https://api.github.com/gists', {
+    const res = await fetch(`${api.base}/gists`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       body: JSON.stringify({
@@ -2362,10 +2395,11 @@ ipcMain.handle('github:share-patch', async (_e, hash: string) => {
 // Launchpad "Mark as closed": close an issue or PR. GitHub's issues endpoint
 // closes both. Invalidates the search cache so the next refresh drops it.
 ipcMain.handle('github:close-issue', async (_e, owner: string, repo: string, number: number) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${number}`, {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       body: JSON.stringify({ state: 'closed' }),
@@ -2380,7 +2414,8 @@ ipcMain.handle('github:close-issue', async (_e, owner: string, repo: string, num
 // (uncommitted, tracked changes vs HEAD) goes to a secret gist; the link comes
 // back. Zero-server, revocable by deleting the gist.
 ipcMain.handle('github:share-wip-patch', async (_e, repoPath: string) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
     const { execFile } = await import('child_process')
@@ -2390,7 +2425,7 @@ ipcMain.handle('github:share-wip-patch', async (_e, repoPath: string) => {
     const patch = diff.stdout
     if (!patch.trim()) return { error: 'no_changes' }
     const name = repoPath.split('/').pop() || 'wip'
-    const res = await fetch('https://api.github.com/gists', {
+    const res = await fetch(`${api.base}/gists`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       body: JSON.stringify({
@@ -2409,11 +2444,12 @@ ipcMain.handle('github:share-wip-patch', async (_e, repoPath: string) => {
 })
 
 ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/issues?per_page=50&state=open&pulls=false`,
+      `${api.base}/repos/${owner}/${repo}/issues?per_page=50&state=open&pulls=false`,
       { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
     )
     if (!res.ok) return { error: `HTTP ${res.status}` }
@@ -2508,13 +2544,14 @@ ipcMain.handle('git:scan-local-repos', async (_e, force?: boolean) => {
 // burning through the limit and silently showing an empty list.
 const searchCache = new Map<string, { ts: number; data: any }>()
 ipcMain.handle('github:search-issues', async (_e, q: string, force?: boolean) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   const hit = searchCache.get(q)
   if (!force && hit && Date.now() - hit.ts < 20_000) return hit.data
   try {
     const res = await fetch(
-      `https://api.github.com/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
+      `${api.base}/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
       { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
     )
     if (res.status === 403 || res.status === 429) {
@@ -2552,12 +2589,13 @@ ipcMain.handle('github:search-issues', async (_e, q: string, force?: boolean) =>
 })
 
 ipcMain.handle('github:get-issue', async (_e, owner: string, repo: string, number: number) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
   if (token) headers.Authorization = `Bearer ${token}`
   try {
     // The issues endpoint resolves both issues and PRs by number
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${number}`, { headers })
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, { headers })
     if (!res.ok) return { error: `HTTP ${res.status}` }
     const d = await res.json() as any
     return {
@@ -2574,10 +2612,11 @@ ipcMain.handle('github:get-issue', async (_e, owner: string, repo: string, numbe
 })
 
 ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title: string, body: string, head: string, base: string) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -2605,10 +2644,11 @@ ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title
 })
 
 ipcMain.handle('github:list-branches', async (_e, owner: string, repo: string) => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { branches: [] }
   try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`, {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/branches?per_page=100`, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
     })
     if (!res.ok) return { branches: [] }
@@ -2618,14 +2658,15 @@ ipcMain.handle('github:list-branches', async (_e, owner: string, repo: string) =
 })
 
 ipcMain.handle('github:list-repos', async () => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
     let repos: any[] = []
     let page = 1
     while (true) {
       const res = await fetch(
-        `https://api.github.com/user/repos?per_page=100&sort=updated&page=${page}`,
+        `${api.base}/user/repos?per_page=100&sort=updated&page=${page}`,
         { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
       )
       if (!res.ok) return { error: `HTTP ${res.status}` }
@@ -2677,7 +2718,8 @@ ipcMain.handle('git:clone-to', async (_e, opts: { url: string; location: string;
     if (opts.shallow) args.push('--depth', '1')
     if (opts.sparse) args.push('--sparse')
     // Embed the token for github.com HTTPS so private repos clone, then scrub it.
-    const token = readSettings().githubToken
+    const api = await ghApi()
+    const token = api.token
     let url = opts.url
     const isGh = /^https:\/\/github\.com\//.test(url)
     if (token && isGh) url = url.replace('https://', `https://${token}@`)
@@ -2688,10 +2730,11 @@ ipcMain.handle('git:clone-to', async (_e, opts: { url: string; location: string;
 })
 
 ipcMain.handle('github:get-user', async () => {
-  const token = readSettings().githubToken
+  const api = await ghApi()
+  const token = api.token
   if (!token) return { user: null }
   try {
-    const res = await fetch('https://api.github.com/user', {
+    const res = await fetch(`${api.base}/user`, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
     })
     if (!res.ok) return { user: null }

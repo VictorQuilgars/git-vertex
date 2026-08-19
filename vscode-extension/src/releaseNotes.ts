@@ -18,6 +18,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🏢 GitHub Enterprise Server
+- Settings › GitHub takes an **instance host** and a **token for it**. Every call about a repository on that host goes there rather than to github.com — pull requests, issues, \`#123\` cards, opening a pull request, sharing a patch.
+- It is the same API on your own domain, so nothing else changes.
+- ⚠️ A host counts as GitHub only once you name it here, and a token is **only ever sent to the host it was entered for** — your github.com credential never reaches your company's server, nor the other way round.
+
 ### 🙈 Hide anything from the graph
 - A tag, a whole remote and the stash can be taken out of the view now, the way a branch already could — right-click the row, **Hide from Graph**.
 - Whole sections hide in one go: **Hide All from Graph** / **Show All in Graph** on the header of LOCAL, REMOTE, TAGS, REMOTES and STASH.
@@ -30,6 +35,11 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🌱 Start a branch from an issue
 - Right-click an issue in the GitHub panel. It suggests \`123-the-issue-title\`, you edit it or take it, and the branch is created, checked out and **linked to that issue**.
 - Linking a branch to an issue has existed since 1.21.0. This is the direction you actually reach for.
+
+### 🔖 A branch can be linked to any tracker's reference
+- *Associate issue* still lists this repository's GitHub issues, and the box under them now takes **anything you type**: \`PROJ-421\`, a closed issue the list does not carry, a reference from a tracker we have no integration for.
+- If it matches one of your patterns in **Settings › GitHub**, it opens where that pattern points. If it matches nothing, it is still kept and shown on the branch.
+- Branch names follow: from \`PROJ-421\` the suggestion is \`PROJ-421-the-title\`, and the key keeps its case.
 
 ### 🩹 The GitHub lists find a repository whose name has a dot in it
 - Reading \`owner/repo\` off the remote stopped at the first dot, so \`my.app\` was read as \`my\` — and an SSH remote with a port handed the **port** over as the owner. Git Vertex then asked GitHub about a repository that does not exist, and the lists were empty with nothing to say why.

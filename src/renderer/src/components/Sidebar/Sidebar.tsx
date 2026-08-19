@@ -6,6 +6,7 @@ import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { publishedNameFor } from '../ContextMenu/branchRefs'
 import { isRefHidden, type GraphVisibility, type RefFamily } from '../../utils/graphVisibility'
+import { issueRefLabel, type IssueRef as LinkedIssueRef } from '../../utils/issueRef'
 import { useLang } from '../../i18n/LanguageContext'
 import './Sidebar.css'
 import { Brand } from '../BrandMark/BrandMark'
@@ -96,7 +97,7 @@ interface SidebarProps {
   // Branch metadata git has no concept of (v1.21.0) — supplied by
   // useBranchMeta in the host. Omitted ⇒ the matching menu rows disappear.
   isFavorite?: (name: string) => boolean
-  issueFor?: (name: string) => { number: number; title?: string } | null
+  issueFor?: (name: string) => LinkedIssueRef | null
   onToggleFavorite?: (name: string) => void
   onOpenBranchOnRemote?: (name: string) => void
   onAssociateIssue?: (name: string) => void
@@ -196,7 +197,7 @@ interface BranchItemProps {
   soloed?: boolean
   hidden?: boolean
   favorite?: boolean
-  issue?: { number: number; title?: string } | null
+  issue?: LinkedIssueRef | null
   onPull?: () => void
   onToggleSolo?: () => void
   onToggleHide?: () => void
@@ -281,7 +282,9 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
         )}
         {gone && <span className="sb-track sb-track-gone" title={t('sb.branch.goneTitle')}>✂</span>}
         {favorite && <span className="sb-branch-flag sb-branch-star" title={t('sb.branch.favoriteFlag')}>★</span>}
-        {issue && <span className="sb-branch-flag" title={issue.title || `#${issue.number}`}>#{issue.number}</span>}
+        {issue && (
+          <span className="sb-branch-flag" title={issue.title || issueRefLabel(issue)}>{issueRefLabel(issue)}</span>
+        )}
         {soloed && <Icon name="eye" size={12} className="sb-branch-flag" title={t('sb.branch.soloFlag')} />}
         {hidden && <span className="sb-branch-flag" title={t('sb.branch.hiddenFlag')}>⊘</span>}
         {current && (

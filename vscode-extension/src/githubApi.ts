@@ -1,7 +1,19 @@
-// githubApi.ts — GitHub REST calls for the extension host (PAT-based).
+// githubApi.ts — GitHub REST calls for the extension host.
 // Mirrors the desktop handlers in src/main/index.ts (github:list-prs /
 // github:list-issues / github:create-pr / github:list-branches) so the shared
 // GitHubPanel and PRModal work unchanged.
+//
+// Every call takes an `api`, not a bare token: a GitHub Enterprise Server
+// instance is the same API on the customer's own host, under `/api/v3`, and it
+// takes a credential of its own. Passing the two together is what stops one
+// host's token from being sent to another — see src/main/github-host.ts, which
+// resolves them on the desktop side for the same reason.
+
+/** Where a GitHub answers, and what may be sent there. */
+export interface GithubApi {
+  base: string
+  token?: string
+}
 
 const HEADERS = (token: string): Record<string, string> => ({
   Authorization: `Bearer ${token}`,
@@ -26,12 +38,12 @@ function failure(res: { status: number }): { error: string } {
   return { error: res.status === 401 ? 'not_authenticated' : `HTTP ${res.status}` }
 }
 
-export async function githubListPRs(token: string | undefined, owner: string, repo: string): Promise<any> {
-  if (!token) return { error: 'not_authenticated' }
+export async function githubListPRs(api: GithubApi, owner: string, repo: string): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
-      { headers: HEADERS(token) },
+      `${api.base}/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
+      { headers: HEADERS(api.token) },
     )
     if (!res.ok) return failure(res)
     const data = await res.json() as any[]
@@ -54,12 +66,12 @@ export async function githubListPRs(token: string | undefined, owner: string, re
   } catch (e: any) { return { error: e.message } }
 }
 
-export async function githubListIssues(token: string | undefined, owner: string, repo: string): Promise<any> {
-  if (!token) return { error: 'not_authenticated' }
+export async function githubListIssues(api: GithubApi, owner: string, repo: string): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/issues?per_page=50&state=open`,
-      { headers: HEADERS(token) },
+      `${api.base}/repos/${owner}/${repo}/issues?per_page=50&state=open`,
+      { headers: HEADERS(api.token) },
     )
     if (!res.ok) return failure(res)
     const data = await res.json() as any[]
@@ -91,13 +103,13 @@ export async function githubListIssues(token: string | undefined, owner: string,
  * you have pasted a PAT is worse than one that works most of the time.
  */
 export async function githubGetIssue(
-  token: string | undefined, owner: string, repo: string, num: number,
+  api: GithubApi, owner: string, repo: string, num: number,
 ): Promise<any> {
   const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
-  if (token) headers.Authorization = `Bearer ${token}`
+  if (api.token) headers.Authorization = `Bearer ${api.token}`
   try {
     // The issues endpoint resolves both issues and PRs by number.
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${num}`, { headers })
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${num}`, { headers })
     if (!res.ok) return failure(res)
     const d = await res.json() as any
     return {
@@ -118,14 +130,14 @@ export async function githubGetIssue(
  * shared PRModal pushes it first, which is why its button says so.
  */
 export async function githubCreatePR(
-  token: string | undefined,
+  api: GithubApi,
   owner: string, repo: string, title: string, body: string, head: string, base: string,
 ): Promise<any> {
-  if (!token) return { error: 'not_authenticated' }
+  if (!api.token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls`, {
       method: 'POST',
-      headers: { ...HEADERS(token), 'Content-Type': 'application/json' },
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body, head, base }),
     })
     const data = await res.json() as any
@@ -149,13 +161,13 @@ export async function githubCreatePR(
 
 /** Branches the remote holds — the base selector of the PR composer. */
 export async function githubListBranches(
-  token: string | undefined, owner: string, repo: string,
+  api: GithubApi, owner: string, repo: string,
 ): Promise<{ branches: string[] }> {
-  if (!token) return { branches: [] }
+  if (!api.token) return { branches: [] }
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`,
-      { headers: HEADERS(token) },
+      `${api.base}/repos/${owner}/${repo}/branches?per_page=100`,
+      { headers: HEADERS(api.token) },
     )
     if (!res.ok) return { branches: [] }
     const data = await res.json() as any[]
@@ -190,15 +202,15 @@ const searchCache = new Map<string, { ts: number; data: any }>()
 export function clearSearchCache(): void { searchCache.clear() }
 
 export async function githubSearchIssues(
-  token: string | undefined, q: string, force?: boolean,
+  api: GithubApi, q: string, force?: boolean,
 ): Promise<any> {
-  if (!token) return { error: 'not_authenticated' }
+  if (!api.token) return { error: 'not_authenticated' }
   const hit = searchCache.get(q)
   if (!force && hit && Date.now() - hit.ts < 20_000) return hit.data
   try {
     const res = await fetch(
-      `https://api.github.com/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
-      { headers: HEADERS(token) },
+      `${api.base}/search/issues?q=${encodeURIComponent(q)}&per_page=50&sort=updated`,
+      { headers: HEADERS(api.token) },
     )
     // 403 does NOT go through failure() here, and that is deliberate: on the
     // search endpoint it is the rate limit far more often than a permission,
@@ -244,13 +256,13 @@ export async function githubSearchIssues(
  * unknown number of them, and a list that still shows it reads as a failure.
  */
 export async function githubCloseIssue(
-  token: string | undefined, owner: string, repo: string, num: number,
+  api: GithubApi, owner: string, repo: string, num: number,
 ): Promise<any> {
-  if (!token) return { error: 'not_authenticated' }
+  if (!api.token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${num}`, {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${num}`, {
       method: 'PATCH',
-      headers: { ...HEADERS(token), 'Content-Type': 'application/json' },
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
       body: JSON.stringify({ state: 'closed' }),
     })
     if (!res.ok) return failure(res)
@@ -260,16 +272,16 @@ export async function githubCloseIssue(
 }
 
 /** Every repository the account can reach, newest first. Paginated to the end. */
-export async function githubListRepos(token: string | undefined): Promise<any> {
-  if (!token) return { error: 'not_authenticated' }
+export async function githubListRepos(api: GithubApi): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
   try {
     let repos: any[] = []
     let page = 1
     // A short page is the last page — GitHub sends no total for this endpoint.
     for (;;) {
       const res = await fetch(
-        `https://api.github.com/user/repos?per_page=100&sort=updated&page=${page}`,
-        { headers: HEADERS(token) },
+        `${api.base}/user/repos?per_page=100&sort=updated&page=${page}`,
+        { headers: HEADERS(api.token) },
       )
       if (!res.ok) return failure(res)
       const batch = await res.json() as any[]
@@ -304,13 +316,13 @@ export async function githubListRepos(token: string | undefined): Promise<any> {
  * has no repository.
  */
 export async function githubCreateGist(
-  token: string | undefined, description: string, filename: string, content: string,
+  api: GithubApi, description: string, filename: string, content: string,
 ): Promise<any> {
-  if (!token) return { error: 'not_authenticated' }
+  if (!api.token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch('https://api.github.com/gists', {
+    const res = await fetch(`${api.base}/gists`, {
       method: 'POST',
-      headers: { ...HEADERS(token), 'Content-Type': 'application/json' },
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
       body: JSON.stringify({ description, public: false, files: { [filename]: { content } } }),
     })
     // 404 on this endpoint almost always means the token has no `gist` scope —
