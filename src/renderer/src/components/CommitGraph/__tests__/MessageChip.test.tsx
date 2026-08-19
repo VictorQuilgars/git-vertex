@@ -96,7 +96,7 @@ describe('the two layouts are decided by the host', () => {
   })
 
   test('the graph overlay is not offset by a column that is not drawn', () => {
-    expect(src).toContain('left: refsBelow ? COLOR_BAR_W : refsColW')
+    expect(src).toContain('left: refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW')
   })
 
   // It is a prop the panel passes, never a setting: two shapes decided by how
@@ -149,5 +149,44 @@ describe('the stacked row', () => {
 
   test('the date is pushed to the right edge, where a date is looked for', () => {
     expect(css).toMatch(/\.cg-meta-date \{[^}]*margin-left: auto/)
+  })
+})
+
+// Four defects from the second screenshot, each pinned to what fixed it.
+describe('the stacked row, after the screenshots', () => {
+  const src = require('fs').readFileSync(
+    'src/renderer/src/components/CommitGraph/CommitGraph.tsx', 'utf8')
+  const css = require('fs').readFileSync(
+    'src/renderer/src/components/CommitGraph/CommitGraph.css', 'utf8')
+  const chipCss = require('fs').readFileSync(
+    'src/renderer/src/components/CommitGraph/MessageChip.css', 'utf8')
+
+  // The rows carry the separators; drawn above the SVG they cut every branch
+  // line they crossed. The rail must run continuously over the dividers.
+  test('stacked rows sit below the graph overlay', () => {
+    expect(css).toMatch(/\.cg-row--stacked \{ z-index: 1; \}/)
+  })
+
+  // Flush against the panel edge the stripe merged with the sidebar junction —
+  // the one place a 3px line cannot be seen.
+  test('the stripe steps in from the edge, and the SVG steps with it', () => {
+    expect(css).toMatch(/\.cg-row--stacked \.cg-color-bar \{[^}]*margin-left: 4px/)
+    expect(src).toContain('const STRIPE_INSET = 4')
+  })
+
+  // The band's right-edge bar and the chip connector both pointed at things the
+  // stacked layout does not have.
+  test('lane bands and chip connectors are column-layout only', () => {
+    const gated = src.split('{!refsBelow && displayLayout.map').length - 1
+    expect(gated).toBeGreaterThanOrEqual(2)
+  })
+
+  test('the separator is a whisper, not a rule', () => {
+    expect(css).toMatch(/\.cg-row--stacked \{ border-bottom: 1px solid color-mix/)
+  })
+
+  test('the checked-out branch is the one filled chip', () => {
+    expect(chipCss).toContain('.mchip--emphasis')
+    expect(src).toContain('emphasis={!!prefs[0].isHead}')
   })
 })

@@ -8,12 +8,12 @@
   align-items: stretch;
   max-width: 100%;
   min-width: 0;
-  height: 16px;
+  height: 18px;
   border: 1px solid var(--mchip-border);
   border-radius: var(--radius-sm);
   background: var(--mchip-bg);
   color: var(--mchip-fg);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
   overflow: hidden;
   /* The tone is the lane colour, so a pill belongs to the line it hangs from.
@@ -21,8 +21,17 @@
   --mchip-tone: var(--accent);
   --mchip-bg: color-mix(in srgb, var(--mchip-tone) 14%, var(--surface));
   --mchip-border: color-mix(in srgb, var(--mchip-tone) 34%, transparent);
-  --mchip-fg: var(--text-primary);
+  --mchip-fg: color-mix(in srgb, var(--mchip-tone) 72%, var(--text-primary));
 }
+
+/* The checked-out branch: filled, not tinted. Text goes to the canvas colour —
+   ink on the lane's own paint — and the icons follow it. */
+.mchip--emphasis {
+  --mchip-bg: var(--mchip-tone);
+  --mchip-border: var(--mchip-tone);
+  --mchip-fg: var(--bg-canvas);
+}
+.mchip--emphasis .mchip-ico { color: inherit !important; opacity: .9; }
 
 .mchip-seg {
   display: inline-flex;

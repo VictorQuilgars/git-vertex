@@ -442,35 +442,12 @@
 .cg-body::-webkit-scrollbar-thumb { background: var(--surface-sunken); border-radius: var(--radius-xs); }
 .cg-body::-webkit-scrollbar-thumb:hover { background: var(--surface-active); }
 
-/* Refs under the subject — the layout that trades a fixed row height for the
-   164px the BRANCH/TAG column charged every row, ref or not. The subject keeps
-   the first line, so the graph node stays level with the text it describes. */
-.cg-col-msg--stacked {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 1px;
-  min-width: 0;
-}
-.cg-col-msg--stacked .cg-msg-line {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-width: 0;
-  height: 28px;   /* ROW_HEIGHT — the node is centred on this line, not on the row */
-}
-.cg-refs-under {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-width: 0;
-  overflow: hidden;
-  padding-bottom: 2px;
-}
 
 /* ── The stacked row (VS Code panel) ───────────────────────────────────────
-   No columns: the sha, the author and the date are placed inside the row
-   instead. A panel cannot afford a grid, but every row has a second line. */
+   No columns: what they said is placed inside the row. Two lines per commit —
+   the message, then the chip, the sha, the author, and the date at the right
+   edge. One section, written once: the first cut of this file had it twice and
+   the second silently won. */
 .cg-col-msg--stacked {
   flex-direction: column;
   align-items: stretch;
@@ -490,22 +467,41 @@
   align-items: center;
   gap: var(--space-sm);
   min-width: 0;
-  height: 19px;   /* REF_LINE_H */
+  height: 22px;   /* REF_LINE_H — must match CommitGraph.tsx */
   padding-bottom: 2px;
   color: var(--text-tertiary);
   font-size: 11px;
 }
-.cg-meta-sha { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+/* The sha reads as a small plate, the way the reference panel writes it. */
+.cg-meta-sha {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  background: color-mix(in srgb, var(--surface-sunken) 70%, transparent);
+  border-radius: var(--radius-xs);
+  padding: 1px 4px;
+  flex-shrink: 0;
+}
 .cg-meta-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* The date goes to the right edge, which is where a date is looked for. */
 .cg-meta-date { margin-left: auto; flex-shrink: 0; padding-left: var(--space-sm); }
 
-/* A separator per row. Without it two stacked rows read as one four-line block:
-   the second line of a commit and the first line of the next are the same
-   distance apart as the two lines of one commit. */
-.cg-row--stacked { border-bottom: 1px solid var(--border-subtle); }
+/* A separator per row — without it two stacked rows read as one four-line
+   block. A whisper, not a rule: at full --border-subtle it was the loudest
+   line on screen, which is backwards for a divider. */
+.cg-row--stacked { border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 40%, transparent); }
 
-/* ⚠️ The stripe spans the whole row, second line included. It is the lane's
-   colour applied to the commit, so stopping at the height of the bullet made a
-   row look half-coloured as soon as it had a line under the message. */
-.cg-row--stacked .cg-color-bar { align-self: stretch; }
+/* ⚠️ Below the graph overlay, where the desktop rows sit above it. The rows
+   carry the separators, and a separator drawn over the SVG cuts every branch
+   line it crosses — the rail must run continuously over the dividers, as it
+   does in every panel of this kind. */
+.cg-row--stacked { z-index: 1; }
+
+/* ⚠️ The stripe spans the whole row, second line included — and it steps in
+   from the edge. Flush against the panel border it merged with the junction
+   between the sidebar and the graph, which is the one place a 3px line cannot
+   be seen. The 4px inset must match STRIPE_INSET in CommitGraph.tsx. */
+.cg-row--stacked .cg-color-bar {
+  align-self: stretch;
+  margin-left: 4px;
+  border-radius: var(--radius-xs);
+}

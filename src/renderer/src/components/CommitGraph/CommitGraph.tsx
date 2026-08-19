@@ -17,10 +17,16 @@ import { parseAutolinks } from '../../utils/autolinks'
 import './CommitGraph.css'
 
 const ROW_HEIGHT  = 28
-/** Extra height a row takes when its refs are drawn under the subject. */
-const REF_LINE_H  = 19
+/** The row's second line in the stacked layout. Must match .cg-row-meta. */
+const REF_LINE_H  = 22
 /** The coloured stripe at the very left of a row (.cg-color-bar). */
 const COLOR_BAR_W = 3
+/**
+ * How far the stripe steps in from the panel edge in the stacked layout — flush
+ * against it, it merged with the sidebar/graph junction and could not be seen.
+ * Must match the margin-left on .cg-row--stacked .cg-color-bar.
+ */
+const STRIPE_INSET = 4
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
 const SVG_PAD_L   = 36
@@ -1396,7 +1402,7 @@ export default function CommitGraph({
             height={svgH}
             style={{
               position: 'absolute',
-              left: refsBelow ? COLOR_BAR_W : refsColW,
+              left: refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW,
               top: 0,
               pointerEvents: 'none',
               zIndex: 2,
@@ -1406,8 +1412,12 @@ export default function CommitGraph({
             {/* Lane bands — a soft colored strip from each commit's node to the
                 right edge of the graph (just before the commit info), matching the
                 node color. The right edge is a straight, more pronounced vertical
-                bar. Improves row readability. */}
-            {displayLayout.map(commit => {
+                bar. Improves row readability.
+
+                ⚠️ Column layout only. In the stacked rows the stripe at the left
+                edge already colours the commit, and the band's right-edge bar
+                reads as a stray mark beside the bullet. */}
+            {!refsBelow && displayLayout.map(commit => {
               if (commit.hash === WIP_HASH) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
               const bandH = 24
@@ -1426,8 +1436,10 @@ export default function CommitGraph({
               )
             })}
 
-            {/* Connector lines (chip → node): rendered before edges so branch lines appear on top */}
-            {displayLayout.map(commit => {
+            {/* Connector lines (chip → node): rendered before edges so branch lines appear on top.
+                ⚠️ Column layout only — the chip it points at is under the message
+                now, so the line ran left of the bullet toward nothing. */}
+            {!refsBelow && displayLayout.map(commit => {
               if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
               const cy = rowMid(commit.row)
@@ -1670,6 +1682,7 @@ export default function CommitGraph({
                       {prefs.length > 0 && (
                         <MessageChip
                           tone={commit.color}
+                          emphasis={!!prefs[0].isHead}
                           refsHidden={Math.max(0, prefs.length - 1)}
                           segments={messageChipSegments(prefs[0], issueForBranch, {
                             onCheckout: onCheckoutBranch,

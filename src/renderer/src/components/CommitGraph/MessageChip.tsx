@@ -54,15 +54,23 @@ const KIND_ICON: Record<ChipKind, string> = {
  * It stays a count rather than more segments: the pill is already the widest
  * thing on the line when it opens.
  */
-export default function MessageChip({ segments, refsHidden = 0, tone }: {
+export default function MessageChip({ segments, refsHidden = 0, tone, emphasis = false }: {
   segments: ChipSegment[]
   refsHidden?: number
   /** The lane colour, so the pill belongs to the line it hangs from. */
   tone?: string
+  /**
+   * Filled rather than tinted — the chip for the branch that is checked out.
+   * One per graph at most: an emphasis everywhere is an emphasis nowhere.
+   */
+  emphasis?: boolean
 }) {
   if (segments.length === 0) return null
   return (
-    <span className="mchip" style={tone ? { ['--mchip-tone' as string]: tone } : undefined}>
+    <span
+      className={`mchip${emphasis ? ' mchip--emphasis' : ''}`}
+      style={tone ? { ['--mchip-tone' as string]: tone } : undefined}
+    >
       {segments.map((seg, i) => (
         <span
           key={`${seg.kind}-${seg.label}-${i}`}
