@@ -41,13 +41,13 @@ describe('useBranchMeta (v1.21.0)', () => {
 
   test('switching repos swaps the whole set', () => {
     const first = renderHook(() => useBranchMeta('/repo/a'))
-    act(() => first.result.current.setIssue('main', { number: 7 }))
+    act(() => first.result.current.setIssue('main', { provider: 'github', key: '7' }))
     first.unmount()
 
     const { result, rerender } = renderHook(({ repo }) => useBranchMeta(repo), {
       initialProps: { repo: '/repo/a' },
     })
-    expect(result.current.issueFor('main')).toEqual({ number: 7 })
+    expect(result.current.issueFor('main')).toEqual({ provider: 'github', key: '7' })
     rerender({ repo: '/repo/b' })
     expect(result.current.issueFor('main')).toBeNull()
   })
@@ -83,6 +83,33 @@ describe('useBranchMeta (v1.21.0)', () => {
     expect(result.current.issueFor('main')).toBeNull()
     // And it still accepts new writes afterwards.
     act(() => result.current.toggleFavorite('main'))
+    expect(result.current.isFavorite('main')).toBe(true)
+  })
+
+  // The shape changed when a reference stopped being a GitHub number. Anything
+  // written by a version before that is still on disk, and a branch that had an
+  // issue linked must still show it.
+  test('a reference stored under the old shape still reads', () => {
+    localStorage.setItem(KEY('/repo/old'), JSON.stringify({
+      favorites: ['main'],
+      issues: { main: { number: 7, title: 'Login bug', url: 'https://x/7' } },
+    }))
+    const { result } = renderHook(() => useBranchMeta('/repo/old'))
+    expect(result.current.issueFor('main'))
+      .toEqual({ provider: 'github', key: '7', title: 'Login bug', url: 'https://x/7' })
+    expect(result.current.isFavorite('main')).toBe(true)
+  })
+
+  // One unreadable entry is one branch without a link, not a repository whose
+  // favourites and links all vanish.
+  test('an unreadable entry costs that entry alone', () => {
+    localStorage.setItem(KEY('/repo/junk'), JSON.stringify({
+      favorites: ['main'],
+      issues: { main: { nonsense: true }, dev: { key: 'PROJ-1', provider: 'other' } },
+    }))
+    const { result } = renderHook(() => useBranchMeta('/repo/junk'))
+    expect(result.current.issueFor('main')).toBeNull()
+    expect(result.current.issueFor('dev')).toEqual({ provider: 'other', key: 'PROJ-1' })
     expect(result.current.isFavorite('main')).toBe(true)
   })
 })

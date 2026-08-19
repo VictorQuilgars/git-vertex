@@ -10,12 +10,15 @@
 // it here means the VS Code panel and the desktop app get the feature from the
 // same code with no main-process or preload change.
 import { useCallback, useEffect, useState } from 'react'
+import { migrateIssueRef, type IssueRef } from '../utils/issueRef'
 
-export interface LinkedIssue {
-  number: number
-  title?: string
-  url?: string
-}
+/**
+ * The reference a branch is working on. It used to be a GitHub number; it is a
+ * tracker-agnostic reference now, and what was stored under the old shape is
+ * migrated on read — see `migrateIssueRef`, which is where that lives so it can
+ * be tested without a DOM.
+ */
+export type LinkedIssue = IssueRef
 
 export interface BranchMeta {
   favorites: string[]
@@ -33,10 +36,20 @@ function read(repoPath: string | null): BranchMeta {
     const raw = localStorage.getItem(key)
     if (!raw) return EMPTY
     const parsed = JSON.parse(raw)
-    // Tolerate anything hand-edited or written by an older shape.
+    // Tolerate anything hand-edited or written by an older shape. Each linked
+    // reference is migrated on the way in, and one that cannot be read is
+    // dropped on its own rather than costing the whole file.
+    const issues: Record<string, LinkedIssue> = {}
+    const stored = parsed?.issues
+    if (stored && typeof stored === 'object') {
+      for (const [branch, value] of Object.entries(stored)) {
+        const ref = migrateIssueRef(value)
+        if (ref) issues[branch] = ref
+      }
+    }
     return {
       favorites: Array.isArray(parsed?.favorites) ? parsed.favorites : [],
-      issues: parsed?.issues && typeof parsed.issues === 'object' ? parsed.issues : {},
+      issues,
     }
   } catch {
     return EMPTY

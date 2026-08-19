@@ -1,8 +1,16 @@
-// "Associate Issue with Branch" (v1.21.0) — picks the GitHub issue a branch is
-// working on. The link is local metadata (see useBranchMeta): git has nowhere
-// to store it and we deliberately do not push anything to GitHub here.
+// "Associate Issue with Branch" (v1.21.0) — picks the work a branch is doing.
+// The link is local metadata (see useBranchMeta): git has nowhere to store it
+// and we deliberately do not push anything to the tracker here.
+//
+// The list it offers is GitHub's, because that is the only tracker we can
+// enumerate. The typed reference below it is not a fallback for that list — it
+// is the *only* path for anything else, and it is why this dialog is not called
+// "pick a GitHub issue".
 import { useEffect, useMemo, useState } from 'react'
 import { useLang } from '../../i18n/LanguageContext'
+import { useSettings } from '../../contexts/SettingsContext'
+import { parseAutolinks } from '../../utils/autolinks'
+import { issueRefLabel, parseIssueRefInput } from '../../utils/issueRef'
 import type { LinkedIssue } from '../../hooks/useBranchMeta'
 import './AssociateIssueModal.css'
 
@@ -25,6 +33,10 @@ export default function AssociateIssueModal({ branch, current, onPick, onClose }
   onClose: () => void
 }) {
   const { t } = useLang()
+  const { get } = useSettings()
+  // The reference patterns already configured in Settings › GitHub. They are
+  // what gives a typed reference somewhere to point, with no integration.
+  const autolinks = useMemo(() => parseAutolinks(get('autolinks', '')), [get])
   const [issues, setIssues] = useState<Issue[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -56,13 +68,18 @@ export default function AssociateIssueModal({ branch, current, onPick, onClose }
     return issues.filter(i => String(i.number).includes(q) || i.title?.toLowerCase().includes(q))
   }, [issues, query])
 
-  // A bare number that matches nothing lets the user link an issue the list
-  // does not carry (closed, or a repo whose issues we cannot enumerate).
-  const manualNumber = /^#?(\d{1,6})$/.exec(query.trim())?.[1]
-  const canUseManual = manualNumber && !shown.some(i => i.number === Number(manualNumber))
+  // Anything that reads as a reference can be linked, whether or not the list
+  // carries it: a closed GitHub issue, a repository whose issues we cannot
+  // enumerate, or a tracker we have no API for at all. A configured autolink
+  // pattern gives it a URL; without one it is still a reference worth holding.
+  const manual = useMemo(() => parseIssueRefInput(query, autolinks), [query, autolinks])
+  const canUseManual = manual && !(
+    manual.provider === 'github' && shown.some(i => String(i.number) === manual.key)
+  )
 
   const pick = (issue: Issue) => onPick({
-    number: issue.number,
+    provider: 'github',
+    key: String(issue.number),
     title: issue.title,
     url: issue.html_url ?? issue.url,
   })
@@ -77,7 +94,7 @@ export default function AssociateIssueModal({ branch, current, onPick, onClose }
 
         {current && (
           <div className="aim-current">
-            <span>{t('issue.assoc.currentlyLinked', current.number)}</span>
+            <span>{t('issue.assoc.currentlyLinked', issueRefLabel(current))}</span>
             <button className="aim-unlink" onClick={() => onPick(null)}>{t('issue.assoc.unlink')}</button>
           </div>
         )}
@@ -103,10 +120,9 @@ export default function AssociateIssueModal({ branch, current, onPick, onClose }
               <span className="aim-item-title">{i.title}</span>
             </button>
           ))}
-          {canUseManual && (
-            <button className="aim-item aim-item--manual"
-              onClick={() => onPick({ number: Number(manualNumber) })}>
-              {t('issue.assoc.linkNumber', Number(manualNumber))}
+          {canUseManual && manual && (
+            <button className="aim-item aim-item--manual" onClick={() => onPick(manual)}>
+              {t('issue.assoc.linkNumber', issueRefLabel(manual))}
             </button>
           )}
         </div>
