@@ -33,52 +33,49 @@ function renderStaging(overrides: Record<string, any> = {}, props: Record<string
   return { api, ...view }
 }
 
-const filterButton = () => screen.getByRole('button', { name: /filter files/i })
+// A row writes its name and its folder in two spans, so a file is found by the
+// title that carries its whole path — the same thing the eye uses.
+const row = (path: string) => screen.queryByTitle(path)
 const filterInput = () => screen.getByPlaceholderText(/filter files/i)
 
 describe('StagingView — file filter (v1.21.0)', () => {
-  test('the filter input is hidden until the filter button is clicked', async () => {
+  // The filter used to hide behind a button. It is a field now, always there:
+  // a search you have to find is a search nobody uses.
+  test('the filter is a field, there before anything is typed', async () => {
     renderStaging()
-    await waitFor(() => expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument())
-
-    expect(screen.queryByPlaceholderText(/filter files/i)).not.toBeInTheDocument()
-
-    await userEvent.click(filterButton())
+    await waitFor(() => expect(row('src/main/git-service.ts')).toBeInTheDocument())
     expect(filterInput()).toBeInTheDocument()
   })
 
   test('typing narrows the list to matching paths across staged, unstaged and untracked', async () => {
     renderStaging()
-    await waitFor(() => expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument())
+    await waitFor(() => expect(row('src/main/git-service.ts')).toBeInTheDocument())
     // All three files visible up front.
-    expect(screen.getByText('src/renderer/App.tsx')).toBeInTheDocument()
-    expect(screen.getByText('docs/readme.md')).toBeInTheDocument()
+    expect(row('src/renderer/App.tsx')).toBeInTheDocument()
+    expect(row('docs/readme.md')).toBeInTheDocument()
 
-    await userEvent.click(filterButton())
     await userEvent.type(filterInput(), 'src/')
 
     // The two src/ files survive; the untracked doc is filtered out.
-    expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument()
-    expect(screen.getByText('src/renderer/App.tsx')).toBeInTheDocument()
-    expect(screen.queryByText('docs/readme.md')).not.toBeInTheDocument()
+    expect(row('src/main/git-service.ts')).toBeInTheDocument()
+    expect(row('src/renderer/App.tsx')).toBeInTheDocument()
+    expect(row('docs/readme.md')).not.toBeInTheDocument()
   })
 
   test('matching is case-insensitive and matches anywhere in the path', async () => {
     renderStaging()
-    await waitFor(() => expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument())
+    await waitFor(() => expect(row('src/main/git-service.ts')).toBeInTheDocument())
 
-    await userEvent.click(filterButton())
     await userEvent.type(filterInput(), 'APP')
 
-    expect(screen.getByText('src/renderer/App.tsx')).toBeInTheDocument()
-    expect(screen.queryByText('src/main/git-service.ts')).not.toBeInTheDocument()
+    expect(row('src/renderer/App.tsx')).toBeInTheDocument()
+    expect(row('src/main/git-service.ts')).not.toBeInTheDocument()
   })
 
   test('a query matching nothing explains why the list is empty', async () => {
     renderStaging()
-    await waitFor(() => expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument())
+    await waitFor(() => expect(row('src/main/git-service.ts')).toBeInTheDocument())
 
-    await userEvent.click(filterButton())
     await userEvent.type(filterInput(), 'zzzzz')
 
     expect(screen.getByText(/no file matches/i)).toBeInTheDocument()
@@ -88,43 +85,43 @@ describe('StagingView — file filter (v1.21.0)', () => {
 
   test('the filter is a view lens: the change count keeps counting every file', async () => {
     const { container } = renderStaging()
-    await waitFor(() => expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument())
-    const count = () => container.querySelector('.stx-count')
+    await waitFor(() => expect(row('src/main/git-service.ts')).toBeInTheDocument())
+    // The header's count is "N of M staged" now; the M is what the lens must
+    // leave alone — it counts every real change, shown or not.
+    const count = () => container.querySelector('.stx-staged-badge')
 
-    expect(count()).toHaveTextContent(/3 file changes/i)
+    expect(count()).toHaveTextContent(/of 3 staged/i)
 
-    await userEvent.click(filterButton())
     await userEvent.type(filterInput(), 'zzzzz')
 
     // No row is rendered, but the header still counts all 3 real changes.
     expect(screen.getByText(/no file matches/i)).toBeInTheDocument()
-    expect(count()).toHaveTextContent(/3 file changes/i)
+    expect(count()).toHaveTextContent(/of 3 staged/i)
   })
 
-  test('closing the filter clears it, so no hidden query keeps files out of view', async () => {
+  // There is no button to close any more; Escape empties the field, and an
+  // empty field keeps nothing out of view.
+  test('Escape clears the query, so no hidden query keeps files out of view', async () => {
     renderStaging()
-    await waitFor(() => expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument())
+    await waitFor(() => expect(row('src/main/git-service.ts')).toBeInTheDocument())
 
-    await userEvent.click(filterButton())
     await userEvent.type(filterInput(), 'zzzzz')
-    expect(screen.queryByText('src/main/git-service.ts')).not.toBeInTheDocument()
+    expect(row('src/main/git-service.ts')).not.toBeInTheDocument()
 
-    await userEvent.click(filterButton()) // toggle off
-    expect(screen.queryByPlaceholderText(/filter files/i)).not.toBeInTheDocument()
-    expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument()
-    expect(screen.getByText('docs/readme.md')).toBeInTheDocument()
+    await userEvent.type(filterInput(), '{Escape}')
+    expect(row('src/main/git-service.ts')).toBeInTheDocument()
+    expect(row('docs/readme.md')).toBeInTheDocument()
   })
 
   test('the clear button empties the query without closing the filter', async () => {
     renderStaging()
-    await waitFor(() => expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument())
+    await waitFor(() => expect(row('src/main/git-service.ts')).toBeInTheDocument())
 
-    await userEvent.click(filterButton())
     await userEvent.type(filterInput(), 'zzzzz')
 
     await userEvent.click(screen.getByRole('button', { name: /clear filter/i }))
 
     expect(filterInput()).toHaveValue('')
-    expect(screen.getByText('src/main/git-service.ts')).toBeInTheDocument()
+    expect(row('src/main/git-service.ts')).toBeInTheDocument()
   })
 })

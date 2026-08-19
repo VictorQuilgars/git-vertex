@@ -1289,6 +1289,10 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const commitLabel = (() => {
     if (committing) return t('panel.commit.inProgress')
     if (isConflict) return t('rp.commitMode', conflictMode as string)
+    // The panel's footer is the commit, named after its branch, and greyed
+    // until it is ready — staging is a row action, not the step that unlocks
+    // the form. The desktop keeps the labels that walk through the steps.
+    if (embedded && currentBranch) return t('panel.commit.toBranch', currentBranch)
     if (!canCommit) return t('panel.commit.stageFirst')      // nothing staged
     if (!message.trim()) return t('panel.commit.typeMessage') // staged, no message
     if (amend && changes.staged.length === 0) return t('panel.commit.amend')
@@ -1302,6 +1306,28 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   return (
     <div className={`rp-content rp-staging st2 ${compact ? 'st2--compact' : ''} ${compactRow ? 'st2--row' : ''} ${tiny ? 'st2--tiny' : ''} ${trimTop ? 'st2--trimtop' : ''} ${splitLists ? 'st2--splitlists' : ''}`} ref={stRootRef}>
       {/* ── Top bar ── */}
+      {embedded ? (
+        /* The panel's header: what this pane is, how much is in it, and the
+           two things to do with it. It used to say "N file changes on tmp",
+           which the branch strip right under it said again. */
+        <div className="st2-topbar st2-topbar--panel">
+          <span className="st2-pane-title">{t('graph.wipClean')}</span>
+          {totalChanged > 0 && (
+            <span className="st2-pane-count" title={t('graph.wip', totalChanged)}>
+              <Icon name="pencil" size={11} />{totalChanged}
+            </span>
+          )}
+          <span className="st2-pane-spring" />
+          {branchStrip?.onCompareWorking && (
+            <button className="st2-pane-btn" onClick={branchStrip.onCompareWorking} title={t('compare.vsWorking')}>
+              <Icon name="compare" size={12} /><span>{t('panel.compareBtn')}</span>
+            </button>
+          )}
+          <button className="st2-icon-btn" title={t('panel.refresh')} onClick={() => void load()}>
+            <Icon name="refresh" size={13} />
+          </button>
+        </div>
+      ) : (
       <div className="st2-topbar">
         <button className="st2-icon-btn st2-danger" title={t('panel.discardAll')} onClick={discardAll} disabled={totalChanged === 0}>
           <IcoTrash />
@@ -1312,6 +1338,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           <span className="st2-branch-chip" title={branchName}>{branchName}</span>
         </div>
       </div>
+      )}
 
       {/* ── Branch strip (v1.22.0) — above the files, in both layouts ── */}
       {branchStrip && <BranchStrip {...branchStrip} />}
@@ -1332,14 +1359,13 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
               indeterminate={!allStaged && !noneStaged} disabled={mergedFiles.length === 0}
               title={allStaged ? t('panel.unstageAll') : t('panel.stageAll')}
               onChange={toggleAllStaged} />
-            <span className="stx-count">
-              {totalChanged} {totalChanged === 1 ? t('panel.fileChange') : t('panel.fileChanges')}
+            {/* The count that counts is how many are staged, not how many
+                changed — "ready to commit" is read off this, not off the
+                checkboxes one by one. */}
+            <span className="stx-count">{t('panel.filesChanged')}</span>
+            <span className="stx-staged-badge">
+              {t('panel.stagedOf', changes.staged.length, totalChanged)}
             </span>
-            {/* How many of those are actually staged — the count alone never
-                said, so "ready to commit" had to be read off the checkboxes. */}
-            {changes.staged.length > 0 && (
-              <span className="stx-staged-badge">{t('panel.staged.badge', changes.staged.length)}</span>
-            )}
             <div className="stx-spring" />
             {/* Discard-all lived only in the topbar, which the compact layout
                 hides; stash only in the toolbar. Both belong here (v1.22.0). */}
@@ -1349,14 +1375,15 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
               onClick={stashAll} disabled={totalChanged === 0}><IcoStash /></button>
             <button className="st2-icon-btn stx-tool" title={t('panel.copyFileList')}
               onClick={copyFileList} disabled={mergedFiles.length === 0}><IcoCopy /></button>
-            <button className={`st2-icon-btn stx-tool ${filterOpen || fileFilter ? 'active' : ''}`}
-              title={t('panel.filter')} onClick={() => toggleFilter()}><IcoSearch /></button>
             <button className="st2-icon-btn stx-tool" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}><IcoSort /></button>
             <button className={`st2-icon-btn stx-tool ${!treeMode ? 'active' : ''}`} title={t('panel.view.path')} onClick={() => treeMode && toggleTree()}><IcoPathView /></button>
             <button className={`st2-icon-btn stx-tool ${treeMode ? 'active' : ''}`} title={t('panel.view.tree')} onClick={() => !treeMode && toggleTree()}><IcoTreeView /></button>
           </div>
-          {filterOpen && (
-            <div className="st-filter">
+          {/* The filter is a field, not a button that reveals one: a search
+              you have to find is a search nobody uses. */}
+          {(
+            <div className="st-filter st-filter--always">
+              <IcoSearch />
               <input ref={filterRef} type="text" className="st-filter-input"
                 placeholder={t('panel.filter.placeholder')} value={fileFilter}
                 onChange={e => setFileFilter(e.target.value)}
@@ -1384,8 +1411,14 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                           title={staged ? t('panel.unstaged') : t('panel.stage')}
                           onChange={() => staged ? unstageOne([f.path]) : stageOne([f.path])} />
                         <StatusBadge status={f.status} />
-                        <span className="st-path" title={f.path}>{f.path}</span>
+                        {/* Name strong, folder weak — a file is found by its name. */}
+                        <span className="st-path" title={f.path}>
+                          <span className="st-path-name">{f.path.split('/').pop()}</span>
+                          {f.path.includes('/') && <span className="st-path-dir">{f.path.slice(0, f.path.lastIndexOf('/'))}</span>}
+                        </span>
                         <DiffStat additions={f.additions} deletions={f.deletions} />
+                        <button className="st-action" title={t('panel.file.copyPath')}
+                          onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(f.path) }}><IcoCopy /></button>
                         <button className="st-action st-open-diff" title={t('panel.openDiff')}
                           onClick={e => { e.stopPropagation(); selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' }) }}><IcoOpenDiff /></button>
                         {onOpenStagingEditor && <button className="st-action st-hunk-editor" title={t('panel.hunkEditor')} onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}

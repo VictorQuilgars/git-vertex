@@ -18,6 +18,12 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧺 The staging pane, top to bottom
+- A header that names the pane and counts what is in it, with **Compare** and refresh.
+- **N of M staged** in the files header — the count that matters — and a filter field that is always there.
+- File rows: name before folder, \`+N −M\`, and copy / diff / hunks / discard on hover.
+- The footer is **Commit to ‹branch›**, greyed until ready. Type the message first; staging is a row action.
+
 ### 🧭 A clean tree says what comes next
 - Working Changes with nothing to stage used to be an empty pane. The branch header stays, and under it **Next steps** — publish if there is no upstream, push N if ahead, pull N if behind — and **Start new**.
 - Every row is true of the repository or it is not drawn.

@@ -857,6 +857,8 @@ function VertexApp() {
 
   const branchStripProps = {
     branch: currentBranch,
+    // The working tree against HEAD — what "compare" means on the staging pane.
+    onCompareWorking: () => window.gitAPI.openCompareWorkingTab('HEAD'),
     ahead: tracking.ahead,
     behind: tracking.behind,
     onPush: handlePush,
