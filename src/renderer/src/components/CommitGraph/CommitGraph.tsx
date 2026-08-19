@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import { createPortal } from 'react-dom'
 import { LayoutCommit, computeGraphLayout, canvasRgb, rowOffsets } from './graph-layout'
+import MessageChip, { type ChipSegment } from './MessageChip'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { Mark } from '../Mark/Mark'
@@ -226,6 +227,59 @@ interface ProcessedRef {
   isHead?: boolean     // current HEAD branch
   hasLocal?: boolean   // has a local counterpart
   hasRemote?: boolean  // has a remote counterpart (origin/...)
+}
+
+/**
+ * The segments of the pill under a commit message.
+ *
+ * ⚠️ The issue hangs off the **branch**, not the commit: an issue is what a
+ * branch is working on, and it follows the branch as it moves. A commit does
+ * not have an issue — the branch pointing at it does.
+ *
+ * The pull request is not here yet. Answering "which request carries this
+ * commit" is a search per row, which needs a cache before it is a feature
+ * rather than a rate-limit incident — see the panel-parity issue.
+ */
+export function messageChipSegments(
+  pref: ProcessedRef,
+  issueForBranch?: (branch: string) => { key: string; provider: string } | null,
+  handlers?: { onCheckout?: (b: string) => void; onMenu?: (e: React.MouseEvent) => void },
+): ChipSegment[] {
+  const segments: ChipSegment[] = []
+  const isTag = pref.cls === 'rc-tag'
+
+  segments.push({
+    kind: isTag ? 'tag' : 'branch',
+    label: pref.display,
+    title: pref.tooltip ?? pref.display,
+    onDoubleClick: pref.branchName && handlers?.onCheckout
+      ? () => handlers.onCheckout!(pref.branchName!) : undefined,
+    onContextMenu: handlers?.onMenu,
+  })
+
+  // Published, and where. The remote's name is what the collapsed icon stands
+  // for — "this exists somewhere else too" is the fact, the name is the detail.
+  if (pref.hasRemote) {
+    // ⚠️ Read the remote ref, not the tooltip's first slash. The tooltip is
+    // `feat/x  +  origin/feat/x` for a branch that exists on both sides, and a
+    // pattern that takes the first `x/` finds the branch's own folder — which
+    // is how this said "feat" instead of "origin" the first time.
+    const full = pref.tooltip?.split('+').pop()?.trim() ?? ''
+    const remote = /^(?:remotes\/)?([^/]+)\//.exec(full)?.[1] ?? 'origin'
+    segments.push({ kind: 'remote', label: remote, title: pref.tooltip, collapsible: true })
+  }
+
+  const issue = pref.branchName ? issueForBranch?.(pref.branchName) : null
+  if (issue) {
+    segments.push({
+      kind: 'issue',
+      label: issue.provider === 'github' ? `#${issue.key}` : issue.key,
+      title: issue.provider === 'github' ? `Issue #${issue.key}` : issue.key,
+      collapsible: true,
+    })
+  }
+
+  return segments
 }
 
 /**
@@ -456,6 +510,11 @@ function RefChip({ pref, laneColor, compact, onDoubleClick, onDragStartBranch, o
 }
 
 interface CommitGraphProps {
+  /**
+   * The issue a branch is working on — the pill under the message shows it.
+   * A branch, not a commit: the link follows the branch as it moves.
+   */
+  issueForBranch?: (branch: string) => { key: string; provider: string } | null
   commits: CommitNode[]
   selectedHash: string | null
   onSelectCommit: (c: CommitNode) => void
@@ -542,6 +601,7 @@ interface CtxState { x: number; y: number; commit: LayoutCommit; branchName?: st
 interface DropState { x: number; y: number; hash: string; branch: string }
 
 export default function CommitGraph({
+  issueForBranch,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit,
@@ -1278,8 +1338,13 @@ export default function CommitGraph({
         onContextMenu={e => { e.preventDefault(); setHeaderCtx({ x: e.clientX, y: e.clientY }) }}
         title={t('graph.header.title')}
       >
-        <div className="cg-h-refs" style={{ width: refsColW }}>{compactColumns ? 'B/T' : 'BRANCH / TAG'}</div>
-        <div className="cg-col-handle" onMouseDown={onDragRefs} />
+        {/* The header has to disappear with the column, or the rows shift left
+            by its width while the header does not — which is what the first cut
+            of this layout did, and it put the graph on top of the message. */}
+        {!refsBelow && <>
+          <div className="cg-h-refs" style={{ width: refsColW }}>{compactColumns ? 'B/T' : 'BRANCH / TAG'}</div>
+          <div className="cg-col-handle" onMouseDown={onDragRefs} />
+        </>}
         <div className="cg-h-graph" style={{ width: svgW }}>GRAPH</div>
         <div className="cg-h-msg">COMMIT MESSAGE</div>
         {effShowAuthor && <>
@@ -1576,8 +1641,17 @@ export default function CommitGraph({
                     {!isWip && sigBadge(commit.signature, t)}
                     <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
                   </div>
-                  {refsBelow && primary && (
-                    <div className="cg-refs-under">{renderRefs(false)}</div>
+                  {refsBelow && prefs.length > 0 && (
+                    <div className="cg-refs-under">
+                      <MessageChip
+                        tone={commit.color}
+                        refsHidden={Math.max(0, prefs.length - 1)}
+                        segments={messageChipSegments(prefs[0], issueForBranch, {
+                          onCheckout: onCheckoutBranch,
+                          onMenu: (e) => openRefMenu(e, prefs[0], commit),
+                        })}
+                      />
+                    </div>
                   )}
                 </div>
 

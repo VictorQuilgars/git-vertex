@@ -2451,6 +2451,7 @@ export default function App() {
             </div>
           ) : (
             <CommitGraph
+              issueForBranch={branchMeta.issueFor}
               commits={commits}
               visibility={visibility}
               remoteNames={remoteNames}
