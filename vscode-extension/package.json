@@ -31,7 +31,8 @@
     "gitgraph"
   ],
   "activationEvents": [
-    "workspaceContains:.git"
+    "workspaceContains:.git",
+    "onUri"
   ],
   "main": "./out/extension.js",
   "contributes": {

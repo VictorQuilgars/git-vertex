@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
+import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
 import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider } from './panel/GitVertexHost'
@@ -309,6 +310,12 @@ export function activate(context: vscode.ExtensionContext): void {
   // Where installed themes live. Global rather than per-workspace: a palette is
   // a property of the person, not of the repository they happen to have open.
   setThemeStorageDir(context.globalStorageUri.fsPath)
+
+  // Where an authorization redirect lands. Registered at activation because a
+  // callback can arrive before anything else has been opened — the browser
+  // decides when, not us. Paired with the `onUri` activation event, without
+  // which VS Code would not wake the extension to receive it at all.
+  registerAuthCallback(context)
 
   void showWhatsNewIfUpdated(context)
   void notifyIfGitTooOld(context)
