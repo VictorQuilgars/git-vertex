@@ -1010,6 +1010,7 @@ function VertexApp() {
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              refsBelow
             commits={commits}
             visibility={visibility}
             remoteNames={remoteNames}

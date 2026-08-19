@@ -18,10 +18,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
-### 📐 Branches under the message, if you want the width back
-- Right-click the graph header → **Branches under the message**. The BRANCH / TAG column is 164 px and every row pays it, while only a handful of commits carry a ref — a sixth of a narrow window spent on nothing.
-- Under the message, only the rows that have refs take the extra line.
-- Off by default: it is a trade. The column still sorts and scans better when there is room for it.
+### 📐 Branches under the message, not in a column
+- The BRANCH / TAG column was 164 px that every row paid, while only a handful of commits carry a ref — a sixth of the panel spent on nothing.
+- They hang under their message now, as one chip: the branch, the remote it is published on, the issue its branch is working on. Everything but the first is an icon until you hover it.
+- The graph moves to the far left, where it starts.
+- The desktop app keeps its column — a window with room to spare should use it.
 
 ### 🏢 GitHub Enterprise Server
 - Settings › GitHub takes an **instance host** and a **token for it**. Every call about a repository on that host goes there rather than to github.com — pull requests, issues, \`#123\` cards, opening a pull request, sharing a patch.

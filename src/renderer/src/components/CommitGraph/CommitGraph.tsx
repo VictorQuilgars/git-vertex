@@ -19,6 +19,8 @@ import './CommitGraph.css'
 const ROW_HEIGHT  = 28
 /** Extra height a row takes when its refs are drawn under the subject. */
 const REF_LINE_H  = 19
+/** The coloured stripe at the very left of a row (.cg-color-bar). */
+const COLOR_BAR_W = 3
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
 const SVG_PAD_L   = 36
@@ -515,6 +517,16 @@ interface CommitGraphProps {
    * A branch, not a commit: the link follows the branch as it moves.
    */
   issueForBranch?: (branch: string) => { key: string; provider: string } | null
+  /**
+   * Refs under the message instead of in a column of their own.
+   *
+   * ⚠️ The **panel** passes this; the desktop does not, and keeps its column.
+   * That is deliberate rather than a default: the column is 164px that every row
+   * pays whether or not it carries a ref, which is a sixth of a bottom panel and
+   * nothing at all in a desktop window. Two shapes, decided by the host that
+   * knows how much width it has — not a setting the user has to find.
+   */
+  refsBelow?: boolean
   commits: CommitNode[]
   selectedHash: string | null
   onSelectCommit: (c: CommitNode) => void
@@ -602,6 +614,7 @@ interface DropState { x: number; y: number; hash: string; branch: string }
 
 export default function CommitGraph({
   issueForBranch,
+  refsBelow = false,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit,
@@ -634,12 +647,7 @@ export default function CommitGraph({
   const showSha = getBool('graphShowSha', true)
   const showStats = getBool('graphShowStats', true)
   const compactColumns = getBool('graphCompactColumns', false)
-  // Refs under the subject rather than in a column of their own. The column is
-  // 164px wide by default and every row pays it, while only a handful of
-  // commits carry a ref — which is a sixth of a 1000px panel spent on nothing.
-  // Below the subject, the width is spent only on the rows that have something
-  // to show. The cost is that a row is no longer a fixed height.
-  const refsBelow = getBool('graphRefsBelow', false)
+
   const dateFormat = get('dateFormat', 'relative')
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -1316,7 +1324,6 @@ export default function CommitGraph({
     { label: t('graph.col.stats'), checked: showStats, action: () => set('graphShowStats', showStats ? 'false' : 'true') },
     { separator: true },
     { label: t('graph.menu.compactCols'), checked: compactColumns, action: () => set('graphCompactColumns', compactColumns ? 'false' : 'true') },
-    { label: t('graph.menu.refsBelow'), checked: refsBelow, action: () => set('graphRefsBelow', refsBelow ? 'false' : 'true') },
     { separator: true },
     { label: t('graph.menu.resetCols'), action: () => {
       set('graphShowAvatars', 'true')
@@ -1325,9 +1332,8 @@ export default function CommitGraph({
       set('graphShowSha', 'true')
       set('graphShowStats', 'true')
       set('graphCompactColumns', 'false')
-      set('graphRefsBelow', 'false')
     } },
-  ], [showAvatars, showAuthor, showDate, showSha, showStats, compactColumns, refsBelow, set])
+  ], [showAvatars, showAuthor, showDate, showSha, showStats, compactColumns, set])
 
   return (
     <div className="cg-container" ref={containerRef}>
@@ -1369,14 +1375,17 @@ export default function CommitGraph({
       <div className="cg-body" ref={bodyRef}>
         <div className="cg-scroll-content" style={{ height: svgH, position: 'relative' }}>
 
-          {/* Graph SVG — offset by refsColW */}
+          {/* Graph SVG — offset by the refs column, which is why it has to be
+              zero when there is no column: with refs under the message the
+              graph is the leftmost thing on the row, and leaving the old offset
+              drew every node on top of the commit message. */}
           <svg
             className="cg-graph-svg"
             width={svgW}
             height={svgH}
             style={{
               position: 'absolute',
-              left: refsColW,
+              left: refsBelow ? COLOR_BAR_W : refsColW,
               top: 0,
               pointerEvents: 'none',
               zIndex: 2,

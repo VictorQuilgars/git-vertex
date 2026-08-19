@@ -80,3 +80,29 @@ describe('MessageChip — what it renders', () => {
     expect(container.querySelector('.mchip')).toBeNull()
   })
 })
+
+// The layout is the panel's, not a preference — and the desktop keeps its
+// column. These pin the two facts that made the first cut unusable: the header
+// has to disappear with the column, and the graph overlay has to stop being
+// offset by a column that is no longer there, or every node lands on top of the
+// commit message.
+describe('the two layouts are decided by the host', () => {
+  const src = require('fs').readFileSync(
+    'src/renderer/src/components/CommitGraph/CommitGraph.tsx', 'utf8')
+
+  test('the refs column and its header appear and disappear together', () => {
+    expect(src).toMatch(/\{!refsBelow && <>[\s\S]*?cg-h-refs/)
+    expect(src).toMatch(/\{!refsBelow && \(\s*<div className="cg-refs-col"/)
+  })
+
+  test('the graph overlay is not offset by a column that is not drawn', () => {
+    expect(src).toContain('left: refsBelow ? COLOR_BAR_W : refsColW')
+  })
+
+  // It is a prop the panel passes, never a setting: two shapes decided by how
+  // much width the host has, not something a user has to find in a menu.
+  test('it is a prop, not a stored setting', () => {
+    expect(src).toContain('refsBelow?: boolean')
+    expect(src).not.toContain("getBool('graphRefsBelow'")
+  })
+})
