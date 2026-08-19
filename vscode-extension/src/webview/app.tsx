@@ -139,7 +139,7 @@ function VertexApp() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
-  const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
+  const [tracking, setTracking] = useState<{ ahead: number; behind: number; upstream?: string | null }>({ ahead: 0, behind: 0 })
   const isLoadingRef = useRef(false)
   // A load asked for while another runs is remembered and re-run rather than
   // dropped: for a background refresh the next watcher event would cover it,
@@ -191,7 +191,7 @@ function VertexApp() {
       } catch { /* ignore */ }
       try {
         const tr = await window.gitAPI.getTracking()
-        setTracking({ ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0 })
+        setTracking({ ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0, upstream: tr?.upstream ?? null })
       } catch { /* no upstream */ }
       try {
         const info = await window.gitAPI.appGetInfo()
@@ -834,6 +834,27 @@ function VertexApp() {
   // Branch strip shown above the staging file list (v1.22.0). Everything here
   // already existed on the toolbar or in the ⋮ menu — this only brings it into
   // the panel, where the files are.
+  // What the staging pane says on a clean tree. Every row is derived from the
+  // repository's state — no "Publish" on a published branch — and the actions
+  // are the handlers the rest of the panel already has.
+  const emptyState = {
+    state: {
+      branch: currentBranch,
+      hasUpstream: tracking.upstream !== undefined ? !!tracking.upstream : undefined,
+      remoteName: remoteNames[0] ?? 'origin',
+      ahead: tracking.ahead,
+      behind: tracking.behind,
+      // openPRs / openIssues arrive with the sidebar lists (#112); until that
+      // lands the Attention section is absent rather than empty.
+    },
+    actions: {
+      onPublish: tracking.upstream ? undefined : () => handleSetUpstream(currentBranch),
+      onPush: handlePush,
+      onPull: handlePull,
+      onCreateBranch: handleNewBranch,
+    },
+  }
+
   const branchStripProps = {
     branch: currentBranch,
     ahead: tracking.ahead,
@@ -1121,6 +1142,7 @@ function VertexApp() {
                 onRestoreFile={handleRestoreFile}
                 onOpenFileHistory={(file: string) => (window.gitAPI as any).openFileHistory(file)}
                 branchStrip={branchStripProps}
+                emptyState={emptyState}
               />
             </div>
           </>

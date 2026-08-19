@@ -18,6 +18,10 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧭 A clean tree says what comes next
+- Working Changes with nothing to stage used to be an empty pane. The branch header stays, and under it **Next steps** — publish if there is no upstream, push N if ahead, pull N if behind — and **Start new**.
+- Every row is true of the repository or it is not drawn.
+
 ### 🧺 Working Changes is always there, and selected on open
 - A clean tree used to mean no row — and no way into the staging pane. The row is permanent now: \`✎N\` when there is something, a **✓ that stages all of it**, and nothing under it when the tree is clean.
 - The panel opens on it, so there are always two panes.

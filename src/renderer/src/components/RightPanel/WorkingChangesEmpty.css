@@ -1,0 +1,44 @@
+/* The staging pane with nothing to stage. Three sections, each a list of rows;
+   a row is an icon, a sentence, and the one action it leads to. */
+.wce { display: flex; flex-direction: column; gap: var(--space-xl); padding: var(--space-lg) var(--space-xl); }
+.wce-section { display: flex; flex-direction: column; gap: var(--space-sm); }
+.wce-title {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-micro); font-weight: var(--weight-semibold);
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.wce-row {
+  display: flex; align-items: center; gap: var(--space-md);
+  min-height: 32px; padding: var(--space-xs) 0;
+  color: var(--text-primary); font-size: var(--text-sm);
+}
+.wce-row--link {
+  width: 100%; background: transparent; border: none; text-align: left;
+  cursor: pointer; border-radius: var(--radius-sm); padding: var(--space-xs) var(--space-sm);
+  margin: 0 calc(-1 * var(--space-sm));
+}
+.wce-row--link:hover:not(:disabled) { background: var(--surface-hover); }
+.wce-row--link:disabled { cursor: default; }
+.wce-row-ico { flex-shrink: 0; color: var(--text-secondary); }
+.wce-row-label { flex: 1; min-width: 0; }
+.wce-row-btn {
+  flex-shrink: 0; height: 26px; padding: 0 var(--space-lg);
+  background: var(--surface-sunken); border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md); color: var(--text-primary);
+  font-size: var(--text-xs); cursor: pointer;
+  transition: background var(--dur-fast);
+}
+.wce-row-btn:hover { background: var(--surface-hover); }
+/* The model's action is outlined in the model's colour, never filled. */
+.wce-row-btn--ai {
+  border-color: color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
+  color: var(--purple-text);
+}
+.wce-start {
+  height: 30px; padding: 0 var(--space-lg);
+  background: var(--surface-sunken); border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md); color: var(--text-primary);
+  font-size: var(--text-sm); text-align: left; cursor: pointer;
+}
+.wce-start:hover { background: var(--surface-hover); }

@@ -25,6 +25,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
+import WorkingChangesEmpty, { type NextStepsState, type NextStepsActions } from './WorkingChangesEmpty'
 
 function detectLang(filename: string): string | undefined {
   const ext = filename.split('.').pop()?.toLowerCase()
@@ -932,7 +933,7 @@ function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx
   )
 }
 
-function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded, branchStrip }: {
+function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded, branchStrip, emptyState }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   currentBranch?: string
@@ -946,6 +947,12 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   onProposalConsumed?: () => void
   embedded?: boolean
   branchStrip?: BranchStripProps
+  /**
+   * What the pane shows on a clean tree, in the panel: the branch header stays
+   * and under it the next steps. The host supplies state and actions; omitted
+   * ⇒ the pane says nothing, as it always did. Desktop leaves it out.
+   */
+  emptyState?: { state: NextStepsState; actions: NextStepsActions }
 }) {
   const { t } = useLang()
   const isConflict = !!conflictMode
@@ -1167,6 +1174,10 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const amendOnly = amendFiles.filter(f => !stagedPaths.has(f.path))
   const stagedCount = changes.staged.length + amendOnly.length
   const totalChanged = changes.staged.length + totalUnstaged
+  // A clean tree in the panel: the pane shows what comes next, not a form for
+  // a commit that has nothing in it. Amend is excluded — an amend with no new
+  // files is still a commit being written.
+  const showEmptyState = !!(embedded && emptyState && !isConflict && totalChanged === 0 && !amend)
   const canCommit = changes.staged.length > 0 || amend
 
   const toggleTree = () => setTreeMode(v => { localStorage.setItem('st-tree-mode', String(!v)); return !v })
@@ -1305,10 +1316,16 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
       {/* ── Branch strip (v1.22.0) — above the files, in both layouts ── */}
       {branchStrip && <BranchStrip {...branchStrip} />}
 
+      {/* ── Nothing to stage: the pane says what comes next instead of nothing.
+          Only the panel supplies this; the desktop keeps its quiet pane. ── */}
+      {showEmptyState && (
+        <WorkingChangesEmpty state={emptyState!.state} actions={emptyState!.actions} />
+      )}
+
       {/* ── Sort + view toggle ── */}
       {/* ── Embedded (VS Code): single checkbox list ── */}
       {fileMenuNode}
-      {embedded && (
+      {embedded && !showEmptyState && (
         <div className="stx">
           <div className="stx-head">
             <IndetCheckbox className="stx-check stx-master" checked={allStaged}
@@ -1564,7 +1581,9 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
       {/* ── Resize handle ── */}
       <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
 
-      {/* ── Commit area ── */}
+      {/* ── Commit area — not in the empty state: there is nothing to commit,
+          and a form under "Next steps" would say otherwise. ── */}
+      {!showEmptyState && (
       <div className="st2-commit" style={compactRow ? undefined : { height: effFormHeight }}>
         <div className="st2-commit-scroll">
         {/* Tabs */}
@@ -1705,6 +1724,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           </div>
         )}
       </div>
+      )}
     </div>
   )
 
@@ -1964,13 +1984,15 @@ interface RightPanelProps {
   // Branch strip above the file list (v1.22.0). Omitted ⇒ no strip, so hosts
   // that cannot supply branch actions are unaffected.
   branchStrip?: BranchStripProps
+  /** What the staging pane shows on a clean tree — the panel supplies it. */
+  emptyState?: { state: NextStepsState; actions: NextStepsActions }
 }
 
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
   onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory,
-  onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
+  onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip, emptyState
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -2007,6 +2029,7 @@ export default function RightPanel({
           onProposalConsumed={onCommitProposalConsumed}
           embedded={embedded}
           branchStrip={branchStrip}
+          emptyState={emptyState}
         />
       ) : hasCommit ? (
         <CommitDetail
