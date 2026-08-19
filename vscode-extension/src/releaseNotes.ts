@@ -18,6 +18,12 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 📐 The commit list is rows, not a grid
+- The panel carried the desktop's columns in a fraction of the width, dropping an author here and a date there depending on how deep the graph was.
+- A commit is a row of two lines now: the message, then the branch it is on, its hash, its author and its date — each placed rather than columned. The date sits at the right edge.
+- A line separates each commit, and the graph is at the far left where it starts.
+- The desktop keeps its columns; a window with room to spare should use it.
+
 ### 🏢 GitHub Enterprise Server
 - Settings › GitHub takes an **instance host** and a **token for it**. Every call about a repository on that host goes there rather than to github.com — pull requests, issues, \`#123\` cards, opening a pull request, sharing a patch.
 - It is the same API on your own domain, so nothing else changes.

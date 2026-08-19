@@ -1,0 +1,99 @@
+/* MessageChip — one pill under a commit message, several segments in it.
+   Its own stylesheet rather than a variant of .ref-chip: a branch chip is one
+   name in a column, this is a composite that opens on hover, and sharing the
+   rules would mean every change to one had to be checked against the other. */
+
+.mchip {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  min-width: 0;
+  height: 18px;
+  border: 1px solid var(--mchip-border);
+  border-radius: var(--radius-sm);
+  background: var(--mchip-bg);
+  color: var(--mchip-fg);
+  font-size: 11px;
+  line-height: 1;
+  overflow: hidden;
+  /* The tone is the lane colour, so a pill belongs to the line it hangs from.
+     color-mix keeps it readable on every theme instead of a fixed tint. */
+  --mchip-tone: var(--accent);
+  --mchip-bg: color-mix(in srgb, var(--mchip-tone) 14%, var(--surface));
+  --mchip-border: color-mix(in srgb, var(--mchip-tone) 34%, transparent);
+  --mchip-fg: color-mix(in srgb, var(--mchip-tone) 72%, var(--text-primary));
+}
+
+/* The checked-out branch: filled, not tinted. Text goes to the canvas colour —
+   ink on the lane's own paint — and the icons follow it. */
+.mchip--emphasis {
+  --mchip-bg: var(--mchip-tone);
+  --mchip-border: var(--mchip-tone);
+  --mchip-fg: var(--bg-canvas);
+}
+.mchip--emphasis .mchip-ico { color: inherit !important; opacity: .9; }
+
+.mchip-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 5px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.mchip-seg + .mchip-seg { border-left: 1px solid var(--mchip-border); }
+.mchip-seg[onclick], .mchip-seg:hover { cursor: default; }
+
+.mchip-ico { flex-shrink: 0; opacity: .75; }
+
+.mchip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* The collapsing. A secondary segment is its icon until the pill is hovered,
+   and then its name slides open.
+
+   ⚠️ Width only — never height, and never a re-layout of the row. The pill sits
+   under the pointer, so anything that changed the row's height would move the
+   thing being hovered out from under the cursor. */
+.mchip-collapsible .mchip-label {
+  max-width: 0;
+  opacity: 0;
+  transition: max-width .12s ease-out, opacity .12s ease-out, margin-left .12s ease-out;
+  margin-left: -3px;
+}
+.mchip:hover .mchip-collapsible .mchip-label {
+  max-width: 22ch;
+  opacity: 1;
+  margin-left: 0;
+}
+
+/* The first segment always shows its name — a pill that says nothing at rest
+   is a pill nobody reads. */
+.mchip-seg:first-child .mchip-label { max-width: 22ch; opacity: 1; }
+
+/* Kinds. Only the icon changes tone; the pill keeps one background, or a row
+   with four segments turns into four colours competing for the same eye. */
+.mchip-branch  .mchip-ico { opacity: 1; }
+.mchip-tag     .mchip-ico { color: var(--warning); opacity: 1; }
+.mchip-pr      .mchip-ico { color: var(--accent); opacity: 1; }
+.mchip-issue   .mchip-ico { color: var(--success); opacity: 1; }
+
+.mchip-more {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 5px;
+  border-left: 1px solid var(--mchip-border);
+  color: var(--text-tertiary);
+}
+
+/* The counts beside a remote — ↓1 ↑1 — stay visible when the name collapses.
+   They are why the chip is looked at; the name is what the hover reveals. */
+.mchip-detail {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+.mchip-collapsible .mchip-detail { margin-left: 2px; }

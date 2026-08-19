@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { computeGraphLayout, canvasRgb, laneColors, resetThemeCache } from '../graph-layout'
+import { computeGraphLayout, canvasRgb, laneColors, resetThemeCache, rowOffsets } from '../graph-layout'
 import { CommitNode } from '../../../types'
 
 // The canvas the graph falls back to is a snapshot of --seed-canvas. Reading the
@@ -232,3 +232,49 @@ describe('theme values the graph resolves itself', () => {
   })
 })
 
+
+// Rows stopped being all the same height when refs moved under the subject.
+// Everything that draws the graph — the node, the edges, the bands, the scroll
+// maths — used to multiply by a constant, so this is the arithmetic that
+// replaced it, and it is the part that can be silently wrong: a graph half a
+// line away from the text it describes still looks like a graph.
+describe('rowOffsets', () => {
+  const BASE = 28, EXTRA = 19
+
+  test('with nothing extra, it is the multiplication it replaced', () => {
+    const tops = rowOffsets([false, false, false, false], BASE, EXTRA)
+    expect(tops).toEqual([0, 28, 56, 84, 112])
+  })
+
+  test('only the rows that carry refs grow', () => {
+    //            0      1(ref)  2      3(ref)
+    const tops = rowOffsets([false, true, false, true], BASE, EXTRA)
+    expect(tops).toEqual([0, 28, 75, 103, 150])
+    // row 1 is 47 tall, row 2 is back to 28
+    expect(tops[2] - tops[1]).toBe(BASE + EXTRA)
+    expect(tops[3] - tops[2]).toBe(BASE)
+  })
+
+  test('the last entry is the total height, which is what the SVG is drawn at', () => {
+    const tops = rowOffsets([true, false, true], BASE, EXTRA)
+    expect(tops[3]).toBe(3 * BASE + 2 * EXTRA)
+    expect(tops).toHaveLength(4)
+  })
+
+  // The node sits at `top + BASE/2`, never at the middle of a taller row. This
+  // is the property that keeps the graph level with its own text.
+  test('a node stays on the first line of its row, whatever the row height', () => {
+    const tops = rowOffsets([true, true, true], BASE, EXTRA)
+    const centres = [0, 1, 2].map(i => tops[i] + BASE / 2)
+    expect(centres).toEqual([14, 61, 108])
+    // and each centre is inside the first BASE pixels of its own row
+    centres.forEach((c, i) => {
+      expect(c).toBeGreaterThanOrEqual(tops[i])
+      expect(c).toBeLessThanOrEqual(tops[i] + BASE)
+    })
+  })
+
+  test('an empty graph has a height of zero rather than a NaN', () => {
+    expect(rowOffsets([], BASE, EXTRA)).toEqual([0])
+  })
+})
