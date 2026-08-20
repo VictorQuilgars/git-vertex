@@ -45,7 +45,7 @@ function render() {
 /** Render and open the commit options, which is where the button lives. */
 async function setup() {
   render()
-  await screen.findByText('src/a.ts')
+  await screen.findByTitle('src/a.ts')
   await userEvent.click(screen.getByText('Commit options'))
   return screen.getByPlaceholderText(/commit message/i) as HTMLTextAreaElement
 }

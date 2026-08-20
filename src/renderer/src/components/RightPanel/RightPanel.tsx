@@ -25,6 +25,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
+import WorkingChangesEmpty, { type NextStepsState, type NextStepsActions } from './WorkingChangesEmpty'
 
 function detectLang(filename: string): string | undefined {
   const ext = filename.split('.').pop()?.toLowerCase()
@@ -977,7 +978,7 @@ function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx
   )
 }
 
-function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded, branchStrip }: {
+function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded, branchStrip, emptyState }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   currentBranch?: string
@@ -991,6 +992,12 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   onProposalConsumed?: () => void
   embedded?: boolean
   branchStrip?: BranchStripProps
+  /**
+   * What the pane shows on a clean tree, in the panel: the branch header stays
+   * and under it the next steps. The host supplies state and actions; omitted
+   * ⇒ the pane says nothing, as it always did. Desktop leaves it out.
+   */
+  emptyState?: { state: NextStepsState; actions: NextStepsActions }
 }) {
   const { t } = useLang()
   const isConflict = !!conflictMode
@@ -1212,6 +1219,10 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const amendOnly = amendFiles.filter(f => !stagedPaths.has(f.path))
   const stagedCount = changes.staged.length + amendOnly.length
   const totalChanged = changes.staged.length + totalUnstaged
+  // A clean tree in the panel: the pane shows what comes next, not a form for
+  // a commit that has nothing in it. Amend is excluded — an amend with no new
+  // files is still a commit being written.
+  const showEmptyState = !!(embedded && emptyState && !isConflict && totalChanged === 0 && !amend)
   const canCommit = changes.staged.length > 0 || amend
 
   const toggleTree = () => setTreeMode(v => { localStorage.setItem('st-tree-mode', String(!v)); return !v })
@@ -1323,6 +1334,10 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const commitLabel = (() => {
     if (committing) return t('panel.commit.inProgress')
     if (isConflict) return t('rp.commitMode', conflictMode as string)
+    // The panel's footer is the commit, named after its branch, and greyed
+    // until it is ready — staging is a row action, not the step that unlocks
+    // the form. The desktop keeps the labels that walk through the steps.
+    if (embedded && currentBranch) return t('panel.commit.toBranch', currentBranch)
     if (!canCommit) return t('panel.commit.stageFirst')      // nothing staged
     if (!message.trim()) return t('panel.commit.typeMessage') // staged, no message
     if (amend && changes.staged.length === 0) return t('panel.commit.amend')
@@ -1336,6 +1351,28 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   return (
     <div className={`rp-content rp-staging st2 ${compact ? 'st2--compact' : ''} ${compactRow ? 'st2--row' : ''} ${tiny ? 'st2--tiny' : ''} ${trimTop ? 'st2--trimtop' : ''} ${splitLists ? 'st2--splitlists' : ''}`} ref={stRootRef}>
       {/* ── Top bar ── */}
+      {embedded ? (
+        /* The panel's header: what this pane is, how much is in it, and the
+           two things to do with it. It used to say "N file changes on tmp",
+           which the branch strip right under it said again. */
+        <div className="st2-topbar st2-topbar--panel">
+          <span className="st2-pane-title">{t('graph.wipClean')}</span>
+          {totalChanged > 0 && (
+            <span className="st2-pane-count" title={t('graph.wip', totalChanged)}>
+              <Icon name="pencil" size={11} />{totalChanged}
+            </span>
+          )}
+          <span className="st2-pane-spring" />
+          {branchStrip?.onCompareWorking && (
+            <button className="st2-pane-btn" onClick={branchStrip.onCompareWorking} title={t('compare.vsWorking')}>
+              <Icon name="compare" size={12} /><span>{t('panel.compareBtn')}</span>
+            </button>
+          )}
+          <button className="st2-icon-btn" title={t('panel.refresh')} onClick={() => void load()}>
+            <Icon name="refresh" size={13} />
+          </button>
+        </div>
+      ) : (
       <div className="st2-topbar">
         <button className="st2-icon-btn st2-danger" title={t('panel.discardAll')} onClick={discardAll} disabled={totalChanged === 0}>
           <IcoTrash />
@@ -1346,28 +1383,34 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           <span className="st2-branch-chip" title={branchName}>{branchName}</span>
         </div>
       </div>
+      )}
 
       {/* ── Branch strip (v1.22.0) — above the files, in both layouts ── */}
       {branchStrip && <BranchStrip {...branchStrip} />}
 
+      {/* ── Nothing to stage: the pane says what comes next instead of nothing.
+          Only the panel supplies this; the desktop keeps its quiet pane. ── */}
+      {showEmptyState && (
+        <WorkingChangesEmpty state={emptyState!.state} actions={emptyState!.actions} />
+      )}
+
       {/* ── Sort + view toggle ── */}
       {/* ── Embedded (VS Code): single checkbox list ── */}
       {fileMenuNode}
-      {embedded && (
+      {embedded && !showEmptyState && (
         <div className="stx">
           <div className="stx-head">
             <IndetCheckbox className="stx-check stx-master" checked={allStaged}
               indeterminate={!allStaged && !noneStaged} disabled={mergedFiles.length === 0}
               title={allStaged ? t('panel.unstageAll') : t('panel.stageAll')}
               onChange={toggleAllStaged} />
-            <span className="stx-count">
-              {totalChanged} {totalChanged === 1 ? t('panel.fileChange') : t('panel.fileChanges')}
+            {/* The count that counts is how many are staged, not how many
+                changed — "ready to commit" is read off this, not off the
+                checkboxes one by one. */}
+            <span className="stx-count">{t('panel.filesChanged')}</span>
+            <span className="stx-staged-badge">
+              {t('panel.stagedOf', changes.staged.length, totalChanged)}
             </span>
-            {/* How many of those are actually staged — the count alone never
-                said, so "ready to commit" had to be read off the checkboxes. */}
-            {changes.staged.length > 0 && (
-              <span className="stx-staged-badge">{t('panel.staged.badge', changes.staged.length)}</span>
-            )}
             <div className="stx-spring" />
             {/* Discard-all lived only in the topbar, which the compact layout
                 hides; stash only in the toolbar. Both belong here (v1.22.0). */}
@@ -1377,14 +1420,15 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
               onClick={stashAll} disabled={totalChanged === 0}><IcoStash /></button>
             <button className="st2-icon-btn stx-tool" title={t('panel.copyFileList')}
               onClick={copyFileList} disabled={mergedFiles.length === 0}><IcoCopy /></button>
-            <button className={`st2-icon-btn stx-tool ${filterOpen || fileFilter ? 'active' : ''}`}
-              title={t('panel.filter')} onClick={() => toggleFilter()}><IcoSearch /></button>
             <button className="st2-icon-btn stx-tool" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}><IcoSort /></button>
             <button className={`st2-icon-btn stx-tool ${!treeMode ? 'active' : ''}`} title={t('panel.view.path')} onClick={() => treeMode && toggleTree()}><IcoPathView /></button>
             <button className={`st2-icon-btn stx-tool ${treeMode ? 'active' : ''}`} title={t('panel.view.tree')} onClick={() => !treeMode && toggleTree()}><IcoTreeView /></button>
           </div>
-          {filterOpen && (
-            <div className="st-filter">
+          {/* The filter is a field, not a button that reveals one: a search
+              you have to find is a search nobody uses. */}
+          {(
+            <div className="st-filter st-filter--always">
+              <IcoSearch />
               <input ref={filterRef} type="text" className="st-filter-input"
                 placeholder={t('panel.filter.placeholder')} value={fileFilter}
                 onChange={e => setFileFilter(e.target.value)}
@@ -1412,8 +1456,14 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
                           title={staged ? t('panel.unstaged') : t('panel.stage')}
                           onChange={() => staged ? unstageOne([f.path]) : stageOne([f.path])} />
                         <StatusBadge status={f.status} />
-                        <span className="st-path" title={f.path}>{f.path}</span>
+                        {/* Name strong, folder weak — a file is found by its name. */}
+                        <span className="st-path" title={f.path}>
+                          <span className="st-path-name">{f.path.split('/').pop()}</span>
+                          {f.path.includes('/') && <span className="st-path-dir">{f.path.slice(0, f.path.lastIndexOf('/'))}</span>}
+                        </span>
                         <DiffStat additions={f.additions} deletions={f.deletions} />
+                        <button className="st-action" title={t('panel.file.copyPath')}
+                          onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(f.path) }}><IcoCopy /></button>
                         <button className="st-action st-open-diff" title={t('panel.openDiff')}
                           onClick={e => { e.stopPropagation(); selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' }) }}><IcoOpenDiff /></button>
                         {onOpenStagingEditor && <button className="st-action st-hunk-editor" title={t('panel.hunkEditor')} onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
@@ -1607,9 +1657,15 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
       </>)}
 
       {/* ── Resize handle ── */}
-      <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
+      {/* No splitter in the empty state: there is nothing under it to size,
+          and a drag handle over dead space reads as a broken pane. */}
+      {!showEmptyState && (
+        <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
+      )}
 
-      {/* ── Commit area ── */}
+      {/* ── Commit area — not in the empty state: there is nothing to commit,
+          and a form under "Next steps" would say otherwise. ── */}
+      {!showEmptyState && (
       <div className="st2-commit" style={compactRow ? undefined : { height: effFormHeight }}>
         <div className="st2-commit-scroll">
         {/* Tabs */}
@@ -1750,6 +1806,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           </div>
         )}
       </div>
+      )}
     </div>
   )
 
@@ -2011,13 +2068,15 @@ interface RightPanelProps {
   // Branch strip above the file list (v1.22.0). Omitted ⇒ no strip, so hosts
   // that cannot supply branch actions are unaffected.
   branchStrip?: BranchStripProps
+  /** What the staging pane shows on a clean tree — the panel supplies it. */
+  emptyState?: { state: NextStepsState; actions: NextStepsActions }
 }
 
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
   onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory, onCompareWorking,
-  onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip
+  onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip, emptyState
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -2054,6 +2113,7 @@ export default function RightPanel({
           onProposalConsumed={onCommitProposalConsumed}
           embedded={embedded}
           branchStrip={branchStrip}
+          emptyState={emptyState}
         />
       ) : hasCommit ? (
         <CommitDetail

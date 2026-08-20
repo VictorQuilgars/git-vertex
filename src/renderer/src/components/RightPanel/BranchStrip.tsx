@@ -25,6 +25,12 @@ export interface BranchStripProps {
   onPush?: () => void
   onPull?: () => void
   onFetch?: () => void
+  /**
+   * Compare the working tree against HEAD — the staging pane's header button.
+   * Carried here because the host already gathers everything about the current
+   * branch in this one object. Absent ⇒ no button.
+   */
+  onCompareWorking?: () => void
   /** Issue linked to this branch, if any (v1.21.0 metadata). */
   issue?: IssueRef | null
   onAssociateIssue?: () => void

@@ -505,3 +505,23 @@
   margin-left: 4px;
   border-radius: var(--radius-xs);
 }
+
+/* The Working Changes row's second line: ✎N, and the ✓ that stages everything.
+   Both only when there is something — a clean tree shows the row and nothing
+   under it, since a button that can do nothing is not a button. */
+.cg-wip-meta { display: inline-flex; align-items: center; gap: var(--space-sm); }
+.cg-wip-count {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-muted); border-radius: var(--radius-sm);
+  color: var(--text-secondary); font-size: 11px;
+}
+.cg-wip-stage-all {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 20px; padding: 0;
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 45%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--success); cursor: pointer;
+}
+.cg-wip-stage-all:hover { background: color-mix(in srgb, var(--success) 30%, transparent); }

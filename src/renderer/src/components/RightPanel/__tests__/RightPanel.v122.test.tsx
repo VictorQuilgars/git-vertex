@@ -35,18 +35,18 @@ function render(props: Record<string, any> = {}, changes: any = CHANGES) {
 describe('Staging panel — per-file line counts (v1.22.0)', () => {
   test('shows +additions and −deletions for a file git reported counts for', async () => {
     render()
-    await waitFor(() => expect(screen.getByText('src/a.ts')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTitle('src/a.ts')).toBeInTheDocument())
     expect(screen.getByText('+12')).toBeInTheDocument()
     expect(screen.getByText('−3')).toBeInTheDocument()
   })
 
   test('shows nothing rather than +0 −0 when git reported no counts', async () => {
     const { container } = render()
-    await waitFor(() => expect(screen.getByText('assets/logo.png')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTitle('assets/logo.png')).toBeInTheDocument())
     // The binary row exists but carries no stat block — "unknown" must not be
     // displayed as a genuine zero-line change.
     const rows = [...container.querySelectorAll('.stx-row')]
-    const binRow = rows.find(r => r.textContent?.includes('assets/logo.png'))!
+    const binRow = rows.find(r => r.querySelector('[title="assets/logo.png"]'))!
     expect(binRow.querySelector('.st-numstat')).toBeNull()
     expect(screen.queryByText('+0')).not.toBeInTheDocument()
   })
@@ -57,7 +57,7 @@ describe('Staging panel — per-file line counts (v1.22.0)', () => {
       unstaged: [{ path: 'src/b.ts', status: 'M', additions: 2, deletions: 4 }],
       untracked: [],
     })
-    await waitFor(() => expect(screen.getByText('src/b.ts')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTitle('src/b.ts')).toBeInTheDocument())
     // One row for the file, reporting everything changed against HEAD.
     expect(screen.getByText('+7')).toBeInTheDocument()
     expect(screen.getByText('−5')).toBeInTheDocument()
@@ -65,21 +65,23 @@ describe('Staging panel — per-file line counts (v1.22.0)', () => {
 })
 
 describe('Staging panel — header actions (v1.22.0)', () => {
-  test('a staged-count badge distinguishes staged from merely changed', async () => {
+  test('the header says how many are staged out of how many changed', async () => {
     render()
-    await waitFor(() => expect(screen.getByText('src/a.ts')).toBeInTheDocument())
-    expect(screen.getByText(/1 STAGED/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTitle('src/a.ts')).toBeInTheDocument())
+    expect(screen.getByText(/1 of 3 staged/i)).toBeInTheDocument()
   })
 
-  test('no staged badge when nothing is staged', async () => {
+  // The count is the header's second fact and it is always there — "0 of 1
+  // staged" is the state that matters most, not the one to hide.
+  test('the staged count is there at zero too, and says zero', async () => {
     render({}, { staged: [], unstaged: [{ path: 'x.ts', status: 'M' }], untracked: [] })
     await waitFor(() => expect(screen.getByText('x.ts')).toBeInTheDocument())
-    expect(screen.queryByText(/STAGED/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/0 of 1 staged/i)).toBeInTheDocument()
   })
 
   test('stash is reachable from the staging header, not just the toolbar', async () => {
     const { api } = render()
-    await waitFor(() => expect(screen.getByText('src/a.ts')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTitle('src/a.ts')).toBeInTheDocument())
     await userEvent.click(screen.getByRole('button', { name: /stash all changes/i }))
     expect(api.createStash).toHaveBeenCalled()
   })
@@ -88,7 +90,7 @@ describe('Staging panel — header actions (v1.22.0)', () => {
     const writeText = jest.fn().mockResolvedValue(undefined)
     Object.assign(navigator, { clipboard: { writeText } })
     render()
-    await waitFor(() => expect(screen.getByText('src/a.ts')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTitle('src/a.ts')).toBeInTheDocument())
 
     await userEvent.click(screen.getByRole('button', { name: /copy file list/i }))
     expect(writeText).toHaveBeenCalledWith(
@@ -107,13 +109,13 @@ describe('Branch strip (v1.22.0)', () => {
 
   test('is absent unless the host supplies it', async () => {
     const { container } = render()
-    await waitFor(() => expect(screen.getByText('src/a.ts')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTitle('src/a.ts')).toBeInTheDocument())
     expect(container.querySelector('.bstrip')).toBeNull()
   })
 
   test('shows the branch and its ahead/behind counts inside the panel', async () => {
     const { container } = render({ branchStrip: strip() })
-    await waitFor(() => expect(screen.getByText('src/a.ts')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTitle('src/a.ts')).toBeInTheDocument())
     // Scoped to the strip: the panel's topbar also prints the branch name.
     const bstrip = container.querySelector('.bstrip')!
     expect(within(bstrip as HTMLElement).getByText('feature/x')).toBeInTheDocument()

@@ -18,6 +18,19 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧺 The staging pane, top to bottom
+- A header that names the pane and counts what is in it, with **Compare** and refresh.
+- **N of M staged** in the files header — the count that matters — and a filter field that is always there.
+- File rows: name before folder, \`+N −M\`, and copy / diff / hunks / discard on hover.
+- The footer is **Commit to ‹branch›**, greyed until ready. Type the message first; staging is a row action.
+
+### 🧭 A clean tree says what comes next
+- Working Changes with nothing to stage used to be an empty pane. It fills the panel now: **Next steps** (publish, push N, pull N, review what the branch would bring), **Launchpad** (how many pull requests are open), and **Start new** (an issue, a PR review, a stash, a worktree, a branch).
+- Every row is true of the repository or it is not drawn — no stash row without a stash, no *Publish* on a published branch.
+
+### 🧺 Working Changes is always there, and selected on open
+- A clean tree used to mean no row — and no way into the staging pane. The row is permanent now: \`✎N\` when there is something, a **✓ that stages all of it**, and nothing under it when the tree is clean.
+- The panel opens on it, so there are always two panes.
 ### 🧾 The commit pane says more per row
 - The header is **one line** — hash, parent, branch, and what the commit cost as \`+A ✎N −D\` — where it took four. The author's line reads *7 hours ago*; the full date is a tooltip away.
 - Each file row carries its own \`+N −M\`, puts the **name before the folder**, and offers history / open on remote / copy path on hover.

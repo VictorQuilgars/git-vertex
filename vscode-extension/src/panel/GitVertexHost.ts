@@ -491,6 +491,13 @@ export class GitVertexHost implements vscode.Disposable {
       // its App a callback and opens a tab directly, because the renderer owns
       // the tab strip there and a round trip through main would buy nothing.
       // Here the webview cannot open an editor tab itself, so it asks.
+      // The empty staging pane's Launchpad and Start-new rows land here: the
+      // GitHub tab carries the PR and issue lists, and the webview cannot open
+      // an editor tab itself.
+      case 'openGithubTab': {
+        openGitVertexGitHubTab(this._extensionUri, this._state, this._repoPath || '.')
+        return { success: true }
+      }
       case 'themesOpenGallery': {
         openGitVertexThemesTab(this._extensionUri, this._state, this._repoPath || '.')
         return { success: true }

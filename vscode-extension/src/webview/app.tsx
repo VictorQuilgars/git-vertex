@@ -56,6 +56,12 @@ declare global { interface Window { gitAPI: any; appInfo: any } }
 // shape allows. In the desktop they stack, from the same component.
 const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
 
+/** The virtual commit that stands for the working tree. One literal, not three. */
+const WIP_NODE: CommitNode = {
+  hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
+  author: '', authorEmail: '', date: '', parents: [], refs: [],
+}
+
 function VertexApp() {
   const { t } = useLang();
   const { get: getSetting } = useSettings()
@@ -90,7 +96,11 @@ function VertexApp() {
   const [currentBranch, setCurrentBranch] = useState('')
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
   const [repoName, setRepoName] = useState('')
-  const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
+  // Working Changes is selected on open, so the panel always has two panes:
+  // the graph and whatever the selection is. Nothing selected used to mean no
+  // right pane at all — which read as a broken panel, and for a clean tree it
+  // meant the staging pane could not be reached.
+  const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(WIP_NODE)
   const [wipCount, setWipCount] = useState(0)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   // path → unmerged state, so the panel can tell a modify/delete from a content
@@ -134,7 +144,7 @@ function VertexApp() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [lastFetch, setLastFetch] = useState<Date | null>(null)
-  const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
+  const [tracking, setTracking] = useState<{ ahead: number; behind: number; upstream?: string | null }>({ ahead: 0, behind: 0 })
   const isLoadingRef = useRef(false)
   // A load asked for while another runs is remembered and re-run rather than
   // dropped: for a background refresh the next watcher event would cover it,
@@ -186,7 +196,7 @@ function VertexApp() {
       } catch { /* ignore */ }
       try {
         const tr = await window.gitAPI.getTracking()
-        setTracking({ ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0 })
+        setTracking({ ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0, upstream: tr?.upstream ?? null })
       } catch { /* no upstream */ }
       try {
         const info = await window.gitAPI.appGetInfo()
@@ -845,8 +855,46 @@ function VertexApp() {
   // Branch strip shown above the staging file list (v1.22.0). Everything here
   // already existed on the toolbar or in the ⋮ menu — this only brings it into
   // the panel, where the files are.
+  // What the staging pane says on a clean tree. Every row is derived from the
+  // repository's state — no "Publish" on a published branch — and the actions
+  // are the handlers the rest of the panel already has.
+  const emptyState = {
+    state: {
+      branch: currentBranch,
+      hasUpstream: tracking.upstream !== undefined ? !!tracking.upstream : undefined,
+      remoteName: remoteNames[0] ?? 'origin',
+      ahead: tracking.ahead,
+      behind: tracking.behind,
+      // Derived from the sidebar's own list (#112) — one fetch, two readers.
+      openPRs: githubPRs?.length,
+    },
+    actions: {
+      onPublish: tracking.upstream ? undefined : () => handleSetUpstream(currentBranch),
+      onPush: handlePush,
+      onPull: handlePull,
+      // What this branch would bring — the compare a pull request would show.
+      // Only when there is a default branch and we are not on it: comparing a
+      // branch with itself is not a review.
+      onReviewChanges: defaultBranch && currentBranch && currentBranch !== defaultBranch
+        ? () => window.gitAPI.openCompare(defaultBranch, currentBranch)
+        : undefined,
+      onShowPRs: githubPRs !== undefined ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      onStartFromIssue: githubRepo ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      onStartReviewPR: githubPRs?.length ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      // The stash, worktree and branch lists live on the rail; the row takes
+      // you to the list where the action is, which is the honest wiring.
+      onApplyStash: stashCount > 0
+        ? () => { setActiveView('stash'); lastViewRef.current = 'stash' } : undefined,
+      onCreateWorktree: () => { setActiveView('worktrees'); lastViewRef.current = 'worktrees' },
+      onCreateBranch: handleNewBranch,
+      onSwitchBranch: () => { setActiveView('branches'); lastViewRef.current = 'branches' },
+    },
+  }
+
   const branchStripProps = {
     branch: currentBranch,
+    // The working tree against HEAD — what "compare" means on the staging pane.
+    onCompareWorking: () => window.gitAPI.openCompareWorkingTab('HEAD'),
     ahead: tracking.ahead,
     behind: tracking.behind,
     onPush: handlePush,
@@ -1034,6 +1082,12 @@ function VertexApp() {
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              alwaysShowWip
+              onStageAll={async () => {
+                const r = await window.gitAPI.stageAll()
+                if (r?.success === false) showToast(r.error ?? t('toast.err', ''), 'err')
+                loadRepoData(true)
+              }}
               trackingFor={(name) => {
                 const b = branches.find(x => x.name === name)
                 return b ? { ahead: b.ahead, behind: b.behind } : null
@@ -1111,12 +1165,7 @@ function VertexApp() {
                 showToast={showToast}
                 currentBranch={currentBranch}
                 wipCount={wipCount}
-                onViewWip={() => setSelectedCommit(prev =>
-                  prev?.hash === '__WIP__' ? null : {
-                    hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
-                    author: '', authorEmail: '', date: '', parents: [], refs: []
-                  }
-                )}
+                onViewWip={() => setSelectedCommit(prev => prev?.hash === '__WIP__' ? null : WIP_NODE)}
                 onSelectCommit={(hash) => {
                   const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                   if (found) setSelectedCommit(found)
@@ -1135,6 +1184,7 @@ function VertexApp() {
                 onRestoreFile={handleRestoreFile}
                 onOpenFileHistory={(file: string) => (window.gitAPI as any).openFileHistory(file)}
                 branchStrip={branchStripProps}
+                emptyState={emptyState}
               />
             </div>
           </>
