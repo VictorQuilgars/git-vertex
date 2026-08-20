@@ -652,16 +652,18 @@
    lines: state icon, number and title, then author · age · comments; the
    labels are dots, their names a tooltip away. Width is the scarce resource
    here — the full card belongs to the GitHub tab. */
-.sb-gh-row { display: flex; align-items: flex-start; gap: var(--space-sm); min-width: 0; cursor: pointer; padding-block: 4px; position: relative; }
+.sb-gh-row { display: flex; align-items: flex-start; gap: var(--space-sm); min-width: 0; cursor: pointer; padding-block: 4px; }
+/* The kebab holds the right edge of the first line — where the label dots
+   used to sit — and shows itself on hover. The width is reserved even
+   hidden, so the title's truncation point does not move. */
 .sb-gh-kebab {
-  position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
   display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; padding: 0;
-  background: var(--surface-hover); border: none; border-radius: var(--radius-xs);
+  width: 20px; height: 18px; padding: 0; margin-left: auto; flex-shrink: 0;
+  background: transparent; border: none; border-radius: var(--radius-xs);
   color: var(--text-secondary); cursor: pointer; opacity: 0;
 }
 .sb-gh-row:hover .sb-gh-kebab, .sb-gh-kebab:focus-visible { opacity: 1; }
-.sb-gh-kebab:hover { color: var(--text-primary); }
+.sb-gh-kebab:hover { background: var(--surface-hover); color: var(--text-primary); }
 .sb-gh-state { display: inline-flex; flex-shrink: 0; margin-top: 1px; color: var(--success-emphasis); }
 .sb-gh-state--draft { color: var(--text-tertiary); }
 .sb-gh-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
@@ -673,8 +675,6 @@
   color: var(--text-tertiary); border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm); padding: 0 4px;
 }
-.sb-gh-dots { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; margin-left: auto; }
-.sb-gh-dot { width: 7px; height: 7px; border-radius: 50%; }
 .sb-gh-meta {
   display: flex; align-items: center; gap: var(--space-sm); min-width: 0;
   color: var(--text-tertiary); font-size: var(--text-micro);

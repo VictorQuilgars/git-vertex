@@ -109,11 +109,13 @@ describe('the rows carry what the endpoints return', () => {
     expect(screen.getByText('3')).toBeInTheDocument()
   })
 
-  test('labels are dots, their names a tooltip away', () => {
+  // The labels are NOT on the row — they live in the hover card and the
+  // detail. The right edge belongs to the kebab of actions.
+  test('no label dots on the row; the kebab holds that edge', () => {
     draw({ githubIssues: [rich] })
     unfold('GITHUB ISSUES')
-    const dots = screen.getByTitle('perf, P1')
-    expect(dots.querySelectorAll('.sb-gh-dot')).toHaveLength(2)
+    expect(document.querySelector('.sb-gh-dot')).not.toBeInTheDocument()
+    expect(document.querySelector('.sb-gh-line1 .sb-gh-kebab')).toBeInTheDocument()
   })
 
   // A host still sending the narrow shape gets the narrow row — no empty

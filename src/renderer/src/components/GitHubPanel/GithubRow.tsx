@@ -16,8 +16,9 @@ import { useLang } from '../../i18n/LanguageContext'
  *
  * - full (the tab): the three-line card — title line, meta line, label chips.
  * - compact (the sidebar): two lines — state icon, number and title, then
- *   author · age · comments — with the labels reduced to coloured dots, the
- *   names a tooltip away. Width is the scarce resource there.
+ *   author · age · comments. The labels live in the hover card and the
+ *   detail, not on the row — width is the scarce resource there, and the
+ *   kebab of actions has the right edge.
  *
  * Fields beyond number/title/url are optional: a host that still sends the
  * old narrow shape gets the old narrow row, not a row of empty separators.
@@ -61,17 +62,6 @@ export function LabelChip({ label }: { label: GithubLabel }) {
   return (
     <span className="ghp-label" style={{ background: bg, borderColor: border, color }}>
       {label.name}
-    </span>
-  )
-}
-
-/** The compact cut of the same information: a dot per label, names in the tooltip. */
-function LabelDots({ labels }: { labels: GithubLabel[] }) {
-  return (
-    <span className="sb-gh-dots" title={labels.map(l => l.name).join(', ')}>
-      {labels.slice(0, 5).map(l => (
-        <span key={l.name} className="sb-gh-dot" style={{ background: `#${l.color}` }} />
-      ))}
     </span>
   )
 }
@@ -151,7 +141,16 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
             <span className="sb-gh-num">#{item.number}</span>
             <span className="sb-gh-title">{item.title}</span>
             {item.draft && <span className="sb-gh-draft">{t('sb.github.draft')}</span>}
-            {(item.labels?.length ?? 0) > 0 && <LabelDots labels={item.labels!} />}
+            {menuItems.length > 0 && (
+              <button className="sb-gh-kebab" title={t('gh.row.actions')}
+                onClick={e => {
+                  e.stopPropagation()
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  setCtx({ x: r.left, y: r.bottom + 4 })
+                }}>
+                <Icon name="kebab" size={13} />
+              </button>
+            )}
           </span>
           {hasMeta && (
             <span className="sb-gh-meta">
@@ -163,16 +162,6 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
             </span>
           )}
         </span>
-        {menuItems.length > 0 && (
-          <button className="sb-gh-kebab" title={t('gh.row.actions')}
-            onClick={e => {
-              e.stopPropagation()
-              const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-              setCtx({ x: r.left, y: r.bottom + 4 })
-            }}>
-            <Icon name="kebab" size={13} />
-          </button>
-        )}
       </div>
       {ctx && menuItems.length > 0 && (
         <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={menuItems} />
