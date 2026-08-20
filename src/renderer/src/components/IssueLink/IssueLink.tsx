@@ -138,6 +138,21 @@ function PlainAutolink({ text, url }: { text: string; url: string }) {
  * slash, digits only). A repository with no GitHub remote still gets its
  * autolinks: they have nothing to do with the forge.
  */
+/**
+ * Whether `text` carries any reference linkifyIssues would render — the same
+ * list, so the "no autolinks found" line can never disagree with the links.
+ */
+export function hasIssueReferences(
+  text: string,
+  repo: IssueRepo | null | undefined,
+  autolinks: Autolink[] = [],
+): boolean {
+  if (!text) return false
+  const links = [...autolinks]
+  if (repo) links.push({ prefix: '#', url: '#' })
+  return findAutolinks(text, links).length > 0
+}
+
 export function linkifyIssues(
   text: string,
   repo: IssueRepo | null | undefined,

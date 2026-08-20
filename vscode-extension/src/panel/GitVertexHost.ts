@@ -728,15 +728,17 @@ export class GitVertexHost implements vscode.Disposable {
         // Cached per repo+hash in globalState — a hash's diff is immutable,
         // so a stored explanation never goes stale. args[1] forces a redo.
         const all = this._state.get<Record<string, Record<string, string>>>('gvAiExplanations', {})
-        if (!args[1] && this._repoPath && all[this._repoPath]?.[args[0]]) {
+        // A guided explanation answers a different question: no cache read, no
+        // cache write — see the desktop handler, which makes the same call.
+        if (!args[1] && !String(args[2] ?? '').trim() && this._repoPath && all[this._repoPath]?.[args[0]]) {
           return { explanation: all[this._repoPath][args[0]], cached: true }
         }
         const cfg = readAIConfig(this._state)
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const subject = (await svc.raw(['log', '-1', '--pretty=format:%s', args[0]]).catch(() => '')).trim()
-        const r = await aiExplainCommit(cfg, diff, subject)
-        if (!(r as any).error && this._repoPath) {
+        const r = await aiExplainCommit(cfg, diff, subject, args[2])
+        if (!(r as any).error && this._repoPath && !String(args[2] ?? '').trim()) {
           const repo = all[this._repoPath] ?? {}
           repo[args[0]] = (r as any).explanation ?? ''
           const keys = Object.keys(repo)

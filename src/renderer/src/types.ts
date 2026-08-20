@@ -306,7 +306,7 @@ declare global {
       aiGetApiKey: () => Promise<{ key: string | null }>
       aiSetApiKey: (key: string) => Promise<R>
       aiRecomposeCommit: (hash: string) => Promise<Unnarrowed>
-      aiExplainCommit: (hash: string, force?: boolean) => Promise<Unnarrowed>
+      aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => Promise<Unnarrowed>
       aiGetExplanations: () => Promise<Unnarrowed>
       aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
       aiSearchCommits: (query: string) => Promise<Unnarrowed>

@@ -1764,9 +1764,12 @@ ipcMain.handle('ai:get-explanations', () => {
   return { explanations: readExplCache()[gitService.repoPath] ?? {} }
 })
 
-ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false) => {
+ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guidance?: string) => {
   if (!gitService) return { error: 'No repository open' }
-  if (!force) {
+  // A guided explanation is an answer to a different question: it neither
+  // reads nor writes the cache, or an unguided request would later be served
+  // someone else's focus.
+  if (!force && !guidance?.trim()) {
     const cached = readExplCache()[gitService.repoPath]?.[hash]
     if (cached) return { explanation: cached, cached: true }
   }
@@ -1779,10 +1782,13 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false) => {
   } catch { return { error: 'Failed to get the commit diff' } }
   if (!diff.trim()) return { error: 'This commit has no changes to analyze (merge commit?)' }
 
-  const prompt = `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files/behaviors change and why it was probably done. 3 to 6 sentences maximum, no bullet lists, no preamble.\n\nCommit message: ${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
+  const guided = guidance?.trim()
+    ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
+    : ''
+  const prompt = `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files/behaviors change and why it was probably done. 3 to 6 sentences maximum, no bullet lists, no preamble.${guided}\n\nCommit message: ${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
   const r = await runAIPrompt(prompt, 768)
   if (r.error) return { error: r.error }
-  saveExplanation(gitService.repoPath, hash, r.text ?? '')
+  if (!guidance?.trim()) saveExplanation(gitService.repoPath, hash, r.text ?? '')
   return { explanation: r.text }
 })
 

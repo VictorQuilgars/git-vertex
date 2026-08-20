@@ -26,6 +26,7 @@ import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
 import WorkingChangesEmpty, { type NextStepsState, type NextStepsActions } from './WorkingChangesEmpty'
+import { hasIssueReferences } from '../IssueLink/IssueLink'
 
 function detectLang(filename: string): string | undefined {
   const ext = filename.split('.').pop()?.toLowerCase()
@@ -255,6 +256,21 @@ function fmtDate(s: string, locale: string) {
  * full date is the tooltip — it is the one place someone looks for it. Reuses
  * the graph's relative-time keys rather than growing a second set.
  */
+// The signed-in identity, by git's own config rather than a forge account: it
+// works offline and it is the same identity the commits carry. One fetch per
+// webview session — module state, like the issue cache above.
+let selfEmailCache: string | null | undefined
+async function selfEmail(): Promise<string | null> {
+  if (selfEmailCache !== undefined) return selfEmailCache ?? null
+  try {
+    const cfg = await (window.gitAPI as any).gitGetGlobalConfig()
+    selfEmailCache = cfg?.userEmail?.trim().toLowerCase() || null
+  } catch { selfEmailCache = null }
+  return selfEmailCache ?? null
+}
+/** Test-only: the cache outlives a jsdom render, tests do not. */
+export function __resetSelfEmailCache(): void { selfEmailCache = undefined }
+
 function fmtRelativeDate(s: string, t: (k: any, ...a: any[]) => string): string {
   try {
     const sec = Math.floor((Date.now() - new Date(s).getTime()) / 1000)
@@ -420,6 +436,18 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   // `refs.includes('HEAD')`, which is true only for the tip and says nothing
   // about the commits behind it.
   const [rewordPlan, setRewordPlan] = useState<RewordPlan | null>(null)
+  // "You" instead of the name when the author is the person at the keyboard —
+  // by git's own identity, which is the one the commits carry.
+  const [isSelf, setIsSelf] = useState(false)
+  const [explainGuidance, setExplainGuidance] = useState('')
+  const [cdFileFilter, setCdFileFilter] = useState('')
+  useEffect(() => {
+    let alive = true
+    void selfEmail().then(me => {
+      if (alive) setIsSelf(!!me && me === commit.authorEmail?.trim().toLowerCase())
+    })
+    return () => { alive = false }
+  }, [commit.authorEmail])
   // AI menu on the "Recompose commit with AI" button
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; path: string } | null>(null)
   const { get } = useSettings()
@@ -515,17 +543,19 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
     }
   }, [commit.hash, canEditMessage, showToast, t])
 
-  const runAiExplain = useCallback(async (force = false) => {
+  const runAiExplain = useCallback(async (force = false, guidance?: string) => {
     setAiBusy(true)
     if (force) setAiExplanation(null)
     try {
-      const r = await (window.gitAPI as any).aiExplainCommit(commit.hash, force)
+      const r = await (window.gitAPI as any).aiExplainCommit(commit.hash, force, guidance)
       if (r.error) {
         showToast?.(r.error === 'NO_API_KEY' ? t('panel.aiNoKey') : r.error, 'err')
         return
       }
       setAiExplanation(r.explanation)
-      setCachedExplanation(r.explanation)
+      // A guided answer is not the commit's canonical explanation: it answers
+      // the guidance. The hosts skip their caches for it; so does this one.
+      if (!guidance?.trim()) setCachedExplanation(r.explanation)
       setExplOpen(true)
     } catch (e: any) {
       showToast?.(e?.message ?? 'AI error', 'err')
@@ -550,6 +580,10 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 
   // What the one-line header says. Summed here rather than asked for: the
   // per-file counts already arrive with the file list.
+  // The filter is a display lens, the staging pane's rule: the header count
+  // keeps counting every file, shown or not.
+  const cdq = cdFileFilter.trim().toLowerCase()
+  const visibleCdFiles = cdq ? files.filter(f => f.path.toLowerCase().includes(cdq)) : files
   const totalAdd = files.reduce((n, f) => n + (f.additions ?? 0), 0)
   const totalDel = files.reduce((n, f) => n + (f.deletions ?? 0), 0)
   const headRefs = commit.refs
@@ -617,8 +651,22 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             />
           ) : (
             <>
+              <button className="cd-copy-msg" title={t('panel.copyMessage')}
+                onClick={e => {
+                  e.stopPropagation()
+                  navigator.clipboard.writeText(commit.message + (cleanBody ? '\n\n' + cleanBody : ''))
+                }}>
+                <Icon name="copy" size={12} />
+              </button>
               <p className="cd-title">{linkifyIssues(commit.message, githubRepo, autolinks)}</p>
               {cleanBody && <pre className="cd-body">{linkifyIssues(cleanBody, githubRepo, autolinks)}</pre>}
+              {/* The honest empty state: the references line says when there is
+                  nothing on it, instead of silently being absent. */}
+              {!hasIssueReferences(commit.message + '\n' + cleanBody, githubRepo, autolinks) && (
+                <div className="cd-no-autolinks">
+                  <Icon name="info" size={12} />{t('panel.noAutolinks')}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -686,7 +734,9 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           <div className="cd-author-block">
             <GravatarAvatar email={commit.authorEmail} name={commit.author} sha={commit.hash} size={32} radius={6} />
             <div className="cd-author-mid">
-              <span className="cd-author-name">{commit.author}</span>
+              <span className="cd-author-name" title={commit.author}>
+                {isSelf ? t('panel.you') : commit.author}
+              </span>
               <span className="cd-author-meta" title={fmtDate(commit.date, t('graph.dateLocale'))}>
                 {fmtRelativeDate(commit.date, t)}
               </span>
@@ -747,25 +797,62 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
             </div>
           )}
 
-          {/* Files bar */}
+          {/* Explain, inline. The guidance is real — it reaches the prompt —
+              which is the only reason the field exists. Outlined in the
+              model's colour, never filled: it is a proposal, not the pane. */}
+          <div className="cd-explain-row">
+            <input
+              className="cd-explain-input"
+              placeholder={t('panel.explainGuidance')}
+              value={explainGuidance}
+              onChange={e => setExplainGuidance(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !aiBusy) runAiExplain(true, explainGuidance)
+              }}
+            />
+            <button className="cd-explain-btn" disabled={aiBusy}
+              onClick={() => runAiExplain(true, explainGuidance)}>
+              <Icon name="ai" size={12} />
+              <span>{aiBusy ? '…' : t('panel.explainBtn')}</span>
+            </button>
+          </div>
+
+          {/* Files bar — the header names the list and counts it; the tools are
+              icons. The sort button that used to sit here had no onClick: a
+              dead control, shipped, of exactly the class panelSurface.test.ts
+              polices host methods for. Removed rather than wired — the list
+              has no sort state to wire it to. */}
           <div className="cd-files-bar">
-            <button className="cd-sort-btn" title={t('rp.sort')}>
-              <Icon name="sort" size={13} />
+            <span className="cd-files-title">{t('panel.filesChanged')}</span>
+            <span className="cd-files-count">{files.length}</span>
+            <div className="cd-files-spring" />
+            <button className="cd-tool-btn" title={t('panel.copyFileList')}
+              onClick={() => navigator.clipboard.writeText(files.map(f => f.path).join('\n'))}>
+              <Icon name="copy" size={12} />
             </button>
             <div className="cd-view-toggle">
-              <button className={`cd-view-btn ${!cdTreeMode ? 'active' : ''}`} onClick={() => { setView('files'); setCdTreeMode(false); localStorage.setItem('cd-tree-mode', 'false') }}>
+              <button className={`cd-view-btn ${!cdTreeMode ? 'active' : ''}`} title="Path"
+                onClick={() => { setView('files'); setCdTreeMode(false); localStorage.setItem('cd-tree-mode', 'false') }}>
                 <Icon name="list" size={11} />
-                Path
               </button>
-              <button className={`cd-view-btn ${cdTreeMode ? 'active' : ''}`} onClick={() => setCdTreeMode(v => { localStorage.setItem('cd-tree-mode', String(!v)); return !v })}>
+              <button className={`cd-view-btn ${cdTreeMode ? 'active' : ''}`} title="Tree"
+                onClick={() => setCdTreeMode(v => { localStorage.setItem('cd-tree-mode', String(!v)); return !v })}>
                 <Icon name="listTree" size={11} />
-                Tree
               </button>
             </div>
             <label className="cd-viewall">
               <input type="checkbox" checked={viewAll} onChange={e => setViewAll(e.target.checked)} />
               <span>{t('rp.allFiles')}</span>
             </label>
+          </div>
+          {/* The filter is a field, always there — the staging pane's rule,
+              applied to the commit's list. */}
+          <div className="st-filter st-filter--always">
+            <Icon name="search" size={12} />
+            <input type="text" className="st-filter-input"
+              placeholder={t('panel.filter.placeholder')} value={cdFileFilter}
+              onChange={e => setCdFileFilter(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setCdFileFilter('') } }} />
           </div>
 
           {/* File list */}
@@ -798,7 +885,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           {view === 'files' && (
             <div className="rp-file-list">
               {cdTreeMode
-                ? buildTree(files.map(f => ({ path: f.path, status: f.status ?? 'M' }))).map(node => (
+                ? buildTree(visibleCdFiles.map(f => ({ path: f.path, status: f.status ?? 'M' }))).map(node => (
                     <TreeFileRow key={node.fullPath} node={node} depth={0}
                       onAction={() => {}}
                       actionIcon=""
@@ -808,7 +895,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                       isSelected={selectedFile === node.fullPath}
                     />
                   ))
-                : files.map((f, i) => {
+                : visibleCdFiles.map((f, i) => {
                     const { dir, name } = formatPath(f.path)
                     const s = f.status ?? 'M'
                     return (
@@ -856,6 +943,9 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                 <div className="rp-empty">
                   {filesLoading ? t('panel.loading') : t('panel.noFileChanged')}
                 </div>
+              )}
+              {files.length > 0 && visibleCdFiles.length === 0 && (
+                <div className="rp-empty">{t('panel.filter.noMatch', cdFileFilter.trim())}</div>
               )}
             </div>
           )}
