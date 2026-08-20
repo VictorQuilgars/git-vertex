@@ -24,7 +24,7 @@ import './GithubHoverCard.css'
  * all rather than an empty frame.
  */
 export function useHoverCard(delayMs = 400) {
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
+  const [pos, setPos] = useState<{ left: number; top: number; maxHeight: number } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inside = useRef(false)
 
@@ -33,8 +33,12 @@ export function useHoverCard(delayMs = 400) {
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       const left = Math.min(row.right + 10, Math.max(0, window.innerWidth - 540))
-      const top = Math.max(8, Math.min(row.top, window.innerHeight - 220))
-      setPos({ left, top })
+      // Near the bottom of the window the card opens higher than its row so
+      // it keeps at least ~380px; whatever the top ends up being, the card's
+      // ceiling is measured from it — it ends above the window's edge and
+      // scrolls inside, never under it.
+      const top = Math.max(8, Math.min(row.top, window.innerHeight - 380))
+      setPos({ left, top, maxHeight: window.innerHeight - top - 12 })
     }, delayMs)
   }, [delayMs])
 
@@ -54,14 +58,14 @@ export function useHoverCard(delayMs = 400) {
 
 export default function GithubHoverCard({ item, pos, inside, onClose, onOpen }: {
   item: GithubRowItem
-  pos: { left: number; top: number }
+  pos: { left: number; top: number; maxHeight: number }
   inside: React.MutableRefObject<boolean>
   onClose: () => void
   onOpen?: (url: string) => void
 }) {
   const { t } = useLang()
   return createPortal(
-    <div className="ghc" style={{ left: pos.left, top: pos.top }}
+    <div className="ghc" style={{ left: pos.left, top: pos.top, maxHeight: pos.maxHeight }}
       onMouseEnter={() => { inside.current = true }}
       onMouseLeave={() => { inside.current = false; onClose() }}
       onClick={e => e.stopPropagation()}>

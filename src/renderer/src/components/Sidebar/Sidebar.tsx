@@ -1193,7 +1193,7 @@ export default function Sidebar({
               beside the branches, and a tab would replace what is being worked
               on. Absent entirely when the host has no GitHub here. */}
           {githubPRs && show('prs') && (
-            <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single || githubPRs.length > 0}>
+            <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single}>
               {githubPRs.length === 0
                 ? <div className="sb-empty">{t('sb.github.noPRs')}</div>
                 : githubPRs.map(pr => (
@@ -1205,7 +1205,7 @@ export default function Sidebar({
 
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
-            <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single || githubIssues.length > 0}>
+            <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single}>
               {githubIssues.length === 0
                 ? <div className="sb-empty">{t('sb.github.noIssues')}</div>
                 : githubIssues.map(issue => (

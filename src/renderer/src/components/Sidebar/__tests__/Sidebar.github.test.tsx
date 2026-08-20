@@ -39,6 +39,10 @@ beforeEach(() => {
 })
 
 const draw = (props: any) => renderWithProviders(<Sidebar {...base} {...props} />)
+// The sections start folded — the graph is the point of the window, and the
+// header's count already says what is behind. Tests about rows open them the
+// way a person does.
+const unfold = (title: string) => fireEvent.click(screen.getByText(title))
 
 describe('the GitHub sections of the sidebar', () => {
   test('no GitHub here means no sections at all', () => {
@@ -56,6 +60,14 @@ describe('the GitHub sections of the sidebar', () => {
     expect(screen.getByText('GITHUB ISSUES')).toBeInTheDocument()
   })
 
+  test('the sections start folded, whatever they hold', () => {
+    draw({ githubPRs: [{ number: 1, title: 'A PR', url: 'u' }], githubIssues: [] })
+    expect(screen.getByText('PULL REQUESTS')).toBeInTheDocument()
+    expect(screen.queryByText('A PR')).not.toBeInTheDocument()
+    unfold('PULL REQUESTS')
+    expect(screen.getByText('A PR')).toBeInTheDocument()
+  })
+
   test('rows carry the number and the title, and a draft says it is one', () => {
     draw({
       githubPRs: [
@@ -64,6 +76,7 @@ describe('the GitHub sections of the sidebar', () => {
       ],
       githubIssues: [{ number: 7, title: 'Crash on open', url: 'https://x/7' }],
     })
+    unfold('PULL REQUESTS'); unfold('GITHUB ISSUES')
     expect(screen.getByText('#12')).toBeInTheDocument()
     expect(screen.getByText('Fix the login')).toBeInTheDocument()
     expect(screen.getByText(/draft/i)).toBeInTheDocument()
@@ -90,6 +103,7 @@ describe('the rows carry what the endpoints return', () => {
 
   test('author, age and comment count are on the second line', () => {
     draw({ githubIssues: [rich] })
+    unfold('GITHUB ISSUES')
     expect(screen.getByText('@alice')).toBeInTheDocument()
     expect(screen.getByText(/2\s?d|2 j/)).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
@@ -97,6 +111,7 @@ describe('the rows carry what the endpoints return', () => {
 
   test('labels are dots, their names a tooltip away', () => {
     draw({ githubIssues: [rich] })
+    unfold('GITHUB ISSUES')
     const dots = screen.getByTitle('perf, P1')
     expect(dots.querySelectorAll('.sb-gh-dot')).toHaveLength(2)
   })
@@ -105,6 +120,7 @@ describe('the rows carry what the endpoints return', () => {
   // separators claiming metadata that never arrived.
   test('the narrow shape renders without a meta line', () => {
     draw({ githubIssues: [{ number: 7, title: 'Crash on open', url: 'https://x/7' }] })
+    unfold('GITHUB ISSUES')
     expect(screen.getByText('Crash on open')).toBeInTheDocument()
     expect(document.querySelector('.sb-gh-meta')).not.toBeInTheDocument()
   })
@@ -114,6 +130,7 @@ describe('the rows carry what the endpoints return', () => {
       githubPRs: [{ number: 1, title: 'Open', url: 'u' }, { number: 2, title: 'Draft', url: 'u2', draft: true }],
       githubIssues: [rich],
     })
+    unfold('PULL REQUESTS'); unfold('GITHUB ISSUES')
     expect(document.querySelectorAll('.sb-gh-state')).toHaveLength(3)
     expect(document.querySelectorAll('.sb-gh-state--draft')).toHaveLength(1)
   })
@@ -124,6 +141,7 @@ describe('the affordances follow their handlers', () => {
 
   test('right-click on an issue offers the branch only when the host can create one', async () => {
     draw({ githubIssues: [issue], onStartBranchFromIssue: undefined })
+    unfold('GITHUB ISSUES')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('The bug') })
     expect(screen.queryByText(/Branch for This Issue/i)).not.toBeInTheDocument()
   })
@@ -131,6 +149,7 @@ describe('the affordances follow their handlers', () => {
   test('with the handler, the menu creates the branch from that issue', async () => {
     const onStartBranchFromIssue = jest.fn()
     draw({ githubIssues: [issue], onStartBranchFromIssue })
+    unfold('GITHUB ISSUES')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('The bug') })
     const entry = await screen.findByText(/Branch for This Issue/i)
     await userEvent.click(entry)
@@ -140,12 +159,14 @@ describe('the affordances follow their handlers', () => {
   test('clicking a row goes through the open handler, not straight to a browser', async () => {
     const onOpenGithubItem = jest.fn()
     draw({ githubIssues: [issue], onOpenGithubItem })
+    unfold('GITHUB ISSUES')
     await userEvent.click(screen.getByText('The bug'))
     expect(onOpenGithubItem).toHaveBeenCalledWith('https://x/9')
   })
 
   test('a pull request row never offers a branch menu', async () => {
     draw({ githubPRs: [{ number: 3, title: 'A PR', url: 'u3' }], onStartBranchFromIssue: jest.fn() })
+    unfold('PULL REQUESTS')
     await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('A PR') })
     expect(screen.queryByText(/Branch for This Issue/i)).not.toBeInTheDocument()
   })
@@ -167,6 +188,7 @@ describe('the hover card over the graph', () => {
   afterEach(() => jest.useRealTimers())
 
   const hover = (text: string) => {
+    unfold('GITHUB ISSUES')
     fireEvent.mouseEnter(screen.getByText(text).closest('.sb-gh-row')!)
     act(() => { jest.advanceTimersByTime(450) })
   }
@@ -207,6 +229,16 @@ describe('the hover card over the graph', () => {
     fireEvent.mouseLeave(document.querySelector('.sb-gh-row')!)
     act(() => { jest.advanceTimersByTime(120) })
     expect(document.querySelector('.ghc')).not.toBeInTheDocument()
+  })
+
+  test('the card never runs past the bottom of the window', () => {
+    draw({ githubIssues: [rich] })
+    hover('Push notifications')
+    const card = document.querySelector('.ghc') as HTMLElement
+    const top = parseInt(card.style.top, 10)
+    const maxH = parseInt(card.style.maxHeight, 10)
+    expect(top + maxH).toBeLessThan(window.innerHeight)
+    expect(maxH).toBeGreaterThanOrEqual(300)
   })
 
   // The regression that froze the app: bold recurses into the inline parser,

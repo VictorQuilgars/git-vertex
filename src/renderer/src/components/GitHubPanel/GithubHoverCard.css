@@ -11,20 +11,20 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--bg-inset) var(--alpha-dense), transparent);
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-xl) var(--space-2xl);
   font-size: var(--text-sm);
 }
 
 .ghc-head {
   display: flex; align-items: baseline; gap: var(--space-sm);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 .ghc-num { color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .ghc-title { font-weight: var(--weight-semibold); }
 
-.ghc-cols { display: flex; gap: var(--space-xl); align-items: flex-start; }
+.ghc-cols { display: flex; gap: var(--space-2xl); align-items: flex-start; }
 .ghc-main { flex: 1 1 auto; min-width: 0; }
-.ghc-side { flex: 0 0 132px; display: flex; flex-direction: column; gap: var(--space-xs); }
+.ghc-side { flex: 0 0 140px; display: flex; flex-direction: column; gap: var(--space-sm); }
 /* The panel can be too narrow for two columns — the side column then wraps
    under the description instead of crushing it. */
 .ghc-cols { flex-wrap: wrap; }
@@ -32,17 +32,18 @@
 
 .ghc-label {
   font-size: var(--text-micro); letter-spacing: .06em; text-transform: uppercase;
-  color: var(--text-tertiary); margin-top: var(--space-sm);
+  color: var(--text-tertiary); margin-top: var(--space-lg);
 }
+.ghc-label:first-child { margin-top: 0; }
 .ghc-none { color: var(--text-tertiary); font-style: italic; }
 .ghc-status { color: var(--success-emphasis); }
 .ghc-status--draft { color: var(--text-tertiary); }
-.ghc-labels { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.ghc-labels { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
 .ghc-people { display: flex; flex-direction: column; gap: 2px; color: var(--text-secondary); }
 
 /* ── The rendered body ─────────────────────────────────────────────────── */
-.mdl { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
-.mdl-h { font-size: var(--text-sm); font-weight: var(--weight-semibold); margin-top: var(--space-sm); }
+.mdl { display: flex; flex-direction: column; gap: var(--space-md); min-width: 0; }
+.mdl-h { font-size: var(--text-sm); font-weight: var(--weight-semibold); margin-top: var(--space-md); }
 .mdl-p { margin: 0; color: var(--text-secondary); line-height: 1.45; overflow-wrap: anywhere; }
 .mdl-li {
   display: flex; gap: var(--space-sm); align-items: baseline;
