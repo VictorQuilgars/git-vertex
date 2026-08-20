@@ -18,6 +18,10 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧾 Pull requests and issues, in the left panel
+- Two sections among the branches and the tags, with their counts — the place you look at them is beside the rest of the repository, not in a tab that replaces it.
+- In the VS Code panel they are two more views on the activity rail.
+- No GitHub here, or nothing to authenticate with, means **no section** rather than an empty one.
 ### 📐 The commit list is rows, not a grid
 - The panel carried the desktop's columns in a fraction of the width, dropping an author here and a date there depending on how deep the graph was.
 - A commit is a row of two lines now: the message, then the branch it is on, its hash, its author and its date — each placed rather than columned. The date sits at the right edge.

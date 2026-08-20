@@ -4,6 +4,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧾 Pull requests and issues, in the left panel
+- Two sections among the branches and the tags, with their counts — the place you look at them is beside the rest of the repository, not in a tab that replaces it.
+- In the VS Code panel they are two more views on the activity rail.
+- No GitHub here, or nothing to authenticate with, means **no section** rather than an empty one.
+
 ### 🏢 GitHub Enterprise Server
 - Settings › GitHub takes an **instance host** and a **token for it**. Every call about a repository on that host goes there rather than to github.com — pull requests, issues, \`#123\` cards, opening a pull request, sharing a patch.
 - It is the same API on your own domain, so nothing else changes.
