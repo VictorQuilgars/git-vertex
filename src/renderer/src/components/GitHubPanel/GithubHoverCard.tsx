@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import MdLite from './mdLite'
 import { LabelChip, type GithubRowItem } from './GithubRow'
@@ -14,14 +14,15 @@ import './GithubHoverCard.css'
  * Positioning is the part with rules:
  * - to the right of the row's own edge, so it reads as coming from it;
  * - clamped to the viewport on every side — in the VS Code panel the whole
- *   webview can be 400px tall, so the card takes what exists and scrolls
- *   inside itself rather than growing past the window;
+ *   webview can be 400px tall, so the card takes what exists;
  * - a portal to <body>: the sidebar scrolls, a fixed card must not.
  *
- * The card stays while the pointer is inside it — a description longer than
- * the card scrolls, and scrolling means entering it. Leaving both closes.
- * Rows with nothing beyond number/title (an old host's shape) get no card at
- * all rather than an empty frame.
+ * The card is a PREVIEW, not a reader: it never scrolls. A description
+ * longer than the card is cut under a fade, and clicking the card opens the
+ * issue itself — seeing more is a click, not a scroll. It stays while the
+ * pointer is inside it, so the click can happen. Rows with nothing beyond
+ * number/title (an old host's shape) get no card at all rather than an
+ * empty frame.
  */
 export function useHoverCard(delayMs = 400) {
   const [pos, setPos] = useState<{ left: number; top: number; maxHeight: number } | null>(null)
@@ -64,11 +65,20 @@ export default function GithubHoverCard({ item, pos, inside, onClose, onOpen }: 
   onOpen?: (url: string) => void
 }) {
   const { t } = useLang()
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [cut, setCut] = useState(false)
+  // Overflow is a fact about the rendered card, so it is measured, not
+  // guessed: the fade and the hint appear only when something is hidden.
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (el) setCut(el.scrollHeight > el.clientHeight + 1)
+  }, [item])
   return createPortal(
-    <div className="ghc" style={{ left: pos.left, top: pos.top, maxHeight: pos.maxHeight }}
+    <div className="ghc" ref={ref}
+      style={{ left: pos.left, top: pos.top, maxHeight: pos.maxHeight }}
       onMouseEnter={() => { inside.current = true }}
       onMouseLeave={() => { inside.current = false; onClose() }}
-      onClick={e => e.stopPropagation()}>
+      onClick={e => { e.stopPropagation(); onOpen?.(item.url) }}>
       <div className="ghc-head">
         <span className="ghc-num">#{item.number}</span>
         <span className="ghc-title">{item.title}</span>
@@ -107,6 +117,11 @@ export default function GithubHoverCard({ item, pos, inside, onClose, onOpen }: 
           )}
         </div>
       </div>
+      {cut && (
+        <div className="ghc-fade">
+          <span className="ghc-more">{t('gh.card.clickToOpen')}</span>
+        </div>
+      )}
     </div>,
     document.body
   )

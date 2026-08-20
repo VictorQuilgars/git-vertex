@@ -231,6 +231,14 @@ describe('the hover card over the graph', () => {
     expect(document.querySelector('.ghc')).not.toBeInTheDocument()
   })
 
+  test('clicking the card opens the issue — the card is a preview, not a reader', () => {
+    const onOpenGithubItem = jest.fn()
+    draw({ githubIssues: [rich], onOpenGithubItem })
+    hover('Push notifications')
+    fireEvent.click(document.querySelector('.ghc')!)
+    expect(onOpenGithubItem).toHaveBeenCalledWith('https://x/24')
+  })
+
   test('the card never runs past the bottom of the window', () => {
     draw({ githubIssues: [rich] })
     hover('Push notifications')

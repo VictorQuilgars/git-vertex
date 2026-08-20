@@ -1,12 +1,13 @@
 /* The hover card of a sidebar GitHub row — opens over the graph, to the
-   right of the row, and scrolls inside itself rather than growing past the
-   window. Sized for the desktop, clamped for the panel. */
+   right of the row. A preview, not a reader: it never scrolls. What does
+   not fit is cut under a fade, and clicking the card opens the issue. */
 .ghc {
   position: fixed;
   z-index: var(--z-modal);
   width: min(520px, calc(100vw - 24px));
   max-height: min(560px, calc(100vh - 24px));
-  overflow-y: auto;
+  overflow: hidden;
+  cursor: pointer;
   background: var(--surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
@@ -62,3 +63,13 @@
   padding: 0 4px; font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs);
 }
 .mdl-link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+/* The cut: a fade over the last lines, with the way forward written on it. */
+.ghc-fade {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: var(--space-sm);
+  background: linear-gradient(to bottom, transparent, var(--surface) 75%);
+  pointer-events: none;
+}
+.ghc-more { color: var(--text-tertiary); font-size: var(--text-xs); }
