@@ -387,6 +387,7 @@ const fr = {
   'panel.loadingBlame': 'Chargement du blame…',
   'panel.noBlame': 'Aucune donnée de blame',
   'panel.copyHash': 'Copier le hash',
+  'panel.compareBtn': 'Comparer',
   'panel.clickToAmend': 'Cliquer pour modifier le message (amend)',
   'panel.clickToReword': (n: number) => `Cliquer pour modifier le message — réécrit ${n} commit${n > 1 ? 's' : ''}`,
   'panel.amendConfirm': 'Mettre à jour le message',
@@ -1807,6 +1808,7 @@ const en: typeof fr = {
   'panel.loadingBlame': 'Loading blame…',
   'panel.noBlame': 'No blame data',
   'panel.copyHash': 'Copy hash',
+  'panel.compareBtn': 'Compare',
   'panel.clickToAmend': 'Click to edit message (amend)',
   // Not the tip: say the cost in the tooltip, before the click.
   'panel.clickToReword': (n: number) => `Click to edit message — rewrites ${n} commit${n > 1 ? 's' : ''}`,

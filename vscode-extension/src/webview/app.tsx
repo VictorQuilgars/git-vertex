@@ -1104,6 +1104,7 @@ function VertexApp() {
                 </div>
               )}
               <RightPanel
+                onCompareWorking={(hash) => window.gitAPI.openCompareWorkingTab(hash)}
                 embedded
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}

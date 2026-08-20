@@ -46,21 +46,6 @@
 .cd-view-change-btn:hover { background: color-mix(in srgb, var(--wip-border) var(--alpha-muted), transparent); border-color: var(--wip-text); }
 
 /* Hash + AI row */
-.cd-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  padding: var(--space-sm) var(--space-xl);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-muted);
-  flex-shrink: 0;
-}
-.cd-hash-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
 .cd-label { font-size: var(--text-xs); color: var(--text-tertiary); }
 .cd-hash {
   font-family: 'JetBrains Mono', monospace;
@@ -75,44 +60,29 @@
 }
 .cd-hash:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-soft), transparent); }
 
-/* AI recompose button */
+/* The AI action — an icon with a menu, not a filled bar. It is a proposal the
+   model makes, and the design board says a proposal is never a filled button:
+   --seed-iris is what the model offers, --seed-aqua is what the human does. */
 .cd-ai-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 0 0 0 var(--space-lg);
+  justify-content: center;
+  width: 26px;
   height: 26px;
-  flex: 1;
-  background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple) 100%);
-  border: 1px solid var(--ai-border);
+  margin-left: auto;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
   border-radius: var(--radius-md);
-  color: var(--text-on-emphasis);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  color: var(--purple-text);
   cursor: pointer;
-  white-space: nowrap;
-  transition: filter var(--dur-fast);
-  overflow: hidden;
+  transition: background var(--dur-fast), border-color var(--dur-fast);
 }
-.cd-ai-btn:hover { filter: brightness(1.12); }
-.cd-ai-label { flex: 1; text-align: left; }
-.cd-ai-sep {
-  width: 1px;
-  height: 100%;
-  background: color-mix(in srgb, var(--text-on-emphasis) var(--alpha-visible), transparent);
-  flex-shrink: 0;
+.cd-ai-btn:hover {
+  background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent);
+  border-color: color-mix(in srgb, var(--purple) var(--alpha-bold), transparent);
 }
-.cd-ai-arrow {
-  font-size: var(--text-micro);
-  opacity: 0.85;
-  padding: 0 var(--space-md);
-  flex-shrink: 0;
-}
-.cd-ai-btn:disabled {
-  opacity: 0.6;
-  cursor: wait;
-  filter: none;
-}
+.cd-ai-btn:disabled { opacity: 0.6; cursor: wait; }
 
 /* AI explanation box (Explain this commit) */
 .cd-ai-explain {
@@ -1639,3 +1609,74 @@
   align-self: flex-start;
 }
 .st2-coauthor:hover { background: var(--surface-active); border-color: var(--border-strong); }
+
+/* ── The one-line header ──────────────────────────────────────────────────
+   sha · parent · branch chips · +A ✎N −D. What took four rows takes one:
+   every row of the reference pane carries more than one fact, and the second
+   one is always the cost. */
+.cd-head-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-xs) var(--space-xl) var(--space-sm);
+  font-size: var(--text-xs);
+}
+.cd-head-line .rp-ref { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-head-cost {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.cd-head-cost-files {
+  display: inline-flex; align-items: center; gap: 2px;
+  color: var(--text-secondary);
+}
+/* The parent is reached for once a week: an arrow with the hash as tooltip. */
+.cd-head-line .cd-parent-btn {
+  display: inline-flex; align-items: center;
+  padding: 2px; margin: 0;
+  background: transparent; border: none; color: var(--text-tertiary); cursor: pointer;
+}
+.cd-head-line .cd-parent-btn:hover { color: var(--text-primary); }
+
+/* ── The file row: name, folder, cost, actions ──────────────────────────── */
+.rp-file-path { display: inline-flex; align-items: baseline; gap: var(--space-sm); min-width: 0; }
+.rp-file-name { flex-shrink: 0; }
+.rp-file-dir  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.rp-file-row .st-numstat { margin-left: auto; flex-shrink: 0; }
+.rp-file-actions {
+  display: inline-flex; gap: 2px; flex-shrink: 0;
+  opacity: 0; transition: opacity var(--dur-fast);
+}
+.rp-file-row:hover .rp-file-actions, .rp-file-row.active .rp-file-actions { opacity: 1; }
+.rp-file-act {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; padding: 0;
+  background: transparent; border: none; border-radius: var(--radius-xs);
+  color: var(--text-tertiary); cursor: pointer;
+}
+.rp-file-act:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+/* Compare — one of the two things a reader does next with a commit, so it is a
+   button beside the author rather than a row in a menu. The human's action, in
+   the human's colour. */
+.cd-compare-btn {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  height: 26px; padding: 0 var(--space-md);
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.cd-compare-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+/* With the compare button taking margin-left:auto, the AI control sits right after it. */
+.cd-compare-btn + .cd-ai-btn { margin-left: var(--space-xs); }

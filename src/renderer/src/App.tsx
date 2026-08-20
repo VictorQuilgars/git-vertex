@@ -2550,6 +2550,7 @@ export default function App() {
             <div className="resize-handle" onMouseDown={startResizeRight} />
             <div className="app-right" style={{ width: rightW }}>
               <RightPanel
+                onCompareWorking={(hash) => openViewTab({ view: 'compare', a: hash, b: null, label: `${hash.slice(0, 7)} → ${t('cv.workingTree')}` })}
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
                 showToast={showToast}
