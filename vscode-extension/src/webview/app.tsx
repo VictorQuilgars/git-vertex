@@ -217,6 +217,9 @@ function VertexApp() {
           const row = (x: any, kind: 'pr' | 'issue'): GithubListItem => ({
             number: x.number, title: x.title, author: x.author,
             draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
+            createdAt: x.createdAt, comments: x.comments, labels: x.labels,
+            headRef: x.headRef, baseRef: x.baseRef,
+            body: x.body, assignees: x.assignees,
           })
           const [prs, issues] = await Promise.all([
             (window.gitAPI as any).githubListPRs(gh.owner, gh.repo).catch(() => null),
@@ -1062,6 +1065,7 @@ function VertexApp() {
             isFavorite={branchMeta.isFavorite}
             githubPRs={githubPRs}
             githubIssues={githubIssues}
+            onStartBranchFromIssue={handleCreateBranchFromIssue}
             onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
             issueFor={branchMeta.issueFor}
             onToggleFavorite={branchMeta.toggleFavorite}

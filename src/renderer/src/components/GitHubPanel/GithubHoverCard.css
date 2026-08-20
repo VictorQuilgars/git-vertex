@@ -1,0 +1,75 @@
+/* The hover card of a sidebar GitHub row — opens over the graph, to the
+   right of the row. A preview, not a reader: it never scrolls. What does
+   not fit is cut under a fade, and clicking the card opens the issue. */
+.ghc {
+  position: fixed;
+  z-index: var(--z-modal);
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(560px, calc(100vh - 24px));
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--bg-inset) var(--alpha-dense), transparent);
+  padding: var(--space-xl) var(--space-2xl);
+  font-size: var(--text-sm);
+}
+
+.ghc-head {
+  display: flex; align-items: baseline; gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+.ghc-num { color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.ghc-title { font-weight: var(--weight-semibold); }
+
+.ghc-cols { display: flex; gap: var(--space-2xl); align-items: flex-start; }
+.ghc-main { flex: 1 1 auto; min-width: 0; }
+.ghc-side { flex: 0 0 140px; display: flex; flex-direction: column; gap: var(--space-sm); }
+/* The panel can be too narrow for two columns — the side column then wraps
+   under the description instead of crushing it. */
+.ghc-cols { flex-wrap: wrap; }
+.ghc-main { flex-basis: 260px; }
+
+.ghc-label {
+  font-size: var(--text-micro); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-tertiary); margin-top: var(--space-lg);
+}
+.ghc-label:first-child { margin-top: 0; }
+.ghc-none { color: var(--text-tertiary); font-style: italic; }
+.ghc-status { color: var(--success-emphasis); }
+.ghc-status--draft { color: var(--text-tertiary); }
+.ghc-labels { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.ghc-people { display: flex; flex-direction: column; gap: 2px; color: var(--text-secondary); }
+
+/* ── The rendered body ─────────────────────────────────────────────────── */
+.mdl { display: flex; flex-direction: column; gap: var(--space-md); min-width: 0; }
+.mdl-h { font-size: var(--text-sm); font-weight: var(--weight-semibold); margin-top: var(--space-md); }
+.mdl-p { margin: 0; color: var(--text-secondary); line-height: 1.45; overflow-wrap: anywhere; }
+.mdl-li {
+  display: flex; gap: var(--space-sm); align-items: baseline;
+  color: var(--text-secondary); line-height: 1.45; overflow-wrap: anywhere;
+}
+.mdl-li input[type="checkbox"] { transform: translateY(2px); flex-shrink: 0; }
+.mdl-bullet { flex-shrink: 0; }
+.mdl-pre {
+  margin: 0; padding: var(--space-sm) var(--space-md);
+  background: var(--surface-sunken); border-radius: var(--radius-sm);
+  font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs);
+  overflow-x: auto; white-space: pre;
+}
+.mdl code {
+  background: var(--surface-sunken); border-radius: var(--radius-xs);
+  padding: 0 4px; font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs);
+}
+.mdl-link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+/* The cut: a fade over the last lines, with the way forward written on it. */
+.ghc-fade {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: var(--space-sm);
+  background: linear-gradient(to bottom, transparent, var(--surface) 75%);
+  pointer-events: none;
+}
+.ghc-more { color: var(--text-tertiary); font-size: var(--text-xs); }

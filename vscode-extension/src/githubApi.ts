@@ -58,6 +58,8 @@ export async function githubListPRs(api: GithubApi, owner: string, repo: string)
         updatedAt: pr.updated_at,
         comments: (pr.comments ?? 0) + (pr.review_comments ?? 0),
         labels: (pr.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        body: pr.body ?? '',
+        assignees: (pr.assignees ?? []).map((a: any) => a.login),
         url: pr.html_url,
         headRef: pr.head?.ref ?? '',
         baseRef: pr.base?.ref ?? '',
@@ -86,6 +88,8 @@ export async function githubListIssues(api: GithubApi, owner: string, repo: stri
         createdAt: issue.created_at,
         comments: issue.comments,
         labels: (issue.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        body: issue.body ?? '',
+        assignees: (issue.assignees ?? []).map((a: any) => a.login),
         url: issue.html_url,
       })),
     }

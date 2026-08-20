@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Icon } from '../Icon/Icon'
-import ContextMenu from '../ContextMenu/ContextMenu'
+import GithubRow, { type GithubLabel } from './GithubRow'
 import './GitHubPanel.css'
 import { useLang } from '../../i18n/LanguageContext'
 import { Brand } from '../BrandMark/BrandMark'
-
-interface Label { name: string; color: string }
 
 interface PR {
   number: number
@@ -14,7 +12,7 @@ interface PR {
   author: string
   createdAt: string
   comments: number
-  labels: Label[]
+  labels: GithubLabel[]
   url: string
   headRef: string
   baseRef: string
@@ -28,7 +26,7 @@ interface Issue {
   author: string
   createdAt: string
   comments: number
-  labels: Label[]
+  labels: GithubLabel[]
   url: string
   repoLabel?: string
 }
@@ -41,137 +39,6 @@ interface Props {
    * does not offer to.
    */
   onCreateBranchFromIssue?: (issue: { number: number; title: string; url: string }) => void
-}
-
-function timeAgo(dateStr: string, t: (key: any, ...args: any[]) => string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (diff < 60) return t('github.justNow')
-  if (diff < 3600) return t('time.min', Math.floor(diff / 60))
-  if (diff < 86400) return t('time.hour', Math.floor(diff / 3600))
-  if (diff < 2592000) return t('time.day', Math.floor(diff / 86400))
-  if (diff < 31536000) return t('time.month', Math.floor(diff / 2592000))
-  return t('time.year', Math.floor(diff / 31536000))
-}
-
-function LabelChip({ label }: { label: Label }) {
-  const bg = `#${label.color}22`
-  const border = `#${label.color}66`
-  const color = `#${label.color}`
-  return (
-    <span className="ghp-label" style={{ background: bg, borderColor: border, color }}>
-      {label.name}
-    </span>
-  )
-}
-
-/**
- * Copy the forge's own URL for a row. GitHub hands us `html_url` with every
- * item, so this copies what the forge said rather than rebuilding it — the
- * builder is for the cases where nobody handed us one.
- */
-function CopyLinkButton({ url }: { url: string }) {
-  const { t } = useLang()
-  const [done, setDone] = useState(false)
-  return (
-    <button
-      className="ghp-copy-link"
-      title={t('gh.panel.copyLink')}
-      onClick={e => {
-        e.stopPropagation()
-        navigator.clipboard.writeText(url)
-        setDone(true)
-        setTimeout(() => setDone(false), 1500)
-      }}
-    >{done ? '✓' : <Icon name="link" size={12} />}</button>
-  )
-}
-
-function PRItem({ pr }: { pr: PR }) {
-  const { t } = useLang()
-  return (
-    <div className="ghp-item" onClick={() => window.gitAPI.openExternal(pr.url)} title={t('gh.panel.openIn')}>
-      <div className="ghp-item-top">
-        {pr.repoLabel && <span className="ghp-repo-badge">{pr.repoLabel}</span>}
-        <span className="ghp-number">#{pr.number}</span>
-        {pr.draft && <span className="ghp-badge ghp-draft">{t('gh.panel.draft')}</span>}
-        <span className="ghp-title">{pr.title}</span>
-        <CopyLinkButton url={pr.url} />
-      </div>
-      <div className="ghp-item-meta">
-        <span className="ghp-refs">
-          <code>{pr.headRef}</code>
-          <Icon name="arrowSwitch" size={10} />
-          <code>{pr.baseRef}</code>
-        </span>
-        <span className="ghp-dot">·</span>
-        <span className="ghp-author">@{pr.author}</span>
-        <span className="ghp-dot">·</span>
-        <span className="ghp-time">{timeAgo(pr.createdAt, t)}</span>
-        {pr.comments > 0 && (
-          <>
-            <span className="ghp-dot">·</span>
-            <span className="ghp-comments">
-              <Icon name="comment" size={11} />
-              {pr.comments}
-            </span>
-          </>
-        )}
-      </div>
-      {pr.labels.length > 0 && (
-        <div className="ghp-labels">
-          {pr.labels.slice(0, 4).map(l => <LabelChip key={l.name} label={l} />)}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function IssueItem({ issue, onCreateBranch }: {
-  issue: Issue
-  onCreateBranch?: () => void
-}) {
-  const { t } = useLang()
-  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
-  return (
-    <>
-    <div className="ghp-item"
-      onClick={() => window.gitAPI.openExternal(issue.url)}
-      onContextMenu={onCreateBranch
-        ? e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }
-        : undefined}
-      title={t('gh.panel.openIn')}>
-      <div className="ghp-item-top">
-        {issue.repoLabel && <span className="ghp-repo-badge">{issue.repoLabel}</span>}
-        <span className="ghp-number">#{issue.number}</span>
-        <span className="ghp-title">{issue.title}</span>
-        <CopyLinkButton url={issue.url} />
-      </div>
-      <div className="ghp-item-meta">
-        <span className="ghp-author">@{issue.author}</span>
-        <span className="ghp-dot">·</span>
-        <span className="ghp-time">{timeAgo(issue.createdAt, t)}</span>
-        {issue.comments > 0 && (
-          <>
-            <span className="ghp-dot">·</span>
-            <span className="ghp-comments">
-              <Icon name="comment" size={11} />
-              {issue.comments}
-            </span>
-          </>
-        )}
-      </div>
-      {issue.labels.length > 0 && (
-        <div className="ghp-labels">
-          {issue.labels.slice(0, 4).map(l => <LabelChip key={l.name} label={l} />)}
-        </div>
-      )}
-    </div>
-    {ctx && onCreateBranch && (
-      <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)}
-        items={[{ label: t('gh.issue.createBranch'), action: onCreateBranch }]} />
-    )}
-    </>
-  )
 }
 
 export default function GitHubPanel({ repoPath, onCreateBranchFromIssue }: Props) {
@@ -263,16 +130,21 @@ export default function GitHubPanel({ repoPath, onCreateBranchFromIssue }: Props
         {!noRepo && !noAuth && !error && !loading && tab === 'prs' && (
           prs.length === 0
             ? <div className="ghp-state">{t('gh.panel.noPRs')}</div>
-            : prs.map(pr => <PRItem key={pr.number} pr={pr} />)
+            : prs.map(pr => (
+                <GithubRow key={pr.number} item={{ ...pr, kind: 'pr' }}
+                  onOpen={url => window.gitAPI.openExternal(url)} />
+              ))
         )}
 
         {!noRepo && !noAuth && !error && !loading && tab === 'issues' && (
           issues.length === 0
             ? <div className="ghp-state">{t('gh.panel.noIssues')}</div>
             : issues.map(issue => (
-                <IssueItem key={issue.number} issue={issue}
+                <GithubRow key={issue.number} item={{ ...issue, kind: 'issue' }}
+                  onOpen={url => window.gitAPI.openExternal(url)}
                   onCreateBranch={onCreateBranchFromIssue
-                    && (() => onCreateBranchFromIssue({ number: issue.number, title: issue.title, url: issue.url }))} />
+                    ? () => onCreateBranchFromIssue({ number: issue.number, title: issue.title, url: issue.url })
+                    : undefined} />
               ))
         )}
       </div>

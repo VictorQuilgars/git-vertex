@@ -2355,6 +2355,8 @@ ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
         updatedAt: pr.updated_at,
         comments: pr.comments + pr.review_comments,
         labels: (pr.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        body: pr.body ?? '',
+        assignees: (pr.assignees ?? []).map((a: any) => a.login),
         url: pr.html_url,
         headRef: pr.head?.ref ?? '',
         baseRef: pr.base?.ref ?? '',
@@ -2471,6 +2473,8 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
         createdAt: issue.created_at,
         comments: issue.comments,
         labels: (issue.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        body: issue.body ?? '',
+        assignees: (issue.assignees ?? []).map((a: any) => a.login),
         url: issue.html_url,
       }))
     }
