@@ -89,14 +89,41 @@
   color: var(--accent);
 }
 .idv-btn--primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent); }
-.idv-state-btn, .idv-branch-btn { width: 100%; }
+.idv-branch-btn { width: 100%; }
 
-.idv-checklist {
-  display: flex; flex-direction: column; gap: var(--space-xs);
-  max-height: 240px; overflow-y: auto;
-  padding: var(--space-sm); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+/* The status as a value: the current state, full width, in its colour. */
+.idv-state-bar {
+  padding: var(--space-xs) var(--space-md); border-radius: var(--radius-sm);
+  font-size: var(--text-sm); font-weight: var(--weight-semibold); text-align: left;
 }
-.idv-check-row { display: flex; align-items: center; gap: var(--space-sm); cursor: pointer; }
+.idv-state-bar--open { background: var(--success); color: var(--surface); }
+.idv-state-bar--closed { background: var(--surface-sunken); color: var(--text-tertiary); }
+
+/* The picker: a search on top, immediate toggles below, no submit. */
+.idv-picker { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-sm); }
+.idv-picker-search {
+  width: 100%; height: 30px; padding: 0 var(--space-md);
+  background: var(--surface-sunken); color: var(--text-primary);
+  border: 1px solid var(--accent); border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+.idv-picker-list {
+  display: flex; flex-direction: column;
+  max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+}
+.idv-pick-row {
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent; border: none; border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary); font-size: var(--text-sm); cursor: pointer; text-align: left;
+}
+.idv-pick-row:last-child { border-bottom: none; }
+.idv-pick-row:hover:not(:disabled) { background: var(--surface-hover); }
+.idv-pick-row:disabled { opacity: .6; cursor: default; }
+.idv-pick-check { display: inline-flex; width: 16px; flex-shrink: 0; color: var(--text-secondary); }
+.idv-state-options { margin-top: var(--space-sm); }
+
 .idv-check-actions { display: flex; gap: var(--space-sm); margin-top: var(--space-sm); }
 
 .idv-comments { margin-top: var(--space-2xl); display: flex; flex-direction: column; gap: var(--space-lg); }

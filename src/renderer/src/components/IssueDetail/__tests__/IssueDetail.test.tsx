@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import IssueDetail from '../IssueDetail'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
@@ -50,10 +50,12 @@ describe('what the detail shows', () => {
     expect(screen.getByText(/On it/)).toBeInTheDocument()
   })
 
-  test('status, labels and assignees are in the side column', async () => {
+  test('the status is the current state, not a verb', async () => {
     draw()
     await screen.findByText('@alice')
-    expect(screen.getByText('Open')).toBeInTheDocument()
+    const bar = document.querySelector('.idv-state-bar')!
+    expect(bar.textContent).toBe('Open')
+    expect(screen.queryByText(/Close Issue/)).not.toBeInTheDocument()
     expect(screen.getByText('frontend')).toBeInTheDocument()
     expect(screen.getByText('None')).toBeInTheDocument()
   })
@@ -72,14 +74,19 @@ describe('the writes go through the one PATCH, and apply only on success', () =>
     expect(api.githubIssueComments).toHaveBeenCalledTimes(2)
   })
 
-  test('closing flips to reopen; reopening flips back', async () => {
+  test('closing is editing the status: pencil, then the other state', async () => {
     const { api } = draw()
     await screen.findByText('@alice')
-    await userEvent.click(screen.getByText('Close Issue'))
+    // the pencil beside STATUS opens the two states, the current one checked
+    const statusBlock = document.querySelector('.idv-state-bar')!.closest('.idv-block')!
+    await userEvent.click(statusBlock.querySelector('.idv-pencil')!)
+    const closedOption = [...statusBlock.querySelectorAll('.idv-pick-row')]
+      .find(b => b.textContent?.includes('Closed'))!
+    await userEvent.click(closedOption)
     await waitFor(() =>
       expect(api.githubUpdateIssue).toHaveBeenCalledWith('o', 'r', 24, { state: 'closed' }))
-    expect(await screen.findByText('Reopen Issue')).toBeInTheDocument()
-    expect(screen.getByText('Closed')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(document.querySelector('.idv-state-bar')!.textContent).toBe('Closed'))
   })
 
   test('the title edits in place, through the PATCH', async () => {
@@ -94,41 +101,65 @@ describe('the writes go through the one PATCH, and apply only on success', () =>
     expect(await screen.findByText('Web push')).toBeInTheDocument()
   })
 
-  test('the labels editor lists the repository labels and saves the picked names', async () => {
+  test('a label toggle applies on the spot — no Save anywhere', async () => {
     const { api } = draw()
     await screen.findByText('@alice')
     const pencils = document.querySelectorAll('.idv-pencil')
-    // side column order: description pencil is in the main column; the side
-    // pencils are assignees then labels
     await userEvent.click(pencils[pencils.length - 1])
     await waitFor(() => expect(api.githubListRepoLabels).toHaveBeenCalled())
     await userEvent.click(await screen.findByText('bug'))
-    await userEvent.click(screen.getByText('Save'))
     await waitFor(() =>
       expect(api.githubUpdateIssue).toHaveBeenCalledWith('o', 'r', 24, { labels: ['frontend', 'bug'] }))
+    expect(screen.queryByText('Save')).not.toBeInTheDocument()
   })
 
-  test('the assignees editor lists who can be assigned and saves', async () => {
+  test('the search narrows the options', async () => {
+    const { api } = draw()
+    await screen.findByText('@alice')
+    const pencils = document.querySelectorAll('.idv-pencil')
+    await userEvent.click(pencils[pencils.length - 1])
+    await waitFor(() => expect(api.githubListRepoLabels).toHaveBeenCalled())
+    await userEvent.type(screen.getByPlaceholderText(/Select|Filtrer/), 'bu')
+    const rows = document.querySelectorAll('.idv-pick-row')
+    expect(rows).toHaveLength(1)
+    expect(rows[0].textContent).toContain('bug')
+  })
+
+  test('an assignee toggle applies on the spot, and shows once GitHub said yes', async () => {
     const { api } = draw()
     await screen.findByText('@alice')
     const pencils = document.querySelectorAll('.idv-pencil')
     await userEvent.click(pencils[pencils.length - 2])
     await waitFor(() => expect(api.githubListAssignees).toHaveBeenCalled())
     await userEvent.click(await screen.findByText('victor'))
-    await userEvent.click(screen.getByText('Save'))
     await waitFor(() =>
       expect(api.githubUpdateIssue).toHaveBeenCalledWith('o', 'r', 24, { assignees: ['victor'] }))
     expect(await screen.findByText('@victor')).toBeInTheDocument()
   })
 
+  test('clicking anywhere else leaves the editor', async () => {
+    const { api } = draw()
+    await screen.findByText('@alice')
+    const pencils = document.querySelectorAll('.idv-pencil')
+    await userEvent.click(pencils[pencils.length - 1])
+    await waitFor(() => expect(api.githubListRepoLabels).toHaveBeenCalled())
+    expect(document.querySelector('.idv-picker')).toBeInTheDocument()
+    fireEvent.mouseDown(screen.getByText('Objectif'))
+    await waitFor(() =>
+      expect(document.querySelector('.idv-picker')).not.toBeInTheDocument())
+  })
+
   test('a refused write shows the error and applies nothing', async () => {
     draw({}, { githubUpdateIssue: jest.fn().mockResolvedValue({ error: 'HTTP 403' }) })
     await screen.findByText('@alice')
-    await userEvent.click(screen.getByText('Close Issue'))
+    const statusBlock = document.querySelector('.idv-state-bar')!.closest('.idv-block')!
+    await userEvent.click(statusBlock.querySelector('.idv-pencil')!)
+    const closedOption = [...statusBlock.querySelectorAll('.idv-pick-row')]
+      .find(b => b.textContent?.includes('Closed'))!
+    await userEvent.click(closedOption)
     expect(await screen.findByText('HTTP 403')).toBeInTheDocument()
-    // still open, still offering to close — the failure changed nothing
-    expect(screen.getByText('Open')).toBeInTheDocument()
-    expect(screen.getByText('Close Issue')).toBeInTheDocument()
+    // the failure changed nothing: the bar still says Open
+    expect(document.querySelector('.idv-state-bar')!.textContent).toBe('Open')
   })
 })
 

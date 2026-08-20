@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
 import MdLite from '../GitHubPanel/mdLite'
 import { LabelChip, timeAgo, type GithubLabel } from '../GitHubPanel/GithubRow'
@@ -35,17 +35,37 @@ interface Comment { author: string; createdAt: string; body: string }
 
 function api(): any { return window.gitAPI as any }
 
-/** A titled block of the side column, with its pencil when it can be edited. */
-function SideBlock({ label, onEdit, children }: {
-  label: string; onEdit?: () => void; children: React.ReactNode
+/** Close the editor when the click lands anywhere outside the block. */
+function useClickAway(active: boolean, onAway: () => void) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!active) return
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onAway()
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [active, onAway])
+  return ref
+}
+
+/**
+ * A titled block of the side column. While its editor is open the pencil is
+ * a ×, and a click anywhere else closes it — an editor is left, not
+ * submitted: every toggle inside it already went to GitHub.
+ */
+function SideBlock({ label, editing, onToggleEdit, children }: {
+  label: string; editing?: boolean; onToggleEdit?: () => void; children: React.ReactNode
 }) {
+  const close = useCallback(() => { if (editing) onToggleEdit?.() }, [editing, onToggleEdit])
+  const ref = useClickAway(!!editing, close)
   return (
-    <div className="idv-block">
+    <div className="idv-block" ref={ref}>
       <div className="idv-block-head">
         <span className="idv-label">{label}</span>
-        {onEdit && (
-          <button className="idv-pencil" onClick={onEdit}>
-            <Icon name="pencil" size={11} />
+        {onToggleEdit && (
+          <button className="idv-pencil" onClick={onToggleEdit}>
+            {editing ? '×' : <Icon name="pencil" size={11} />}
           </button>
         )}
       </div>
@@ -54,33 +74,38 @@ function SideBlock({ label, onEdit, children }: {
   )
 }
 
-/** A checklist editor over a fetched universe — assignees or labels. */
-function ChecklistEditor({ options, chosen, onSave, onCancel, render, saveLabel, cancelLabel }: {
+/**
+ * The picker over a fetched universe — assignees or labels. A search field
+ * on top, and every toggle applies IMMEDIATELY: there is no Save, the way
+ * out is the × or a click elsewhere. `chosen` is the source of truth from
+ * the parent, so a toggle the PATCH refused never shows as done.
+ */
+function PickerEditor({ options, chosen, onPick, render, placeholder, busy }: {
   options: string[]
   chosen: string[]
-  onSave: (next: string[]) => void
-  onCancel: () => void
+  onPick: (next: string[]) => void
   render?: (name: string) => React.ReactNode
-  saveLabel: string
-  cancelLabel: string
+  placeholder: string
+  busy?: boolean
 }) {
-  const [picked, setPicked] = useState<Set<string>>(new Set(chosen))
+  const [q, setQ] = useState('')
+  const needle = q.trim().toLowerCase()
+  const shown = needle ? options.filter(o => o.toLowerCase().includes(needle)) : options
   return (
-    <div className="idv-checklist">
-      {options.map(name => (
-        <label key={name} className="idv-check-row">
-          <input type="checkbox" checked={picked.has(name)}
-            onChange={e => setPicked(prev => {
-              const next = new Set(prev)
-              if (e.target.checked) next.add(name); else next.delete(name)
-              return next
-            })} />
-          {render ? render(name) : <span>{name}</span>}
-        </label>
-      ))}
-      <div className="idv-check-actions">
-        <button className="idv-btn idv-btn--primary" onClick={() => onSave([...picked])}>{saveLabel}</button>
-        <button className="idv-btn" onClick={onCancel}>{cancelLabel}</button>
+    <div className="idv-picker">
+      <input className="idv-picker-search" placeholder={placeholder} autoFocus
+        value={q} onChange={e => setQ(e.target.value)} />
+      <div className="idv-picker-list">
+        {shown.map(name => {
+          const has = chosen.includes(name)
+          return (
+            <button key={name} className="idv-pick-row" disabled={busy}
+              onClick={() => onPick(has ? chosen.filter(c => c !== name) : [...chosen, name])}>
+              <span className="idv-pick-check">{has && <Icon name="check" size={12} />}</span>
+              {render ? render(name) : <span>{name}</span>}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -112,6 +137,7 @@ export default function IssueDetail({ repo, item, onClose, onCreateBranch, onCha
   const [bodyDraft, setBodyDraft] = useState(item.body ?? '')
   const [editingAssignees, setEditingAssignees] = useState(false)
   const [editingLabels, setEditingLabels] = useState(false)
+  const [editingState, setEditingState] = useState(false)
   const [allAssignees, setAllAssignees] = useState<string[] | null>(null)
   const [allLabels, setAllLabels] = useState<GithubLabel[] | null>(null)
 
@@ -142,19 +168,19 @@ export default function IssueDetail({ repo, item, onClose, onCreateBranch, onCha
   const saveBody = async () => {
     if (await patch({ body: bodyDraft }, () => setBody(bodyDraft))) setEditingBody(false)
   }
-  const toggleState = () => {
-    const next = state === 'open' ? 'closed' : 'open'
-    void patch({ state: next }, () => setIssueState(next))
+  const setState = (next: 'open' | 'closed') => {
+    if (next === state) { setEditingState(false); return }
+    void patch({ state: next }, () => setIssueState(next)).then(ok => { if (ok) setEditingState(false) })
   }
 
-  const openAssigneesEditor = () => {
-    setEditingAssignees(true)
+  const toggleAssigneesEditor = () => {
+    setEditingAssignees(v => !v)
     if (allAssignees === null) {
       api().githubListAssignees(repo.owner, repo.repo).then((r: any) => setAllAssignees(r?.assignees ?? []))
     }
   }
-  const openLabelsEditor = () => {
-    setEditingLabels(true)
+  const toggleLabelsEditor = () => {
+    setEditingLabels(v => !v)
     if (allLabels === null) {
       api().githubListRepoLabels(repo.owner, repo.repo).then((r: any) => setAllLabels(r?.labels ?? []))
     }
@@ -261,43 +287,59 @@ export default function IssueDetail({ repo, item, onClose, onCreateBranch, onCha
           </div>
 
           <div className="idv-side">
-            <SideBlock label={t('gh.card.status')}>
-              <button className="idv-btn idv-state-btn" disabled={busy} onClick={toggleState}>
-                {t(state === 'open' ? 'gh.detail.close' : 'gh.detail.reopen')}
-              </button>
+            {/* The status is a FACT first — the current state, full width, the
+                forge's green. Changing it is an edit like any other: the
+                pencil, then the other state. */}
+            <SideBlock label={t('gh.card.status')} editing={editingState}
+              onToggleEdit={() => setEditingState(v => !v)}>
+              <div className={`idv-state-bar idv-state-bar--${state}`}>
+                {t(state === 'open' ? 'issue.open' : 'issue.closed')}
+              </div>
+              {editingState && (
+                <div className="idv-picker-list idv-state-options">
+                  {(['open', 'closed'] as const).map(v => (
+                    <button key={v} className="idv-pick-row" disabled={busy} onClick={() => setState(v)}>
+                      <span className="idv-pick-check">{v === state && <Icon name="check" size={12} />}</span>
+                      <span>{t(v === 'open' ? 'issue.open' : 'issue.closed')}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </SideBlock>
 
-            <SideBlock label={t('gh.card.assignees')} onEdit={openAssigneesEditor}>
-              {editingAssignees ? (
+            <SideBlock label={t('gh.card.assignees')} editing={editingAssignees}
+              onToggleEdit={toggleAssigneesEditor}>
+              {assignees.length
+                ? <div className="idv-people">{assignees.map(a => <span key={a}>@{a}</span>)}</div>
+                : !editingAssignees && <div className="idv-none">{t('gh.card.none')}</div>}
+              {editingAssignees && (
                 allAssignees === null
                   ? <div className="idv-none">{t('panel.loading')}</div>
-                  : <ChecklistEditor options={allAssignees} chosen={assignees}
-                      saveLabel={t('gh.detail.save')} cancelLabel={t('gh.detail.cancel')}
-                      onCancel={() => setEditingAssignees(false)}
-                      onSave={next => { void patch({ assignees: next }, () => setAssignees(next)).then(ok => { if (ok) setEditingAssignees(false) }) }} />
-              ) : assignees.length
-                ? <div className="idv-people">{assignees.map(a => <span key={a}>@{a}</span>)}</div>
-                : <div className="idv-none">{t('gh.card.none')}</div>}
+                  : <PickerEditor options={allAssignees} chosen={assignees} busy={busy}
+                      placeholder={t('gh.detail.selectPlaceholder')}
+                      onPick={next => { void patch({ assignees: next }, () => setAssignees(next)) }} />
+              )}
             </SideBlock>
 
-            <SideBlock label={t('gh.card.labels')} onEdit={openLabelsEditor}>
-              {editingLabels ? (
+            <SideBlock label={t('gh.card.labels')} editing={editingLabels}
+              onToggleEdit={toggleLabelsEditor}>
+              {labels.length
+                ? <div className="idv-labels">{labels.map(l => <LabelChip key={l.name} label={l} />)}</div>
+                : !editingLabels && <div className="idv-none">{t('gh.card.none')}</div>}
+              {editingLabels && (
                 allLabels === null
                   ? <div className="idv-none">{t('panel.loading')}</div>
-                  : <ChecklistEditor options={allLabels.map(l => l.name)} chosen={labels.map(l => l.name)}
-                      saveLabel={t('gh.detail.save')} cancelLabel={t('gh.detail.cancel')}
+                  : <PickerEditor options={allLabels.map(l => l.name)} chosen={labels.map(l => l.name)}
+                      busy={busy} placeholder={t('gh.detail.selectPlaceholder')}
                       render={name => {
                         const l = allLabels.find(x => x.name === name)
                         return l ? <LabelChip label={l} /> : <span>{name}</span>
                       }}
-                      onCancel={() => setEditingLabels(false)}
-                      onSave={next => {
-                        const chosen = (allLabels ?? []).filter(l => next.includes(l.name))
-                        void patch({ labels: next }, () => setLabels(chosen)).then(ok => { if (ok) setEditingLabels(false) })
+                      onPick={next => {
+                        const chosenObjs = (allLabels ?? []).filter(l => next.includes(l.name))
+                        void patch({ labels: next }, () => setLabels(chosenObjs))
                       }} />
-              ) : labels.length
-                ? <div className="idv-labels">{labels.map(l => <LabelChip key={l.name} label={l} />)}</div>
-                : <div className="idv-none">{t('gh.card.none')}</div>}
+              )}
             </SideBlock>
 
             {onCreateBranch && (
