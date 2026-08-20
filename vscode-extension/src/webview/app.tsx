@@ -128,6 +128,9 @@ function VertexApp() {
   // githubRepo, which gates GitHub API calls and is only ever GitHub.
   const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
+  // Open pull requests, for the empty pane's Launchpad. undefined = no GitHub
+  // here or not asked yet, and the section is absent rather than empty.
+  const [openPRCount, setOpenPRCount] = useState<number | undefined>(undefined)
   const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
   // The activity rail is always visible; `activeView` is the section its
   // resizable side-panel shows, or null when collapsed (only the rail). Closed
@@ -206,6 +209,12 @@ function VertexApp() {
       try {
         const gh = await window.gitAPI.githubDetectRepo()
         setGithubRepo(gh?.owner ? { owner: gh.owner, repo: gh.repo } : null)
+        if (gh?.owner && gh?.repo) {
+          const prs = await (window.gitAPI as any).githubListPRs(gh.owner, gh.repo).catch(() => null)
+          setOpenPRCount(prs?.error ? undefined : (prs?.prs?.length ?? 0))
+        } else {
+          setOpenPRCount(undefined)
+        }
       } catch { setGithubRepo(null) }
       // Read the remote itself: it is the only thing that knows the host, and
       // every link below is built from it rather than from a hardcoded
@@ -844,14 +853,28 @@ function VertexApp() {
       remoteName: remoteNames[0] ?? 'origin',
       ahead: tracking.ahead,
       behind: tracking.behind,
-      // openPRs / openIssues arrive with the sidebar lists (#112); until that
-      // lands the Attention section is absent rather than empty.
+      openPRs: openPRCount,
     },
     actions: {
       onPublish: tracking.upstream ? undefined : () => handleSetUpstream(currentBranch),
       onPush: handlePush,
       onPull: handlePull,
+      // What this branch would bring — the compare a pull request would show.
+      // Only when there is a default branch and we are not on it: comparing a
+      // branch with itself is not a review.
+      onReviewChanges: defaultBranch && currentBranch && currentBranch !== defaultBranch
+        ? () => window.gitAPI.openCompare(defaultBranch, currentBranch)
+        : undefined,
+      onShowPRs: openPRCount !== undefined ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      onStartFromIssue: githubRepo ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      onStartReviewPR: openPRCount ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      // The stash, worktree and branch lists live on the rail; the row takes
+      // you to the list where the action is, which is the honest wiring.
+      onApplyStash: stashCount > 0
+        ? () => { setActiveView('stash'); lastViewRef.current = 'stash' } : undefined,
+      onCreateWorktree: () => { setActiveView('worktrees'); lastViewRef.current = 'worktrees' },
       onCreateBranch: handleNewBranch,
+      onSwitchBranch: () => { setActiveView('branches'); lastViewRef.current = 'branches' },
     },
   }
 

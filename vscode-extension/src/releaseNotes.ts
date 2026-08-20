@@ -25,8 +25,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The footer is **Commit to ‹branch›**, greyed until ready. Type the message first; staging is a row action.
 
 ### 🧭 A clean tree says what comes next
-- Working Changes with nothing to stage used to be an empty pane. The branch header stays, and under it **Next steps** — publish if there is no upstream, push N if ahead, pull N if behind — and **Start new**.
-- Every row is true of the repository or it is not drawn.
+- Working Changes with nothing to stage used to be an empty pane. It fills the panel now: **Next steps** (publish, push N, pull N, review what the branch would bring), **Launchpad** (how many pull requests are open), and **Start new** (an issue, a PR review, a stash, a worktree, a branch).
+- Every row is true of the repository or it is not drawn — no stash row without a stash, no *Publish* on a published branch.
 
 ### 🧺 Working Changes is always there, and selected on open
 - A clean tree used to mean no row — and no way into the staging pane. The row is permanent now: \`✎N\` when there is something, a **✓ that stages all of it**, and nothing under it when the tree is clean.

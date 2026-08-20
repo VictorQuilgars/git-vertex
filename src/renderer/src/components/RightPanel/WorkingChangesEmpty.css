@@ -1,16 +1,28 @@
 /* The staging pane with nothing to stage. Three sections, each a list of rows;
-   a row is an icon, a sentence, and the one action it leads to. */
-.wce { display: flex; flex-direction: column; gap: var(--space-xl); padding: var(--space-lg) var(--space-xl); }
+   a row is an icon, a sentence, and the one action it leads to.
+
+   ⚠️ The pane owns the whole height under the branch strip — flex: 1 and its
+   own scroll. Without that it sat in the top half with the old form splitter
+   under it, and the bottom of the panel read as dead space. */
+.wce {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  padding: var(--space-xl) var(--space-2xl);
+}
 .wce-section { display: flex; flex-direction: column; gap: var(--space-sm); }
 .wce-title {
-  margin: 0 0 var(--space-xs);
+  margin: 0 0 var(--space-sm);
   font-size: var(--text-micro); font-weight: var(--weight-semibold);
   letter-spacing: .08em; text-transform: uppercase;
   color: var(--text-tertiary);
 }
 .wce-row {
   display: flex; align-items: center; gap: var(--space-md);
-  min-height: 32px; padding: var(--space-xs) 0;
+  min-height: 36px; padding: var(--space-xs) 0;
   color: var(--text-primary); font-size: var(--text-sm);
 }
 .wce-row--link {
@@ -23,7 +35,7 @@
 .wce-row-ico { flex-shrink: 0; color: var(--text-secondary); }
 .wce-row-label { flex: 1; min-width: 0; }
 .wce-row-btn {
-  flex-shrink: 0; height: 26px; padding: 0 var(--space-lg);
+  flex-shrink: 0; height: 28px; padding: 0 var(--space-xl);
   background: var(--surface-sunken); border: 1px solid var(--border-muted);
   border-radius: var(--radius-md); color: var(--text-primary);
   font-size: var(--text-xs); cursor: pointer;
@@ -35,10 +47,12 @@
   border-color: color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
   color: var(--purple-text);
 }
+/* Start-new: full-width rows, the reference shape. */
 .wce-start {
-  height: 30px; padding: 0 var(--space-lg);
+  height: 34px; padding: 0 var(--space-lg);
   background: var(--surface-sunken); border: 1px solid var(--border-muted);
   border-radius: var(--radius-md); color: var(--text-primary);
-  font-size: var(--text-sm); text-align: left; cursor: pointer;
+  font-size: var(--text-sm); text-align: center; cursor: pointer;
+  transition: background var(--dur-fast);
 }
 .wce-start:hover { background: var(--surface-hover); }

@@ -74,4 +74,35 @@ describe('WorkingChangesEmpty — what it draws', () => {
     expect(onPush).toHaveBeenCalledTimes(1)
     expect(onCreateBranch).toHaveBeenCalledTimes(1)
   })
+
+  // Victor's second pass: the reference fills the pane — Launchpad and the six
+  // start-new rows. Same rule as everything else here: a row exists only when
+  // its handler does, because each handler is only supplied when the thing it
+  // opens exists (a stash list with stashes in it, a GitHub tab with a repo).
+  test('review-changes is a next step when the host can compare', () => {
+    const onReviewChanges = jest.fn()
+    const rows = nextSteps({ branch: 'b', hasUpstream: true }, { onReviewChanges }, t)
+    expect(rows.map(r => r.key)).toEqual(['review'])
+  })
+
+  test('the start-new list is exactly the handlers supplied, in order', () => {
+    renderWithProviders(<WorkingChangesEmpty
+      state={{ branch: 'b', hasUpstream: true }}
+      actions={{
+        onStartFromIssue: noop, onStartReviewPR: noop, onApplyStash: noop,
+        onCreateWorktree: noop, onCreateBranch: noop, onSwitchBranch: noop,
+      }} />)
+    const labels = [...document.querySelectorAll('.wce-start')].map(b => b.textContent)
+    expect(labels).toEqual([
+      'Start work on an issue…', 'Start review on a PR…', 'Apply / pop a stash…',
+      'Create a worktree…', 'Create a branch…', 'Switch branch…',
+    ])
+  })
+
+  test('the PR count is a Launchpad row, and zero says so', () => {
+    renderWithProviders(<WorkingChangesEmpty
+      state={{ branch: 'b', hasUpstream: true, openPRs: 4 }} actions={{ onShowPRs: noop }} />)
+    expect(screen.getByText('Launchpad')).toBeInTheDocument()
+    expect(screen.getByText(/4 open pull requests/i)).toBeInTheDocument()
+  })
 })

@@ -38,9 +38,15 @@ export interface NextStepsActions {
   onPush?: () => void
   onPull?: () => void
   onRecompose?: () => void
+  /** Review what this branch would bring — the compare against the default branch. */
+  onReviewChanges?: () => void
   onShowPRs?: () => void
   onStartFromIssue?: () => void
+  onStartReviewPR?: () => void
+  onApplyStash?: () => void
+  onCreateWorktree?: () => void
   onCreateBranch?: () => void
+  onSwitchBranch?: () => void
 }
 
 /**
@@ -67,6 +73,12 @@ export function nextSteps(state: NextStepsState, actions: NextStepsActions, t: (
     rows.push({ key: 'recompose', icon: 'ai', label: t('wc.recompose'),
       button: t('wc.recomposeBtn'), onClick: actions.onRecompose })
   }
+  // Reviewing what the branch would bring is always a true thing to offer —
+  // when the host can compare, which it says by supplying the handler.
+  if (actions.onReviewChanges) {
+    rows.push({ key: 'review', icon: 'compare', label: t('wc.review'),
+      button: t('wc.reviewBtn'), onClick: actions.onReviewChanges })
+  }
   return rows
 }
 
@@ -77,7 +89,15 @@ export default function WorkingChangesEmpty({ state, actions }: {
   const { t } = useLang()
   const steps = nextSteps(state, actions, t)
   const hasAttention = state.openPRs !== undefined
-  const canStart = !!(actions.onStartFromIssue || actions.onCreateBranch)
+  const starts: { key: string; label: string; onClick?: () => void }[] = [
+    { key: 'issue', label: t('wc.startFromIssue'), onClick: actions.onStartFromIssue },
+    { key: 'reviewPR', label: t('wc.startReviewPR'), onClick: actions.onStartReviewPR },
+    { key: 'stash', label: t('wc.applyStash'), onClick: actions.onApplyStash },
+    { key: 'worktree', label: t('wc.createWorktree'), onClick: actions.onCreateWorktree },
+    { key: 'branch', label: t('wc.createBranch'), onClick: actions.onCreateBranch },
+    { key: 'switch', label: t('wc.switchBranch'), onClick: actions.onSwitchBranch },
+  ].filter(a => a.onClick) as { key: string; label: string; onClick: () => void }[]
+  const canStart = starts.length > 0
 
   return (
     <div className="wce">
@@ -97,7 +117,7 @@ export default function WorkingChangesEmpty({ state, actions }: {
 
       {hasAttention && (
         <section className="wce-section">
-          <h4 className="wce-title">{t('wc.attention')}</h4>
+          <h4 className="wce-title">{t('wc.launchpad')}</h4>
           <button className="wce-row wce-row--link" onClick={actions.onShowPRs} disabled={!actions.onShowPRs}>
             <Icon name="pullRequest" size={14} className="wce-row-ico" />
             <span className="wce-row-label">
@@ -110,16 +130,9 @@ export default function WorkingChangesEmpty({ state, actions }: {
       {canStart && (
         <section className="wce-section">
           <h4 className="wce-title">{t('wc.startNew')}</h4>
-          {actions.onStartFromIssue && (
-            <button className="wce-start" onClick={actions.onStartFromIssue}>
-              {t('wc.startFromIssue')}
-            </button>
-          )}
-          {actions.onCreateBranch && (
-            <button className="wce-start" onClick={actions.onCreateBranch}>
-              {t('wc.createBranch')}
-            </button>
-          )}
+          {starts.map(a => (
+            <button key={a.key} className="wce-start" onClick={a.onClick}>{a.label}</button>
+          ))}
         </section>
       )}
     </div>

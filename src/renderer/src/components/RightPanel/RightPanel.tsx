@@ -1612,7 +1612,11 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
       </>)}
 
       {/* ── Resize handle ── */}
-      <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
+      {/* No splitter in the empty state: there is nothing under it to size,
+          and a drag handle over dead space reads as a broken pane. */}
+      {!showEmptyState && (
+        <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
+      )}
 
       {/* ── Commit area — not in the empty state: there is nothing to commit,
           and a form under "Next steps" would say otherwise. ── */}
