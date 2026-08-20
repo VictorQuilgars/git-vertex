@@ -164,6 +164,37 @@ describe('the affordances follow their handlers', () => {
     expect(onOpenGithubItem).toHaveBeenCalledWith('https://x/9')
   })
 
+  // §3 bis: with a detail handler, an issue click stays in the app; the
+  // browser is what the detail's own control offers. A PR has no detail
+  // yet (#110), so its click keeps going out.
+  test('an issue click opens the detail when the host has one, never the browser', async () => {
+    const onShowGithubDetail = jest.fn()
+    const onOpenGithubItem = jest.fn()
+    draw({ githubIssues: [issue], onShowGithubDetail, onOpenGithubItem })
+    unfold('GITHUB ISSUES')
+    await userEvent.click(screen.getByText('The bug'))
+    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }))
+    expect(onOpenGithubItem).not.toHaveBeenCalled()
+  })
+
+  test('without a detail handler the click falls back to the browser', async () => {
+    const onOpenGithubItem = jest.fn()
+    draw({ githubIssues: [issue], onOpenGithubItem })
+    unfold('GITHUB ISSUES')
+    await userEvent.click(screen.getByText('The bug'))
+    expect(onOpenGithubItem).toHaveBeenCalledWith('https://x/9')
+  })
+
+  test('a PR click still goes out, even with the detail handler present', async () => {
+    const onShowGithubDetail = jest.fn()
+    const onOpenGithubItem = jest.fn()
+    draw({ githubPRs: [{ number: 3, title: 'A PR', url: 'u3' }], onShowGithubDetail, onOpenGithubItem })
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByText('A PR'))
+    expect(onOpenGithubItem).toHaveBeenCalledWith('u3')
+    expect(onShowGithubDetail).not.toHaveBeenCalled()
+  })
+
   test('a pull request row never offers a branch menu', async () => {
     draw({ githubPRs: [{ number: 3, title: 'A PR', url: 'u3' }], onStartBranchFromIssue: jest.fn() })
     unfold('PULL REQUESTS')

@@ -19,6 +19,8 @@ import { findAppPath, launchApp } from '../appLocator'
 import {
   githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches,
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, type GithubApi,
+  githubIssueComments, githubAddIssueComment, githubUpdateIssue,
+  githubListAssignees, githubListRepoLabels,
 } from '../githubApi'
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
@@ -597,6 +599,16 @@ export class GitVertexHost implements vscode.Disposable {
       case 'githubSearchIssues': return githubSearchIssues(await this._githubApi(), args[0], args[1])
       case 'githubCloseIssue':
         return githubCloseIssue(await this._githubApi(), args[0], args[1], args[2])
+      case 'githubIssueComments':
+        return githubIssueComments(await this._githubApi(), args[0], args[1], args[2])
+      case 'githubAddIssueComment':
+        return githubAddIssueComment(await this._githubApi(), args[0], args[1], args[2], args[3])
+      case 'githubUpdateIssue':
+        return githubUpdateIssue(await this._githubApi(), args[0], args[1], args[2], args[3])
+      case 'githubListAssignees':
+        return githubListAssignees(await this._githubApi(), args[0], args[1])
+      case 'githubListRepoLabels':
+        return githubListRepoLabels(await this._githubApi(), args[0], args[1])
       case 'githubListRepos': return githubListRepos(await this._githubApi())
       // Share a commit's patch as a secret gist. git makes the patch, the API
       // stores it — so the two halves are assembled here rather than in

@@ -21,6 +21,13 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Right-click an issue to start its branch** — the same gesture, and the same single row component, as the GitHub tab, so the two lists cannot drift apart.
 - **Rest on a row and a card opens over the graph** — the description rendered as markdown (headings, task lists, code), status, full labels, assignees, reporter. The card is a **preview**: it never scrolls, what does not fit fades out, and **clicking it opens the issue**. Clamped to the window, so it works in a 400-pixel panel too.
 - **The sections start folded** — the graph is the point of the window, and the counts on their headers already say what is behind.
+
+### 📖 Click an issue: it opens in the app
+- A third layout: toolbar and left panel stay — the list is what you are navigating — the graph is replaced by the issue, and the commit panel is not shown, because there is no commit in this context.
+- The body rendered, the **comments**, and a box to add one.
+- **Everything edits in place**: the title, close/reopen, assignees, labels — each through one PATCH, applied only after GitHub said yes, with a refusal written where the edit happened.
+- **Create a Branch for This Issue** — the same call as the row's right-click, one button closer.
+- The browser stays one click away, from the detail's own header.
 - In the VS Code panel they are two more views on the activity rail.
 - No GitHub here, or nothing to authenticate with, means **no section** rather than an empty one.
 

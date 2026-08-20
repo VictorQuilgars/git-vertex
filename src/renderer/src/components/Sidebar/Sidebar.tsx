@@ -149,6 +149,9 @@ interface SidebarProps {
   /** Start work on an issue: create the branch it suggests and link the two.
       Omitted ⇒ no context menu on the issue rows. */
   onStartBranchFromIssue?: (issue: { number: number; title: string; url: string }) => void
+  /** Open an issue's in-app detail (§3 bis). Omitted ⇒ clicks fall back to
+      onOpenGithubItem, the browser. Issues only — a PR detail is #110's. */
+  onShowGithubDetail?: (item: GithubListItem) => void
   onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
@@ -638,7 +641,7 @@ export default function Sidebar({
   soloBranch, visibility, onToggleSolo, onToggleHide,
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
-  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue,
+  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   onCopyBranchLink, onDeleteBranchBoth,
@@ -1211,6 +1214,7 @@ export default function Sidebar({
                 : githubIssues.map(issue => (
                   <GithubRow key={issue.number} compact item={{ ...issue, kind: 'issue' }}
                     onOpen={url => onOpenGithubItem?.(url)}
+                    onDetail={onShowGithubDetail ? () => onShowGithubDetail(issue) : undefined}
                     onCreateBranch={onStartBranchFromIssue
                       ? () => onStartBranchFromIssue({ number: issue.number, title: issue.title, url: issue.url })
                       : undefined} />

@@ -275,6 +275,97 @@ export async function githubCloseIssue(
   } catch (e: any) { return { error: e.message } }
 }
 
+// ── The issue detail (§3 bis): its reads and its writes ─────────────────────
+// Mirrors of the desktop's five handlers, same shapes.
+
+export async function githubIssueComments(
+  api: GithubApi, owner: string, repo: string, num: number,
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(
+      `${api.base}/repos/${owner}/${repo}/issues/${num}/comments?per_page=100`,
+      { headers: HEADERS(api.token) },
+    )
+    if (!res.ok) return failure(res)
+    const data = await res.json() as any[]
+    return {
+      comments: data.map(c => ({
+        author: c.user?.login ?? '',
+        createdAt: c.created_at,
+        body: c.body ?? '',
+      })),
+    }
+  } catch (e: any) { return { error: e.message } }
+}
+
+export async function githubAddIssueComment(
+  api: GithubApi, owner: string, repo: string, num: number, body: string,
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${num}/comments`, {
+      method: 'POST',
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    })
+    if (!res.ok) return failure(res)
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+}
+
+/**
+ * One PATCH for every field the detail edits — title, body, state (which is
+ * how reopen exists without a second verb), assignees, labels. Only the keys
+ * present are sent, so a title edit does not rewrite the labels.
+ */
+export async function githubUpdateIssue(
+  api: GithubApi, owner: string, repo: string, num: number,
+  patch: { title?: string; body?: string; state?: 'open' | 'closed'; assignees?: string[]; labels?: string[] },
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${num}`, {
+      method: 'PATCH',
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    if (!res.ok) return failure(res)
+    clearSearchCache()
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+}
+
+export async function githubListAssignees(
+  api: GithubApi, owner: string, repo: string,
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(
+      `${api.base}/repos/${owner}/${repo}/assignees?per_page=100`,
+      { headers: HEADERS(api.token) },
+    )
+    if (!res.ok) return failure(res)
+    const data = await res.json() as any[]
+    return { assignees: data.map((a: any) => a.login) }
+  } catch (e: any) { return { error: e.message } }
+}
+
+export async function githubListRepoLabels(
+  api: GithubApi, owner: string, repo: string,
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(
+      `${api.base}/repos/${owner}/${repo}/labels?per_page=100`,
+      { headers: HEADERS(api.token) },
+    )
+    if (!res.ok) return failure(res)
+    const data = await res.json() as any[]
+    return { labels: data.map((l: any) => ({ name: l.name, color: l.color })) }
+  } catch (e: any) { return { error: e.message } }
+}
+
 /** Every repository the account can reach, newest first. Paginated to the end. */
 export async function githubListRepos(api: GithubApi): Promise<any> {
   if (!api.token) return { error: 'not_authenticated' }

@@ -98,10 +98,13 @@ export function CopyLinkButton({ url }: { url: string }) {
   )
 }
 
-export default function GithubRow({ item, compact = false, onOpen, onCreateBranch }: {
+export default function GithubRow({ item, compact = false, onOpen, onDetail, onCreateBranch }: {
   item: GithubRowItem
   compact?: boolean
   onOpen?: (url: string) => void
+  /** Open the in-app detail (§3 bis). Present ⇒ a click goes here, not to a
+      browser; the browser stays one click away inside the detail. */
+  onDetail?: () => void
   /**
    * Start work on this issue: create the branch it suggests and link the two.
    * Omitted ⇒ the row's menu disappears, so a host that cannot create a branch
@@ -120,12 +123,13 @@ export default function GithubRow({ item, compact = false, onOpen, onCreateBranc
   // a narrow-shape item gets no card rather than an empty frame.
   const carded = compact && !!(item.body !== undefined || item.labels || item.author)
   const hover = useHoverCard()
+  const activate = onDetail ?? (onOpen ? () => onOpen(item.url) : undefined)
 
   if (compact) {
     return (
       <>
       <div className="sb-item sb-gh-row" title={carded ? undefined : item.title}
-        onClick={() => onOpen?.(item.url)} onContextMenu={onContextMenu}
+        onClick={() => activate?.()} onContextMenu={onContextMenu}
         onMouseEnter={carded ? hover.enter : undefined}
         onMouseLeave={carded ? hover.leaveRow : undefined}>
         <span className={`sb-gh-state${item.draft ? ' sb-gh-state--draft' : ''}`}>
@@ -155,7 +159,7 @@ export default function GithubRow({ item, compact = false, onOpen, onCreateBranc
       )}
       {carded && hover.pos && (
         <GithubHoverCard item={item} pos={hover.pos} inside={hover.inside}
-          onClose={hover.close} onOpen={onOpen} />
+          onClose={hover.close} onOpen={onOpen} onActivate={activate} />
       )}
       </>
     )

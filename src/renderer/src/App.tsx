@@ -46,6 +46,7 @@ import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
 import CenterFileDiff, { CenterDiffTarget } from './components/CenterFileDiff/CenterFileDiff'
+import IssueDetail from './components/IssueDetail/IssueDetail'
 import ContextMenu, { MenuItemDef } from './components/ContextMenu/ContextMenu'
 import './App.css'
 
@@ -340,6 +341,10 @@ export default function App() {
   // all, which is not the same as rendering an empty one.
   const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
+  // The issue being read in the centre (§3 bis) — the third layout: toolbar
+  // and left panel kept, graph replaced, commit panel not shown. Belongs to
+  // the repository, so a repo switch closes it.
+  const [issueDetail, setIssueDetail] = useState<GithubListItem | null>(null)
   const [prModalOpen, setPrModalOpen] = useState(false)
   // Which pull request the composer is opening — head, base and whether the
   // head still has to be pushed. Decided by prIntentFor, never by the composer.
@@ -714,6 +719,8 @@ export default function App() {
       setGithubPRs(undefined); setGithubIssues(undefined)
     }
   }, [])
+
+  useEffect(() => { setIssueDetail(null) }, [repoPath])
 
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
@@ -2263,6 +2270,7 @@ export default function App() {
               githubPRs={githubPRs}
               githubIssues={githubIssues}
               onStartBranchFromIssue={handleCreateBranchFromIssue}
+              onShowGithubDetail={setIssueDetail}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}
@@ -2487,6 +2495,14 @@ export default function App() {
                 </button>
               </div>
             </div>
+          ) : issueDetail && githubOwnerRepo ? (
+            <IssueDetail
+              repo={githubOwnerRepo}
+              item={issueDetail}
+              onClose={() => setIssueDetail(null)}
+              onCreateBranch={handleCreateBranchFromIssue}
+              onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo.owner, githubOwnerRepo.repo) }}
+            />
           ) : (
             <CommitGraph
               issueForBranch={branchMeta.issueFor}
@@ -2549,7 +2565,7 @@ export default function App() {
           )}
         </div>
 
-        {repoPath && !rebaseHash && !viewTab && (selectedCommit || conflictMode) && (
+        {repoPath && !rebaseHash && !viewTab && !issueDetail && (selectedCommit || conflictMode) && (
           <>
             <div className="resize-handle" onMouseDown={startResizeRight} />
             <div className="app-right" style={{ width: rightW }}>
