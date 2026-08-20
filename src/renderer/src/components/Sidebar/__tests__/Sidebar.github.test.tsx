@@ -195,6 +195,36 @@ describe('the affordances follow their handlers', () => {
     expect(onShowGithubDetail).not.toHaveBeenCalled()
   })
 
+  // The kebab: the same actions as the right-click, discoverable on hover.
+  test('the kebab opens the full action list of an issue row', async () => {
+    const write = jest.fn()
+    Object.assign(navigator, { clipboard: { writeText: write } })
+    const onShowGithubDetail = jest.fn()
+    const onStartBranchFromIssue = jest.fn()
+    const onOpenGithubItem = jest.fn()
+    draw({ githubIssues: [issue], onShowGithubDetail, onStartBranchFromIssue, onOpenGithubItem })
+    unfold('GITHUB ISSUES')
+    await userEvent.click(document.querySelector('.sb-gh-kebab')!)
+    expect(await screen.findByText('View Issue')).toBeInTheDocument()
+    expect(screen.getByText(/Branch for This Issue/)).toBeInTheDocument()
+    expect(screen.getByText(/Copy/i)).toBeInTheDocument()
+    expect(screen.getByText(/Open on GitHub/)).toBeInTheDocument()
+    // the kebab click itself must not activate the row
+    expect(onShowGithubDetail).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByText('View Issue'))
+    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }))
+  })
+
+  test('a PR row gets the kebab too, with its own smaller list', async () => {
+    const onOpenGithubItem = jest.fn()
+    draw({ githubPRs: [{ number: 3, title: 'A PR', url: 'u3' }], onOpenGithubItem, onStartBranchFromIssue: jest.fn() })
+    unfold('PULL REQUESTS')
+    await userEvent.click(document.querySelector('.sb-gh-kebab')!)
+    expect(await screen.findByText(/Open on GitHub/)).toBeInTheDocument()
+    expect(screen.queryByText(/Branch for This Issue/)).not.toBeInTheDocument()
+    expect(screen.queryByText('View Issue')).not.toBeInTheDocument()
+  })
+
   test('a pull request row never offers a branch menu', async () => {
     draw({ githubPRs: [{ number: 3, title: 'A PR', url: 'u3' }], onStartBranchFromIssue: jest.fn() })
     unfold('PULL REQUESTS')

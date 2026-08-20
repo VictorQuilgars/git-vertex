@@ -118,7 +118,15 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
   const { t } = useLang()
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const menued = item.kind === 'issue' && !!onCreateBranch
-  const onContextMenu = menued
+  // The row's actions, one list for its two openings: the kebab that appears
+  // on hover, and the right-click. Every entry has a real handler behind it.
+  const menuItems = compact ? [
+    ...(onDetail ? [{ label: t('gh.issue.view'), action: onDetail }] : []),
+    ...(menued ? [{ label: t('gh.issue.createBranch'), action: onCreateBranch! }] : []),
+    { label: t('gh.panel.copyLink'), action: () => navigator.clipboard.writeText(item.url) },
+    ...(onOpen ? [{ label: t('gh.panel.openIn'), action: () => onOpen(item.url) }] : []),
+  ] : (menued ? [{ label: t('gh.issue.createBranch'), action: onCreateBranch! }] : [])
+  const onContextMenu = menuItems.length
     ? (e: React.MouseEvent) => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }
     : undefined
   const hasMeta = !!(item.author || item.createdAt || (item.comments ?? 0) > 0)
@@ -155,10 +163,19 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
             </span>
           )}
         </span>
+        {menuItems.length > 0 && (
+          <button className="sb-gh-kebab" title={t('gh.row.actions')}
+            onClick={e => {
+              e.stopPropagation()
+              const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+              setCtx({ x: r.left, y: r.bottom + 4 })
+            }}>
+            <Icon name="kebab" size={13} />
+          </button>
+        )}
       </div>
-      {ctx && menued && (
-        <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)}
-          items={[{ label: t('gh.issue.createBranch'), action: onCreateBranch! }]} />
+      {ctx && menuItems.length > 0 && (
+        <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={menuItems} />
       )}
       {carded && hover.pos && (
         <GithubHoverCard item={item} pos={hover.pos} inside={hover.inside}
@@ -215,9 +232,8 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
         </div>
       )}
     </div>
-    {ctx && menued && (
-      <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)}
-        items={[{ label: t('gh.issue.createBranch'), action: onCreateBranch! }]} />
+    {ctx && menuItems.length > 0 && (
+      <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={menuItems} />
     )}
     </>
   )
