@@ -2271,6 +2271,7 @@ export default function App() {
               githubIssues={githubIssues}
               onStartBranchFromIssue={handleCreateBranchFromIssue}
               onShowGithubDetail={setIssueDetail}
+              githubDetailOpen={!!issueDetail}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}

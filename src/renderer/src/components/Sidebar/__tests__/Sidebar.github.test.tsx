@@ -248,6 +248,12 @@ describe('the hover card over the graph', () => {
     expect(card.textContent).toContain('@victor')     // reporter
   })
 
+  test('while a detail is open, the rows stop offering their card', () => {
+    draw({ githubIssues: [rich], githubDetailOpen: true })
+    hover('Push notifications')
+    expect(document.querySelector('.ghc')).not.toBeInTheDocument()
+  })
+
   test('a narrow-shape row gets no card, not an empty frame', () => {
     draw({ githubIssues: [{ number: 7, title: 'Crash on open', url: 'https://x/7' }] })
     hover('Crash on open')

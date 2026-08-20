@@ -113,6 +113,25 @@ describe('the writes go through the one PATCH, and apply only on success', () =>
     expect(screen.queryByText('Save')).not.toBeInTheDocument()
   })
 
+  test('what the issue already carries comes first, and holds its place', async () => {
+    const { api } = draw({}, {
+      githubListRepoLabels: jest.fn().mockResolvedValue({
+        labels: [{ name: 'bug', color: 'ff0000' }, { name: 'cli', color: '00ffff' },
+                 { name: 'frontend', color: '1d76db' }],
+      }),
+    })
+    await screen.findByText('@alice')
+    const pencils = document.querySelectorAll('.idv-pencil')
+    await userEvent.click(pencils[pencils.length - 1])
+    await waitFor(() => expect(api.githubListRepoLabels).toHaveBeenCalled())
+    const first = () => document.querySelector('.idv-pick-row')!.textContent
+    expect(first()).toContain('frontend')
+    // un-picking it must not re-sort the list under the pointer
+    await userEvent.click(screen.getAllByText('frontend').find(e => e.closest('.idv-pick-row'))!)
+    await waitFor(() => expect(api.githubUpdateIssue).toHaveBeenCalled())
+    expect(first()).toContain('frontend')
+  })
+
   test('the search narrows the options', async () => {
     const { api } = draw()
     await screen.findByText('@alice')

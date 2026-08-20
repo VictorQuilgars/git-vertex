@@ -89,8 +89,13 @@ function PickerEditor({ options, chosen, onPick, render, placeholder, busy }: {
   busy?: boolean
 }) {
   const [q, setQ] = useState('')
+  // What was already on the issue comes FIRST — and the order is frozen at
+  // open: re-sorting on every toggle would move rows under the pointer.
+  const atOpen = useRef<string[]>(chosen)
+  const ordered = [...options].sort((a, b) =>
+    Number(atOpen.current.includes(b)) - Number(atOpen.current.includes(a)))
   const needle = q.trim().toLowerCase()
-  const shown = needle ? options.filter(o => o.toLowerCase().includes(needle)) : options
+  const shown = needle ? ordered.filter(o => o.toLowerCase().includes(needle)) : ordered
   return (
     <div className="idv-picker">
       <input className="idv-picker-search" placeholder={placeholder} autoFocus

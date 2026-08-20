@@ -98,13 +98,16 @@ export function CopyLinkButton({ url }: { url: string }) {
   )
 }
 
-export default function GithubRow({ item, compact = false, onOpen, onDetail, onCreateBranch }: {
+export default function GithubRow({ item, compact = false, onOpen, onDetail, onCreateBranch, hoverCard = true }: {
   item: GithubRowItem
   compact?: boolean
   onOpen?: (url: string) => void
   /** Open the in-app detail (§3 bis). Present ⇒ a click goes here, not to a
       browser; the browser stays one click away inside the detail. */
   onDetail?: () => void
+  /** False while a detail is open: the card is a peek at what a click will
+      show, and the answer is already on screen. */
+  hoverCard?: boolean
   /**
    * Start work on this issue: create the branch it suggests and link the two.
    * Omitted ⇒ the row's menu disappears, so a host that cannot create a branch
@@ -121,7 +124,7 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
   const hasMeta = !!(item.author || item.createdAt || (item.comments ?? 0) > 0)
   // The hover card exists only where there is something beyond the row —
   // a narrow-shape item gets no card rather than an empty frame.
-  const carded = compact && !!(item.body !== undefined || item.labels || item.author)
+  const carded = compact && hoverCard && !!(item.body !== undefined || item.labels || item.author)
   const hover = useHoverCard()
   const activate = onDetail ?? (onOpen ? () => onOpen(item.url) : undefined)
 
