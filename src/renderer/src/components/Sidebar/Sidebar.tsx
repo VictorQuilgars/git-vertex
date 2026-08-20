@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Icon } from '../Icon/Icon'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import GithubRow from '../GitHubPanel/GithubRow'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { publishedNameFor } from '../ContextMenu/branchRefs'
@@ -22,13 +23,22 @@ export type SidebarView =
   | 'prs' | 'issues'
 
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
-/** A row of the two GitHub sections. Only what a list needs — the rest is a click away. */
+/**
+ * A row of the two GitHub sections — the fields the list endpoints already
+ * return. Everything beyond the identity is optional: a host that still maps
+ * the narrow shape gets the narrow row, not empty separators.
+ */
 export interface GithubListItem {
   number: number
   title: string
   author?: string
   draft?: boolean
   url: string
+  createdAt?: string
+  comments?: number
+  labels?: { name: string; color: string }[]
+  headRef?: string
+  baseRef?: string
 }
 interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
 interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }
@@ -134,6 +144,9 @@ interface SidebarProps {
    */
   githubPRs?: GithubListItem[]
   githubIssues?: GithubListItem[]
+  /** Start work on an issue: create the branch it suggests and link the two.
+      Omitted ⇒ no context menu on the issue rows. */
+  onStartBranchFromIssue?: (issue: { number: number; title: string; url: string }) => void
   onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
@@ -623,7 +636,7 @@ export default function Sidebar({
   soloBranch, visibility, onToggleSolo, onToggleHide,
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
-  githubPRs, githubIssues, onOpenGithubItem,
+  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   onCopyBranchLink, onDeleteBranchBoth,
@@ -1182,13 +1195,8 @@ export default function Sidebar({
               {githubPRs.length === 0
                 ? <div className="sb-empty">{t('sb.github.noPRs')}</div>
                 : githubPRs.map(pr => (
-                  <div key={pr.number} className="sb-item sb-gh-item"
-                    title={pr.title}
-                    onClick={() => onOpenGithubItem?.(pr.url)}>
-                    <span className="sb-gh-num">#{pr.number}</span>
-                    <span className="sb-gh-title">{pr.title}</span>
-                    {pr.draft && <span className="sb-gh-draft">{t('sb.github.draft')}</span>}
-                  </div>
+                  <GithubRow key={pr.number} compact item={{ ...pr, kind: 'pr' }}
+                    onOpen={url => onOpenGithubItem?.(url)} />
                 ))}
             </Section>
           )}
@@ -1199,12 +1207,11 @@ export default function Sidebar({
               {githubIssues.length === 0
                 ? <div className="sb-empty">{t('sb.github.noIssues')}</div>
                 : githubIssues.map(issue => (
-                  <div key={issue.number} className="sb-item sb-gh-item"
-                    title={issue.title}
-                    onClick={() => onOpenGithubItem?.(issue.url)}>
-                    <span className="sb-gh-num">#{issue.number}</span>
-                    <span className="sb-gh-title">{issue.title}</span>
-                  </div>
+                  <GithubRow key={issue.number} compact item={{ ...issue, kind: 'issue' }}
+                    onOpen={url => onOpenGithubItem?.(url)}
+                    onCreateBranch={onStartBranchFromIssue
+                      ? () => onStartBranchFromIssue({ number: issue.number, title: issue.title, url: issue.url })
+                      : undefined} />
                 ))}
             </Section>
           )}

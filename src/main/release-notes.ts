@@ -17,6 +17,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The **sort button is gone**: it had shipped with no handler at all. The bar now holds only controls that do something, and a test keeps it that way.
 ### 🧾 Pull requests and issues, in the left panel
 - Two sections among the branches and the tags, with their counts — the place you look at them is beside the rest of the repository, not in a tab that replaces it.
+- Each row says what the forge said: a **state icon** (a draft is greyed), the number and the title, the **labels as coloured dots** with their names a tooltip away, then the author, the age and the comment count.
+- **Right-click an issue to start its branch** — the same gesture, and the same single row component, as the GitHub tab, so the two lists cannot drift apart.
 - In the VS Code panel they are two more views on the activity rail.
 - No GitHub here, or nothing to authenticate with, means **no section** rather than an empty one.
 

@@ -699,6 +699,8 @@ export default function App() {
       (list ?? []).map((x: any) => ({
         number: x.number, title: x.title, author: x.author,
         draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
+        createdAt: x.createdAt, comments: x.comments, labels: x.labels,
+        headRef: x.headRef, baseRef: x.baseRef,
       }))
     try {
       const [prs, issues] = await Promise.all([
@@ -2259,6 +2261,7 @@ export default function App() {
             <Sidebar
               githubPRs={githubPRs}
               githubIssues={githubIssues}
+              onStartBranchFromIssue={handleCreateBranchFromIssue}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}

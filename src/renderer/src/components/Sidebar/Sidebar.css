@@ -648,9 +648,15 @@
 .sb-track-behind { color: var(--warning); }
 .sb-track-gone { color: var(--danger); font-size: var(--text-micro); }
 
-/* The two GitHub sections. A row is a number, a title that truncates, and
-   nothing else — the detail belongs in the right-hand pane, not in a list. */
-.sb-gh-item { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; cursor: pointer; }
+/* The two GitHub sections — the compact cut of the shared GithubRow. Two
+   lines: state icon, number and title, then author · age · comments; the
+   labels are dots, their names a tooltip away. Width is the scarce resource
+   here — the full card belongs to the GitHub tab. */
+.sb-gh-row { display: flex; align-items: flex-start; gap: var(--space-sm); min-width: 0; cursor: pointer; }
+.sb-gh-state { display: inline-flex; flex-shrink: 0; margin-top: 1px; color: var(--success-emphasis); }
+.sb-gh-state--draft { color: var(--text-tertiary); }
+.sb-gh-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.sb-gh-line1 { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
 .sb-gh-num { color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .sb-gh-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .sb-gh-draft {
@@ -658,3 +664,12 @@
   color: var(--text-tertiary); border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm); padding: 0 4px;
 }
+.sb-gh-dots { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; margin-left: auto; }
+.sb-gh-dot { width: 7px; height: 7px; border-radius: 50%; }
+.sb-gh-meta {
+  display: flex; align-items: center; gap: var(--space-sm); min-width: 0;
+  color: var(--text-tertiary); font-size: var(--text-micro);
+}
+.sb-gh-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-gh-time { flex-shrink: 0; }
+.sb-gh-comments { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
