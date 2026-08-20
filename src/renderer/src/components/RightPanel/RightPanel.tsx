@@ -250,6 +250,27 @@ function GravatarAvatar({ email, name, sha, size = 36, radius = 6 }: {
 function fmtDate(s: string, locale: string) {
   try { return new Date(s).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) } catch { return s }
 }
+/**
+ * "il y a 7 heures", the way the author line reads in the reference pane. The
+ * full date is the tooltip — it is the one place someone looks for it. Reuses
+ * the graph's relative-time keys rather than growing a second set.
+ */
+function fmtRelativeDate(s: string, t: (k: any, ...a: any[]) => string): string {
+  try {
+    const sec = Math.floor((Date.now() - new Date(s).getTime()) / 1000)
+    if (!Number.isFinite(sec)) return ''
+    if (sec < 60) return t('graph.time.now')
+    const min = Math.floor(sec / 60)
+    if (min < 60) return t('graph.time.min', min)
+    const h = Math.floor(min / 60)
+    if (h < 24) return t('graph.time.hours', h)
+    const j = Math.floor(h / 24)
+    if (j < 30) return t('graph.time.days', j)
+    const mo = Math.floor(j / 30)
+    if (mo < 12) return t('graph.time.months', mo)
+    return t('graph.time.years', Math.floor(mo / 12))
+  } catch { return '' }
+}
 const STATUS_META: Record<string, { label: string; color: string }> = {
   M: { label: 'M', color: 'var(--accent)' }, A: { label: 'A', color: 'var(--success)' },
   D: { label: 'D', color: 'var(--danger)' }, R: { label: 'R', color: 'var(--purple-text)' },
@@ -340,7 +361,7 @@ function formatPath(path: string): { dir: string; name: string } {
 const MIN_MSG_H = 48
 const MAX_MSG_H = 400
 
-function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast, onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory }: {
+function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileDiff, onAmendSuccess, githubRepo, onRewordMessage, showToast, onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory, onCompareWorking }: {
   commit: CommitNode
   onSelectCommit: (hash: string) => void
   wipCount?: number
@@ -363,6 +384,13 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
    * than opening nothing.
    */
   onOpenFileHistory?: (filePath: string) => void
+  /**
+   * Compare this commit against the working tree — promoted to a button beside
+   * the author, because it is one of the two things a reader does next. The
+   * hosts already hold the handler for the graph's menu; the pane offers the
+   * same gesture where the commit is being read. Omitted ⇒ no button.
+   */
+  onCompareWorking?: (hash: string) => void
   /**
    * Apply a message to a commit that is NOT the tip — a replay of everything
    * after it. The host owns it because it is a rebase: loading state, conflict
@@ -520,6 +548,21 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
     ? body.replace(/^Co-Authored-By:.*$/gim, '').trim()
     : ''
 
+  // What the one-line header says. Summed here rather than asked for: the
+  // per-file counts already arrive with the file list.
+  const totalAdd = files.reduce((n, f) => n + (f.additions ?? 0), 0)
+  const totalDel = files.reduce((n, f) => n + (f.deletions ?? 0), 0)
+  const headRefs = commit.refs
+    .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
+    .map(r => {
+      const isHead = r.includes('HEAD'), isTag = r.startsWith('tag:')
+      const isRemote = r.includes('origin/') || r.includes('remotes/')
+      return {
+        text: r.replace('tag: ', '').replace('HEAD -> ', '★ '),
+        cls: isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local',
+      }
+    })
+
   return (
     <div className="rp-content">
       {/* ── WIP banner ── */}
@@ -529,35 +572,6 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           <button className="cd-view-change-btn" onClick={onViewWip}>{t('rp.viewChanges')}</button>
         </div>
       )}
-
-      {/* ── Hash + AI row ── */}
-      <div className="cd-top-row">
-        <div className="cd-hash-info">
-          <span className="cd-label">commit:</span>
-          <code className="cd-hash" onClick={() => navigator.clipboard.writeText(commit.hash)}
-            title={t('panel.copyHash')}>{commit.shortHash}</code>
-        </div>
-        <button
-          className="cd-ai-btn"
-          disabled={aiBusy}
-          onClick={e => {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-            setAiMenu({ x: rect.left, y: rect.bottom + 4 })
-          }}
-        >
-          <Icon name="ai" size={13} />
-          <span className="cd-ai-label">{aiBusy ? t('panel.aiWorking') : 'Recompose commit with AI'}</span>
-          <span className="cd-ai-sep" />
-          <span className="cd-ai-arrow">▼</span>
-        </button>
-        {aiMenu && (
-          <ContextMenu
-            x={aiMenu.x} y={aiMenu.y}
-            items={aiMenuItems}
-            onClose={() => setAiMenu(null)}
-          />
-        )}
-      </div>
 
       {/* ── AI explanation (persistent accordion when one exists) ── */}
       {(aiExplanation || cachedExplanation) && (
@@ -667,17 +681,60 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
 
         {/* Zone 2 — commit info (lighter) */}
         <div className="cd-info-zone">
-          {/* Author */}
+          {/* Author — name and a relative time; the full date is the tooltip, which
+              is the one place it is looked for. */}
           <div className="cd-author-block">
-            <GravatarAvatar email={commit.authorEmail} name={commit.author} sha={commit.hash} size={36} radius={6} />
+            <GravatarAvatar email={commit.authorEmail} name={commit.author} sha={commit.hash} size={32} radius={6} />
             <div className="cd-author-mid">
               <span className="cd-author-name">{commit.author}</span>
-              <span className="cd-author-meta">authored {fmtDate(commit.date, t('graph.dateLocale'))}</span>
+              <span className="cd-author-meta" title={fmtDate(commit.date, t('graph.dateLocale'))}>
+                {fmtRelativeDate(commit.date, t)}
+              </span>
             </div>
-            {parentShort && (
-              <button className="cd-parent-btn" onClick={() => onSelectCommit(commit.parents[0])}>
-                parent: <code>{parentShort}</code>
+            {onCompareWorking && (
+              <button className="cd-compare-btn" onClick={() => onCompareWorking(commit.hash)}
+                title={t('compare.vsWorking')}>
+                <Icon name="compare" size={13} />
+                <span>{t('panel.compareBtn')}</span>
               </button>
+            )}
+            {/* The AI action stays, as a secondary control. A proposal the model
+                makes is never a filled button — see the design board. */}
+            <button
+              className="cd-ai-btn"
+              title="Recompose commit with AI"
+              disabled={aiBusy}
+              onClick={e => {
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                setAiMenu({ x: rect.right, y: rect.bottom + 4 })
+              }}
+            >
+              <Icon name="ai" size={14} />
+            </button>
+            {aiMenu && (
+              <ContextMenu x={aiMenu.x} y={aiMenu.y} items={aiMenuItems} onClose={() => setAiMenu(null)} />
+            )}
+          </div>
+
+          {/* One line for what used to take four: the hash, where it lives, the
+              branch, and what it cost. Every row of the reference pane carries
+              more than one fact, and the second is always the cost. */}
+          <div className="cd-head-line">
+            <code className="cd-hash" onClick={() => navigator.clipboard.writeText(commit.hash)}
+              title={t('panel.copyHash')}>{commit.shortHash}</code>
+            {parentShort && (
+              <button className="cd-parent-btn" onClick={() => onSelectCommit(commit.parents[0])}
+                title={`parent: ${parentShort}`}>
+                <Icon name="chevronLeft" size={11} />
+              </button>
+            )}
+            {headRefs.map((r, i) => <span key={i} className={`rp-ref ${r.cls}`}>{r.text}</span>)}
+            {files.length > 0 && (
+              <span className="cd-head-cost" title={`${files.length} file${files.length !== 1 ? 's' : ''}`}>
+                {totalAdd > 0 && <span className="rp-add">+{totalAdd}</span>}
+                <span className="cd-head-cost-files"><Icon name="pencil" size={11} />{files.length}</span>
+                {totalDel > 0 && <span className="rp-del">−{totalDel}</span>}
+              </span>
             )}
           </div>
 
@@ -689,38 +746,6 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
               ))}
             </div>
           )}
-
-          {/* Refs */}
-          {commit.refs.length > 0 && (
-            <div className="cd-refs">
-              {commit.refs
-                .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
-                .map((r, i) => {
-                  const isHead = r.includes('HEAD'), isTag = r.startsWith('tag:')
-                  const isRemote = r.includes('origin/') || r.includes('remotes/')
-                  const text = r.replace('tag: ', '').replace('HEAD -> ', '★ ')
-                  const cls = isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local'
-                  return <span key={i} className={`rp-ref ${cls}`}>{text}</span>
-                })}
-            </div>
-          )}
-
-          {/* Files count */}
-          {files.length > 0 && (() => {
-            const nMod = files.filter(f => f.status !== 'A' && f.status !== 'D').length
-            const nAdd = files.filter(f => f.status === 'A').length
-            const nDel = files.filter(f => f.status === 'D').length
-            return (
-              <div className="cd-files-count-row">
-                {nMod > 0 && <>
-                  <Icon name="pencil" size={12} />
-                  <span className="cd-count-mod">{nMod} modified</span>
-                </>}
-                {nAdd > 0 && <span className="cd-count-add">+ {nAdd} added</span>}
-                {nDel > 0 && <span className="cd-count-del">− {nDel} deleted</span>}
-              </div>
-            )
-          })()}
 
           {/* Files bar */}
           <div className="cd-files-bar">
@@ -793,16 +818,36 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
                         onContextMenu={e => { e.preventDefault(); setFileMenu({ x: e.clientX, y: e.clientY, path: f.path }) }}
                       >
                         <StatusBadge status={s} className="rp-file-badge" />
+                        {/* Name strong, folder weak: a file is found by its name,
+                            and the folder is where it was found. */}
                         <span className="rp-file-path">
-                          {dir && <span className="rp-file-dir">{dir}</span>}
                           <span className="rp-file-name">{name}</span>
+                          {dir && <span className="rp-file-dir">{dir}</span>}
                         </span>
-                        {onOpenFileHistory && (
-                          <button className="rp-history-btn" title={t('panel.history')}
-                            onClick={e => { e.stopPropagation(); onOpenFileHistory(f.path) }}>
-                            <Icon name="history" size={11} />
+                        {/* The cost, right-aligned. The data has been on the row
+                            since the Working Changes parity lot; it was drawn in
+                            the staging view and not here. */}
+                        <DiffStat additions={f.additions} deletions={f.deletions} />
+                        {/* The row's actions, on hover — the same three the
+                            reference shows, instead of only a context menu. */}
+                        <span className="rp-file-actions">
+                          {onOpenFileHistory && (
+                            <button className="rp-file-act" title={t('panel.history')}
+                              onClick={e => { e.stopPropagation(); onOpenFileHistory(f.path) }}>
+                              <Icon name="history" size={11} />
+                            </button>
+                          )}
+                          {onOpenFileOnRemote && (
+                            <button className="rp-file-act" title={t('panel.file.openOnRemote')}
+                              onClick={e => { e.stopPropagation(); onOpenFileOnRemote(commit.hash, f.path) }}>
+                              <Icon name="externalLink" size={11} />
+                            </button>
+                          )}
+                          <button className="rp-file-act" title={t('panel.file.copyPath')}
+                            onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(f.path) }}>
+                            <Icon name="copy" size={11} />
                           </button>
-                        )}
+                        </span>
                       </div>
                     )
                   })
@@ -2008,6 +2053,8 @@ interface RightPanelProps {
    * than opening nothing.
    */
   onOpenFileHistory?: (filePath: string) => void
+  /** Compare a commit against the working tree, from the detail pane. */
+  onCompareWorking?: (hash: string) => void
   /** Apply a message to a commit that is not the tip — see CommitDetail. */
   onRewordMessage?: (hash: string, message: string) => void | Promise<void>
   // Agent-proposed commit (MCP propose_commit): message preloaded into the
@@ -2028,7 +2075,7 @@ interface RightPanelProps {
 export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
-  onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory,
+  onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory, onCompareWorking,
   onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip, emptyState
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
@@ -2081,6 +2128,7 @@ export default function RightPanel({
           onCopyFileLink={onCopyFileLink}
           onRestoreFile={onRestoreFile}
           onOpenFileHistory={onOpenFileHistory}
+          onCompareWorking={onCompareWorking}
           onRewordMessage={onRewordMessage}
           showToast={showToast}
         />

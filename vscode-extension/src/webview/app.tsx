@@ -16,7 +16,7 @@ import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/Them
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import type { ConflictKind } from '../../../src/renderer/src/types'
-import Sidebar, { SidebarView } from '../../../src/renderer/src/components/Sidebar/Sidebar'
+import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import ActivityRail from './ActivityRail'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import StagingEditor from '../../../src/renderer/src/components/StagingEditor/StagingEditor'
@@ -51,7 +51,10 @@ import './vertex-vscode.css'
 
 declare global { interface Window { gitAPI: any; appInfo: any } }
 
-const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags']
+// The rail is one view at a time, so the two GitHub lists are two more views
+// rather than sections stacked under the others — which is what the panel's
+// shape allows. In the desktop they stack, from the same component.
+const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
 
 /** The virtual commit that stands for the working tree. One literal, not three. */
 const WIP_NODE: CommitNode = {
@@ -86,6 +89,8 @@ function VertexApp() {
   }, [])
   const showConfirm = useCallback((msg: string): Promise<boolean> => window.gitAPI.uiConfirm(msg), [])
 
+  const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
+  const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
   const [commits, setCommits] = useState<CommitNode[]>([])
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [currentBranch, setCurrentBranch] = useState('')
@@ -128,9 +133,6 @@ function VertexApp() {
   // githubRepo, which gates GitHub API calls and is only ever GitHub.
   const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
-  // Open pull requests, for the empty pane's Launchpad. undefined = no GitHub
-  // here or not asked yet, and the section is absent rather than empty.
-  const [openPRCount, setOpenPRCount] = useState<number | undefined>(undefined)
   const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
   // The activity rail is always visible; `activeView` is the section its
   // resizable side-panel shows, or null when collapsed (only the rail). Closed
@@ -209,11 +211,21 @@ function VertexApp() {
       try {
         const gh = await window.gitAPI.githubDetectRepo()
         setGithubRepo(gh?.owner ? { owner: gh.owner, repo: gh.repo } : null)
+        // The two sidebar sections. Absent — not empty — when there is no
+        // GitHub here or nothing to authenticate with.
         if (gh?.owner && gh?.repo) {
-          const prs = await (window.gitAPI as any).githubListPRs(gh.owner, gh.repo).catch(() => null)
-          setOpenPRCount(prs?.error ? undefined : (prs?.prs?.length ?? 0))
+          const row = (x: any, kind: 'pr' | 'issue'): GithubListItem => ({
+            number: x.number, title: x.title, author: x.author,
+            draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
+          })
+          const [prs, issues] = await Promise.all([
+            (window.gitAPI as any).githubListPRs(gh.owner, gh.repo).catch(() => null),
+            (window.gitAPI as any).githubListIssues(gh.owner, gh.repo).catch(() => null),
+          ])
+          setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
+          setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
         } else {
-          setOpenPRCount(undefined)
+          setGithubPRs(undefined); setGithubIssues(undefined)
         }
       } catch { setGithubRepo(null) }
       // Read the remote itself: it is the only thing that knows the host, and
@@ -853,7 +865,8 @@ function VertexApp() {
       remoteName: remoteNames[0] ?? 'origin',
       ahead: tracking.ahead,
       behind: tracking.behind,
-      openPRs: openPRCount,
+      // Derived from the sidebar's own list (#112) — one fetch, two readers.
+      openPRs: githubPRs?.length,
     },
     actions: {
       onPublish: tracking.upstream ? undefined : () => handleSetUpstream(currentBranch),
@@ -865,9 +878,9 @@ function VertexApp() {
       onReviewChanges: defaultBranch && currentBranch && currentBranch !== defaultBranch
         ? () => window.gitAPI.openCompare(defaultBranch, currentBranch)
         : undefined,
-      onShowPRs: openPRCount !== undefined ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      onShowPRs: githubPRs !== undefined ? () => (window.gitAPI as any).openGithubTab() : undefined,
       onStartFromIssue: githubRepo ? () => (window.gitAPI as any).openGithubTab() : undefined,
-      onStartReviewPR: openPRCount ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      onStartReviewPR: githubPRs?.length ? () => (window.gitAPI as any).openGithubTab() : undefined,
       // The stash, worktree and branch lists live on the rail; the row takes
       // you to the list where the action is, which is the honest wiring.
       onApplyStash: stashCount > 0
@@ -1047,6 +1060,9 @@ function VertexApp() {
             onFetch={handleFetch}
             onPull={handlePull}
             isFavorite={branchMeta.isFavorite}
+            githubPRs={githubPRs}
+            githubIssues={githubIssues}
+            onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
             issueFor={branchMeta.issueFor}
             onToggleFavorite={branchMeta.toggleFavorite}
             onOpenBranchOnRemote={handleOpenBranchOnRemote}
@@ -1142,6 +1158,7 @@ function VertexApp() {
                 </div>
               )}
               <RightPanel
+                onCompareWorking={(hash) => window.gitAPI.openCompareWorkingTab(hash)}
                 embedded
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
