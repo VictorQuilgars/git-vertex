@@ -219,6 +219,7 @@ function VertexApp() {
             draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
             createdAt: x.createdAt, comments: x.comments, labels: x.labels,
             headRef: x.headRef, baseRef: x.baseRef,
+            body: x.body, assignees: x.assignees,
           })
           const [prs, issues] = await Promise.all([
             (window.gitAPI as any).githubListPRs(gh.owner, gh.repo).catch(() => null),

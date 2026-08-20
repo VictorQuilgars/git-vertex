@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import ContextMenu from '../ContextMenu/ContextMenu'
+import GithubHoverCard, { useHoverCard } from './GithubHoverCard'
 import { useLang } from '../../i18n/LanguageContext'
 
 /**
@@ -35,6 +36,9 @@ export interface GithubRowItem {
   labels?: GithubLabel[]
   headRef?: string
   baseRef?: string
+  /** The description, as GitHub markdown — the hover card renders it. */
+  body?: string
+  assignees?: string[]
   /** Set in cross-repo mode: which repository this item belongs to. */
   repoLabel?: string
 }
@@ -112,12 +116,18 @@ export default function GithubRow({ item, compact = false, onOpen, onCreateBranc
     ? (e: React.MouseEvent) => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }
     : undefined
   const hasMeta = !!(item.author || item.createdAt || (item.comments ?? 0) > 0)
+  // The hover card exists only where there is something beyond the row —
+  // a narrow-shape item gets no card rather than an empty frame.
+  const carded = compact && !!(item.body !== undefined || item.labels || item.author)
+  const hover = useHoverCard()
 
   if (compact) {
     return (
       <>
-      <div className="sb-item sb-gh-row" title={item.title}
-        onClick={() => onOpen?.(item.url)} onContextMenu={onContextMenu}>
+      <div className="sb-item sb-gh-row" title={carded ? undefined : item.title}
+        onClick={() => onOpen?.(item.url)} onContextMenu={onContextMenu}
+        onMouseEnter={carded ? hover.enter : undefined}
+        onMouseLeave={carded ? hover.leaveRow : undefined}>
         <span className={`sb-gh-state${item.draft ? ' sb-gh-state--draft' : ''}`}>
           <Icon name={item.kind === 'pr' ? 'pullRequest' : 'issue'} size={13} />
         </span>
@@ -142,6 +152,10 @@ export default function GithubRow({ item, compact = false, onOpen, onCreateBranc
       {ctx && menued && (
         <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)}
           items={[{ label: t('gh.issue.createBranch'), action: onCreateBranch! }]} />
+      )}
+      {carded && hover.pos && (
+        <GithubHoverCard item={item} pos={hover.pos} inside={hover.inside}
+          onClose={hover.close} onOpen={onOpen} />
       )}
       </>
     )

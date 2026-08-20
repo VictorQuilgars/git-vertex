@@ -39,6 +39,8 @@ export interface GithubListItem {
   labels?: { name: string; color: string }[]
   headRef?: string
   baseRef?: string
+  body?: string
+  assignees?: string[]
 }
 interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
 interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }

@@ -46,6 +46,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Two sections among the branches and the tags, with their counts — the place you look at them is beside the rest of the repository, not in a tab that replaces it.
 - Each row says what the forge said: a **state icon** (a draft is greyed), the number and the title, the **labels as coloured dots** with their names a tooltip away, then the author, the age and the comment count.
 - **Right-click an issue to start its branch** — the same gesture, and the same single row component, as the GitHub tab, so the two lists cannot drift apart.
+- **Rest on a row and a card opens over the graph** — the description rendered as markdown (headings, task lists, code), status, full labels, assignees, reporter. Clamped to the window and scrolling inside itself, so it works in a 400-pixel panel too.
 - In the VS Code panel they are two more views on the activity rail.
 - No GitHub here, or nothing to authenticate with, means **no section** rather than an empty one.
 ### 📐 The commit list is rows, not a grid

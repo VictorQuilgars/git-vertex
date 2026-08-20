@@ -701,6 +701,7 @@ export default function App() {
         draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
         createdAt: x.createdAt, comments: x.comments, labels: x.labels,
         headRef: x.headRef, baseRef: x.baseRef,
+        body: x.body, assignees: x.assignees,
       }))
     try {
       const [prs, issues] = await Promise.all([
