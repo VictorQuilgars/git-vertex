@@ -647,3 +647,14 @@
 .sb-track-ahead { color: var(--success); }
 .sb-track-behind { color: var(--warning); }
 .sb-track-gone { color: var(--danger); font-size: var(--text-micro); }
+
+/* The two GitHub sections. A row is a number, a title that truncates, and
+   nothing else — the detail belongs in the right-hand pane, not in a list. */
+.sb-gh-item { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; cursor: pointer; }
+.sb-gh-num { color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.sb-gh-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sb-gh-draft {
+  flex-shrink: 0; font-size: 10px; text-transform: uppercase;
+  color: var(--text-tertiary); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); padding: 0 4px;
+}

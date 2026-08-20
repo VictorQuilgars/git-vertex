@@ -29,6 +29,7 @@ import RepoManager from './components/RepoManager/RepoManager'
 import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
 import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
 import { issueBranchName } from './utils/issueBranch'
+import type { GithubListItem } from './components/Sidebar/Sidebar'
 import { issueRefLabel, issueRefUrl } from './utils/issueRef'
 import { parseAutolinks } from './utils/autolinks'
 import { useSettings } from './contexts/SettingsContext'
@@ -334,6 +335,11 @@ export default function App() {
   // githubOwnerRepo on purpose: that one gates GitHub API calls and is only
   // ever GitHub, while a link can be built for whatever host the remote names.
   const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
+  // The two GitHub lists the sidebar shows as sections. `undefined` while there
+  // is no GitHub here or no answer yet — the sections then do not render at
+  // all, which is not the same as rendering an empty one.
+  const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
+  const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
   const [prModalOpen, setPrModalOpen] = useState(false)
   // Which pull request the composer is opening — head, base and whether the
   // head still has to be pushed. Decided by prIntentFor, never by the composer.
@@ -688,10 +694,35 @@ export default function App() {
   }, [repoPath, loadRepoData])
 
   // ── Open repo helpers ──────────────────────────────────────
+  const loadGithubLists = useCallback(async (owner: string, repo: string) => {
+    const rows = (list: any[] | undefined, kind: 'pr' | 'issue'): GithubListItem[] =>
+      (list ?? []).map((x: any) => ({
+        number: x.number, title: x.title, author: x.author,
+        draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
+      }))
+    try {
+      const [prs, issues] = await Promise.all([
+        (window.gitAPI as any).githubListPRs(owner, repo).catch(() => null),
+        (window.gitAPI as any).githubListIssues(owner, repo).catch(() => null),
+      ])
+      setGithubPRs(prs?.error ? undefined : rows(prs?.prs, 'pr'))
+      setGithubIssues(issues?.error ? undefined : rows(issues?.issues, 'issue'))
+    } catch {
+      setGithubPRs(undefined); setGithubIssues(undefined)
+    }
+  }, [])
+
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
     setGithubOwnerRepo(detected?.owner && detected?.repo
       ? { owner: detected.owner, repo: detected.repo } : null)
+    // The lists follow the repository, and a repository with no GitHub — or no
+    // token — simply has no sections rather than two empty ones.
+    if (detected?.owner && detected?.repo) {
+      void loadGithubLists(detected.owner, detected.repo)
+    } else {
+      setGithubPRs(undefined); setGithubIssues(undefined)
+    }
     // Read the remote itself rather than assuming github.com: this is what
     // every link below is built from, and the only thing that knows the host.
     const rem = await window.gitAPI.getRemotes().catch(() => ({ remotes: [] }))
@@ -2226,6 +2257,9 @@ export default function App() {
         <div className="app-sidebar" style={{ width: sidebarW }}>
           {(
             <Sidebar
+              githubPRs={githubPRs}
+              githubIssues={githubIssues}
+              onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}
               currentBranch={currentBranch}

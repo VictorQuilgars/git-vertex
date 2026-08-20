@@ -16,7 +16,7 @@ import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/Them
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import type { ConflictKind } from '../../../src/renderer/src/types'
-import Sidebar, { SidebarView } from '../../../src/renderer/src/components/Sidebar/Sidebar'
+import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import ActivityRail from './ActivityRail'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import StagingEditor from '../../../src/renderer/src/components/StagingEditor/StagingEditor'
@@ -51,7 +51,10 @@ import './vertex-vscode.css'
 
 declare global { interface Window { gitAPI: any; appInfo: any } }
 
-const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags']
+// The rail is one view at a time, so the two GitHub lists are two more views
+// rather than sections stacked under the others — which is what the panel's
+// shape allows. In the desktop they stack, from the same component.
+const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
 
 function VertexApp() {
   const { t } = useLang();
@@ -80,6 +83,8 @@ function VertexApp() {
   }, [])
   const showConfirm = useCallback((msg: string): Promise<boolean> => window.gitAPI.uiConfirm(msg), [])
 
+  const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
+  const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
   const [commits, setCommits] = useState<CommitNode[]>([])
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [currentBranch, setCurrentBranch] = useState('')
@@ -196,6 +201,22 @@ function VertexApp() {
       try {
         const gh = await window.gitAPI.githubDetectRepo()
         setGithubRepo(gh?.owner ? { owner: gh.owner, repo: gh.repo } : null)
+        // The two sidebar sections. Absent — not empty — when there is no
+        // GitHub here or nothing to authenticate with.
+        if (gh?.owner && gh?.repo) {
+          const row = (x: any, kind: 'pr' | 'issue'): GithubListItem => ({
+            number: x.number, title: x.title, author: x.author,
+            draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
+          })
+          const [prs, issues] = await Promise.all([
+            (window.gitAPI as any).githubListPRs(gh.owner, gh.repo).catch(() => null),
+            (window.gitAPI as any).githubListIssues(gh.owner, gh.repo).catch(() => null),
+          ])
+          setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
+          setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
+        } else {
+          setGithubPRs(undefined); setGithubIssues(undefined)
+        }
       } catch { setGithubRepo(null) }
       // Read the remote itself: it is the only thing that knows the host, and
       // every link below is built from it rather than from a hardcoded
@@ -991,6 +1012,9 @@ function VertexApp() {
             onFetch={handleFetch}
             onPull={handlePull}
             isFavorite={branchMeta.isFavorite}
+            githubPRs={githubPRs}
+            githubIssues={githubIssues}
+            onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
             issueFor={branchMeta.issueFor}
             onToggleFavorite={branchMeta.toggleFavorite}
             onOpenBranchOnRemote={handleOpenBranchOnRemote}

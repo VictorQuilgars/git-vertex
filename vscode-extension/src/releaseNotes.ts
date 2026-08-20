@@ -22,7 +22,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The header is **one line** — hash, parent, branch, and what the commit cost as \`+A ✎N −D\` — where it took four. The author's line reads *7 hours ago*; the full date is a tooltip away.
 - Each file row carries its own \`+N −M\`, puts the **name before the folder**, and offers history / open on remote / copy path on hover.
 - **Compare** against the working tree is a button beside the author. The AI action is an icon with a menu, not a full-width bar.
-
+### 🧾 Pull requests and issues, in the left panel
+- Two sections among the branches and the tags, with their counts — the place you look at them is beside the rest of the repository, not in a tab that replaces it.
+- In the VS Code panel they are two more views on the activity rail.
+- No GitHub here, or nothing to authenticate with, means **no section** rather than an empty one.
 ### 📐 The commit list is rows, not a grid
 - The panel carried the desktop's columns in a fraction of the width, dropping an author here and a date there depending on how deep the graph was.
 - A commit is a row of two lines now: the message, then the branch it is on, its hash, its author and its date — each placed rather than columned. The date sits at the right edge.
