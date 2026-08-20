@@ -52,7 +52,7 @@ describe('Commit detail — editing the message of any commit', () => {
     const { api } = render({ canReword: true, isHead: true, rewrites: 0 })
     await clickMessage()
 
-    const box = await screen.findByRole('textbox')
+    const box = await screen.findByDisplayValue('feat: the original subject')
     await userEvent.clear(box)
     await userEvent.type(box, 'feat: a better subject')
     await userEvent.click(screen.getByRole('button', { name: /update message/i }))
@@ -66,7 +66,7 @@ describe('Commit detail — editing the message of any commit', () => {
     const { api } = render({ canReword: true, isHead: false, rewrites: 4 }, { onRewordMessage })
     await clickMessage()
 
-    const box = await screen.findByRole('textbox')
+    const box = await screen.findByDisplayValue('feat: the original subject')
     await userEvent.clear(box)
     await userEvent.type(box, 'fix: what it really did')
     // The button names the operation, because it is not the same promise.
@@ -110,7 +110,7 @@ describe('Commit detail — editing the message of any commit', () => {
     expect(block).not.toHaveAttribute('title')
 
     await userEvent.click(subject)
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(document.querySelector('.cd-amend-textarea')).not.toBeInTheDocument()
   })
 
   // Without a host handler there is nothing to run the replay, so the panel
@@ -120,7 +120,7 @@ describe('Commit detail — editing the message of any commit', () => {
     const subject = await screen.findByText('feat: the original subject')
     expect(subject.closest('.cd-message-block')).not.toHaveClass('cd-message-block--amendable')
     await userEvent.click(subject)
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(document.querySelector('.cd-amend-textarea')).not.toBeInTheDocument()
   })
 
   test('a host that does not implement getRewordPlan disables editing rather than guessing', async () => {
@@ -143,6 +143,6 @@ describe('Commit detail — editing the message of any commit', () => {
     )
     const subject = await screen.findByText('feat: the original subject')
     await userEvent.click(subject)
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(document.querySelector('.cd-amend-textarea')).not.toBeInTheDocument()
   })
 })

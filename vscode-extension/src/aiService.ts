@@ -183,9 +183,13 @@ export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg:
   return r.error ? { error: r.error } : { message: r.text }
 }
 
-export async function aiExplainCommit(cfg: AIConfig, diff: string, subject: string) {
+export async function aiExplainCommit(cfg: AIConfig, diff: string, subject: string, guidance?: string) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
-  const prompt = `You are a Git expert. Explain simply and concretely, in English, what this commit does: which files and behaviours change, and why it was probably done. 3 to 6 sentences maximum, no bullet list, no preamble.\n\nCommit message: ${subject}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
+  // Same shape as aiResolveConflict's instruction: the user's focus, appended.
+  const guided = guidance?.trim()
+    ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
+    : ''
+  const prompt = `You are a Git expert. Explain simply and concretely, in English, what this commit does: which files and behaviours change, and why it was probably done. 3 to 6 sentences maximum, no bullet list, no preamble.${guided}\n\nCommit message: ${subject}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
   const r = await runAIPrompt(cfg, prompt, 768)
   return r.error ? { error: r.error } : { explanation: r.text }
 }

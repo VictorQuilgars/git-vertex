@@ -1714,3 +1714,64 @@
 .cd-compare-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
 /* With the compare button taking margin-left:auto, the AI control sits right after it. */
 .cd-compare-btn + .cd-ai-btn { margin-left: var(--space-xs); }
+
+/* ── The commit pane's leftovers (#113, second pass) ─────────────────────── */
+/* Copy the message: the small control in the block's corner. */
+.cd-msg-zone, .cd-message { position: relative; }
+.cd-copy-msg {
+  position: absolute; top: var(--space-xs); right: var(--space-xs);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0;
+  background: transparent; border: none; border-radius: var(--radius-xs);
+  color: var(--text-tertiary); cursor: pointer; opacity: 0;
+  transition: opacity var(--dur-fast);
+}
+*:hover > .cd-copy-msg, .cd-copy-msg:focus-visible { opacity: 1; }
+.cd-copy-msg:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+/* The honest empty state of the references line. */
+.cd-no-autolinks {
+  display: flex; align-items: center; gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  color: var(--text-tertiary); font-size: var(--text-xs);
+}
+
+/* Explain, inline — outlined in the model's colour, never filled. */
+.cd-explain-row {
+  display: flex; align-items: center; gap: var(--space-sm);
+  margin: var(--space-sm) var(--space-xl) 0;
+}
+.cd-explain-input {
+  flex: 1; min-width: 0; height: 28px;
+  padding: 0 var(--space-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-muted); border-radius: var(--radius-md);
+  color: var(--text-primary); font-size: var(--text-xs);
+}
+.cd-explain-btn {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  height: 28px; padding: 0 var(--space-lg); flex-shrink: 0;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
+  border-radius: var(--radius-md);
+  color: var(--purple-text); font-size: var(--text-xs); cursor: pointer;
+}
+.cd-explain-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent); }
+.cd-explain-btn:disabled { opacity: .6; cursor: wait; }
+
+/* The files bar: a named, counted header with icon tools. */
+.cd-files-title { font-size: var(--text-micro); letter-spacing: .08em; font-weight: var(--weight-semibold); color: var(--text-secondary); }
+.cd-files-count {
+  display: inline-flex; align-items: center; padding: 1px 6px;
+  border: 1px solid var(--border-muted); border-radius: var(--radius-sm);
+  color: var(--text-secondary); font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.cd-files-spring { flex: 1; }
+.cd-tool-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+  background: transparent; border: none; border-radius: var(--radius-xs);
+  color: var(--text-tertiary); cursor: pointer;
+}
+.cd-tool-btn:hover { background: var(--surface-hover); color: var(--text-primary); }

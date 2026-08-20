@@ -35,6 +35,13 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The header is **one line** — hash, parent, branch, and what the commit cost as \`+A ✎N −D\` — where it took four. The author's line reads *7 hours ago*; the full date is a tooltip away.
 - Each file row carries its own \`+N −M\`, puts the **name before the folder**, and offers history / open on remote / copy path on hover.
 - **Compare** against the working tree is a button beside the author. The AI action is an icon with a menu, not a full-width bar.
+
+### 🗃 The commit pane, finished
+- The file list has a real bar: **FILES CHANGED** with its count, Path/Tree as icons, one click to copy the file list — and a **filter field that is always there**, the staging pane's rule applied to the commit's list.
+- **Explain takes guidance.** A line under the message: say what the explanation should focus on and ask. A guided answer is computed fresh and never cached — it answers your question, not the commit.
+- The message has a **copy control** for subject and body, and a message that references no issue says *No autolinks found* rather than showing nothing.
+- A commit of yours is signed **You** — by git's own \`user.email\`, so it works offline — with your name a tooltip away.
+- The **sort button is gone**: it had shipped with no handler at all. The bar now holds only controls that do something, and a test keeps it that way.
 ### 🧾 Pull requests and issues, in the left panel
 - Two sections among the branches and the tags, with their counts — the place you look at them is beside the rest of the repository, not in a tab that replaces it.
 - In the VS Code panel they are two more views on the activity rail.
