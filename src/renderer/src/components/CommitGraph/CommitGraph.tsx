@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import { createPortal } from 'react-dom'
-import { LayoutCommit, computeGraphLayout, canvasRgb } from './graph-layout'
+import { LayoutCommit, computeGraphLayout, canvasRgb, rowOffsets } from './graph-layout'
+import MessageChip, { type ChipSegment } from './MessageChip'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { Mark } from '../Mark/Mark'
@@ -16,6 +17,16 @@ import { parseAutolinks } from '../../utils/autolinks'
 import './CommitGraph.css'
 
 const ROW_HEIGHT  = 28
+/** The row's second line in the stacked layout. Must match .cg-row-meta. */
+const REF_LINE_H  = 22
+/** The coloured stripe at the very left of a row (.cg-color-bar). */
+const COLOR_BAR_W = 3
+/**
+ * How far the stripe steps in from the panel edge in the stacked layout — flush
+ * against it, it merged with the sidebar/graph junction and could not be seen.
+ * Must match the margin-left on .cg-row--stacked .cg-color-bar.
+ */
+const STRIPE_INSET = 4
 const LANE_WIDTH  = 22
 const NODE_RADIUS = 11
 const SVG_PAD_L   = 36
@@ -194,6 +205,31 @@ function AuthorBullet({ email, name, sha, color }: { email: string; name: string
     </span>
   )
 }
+/**
+ * The short form the stacked row uses at its right edge: `-6 h`, `-1 j`,
+ * `-2 sem.`, `-3 m.`. A relative date is a count with a unit; the words around
+ * it ("il y a", "ago") are what a right-aligned column cannot afford and does
+ * not need — the minus sign says "ago" in three pixels.
+ */
+function fmtDateShort(s: string, t: TFn): string {
+  try {
+    const d = new Date(s)
+    const sec = Math.floor((Date.now() - d.getTime()) / 1000)
+    if (!Number.isFinite(sec)) return ''
+    const min = Math.floor(sec / 60)
+    if (min < 1) return t('graph.timeShort.now')
+    if (min < 60) return t('graph.timeShort.min', min)
+    const h = Math.floor(min / 60)
+    if (h < 24) return t('graph.timeShort.hours', h)
+    const j = Math.floor(h / 24)
+    if (j < 7) return t('graph.timeShort.days', j)
+    if (j < 30) return t('graph.timeShort.weeks', Math.floor(j / 7))
+    const mo = Math.floor(j / 30)
+    if (mo < 12) return t('graph.timeShort.months', mo)
+    return t('graph.timeShort.years', Math.floor(mo / 12))
+  } catch { return '' }
+}
+
 function fmtDate(s: string, format: string, t: TFn) {
   try {
     const d = new Date(s)
@@ -224,6 +260,70 @@ interface ProcessedRef {
   isHead?: boolean     // current HEAD branch
   hasLocal?: boolean   // has a local counterpart
   hasRemote?: boolean  // has a remote counterpart (origin/...)
+}
+
+/**
+ * The segments of the pill under a commit message.
+ *
+ * ⚠️ The issue hangs off the **branch**, not the commit: an issue is what a
+ * branch is working on, and it follows the branch as it moves. A commit does
+ * not have an issue — the branch pointing at it does.
+ *
+ * The pull request is not here yet. Answering "which request carries this
+ * commit" is a search per row, which needs a cache before it is a feature
+ * rather than a rate-limit incident — see the panel-parity issue.
+ */
+export function messageChipSegments(
+  pref: ProcessedRef,
+  issueForBranch?: (branch: string) => { key: string; provider: string } | null,
+  handlers?: { onCheckout?: (b: string) => void; onMenu?: (e: React.MouseEvent) => void },
+  trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null,
+): ChipSegment[] {
+  const segments: ChipSegment[] = []
+  const isTag = pref.cls === 'rc-tag'
+
+  segments.push({
+    kind: isTag ? 'tag' : 'branch',
+    label: pref.display,
+    title: pref.tooltip ?? pref.display,
+    onDoubleClick: pref.branchName && handlers?.onCheckout
+      ? () => handlers.onCheckout!(pref.branchName!) : undefined,
+    onContextMenu: handlers?.onMenu,
+  })
+
+  // Published, and where. The remote's name is what the collapsed icon stands
+  // for — "this exists somewhere else too" is the fact, the name is the detail.
+  if (pref.hasRemote) {
+    // ⚠️ Read the remote ref, not the tooltip's first slash. The tooltip is
+    // `feat/x  +  origin/feat/x` for a branch that exists on both sides, and a
+    // pattern that takes the first `x/` finds the branch's own folder — which
+    // is how this said "feat" instead of "origin" the first time.
+    const full = pref.tooltip?.split('+').pop()?.trim() ?? ''
+    const remote = /^(?:remotes\/)?([^/]+)\//.exec(full)?.[1] ?? 'origin'
+    // ↓N ↑M next to the remote: behind, then ahead. They are the reason a
+    // branch chip is looked at, so they are NOT collapsed — the remote's name
+    // is the detail, the numbers are the point. Nothing is drawn for 0/0: a
+    // branch level with its upstream has nothing to say.
+    const tr = pref.branchName ? trackingFor?.(pref.branchName) : null
+    const behind = tr?.behind ?? 0, ahead = tr?.ahead ?? 0
+    const counts = [behind ? `↓${behind}` : '', ahead ? `↑${ahead}` : ''].filter(Boolean).join(' ')
+    segments.push({
+      kind: 'remote', label: remote, title: pref.tooltip, collapsible: true,
+      detail: counts || undefined,
+    })
+  }
+
+  const issue = pref.branchName ? issueForBranch?.(pref.branchName) : null
+  if (issue) {
+    segments.push({
+      kind: 'issue',
+      label: issue.provider === 'github' ? `#${issue.key}` : issue.key,
+      title: issue.provider === 'github' ? `Issue #${issue.key}` : issue.key,
+      collapsible: true,
+    })
+  }
+
+  return segments
 }
 
 /**
@@ -454,6 +554,28 @@ function RefChip({ pref, laneColor, compact, onDoubleClick, onDragStartBranch, o
 }
 
 interface CommitGraphProps {
+  /**
+   * The issue a branch is working on — the pill under the message shows it.
+   * A branch, not a commit: the link follows the branch as it moves.
+   */
+  issueForBranch?: (branch: string) => { key: string; provider: string } | null
+  /**
+   * Refs under the message instead of in a column of their own.
+   *
+   * ⚠️ The **panel** passes this; the desktop does not, and keeps its column.
+   * That is deliberate rather than a default: the column is 164px that every row
+   * pays whether or not it carries a ref, which is a sixth of a bottom panel and
+   * nothing at all in a desktop window. Two shapes, decided by the host that
+   * knows how much width it has — not a setting the user has to find.
+   */
+  refsBelow?: boolean
+  /**
+   * How far a local branch is from its upstream. Read by the chip under the
+   * message: `↓1 ↑1` is the reason someone looks at a branch chip at all.
+   * A resolver rather than the list, because the graph wants one answer per
+   * chip and has no business holding every branch.
+   */
+  trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null
   commits: CommitNode[]
   selectedHash: string | null
   onSelectCommit: (c: CommitNode) => void
@@ -540,6 +662,9 @@ interface CtxState { x: number; y: number; commit: LayoutCommit; branchName?: st
 interface DropState { x: number; y: number; hash: string; branch: string }
 
 export default function CommitGraph({
+  issueForBranch,
+  refsBelow = false,
+  trackingFor,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
   onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit,
@@ -572,6 +697,7 @@ export default function CommitGraph({
   const showSha = getBool('graphShowSha', true)
   const showStats = getBool('graphShowStats', true)
   const compactColumns = getBool('graphCompactColumns', false)
+
   const dateFormat = get('dateFormat', 'relative')
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -711,17 +837,44 @@ export default function CommitGraph({
   }, [layout, hasWipNode, conflictMode, headHash])
 
   // When the selection changes from outside the graph (parent-commit link,
+  /**
+   * Where each row starts, and how tall it is.
+   *
+   * Rows used to be `index * ROW_HEIGHT` everywhere — the node, the edges, the
+   * bands, the scroll maths and the absolute `top` of the row itself. That only
+   * holds while every row is the same height, which stops being true the moment
+   * refs are drawn under the subject: a row with a ref is taller, and a row
+   * without one must not be.
+   *
+   * ⚠️ The **node stays centred on the subject line**, not on the middle of a
+   * taller row. Centring it on the row would make the graph drift away from the
+   * text it describes, one half-line at a time, wherever a ref appears.
+   */
+  const rowTops = useMemo(
+    // Every row carries a second line in the stacked layout, whether or not it
+    // has a ref: the sha, the author and the date live there now, so a row
+    // without a branch is not a shorter row — it is the same row with one fewer
+    // thing on its second line.
+    () => rowOffsets(displayLayout.map(() => refsBelow), ROW_HEIGHT, REF_LINE_H),
+    [displayLayout, refsBelow])
+
+  const rowTop = useCallback((row: number) => rowTops[row] ?? row * ROW_HEIGHT, [rowTops])
+  /** The middle of a row's first line — where the node and every edge meet it. */
+  const rowMid = useCallback((row: number) => rowTop(row) + ROW_HEIGHT / 2, [rowTop])
+  const rowHeight = useCallback(
+    (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || ROW_HEIGHT, [rowTops])
+
   // keyboard …), make sure the selected row is visible.
   useEffect(() => {
     if (!selectedHash) return
     const row = displayLayout.find(c => c.hash === selectedHash)?.row
     const body = bodyRef.current
     if (row == null || !body) return
-    const top = row * ROW_HEIGHT
-    if (top < body.scrollTop || top + ROW_HEIGHT > body.scrollTop + body.clientHeight) {
+    const top = rowTop(row)
+    if (top < body.scrollTop || top + rowHeight(row) > body.scrollTop + body.clientHeight) {
       body.scrollTo({ top: Math.max(0, top - body.clientHeight / 2), behavior: 'smooth' })
     }
-  }, [selectedHash])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedHash, rowTop, rowHeight])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel.
   // Skipped while an input/textarea has focus.
@@ -745,20 +898,21 @@ export default function CommitGraph({
       onSelectCommit(displayLayout[next])
       const body = bodyRef.current
       if (body) {
-        const top = next * ROW_HEIGHT
+        const top = rowTop(next)
         if (top < body.scrollTop) body.scrollTop = top
-        else if (top + ROW_HEIGHT > body.scrollTop + body.clientHeight) {
-          body.scrollTop = top + ROW_HEIGHT - body.clientHeight
+        else if (top + rowHeight(next) > body.scrollTop + body.clientHeight) {
+          body.scrollTop = top + rowHeight(next) - body.clientHeight
         }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop])
+  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight])
+
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
-  const svgH = displayLayout.length * ROW_HEIGHT
+  const svgH = rowTops[displayLayout.length] ?? displayLayout.length * ROW_HEIGHT
 
   // Availability-based column visibility. The message column must always keep
   // MSG_MIN px; the optional columns are granted space in priority order
@@ -767,14 +921,20 @@ export default function CommitGraph({
   // overflowing — and being clipped to invisibility — when the graph is deep
   // or the panel is narrow (the VS Code panel case). (MSG_MIN is declared
   // above, next to the resize handles that also need it.)
+  //
+  // ⚠️ In the stacked layout there are **no optional columns at all**. The sha,
+  // the author and the date are not narrower there — they are somewhere else:
+  // on the row's second line, where a panel can afford them. Leaving them as
+  // columns and hoping the budget fits is what made the panel show a date and
+  // hide an author depending on how deep the graph happened to be.
   let colBudget = measured ? containerW - refsColW - svgW - MSG_MIN : Infinity
-  const effShowSha = showSha && colBudget >= shaColW
+  const effShowSha = !refsBelow && showSha && colBudget >= shaColW
   if (effShowSha) colBudget -= shaColW
-  const effShowStats = showStats && colBudget >= statsColW
+  const effShowStats = !refsBelow && showStats && colBudget >= statsColW
   if (effShowStats) colBudget -= statsColW
-  const effShowDate = showDate && colBudget >= dateColW
+  const effShowDate = !refsBelow && showDate && colBudget >= dateColW
   if (effShowDate) colBudget -= dateColW
-  const effShowAuthor = showAuthor && colBudget >= authorColW
+  const effShowAuthor = !refsBelow && showAuthor && colBudget >= authorColW
 
   // Keep the resize-drag handlers' view of the world current (see maxWidthFor).
   liveLayout.current = {
@@ -906,12 +1066,17 @@ export default function CommitGraph({
     return rows.size ? rows : null
   }, [hoverHash, displayLayout])
 
+  // ⚠️ `rowMid` is read inside. With `[]` as the dependency list this captured
+  // the offsets of the first render and never let go: rows became variable in
+  // height, the offsets changed, and every edge kept pointing at where its
+  // target row *used* to be — a line ending in the gap between two commits.
+  // That was the "line pointing at no commit" in the third screenshot.
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
     const x1 = SVG_PAD_L + edge.fromLane * LANE_WIDTH
-    const y1 = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+    const y1 = rowMid(commit.row)
     const x2 = SVG_PAD_L + edge.toLane * LANE_WIDTH
-    const y2 = edge.toRow * ROW_HEIGHT + ROW_HEIGHT / 2
+    const y2 = rowMid(edge.toRow)
     const key = `${commit.hash}-${edge.fromLane}-${edge.toLane}-${edge.toRow}`
     const dashArray = isWip || edge.dashed ? '4 3' : undefined
 
@@ -959,7 +1124,7 @@ export default function CommitGraph({
         fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
         strokeDasharray={dashArray} />
     )
-  }, [])
+  }, [rowMid])
 
   // The "start a Pull Request" row, pointing whichever way prIntentFor decided
   // — from this branch, or into it, depending on where you are standing.
@@ -1237,15 +1402,22 @@ export default function CommitGraph({
 
   return (
     <div className="cg-container" ref={containerRef}>
-      {/* ── Header ── */}
-      <div
+      {/* ── Header ── The column headers only mean something when there are
+           columns. In the stacked layout the row carries its own labels by
+           position, so a header would name a grid that is not there. */}
+      {!refsBelow && <div
         className="cg-header"
         style={{ paddingRight: scrollbarW }}
         onContextMenu={e => { e.preventDefault(); setHeaderCtx({ x: e.clientX, y: e.clientY }) }}
         title={t('graph.header.title')}
       >
-        <div className="cg-h-refs" style={{ width: refsColW }}>{compactColumns ? 'B/T' : 'BRANCH / TAG'}</div>
-        <div className="cg-col-handle" onMouseDown={onDragRefs} />
+        {/* The header has to disappear with the column, or the rows shift left
+            by its width while the header does not — which is what the first cut
+            of this layout did, and it put the graph on top of the message. */}
+        {!refsBelow && <>
+          <div className="cg-h-refs" style={{ width: refsColW }}>{compactColumns ? 'B/T' : 'BRANCH / TAG'}</div>
+          <div className="cg-col-handle" onMouseDown={onDragRefs} />
+        </>}
         <div className="cg-h-graph" style={{ width: svgW }}>GRAPH</div>
         <div className="cg-h-msg">COMMIT MESSAGE</div>
         {effShowAuthor && <>
@@ -1264,20 +1436,23 @@ export default function CommitGraph({
           <div className="cg-col-handle" onMouseDown={onDragStats} />
           <div className="cg-h-stats" style={{ width: statsColW }}>{compactColumns ? '±' : '+ / −'}</div>
         </>}
-      </div>
+      </div>}
 
       {/* ── Body ── */}
       <div className="cg-body" ref={bodyRef}>
         <div className="cg-scroll-content" style={{ height: svgH, position: 'relative' }}>
 
-          {/* Graph SVG — offset by refsColW */}
+          {/* Graph SVG — offset by the refs column, which is why it has to be
+              zero when there is no column: with refs under the message the
+              graph is the leftmost thing on the row, and leaving the old offset
+              drew every node on top of the commit message. */}
           <svg
             className="cg-graph-svg"
             width={svgW}
             height={svgH}
             style={{
               position: 'absolute',
-              left: refsColW,
+              left: refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW,
               top: 0,
               pointerEvents: 'none',
               zIndex: 2,
@@ -1287,12 +1462,16 @@ export default function CommitGraph({
             {/* Lane bands — a soft colored strip from each commit's node to the
                 right edge of the graph (just before the commit info), matching the
                 node color. The right edge is a straight, more pronounced vertical
-                bar. Improves row readability. */}
-            {displayLayout.map(commit => {
+                bar. Improves row readability.
+
+                ⚠️ Column layout only. In the stacked rows the stripe at the left
+                edge already colours the commit, and the band's right-edge bar
+                reads as a stray mark beside the bullet. */}
+            {!refsBelow && displayLayout.map(commit => {
               if (commit.hash === WIP_HASH) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
               const bandH = 24
-              const y = commit.row * ROW_HEIGHT + (ROW_HEIGHT - bandH) / 2
+              const y = rowTop(commit.row) + (ROW_HEIGHT - bandH) / 2
               const right = svgW - SVG_PAD_R
               const w = Math.max(right - cx, 0)
               if (w <= 0) return null
@@ -1307,11 +1486,13 @@ export default function CommitGraph({
               )
             })}
 
-            {/* Connector lines (chip → node): rendered before edges so branch lines appear on top */}
-            {displayLayout.map(commit => {
+            {/* Connector lines (chip → node): rendered before edges so branch lines appear on top.
+                ⚠️ Column layout only — the chip it points at is under the message
+                now, so the line ran left of the bullet toward nothing. */}
+            {!refsBelow && displayLayout.map(commit => {
               if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
-              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              const cy = rowMid(commit.row)
               if (cx - NODE_RADIUS <= 0) return null
               return (
                 <line key={`conn-${commit.hash}`}
@@ -1327,7 +1508,7 @@ export default function CommitGraph({
             {/* Nodes */}
             {displayLayout.map(commit => {
               const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
-              const cy = commit.row * ROW_HEIGHT + ROW_HEIGHT / 2
+              const cy = rowMid(commit.row)
               const isSelected = commit.hash === selectedHash
               const isWip = commit.hash === WIP_HASH
 
@@ -1415,6 +1596,7 @@ export default function CommitGraph({
             const isDimmed = !isWip && keep !== null && !keep.has(commit.row)
             const isDropTarget = dragOverRow === commit.row && !isWip
             const prefs = processRefs(commit.refs, hiddenChip)
+            let renderRefs: (withStub: boolean) => React.ReactNode = () => null
             const primary = prefs[0]
             const stackCount = prefs.length - 1
             const rowIsHead = !isWip && commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
@@ -1423,8 +1605,8 @@ export default function CommitGraph({
             return (
               <div
                 key={commit.hash}
-                className={`cg-row ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
-                style={{ top: commit.row * ROW_HEIGHT }}
+                className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
+                style={{ top: rowTop(commit.row), height: rowHeight(commit.row) }}
                 onClick={() => onSelectCommit(commit)}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
                 data-vscode-context={nativeContextMenu && !isWip ? JSON.stringify({
@@ -1446,8 +1628,11 @@ export default function CommitGraph({
                 {/* Colored left stripe based on branch */}
                 <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />
 
-                {/* BRANCH / TAG column */}
-                <div className="cg-refs-col" style={{ width: refsColW }}>
+                {/* The refs, either in their own column or under the subject.
+                    One definition, placed twice — the hover that reveals the
+                    hidden names is delicate enough that a second copy would be
+                    the one that stops matching. */}
+                {(() => { renderRefs = (withStub: boolean) => withStub ? (<>
                   {primary ? (
                     <>
                       <div
@@ -1485,15 +1670,83 @@ export default function CommitGraph({
                       <div className="cg-ref-line-stub" style={{ background: dimColor(commit.color) }} />
                     </>
                   ) : null}
-                </div>
+                </>) : (<>
+                  {primary ? (
+                    <>
+                      <div
+                        className="cg-refs-chips"
+                        onMouseEnter={e => {
+                          // Highlight after 2s delay — avoids accidental triggers while scrolling
+                          if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
+                          hoverDelayTimer.current = setTimeout(() => setHoverHash(commit.hash), 1000)
+                          if (stackCount < 1) return
+                          if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
+                          if (refExpand?.row !== commit.row) {
+                            // Anchor on the CHIP, not on this wrapper: the wrapper
+                            // also holds the "+N" badge, so using it made the panel
+                            // wider than the name it sits under for no reason.
+                            const el = e.currentTarget as HTMLElement
+                            const chip = el.querySelector('.ref-chip') ?? el
+                            setRefExpand({ row: commit.row, rect: chip.getBoundingClientRect() })
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (hoverDelayTimer.current) { clearTimeout(hoverDelayTimer.current); hoverDelayTimer.current = null }
+                          setHoverHash(null)
+                          refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
+                        }}
+                      >
+                        <RefChip pref={primary} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
+                          onDragStartBranch={setDragBranch}
+                          onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
+                          onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
+                        {stackCount > 0 && refExpand?.row !== commit.row && (
+                          <span className="rc-stack-badge">+{stackCount}</span>
+                        )}
+                      </div>
+                    </>
+                  ) : null}
+                </>); return null })()}
+
+                {!refsBelow && (
+                  <div className="cg-refs-col" style={{ width: refsColW }}>
+                    {renderRefs(true)}
+                  </div>
+                )}
 
                 {/* Spacer for SVG */}
                 <div style={{ width: svgW, flexShrink: 0 }} />
 
                 {/* Message */}
-                <div className="cg-col-msg">
-                  {!isWip && sigBadge(commit.signature, t)}
-                  <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
+                <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>
+                  <div className="cg-msg-line">
+                    {!isWip && sigBadge(commit.signature, t)}
+                    <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
+                  </div>
+                  {/* The second line. What the columns used to say, said by
+                      position instead: the chip and the identity on the left,
+                      the date pushed to the right edge. A panel does not have
+                      the width for a grid, but every row has a second line. */}
+                  {refsBelow && (
+                    <div className="cg-row-meta">
+                      {prefs.length > 0 && (
+                        <MessageChip
+                          tone={commit.color}
+                          emphasis={!!prefs[0].isHead}
+                          refsHidden={Math.max(0, prefs.length - 1)}
+                          segments={messageChipSegments(prefs[0], issueForBranch, {
+                            onCheckout: onCheckoutBranch,
+                            onMenu: (e) => openRefMenu(e, prefs[0], commit),
+                          }, trackingFor)}
+                        />
+                      )}
+                      {!isWip && <>
+                        <code className="cg-meta-sha">{commit.shortHash}</code>
+                        <span className="cg-meta-author">{commit.author}</span>
+                        <span className="cg-meta-date">{fmtDateShort(commit.date, t)}</span>
+                      </>}
+                    </div>
+                  )}
                 </div>
 
                 {/* Author */}

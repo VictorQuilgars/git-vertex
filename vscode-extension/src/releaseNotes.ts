@@ -22,6 +22,11 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Two sections among the branches and the tags, with their counts — the place you look at them is beside the rest of the repository, not in a tab that replaces it.
 - In the VS Code panel they are two more views on the activity rail.
 - No GitHub here, or nothing to authenticate with, means **no section** rather than an empty one.
+### 📐 The commit list is rows, not a grid
+- The panel carried the desktop's columns in a fraction of the width, dropping an author here and a date there depending on how deep the graph was.
+- A commit is a row of two lines now: the message, then the branch it is on, its hash, its author and its date — each placed rather than columned. The date sits at the right edge.
+- A line separates each commit, and the graph is at the far left where it starts.
+- The desktop keeps its columns; a window with room to spare should use it.
 
 ### 🏢 GitHub Enterprise Server
 - Settings › GitHub takes an **instance host** and a **token for it**. Every call about a repository on that host goes there rather than to github.com — pull requests, issues, \`#123\` cards, opening a pull request, sharing a patch.
