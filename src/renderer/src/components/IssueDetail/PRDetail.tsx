@@ -252,14 +252,22 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                     </div>
                     {/* The reference's rule: the button exists when BOTH hold.
                         Checks green or absent, no conflicts, and an open,
-                        unmerged request. GitHub remains the judge. */}
+                        unmerged request. GitHub remains the judge — and when
+                        mergeable_state says the protections are unmet (a
+                        required review, typically), the button SAYS it will
+                        bypass them: the same explicit consent the web UI asks
+                        for, in the label rather than a checkbox. An actor
+                        without bypass rights gets GitHub's refusal inline. */}
                     {!pr.merged && pr.state === 'open' && pr.mergeable === true
                       && checks !== null && checks.failed === 0 && checks.pending === 0 && (
                       <div className="idv-merge-act">
                         <button className="idv-btn idv-merge-btn" disabled={busy}
+                          title={t(`gh.pr.merge.${mergeMethod}` as any)}
                           onClick={() => void doMerge()}>
                           <Icon name="merge" size={13} />
-                          {t(`gh.pr.merge.${mergeMethod}` as any)}
+                          {pr.mergeableState === 'blocked'
+                            ? t('gh.pr.mergeBypass')
+                            : t(`gh.pr.merge.${mergeMethod}` as any)}
                         </button>
                         <button className="idv-btn idv-merge-caret" disabled={busy}
                           title={t('gh.pr.mergeMethod')}

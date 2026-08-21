@@ -64,6 +64,19 @@ describe('the PR detail', () => {
     expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
   })
 
+  // The repo's own case: checks green, no conflicts, but a ruleset demands a
+  // review the bypass will skip. The button says so — the web UI's consent
+  // checkbox, folded into the label.
+  test('a protections-blocked request gets the bypass wording, and still merges', async () => {
+    const { api } = draw({ mergeableState: 'blocked' })
+    await screen.findByText('Speed up the graph')
+    const btn = await screen.findByText('Merge, Bypassing Rules')
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+    await userEvent.click(btn)
+    await waitFor(() => expect(api.githubMergePR).toHaveBeenCalledWith('o', 'r', 42, 'merge'))
+    expect(await screen.findByText('Merged')).toBeInTheDocument()
+  })
+
   test('the method picker changes what the click sends', async () => {
     const { api } = draw()
     await screen.findByText('Speed up the graph')
