@@ -269,15 +269,21 @@ interface ProcessedRef {
  * branch is working on, and it follows the branch as it moves. A commit does
  * not have an issue — the branch pointing at it does.
  *
- * The pull request is not here yet. Answering "which request carries this
- * commit" is a search per row, which needs a cache before it is a feature
- * rather than a rate-limit incident — see the panel-parity issue.
+ * The pull request hangs off the branch the same way the issue does — by
+ * MAPPING, not by searching: the open-PR list the sidebar already loaded
+ * knows every head ref, so "which request carries this branch" is a lookup.
+ * A search per row is what the panel-parity issue warned would be a
+ * rate-limit incident, and this is how it stays not one. The cost of the
+ * mapping's honesty: only a branch that IS a request's head gets the chip —
+ * a commit buried under the head carries no branch ref, so no chip, which
+ * matches where the reference draws it too.
  */
 export function messageChipSegments(
   pref: ProcessedRef,
   issueForBranch?: (branch: string) => { key: string; provider: string } | null,
-  handlers?: { onCheckout?: (b: string) => void; onMenu?: (e: React.MouseEvent) => void },
+  handlers?: { onCheckout?: (b: string) => void; onMenu?: (e: React.MouseEvent) => void; onOpenPR?: (number: number) => void },
   trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null,
+  prForBranch?: (branch: string) => { number: number; title?: string } | null,
 ): ChipSegment[] {
   const segments: ChipSegment[] = []
   const isTag = pref.cls === 'rc-tag'
@@ -310,6 +316,18 @@ export function messageChipSegments(
     segments.push({
       kind: 'remote', label: remote, title: pref.tooltip, collapsible: true,
       detail: counts || undefined,
+    })
+  }
+
+  // The request, before the issue: the chip that opens the PR detail (#110).
+  const pr = pref.branchName ? prForBranch?.(pref.branchName) : null
+  if (pr) {
+    segments.push({
+      kind: 'pr',
+      label: `#${pr.number}`,
+      title: pr.title ? `PR #${pr.number} — ${pr.title}` : `PR #${pr.number}`,
+      collapsible: true,
+      onClick: handlers?.onOpenPR ? () => handlers.onOpenPR!(pr.number) : undefined,
     })
   }
 
@@ -559,6 +577,11 @@ interface CommitGraphProps {
    * A branch, not a commit: the link follows the branch as it moves.
    */
   issueForBranch?: (branch: string) => { key: string; provider: string } | null
+  /** The open PR whose head is this branch — a lookup into the loaded list,
+      never a search. Omitted ⇒ no PR chips. */
+  prForBranch?: (branch: string) => { number: number; title?: string } | null
+  /** Open the PR detail. Without it the chip is a fact, not a button. */
+  onOpenPR?: (number: number) => void
   /**
    * Refs under the message instead of in a column of their own.
    *
@@ -672,6 +695,8 @@ interface DropState { x: number; y: number; hash: string; branch: string }
 
 export default function CommitGraph({
   issueForBranch,
+  prForBranch,
+  onOpenPR,
   refsBelow = false,
   trackingFor,
   alwaysShowWip = false,
@@ -1748,7 +1773,8 @@ export default function CommitGraph({
                           segments={messageChipSegments(prefs[0], issueForBranch, {
                             onCheckout: onCheckoutBranch,
                             onMenu: (e) => openRefMenu(e, prefs[0], commit),
-                          }, trackingFor)}
+                            onOpenPR,
+                          }, trackingFor, prForBranch)}
                         />
                       )}
                       {!isWip && <>

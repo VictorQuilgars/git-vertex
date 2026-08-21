@@ -1121,6 +1121,14 @@ function VertexApp() {
           ) : (
           <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              prForBranch={(name) => {
+                const pr = githubPRs?.find(p => p.headRef === name)
+                return pr ? { number: pr.number, title: pr.title } : null
+              }}
+              onOpenPR={(n) => {
+                const pr = githubPRs?.find(p => p.number === n)
+                if (pr) setIssueDetail({ kind: 'pr', item: pr })
+              }}
               alwaysShowWip
               onStageAll={async () => {
                 const r = await window.gitAPI.stageAll()

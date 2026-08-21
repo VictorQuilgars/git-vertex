@@ -2499,6 +2499,14 @@ export default function App() {
           ) : (
             <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              prForBranch={(name) => {
+                const pr = githubPRs?.find(p => p.headRef === name)
+                return pr ? { number: pr.number, title: pr.title } : null
+              }}
+              onOpenPR={(n) => {
+                const pr = githubPRs?.find(p => p.number === n)
+                if (pr) setIssueDetail({ kind: 'pr', item: pr })
+              }}
               trackingFor={(name) => {
                 const b = branches.find(x => x.name === name)
                 return b ? { ahead: b.ahead, behind: b.behind } : null
