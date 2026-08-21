@@ -57,12 +57,15 @@ export function useHoverCard(delayMs = 400) {
   return { pos, enter, leaveRow, close, inside }
 }
 
-export default function GithubHoverCard({ item, pos, inside, onClose, onOpen }: {
+export default function GithubHoverCard({ item, pos, inside, onClose, onOpen, onActivate }: {
   item: GithubRowItem
   pos: { left: number; top: number; maxHeight: number }
   inside: React.MutableRefObject<boolean>
   onClose: () => void
+  /** Markdown links inside the body — always external. */
   onOpen?: (url: string) => void
+  /** Clicking the card itself: the row's own activation (detail or browser). */
+  onActivate?: () => void
 }) {
   const { t } = useLang()
   const ref = useRef<HTMLDivElement | null>(null)
@@ -78,7 +81,7 @@ export default function GithubHoverCard({ item, pos, inside, onClose, onOpen }: 
       style={{ left: pos.left, top: pos.top, maxHeight: pos.maxHeight }}
       onMouseEnter={() => { inside.current = true }}
       onMouseLeave={() => { inside.current = false; onClose() }}
-      onClick={e => { e.stopPropagation(); onOpen?.(item.url) }}>
+      onClick={e => { e.stopPropagation(); onClose(); onActivate?.() }}>
       <div className="ghc-head">
         <span className="ghc-num">#{item.number}</span>
         <span className="ghc-title">{item.title}</span>

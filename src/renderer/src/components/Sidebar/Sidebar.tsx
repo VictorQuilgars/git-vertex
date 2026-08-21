@@ -149,6 +149,12 @@ interface SidebarProps {
   /** Start work on an issue: create the branch it suggests and link the two.
       Omitted ⇒ no context menu on the issue rows. */
   onStartBranchFromIssue?: (issue: { number: number; title: string; url: string }) => void
+  /** Open an issue's in-app detail (§3 bis). Omitted ⇒ clicks fall back to
+      onOpenGithubItem, the browser. Issues only — a PR detail is #110's. */
+  onShowGithubDetail?: (item: GithubListItem) => void
+  /** True while a detail is open in the centre: the rows stop offering their
+      hover card — the peek makes no sense over the answer. */
+  githubDetailOpen?: boolean
   onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
@@ -638,7 +644,7 @@ export default function Sidebar({
   soloBranch, visibility, onToggleSolo, onToggleHide,
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
-  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue,
+  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   onCopyBranchLink, onDeleteBranchBoth,
@@ -1198,6 +1204,7 @@ export default function Sidebar({
                 ? <div className="sb-empty">{t('sb.github.noPRs')}</div>
                 : githubPRs.map(pr => (
                   <GithubRow key={pr.number} compact item={{ ...pr, kind: 'pr' }}
+                    hoverCard={!githubDetailOpen}
                     onOpen={url => onOpenGithubItem?.(url)} />
                 ))}
             </Section>
@@ -1210,7 +1217,9 @@ export default function Sidebar({
                 ? <div className="sb-empty">{t('sb.github.noIssues')}</div>
                 : githubIssues.map(issue => (
                   <GithubRow key={issue.number} compact item={{ ...issue, kind: 'issue' }}
+                    hoverCard={!githubDetailOpen}
                     onOpen={url => onOpenGithubItem?.(url)}
+                    onDetail={onShowGithubDetail ? () => onShowGithubDetail(issue) : undefined}
                     onCreateBranch={onStartBranchFromIssue
                       ? () => onStartBranchFromIssue({ number: issue.number, title: issue.title, url: issue.url })
                       : undefined} />

@@ -109,11 +109,13 @@ describe('the rows carry what the endpoints return', () => {
     expect(screen.getByText('3')).toBeInTheDocument()
   })
 
-  test('labels are dots, their names a tooltip away', () => {
+  // The labels are NOT on the row — they live in the hover card and the
+  // detail. The right edge belongs to the kebab of actions.
+  test('no label dots on the row; the kebab holds that edge', () => {
     draw({ githubIssues: [rich] })
     unfold('GITHUB ISSUES')
-    const dots = screen.getByTitle('perf, P1')
-    expect(dots.querySelectorAll('.sb-gh-dot')).toHaveLength(2)
+    expect(document.querySelector('.sb-gh-dot')).not.toBeInTheDocument()
+    expect(document.querySelector('.sb-gh-line1 .sb-gh-kebab')).toBeInTheDocument()
   })
 
   // A host still sending the narrow shape gets the narrow row — no empty
@@ -162,6 +164,67 @@ describe('the affordances follow their handlers', () => {
     unfold('GITHUB ISSUES')
     await userEvent.click(screen.getByText('The bug'))
     expect(onOpenGithubItem).toHaveBeenCalledWith('https://x/9')
+  })
+
+  // §3 bis: with a detail handler, an issue click stays in the app; the
+  // browser is what the detail's own control offers. A PR has no detail
+  // yet (#110), so its click keeps going out.
+  test('an issue click opens the detail when the host has one, never the browser', async () => {
+    const onShowGithubDetail = jest.fn()
+    const onOpenGithubItem = jest.fn()
+    draw({ githubIssues: [issue], onShowGithubDetail, onOpenGithubItem })
+    unfold('GITHUB ISSUES')
+    await userEvent.click(screen.getByText('The bug'))
+    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }))
+    expect(onOpenGithubItem).not.toHaveBeenCalled()
+  })
+
+  test('without a detail handler the click falls back to the browser', async () => {
+    const onOpenGithubItem = jest.fn()
+    draw({ githubIssues: [issue], onOpenGithubItem })
+    unfold('GITHUB ISSUES')
+    await userEvent.click(screen.getByText('The bug'))
+    expect(onOpenGithubItem).toHaveBeenCalledWith('https://x/9')
+  })
+
+  test('a PR click still goes out, even with the detail handler present', async () => {
+    const onShowGithubDetail = jest.fn()
+    const onOpenGithubItem = jest.fn()
+    draw({ githubPRs: [{ number: 3, title: 'A PR', url: 'u3' }], onShowGithubDetail, onOpenGithubItem })
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByText('A PR'))
+    expect(onOpenGithubItem).toHaveBeenCalledWith('u3')
+    expect(onShowGithubDetail).not.toHaveBeenCalled()
+  })
+
+  // The kebab: the same actions as the right-click, discoverable on hover.
+  test('the kebab opens the full action list of an issue row', async () => {
+    const write = jest.fn()
+    Object.assign(navigator, { clipboard: { writeText: write } })
+    const onShowGithubDetail = jest.fn()
+    const onStartBranchFromIssue = jest.fn()
+    const onOpenGithubItem = jest.fn()
+    draw({ githubIssues: [issue], onShowGithubDetail, onStartBranchFromIssue, onOpenGithubItem })
+    unfold('GITHUB ISSUES')
+    await userEvent.click(document.querySelector('.sb-gh-kebab')!)
+    expect(await screen.findByText('View Issue')).toBeInTheDocument()
+    expect(screen.getByText(/Branch for This Issue/)).toBeInTheDocument()
+    expect(screen.getByText(/Copy/i)).toBeInTheDocument()
+    expect(screen.getByText(/Open on GitHub/)).toBeInTheDocument()
+    // the kebab click itself must not activate the row
+    expect(onShowGithubDetail).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByText('View Issue'))
+    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }))
+  })
+
+  test('a PR row gets the kebab too, with its own smaller list', async () => {
+    const onOpenGithubItem = jest.fn()
+    draw({ githubPRs: [{ number: 3, title: 'A PR', url: 'u3' }], onOpenGithubItem, onStartBranchFromIssue: jest.fn() })
+    unfold('PULL REQUESTS')
+    await userEvent.click(document.querySelector('.sb-gh-kebab')!)
+    expect(await screen.findByText(/Open on GitHub/)).toBeInTheDocument()
+    expect(screen.queryByText(/Branch for This Issue/)).not.toBeInTheDocument()
+    expect(screen.queryByText('View Issue')).not.toBeInTheDocument()
   })
 
   test('a pull request row never offers a branch menu', async () => {
@@ -215,6 +278,12 @@ describe('the hover card over the graph', () => {
     expect(card.textContent).toContain('frontend')
     expect(card.textContent).toContain('None')        // assignees: asked, none
     expect(card.textContent).toContain('@victor')     // reporter
+  })
+
+  test('while a detail is open, the rows stop offering their card', () => {
+    draw({ githubIssues: [rich], githubDetailOpen: true })
+    hover('Push notifications')
+    expect(document.querySelector('.ghc')).not.toBeInTheDocument()
   })
 
   test('a narrow-shape row gets no card, not an empty frame', () => {

@@ -17,6 +17,7 @@ import CommitGraph from '../../../src/renderer/src/components/CommitGraph/Commit
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import type { ConflictKind } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
+import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
 import ActivityRail from './ActivityRail'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import StagingEditor from '../../../src/renderer/src/components/StagingEditor/StagingEditor'
@@ -91,6 +92,9 @@ function VertexApp() {
 
   const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
+  // The issue being read in the centre (§3 bis): graph replaced, commit
+  // panel not shown, rail and toolbar kept.
+  const [issueDetail, setIssueDetail] = useState<GithubListItem | null>(null)
   const [commits, setCommits] = useState<CommitNode[]>([])
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [currentBranch, setCurrentBranch] = useState('')
@@ -159,6 +163,24 @@ function VertexApp() {
   // ── Data loading (mirrors desktop App.loadRepoData) ──────────
   // `silent` reloads (from file watchers) skip the loading flag so the toolbar
   // icons don't flicker on every background refresh.
+  // The two sidebar lists, callable on their own: the issue detail's writes
+  // refresh them without a full repo reload.
+  const loadGhLists = useCallback(async (owner: string, repo: string) => {
+    const row = (x: any, kind: 'pr' | 'issue'): GithubListItem => ({
+      number: x.number, title: x.title, author: x.author,
+      draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
+      createdAt: x.createdAt, comments: x.comments, labels: x.labels,
+      headRef: x.headRef, baseRef: x.baseRef,
+      body: x.body, assignees: x.assignees,
+    })
+    const [prs, issues] = await Promise.all([
+      (window.gitAPI as any).githubListPRs(owner, repo).catch(() => null),
+      (window.gitAPI as any).githubListIssues(owner, repo).catch(() => null),
+    ])
+    setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
+    setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
+  }, [])
+
   const loadRepoData = useCallback(async (silent = false) => {
     if (isLoadingRef.current) { reloadQueued.current = true; return }
     isLoadingRef.current = true
@@ -214,19 +236,7 @@ function VertexApp() {
         // The two sidebar sections. Absent — not empty — when there is no
         // GitHub here or nothing to authenticate with.
         if (gh?.owner && gh?.repo) {
-          const row = (x: any, kind: 'pr' | 'issue'): GithubListItem => ({
-            number: x.number, title: x.title, author: x.author,
-            draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
-            createdAt: x.createdAt, comments: x.comments, labels: x.labels,
-            headRef: x.headRef, baseRef: x.baseRef,
-            body: x.body, assignees: x.assignees,
-          })
-          const [prs, issues] = await Promise.all([
-            (window.gitAPI as any).githubListPRs(gh.owner, gh.repo).catch(() => null),
-            (window.gitAPI as any).githubListIssues(gh.owner, gh.repo).catch(() => null),
-          ])
-          setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
-          setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
+          await loadGhLists(gh.owner, gh.repo)
         } else {
           setGithubPRs(undefined); setGithubIssues(undefined)
         }
@@ -853,7 +863,7 @@ function VertexApp() {
   // panel can't push the graph below a usable minimum.
   const effRightW = Math.min(rightW, Math.max(320, viewportW - 340))
 
-  const showRight = !!selectedCommit || !!conflictMode
+  const showRight = (!!selectedCommit || !!conflictMode) && !issueDetail
 
   // Branch strip shown above the staging file list (v1.22.0). Everything here
   // already existed on the toolbar or in the ⋮ menu — this only brings it into
@@ -1084,6 +1094,15 @@ function VertexApp() {
           </>
         )}
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
+          {issueDetail && githubRepo ? (
+            <IssueDetail
+              repo={githubRepo}
+              item={issueDetail}
+              onClose={() => setIssueDetail(null)}
+              onCreateBranch={handleCreateBranchFromIssue}
+              onChanged={() => { if (githubRepo) void loadGhLists(githubRepo.owner, githubRepo.repo) }}
+            />
+          ) : (
           <CommitGraph
               issueForBranch={branchMeta.issueFor}
               alwaysShowWip
@@ -1145,6 +1164,7 @@ function VertexApp() {
             nativeContextMenu
             onNativeMenuTarget={(hash) => window.gitAPI.setLastMenuHash(hash)}
           />
+          )}
         </div>
 
         {showRight && (

@@ -352,6 +352,11 @@ declare global {
       githubSearchIssues: (q: string, force?: boolean) => Promise<Unnarrowed>
       githubGetIssue: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
       githubCloseIssue: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
+      githubIssueComments: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
+      githubAddIssueComment: (owner: string, repo: string, number: number, body: string) => Promise<Unnarrowed>
+      githubUpdateIssue: (owner: string, repo: string, number: number, patch: object) => Promise<Unnarrowed>
+      githubListAssignees: (owner: string, repo: string) => Promise<Unnarrowed>
+      githubListRepoLabels: (owner: string, repo: string) => Promise<Unnarrowed>
       githubListRepos: () => Promise<Unnarrowed>
       githubClone: (cloneUrl: string, repoName: string) => Promise<Unnarrowed>
       githubStartAuth: () => Promise<Unnarrowed>

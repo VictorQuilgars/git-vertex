@@ -44,10 +44,17 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The **sort button is gone**: it had shipped with no handler at all. The bar now holds only controls that do something, and a test keeps it that way.
 ### 🧾 Pull requests and issues, in the left panel
 - Two sections among the branches and the tags, with their counts — the place you look at them is beside the rest of the repository, not in a tab that replaces it.
-- Each row says what the forge said: a **state icon** (a draft is greyed), the number and the title, the **labels as coloured dots** with their names a tooltip away, then the author, the age and the comment count.
+- Each row says what the forge said: a **state icon** (a draft is greyed), the number and the title, then the author, the age and the comment count. The labels live in the hover card and the detail; the row's right edge belongs to the **⋮ of actions**, shown on hover.
 - **Right-click an issue to start its branch** — the same gesture, and the same single row component, as the GitHub tab, so the two lists cannot drift apart.
 - **Rest on a row and a card opens over the graph** — the description rendered as markdown (headings, task lists, code), status, full labels, assignees, reporter. The card is a **preview**: it never scrolls, what does not fit fades out, and **clicking it opens the issue**. Clamped to the window, so it works in a 400-pixel panel too.
 - **The sections start folded** — the graph is the point of the window, and the counts on their headers already say what is behind.
+
+### 📖 Click an issue: it opens in the app
+- A third layout: toolbar and left panel stay — the list is what you are navigating — the graph is replaced by the issue, and the commit panel is not shown, because there is no commit in this context.
+- The body rendered, the **comments**, and a box to add one.
+- **Everything edits in place**: the title, close/reopen, assignees, labels — each through one PATCH, applied only after GitHub said yes, with a refusal written where the edit happened.
+- **Create a Branch for This Issue** — the same call as the row's right-click, one button closer.
+- The browser stays one click away, from the detail's own header.
 - In the VS Code panel they are two more views on the activity rail.
 - No GitHub here, or nothing to authenticate with, means **no section** rather than an empty one.
 ### 📐 The commit list is rows, not a grid

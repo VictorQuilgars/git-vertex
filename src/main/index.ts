@@ -2400,6 +2400,94 @@ ipcMain.handle('github:share-patch', async (_e, hash: string) => {
   } catch (e: any) { return { error: e.message } }
 })
 
+// ── The issue detail (§3 bis): its reads and its writes ────────────────────
+// Five endpoints, each mirrored in the extension host — a method the panel
+// can reach but a host cannot answer is the dead-button class the parity
+// test exists to catch.
+
+ipcMain.handle('github:issue-comments', async (_e, owner: string, repo: string, number: number) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}/comments?per_page=100`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any[]
+    return {
+      comments: data.map(c => ({
+        author: c.user?.login ?? '',
+        createdAt: c.created_at,
+        body: c.body ?? '',
+      })),
+    }
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:add-issue-comment', async (_e, owner: string, repo: string, number: number, body: string) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}/comments`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({ body }),
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+})
+
+// One PATCH for every field the detail edits — title, body, state (which is
+// how reopen exists without a second verb), assignees, labels. Only the keys
+// present are sent, so a title edit does not rewrite the labels.
+ipcMain.handle('github:update-issue', async (_e, owner: string, repo: string, number: number,
+  patch: { title?: string; body?: string; state?: 'open' | 'closed'; assignees?: string[]; labels?: string[] }) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify(patch),
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    searchCache.clear()
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:list-assignees', async (_e, owner: string, repo: string) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/assignees?per_page=100`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any[]
+    return { assignees: data.map(a => a.login) }
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:list-repo-labels', async (_e, owner: string, repo: string) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/labels?per_page=100`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any[]
+    return { labels: data.map(l => ({ name: l.name, color: l.color })) }
+  } catch (e: any) { return { error: e.message } }
+})
+
 // Launchpad "Mark as closed": close an issue or PR. GitHub's issues endpoint
 // closes both. Invalidates the search cache so the next refresh drops it.
 ipcMain.handle('github:close-issue', async (_e, owner: string, repo: string, number: number) => {

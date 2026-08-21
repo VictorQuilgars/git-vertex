@@ -20,7 +20,6 @@ import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
 import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
-import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import Launchpad from './components/Launchpad/Launchpad'
 import ThemeGallery from './components/ThemeGallery/ThemeGallery'
 import CompareView from './components/CompareView/CompareView'
@@ -46,6 +45,7 @@ import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
 import CenterFileDiff, { CenterDiffTarget } from './components/CenterFileDiff/CenterFileDiff'
+import IssueDetail from './components/IssueDetail/IssueDetail'
 import ContextMenu, { MenuItemDef } from './components/ContextMenu/ContextMenu'
 import './App.css'
 
@@ -131,7 +131,6 @@ type ViewTab =
   | { view: 'fileHistory'; file: string }
   | { view: 'stash'; index: number; message: string }
   | { view: 'fileDiff'; target: CenterDiffTarget }
-  | { view: 'github' }
   | { view: 'settings' }
 
 interface AppTab { id: string; kind: TabKind; path?: string; name?: string; body?: ViewTab }
@@ -142,7 +141,6 @@ function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): string 
     case 'compare': return body.label
     case 'fileHistory': return t('tabs.history', body.file.split('/').pop() ?? body.file)
     case 'stash': return t('tabs.stash', body.index)
-    case 'github': return t('tabs.github')
     case 'settings': return t('tabs.settings')
     case 'fileDiff': {
       const name = body.target.filePath.split('/').pop() ?? body.target.filePath
@@ -153,14 +151,13 @@ function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): string 
   }
 }
 
-function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 'gear' | 'pullRequest' {
+function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 'gear' {
   switch (body.view) {
     case 'compare': return 'compare'
     case 'fileHistory': return 'history'
     case 'stash': return 'stash'
     case 'fileDiff': return 'diff'
     case 'settings': return 'gear'
-    case 'github': return 'pullRequest'
   }
 }
 
@@ -184,9 +181,9 @@ export function sameView(a: ViewTab, b: ViewTab): boolean {
   if (a.view === 'fileHistory' && b.view === 'fileHistory') return a.file === b.file
   if (a.view === 'stash' && b.view === 'stash') return a.index === b.index
   if (a.view === 'fileDiff' && b.view === 'fileDiff') return sameDiffTarget(a.target, b.target)
-  // One GitHub tab, one settings tab: they show the whole of a thing, so a
-  // second one would be the same tab twice.
-  return a.view === 'github' || a.view === 'settings'
+  // One settings tab: it shows the whole of a thing, so a second one would
+  // be the same tab twice.
+  return a.view === 'settings'
 }
 
 /** The same file, of the same version — a staged diff is not the unstaged one. */
@@ -340,6 +337,10 @@ export default function App() {
   // all, which is not the same as rendering an empty one.
   const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
+  // The issue being read in the centre (§3 bis) — the third layout: toolbar
+  // and left panel kept, graph replaced, commit panel not shown. Belongs to
+  // the repository, so a repo switch closes it.
+  const [issueDetail, setIssueDetail] = useState<GithubListItem | null>(null)
   const [prModalOpen, setPrModalOpen] = useState(false)
   // Which pull request the composer is opening — head, base and whether the
   // head still has to be pushed. Decided by prIntentFor, never by the composer.
@@ -714,6 +715,8 @@ export default function App() {
       setGithubPRs(undefined); setGithubIssues(undefined)
     }
   }, [])
+
+  useEffect(() => { setIssueDetail(null) }, [repoPath])
 
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
@@ -2235,26 +2238,6 @@ export default function App() {
       )}
 
       <div className="app-body" style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
-        {/* ── Activity bar — only with a repo open (useless/empty on the home),
-             and never over a view tab: that tab IS the surface, full width. ── */}
-        {repoPath && !viewTab && (
-        <div className="app-activity-bar">
-          {/* The rail used to switch the side panel between git and GitHub.
-              GitHub is a tab now — a list of pull requests and issues wants the
-              width — so this is a way in, not a mode. */}
-          <button className="act-btn act-btn--current" title="Git" disabled>
-            <Brand name="git" size={22} />
-          </button>
-          <button
-            className="act-btn"
-            onClick={() => openViewTab({ view: 'github' })}
-            title={t('tabs.github')}
-          >
-            <Brand name="github" size={22} />
-          </button>
-        </div>
-        )}
-
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
         {repoPath && !viewTab && (
         <div className="app-sidebar" style={{ width: sidebarW }}>
@@ -2263,6 +2246,8 @@ export default function App() {
               githubPRs={githubPRs}
               githubIssues={githubIssues}
               onStartBranchFromIssue={handleCreateBranchFromIssue}
+              onShowGithubDetail={setIssueDetail}
+              githubDetailOpen={!!issueDetail}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}
@@ -2381,8 +2366,6 @@ export default function App() {
                 onClose={() => closeTab(activeTabId!)}
                 onStaged={() => loadRepoData(true)}
               />
-            ) : viewTab.view === 'github' ? (
-              <GitHubPanel repoPath={repoPath} onCreateBranchFromIssue={handleCreateBranchFromIssue} />
             ) : viewTab.view === 'settings' ? (
               <SettingsModal
                 onBrowseThemes={openThemesTab}
@@ -2487,6 +2470,14 @@ export default function App() {
                 </button>
               </div>
             </div>
+          ) : issueDetail && githubOwnerRepo ? (
+            <IssueDetail
+              repo={githubOwnerRepo}
+              item={issueDetail}
+              onClose={() => setIssueDetail(null)}
+              onCreateBranch={handleCreateBranchFromIssue}
+              onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo.owner, githubOwnerRepo.repo) }}
+            />
           ) : (
             <CommitGraph
               issueForBranch={branchMeta.issueFor}
@@ -2549,7 +2540,7 @@ export default function App() {
           )}
         </div>
 
-        {repoPath && !rebaseHash && !viewTab && (selectedCommit || conflictMode) && (
+        {repoPath && !rebaseHash && !viewTab && !issueDetail && (selectedCommit || conflictMode) && (
           <>
             <div className="resize-handle" onMouseDown={startResizeRight} />
             <div className="app-right" style={{ width: rightW }}>
