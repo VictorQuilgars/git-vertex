@@ -160,13 +160,6 @@ interface SidebarProps {
   /** The signed-in login, from githubGetUser. Without it the three account
       groups of PULL REQUESTS have nothing to say and are hidden. */
   githubLogin?: string | null
-  /** The repository each section currently reads, as "owner/name" — the
-      remote's by default, another after a pick. Shown by the selector. */
-  githubPrsRepoLabel?: string
-  githubIssuesRepoLabel?: string
-  /** Point a section at another repository; null returns to the remote's.
-      Omitted ⇒ no selector — a host that cannot re-load has nothing to offer. */
-  onPickGithubRepo?: (section: 'prs' | 'issues', repo: { owner: string; repo: string } | null) => void
   onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
@@ -183,68 +176,6 @@ function ghMatch(item: GithubListItem, q: string): boolean {
   return item.title.toLowerCase().includes(needle)
     || String(item.number).includes(needle)
     || (item.author ?? '').toLowerCase().includes(needle)
-}
-
-// ── The repository selector of a GitHub section (§2) ─────────────
-// The remote's repository is the default; this points the section somewhere
-// else. It is also the seam where a provider other than GitHub would
-// eventually be chosen — which is why it is per-section UI and not a global.
-function GhRepoSelect({ current, onPick, t }: {
-  current: string
-  onPick: (repo: { owner: string; repo: string } | null) => void
-  t: (k: any, ...a: any[]) => string
-}) {
-  const [open, setOpen] = useState(false)
-  const [q, setQ] = useState('')
-  const [repos, setRepos] = useState<{ fullName: string }[] | null>(null)
-  const ref = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    if (!open) return
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [open])
-  const toggle = () => {
-    setOpen(o => !o)
-    if (repos === null) {
-      void (window.gitAPI as any).githubListRepos?.()
-        .then((r: any) => setRepos(r?.repos ?? []))
-        .catch(() => setRepos([]))
-    }
-  }
-  const needle = q.trim().toLowerCase()
-  const shown = (repos ?? []).filter(r => !needle || r.fullName.toLowerCase().includes(needle))
-  return (
-    <div className="sb-gh-repo" ref={ref}>
-      <button className="sb-gh-repo-btn" title={t('sb.gh.repoSelect')} onClick={toggle}>
-        <Icon name="repo" size={11} />
-        <span className="sb-gh-repo-name">{current}</span>
-        <Icon name="chevronDown" size={10} />
-      </button>
-      {open && (
-        <div className="sb-gh-repo-drop">
-          <input className="sb-gh-repo-search" autoFocus placeholder={t('sb.gh.repoFilter')}
-            value={q} onChange={e => setQ(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }} />
-          <div className="sb-gh-repo-list">
-            {repos === null && <div className="sb-empty">{t('panel.loading')}</div>}
-            {shown.map(r => (
-              <button key={r.fullName} className="sb-gh-repo-row"
-                onClick={() => {
-                  const [owner, ...rest] = r.fullName.split('/')
-                  onPick({ owner, repo: rest.join('/') })
-                  setOpen(false)
-                }}>
-                {r.fullName}{r.fullName === current ? ' ✓' : ''}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
 }
 
 // ── A named group inside a GitHub section (§1 bis) ───────────────
@@ -753,7 +684,6 @@ export default function Sidebar({
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
   githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin,
-  githubPrsRepoLabel, githubIssuesRepoLabel, onPickGithubRepo,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   onCopyBranchLink, onDeleteBranchBoth,
@@ -1313,10 +1243,6 @@ export default function Sidebar({
               on. Absent entirely when the host has no GitHub here. */}
           {githubPRs && show('prs') && (
             <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single}>
-              {onPickGithubRepo && githubPrsRepoLabel && (
-                <GhRepoSelect current={githubPrsRepoLabel} t={t}
-                  onPick={repo => onPickGithubRepo('prs', repo)} />
-              )}
               <div className="sb-gh-search">
                 <Icon name="search" size={11} />
                 <input type="text" placeholder={t('sb.gh.searchPrs')} value={prsQuery}
@@ -1358,10 +1284,6 @@ export default function Sidebar({
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
             <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single}>
-              {onPickGithubRepo && githubIssuesRepoLabel && (
-                <GhRepoSelect current={githubIssuesRepoLabel} t={t}
-                  onPick={repo => onPickGithubRepo('issues', repo)} />
-              )}
               <div className="sb-gh-search">
                 <Icon name="search" size={11} />
                 <input type="text" placeholder={t('sb.gh.searchIssues')} value={issuesQuery}

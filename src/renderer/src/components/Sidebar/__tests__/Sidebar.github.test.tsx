@@ -437,31 +437,4 @@ describe('the section search and the repository selector', () => {
     expect(screen.queryByText('Fix the login')).not.toBeInTheDocument()
   })
 
-  test('the selector shows where the section reads, and picking goes through the host', async () => {
-    const onPickGithubRepo = jest.fn()
-    installMockGitAPI({
-      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
-      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
-      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
-      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
-      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
-      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
-      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
-      githubListRepos: jest.fn().mockResolvedValue({
-        repos: [{ fullName: 'victor/app' }, { fullName: 'victor/site' }],
-      }),
-    })
-    draw({ githubPRs: prs, githubPrsRepoLabel: 'victor/app', onPickGithubRepo })
-    unfold('PULL REQUESTS')
-    expect(screen.getByText('victor/app')).toBeInTheDocument()
-    await userEvent.click(screen.getByText('victor/app'))
-    await userEvent.click(await screen.findByText('victor/site'))
-    expect(onPickGithubRepo).toHaveBeenCalledWith('prs', { owner: 'victor', repo: 'site' })
-  })
-
-  test('no pick handler, no selector', () => {
-    draw({ githubPRs: prs, githubPrsRepoLabel: 'victor/app', onPickGithubRepo: undefined })
-    unfold('PULL REQUESTS')
-    expect(document.querySelector('.sb-gh-repo')).not.toBeInTheDocument()
-  })
 })
