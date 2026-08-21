@@ -50,6 +50,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **The sections start folded** — the graph is the point of the window, and the counts on their headers already say what is behind.
 - **Each section is named groups**: *My Pull Requests* · *Assigned To Me* · *Awaiting My Review* · *All Pull Requests*, and *All Open Issues*. The account groups exist only when someone is signed in; an empty group still shows its **0** — that is what says the query ran.
 - **A search box on each section** — a display lens like the staging filter: it narrows what is shown (title, number, author) without re-querying, and the counts keep counting everything. The lists themselves are always the open repository's.
+- **Saved filters, per section.** The header's editor takes a name and a query in that section's vocabulary — live validation names the offending token, the syntax sits beside the field, the full reference is a link away. Each filter is **one more named group**, re-querying through GitHub's search: its count is the search's total, with a *+N more on GitHub* tail when the page is shorter. A refused query costs that filter, never the section. Kept per repository.
 
 ### 📖 Click an issue: it opens in the app
 - A third layout: toolbar and left panel stay — the list is what you are navigating — the graph is replaced by the issue, and the commit panel is not shown, because there is no commit in this context.

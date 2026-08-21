@@ -2255,6 +2255,7 @@ export default function App() {
               onShowGithubDetail={setIssueDetail}
               githubDetailOpen={!!issueDetail}
               githubLogin={githubLogin}
+              githubRepo={githubOwnerRepo}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}

@@ -3,6 +3,8 @@ import { Icon } from '../Icon/Icon'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import GithubRow from '../GitHubPanel/GithubRow'
+import { loadGhFilters, saveGhFilters, validateGhQuery, composeGhQuery, ghFilterKeys,
+  GH_SEARCH_DOCS_URL, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { publishedNameFor } from '../ContextMenu/branchRefs'
@@ -160,6 +162,8 @@ interface SidebarProps {
   /** The signed-in login, from githubGetUser. Without it the three account
       groups of PULL REQUESTS have nothing to say and are hidden. */
   githubLogin?: string | null
+  /** The repository the sections read — what §4's saved filters query. */
+  githubRepo?: { owner: string; repo: string } | null
   onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
@@ -176,6 +180,123 @@ function ghMatch(item: GithubListItem, q: string): boolean {
   return item.title.toLowerCase().includes(needle)
     || String(item.number).includes(needle)
     || (item.author ?? '').toLowerCase().includes(needle)
+}
+
+// ── §4: the filter editor of a section — beside the list, not over it ────
+function GhFilterEditor({ kind, initial, onCreate, onCancel, t }: {
+  kind: 'prs' | 'issues'
+  initial?: GhSavedFilter
+  onCreate: (f: GhSavedFilter) => void
+  onCancel: () => void
+  t: (k: any, ...a: any[]) => string
+}) {
+  const [name, setName] = useState(initial?.name ?? '')
+  const [query, setQuery] = useState(initial?.query ?? '')
+  const verdict = validateGhQuery(query, kind)
+  const ready = name.trim() !== '' && query.trim() !== '' && verdict.ok
+  return (
+    <div className="sb-gh-fedit">
+      <input className="sb-gh-fedit-name" placeholder={t('sb.gh.filter.name')} autoFocus
+        value={name} onChange={e => setName(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); onCancel() } }} />
+      <input className="sb-gh-fedit-query" placeholder={t('sb.gh.filter.query')}
+        value={query} onChange={e => setQuery(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); onCancel() } }} />
+      {/* Live validation: a bad token is named, not just refused. */}
+      {!verdict.ok && (
+        <div className="sb-gh-fedit-bad">{t('sb.gh.filter.badToken', (verdict as any).bad)}</div>
+      )}
+      {/* The syntax beside the field — the editor is unusable otherwise —
+          and the full reference linked rather than restated. */}
+      <div className="sb-gh-fedit-hint">
+        {ghFilterKeys(kind).map(k => `${k}:`).join(' ')}
+        {' '}
+        <a className="sb-gh-fedit-link"
+          onClick={() => (window.gitAPI as any).openExternal?.(GH_SEARCH_DOCS_URL)}>
+          {t('sb.gh.filter.docs')}
+        </a>
+      </div>
+      <div className="sb-gh-fedit-actions">
+        <button className="sb-gh-fedit-create" disabled={!ready}
+          onClick={() => onCreate({ name: name.trim(), query: query.trim() })}>
+          {initial ? t('sb.gh.filter.save') : t('sb.gh.filter.create')}
+        </button>
+        <button className="sb-gh-fedit-cancel" onClick={onCancel}>{t('gh.detail.cancel')}</button>
+      </div>
+    </div>
+  )
+}
+
+// ── §4: a saved filter is one more named group, and it RE-QUERIES ─────────
+// Its life is its own: a malformed or refused query costs this group alone,
+// never the section. The count is the search's total, and when GitHub sent
+// fewer rows than it counted, the tail row says so instead of letting the
+// group read as complete.
+function GhFilterGroup({ filter, kind, repo, refreshOn, renderItem, onOpen, onEdit, onDelete, t }: {
+  filter: GhSavedFilter
+  kind: 'prs' | 'issues'
+  repo: { owner: string; repo: string }
+  refreshOn: unknown
+  renderItem: (item: GithubListItem, kind: 'pr' | 'issue') => React.ReactNode
+  onOpen?: (url: string) => void
+  onEdit: () => void
+  onDelete: () => void
+  t: (k: any, ...a: any[]) => string
+}) {
+  const [open, setOpen] = useState(true)
+  const [state, setState] = useState<{ total: number; items: any[] } | { error: string } | null>(null)
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const q = composeGhQuery(filter.query, kind, repo.owner, repo.repo)
+  useEffect(() => {
+    let alive = true
+    setState(null)
+    ;(window.gitAPI as any).githubSearchIssues?.(q)
+      .then((r: any) => {
+        if (!alive) return
+        if (r?.error) setState({ error: r.error === 'rate_limited' ? t('sb.gh.filter.rateLimited', r.retryIn ?? 60) : r.error })
+        else setState({ total: r?.total ?? 0, items: r?.items ?? [] })
+      })
+      .catch((e: any) => { if (alive) setState({ error: e.message }) })
+    return () => { alive = false }
+  }, [q, refreshOn, t])
+
+  const failed = state && 'error' in state
+  const result = state && !('error' in state) ? state : null
+  return (
+    <div className="sb-gh-group">
+      <div className={`sb-gh-group-head${open ? ' sb-gh-group-head--open' : ''}`}
+        onClick={() => setOpen(o => !o)}
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}>
+        <Icon name="play" size={8} />
+        <Icon name="sliders" size={10} />
+        <span className="sb-gh-group-title">{filter.name}</span>
+        <span className="sb-gh-group-count">{result ? result.total : '…'}</span>
+      </div>
+      {failed && <div className="sb-gh-filter-error">{(state as any).error}</div>}
+      {open && result && result.items.length > 0 && (
+        <div className="sb-gh-group-body">
+          {result.items.map((x: any) => renderItem({
+            number: x.number, title: x.title, url: x.url, author: x.author,
+            draft: x.draft, createdAt: x.createdAt, comments: x.comments,
+            labels: x.labels, body: x.body,
+          }, x.type === 'pr' ? 'pr' : 'issue'))}
+          {result.total > result.items.length && (
+            <button className="sb-gh-more"
+              onClick={() => onOpen?.(`https://github.com/search?q=${encodeURIComponent(q)}`)}>
+              {t('sb.gh.filter.more', result.total - result.items.length)}
+            </button>
+          )}
+        </div>
+      )}
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)}
+          items={[
+            { label: t('sb.gh.filter.edit'), action: onEdit },
+            { label: t('sb.gh.filter.delete'), action: onDelete },
+          ]} />
+      )}
+    </div>
+  )
 }
 
 // ── A named group inside a GitHub section (§1 bis) ───────────────
@@ -204,11 +325,14 @@ function GhGroup({ title, count, children, defaultOpen = true }: {
 }
 
 // ── Collapse section ─────────────────────────────────────────────
-function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll }: {
+function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onFilter, filterLabel }: {
   title: string
   count?: number
   children: React.ReactNode
   defaultOpen?: boolean
+  /** §4: the button opening the section's filter editor. Omitted ⇒ no button. */
+  onFilter?: (e: React.MouseEvent) => void
+  filterLabel?: string
   // The event is handed over so a section can anchor a menu to the + button
   // (the stash one offers a scope) instead of acting straight away.
   onAdd?: (e: React.MouseEvent) => void
@@ -242,6 +366,12 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, 
             onClick={e => { e.stopPropagation(); onShowAll() }}>
             <Icon name="eyeOff" size={11} />
             {hiddenCount}
+          </button>
+        )}
+        {onFilter && (
+          <button className="sb-add-btn" title={filterLabel}
+            onClick={e => { e.stopPropagation(); onFilter(e) }}>
+            <Icon name="sliders" size={12} />
           </button>
         )}
         {onAdd && (
@@ -683,7 +813,7 @@ export default function Sidebar({
   soloBranch, visibility, onToggleSolo, onToggleHide,
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
-  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin,
+  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   onCopyBranchLink, onDeleteBranchBoth,
@@ -834,6 +964,18 @@ export default function Sidebar({
   // already shown, it does not re-query. One per GitHub section.
   const [prsQuery, setPrsQuery] = useState('')
   const [issuesQuery, setIssuesQuery] = useState('')
+  // §4's saved filters — per repository, and each one re-queries on its own.
+  const [ghFilters, setGhFilters] = useState<GhFilterStore>({ prs: [], issues: [] })
+  // null = closed; -1 = creating; n≥0 = editing that filter
+  const [filterEditor, setFilterEditor] = useState<{ section: 'prs' | 'issues'; index: number } | null>(null)
+  useEffect(() => { setGhFilters(loadGhFilters(repoName || 'repo')) }, [repoName])
+  const mutateFilters = useCallback((section: 'prs' | 'issues', fn: (a: GhSavedFilter[]) => GhSavedFilter[]) => {
+    setGhFilters(prev => {
+      const next = { ...prev, [section]: fn(prev[section]) }
+      saveGhFilters(repoName || 'repo', next)
+      return next
+    })
+  }, [repoName])
   const stashScopeItems: MenuItemDef[] = [
     { label: t('sb.stash.scopeAll'), action: () => onCreateStash('all') },
     { label: t('sb.stash.scopeStaged'), action: () => onCreateStash('staged') },
@@ -1242,13 +1384,25 @@ export default function Sidebar({
               beside the branches, and a tab would replace what is being worked
               on. Absent entirely when the host has no GitHub here. */}
           {githubPRs && show('prs') && (
-            <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single}>
+            <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single}
+              onFilter={() => setFilterEditor(f => f?.section === 'prs' ? null : { section: 'prs', index: -1 })}
+              filterLabel={t('sb.gh.filter.new')}>
               <div className="sb-gh-search">
                 <Icon name="search" size={11} />
                 <input type="text" placeholder={t('sb.gh.searchPrs')} value={prsQuery}
                   onChange={e => setPrsQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setPrsQuery('') } }} />
               </div>
+              {filterEditor?.section === 'prs' && (
+                <GhFilterEditor kind="prs" t={t}
+                  initial={filterEditor.index >= 0 ? ghFilters.prs[filterEditor.index] : undefined}
+                  onCancel={() => setFilterEditor(null)}
+                  onCreate={f => {
+                    const at = filterEditor.index
+                    mutateFilters('prs', a => at >= 0 ? a.map((x, i) => i === at ? f : x) : [...a, f])
+                    setFilterEditor(null)
+                  }} />
+              )}
               {(() => {
                 const prRow = (pr: GithubListItem) => (
                   <GithubRow key={pr.number} compact item={{ ...pr, kind: 'pr' }}
@@ -1275,6 +1429,19 @@ export default function Sidebar({
                     <GhGroup title={t('sb.gh.group.allPrs')} count={githubPRs.length}>
                       {githubPRs.filter(pr => ghMatch(pr, prsQuery)).map(prRow)}
                     </GhGroup>
+                    {githubRepo && ghFilters.prs.map((f, fi) => (
+                      <GhFilterGroup key={`${f.name}:${f.query}`} filter={f} kind="prs"
+                        repo={githubRepo} refreshOn={githubPRs} t={t}
+                        onOpen={url => onOpenGithubItem?.(url)}
+                        renderItem={(item, k) => (
+                          <GithubRow key={`${k}-${item.number}`} compact item={{ ...item, kind: k }}
+                            hoverCard={!githubDetailOpen}
+                            onOpen={url => onOpenGithubItem?.(url)}
+                            onDetail={k === 'issue' && onShowGithubDetail ? () => onShowGithubDetail(item) : undefined} />
+                        )}
+                        onEdit={() => setFilterEditor({ section: 'prs', index: fi })}
+                        onDelete={() => mutateFilters('prs', a => a.filter((_, i) => i !== fi))} />
+                    ))}
                   </>
                 )
               })()}
@@ -1283,13 +1450,25 @@ export default function Sidebar({
 
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
-            <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single}>
+            <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single}
+              onFilter={() => setFilterEditor(f => f?.section === 'issues' ? null : { section: 'issues', index: -1 })}
+              filterLabel={t('sb.gh.filter.new')}>
               <div className="sb-gh-search">
                 <Icon name="search" size={11} />
                 <input type="text" placeholder={t('sb.gh.searchIssues')} value={issuesQuery}
                   onChange={e => setIssuesQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setIssuesQuery('') } }} />
               </div>
+              {filterEditor?.section === 'issues' && (
+                <GhFilterEditor kind="issues" t={t}
+                  initial={filterEditor.index >= 0 ? ghFilters.issues[filterEditor.index] : undefined}
+                  onCancel={() => setFilterEditor(null)}
+                  onCreate={f => {
+                    const at = filterEditor.index
+                    mutateFilters('issues', a => at >= 0 ? a.map((x, i) => i === at ? f : x) : [...a, f])
+                    setFilterEditor(null)
+                  }} />
+              )}
               <GhGroup title={t('sb.gh.group.allIssues')} count={githubIssues.length}>
                 {githubIssues.filter(issue => ghMatch(issue, issuesQuery)).map(issue => (
                   <GithubRow key={issue.number} compact item={{ ...issue, kind: 'issue' }}
@@ -1301,6 +1480,22 @@ export default function Sidebar({
                       : undefined} />
                 ))}
               </GhGroup>
+              {githubRepo && ghFilters.issues.map((f, fi) => (
+                <GhFilterGroup key={`${f.name}:${f.query}`} filter={f} kind="issues"
+                  repo={githubRepo} refreshOn={githubIssues} t={t}
+                  onOpen={url => onOpenGithubItem?.(url)}
+                  renderItem={(item, k) => (
+                    <GithubRow key={`${k}-${item.number}`} compact item={{ ...item, kind: k }}
+                      hoverCard={!githubDetailOpen}
+                      onOpen={url => onOpenGithubItem?.(url)}
+                      onDetail={k === 'issue' && onShowGithubDetail ? () => onShowGithubDetail(item) : undefined}
+                      onCreateBranch={k === 'issue' && onStartBranchFromIssue
+                        ? () => onStartBranchFromIssue({ number: item.number, title: item.title, url: item.url })
+                        : undefined} />
+                  )}
+                  onEdit={() => setFilterEditor({ section: 'issues', index: fi })}
+                  onDelete={() => mutateFilters('issues', a => a.filter((_, i) => i !== fi))} />
+              ))}
             </Section>
           )}
 
