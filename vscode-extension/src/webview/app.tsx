@@ -94,6 +94,8 @@ function VertexApp() {
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
   // The signed-in login — what the account groups of PULL REQUESTS filter on.
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
+  // §2's selector: where each section reads, when not the remote's repository.
+  const [ghOverride, setGhOverride] = useState<{ prs: { owner: string; repo: string } | null; issues: { owner: string; repo: string } | null }>({ prs: null, issues: null })
   // The issue being read in the centre (§3 bis): graph replaced, commit
   // panel not shown, rail and toolbar kept.
   const [issueDetail, setIssueDetail] = useState<GithubListItem | null>(null)
@@ -167,7 +169,10 @@ function VertexApp() {
   // icons don't flicker on every background refresh.
   // The two sidebar lists, callable on their own: the issue detail's writes
   // refresh them without a full repo reload.
-  const loadGhLists = useCallback(async (owner: string, repo: string) => {
+  const loadGhLists = useCallback(async (
+    base: { owner: string; repo: string },
+    over: { prs: { owner: string; repo: string } | null; issues: { owner: string; repo: string } | null } = { prs: null, issues: null },
+  ) => {
     void (window.gitAPI as any).githubGetUser?.()
       .then((r: any) => setGithubLogin(r?.user?.login ?? null))
       .catch(() => setGithubLogin(null))
@@ -178,13 +183,29 @@ function VertexApp() {
       headRef: x.headRef, baseRef: x.baseRef,
       body: x.body, assignees: x.assignees, reviewers: x.reviewers,
     })
+    // Each section reads its own repository — the remote's unless §2's
+    // selector pointed it elsewhere.
+    const prsRepo = over.prs ?? base
+    const issuesRepo = over.issues ?? base
     const [prs, issues] = await Promise.all([
-      (window.gitAPI as any).githubListPRs(owner, repo).catch(() => null),
-      (window.gitAPI as any).githubListIssues(owner, repo).catch(() => null),
+      (window.gitAPI as any).githubListPRs(prsRepo.owner, prsRepo.repo).catch(() => null),
+      (window.gitAPI as any).githubListIssues(issuesRepo.owner, issuesRepo.repo).catch(() => null),
     ])
     setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
     setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
   }, [])
+
+  const pickGithubRepo = useCallback((section: 'prs' | 'issues', repo: { owner: string; repo: string } | null) => {
+    setGhOverride(prev => {
+      const next = { ...prev, [section]: repo }
+      setIssueDetail(null)
+      void (async () => {
+        const gh = await window.gitAPI.githubDetectRepo().catch(() => null)
+        if (gh?.owner && gh?.repo) void loadGhLists({ owner: gh.owner, repo: gh.repo }, next)
+      })()
+      return next
+    })
+  }, [loadGhLists])
 
   const loadRepoData = useCallback(async (silent = false) => {
     if (isLoadingRef.current) { reloadQueued.current = true; return }
@@ -241,7 +262,7 @@ function VertexApp() {
         // The two sidebar sections. Absent — not empty — when there is no
         // GitHub here or nothing to authenticate with.
         if (gh?.owner && gh?.repo) {
-          await loadGhLists(gh.owner, gh.repo)
+          await loadGhLists({ owner: gh.owner, repo: gh.repo })
         } else {
           setGithubPRs(undefined); setGithubIssues(undefined)
         }
@@ -1099,13 +1120,13 @@ function VertexApp() {
           </>
         )}
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
-          {issueDetail && githubRepo ? (
+          {issueDetail && (ghOverride.issues ?? githubRepo) ? (
             <IssueDetail
-              repo={githubRepo}
+              repo={(ghOverride.issues ?? githubRepo)!}
               item={issueDetail}
               onClose={() => setIssueDetail(null)}
               onCreateBranch={handleCreateBranchFromIssue}
-              onChanged={() => { if (githubRepo) void loadGhLists(githubRepo.owner, githubRepo.repo) }}
+              onChanged={() => { if (githubRepo) void loadGhLists(githubRepo, ghOverride) }}
             />
           ) : (
           <CommitGraph

@@ -397,3 +397,71 @@ describe('the sections are named groups', () => {
     expect(screen.getByText('Crash on open')).toBeInTheDocument()
   })
 })
+
+// §2: the search is a display lens — it narrows what is shown, it does not
+// re-query, and the counts keep counting everything. The selector points a
+// section at another repository, through the host.
+describe('the section search and the repository selector', () => {
+  const prs = [
+    { number: 1, title: 'Speed up the graph', url: 'u1', author: 'victor' },
+    { number: 2, title: 'Fix the login', url: 'u2', author: 'alice' },
+  ]
+
+  test('typing narrows the rows; the counts keep counting everything', () => {
+    draw({ githubPRs: prs, githubLogin: null })
+    unfold('PULL REQUESTS')
+    const field = screen.getByPlaceholderText(/Search pull requests/)
+    fireEvent.change(field, { target: { value: 'login' } })
+    expect(screen.queryByText('Speed up the graph')).not.toBeInTheDocument()
+    expect(screen.getByText('Fix the login')).toBeInTheDocument()
+    const all = [...document.querySelectorAll('.sb-gh-group-head')]
+      .find(g => g.textContent?.includes('All Pull Requests'))!
+    expect(all.textContent).toContain('2')
+  })
+
+  test('the lens also answers to a number and an author, and Escape clears', () => {
+    draw({ githubPRs: prs, githubLogin: null })
+    unfold('PULL REQUESTS')
+    const field = screen.getByPlaceholderText(/Search pull requests/)
+    fireEvent.change(field, { target: { value: 'alice' } })
+    expect(screen.queryByText('Speed up the graph')).not.toBeInTheDocument()
+    fireEvent.keyDown(field, { key: 'Escape' })
+    expect(screen.getByText('Speed up the graph')).toBeInTheDocument()
+  })
+
+  test('each section searches on its own', () => {
+    draw({ githubPRs: prs, githubIssues: [{ number: 7, title: 'Crash on open', url: 'u7' }] })
+    unfold('PULL REQUESTS'); unfold('GITHUB ISSUES')
+    fireEvent.change(screen.getByPlaceholderText(/Search pull requests/), { target: { value: 'zzz' } })
+    expect(screen.getByText('Crash on open')).toBeInTheDocument()
+    expect(screen.queryByText('Fix the login')).not.toBeInTheDocument()
+  })
+
+  test('the selector shows where the section reads, and picking goes through the host', async () => {
+    const onPickGithubRepo = jest.fn()
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+      githubListRepos: jest.fn().mockResolvedValue({
+        repos: [{ fullName: 'victor/app' }, { fullName: 'victor/site' }],
+      }),
+    })
+    draw({ githubPRs: prs, githubPrsRepoLabel: 'victor/app', onPickGithubRepo })
+    unfold('PULL REQUESTS')
+    expect(screen.getByText('victor/app')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('victor/app'))
+    await userEvent.click(await screen.findByText('victor/site'))
+    expect(onPickGithubRepo).toHaveBeenCalledWith('prs', { owner: 'victor', repo: 'site' })
+  })
+
+  test('no pick handler, no selector', () => {
+    draw({ githubPRs: prs, githubPrsRepoLabel: 'victor/app', onPickGithubRepo: undefined })
+    unfold('PULL REQUESTS')
+    expect(document.querySelector('.sb-gh-repo')).not.toBeInTheDocument()
+  })
+})

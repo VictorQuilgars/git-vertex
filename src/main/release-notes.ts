@@ -21,6 +21,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Right-click an issue to start its branch** — the same gesture, and the same single row component, as the GitHub tab, so the two lists cannot drift apart.
 - **Rest on a row and a card opens over the graph** — the description rendered as markdown (headings, task lists, code), status, full labels, assignees, reporter. The card is a **preview**: it never scrolls, what does not fit fades out, and **clicking it opens the issue**. Clamped to the window, so it works in a 400-pixel panel too.
 - **The sections start folded** — the graph is the point of the window, and the counts on their headers already say what is behind. They are the only door now: the desktop's GitHub tab and the icon rail that opened it are **gone**.
+- **Each section is named groups**: *My Pull Requests* · *Assigned To Me* · *Awaiting My Review* · *All Pull Requests*, and *All Open Issues*. The account groups exist only when someone is signed in; an empty group still shows its **0** — that is what says the query ran.
+- **A repository selector and a search box on each section.** The selector reads the remote's repository by default and points anywhere the account can reach; the search is a display lens — it narrows what is shown without re-querying, and the counts keep counting everything.
 
 ### 📖 Click an issue: it opens in the app
 - A third layout: toolbar and left panel stay — the list is what you are navigating — the graph is replaced by the issue, and the commit panel is not shown, because there is no commit in this context.

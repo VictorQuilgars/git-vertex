@@ -343,6 +343,8 @@ export default function App() {
   // and left panel kept, graph replaced, commit panel not shown. Belongs to
   // the repository, so a repo switch closes it.
   const [issueDetail, setIssueDetail] = useState<GithubListItem | null>(null)
+  // §2's selector: where each section reads, when not the remote's repository.
+  const [ghOverride, setGhOverride] = useState<{ prs: { owner: string; repo: string } | null; issues: { owner: string; repo: string } | null }>({ prs: null, issues: null })
   const [prModalOpen, setPrModalOpen] = useState(false)
   // Which pull request the composer is opening — head, base and whether the
   // head still has to be pushed. Decided by prIntentFor, never by the composer.
@@ -697,7 +699,10 @@ export default function App() {
   }, [repoPath, loadRepoData])
 
   // ── Open repo helpers ──────────────────────────────────────
-  const loadGithubLists = useCallback(async (owner: string, repo: string) => {
+  const loadGithubLists = useCallback(async (
+    base: { owner: string; repo: string },
+    over: { prs: { owner: string; repo: string } | null; issues: { owner: string; repo: string } | null } = { prs: null, issues: null },
+  ) => {
     void (window.gitAPI as any).githubGetUser?.()
       .then((r: any) => setGithubLogin(r?.user?.login ?? null))
       .catch(() => setGithubLogin(null))
@@ -709,10 +714,14 @@ export default function App() {
         headRef: x.headRef, baseRef: x.baseRef,
         body: x.body, assignees: x.assignees, reviewers: x.reviewers,
       }))
+    // Each section reads its own repository — the remote's unless §2's
+    // selector pointed it elsewhere.
+    const prsRepo = over.prs ?? base
+    const issuesRepo = over.issues ?? base
     try {
       const [prs, issues] = await Promise.all([
-        (window.gitAPI as any).githubListPRs(owner, repo).catch(() => null),
-        (window.gitAPI as any).githubListIssues(owner, repo).catch(() => null),
+        (window.gitAPI as any).githubListPRs(prsRepo.owner, prsRepo.repo).catch(() => null),
+        (window.gitAPI as any).githubListIssues(issuesRepo.owner, issuesRepo.repo).catch(() => null),
       ])
       setGithubPRs(prs?.error ? undefined : rows(prs?.prs, 'pr'))
       setGithubIssues(issues?.error ? undefined : rows(issues?.issues, 'issue'))
@@ -721,7 +730,19 @@ export default function App() {
     }
   }, [])
 
-  useEffect(() => { setIssueDetail(null) }, [repoPath])
+  const pickGithubRepo = useCallback((section: 'prs' | 'issues', repo: { owner: string; repo: string } | null) => {
+    setGhOverride(prev => {
+      const next = { ...prev, [section]: repo }
+      setIssueDetail(null)
+      void (async () => {
+        const detected = await (window.gitAPI as any).githubDetectRepo().catch(() => null)
+        if (detected?.owner && detected?.repo) void loadGithubLists({ owner: detected.owner, repo: detected.repo }, next)
+      })()
+      return next
+    })
+  }, [loadGithubLists])
+
+  useEffect(() => { setIssueDetail(null); setGhOverride({ prs: null, issues: null }) }, [repoPath])
 
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
@@ -730,7 +751,7 @@ export default function App() {
     // The lists follow the repository, and a repository with no GitHub — or no
     // token — simply has no sections rather than two empty ones.
     if (detected?.owner && detected?.repo) {
-      void loadGithubLists(detected.owner, detected.repo)
+      void loadGithubLists({ owner: detected.owner, repo: detected.repo })
     } else {
       setGithubPRs(undefined); setGithubIssues(undefined)
     }
@@ -2254,6 +2275,9 @@ export default function App() {
               onShowGithubDetail={setIssueDetail}
               githubDetailOpen={!!issueDetail}
               githubLogin={githubLogin}
+              githubPrsRepoLabel={githubOwnerRepo ? `${(ghOverride.prs ?? githubOwnerRepo).owner}/${(ghOverride.prs ?? githubOwnerRepo).repo}` : undefined}
+              githubIssuesRepoLabel={githubOwnerRepo ? `${(ghOverride.issues ?? githubOwnerRepo).owner}/${(ghOverride.issues ?? githubOwnerRepo).repo}` : undefined}
+              onPickGithubRepo={pickGithubRepo}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}
@@ -2476,13 +2500,13 @@ export default function App() {
                 </button>
               </div>
             </div>
-          ) : issueDetail && githubOwnerRepo ? (
+          ) : issueDetail && (ghOverride.issues ?? githubOwnerRepo) ? (
             <IssueDetail
-              repo={githubOwnerRepo}
+              repo={(ghOverride.issues ?? githubOwnerRepo)!}
               item={issueDetail}
               onClose={() => setIssueDetail(null)}
               onCreateBranch={handleCreateBranchFromIssue}
-              onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo.owner, githubOwnerRepo.repo) }}
+              onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, ghOverride) }}
             />
           ) : (
             <CommitGraph
