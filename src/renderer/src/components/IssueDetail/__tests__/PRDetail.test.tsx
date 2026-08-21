@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PRDetail from '../PRDetail'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
@@ -67,14 +67,50 @@ describe('the PR detail', () => {
   // The repo's own case: checks green, no conflicts, but a ruleset demands a
   // review the bypass will skip. The button says so — the web UI's consent
   // checkbox, folded into the label.
-  test('a protections-blocked request gets the bypass wording, and still merges', async () => {
+  // #124: the bypass consents TWICE, like GitHub's own UI — the first click
+  // arms, the second merges, a click elsewhere disarms.
+  test('a blocked request needs two clicks: arm, then confirm', async () => {
     const { api } = draw({ mergeableState: 'blocked' })
     await screen.findByText('Speed up the graph')
     const btn = await screen.findByText('Merge, Bypassing Rules')
-    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
     await userEvent.click(btn)
+    // armed, not merged
+    expect(api.githubMergePR).not.toHaveBeenCalled()
+    const confirm = await screen.findByText('Confirm: Bypass and Merge')
+    await userEvent.click(confirm)
     await waitFor(() => expect(api.githubMergePR).toHaveBeenCalledWith('o', 'r', 42, 'merge'))
     expect(await screen.findByText('Merged')).toBeInTheDocument()
+  })
+
+  test('a click anywhere else disarms the bypass', async () => {
+    const { api } = draw({ mergeableState: 'blocked' })
+    await screen.findByText('Speed up the graph')
+    await userEvent.click(await screen.findByText('Merge, Bypassing Rules'))
+    await screen.findByText('Confirm: Bypass and Merge')
+    fireEvent.mouseDown(screen.getByText('Speed up the graph'))
+    expect(await screen.findByText('Merge, Bypassing Rules')).toBeInTheDocument()
+    expect(api.githubMergePR).not.toHaveBeenCalled()
+  })
+
+  // #124: a merged request offers its branches' cleanup, both sides in one
+  // action, each outcome reported where the click happened.
+  test('a merged request offers Delete Work Branches, and reports per branch', async () => {
+    const { api } = draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
+      deleteBranch: jest.fn().mockResolvedValue({ success: false, error: 'branch not found' }),
+    })
+    await screen.findByText('Speed up the graph')
+    await userEvent.click(screen.getByText('Delete Work Branches'))
+    await waitFor(() => expect(api.deleteRemoteBranch).toHaveBeenCalledWith('feat/speed'))
+    expect(api.deleteBranch).toHaveBeenCalledWith('feat/speed')
+    expect(await screen.findByText(/Remote : deleted/)).toBeInTheDocument()
+    expect(screen.getByText(/Local : not found/)).toBeInTheDocument()
+  })
+
+  test('an open request offers no branch cleanup', async () => {
+    draw()
+    await screen.findByText('Speed up the graph')
+    expect(screen.queryByText('Delete Work Branches')).not.toBeInTheDocument()
   })
 
   test('the method picker changes what the click sends', async () => {
