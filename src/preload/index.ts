@@ -218,6 +218,7 @@ const gitAPI = {
   githubListRepoLabels: (owner: string, repo: string) => ipcRenderer.invoke('github:list-repo-labels', owner, repo),
   githubGetPR: (owner: string, repo: string, number: number) => ipcRenderer.invoke('github:get-pr', owner, repo, number),
   githubGetChecks: (owner: string, repo: string, ref: string) => ipcRenderer.invoke('github:get-checks', owner, repo, ref),
+  githubMergePR: (owner: string, repo: string, number: number, method?: string) => ipcRenderer.invoke('github:merge-pr', owner, repo, number, method),
   githubShareWipPatch: (repoPath: string) => ipcRenderer.invoke('github:share-wip-patch', repoPath),
   scanLocalRepos: (force?: boolean) => ipcRenderer.invoke('git:scan-local-repos', force),
   openPathInEditor: (dir: string) => ipcRenderer.invoke('app:open-path-in-editor', dir),

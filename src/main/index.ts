@@ -2446,6 +2446,27 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
   } catch (e: any) { return { error: e.message } }
 })
 
+// The one write of #110's pane, #73's P2: merge the request. GitHub is the
+// judge — branch protections, required checks and the rest answer here, so
+// the UI's own gating is a courtesy, not the authority.
+ipcMain.handle('github:merge-pr', async (_e, owner: string, repo: string, number: number,
+  method: 'merge' | 'squash' | 'rebase' = 'merge') => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}/merge`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({ merge_method: method }),
+    })
+    const data = await res.json().catch(() => ({})) as any
+    if (!res.ok) return { error: data?.message ?? `HTTP ${res.status}` }
+    searchCache.clear()
+    return { success: true, sha: data?.sha ?? '' }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:get-checks', async (_e, owner: string, repo: string, ref: string) => {
   const api = await ghApi()
   const token = api.token

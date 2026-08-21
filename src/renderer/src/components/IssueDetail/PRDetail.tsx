@@ -12,12 +12,15 @@ import './IssueDetail.css'
  * absent. What differs is what a request carries that an issue does not —
  * the branches, the cost line, and MERGEABILITY.
  *
- * Read-only where it matters: there is deliberately NO merge button. Merging
- * from the panel is #73's remit (GitHub write actions), and the spec's rule
- * is to say so rather than ship a button that 403s. What the pane does say:
- * the checks (passed / failed / pending, from the head ref's check runs) and
- * the conflicts (GitHub's `mergeable`, including the null that means it is
- * still computing — shown as computing, never guessed).
+ * Mergeability is read and reported: the checks (passed / failed / pending,
+ * from the head ref's check runs) and the conflicts (GitHub's `mergeable`,
+ * including the null that means it is still computing — shown as computing,
+ * never guessed). The MERGE BUTTON (#73's P2) follows the reference's rule:
+ * it exists when both hold — checks green (or absent) and no conflicts —
+ * and not otherwise; a disabled button explaining itself is still a button
+ * that cannot be pressed. GitHub stays the judge: protections it enforces
+ * answer through the request, and its message is shown where the click
+ * happened.
  *
  * Comments, title, description, state, labels and assignees go through the
  * ISSUE endpoints — a pull request is an issue to GitHub for all of those,
@@ -61,6 +64,8 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
   const [editingAssignees, setEditingAssignees] = useState(false)
   const [editingLabels, setEditingLabels] = useState(false)
   const [editingState, setEditingState] = useState(false)
+  const [mergeMethod, setMergeMethod] = useState<'merge' | 'squash' | 'rebase'>('merge')
+  const [methodOpen, setMethodOpen] = useState(false)
   const [allAssignees, setAllAssignees] = useState<string[] | null>(null)
   const [allLabels, setAllLabels] = useState<GithubLabel[] | null>(null)
 
@@ -105,6 +110,15 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
       api().githubIssueComments(repo.owner, repo.repo, number).then((rr: any) => { if (rr?.comments) setComments(rr.comments) })
       onChanged?.()
     } else setError(r?.error ?? 'error')
+  }
+
+  const doMerge = async () => {
+    if (!pr) return
+    setBusy(true); setError(null)
+    const r = await api().githubMergePR(repo.owner, repo.repo, number, mergeMethod).catch((e: any) => ({ error: e.message }))
+    setBusy(false)
+    if (r?.success) { setPr({ ...pr, merged: true, state: 'closed' }); onChanged?.() }
+    else setError(r?.error ?? 'error')
   }
 
   const stateKey = pr?.merged ? 'issue.merged' : pr?.state === 'open' ? 'issue.open' : 'issue.closed'
@@ -236,6 +250,35 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                       {pr.mergeable === null ? t('gh.pr.mergeComputing')
                         : pr.mergeable ? t('gh.pr.noConflicts') : t('gh.pr.conflicts')}
                     </div>
+                    {/* The reference's rule: the button exists when BOTH hold.
+                        Checks green or absent, no conflicts, and an open,
+                        unmerged request. GitHub remains the judge. */}
+                    {!pr.merged && pr.state === 'open' && pr.mergeable === true
+                      && checks !== null && checks.failed === 0 && checks.pending === 0 && (
+                      <div className="idv-merge-act">
+                        <button className="idv-btn idv-merge-btn" disabled={busy}
+                          onClick={() => void doMerge()}>
+                          <Icon name="merge" size={13} />
+                          {t(`gh.pr.merge.${mergeMethod}` as any)}
+                        </button>
+                        <button className="idv-btn idv-merge-caret" disabled={busy}
+                          title={t('gh.pr.mergeMethod')}
+                          onClick={() => setMethodOpen(o => !o)}>
+                          <Icon name="chevronDown" size={11} />
+                        </button>
+                        {methodOpen && (
+                          <div className="idv-picker-list idv-merge-methods">
+                            {(['merge', 'squash', 'rebase'] as const).map(m => (
+                              <button key={m} className="idv-pick-row"
+                                onClick={() => { setMergeMethod(m); setMethodOpen(false) }}>
+                                <span className="idv-pick-check">{m === mergeMethod && <Icon name="check" size={12} />}</span>
+                                <span>{t(`gh.pr.merge.${m}` as any)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </SideBlock>
 

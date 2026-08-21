@@ -20,7 +20,7 @@ import {
   githubListPRs, githubListIssues, githubGetIssue, githubCreatePR, githubListBranches,
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, type GithubApi,
   githubIssueComments, githubAddIssueComment, githubUpdateIssue,
-  githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks,
+  githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks, githubMergePR,
 } from '../githubApi'
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
@@ -613,6 +613,8 @@ export class GitVertexHost implements vscode.Disposable {
         return githubGetPR(await this._githubApi(), args[0], args[1], args[2])
       case 'githubGetChecks':
         return githubGetChecks(await this._githubApi(), args[0], args[1], args[2])
+      case 'githubMergePR':
+        return githubMergePR(await this._githubApi(), args[0], args[1], args[2], args[3])
       case 'githubListRepos': return githubListRepos(await this._githubApi())
       // Share a commit's patch as a secret gist. git makes the patch, the API
       // stores it — so the two halves are assembled here rather than in
