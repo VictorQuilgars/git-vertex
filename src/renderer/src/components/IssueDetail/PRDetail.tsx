@@ -337,15 +337,28 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         setCleaning(true)
                         void (async () => {
                           // Remote first: it exists independently of the
-                          // checkout. git's own refusals (the checked-out
-                          // branch, most often) are the message — not ours
-                          // to predict.
+                          // checkout.
                           const rr = await (api().deleteRemoteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
-                          const lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
-                          const word = (r: any) => r?.success ? t('gh.pr.branchDeleted')
+                          // The commonest case is deleting the branch you are
+                          // ON — you just merged its PR. git refuses that, and
+                          // rightly; the answer is the reference clients':
+                          // step onto the base branch, then delete. Any other
+                          // refusal (another worktree, a dirty tree blocking
+                          // the checkout) stays git's message, verbatim.
+                          let switched = false
+                          let lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                          if (!lr?.success && /used by worktree|checked out/i.test(lr?.error ?? '') && pr.baseRef) {
+                            const co = await api().checkout?.(pr.baseRef).catch((e: any) => ({ success: false, error: e.message }))
+                            if (co?.success) {
+                              switched = true
+                              lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                            }
+                          }
+                          const word = (r: any, sw = false) => r?.success
+                            ? (sw ? t('gh.pr.branchDeletedSwitched', pr.baseRef) : t('gh.pr.branchDeleted'))
                             : /not found|introuvable|no such|unknown branch/i.test(r?.error ?? '') ? t('gh.pr.branchAbsent')
                             : (r?.error ?? 'error')
-                          setCleanup({ remote: word(rr), local: word(lr) })
+                          setCleanup({ remote: word(rr), local: word(lr, switched) })
                           setCleaning(false)
                           onChanged?.()
                         })()

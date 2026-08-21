@@ -107,6 +107,37 @@ describe('the PR detail', () => {
     expect(screen.getByText(/Local : not found/)).toBeInTheDocument()
   })
 
+  // Victor's own first use: the branch being deleted is the one checked out —
+  // you just merged its PR. git refuses; the answer is the reference
+  // clients': step onto the base, then delete.
+  test('a checked-out local branch is deleted by switching to the base first', async () => {
+    const deleteBranch = jest.fn()
+      .mockResolvedValueOnce({ success: false, error: "error: cannot delete branch 'feat/speed' used by worktree at '/x'" })
+      .mockResolvedValueOnce({ success: true })
+    const checkout = jest.fn().mockResolvedValue({ success: true })
+    const { api } = draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
+      deleteBranch, checkout,
+    })
+    await screen.findByText('Speed up the graph')
+    await userEvent.click(screen.getByText('Delete Work Branches'))
+    await waitFor(() => expect(checkout).toHaveBeenCalledWith('main'))
+    expect(deleteBranch).toHaveBeenCalledTimes(2)
+    expect(await screen.findByText(/Local : deleted — switched to main/)).toBeInTheDocument()
+  })
+
+  test("when even the switch fails, git's own message stays", async () => {
+    const { api } = draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
+      deleteBranch: jest.fn().mockResolvedValue({ success: false, error: "cannot delete branch 'feat/speed' used by worktree at '/elsewhere'" }),
+      checkout: jest.fn().mockResolvedValue({ success: false, error: 'local changes would be overwritten' }),
+    })
+    await screen.findByText('Speed up the graph')
+    await userEvent.click(screen.getByText('Delete Work Branches'))
+    expect(await screen.findByText(/used by worktree/)).toBeInTheDocument()
+    expect(api.deleteBranch).toHaveBeenCalledTimes(1)
+  })
+
   test('an open request offers no branch cleanup', async () => {
     draw()
     await screen.findByText('Speed up the graph')
