@@ -334,3 +334,66 @@ describe('the hover card over the graph', () => {
     expect(card.querySelectorAll('code').length).toBeGreaterThanOrEqual(2)
   })
 })
+
+// §1 bis: a section is a list of named groups, not one flat list. The
+// asymmetry between the two sections is the point — a pull request is
+// something you are personally on the hook for, an issue is not.
+describe('the sections are named groups', () => {
+  const prs = [
+    { number: 1, title: 'Mine', url: 'u1', author: 'victor' },
+    { number: 2, title: 'To review', url: 'u2', author: 'alice', reviewers: ['victor'] },
+    { number: 3, title: 'Assigned', url: 'u3', author: 'alice', assignees: ['victor'] },
+    { number: 4, title: 'Elsewhere', url: 'u4', author: 'bob' },
+  ]
+
+  test('with an identity, PULL REQUESTS carries the four groups with their counts', () => {
+    draw({ githubPRs: prs, githubLogin: 'victor' })
+    unfold('PULL REQUESTS')
+    const groups = [...document.querySelectorAll('.sb-gh-group-head')]
+      .map(g => g.textContent)
+    expect(groups).toHaveLength(4)
+    expect(groups[0]).toContain('My Pull Requests'); expect(groups[0]).toContain('1')
+    expect(groups[1]).toContain('Assigned To Me');   expect(groups[1]).toContain('1')
+    expect(groups[2]).toContain('Awaiting My Review'); expect(groups[2]).toContain('1')
+    expect(groups[3]).toContain('All Pull Requests'); expect(groups[3]).toContain('4')
+  })
+
+  // With no identity the account groups have nothing to say — three empty
+  // rows would read as "no pull requests".
+  test('without an identity, only All Pull Requests exists', () => {
+    draw({ githubPRs: prs, githubLogin: null })
+    unfold('PULL REQUESTS')
+    const groups = [...document.querySelectorAll('.sb-gh-group-head')].map(g => g.textContent)
+    expect(groups).toHaveLength(1)
+    expect(groups[0]).toContain('All Pull Requests')
+  })
+
+  test('an empty group still shows, with its 0 — that is what says the query ran', () => {
+    draw({ githubPRs: [{ number: 4, title: 'Elsewhere', url: 'u4', author: 'bob' }], githubLogin: 'victor' })
+    unfold('PULL REQUESTS')
+    const mine = [...document.querySelectorAll('.sb-gh-group-head')]
+      .find(g => g.textContent?.includes('My Pull Requests'))!
+    expect(mine.textContent).toContain('0')
+  })
+
+  test('a group collapses on its own, the others stay', () => {
+    draw({ githubPRs: prs, githubLogin: 'victor' })
+    unfold('PULL REQUESTS')
+    // All Pull Requests holds every row; fold My Pull Requests only
+    const mineHead = [...document.querySelectorAll('.sb-gh-group-head')]
+      .find(g => g.textContent?.includes('My Pull Requests'))!
+    fireEvent.click(mineHead)
+    // 'Mine' still visible through All Pull Requests; the fold removed one copy
+    expect(screen.getAllByText('Mine')).toHaveLength(1)
+    expect(screen.getAllByText('Elsewhere')).toHaveLength(1)
+  })
+
+  test('the issues get one group, All Open Issues', () => {
+    draw({ githubIssues: [{ number: 7, title: 'Crash on open', url: 'u7' }] })
+    unfold('GITHUB ISSUES')
+    const groups = [...document.querySelectorAll('.sb-gh-group-head')].map(g => g.textContent)
+    expect(groups).toHaveLength(1)
+    expect(groups[0]).toContain('All Open Issues')
+    expect(screen.getByText('Crash on open')).toBeInTheDocument()
+  })
+})

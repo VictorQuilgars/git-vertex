@@ -337,6 +337,8 @@ export default function App() {
   // all, which is not the same as rendering an empty one.
   const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
+  // The signed-in login — what the account groups of PULL REQUESTS filter on.
+  const [githubLogin, setGithubLogin] = useState<string | null>(null)
   // The issue being read in the centre (§3 bis) — the third layout: toolbar
   // and left panel kept, graph replaced, commit panel not shown. Belongs to
   // the repository, so a repo switch closes it.
@@ -696,13 +698,16 @@ export default function App() {
 
   // ── Open repo helpers ──────────────────────────────────────
   const loadGithubLists = useCallback(async (owner: string, repo: string) => {
+    void (window.gitAPI as any).githubGetUser?.()
+      .then((r: any) => setGithubLogin(r?.user?.login ?? null))
+      .catch(() => setGithubLogin(null))
     const rows = (list: any[] | undefined, kind: 'pr' | 'issue'): GithubListItem[] =>
       (list ?? []).map((x: any) => ({
         number: x.number, title: x.title, author: x.author,
         draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
         createdAt: x.createdAt, comments: x.comments, labels: x.labels,
         headRef: x.headRef, baseRef: x.baseRef,
-        body: x.body, assignees: x.assignees,
+        body: x.body, assignees: x.assignees, reviewers: x.reviewers,
       }))
     try {
       const [prs, issues] = await Promise.all([
@@ -2248,6 +2253,7 @@ export default function App() {
               onStartBranchFromIssue={handleCreateBranchFromIssue}
               onShowGithubDetail={setIssueDetail}
               githubDetailOpen={!!issueDetail}
+              githubLogin={githubLogin}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}

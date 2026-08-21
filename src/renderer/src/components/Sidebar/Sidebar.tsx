@@ -41,6 +41,8 @@ export interface GithubListItem {
   baseRef?: string
   body?: string
   assignees?: string[]
+  /** Logins whose review is requested — what Awaiting My Review groups on. */
+  reviewers?: string[]
 }
 interface RemoteEntry { name: string; fetchUrl: string; pushUrl: string }
 interface SubmoduleEntry { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }
@@ -155,6 +157,9 @@ interface SidebarProps {
   /** True while a detail is open in the centre: the rows stop offering their
       hover card — the peek makes no sense over the answer. */
   githubDetailOpen?: boolean
+  /** The signed-in login, from githubGetUser. Without it the three account
+      groups of PULL REQUESTS have nothing to say and are hidden. */
+  githubLogin?: string | null
   onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
@@ -162,6 +167,31 @@ interface SidebarProps {
   // Single-view mode: render only the section the activity rail selected.
   // Undefined = classic stacked layout (desktop).
   view?: SidebarView
+}
+
+// ── A named group inside a GitHub section (§1 bis) ───────────────
+// Collapses on its own and carries its own count. A group with nothing in
+// it still shows, with its 0 — that is what says the query ran. Groups that
+// cannot run (the account ones, with nobody signed in) are not rendered at
+// all by the caller, which is a different statement.
+function GhGroup({ title, count, children, defaultOpen = true }: {
+  title: string
+  count: number
+  children: React.ReactNode
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="sb-gh-group">
+      <div className={`sb-gh-group-head${open ? ' sb-gh-group-head--open' : ''}`}
+        onClick={() => setOpen(o => !o)}>
+        <Icon name="play" size={8} />
+        <span className="sb-gh-group-title">{title}</span>
+        <span className="sb-gh-group-count">{count}</span>
+      </div>
+      {open && count > 0 && <div className="sb-gh-group-body">{children}</div>}
+    </div>
+  )
 }
 
 // ── Collapse section ─────────────────────────────────────────────
@@ -644,7 +674,7 @@ export default function Sidebar({
   soloBranch, visibility, onToggleSolo, onToggleHide,
   onToggleHideTag, onToggleHideRemote, onSetFamilyHidden,
   onPull,
-  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen,
+  githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   onCopyBranchLink, onDeleteBranchBoth,
@@ -1200,22 +1230,41 @@ export default function Sidebar({
               on. Absent entirely when the host has no GitHub here. */}
           {githubPRs && show('prs') && (
             <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single}>
-              {githubPRs.length === 0
-                ? <div className="sb-empty">{t('sb.github.noPRs')}</div>
-                : githubPRs.map(pr => (
+              {(() => {
+                const prRow = (pr: GithubListItem) => (
                   <GithubRow key={pr.number} compact item={{ ...pr, kind: 'pr' }}
                     hoverCard={!githubDetailOpen}
                     onOpen={url => onOpenGithubItem?.(url)} />
-                ))}
+                )
+                // The account groups exist only with an identity: with nobody
+                // signed in they have nothing to say, and three empty rows
+                // would read as "no pull requests".
+                const accountGroups = githubLogin ? [
+                  { key: 'mine', title: t('sb.gh.group.mine'), rows: githubPRs.filter(pr => pr.author === githubLogin) },
+                  { key: 'assigned', title: t('sb.gh.group.assigned'), rows: githubPRs.filter(pr => pr.assignees?.includes(githubLogin)) },
+                  { key: 'review', title: t('sb.gh.group.review'), rows: githubPRs.filter(pr => pr.reviewers?.includes(githubLogin)) },
+                ] : []
+                return (
+                  <>
+                    {accountGroups.map(g => (
+                      <GhGroup key={g.key} title={g.title} count={g.rows.length}>
+                        {g.rows.map(prRow)}
+                      </GhGroup>
+                    ))}
+                    <GhGroup title={t('sb.gh.group.allPrs')} count={githubPRs.length}>
+                      {githubPRs.map(prRow)}
+                    </GhGroup>
+                  </>
+                )
+              })()}
             </Section>
           )}
 
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
             <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single}>
-              {githubIssues.length === 0
-                ? <div className="sb-empty">{t('sb.github.noIssues')}</div>
-                : githubIssues.map(issue => (
+              <GhGroup title={t('sb.gh.group.allIssues')} count={githubIssues.length}>
+                {githubIssues.map(issue => (
                   <GithubRow key={issue.number} compact item={{ ...issue, kind: 'issue' }}
                     hoverCard={!githubDetailOpen}
                     onOpen={url => onOpenGithubItem?.(url)}
@@ -1224,6 +1273,7 @@ export default function Sidebar({
                       ? () => onStartBranchFromIssue({ number: issue.number, title: issue.title, url: issue.url })
                       : undefined} />
                 ))}
+              </GhGroup>
             </Section>
           )}
 

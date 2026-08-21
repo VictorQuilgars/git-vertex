@@ -2357,6 +2357,7 @@ ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
         labels: (pr.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
         body: pr.body ?? '',
         assignees: (pr.assignees ?? []).map((a: any) => a.login),
+        reviewers: (pr.requested_reviewers ?? []).map((r: any) => r.login),
         url: pr.html_url,
         headRef: pr.head?.ref ?? '',
         baseRef: pr.base?.ref ?? '',
