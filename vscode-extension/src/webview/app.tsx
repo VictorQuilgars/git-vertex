@@ -313,6 +313,25 @@ function VertexApp() {
     return () => { offRepo(); offWorking() }
   }, [loadRepoData])
 
+  // The GitHub account lives in VS Code's Accounts menu, not here — #80's
+  // last open path. Signing out (or in) there must reach this surface: the
+  // account groups, the lists, an open detail. Re-detect and reload; a gone
+  // session comes back as not_authenticated and the sections go absent, per
+  // the rule. The open detail is closed rather than left to fail its next
+  // write.
+  useEffect(() => {
+    const onAuth = () => {
+      setIssueDetail(null)
+      void (async () => {
+        const gh = await window.gitAPI.githubDetectRepo().catch(() => null)
+        if (gh?.owner && gh?.repo) await loadGhLists({ owner: gh.owner, repo: gh.repo })
+        else { setGithubPRs(undefined); setGithubIssues(undefined) }
+      })()
+    }
+    ;(window.gitAPI as any).onGithubAuthChanged?.(onAuth)
+    return () => (window.gitAPI as any).offGithubAuthChanged?.(onAuth)
+  }, [loadGhLists])
+
   // Keep the selected commit object in sync with reloaded commits
   useEffect(() => {
     if (!selectedCommit || selectedCommit.hash === '__WIP__') return

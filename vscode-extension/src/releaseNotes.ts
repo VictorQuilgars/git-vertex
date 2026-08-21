@@ -91,6 +91,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 - If it matches one of your patterns in **Settings › GitHub**, it opens where that pattern points. If it matches nothing, it is still kept and shown on the branch.
 - Branch names follow: from \`PROJ-421\` the suggestion is \`PROJ-421-the-title\`, and the key keeps its case.
 
+### 🩹 Signing out of GitHub reaches the whole panel
+- The account lives in VS Code's **Accounts menu**; signing out there now empties the GitHub sections, their account groups and any open detail — instead of the panel keeping an account that was gone until it was reopened. Signing in picks everything up the same way.
+
 ### 🩹 The panel opens again
 - It rendered nothing at all — *Cannot access 'showPrompt' before initialization*. A dependency array is read while the component renders, and two recent handlers listed a value declared further down.
 - The comparison tab and the GitHub tab had the same fault in another form, reading values that only exist inside the main panel component. Opening either showed an empty tab.
