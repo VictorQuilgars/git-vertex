@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Icon } from '../Icon/Icon'
 import MdLite from '../GitHubPanel/mdLite'
 import { LabelChip, timeAgo, type GithubLabel } from '../GitHubPanel/GithubRow'
-import { SideBlock, PickerEditor } from './IssueDetail'
+import { SideBlock, PickerEditor, useClickAway } from './IssueDetail'
 import { useLang } from '../../i18n/LanguageContext'
 import './IssueDetail.css'
 
@@ -66,6 +66,14 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
   const [editingState, setEditingState] = useState(false)
   const [mergeMethod, setMergeMethod] = useState<'merge' | 'squash' | 'rebase'>('merge')
   const [methodOpen, setMethodOpen] = useState(false)
+  // The bypass consents TWICE (#124): the first click arms, the second merges,
+  // any click elsewhere disarms. An ordinary merge stays single-click.
+  const [bypassArmed, setBypassArmed] = useState(false)
+  const disarm = useCallback(() => setBypassArmed(false), [])
+  const mergeActRef = useClickAway(bypassArmed, disarm)
+  // The cleanup's per-branch outcomes, reported where the click happened.
+  const [cleanup, setCleanup] = useState<{ remote: string; local: string } | null>(null)
+  const [cleaning, setCleaning] = useState(false)
   const [allAssignees, setAllAssignees] = useState<string[] | null>(null)
   const [allLabels, setAllLabels] = useState<GithubLabel[] | null>(null)
 
@@ -110,6 +118,13 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
       api().githubIssueComments(repo.owner, repo.repo, number).then((rr: any) => { if (rr?.comments) setComments(rr.comments) })
       onChanged?.()
     } else setError(r?.error ?? 'error')
+  }
+
+  const onMergeClick = () => {
+    if (!pr) return
+    if (pr.mergeableState === 'blocked' && !bypassArmed) { setBypassArmed(true); return }
+    setBypassArmed(false)
+    void doMerge()
   }
 
   const doMerge = async () => {
@@ -260,14 +275,16 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         without bypass rights gets GitHub's refusal inline. */}
                     {!pr.merged && pr.state === 'open' && pr.mergeable === true
                       && checks !== null && checks.failed === 0 && checks.pending === 0 && (
-                      <div className="idv-merge-act">
-                        <button className="idv-btn idv-merge-btn" disabled={busy}
+                      <div className="idv-merge-act" ref={mergeActRef}>
+                        <button className={`idv-btn idv-merge-btn${bypassArmed ? ' idv-merge-btn--armed' : ''}`}
+                          disabled={busy}
                           title={t(`gh.pr.merge.${mergeMethod}` as any)}
-                          onClick={() => void doMerge()}>
+                          onClick={onMergeClick}>
                           <Icon name="merge" size={13} />
-                          {pr.mergeableState === 'blocked'
-                            ? t('gh.pr.mergeBypass')
-                            : t(`gh.pr.merge.${mergeMethod}` as any)}
+                          {bypassArmed ? t('gh.pr.mergeBypassConfirm')
+                            : pr.mergeableState === 'blocked'
+                              ? t('gh.pr.mergeBypass')
+                              : t(`gh.pr.merge.${mergeMethod}` as any)}
                         </button>
                         <button className="idv-btn idv-merge-caret" disabled={busy}
                           title={t('gh.pr.mergeMethod')}
@@ -308,6 +325,38 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                             <span>{t(v === 'open' ? 'issue.open' : 'issue.closed')}</span>
                           </button>
                         ))}
+                      </div>
+                    )}
+                  </SideBlock>
+                )}
+
+                {(pr.merged || pr.state === 'closed') && pr.headRef && (
+                  <SideBlock label={t('gh.detail.branches')}>
+                    <button className="idv-btn idv-branch-btn" disabled={cleaning}
+                      onClick={() => {
+                        setCleaning(true)
+                        void (async () => {
+                          // Remote first: it exists independently of the
+                          // checkout. git's own refusals (the checked-out
+                          // branch, most often) are the message — not ours
+                          // to predict.
+                          const rr = await (api().deleteRemoteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                          const lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                          const word = (r: any) => r?.success ? t('gh.pr.branchDeleted')
+                            : /not found|introuvable|no such|unknown branch/i.test(r?.error ?? '') ? t('gh.pr.branchAbsent')
+                            : (r?.error ?? 'error')
+                          setCleanup({ remote: word(rr), local: word(lr) })
+                          setCleaning(false)
+                          onChanged?.()
+                        })()
+                      }}>
+                      <Icon name="trash" size={13} />
+                      {t('gh.pr.deleteBranches')}
+                    </button>
+                    {cleanup && (
+                      <div className="idv-cleanup">
+                        <span>{t('gh.pr.branchRemote')} : {cleanup.remote}</span>
+                        <span>{t('gh.pr.branchLocal')} : {cleanup.local}</span>
                       </div>
                     )}
                   </SideBlock>
