@@ -682,3 +682,19 @@
 .sb-gh-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-gh-time { flex-shrink: 0; }
 .sb-gh-comments { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+
+/* ── The named groups inside a GitHub section (§1 bis) ─────────────────── */
+.sb-gh-group { margin-bottom: var(--space-2xs); }
+.sb-gh-group-head {
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding: var(--space-2xs) var(--space-md) var(--space-2xs) var(--space-lg);
+  color: var(--text-secondary); font-size: var(--text-xs);
+  cursor: pointer; user-select: none;
+}
+.sb-gh-group-head:hover { color: var(--text-primary); }
+.sb-gh-group-head svg { transition: transform var(--dur-fast); }
+.sb-gh-group-head--open svg { transform: rotate(90deg); }
+.sb-gh-group-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-gh-group-count { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.sb-gh-group-body { display: flex; flex-direction: column; }
+.sb-gh-group .sb-gh-row { padding-left: var(--space-2xl); }

@@ -92,6 +92,8 @@ function VertexApp() {
 
   const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
+  // The signed-in login — what the account groups of PULL REQUESTS filter on.
+  const [githubLogin, setGithubLogin] = useState<string | null>(null)
   // The issue being read in the centre (§3 bis): graph replaced, commit
   // panel not shown, rail and toolbar kept.
   const [issueDetail, setIssueDetail] = useState<GithubListItem | null>(null)
@@ -166,12 +168,15 @@ function VertexApp() {
   // The two sidebar lists, callable on their own: the issue detail's writes
   // refresh them without a full repo reload.
   const loadGhLists = useCallback(async (owner: string, repo: string) => {
+    void (window.gitAPI as any).githubGetUser?.()
+      .then((r: any) => setGithubLogin(r?.user?.login ?? null))
+      .catch(() => setGithubLogin(null))
     const row = (x: any, kind: 'pr' | 'issue'): GithubListItem => ({
       number: x.number, title: x.title, author: x.author,
       draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
       createdAt: x.createdAt, comments: x.comments, labels: x.labels,
       headRef: x.headRef, baseRef: x.baseRef,
-      body: x.body, assignees: x.assignees,
+      body: x.body, assignees: x.assignees, reviewers: x.reviewers,
     })
     const [prs, issues] = await Promise.all([
       (window.gitAPI as any).githubListPRs(owner, repo).catch(() => null),
