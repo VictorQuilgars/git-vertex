@@ -48,6 +48,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Right-click an issue to start its branch** — the same gesture, and the same single row component, as the GitHub tab, so the two lists cannot drift apart.
 - **Rest on a row and a card opens over the graph** — the description rendered as markdown (headings, task lists, code), status, full labels, assignees, reporter. The card is a **preview**: it never scrolls, what does not fit fades out, and **clicking it opens the issue**. Clamped to the window, so it works in a 400-pixel panel too.
 - **The sections start folded** — the graph is the point of the window, and the counts on their headers already say what is behind.
+- **Each section is named groups**: *My Pull Requests* · *Assigned To Me* · *Awaiting My Review* · *All Pull Requests*, and *All Open Issues*. The account groups exist only when someone is signed in; an empty group still shows its **0** — that is what says the query ran.
+- **A search box on each section** — a display lens like the staging filter: it narrows what is shown (title, number, author) without re-querying, and the counts keep counting everything. The lists themselves are always the open repository's.
+- **Saved filters, per section.** The header's editor takes a name and a query in that section's vocabulary — live validation names the offending token, the syntax sits beside the field, the full reference is a link away. Each filter is **one more named group**, re-querying through GitHub's search: its count is the search's total, with a *+N more on GitHub* tail when the page is shorter. A refused query costs that filter, never the section. Kept per repository.
 
 ### 📖 Click an issue: it opens in the app
 - A third layout: toolbar and left panel stay — the list is what you are navigating — the graph is replaced by the issue, and the commit panel is not shown, because there is no commit in this context.

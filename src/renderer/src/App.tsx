@@ -697,7 +697,7 @@ export default function App() {
   }, [repoPath, loadRepoData])
 
   // ── Open repo helpers ──────────────────────────────────────
-  const loadGithubLists = useCallback(async (owner: string, repo: string) => {
+  const loadGithubLists = useCallback(async (base: { owner: string; repo: string }) => {
     void (window.gitAPI as any).githubGetUser?.()
       .then((r: any) => setGithubLogin(r?.user?.login ?? null))
       .catch(() => setGithubLogin(null))
@@ -711,8 +711,8 @@ export default function App() {
       }))
     try {
       const [prs, issues] = await Promise.all([
-        (window.gitAPI as any).githubListPRs(owner, repo).catch(() => null),
-        (window.gitAPI as any).githubListIssues(owner, repo).catch(() => null),
+        (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
+        (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
       ])
       setGithubPRs(prs?.error ? undefined : rows(prs?.prs, 'pr'))
       setGithubIssues(issues?.error ? undefined : rows(issues?.issues, 'issue'))
@@ -720,6 +720,7 @@ export default function App() {
       setGithubPRs(undefined); setGithubIssues(undefined)
     }
   }, [])
+
 
   useEffect(() => { setIssueDetail(null) }, [repoPath])
 
@@ -730,7 +731,7 @@ export default function App() {
     // The lists follow the repository, and a repository with no GitHub — or no
     // token — simply has no sections rather than two empty ones.
     if (detected?.owner && detected?.repo) {
-      void loadGithubLists(detected.owner, detected.repo)
+      void loadGithubLists({ owner: detected.owner, repo: detected.repo })
     } else {
       setGithubPRs(undefined); setGithubIssues(undefined)
     }
@@ -2254,6 +2255,7 @@ export default function App() {
               onShowGithubDetail={setIssueDetail}
               githubDetailOpen={!!issueDetail}
               githubLogin={githubLogin}
+              githubRepo={githubOwnerRepo}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
               repoPath={repoPath}
               repoName={repoName}
@@ -2482,7 +2484,7 @@ export default function App() {
               item={issueDetail}
               onClose={() => setIssueDetail(null)}
               onCreateBranch={handleCreateBranchFromIssue}
-              onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo.owner, githubOwnerRepo.repo) }}
+              onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo) }}
             />
           ) : (
             <CommitGraph

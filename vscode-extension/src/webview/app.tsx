@@ -167,7 +167,7 @@ function VertexApp() {
   // icons don't flicker on every background refresh.
   // The two sidebar lists, callable on their own: the issue detail's writes
   // refresh them without a full repo reload.
-  const loadGhLists = useCallback(async (owner: string, repo: string) => {
+  const loadGhLists = useCallback(async (base: { owner: string; repo: string }) => {
     void (window.gitAPI as any).githubGetUser?.()
       .then((r: any) => setGithubLogin(r?.user?.login ?? null))
       .catch(() => setGithubLogin(null))
@@ -179,12 +179,13 @@ function VertexApp() {
       body: x.body, assignees: x.assignees, reviewers: x.reviewers,
     })
     const [prs, issues] = await Promise.all([
-      (window.gitAPI as any).githubListPRs(owner, repo).catch(() => null),
-      (window.gitAPI as any).githubListIssues(owner, repo).catch(() => null),
+      (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
+      (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
     ])
     setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
     setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
   }, [])
+
 
   const loadRepoData = useCallback(async (silent = false) => {
     if (isLoadingRef.current) { reloadQueued.current = true; return }
@@ -241,7 +242,7 @@ function VertexApp() {
         // The two sidebar sections. Absent — not empty — when there is no
         // GitHub here or nothing to authenticate with.
         if (gh?.owner && gh?.repo) {
-          await loadGhLists(gh.owner, gh.repo)
+          await loadGhLists({ owner: gh.owner, repo: gh.repo })
         } else {
           setGithubPRs(undefined); setGithubIssues(undefined)
         }
@@ -1105,7 +1106,7 @@ function VertexApp() {
               item={issueDetail}
               onClose={() => setIssueDetail(null)}
               onCreateBranch={handleCreateBranchFromIssue}
-              onChanged={() => { if (githubRepo) void loadGhLists(githubRepo.owner, githubRepo.repo) }}
+              onChanged={() => { if (githubRepo) void loadGhLists(githubRepo) }}
             />
           ) : (
           <CommitGraph

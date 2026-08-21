@@ -2676,6 +2676,7 @@ ipcMain.handle('github:search-issues', async (_e, q: string, force?: boolean) =>
           updatedAt: x.updated_at,
           comments: x.comments ?? 0,
           labels: (x.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+          body: x.body ?? '',
           url: x.html_url,
           repo,                          // owner/repo
           repoUrl: `https://github.com/${repo}`,

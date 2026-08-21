@@ -1,4 +1,4 @@
-import { screen, fireEvent, act } from '@testing-library/react'
+import { screen, fireEvent, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Sidebar from '../Sidebar'
 import { emptyVisibility } from '../../../utils/graphVisibility'
@@ -395,5 +395,168 @@ describe('the sections are named groups', () => {
     expect(groups).toHaveLength(1)
     expect(groups[0]).toContain('All Open Issues')
     expect(screen.getByText('Crash on open')).toBeInTheDocument()
+  })
+})
+
+// §2: the search is a display lens — it narrows what is shown, it does not
+// re-query, and the counts keep counting everything. The selector points a
+// section at another repository, through the host.
+describe('the section search and the repository selector', () => {
+  const prs = [
+    { number: 1, title: 'Speed up the graph', url: 'u1', author: 'victor' },
+    { number: 2, title: 'Fix the login', url: 'u2', author: 'alice' },
+  ]
+
+  test('typing narrows the rows; the counts keep counting everything', () => {
+    draw({ githubPRs: prs, githubLogin: null })
+    unfold('PULL REQUESTS')
+    const field = screen.getByPlaceholderText(/Search pull requests/)
+    fireEvent.change(field, { target: { value: 'login' } })
+    expect(screen.queryByText('Speed up the graph')).not.toBeInTheDocument()
+    expect(screen.getByText('Fix the login')).toBeInTheDocument()
+    const all = [...document.querySelectorAll('.sb-gh-group-head')]
+      .find(g => g.textContent?.includes('All Pull Requests'))!
+    expect(all.textContent).toContain('2')
+  })
+
+  test('the lens also answers to a number and an author, and Escape clears', () => {
+    draw({ githubPRs: prs, githubLogin: null })
+    unfold('PULL REQUESTS')
+    const field = screen.getByPlaceholderText(/Search pull requests/)
+    fireEvent.change(field, { target: { value: 'alice' } })
+    expect(screen.queryByText('Speed up the graph')).not.toBeInTheDocument()
+    fireEvent.keyDown(field, { key: 'Escape' })
+    expect(screen.getByText('Speed up the graph')).toBeInTheDocument()
+  })
+
+  test('each section searches on its own', () => {
+    draw({ githubPRs: prs, githubIssues: [{ number: 7, title: 'Crash on open', url: 'u7' }] })
+    unfold('PULL REQUESTS'); unfold('GITHUB ISSUES')
+    fireEvent.change(screen.getByPlaceholderText(/Search pull requests/), { target: { value: 'zzz' } })
+    expect(screen.getByText('Crash on open')).toBeInTheDocument()
+    expect(screen.queryByText('Fix the login')).not.toBeInTheDocument()
+  })
+
+})
+
+// §4: a saved filter is one more named group, and it RE-QUERIES — through
+// githubSearchIssues, pinned to the repository, typed to the section. A
+// malformed or refused filter costs that filter, never the section.
+describe('the saved filters', () => {
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+  const searchOk = (total: number, items: any[]) =>
+    jest.fn().mockResolvedValue({ total, items })
+
+  beforeEach(() => localStorage.clear())
+
+  const openEditor = async () => {
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+  }
+
+  test('creating a filter needs a name and a valid query, and names the bad token', async () => {
+    const githubSearchIssues = searchOk(1, [{ type: 'pr', number: 9, title: 'Found', url: 'u9' }])
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+      githubSearchIssues,
+    })
+    draw({ githubPRs: [], ...gh })
+    await openEditor()
+    await userEvent.type(screen.getByPlaceholderText('Filter name'), 'Mine')
+    const query = screen.getByPlaceholderText(/label:bug/)
+    await userEvent.type(query, 'reviiew:approved')
+    expect(screen.getByText(/Unknown token: reviiew:approved/)).toBeInTheDocument()
+    expect(screen.getByText('Create Filter')).toBeDisabled()
+    await userEvent.clear(query)
+    await userEvent.type(query, 'review:approved')
+    await userEvent.click(screen.getByText('Create Filter'))
+    // the new group ran its search, pinned and typed
+    await waitFor(() => expect(githubSearchIssues).toHaveBeenCalledWith('repo:o/r is:pr review:approved'))
+    expect(await screen.findByText('Found')).toBeInTheDocument()
+    // and it persisted per repository
+    expect(JSON.parse(localStorage.getItem('gv:gh-filters:r')!).prs).toEqual([{ name: 'Mine', query: 'review:approved' }])
+  })
+
+  test('the vocabulary is the section: review: passes on PRs, not on issues', async () => {
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+    })
+    draw({ githubIssues: [], ...gh })
+    unfold('GITHUB ISSUES')
+    await userEvent.click(screen.getByTitle('New Filter'))
+    await userEvent.type(screen.getByPlaceholderText(/label:bug/), 'review:approved')
+    expect(screen.getByText(/Unknown token: review:approved/)).toBeInTheDocument()
+  })
+
+  test('a refused query costs that filter, not the section', async () => {
+    localStorage.setItem('gv:gh-filters:r', JSON.stringify({ prs: [{ name: 'Broken', query: 'label:x' }], issues: [] }))
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+      githubSearchIssues: jest.fn().mockResolvedValue({ error: 'HTTP 422' }),
+    })
+    draw({ githubPRs: [{ number: 1, title: 'Still here', url: 'u1' }], ...gh })
+    unfold('PULL REQUESTS')
+    expect(await screen.findByText('HTTP 422')).toBeInTheDocument()
+    expect(screen.getByText('Still here')).toBeInTheDocument()
+  })
+
+  test('a capped result says what it counted, not "the first 50"', async () => {
+    localStorage.setItem('gv:gh-filters:r', JSON.stringify({ prs: [], issues: [{ name: 'Old', query: 'state:closed' }] }))
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+      githubSearchIssues: searchOk(120, [
+        { type: 'issue', number: 5, title: 'One of many', url: 'u5' },
+      ]),
+    })
+    draw({ githubIssues: [], ...gh })
+    unfold('GITHUB ISSUES')
+    expect(await screen.findByText('One of many')).toBeInTheDocument()
+    const head = [...document.querySelectorAll('.sb-gh-group-head')].find(g => g.textContent?.includes('Old'))!
+    expect(head.textContent).toContain('120')
+    expect(screen.getByText('+119 more on GitHub')).toBeInTheDocument()
+  })
+
+  test('deleting a filter removes its group and its storage', async () => {
+    localStorage.setItem('gv:gh-filters:r', JSON.stringify({ prs: [{ name: 'Doomed', query: 'label:x' }], issues: [] }))
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+      githubSearchIssues: searchOk(0, []),
+    })
+    draw({ githubPRs: [], ...gh })
+    unfold('PULL REQUESTS')
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByText('Doomed') })
+    await userEvent.click(await screen.findByText('Delete Filter'))
+    expect(screen.queryByText('Doomed')).not.toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('gv:gh-filters:r')!).prs).toEqual([])
   })
 })

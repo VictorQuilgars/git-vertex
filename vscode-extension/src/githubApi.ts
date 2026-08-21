@@ -244,6 +244,7 @@ export async function githubSearchIssues(
           updatedAt: x.updated_at,
           comments: x.comments ?? 0,
           labels: (x.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+          body: x.body ?? '',
           url: x.html_url,
           repo,
           repoUrl: `https://github.com/${repo}`,
