@@ -359,6 +359,7 @@ declare global {
       githubListRepoLabels: (owner: string, repo: string) => Promise<Unnarrowed>
       githubGetPR: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
       githubGetChecks: (owner: string, repo: string, ref: string) => Promise<Unnarrowed>
+      githubMergePR: (owner: string, repo: string, number: number, method?: string) => Promise<Unnarrowed>
       githubListRepos: () => Promise<Unnarrowed>
       githubClone: (cloneUrl: string, repoName: string) => Promise<Unnarrowed>
       githubStartAuth: () => Promise<Unnarrowed>

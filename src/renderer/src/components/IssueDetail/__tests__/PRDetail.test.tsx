@@ -3,10 +3,11 @@ import userEvent from '@testing-library/user-event'
 import PRDetail from '../PRDetail'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
-// The PR detail — #110 §2. What these hold: the request is fetched fresh
-// (mergeability lives there), the checks hang off the head sha, and there is
-// deliberately NO merge button — merging is #73's write surface. The rest
-// of the pane rides the issue endpoints, which a pull request is to GitHub.
+// The PR detail — #110 §2 + #73's P2 merge. What these hold: the request is
+// fetched fresh (mergeability lives there), the checks hang off the head sha,
+// and the merge button follows the reference's rule — it EXISTS only when
+// checks are green (or absent) and there are no conflicts. The rest of the
+// pane rides the issue endpoints, which a pull request is to GitHub.
 
 const FULL_PR = {
   number: 42, title: 'Speed up the graph', state: 'open', merged: false, draft: false,
@@ -26,6 +27,7 @@ function draw(prOverrides: Record<string, any> = {}, apiOverrides: Record<string
     githubIssueComments: jest.fn().mockResolvedValue({ comments: [] }),
     githubAddIssueComment: jest.fn().mockResolvedValue({ success: true }),
     githubUpdateIssue: jest.fn().mockResolvedValue({ success: true }),
+    githubMergePR: jest.fn().mockResolvedValue({ success: true, sha: 'deadbeef' }),
     githubListAssignees: jest.fn().mockResolvedValue({ assignees: ['alice', 'victor'] }),
     githubListRepoLabels: jest.fn().mockResolvedValue({ labels: [{ name: 'perf', color: '00ff00' }] }),
     openExternal: jest.fn(),
@@ -49,13 +51,58 @@ describe('the PR detail', () => {
     expect(screen.getByText('@victor')).toBeInTheDocument()   // reviewer
   })
 
-  test('mergeability is read and reported — and there is NO merge button', async () => {
+  test('when both hold, the merge button exists — and merges', async () => {
     const { api } = draw()
     await screen.findByText('Speed up the graph')
-    await waitFor(() => expect(api.githubGetChecks).toHaveBeenCalledWith('o', 'r', 'abc123'))
     expect(await screen.findByText('5 checks passed')).toBeInTheDocument()
     expect(screen.getByText('No conflicts')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^merge( pull request)?$/i })).not.toBeInTheDocument()
+    const btn = await screen.findByText('Merge Pull Request')
+    await userEvent.click(btn)
+    await waitFor(() => expect(api.githubMergePR).toHaveBeenCalledWith('o', 'r', 42, 'merge'))
+    // the pane flips to Merged without a reload, and the button goes
+    expect(await screen.findByText('Merged')).toBeInTheDocument()
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+  })
+
+  // The repo's own case: checks green, no conflicts, but a ruleset demands a
+  // review the bypass will skip. The button says so — the web UI's consent
+  // checkbox, folded into the label.
+  test('a protections-blocked request gets the bypass wording, and still merges', async () => {
+    const { api } = draw({ mergeableState: 'blocked' })
+    await screen.findByText('Speed up the graph')
+    const btn = await screen.findByText('Merge, Bypassing Rules')
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+    await userEvent.click(btn)
+    await waitFor(() => expect(api.githubMergePR).toHaveBeenCalledWith('o', 'r', 42, 'merge'))
+    expect(await screen.findByText('Merged')).toBeInTheDocument()
+  })
+
+  test('the method picker changes what the click sends', async () => {
+    const { api } = draw()
+    await screen.findByText('Speed up the graph')
+    await screen.findByText('Merge Pull Request')
+    await userEvent.click(screen.getByTitle('Merge method'))
+    await userEvent.click(screen.getByText('Squash and Merge'))
+    await userEvent.click(screen.getByText('Squash and Merge'))
+    await waitFor(() => expect(api.githubMergePR).toHaveBeenCalledWith('o', 'r', 42, 'squash'))
+  })
+
+  test('failing checks, pending checks or conflicts mean NO button — not a disabled one', async () => {
+    draw({ mergeable: true }, {
+      githubGetChecks: jest.fn().mockResolvedValue({ checks: { total: 5, passed: 3, failed: 2, pending: 0 } }),
+    })
+    await screen.findByText('Speed up the graph')
+    await screen.findByText('2 of 5 checks failed')
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+  })
+
+  test('a refused merge shows GitHub\'s message and changes nothing', async () => {
+    draw({}, { githubMergePR: jest.fn().mockResolvedValue({ error: 'Required status check missing' }) })
+    await screen.findByText('Speed up the graph')
+    await userEvent.click(await screen.findByText('Merge Pull Request'))
+    expect(await screen.findByText('Required status check missing')).toBeInTheDocument()
+    expect(screen.queryByText('Merged')).not.toBeInTheDocument()
+    expect(screen.getByText('Merge Pull Request')).toBeInTheDocument()
   })
 
   test('a null mergeable says computing, never guesses', async () => {

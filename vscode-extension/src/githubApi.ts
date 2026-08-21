@@ -318,6 +318,43 @@ export async function githubGetPR(
   } catch (e: any) { return { error: e.message } }
 }
 
+/**
+ * Merge the request — #73's P2. GitHub is the judge; its message is the error.
+ *
+ * ⚠️ GraphQL, not REST — the REST merge refuses a review-blocked request even
+ * for a ruleset bypasser; the mergePullRequest mutation applies the bypass
+ * (it is what `gh pr merge --admin` calls). Mirrors the desktop handler.
+ */
+export async function githubMergePR(
+  api: GithubApi, owner: string, repo: string, num: number,
+  method: 'merge' | 'squash' | 'rebase' = 'merge',
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const prRes = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${num}`, {
+      headers: HEADERS(api.token),
+    })
+    if (!prRes.ok) return failure(prRes)
+    const nodeId = ((await prRes.json()) as any).node_id
+    const gqlUrl = api.base.endsWith('/api/v3')
+      ? api.base.replace(/\/api\/v3$/, '/api/graphql')
+      : `${api.base}/graphql`
+    const res = await fetch(gqlUrl, {
+      method: 'POST',
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: 'mutation($id: ID!, $method: PullRequestMergeMethod!) { mergePullRequest(input: {pullRequestId: $id, mergeMethod: $method}) { pullRequest { merged } } }',
+        variables: { id: nodeId, method: method.toUpperCase() },
+      }),
+    })
+    const data = await res.json().catch(() => ({})) as any
+    const gqlError = data?.errors?.[0]?.message
+    if (!res.ok || gqlError) return { error: gqlError ?? `HTTP ${res.status}` }
+    clearSearchCache()
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+}
+
 export async function githubGetChecks(
   api: GithubApi, owner: string, repo: string, ref: string,
 ): Promise<any> {

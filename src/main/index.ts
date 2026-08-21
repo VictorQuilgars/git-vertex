@@ -2446,6 +2446,48 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
   } catch (e: any) { return { error: e.message } }
 })
 
+// The one write of #110's pane, #73's P2: merge the request. GitHub is the
+// judge — branch protections, required checks and the rest answer here, so
+// the UI's own gating is a courtesy, not the authority.
+//
+// ⚠️ GraphQL, not REST — measured on this very repository. The REST merge
+// refuses a review-blocked request even for an actor the ruleset lists as
+// a bypasser (405, "review is required"); the GraphQL mergePullRequest
+// mutation applies the bypass — it is what `gh pr merge --admin` calls,
+// and what the ruleset's own semantics promise a bypass actor. The node id
+// the mutation needs rides the same lookup that confirms the request.
+ipcMain.handle('github:merge-pr', async (_e, owner: string, repo: string, number: number,
+  method: 'merge' | 'squash' | 'rebase' = 'merge') => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const prRes = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    })
+    if (!prRes.ok) return { error: `HTTP ${prRes.status}` }
+    const nodeId = ((await prRes.json()) as any).node_id
+    // GraphQL lives at the api host's /graphql — on GHES that is the same
+    // base with /api/v3 swapped for /api/graphql.
+    const gqlUrl = api.base.endsWith('/api/v3')
+      ? api.base.replace(/\/api\/v3$/, '/api/graphql')
+      : `${api.base}/graphql`
+    const res = await fetch(gqlUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        query: 'mutation($id: ID!, $method: PullRequestMergeMethod!) { mergePullRequest(input: {pullRequestId: $id, mergeMethod: $method}) { pullRequest { merged } } }',
+        variables: { id: nodeId, method: method.toUpperCase() },
+      }),
+    })
+    const data = await res.json().catch(() => ({})) as any
+    const gqlError = data?.errors?.[0]?.message
+    if (!res.ok || gqlError) return { error: gqlError ?? `HTTP ${res.status}` }
+    searchCache.clear()
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:get-checks', async (_e, owner: string, repo: string, ref: string) => {
   const api = await ghApi()
   const token = api.token
