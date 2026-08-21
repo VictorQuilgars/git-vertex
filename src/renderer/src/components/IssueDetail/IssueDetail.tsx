@@ -36,7 +36,7 @@ interface Comment { author: string; createdAt: string; body: string }
 function api(): any { return window.gitAPI as any }
 
 /** Close the editor when the click lands anywhere outside the block. */
-function useClickAway(active: boolean, onAway: () => void) {
+export function useClickAway(active: boolean, onAway: () => void) {
   const ref = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     if (!active) return
@@ -54,7 +54,7 @@ function useClickAway(active: boolean, onAway: () => void) {
  * a ×, and a click anywhere else closes it — an editor is left, not
  * submitted: every toggle inside it already went to GitHub.
  */
-function SideBlock({ label, editing, onToggleEdit, children }: {
+export function SideBlock({ label, editing, onToggleEdit, children }: {
   label: string; editing?: boolean; onToggleEdit?: () => void; children: React.ReactNode
 }) {
   const close = useCallback(() => { if (editing) onToggleEdit?.() }, [editing, onToggleEdit])
@@ -80,7 +80,7 @@ function SideBlock({ label, editing, onToggleEdit, children }: {
  * out is the × or a click elsewhere. `chosen` is the source of truth from
  * the parent, so a toggle the PATCH refused never shows as done.
  */
-function PickerEditor({ options, chosen, onPick, render, placeholder, busy }: {
+export function PickerEditor({ options, chosen, onPick, render, placeholder, busy }: {
   options: string[]
   chosen: string[]
   onPick: (next: string[]) => void

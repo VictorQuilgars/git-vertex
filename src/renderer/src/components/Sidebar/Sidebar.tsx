@@ -153,9 +153,9 @@ interface SidebarProps {
   /** Start work on an issue: create the branch it suggests and link the two.
       Omitted ⇒ no context menu on the issue rows. */
   onStartBranchFromIssue?: (issue: { number: number; title: string; url: string }) => void
-  /** Open an issue's in-app detail (§3 bis). Omitted ⇒ clicks fall back to
-      onOpenGithubItem, the browser. Issues only — a PR detail is #110's. */
-  onShowGithubDetail?: (item: GithubListItem) => void
+  /** Open a row's in-app detail — §3 bis for issues, #110 §2 for pull
+      requests. Omitted ⇒ clicks fall back to onOpenGithubItem, the browser. */
+  onShowGithubDetail?: (item: GithubListItem, kind: 'pr' | 'issue') => void
   /** True while a detail is open in the centre: the rows stop offering their
       hover card — the peek makes no sense over the answer. */
   githubDetailOpen?: boolean
@@ -1407,7 +1407,8 @@ export default function Sidebar({
                 const prRow = (pr: GithubListItem) => (
                   <GithubRow key={pr.number} compact item={{ ...pr, kind: 'pr' }}
                     hoverCard={!githubDetailOpen}
-                    onOpen={url => onOpenGithubItem?.(url)} />
+                    onOpen={url => onOpenGithubItem?.(url)}
+                    onDetail={onShowGithubDetail ? () => onShowGithubDetail(pr, 'pr') : undefined} />
                 )
                 // The account groups exist only with an identity: with nobody
                 // signed in they have nothing to say, and three empty rows
@@ -1437,7 +1438,7 @@ export default function Sidebar({
                           <GithubRow key={`${k}-${item.number}`} compact item={{ ...item, kind: k }}
                             hoverCard={!githubDetailOpen}
                             onOpen={url => onOpenGithubItem?.(url)}
-                            onDetail={k === 'issue' && onShowGithubDetail ? () => onShowGithubDetail(item) : undefined} />
+                            onDetail={onShowGithubDetail ? () => onShowGithubDetail(item, k) : undefined} />
                         )}
                         onEdit={() => setFilterEditor({ section: 'prs', index: fi })}
                         onDelete={() => mutateFilters('prs', a => a.filter((_, i) => i !== fi))} />
@@ -1474,7 +1475,7 @@ export default function Sidebar({
                   <GithubRow key={issue.number} compact item={{ ...issue, kind: 'issue' }}
                     hoverCard={!githubDetailOpen}
                     onOpen={url => onOpenGithubItem?.(url)}
-                    onDetail={onShowGithubDetail ? () => onShowGithubDetail(issue) : undefined}
+                    onDetail={onShowGithubDetail ? () => onShowGithubDetail(issue, 'issue') : undefined}
                     onCreateBranch={onStartBranchFromIssue
                       ? () => onStartBranchFromIssue({ number: issue.number, title: issue.title, url: issue.url })
                       : undefined} />
@@ -1488,7 +1489,7 @@ export default function Sidebar({
                     <GithubRow key={`${k}-${item.number}`} compact item={{ ...item, kind: k }}
                       hoverCard={!githubDetailOpen}
                       onOpen={url => onOpenGithubItem?.(url)}
-                      onDetail={k === 'issue' && onShowGithubDetail ? () => onShowGithubDetail(item) : undefined}
+                      onDetail={onShowGithubDetail ? () => onShowGithubDetail(item, k) : undefined}
                       onCreateBranch={k === 'issue' && onStartBranchFromIssue
                         ? () => onStartBranchFromIssue({ number: item.number, title: item.title, url: item.url })
                         : undefined} />
