@@ -175,7 +175,7 @@ describe('the affordances follow their handlers', () => {
     draw({ githubIssues: [issue], onShowGithubDetail, onOpenGithubItem })
     unfold('GITHUB ISSUES')
     await userEvent.click(screen.getByText('The bug'))
-    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }))
+    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }), 'issue')
     expect(onOpenGithubItem).not.toHaveBeenCalled()
   })
 
@@ -187,14 +187,14 @@ describe('the affordances follow their handlers', () => {
     expect(onOpenGithubItem).toHaveBeenCalledWith('https://x/9')
   })
 
-  test('a PR click still goes out, even with the detail handler present', async () => {
+  test('a PR click opens its detail too — #110 gave it one', async () => {
     const onShowGithubDetail = jest.fn()
     const onOpenGithubItem = jest.fn()
     draw({ githubPRs: [{ number: 3, title: 'A PR', url: 'u3' }], onShowGithubDetail, onOpenGithubItem })
     unfold('PULL REQUESTS')
     await userEvent.click(screen.getByText('A PR'))
-    expect(onOpenGithubItem).toHaveBeenCalledWith('u3')
-    expect(onShowGithubDetail).not.toHaveBeenCalled()
+    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 3 }), 'pr')
+    expect(onOpenGithubItem).not.toHaveBeenCalled()
   })
 
   // The kebab: the same actions as the right-click, discoverable on hover.
@@ -214,7 +214,7 @@ describe('the affordances follow their handlers', () => {
     // the kebab click itself must not activate the row
     expect(onShowGithubDetail).not.toHaveBeenCalled()
     await userEvent.click(screen.getByText('View Issue'))
-    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }))
+    expect(onShowGithubDetail).toHaveBeenCalledWith(expect.objectContaining({ number: 9 }), 'issue')
   })
 
   test('a PR row gets the kebab too, with its own smaller list', async () => {

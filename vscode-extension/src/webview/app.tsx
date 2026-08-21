@@ -18,6 +18,7 @@ import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPan
 import type { ConflictKind } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
+import PRDetail from '../../../src/renderer/src/components/IssueDetail/PRDetail'
 import ActivityRail from './ActivityRail'
 import InteractiveRebase from '../../../src/renderer/src/components/InteractiveRebase/InteractiveRebase'
 import StagingEditor from '../../../src/renderer/src/components/StagingEditor/StagingEditor'
@@ -96,7 +97,7 @@ function VertexApp() {
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
   // The issue being read in the centre (§3 bis): graph replaced, commit
   // panel not shown, rail and toolbar kept.
-  const [issueDetail, setIssueDetail] = useState<GithubListItem | null>(null)
+  const [issueDetail, setIssueDetail] = useState<{ kind: 'pr' | 'issue'; item: GithubListItem } | null>(null)
   const [commits, setCommits] = useState<CommitNode[]>([])
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [currentBranch, setCurrentBranch] = useState('')
@@ -1101,16 +1102,33 @@ function VertexApp() {
         )}
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           {issueDetail && githubRepo ? (
-            <IssueDetail
-              repo={githubRepo}
-              item={issueDetail}
-              onClose={() => setIssueDetail(null)}
-              onCreateBranch={handleCreateBranchFromIssue}
-              onChanged={() => { if (githubRepo) void loadGhLists(githubRepo) }}
-            />
+            issueDetail.kind === 'pr' ? (
+              <PRDetail
+                repo={githubRepo}
+                number={issueDetail.item.number}
+                onClose={() => setIssueDetail(null)}
+                onChanged={() => { if (githubRepo) void loadGhLists(githubRepo) }}
+              />
+            ) : (
+              <IssueDetail
+                repo={githubRepo}
+                item={issueDetail.item}
+                onClose={() => setIssueDetail(null)}
+                onCreateBranch={handleCreateBranchFromIssue}
+                onChanged={() => { if (githubRepo) void loadGhLists(githubRepo) }}
+              />
+            )
           ) : (
           <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              prForBranch={(name) => {
+                const pr = githubPRs?.find(p => p.headRef === name)
+                return pr ? { number: pr.number, title: pr.title } : null
+              }}
+              onOpenPR={(n) => {
+                const pr = githubPRs?.find(p => p.number === n)
+                if (pr) setIssueDetail({ kind: 'pr', item: pr })
+              }}
               alwaysShowWip
               onStageAll={async () => {
                 const r = await window.gitAPI.stageAll()

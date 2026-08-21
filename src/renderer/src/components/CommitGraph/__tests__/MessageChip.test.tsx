@@ -69,6 +69,36 @@ describe('messageChipSegments — what goes in the pill', () => {
     expect(messageChipSegments(published as any, undefined, undefined, () => ({ behind: 1 }))[1].detail).toBe('↓1')
   })
 
+  // #110 §3: the request hangs off the branch by MAPPING into the loaded
+  // open-PR list — never a search per row, which is the rate-limit incident
+  // the spec warned about.
+  test('a branch that is an open PR head carries the #N chip, clickable to the detail', () => {
+    const onOpenPR = jest.fn()
+    const segs = messageChipSegments(local as any, undefined, { onOpenPR }, undefined,
+      b => b === 'feat/x' ? { number: 121, title: 'The sibling' } : null)
+    const pr = segs.find(sg => sg.kind === 'pr')!
+    expect(pr.label).toBe('#121')
+    expect(pr.title).toContain('The sibling')
+    pr.onClick!()
+    expect(onOpenPR).toHaveBeenCalledWith(121)
+  })
+
+  test('no mapping, no PR chip — and without the handler the chip is a fact, not a button', () => {
+    expect(messageChipSegments(local as any).some(sg => sg.kind === 'pr')).toBe(false)
+    const segs = messageChipSegments(local as any, undefined, {}, undefined,
+      () => ({ number: 7 }))
+    const pr = segs.find(sg => sg.kind === 'pr')!
+    expect(pr.onClick).toBeUndefined()
+  })
+
+  test('the PR sits between the remote and the issue', () => {
+    const published = { ...local, hasRemote: true, tooltip: 'feat/x + origin/feat/x' }
+    const segs = messageChipSegments(published as any,
+      () => ({ key: '9', provider: 'github' }), {}, undefined,
+      () => ({ number: 121 }))
+    expect(segs.map(sg => sg.kind)).toEqual(['branch', 'remote', 'pr', 'issue'])
+  })
+
   test('a tag is a tag, not a branch', () => {
     const segs = messageChipSegments({ display: 'v1.2.0', cls: 'rc-tag' } as any)
     expect(segs[0]).toMatchObject({ kind: 'tag', label: 'v1.2.0' })

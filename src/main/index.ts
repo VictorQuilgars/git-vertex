@@ -2401,6 +2401,75 @@ ipcMain.handle('github:share-patch', async (_e, hash: string) => {
   } catch (e: any) { return { error: e.message } }
 })
 
+// ── The PR detail (#110 §2): the request itself, and its checks ─────────────
+// Two reads, mirrored in the extension host. The PR endpoint is the one that
+// knows mergeability; the checks are a second call because GitHub keys them
+// by ref, not by request. No write here — merging from the panel is #73's.
+
+ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: number) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const pr = await res.json() as any
+    return {
+      pr: {
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,                       // open | closed
+        merged: !!pr.merged,
+        draft: !!pr.draft,
+        author: pr.user?.login ?? '',
+        createdAt: pr.created_at,
+        body: pr.body ?? '',
+        headRef: pr.head?.ref ?? '',
+        headSha: pr.head?.sha ?? '',
+        baseRef: pr.base?.ref ?? '',
+        commits: pr.commits ?? 0,
+        changedFiles: pr.changed_files ?? 0,
+        additions: pr.additions ?? 0,
+        deletions: pr.deletions ?? 0,
+        // null while GitHub is still computing — the UI says "computing",
+        // it does not guess.
+        mergeable: pr.mergeable,
+        mergeableState: pr.mergeable_state ?? '',
+        labels: (pr.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        assignees: (pr.assignees ?? []).map((a: any) => a.login),
+        reviewers: (pr.requested_reviewers ?? []).map((r: any) => r.login),
+        url: pr.html_url,
+      },
+    }
+  } catch (e: any) { return { error: e.message } }
+})
+
+ipcMain.handle('github:get-checks', async (_e, owner: string, repo: string, ref: string) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    })
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    const data = await res.json() as any
+    const runs = (data.check_runs ?? []) as any[]
+    const failed = runs.filter(r => r.conclusion && !['success', 'neutral', 'skipped'].includes(r.conclusion)).length
+    const pending = runs.filter(r => r.status !== 'completed').length
+    return {
+      checks: {
+        total: runs.length,
+        passed: runs.length - failed - pending,
+        failed,
+        pending,
+      },
+    }
+  } catch (e: any) { return { error: e.message } }
+})
+
 // ── The issue detail (§3 bis): its reads and its writes ────────────────────
 // Five endpoints, each mirrored in the extension host — a method the panel
 // can reach but a host cannot answer is the dead-button class the parity

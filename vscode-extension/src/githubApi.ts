@@ -277,6 +277,67 @@ export async function githubCloseIssue(
   } catch (e: any) { return { error: e.message } }
 }
 
+// ── The PR detail (#110 §2): the request itself, and its checks ──────────────
+// Mirrors of the desktop's two read handlers, same shapes.
+
+export async function githubGetPR(
+  api: GithubApi, owner: string, repo: string, num: number,
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${num}`, {
+      headers: HEADERS(api.token),
+    })
+    if (!res.ok) return failure(res)
+    const pr = await res.json() as any
+    return {
+      pr: {
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,
+        merged: !!pr.merged,
+        draft: !!pr.draft,
+        author: pr.user?.login ?? '',
+        createdAt: pr.created_at,
+        body: pr.body ?? '',
+        headRef: pr.head?.ref ?? '',
+        headSha: pr.head?.sha ?? '',
+        baseRef: pr.base?.ref ?? '',
+        commits: pr.commits ?? 0,
+        changedFiles: pr.changed_files ?? 0,
+        additions: pr.additions ?? 0,
+        deletions: pr.deletions ?? 0,
+        mergeable: pr.mergeable,
+        mergeableState: pr.mergeable_state ?? '',
+        labels: (pr.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        assignees: (pr.assignees ?? []).map((a: any) => a.login),
+        reviewers: (pr.requested_reviewers ?? []).map((r: any) => r.login),
+        url: pr.html_url,
+      },
+    }
+  } catch (e: any) { return { error: e.message } }
+}
+
+export async function githubGetChecks(
+  api: GithubApi, owner: string, repo: string, ref: string,
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(
+      `${api.base}/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100`,
+      { headers: HEADERS(api.token) },
+    )
+    if (!res.ok) return failure(res)
+    const data = await res.json() as any
+    const runs = (data.check_runs ?? []) as any[]
+    const failed = runs.filter(r => r.conclusion && !['success', 'neutral', 'skipped'].includes(r.conclusion)).length
+    const pending = runs.filter(r => r.status !== 'completed').length
+    return {
+      checks: { total: runs.length, passed: runs.length - failed - pending, failed, pending },
+    }
+  } catch (e: any) { return { error: e.message } }
+}
+
 // ── The issue detail (§3 bis): its reads and its writes ─────────────────────
 // Mirrors of the desktop's five handlers, same shapes.
 

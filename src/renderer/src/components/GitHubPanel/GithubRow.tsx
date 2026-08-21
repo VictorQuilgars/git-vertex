@@ -111,7 +111,7 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
   // The row's actions, one list for its two openings: the kebab that appears
   // on hover, and the right-click. Every entry has a real handler behind it.
   const menuItems = compact ? [
-    ...(onDetail ? [{ label: t('gh.issue.view'), action: onDetail }] : []),
+    ...(onDetail ? [{ label: t(item.kind === 'pr' ? 'gh.pr.view' : 'gh.issue.view'), action: onDetail }] : []),
     ...(menued ? [{ label: t('gh.issue.createBranch'), action: onCreateBranch! }] : []),
     { label: t('gh.panel.copyLink'), action: () => navigator.clipboard.writeText(item.url) },
     ...(onOpen ? [{ label: t('gh.panel.openIn'), action: () => onOpen(item.url) }] : []),

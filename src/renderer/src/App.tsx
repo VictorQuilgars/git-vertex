@@ -46,6 +46,7 @@ import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
 import CenterFileDiff, { CenterDiffTarget } from './components/CenterFileDiff/CenterFileDiff'
 import IssueDetail from './components/IssueDetail/IssueDetail'
+import PRDetail from './components/IssueDetail/PRDetail'
 import ContextMenu, { MenuItemDef } from './components/ContextMenu/ContextMenu'
 import './App.css'
 
@@ -342,7 +343,7 @@ export default function App() {
   // The issue being read in the centre (§3 bis) — the third layout: toolbar
   // and left panel kept, graph replaced, commit panel not shown. Belongs to
   // the repository, so a repo switch closes it.
-  const [issueDetail, setIssueDetail] = useState<GithubListItem | null>(null)
+  const [issueDetail, setIssueDetail] = useState<{ kind: 'pr' | 'issue'; item: GithubListItem } | null>(null)
   const [prModalOpen, setPrModalOpen] = useState(false)
   // Which pull request the composer is opening — head, base and whether the
   // head still has to be pushed. Decided by prIntentFor, never by the composer.
@@ -2252,7 +2253,7 @@ export default function App() {
               githubPRs={githubPRs}
               githubIssues={githubIssues}
               onStartBranchFromIssue={handleCreateBranchFromIssue}
-              onShowGithubDetail={setIssueDetail}
+              onShowGithubDetail={(item, kind) => setIssueDetail({ kind, item })}
               githubDetailOpen={!!issueDetail}
               githubLogin={githubLogin}
               githubRepo={githubOwnerRepo}
@@ -2479,16 +2480,33 @@ export default function App() {
               </div>
             </div>
           ) : issueDetail && githubOwnerRepo ? (
+            issueDetail.kind === 'pr' ? (
+            <PRDetail
+              repo={githubOwnerRepo}
+              number={issueDetail.item.number}
+              onClose={() => setIssueDetail(null)}
+              onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo) }}
+            />
+            ) : (
             <IssueDetail
               repo={githubOwnerRepo}
-              item={issueDetail}
+              item={issueDetail.item}
               onClose={() => setIssueDetail(null)}
               onCreateBranch={handleCreateBranchFromIssue}
               onChanged={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo) }}
             />
+            )
           ) : (
             <CommitGraph
               issueForBranch={branchMeta.issueFor}
+              prForBranch={(name) => {
+                const pr = githubPRs?.find(p => p.headRef === name)
+                return pr ? { number: pr.number, title: pr.title } : null
+              }}
+              onOpenPR={(n) => {
+                const pr = githubPRs?.find(p => p.number === n)
+                if (pr) setIssueDetail({ kind: 'pr', item: pr })
+              }}
               trackingFor={(name) => {
                 const b = branches.find(x => x.name === name)
                 return b ? { ahead: b.ahead, behind: b.behind } : null
