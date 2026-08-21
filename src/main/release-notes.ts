@@ -20,7 +20,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Each row says what the forge said: a **state icon** (a draft is greyed), the number and the title, then the author, the age and the comment count. The labels live in the hover card and the detail; the row's right edge belongs to the **⋮ of actions**, shown on hover.
 - **Right-click an issue to start its branch** — the same gesture, and the same single row component, as the GitHub tab, so the two lists cannot drift apart.
 - **Rest on a row and a card opens over the graph** — the description rendered as markdown (headings, task lists, code), status, full labels, assignees, reporter. The card is a **preview**: it never scrolls, what does not fit fades out, and **clicking it opens the issue**. Clamped to the window, so it works in a 400-pixel panel too.
-- **The sections start folded** — the graph is the point of the window, and the counts on their headers already say what is behind.
+- **The sections start folded** — the graph is the point of the window, and the counts on their headers already say what is behind. They are the only door now: the desktop's GitHub tab and the icon rail that opened it are **gone**.
 
 ### 📖 Click an issue: it opens in the app
 - A third layout: toolbar and left panel stay — the list is what you are navigating — the graph is replaced by the issue, and the commit panel is not shown, because there is no commit in this context.
@@ -46,7 +46,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A file that was deleted since comes back on disk.
 
 ### 🌱 Start a branch from an issue
-- Right-click an issue in the GitHub panel. It suggests \`123-the-issue-title\`, you edit it or take it, and the branch is created, checked out and **linked to that issue**.
+- Right-click an issue in the sidebar's GITHUB ISSUES section — or use its ⋮ menu. It suggests \`123-the-issue-title\`, you edit it or take it, and the branch is created, checked out and **linked to that issue**.
 - Linking a branch to an issue has existed since 1.21.0. This is the direction you actually reach for.
 
 ### 🔖 A branch can be linked to any tracker's reference
@@ -70,8 +70,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Every hide, solo or branch switch added a listener and removed none. Git was being run several times for a single change, with filters you had already moved on from.
 
 ### 🗂 Views open in tabs, not over the graph
-- A file's **diff**, the **GitHub** panel and the **settings** join the comparison, the file history and the stash: each opens as a tab, using the whole width.
-- A file's diff used to take the middle of the repo view with the sidebar still around it; the GitHub lists were squeezed into the sidebar's width; the settings took the window without being a tab, so nothing could stay open beside them.
+- A file's **diff** and the **settings** join the comparison, the file history and the stash: each opens as a tab, using the whole width.
+- A file's diff used to take the middle of the repo view with the sidebar still around it; the settings took the window without being a tab, so nothing could stay open beside them.
 - A file **staged** and the same file **unstaged** are two tabs — reading one against the other is the point.
 - **Settings stays on the section you were reading.** Leaving that tab is a click elsewhere, not a decision to close it.
 - A comparison, a file's history, a stash's contents: each opens as **a tab** with its own name, stays put when you click elsewhere, and closes when you are done. Opening the same one twice returns you to the tab you already have.

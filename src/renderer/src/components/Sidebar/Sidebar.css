@@ -652,7 +652,7 @@
    lines: state icon, number and title, then author · age · comments; the
    labels are dots, their names a tooltip away. Width is the scarce resource
    here — the full card belongs to the GitHub tab. */
-.sb-gh-row { display: flex; align-items: flex-start; gap: var(--space-sm); min-width: 0; cursor: pointer; padding-block: 4px; }
+.sb-gh-row { display: flex; align-items: flex-start; gap: var(--space-sm); min-width: 0; cursor: pointer; padding: 4px var(--space-md) 4px var(--space-xl); }
 /* The kebab holds the right edge of the first line — where the label dots
    used to sit — and shows itself on hover. The width is reserved even
    hidden, so the title's truncation point does not move. */

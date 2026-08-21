@@ -20,7 +20,6 @@ import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
 import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
-import GitHubPanel from './components/GitHubPanel/GitHubPanel'
 import Launchpad from './components/Launchpad/Launchpad'
 import ThemeGallery from './components/ThemeGallery/ThemeGallery'
 import CompareView from './components/CompareView/CompareView'
@@ -132,7 +131,6 @@ type ViewTab =
   | { view: 'fileHistory'; file: string }
   | { view: 'stash'; index: number; message: string }
   | { view: 'fileDiff'; target: CenterDiffTarget }
-  | { view: 'github' }
   | { view: 'settings' }
 
 interface AppTab { id: string; kind: TabKind; path?: string; name?: string; body?: ViewTab }
@@ -143,7 +141,6 @@ function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): string 
     case 'compare': return body.label
     case 'fileHistory': return t('tabs.history', body.file.split('/').pop() ?? body.file)
     case 'stash': return t('tabs.stash', body.index)
-    case 'github': return t('tabs.github')
     case 'settings': return t('tabs.settings')
     case 'fileDiff': {
       const name = body.target.filePath.split('/').pop() ?? body.target.filePath
@@ -154,14 +151,13 @@ function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): string 
   }
 }
 
-function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 'gear' | 'pullRequest' {
+function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 'gear' {
   switch (body.view) {
     case 'compare': return 'compare'
     case 'fileHistory': return 'history'
     case 'stash': return 'stash'
     case 'fileDiff': return 'diff'
     case 'settings': return 'gear'
-    case 'github': return 'pullRequest'
   }
 }
 
@@ -185,9 +181,9 @@ export function sameView(a: ViewTab, b: ViewTab): boolean {
   if (a.view === 'fileHistory' && b.view === 'fileHistory') return a.file === b.file
   if (a.view === 'stash' && b.view === 'stash') return a.index === b.index
   if (a.view === 'fileDiff' && b.view === 'fileDiff') return sameDiffTarget(a.target, b.target)
-  // One GitHub tab, one settings tab: they show the whole of a thing, so a
-  // second one would be the same tab twice.
-  return a.view === 'github' || a.view === 'settings'
+  // One settings tab: it shows the whole of a thing, so a second one would
+  // be the same tab twice.
+  return a.view === 'settings'
 }
 
 /** The same file, of the same version — a staged diff is not the unstaged one. */
@@ -2242,26 +2238,6 @@ export default function App() {
       )}
 
       <div className="app-body" style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
-        {/* ── Activity bar — only with a repo open (useless/empty on the home),
-             and never over a view tab: that tab IS the surface, full width. ── */}
-        {repoPath && !viewTab && (
-        <div className="app-activity-bar">
-          {/* The rail used to switch the side panel between git and GitHub.
-              GitHub is a tab now — a list of pull requests and issues wants the
-              width — so this is a way in, not a mode. */}
-          <button className="act-btn act-btn--current" title="Git" disabled>
-            <Brand name="git" size={22} />
-          </button>
-          <button
-            className="act-btn"
-            onClick={() => openViewTab({ view: 'github' })}
-            title={t('tabs.github')}
-          >
-            <Brand name="github" size={22} />
-          </button>
-        </div>
-        )}
-
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
         {repoPath && !viewTab && (
         <div className="app-sidebar" style={{ width: sidebarW }}>
@@ -2390,8 +2366,6 @@ export default function App() {
                 onClose={() => closeTab(activeTabId!)}
                 onStaged={() => loadRepoData(true)}
               />
-            ) : viewTab.view === 'github' ? (
-              <GitHubPanel repoPath={repoPath} onCreateBranchFromIssue={handleCreateBranchFromIssue} />
             ) : viewTab.view === 'settings' ? (
               <SettingsModal
                 onBrowseThemes={openThemesTab}

@@ -185,54 +185,6 @@ body {
 .app-tab-launch:hover { filter: none; opacity: 1; background: var(--surface); }
 .app-tab-launch.active { filter: none; opacity: 1; background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
-/* Activity bar */
-.app-activity-bar {
-  width: 44px;
-  flex-shrink: 0;
-  background: var(--bg-canvas);
-  border-right: 1px solid var(--border-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-md) 0;
-  gap: var(--space-xs);
-}
-.act-btn {
-  width: 36px;
-  height: 36px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color var(--dur-fast), background var(--dur-fast);
-  position: relative;
-}
-.act-btn:hover { color: var(--text-primary-soft); background: var(--surface); }
-/* The rail used to switch the side panel between git and GitHub. GitHub is a
-   tab now, so this one is a marker rather than a control: it says where you
-   are, it does not offer to take you somewhere. It keeps the active mark and
-   drops the hover, which is what tells the two apart. */
-.act-btn--current { color: var(--text-primary); cursor: default; }
-.act-btn--current:hover { background: transparent; color: var(--text-primary); }
-.act-btn.active {
-  color: var(--text-primary);
-}
-.act-btn.active::before,
-.act-btn--current::before {
-  content: '';
-  position: absolute;
-  left: -1px;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background: var(--accent);
-  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
-}
-
 /* Sidebar */
 .app-sidebar { flex-shrink: 0; overflow: hidden; display: flex; }
 

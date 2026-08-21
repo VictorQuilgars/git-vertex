@@ -50,12 +50,11 @@ describe('sameView', () => {
     expect(sameView(work('staged'), { view: 'fileDiff', target: { type: 'commit', commitHash: 'abc', filePath: 'a.ts' } })).toBe(false)
   })
 
-  // These two show the whole of a thing rather than one of many, so a second
-  // one would be the same tab twice.
-  test('there is one GitHub tab and one settings tab', () => {
-    expect(sameView({ view: 'github' }, { view: 'github' })).toBe(true)
+  // Settings shows the whole of a thing rather than one of many, so a
+  // second one would be the same tab twice. (The GitHub tab is gone: the
+  // sidebar sections and the issue detail replaced it.)
+  test('there is one settings tab', () => {
     expect(sameView({ view: 'settings' }, { view: 'settings' })).toBe(true)
-    expect(sameView({ view: 'github' }, { view: 'settings' })).toBe(false)
   })
 
   test('two different kinds are never the same view', () => {
