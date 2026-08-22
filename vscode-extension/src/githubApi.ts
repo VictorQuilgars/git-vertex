@@ -9,8 +9,6 @@
 // host's token from being sent to another — see src/main/github-host.ts, which
 // resolves them on the desktop side for the same reason.
 
-import { bypassVerdict, RULESET_PROBE_CAP } from '../../src/main/ruleset-bypass'
-
 /** Where a GitHub answers, and what may be sent there. */
 export interface GithubApi {
   base: string
@@ -364,10 +362,31 @@ async function prBlockedSupplement(
 /** The `viewerPermission` values GitHub lets merge a request. */
 const MERGE_PERMISSIONS = ['ADMIN', 'MAINTAIN', 'WRITE']
 
+/** A repository with more protecting rulesets than this is not probed. */
+const RULESET_PROBE_CAP = 10
+
+/**
+ * What a list of `current_user_can_bypass` values means — the twin of
+ * `bypassVerdict` in src/main/ruleset-bypass.ts, which carries the reasoning
+ * in full: `never` is the only no, ANY ruleset is enough, and an incomplete
+ * answer is `null` rather than a refusal nobody measured.
+ *
+ * ⚠️ A COPY, and it has to be. Everything reachable from `src/test/**` is
+ * compiled by tsconfig.test.json, which keeps `rootDir: ./src` so the emitted
+ * tests land where the runners look for them — so a file the tests reach,
+ * as this one is, may not import from outside `src/`. GitVertexHost.ts gets
+ * to import ../../../src/main because no test reaches IT. Exported so the
+ * suite can hold it to the same table as the desktop's original.
+ */
+export function bypassVerdict(verdicts: readonly (string | null)[]): boolean | null {
+  if (!verdicts.length) return null
+  if (verdicts.some(v => v === null)) return null
+  return verdicts.some(v => v !== 'never')
+}
+
 /**
  * May this account bypass the rules protecting `baseRef`? The desktop's twin.
- * GitHub answers it itself, per ruleset, as `current_user_can_bypass`; what
- * the answers mean together is `bypassVerdict`, shared with the desktop.
+ * GitHub answers it itself, per ruleset, as `current_user_can_bypass`.
  */
 async function rulesetBypass(
   api: GithubApi, owner: string, repo: string, baseRef: string,

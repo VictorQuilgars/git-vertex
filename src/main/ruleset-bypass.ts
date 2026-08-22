@@ -1,10 +1,15 @@
 /**
  * The one judgement in "may this account bypass the rules protecting a
- * branch" — kept here, free of `electron` and `vscode`, because both products
- * ask the question and a twin that drifts would answer it differently.
+ * branch": what to conclude from GitHub's per-ruleset answers. The fetching
+ * stays with each host — they have their own client and their own headers.
  *
- * The fetching stays with each host (they have their own client and their own
- * headers). What they share is what to conclude from GitHub's answers.
+ * ⚠️ The extension host carries a COPY, in vscode-extension/src/githubApi.ts,
+ * rather than importing this file. It cannot import it: everything reachable
+ * from the extension's `src/test/**` is compiled under `rootDir: ./src`, so a
+ * file the tests reach may not pull in one from outside that tree. Both
+ * copies are held to the same table of cases by their own suites — this one
+ * in __tests__/ruleset-bypass.test.ts, the twin in the extension's suite.
+ * Change one, change the other.
  */
 
 /** A repository with more protecting rulesets than this is not probed. */
