@@ -13,7 +13,7 @@ import { isRefHidden, type GraphVisibility, type RefFamily } from '../../utils/g
 import { issueRefLabel, type IssueRef as LinkedIssueRef } from '../../utils/issueRef'
 import { useLang } from '../../i18n/LanguageContext'
 import './Sidebar.css'
-import { Brand } from '../BrandMark/BrandMark'
+import { Brand, type BrandName } from '../BrandMark/BrandMark'
 
 interface StashEntry { index: number; message: string }
 interface TagEntry   { name: string; hash: string }
@@ -356,7 +356,7 @@ function GhGroup({ title, count, children, defaultOpen = true }: {
 }
 
 // ── Collapse section ─────────────────────────────────────────────
-function Section({ title, icon, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onFilter, filterLabel, onRefresh, refreshing }: {
+function Section({ title, icon, brand, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onFilter, filterLabel, onRefresh, refreshing }: {
   title: string
   /**
    * What the section IS, beside what it is called. Eleven headers in a column
@@ -364,6 +364,14 @@ function Section({ title, icon, count, children, defaultOpen = true, onAdd, addL
    * reading, which is what a panel you glance at needs.
    */
   icon?: IconName
+  /**
+   * A THIRD PARTY's mark, for a section that is about their product rather
+   * than about git. Separate from `icon` on purpose, and not merged into it:
+   * components/Icon holds drawings we own and may reweight, BrandMark holds
+   * marks we only display and may never redraw. One prop for both would put a
+   * trademark behind a type that promises we can restyle it.
+   */
+  brand?: BrandName
   count?: number
   children: React.ReactNode
   defaultOpen?: boolean
@@ -406,6 +414,7 @@ function Section({ title, icon, count, children, defaultOpen = true, onAdd, addL
       >
         <Icon name="play" size={10} />
         {icon && <Icon name={icon} size={13} className="sb-section-icon" />}
+        {brand && <Brand name={brand} size={13} className="sb-section-icon" />}
         <span className="sb-section-title">{title}</span>
         {count !== undefined && <span className="sb-section-count">{count}</span>}
         {!!hiddenCount && onShowAll && (
@@ -1638,7 +1647,7 @@ export default function Sidebar({
 
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
-            <Section title="GITHUB ISSUES" icon="issue" count={githubIssues.length} defaultOpen={single}
+            <Section title="GITHUB ISSUES" brand="github" count={githubIssues.length} defaultOpen={single}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('issues'))}
               refreshing={githubRefreshing === 'issues'}
               onFilter={() => setFilterEditor(f => f?.section === 'issues' ? null : { section: 'issues', index: -1 })}
