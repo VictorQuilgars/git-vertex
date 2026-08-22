@@ -313,9 +313,105 @@ export async function githubGetPR(
         assignees: (pr.assignees ?? []).map((a: any) => a.login),
         reviewers: (pr.requested_reviewers ?? []).map((r: any) => r.login),
         url: pr.html_url,
+        ...(await prBlockedSupplement(api, owner, repo, num,
+          { blocked: pr.mergeable_state === 'blocked', baseRef: pr.base?.ref ?? '' })),
       },
     }
   } catch (e: any) { return { error: e.message } }
+}
+
+/**
+ * Why a request is blocked, and where this viewer stands against it — may
+ * they merge, may they bypass. The desktop's twin. The bypass is ASKED of the
+ * rulesets protecting the base branch (`rulesetBypass`), and only falls back
+ * to viewerPermission ADMIN when they cannot be read — viewerCanMergeAsAdmin
+ * stays false for ruleset bypassers (measured). `canMerge` is WRITE and
+ * above, `null` when the query fails: an unknown permission must not take the
+ * button from someone who has it.
+ */
+async function prBlockedSupplement(
+  api: GithubApi, owner: string, repo: string, num: number,
+  ctx: { blocked: boolean; baseRef: string },
+): Promise<{ reviewDecision: string | null; canBypass: boolean; canMerge: boolean | null }> {
+  try {
+    const gqlUrl = api.base.endsWith('/api/v3')
+      ? api.base.replace(/\/api\/v3$/, '/api/graphql')
+      : `${api.base}/graphql`
+    const res = await fetch(gqlUrl, {
+      method: 'POST',
+      headers: { ...HEADERS(api.token!), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: 'query($o: String!, $r: String!, $n: Int!) { repository(owner: $o, name: $r) { viewerPermission pullRequest(number: $n) { reviewDecision } } }',
+        variables: { o: owner, r: repo, n: num },
+      }),
+    })
+    const d = await res.json().catch(() => ({})) as any
+    const repoNode = d?.data?.repository
+    const perm: string | null = repoNode?.viewerPermission ?? null
+    const asked = ctx.blocked
+      ? await rulesetBypass(api, owner, repo, ctx.baseRef)
+      : null
+    return {
+      reviewDecision: repoNode?.pullRequest?.reviewDecision ?? null,
+      canBypass: asked ?? perm === 'ADMIN',
+      canMerge: perm === null ? null : MERGE_PERMISSIONS.includes(perm),
+    }
+  } catch { return { reviewDecision: null, canBypass: false, canMerge: null } }
+}
+
+/** The `viewerPermission` values GitHub lets merge a request. */
+const MERGE_PERMISSIONS = ['ADMIN', 'MAINTAIN', 'WRITE']
+
+/** A repository with more protecting rulesets than this is not probed. */
+const RULESET_PROBE_CAP = 10
+
+/**
+ * What a list of `current_user_can_bypass` values means — the twin of
+ * `bypassVerdict` in src/main/ruleset-bypass.ts, which carries the reasoning
+ * in full: `never` is the only no, ANY ruleset is enough, and an incomplete
+ * answer is `null` rather than a refusal nobody measured.
+ *
+ * ⚠️ A COPY, and it has to be. Everything reachable from `src/test/**` is
+ * compiled by tsconfig.test.json, which keeps `rootDir: ./src` so the emitted
+ * tests land where the runners look for them — so a file the tests reach,
+ * as this one is, may not import from outside `src/`. GitVertexHost.ts gets
+ * to import ../../../src/main because no test reaches IT. Exported so the
+ * suite can hold it to the same table as the desktop's original.
+ */
+export function bypassVerdict(verdicts: readonly (string | null)[]): boolean | null {
+  if (!verdicts.length) return null
+  if (verdicts.some(v => v === null)) return null
+  return verdicts.some(v => v !== 'never')
+}
+
+/**
+ * May this account bypass the rules protecting `baseRef`? The desktop's twin.
+ * GitHub answers it itself, per ruleset, as `current_user_can_bypass`.
+ */
+async function rulesetBypass(
+  api: GithubApi, owner: string, repo: string, baseRef: string,
+): Promise<boolean | null> {
+  if (!baseRef) return null
+  const headers = HEADERS(api.token!)
+  try {
+    const res = await fetch(
+      `${api.base}/repos/${owner}/${repo}/rules/branches/${encodeURIComponent(baseRef)}`,
+      { headers },
+    )
+    if (!res.ok) return null
+    const rules = await res.json().catch(() => null) as any
+    if (!Array.isArray(rules)) return null
+    const ids = [...new Set(rules.map(r => r?.ruleset_id).filter((n: any) => typeof n === 'number'))]
+    if (!ids.length || ids.length > RULESET_PROBE_CAP) return null
+    const verdicts = await Promise.all(ids.map(async id => {
+      const r = await fetch(`${api.base}/repos/${owner}/${repo}/rulesets/${id}`, { headers })
+      if (!r.ok) return null
+      const d = await r.json().catch(() => null) as any
+      const v = d?.current_user_can_bypass
+      return typeof v === 'string' ? v : null
+    }))
+    return bypassVerdict(verdicts)
+  } catch { return null }
 }
 
 /**

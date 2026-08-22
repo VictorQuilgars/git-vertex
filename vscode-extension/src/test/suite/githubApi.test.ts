@@ -2,6 +2,7 @@ import * as assert from 'assert'
 import {
   githubListPRs, githubListIssues, githubGetIssue,
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, clearSearchCache,
+  bypassVerdict,
 } from '../../githubApi'
 
 // The first GitHub logic here with real coverage. githubApi.ts imports nothing
@@ -290,5 +291,41 @@ suite('githubApi — closing, listing, sharing', () => {
         `every call goes to the instance, got ${JSON.stringify(f.calls)}`)
       assert.ok(f.calls.some((u: string) => u.includes('/repos/team/app/pulls')))
     } finally { f.restore() }
+  })
+})
+
+// The twin of src/main/ruleset-bypass.ts, held to the same table of cases as
+// the desktop's own suite. It is a copy because this file's module may not
+// import from outside `src/` — tsconfig.test.json compiles it under
+// rootDir ./src — so the tables are what keeps the two from drifting.
+//
+// What it decides is said out loud in the pane: 'You can bypass this rule' or
+// 'You cannot'. A refusal nobody measured is the failure that matters.
+suite('githubApi — what the rulesets answer, together', () => {
+  test('never everywhere is the only refusal', () => {
+    assert.strictEqual(bypassVerdict(['never']), false)
+    assert.strictEqual(bypassVerdict(['never', 'never', 'never']), false)
+  })
+
+  // Measured: a broad 'protect main' nobody bypasses beside a narrow
+  // 'review required (others only)' the owner does.
+  test('one bypassable ruleset among unbypassable ones is enough', () => {
+    assert.strictEqual(bypassVerdict(['never', 'always']), true)
+    assert.strictEqual(bypassVerdict(['always', 'never']), true)
+  })
+
+  test('any value that is not never means yes', () => {
+    assert.strictEqual(bypassVerdict(['pull_requests_only']), true)
+    assert.strictEqual(bypassVerdict(['some_mode_github_adds_later']), true)
+  })
+
+  test('no ruleset covering the branch is unknown, not a refusal', () => {
+    assert.strictEqual(bypassVerdict([]), null)
+  })
+
+  test('one unreadable ruleset makes the whole answer unknown', () => {
+    assert.strictEqual(bypassVerdict([null]), null)
+    assert.strictEqual(bypassVerdict(['always', null]), null)
+    assert.strictEqual(bypassVerdict(['never', null]), null)
   })
 })

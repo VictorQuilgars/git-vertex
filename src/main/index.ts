@@ -20,6 +20,7 @@ import {
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { ThemeStore } from './theme-store'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
+import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
 import {
   splashHtml, themeCanvas, SPLASH_THEMES, SPLASH_ANIMATION_MS, SPLASH_STILL_MS,
@@ -2441,10 +2442,98 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
         assignees: (pr.assignees ?? []).map((a: any) => a.login),
         reviewers: (pr.requested_reviewers ?? []).map((r: any) => r.login),
         url: pr.html_url,
+        ...(await prBlockedSupplement(api, token, owner, repo, number,
+          { blocked: pr.mergeable_state === 'blocked', baseRef: pr.base?.ref ?? '' })),
       },
     }
   } catch (e: any) { return { error: e.message } }
 })
+
+/**
+ * What REST does not say about a blocked request: WHY (reviewDecision), and
+ * where THIS VIEWER stands against it — may they merge at all, and may they
+ * bypass the rule. One `viewerPermission` answers both.
+ *
+ * The bypass is ASKED, not guessed: when the request is blocked, the rulesets
+ * protecting the base branch are read, and each one carries GitHub's own
+ * `current_user_can_bypass` — the answer computed against this account's
+ * roles, teams and apps, which no permission level can stand in for. See
+ * `rulesetBypass`. Only when that cannot be read does the old approximation
+ * remain: viewerPermission ADMIN, since viewerCanMergeAsAdmin is about
+ * classic branch protection and stays false for ruleset bypassers (measured).
+ *
+ * `canMerge` is WRITE and above, and is `null` — not `false` — when the
+ * query fails: an unknown permission must not take the button away from
+ * someone who has it. Unknown reads as today's behaviour, GitHub judging at
+ * the click; only a MEASURED lack of permission is stated in the pane.
+ */
+async function prBlockedSupplement(
+  api: { base: string }, token: string, owner: string, repo: string, number: number,
+  ctx: { blocked: boolean; baseRef: string },
+): Promise<{ reviewDecision: string | null; canBypass: boolean; canMerge: boolean | null }> {
+  try {
+    const gqlUrl = api.base.endsWith('/api/v3')
+      ? api.base.replace(/\/api\/v3$/, '/api/graphql')
+      : `${api.base}/graphql`
+    const res = await fetch(gqlUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        query: 'query($o: String!, $r: String!, $n: Int!) { repository(owner: $o, name: $r) { viewerPermission pullRequest(number: $n) { reviewDecision } } }',
+        variables: { o: owner, r: repo, n: number },
+      }),
+    })
+    const d = await res.json().catch(() => ({})) as any
+    const repoNode = d?.data?.repository
+    const perm: string | null = repoNode?.viewerPermission ?? null
+    // The rulesets are only worth three requests when something is blocking;
+    // an unblocked request never shows the line they would feed.
+    const asked = ctx.blocked
+      ? await rulesetBypass(api, token, owner, repo, ctx.baseRef)
+      : null
+    return {
+      reviewDecision: repoNode?.pullRequest?.reviewDecision ?? null,
+      canBypass: asked ?? perm === 'ADMIN',
+      canMerge: perm === null ? null : MERGE_PERMISSIONS.includes(perm),
+    }
+  } catch { return { reviewDecision: null, canBypass: false, canMerge: null } }
+}
+
+/** The `viewerPermission` values GitHub lets merge a request. */
+const MERGE_PERMISSIONS = ['ADMIN', 'MAINTAIN', 'WRITE']
+
+/**
+ * May this account bypass the rules protecting `baseRef`? GitHub answers it
+ * itself: every ruleset carries `current_user_can_bypass`, resolved against
+ * the account's repository role, its teams and the apps it acts through —
+ * none of which a permission level can stand in for. What the answers mean
+ * together is `bypassVerdict`, shared with the extension host.
+ */
+async function rulesetBypass(
+  api: { base: string }, token: string, owner: string, repo: string, baseRef: string,
+): Promise<boolean | null> {
+  if (!baseRef) return null
+  const headers = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+  try {
+    const res = await fetch(
+      `${api.base}/repos/${owner}/${repo}/rules/branches/${encodeURIComponent(baseRef)}`,
+      { headers },
+    )
+    if (!res.ok) return null
+    const rules = await res.json().catch(() => null) as any
+    if (!Array.isArray(rules)) return null
+    const ids = [...new Set(rules.map(r => r?.ruleset_id).filter((n: any) => typeof n === 'number'))]
+    if (!ids.length || ids.length > RULESET_PROBE_CAP) return null
+    const verdicts = await Promise.all(ids.map(async id => {
+      const r = await fetch(`${api.base}/repos/${owner}/${repo}/rulesets/${id}`, { headers })
+      if (!r.ok) return null
+      const d = await r.json().catch(() => null) as any
+      const v = d?.current_user_can_bypass
+      return typeof v === 'string' ? v : null
+    }))
+    return bypassVerdict(verdicts)
+  } catch { return null }
+}
 
 // The one write of #110's pane, #73's P2: merge the request. GitHub is the
 // judge — branch protections, required checks and the rest answer here, so

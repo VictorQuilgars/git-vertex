@@ -13,9 +13,13 @@ import './IssueDetail.css'
  * the branches, the cost line, and MERGEABILITY.
  *
  * Mergeability is read and reported: the checks (passed / failed / pending,
- * from the head ref's check runs) and the conflicts (GitHub's `mergeable`,
+ * from the head ref's check runs), the conflicts (GitHub's `mergeable`,
  * including the null that means it is still computing — shown as computing,
- * never guessed). The MERGE BUTTON (#73's P2) follows the reference's rule:
+ * never guessed), and WHERE THIS VIEWER STANDS — whether the account holds
+ * the permission to merge at all, and, when a rule blocks, whether it is a
+ * bypass actor for that rule. Both are said BEFORE the click: a permission
+ * discovered by pressing a button and reading a 403 is not a permission the
+ * pane ever stated. The MERGE BUTTON (#73's P2) follows the reference's rule:
  * it exists when both hold — checks green (or absent) and no conflicts —
  * and not otherwise; a disabled button explaining itself is still a button
  * that cannot be pressed. GitHub stays the judge: protections it enforces
@@ -33,6 +37,7 @@ interface FullPR {
   headRef: string; headSha: string; baseRef: string
   commits: number; changedFiles: number; additions: number; deletions: number
   mergeable: boolean | null; mergeableState: string
+  reviewDecision?: string | null; canBypass?: boolean; canMerge?: boolean | null
   labels: GithubLabel[]; assignees: string[]; reviewers: string[]
   url: string
 }
@@ -120,9 +125,22 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
     } else setError(r?.error ?? 'error')
   }
 
+  // GitHub's own shape (#124 follow-up): the method button is ALWAYS labelled
+  // by the chosen method. When rules block and this viewer can bypass, its
+  // click reveals a SEPARATE danger button that confirms the bypass; without
+  // the rights, the button is disabled and the pane says what is awaited,
+  // as github.com does.
+  const blocked = pr?.mergeableState === 'blocked'
   const onMergeClick = () => {
     if (!pr) return
-    if (pr.mergeableState === 'blocked' && !bypassArmed) { setBypassArmed(true); return }
+    if (blocked) {
+      if (pr.canBypass) setBypassArmed(true)
+      return
+    }
+    void doMerge()
+  }
+
+  const onBypassConfirm = () => {
     setBypassArmed(false)
     void doMerge()
   }
@@ -265,6 +283,16 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                       {pr.mergeable === null ? t('gh.pr.mergeComputing')
                         : pr.mergeable ? t('gh.pr.noConflicts') : t('gh.pr.conflicts')}
                     </div>
+                    {/* Where the viewer stands, said before the click. Only a
+                        MEASURED permission speaks: `canMerge` is undefined on
+                        an older host and null when the lookup failed, and
+                        neither may be reported as a refusal. */}
+                    {!pr.merged && pr.state === 'open' && pr.canMerge != null && (
+                      <div className={`idv-merge-row idv-merge-row--${pr.canMerge ? 'ok' : 'bad'}`}>
+                        <Icon name={pr.canMerge ? 'check' : 'conflict'} size={12} />
+                        {pr.canMerge ? t('gh.pr.mergeAllowed') : t('gh.pr.mergeForbidden')}
+                      </div>
+                    )}
                     {/* The reference's rule: the button exists when BOTH hold.
                         Checks green or absent, no conflicts, and an open,
                         unmerged request. GitHub remains the judge — and when
@@ -274,33 +302,67 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         for, in the label rather than a checkbox. An actor
                         without bypass rights gets GitHub's refusal inline. */}
                     {!pr.merged && pr.state === 'open' && pr.mergeable === true
+                      && pr.canMerge !== false
                       && checks !== null && checks.failed === 0 && checks.pending === 0 && (
                       <div className="idv-merge-act" ref={mergeActRef}>
-                        <button className={`idv-btn idv-merge-btn${bypassArmed ? ' idv-merge-btn--armed' : ''}`}
-                          disabled={busy}
-                          title={t(`gh.pr.merge.${mergeMethod}` as any)}
-                          onClick={onMergeClick}>
-                          <Icon name="merge" size={13} />
-                          {bypassArmed ? t('gh.pr.mergeBypassConfirm')
-                            : pr.mergeableState === 'blocked'
-                              ? t('gh.pr.mergeBypass')
-                              : t(`gh.pr.merge.${mergeMethod}` as any)}
-                        </button>
-                        <button className="idv-btn idv-merge-caret" disabled={busy}
-                          title={t('gh.pr.mergeMethod')}
-                          onClick={() => setMethodOpen(o => !o)}>
-                          <Icon name="chevronDown" size={11} />
-                        </button>
-                        {methodOpen && (
-                          <div className="idv-picker-list idv-merge-methods">
-                            {(['merge', 'squash', 'rebase'] as const).map(m => (
-                              <button key={m} className="idv-pick-row"
-                                onClick={() => { setMergeMethod(m); setMethodOpen(false) }}>
-                                <span className="idv-pick-check">{m === mergeMethod && <Icon name="check" size={12} />}</span>
-                                <span>{t(`gh.pr.merge.${m}` as any)}</span>
-                              </button>
-                            ))}
+                        {/* Blocked, github.com's way: say so, and say what is
+                            awaited — reviewDecision knows. */}
+                        {blocked && (
+                          <div className="idv-blocked">
+                            <div className="idv-blocked-head">
+                              <Icon name="conflict" size={12} />
+                              {t('gh.pr.blocked')}
+                            </div>
+                            <div className="idv-blocked-why">
+                              {pr.reviewDecision === 'REVIEW_REQUIRED' ? t('gh.pr.reviewRequired')
+                                : pr.reviewDecision === 'CHANGES_REQUESTED' ? t('gh.pr.changesRequested')
+                                : t('gh.pr.ruleUnmet')}
+                            </div>
+                            {/* And whether THIS account is a bypass actor for
+                                that rule — the answer the button's behaviour
+                                already depends on, now stated rather than
+                                discovered by pressing it. */}
+                            <div className={`idv-blocked-you idv-blocked-you--${pr.canBypass ? 'can' : 'cannot'}`}>
+                              <Icon name={pr.canBypass ? 'shield' : 'info'} size={11} />
+                              {pr.canBypass ? t('gh.pr.bypassActor') : t('gh.pr.bypassNone')}
+                            </div>
                           </div>
+                        )}
+                        <div className="idv-merge-row-btns">
+                          <button className="idv-btn idv-merge-btn"
+                            disabled={busy || (blocked && !pr.canBypass)}
+                            title={t(`gh.pr.merge.${mergeMethod}` as any)}
+                            onClick={onMergeClick}>
+                            <Icon name="merge" size={13} />
+                            {t(`gh.pr.merge.${mergeMethod}` as any)}
+                          </button>
+                          <button className="idv-btn idv-merge-caret" disabled={busy}
+                            title={t('gh.pr.mergeMethod')}
+                            onClick={() => setMethodOpen(o => !o)}>
+                            <Icon name="chevronDown" size={11} />
+                          </button>
+                          {methodOpen && (
+                            <div className="idv-picker-list idv-merge-methods">
+                              {(['merge', 'squash', 'rebase'] as const).map(m => (
+                                <button key={m} className="idv-pick-row"
+                                  onClick={() => { setMergeMethod(m); setMethodOpen(false) }}>
+                                  <span className="idv-pick-check">{m === mergeMethod && <Icon name="check" size={12} />}</span>
+                                  <span>{t(`gh.pr.merge.${m}` as any)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {/* The bypass is ANOTHER button — danger-toned, revealed
+                            by the method button's click, gone on a click
+                            elsewhere. Consent is a separate act, as on
+                            github.com. */}
+                        {bypassArmed && pr.canBypass && (
+                          <button className="idv-btn idv-bypass-btn" disabled={busy}
+                            onClick={onBypassConfirm}>
+                            <Icon name="shield" size={13} />
+                            {t('gh.pr.mergeBypassConfirm')}
+                          </button>
                         )}
                       </div>
                     )}
@@ -337,15 +399,28 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         setCleaning(true)
                         void (async () => {
                           // Remote first: it exists independently of the
-                          // checkout. git's own refusals (the checked-out
-                          // branch, most often) are the message — not ours
-                          // to predict.
+                          // checkout.
                           const rr = await (api().deleteRemoteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
-                          const lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
-                          const word = (r: any) => r?.success ? t('gh.pr.branchDeleted')
+                          // The commonest case is deleting the branch you are
+                          // ON — you just merged its PR. git refuses that, and
+                          // rightly; the answer is the reference clients':
+                          // step onto the base branch, then delete. Any other
+                          // refusal (another worktree, a dirty tree blocking
+                          // the checkout) stays git's message, verbatim.
+                          let switched = false
+                          let lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                          if (!lr?.success && /used by worktree|checked out/i.test(lr?.error ?? '') && pr.baseRef) {
+                            const co = await api().checkout?.(pr.baseRef).catch((e: any) => ({ success: false, error: e.message }))
+                            if (co?.success) {
+                              switched = true
+                              lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                            }
+                          }
+                          const word = (r: any, sw = false) => r?.success
+                            ? (sw ? t('gh.pr.branchDeletedSwitched', pr.baseRef) : t('gh.pr.branchDeleted'))
                             : /not found|introuvable|no such|unknown branch/i.test(r?.error ?? '') ? t('gh.pr.branchAbsent')
                             : (r?.error ?? 'error')
-                          setCleanup({ remote: word(rr), local: word(lr) })
+                          setCleanup({ remote: word(rr), local: word(lr, switched) })
                           setCleaning(false)
                           onChanged?.()
                         })()
