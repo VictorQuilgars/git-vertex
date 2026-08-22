@@ -19,6 +19,11 @@
 //  5. Right-clicking another branch while you are *on* the default branch flips
 //     it round: that branch becomes the head, landing on the default branch.
 //     It is the only reading that makes sense, and the one you meant.
+//  6. A pull request that ALREADY EXISTS is not proposed again. Same head into
+//     the same base is the one thing GitHub refuses outright, and offering
+//     "push and start a Pull Request" on a branch whose request is open two
+//     panels away is a lie about the state of the repository. Same head into a
+//     DIFFERENT base stays offered — that is a stacked request, and legal.
 //
 // The head is pushed before the pull request is opened whenever it is a local
 // branch the remote has not caught up with — hence `needsPush`.
@@ -42,6 +47,14 @@ export interface PRContext {
   /** Repo default branch, short name. `null` when git cannot tell us. */
   defaultBranch: string | null
   branches: BranchInfo[]
+  /**
+   * The repository's OPEN pull requests, as the panel already loaded them.
+   * Omitted when there is no GitHub, or before the list has arrived — and an
+   * absent list proposes as it always did rather than guessing.
+   */
+  // The refs are optional because the panel's row type carries them that way
+  // — an item missing either simply matches nothing.
+  openPRs?: readonly { headRef?: string; baseRef?: string }[]
 }
 
 const remoteName = (ref: string): string | null => ref.match(/^remotes\/([^/]+)\//)?.[1] ?? null
@@ -51,6 +64,16 @@ const remoteName = (ref: string): string | null => ref.match(/^remotes\/([^/]+)\
  * none. `targetRef` is the row's ref as git names it (`main`, `remotes/origin/main`).
  */
 export function prIntentFor(targetRef: string, ctx: PRContext): PRIntent | null {
+  const intent = proposeFor(targetRef, ctx)
+  // Rule 6 — one already open for this exact pair means there is nothing to
+  // start. `base` null means the pair is not even known, so nothing matches.
+  if (intent && intent.base && ctx.openPRs?.some(
+    pr => pr.headRef === intent.head && pr.baseRef === intent.base)) return null
+  return intent
+}
+
+/** Rules 1 to 5: which request this row would open, existing ones aside. */
+function proposeFor(targetRef: string, ctx: PRContext): PRIntent | null {
   const { currentBranch, defaultBranch, branches } = ctx
   if (!currentBranch) return null   // detached HEAD — nothing to propose
 

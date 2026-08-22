@@ -1601,8 +1601,16 @@ export default function App() {
   // Handed to every surface that shows branch actions so they all agree.
   const prIntentFor = useCallback(
     (branchRef: string) =>
-      githubOwnerRepo ? computePRIntent(branchRef, { currentBranch, defaultBranch, branches }) : null,
-    [githubOwnerRepo, currentBranch, defaultBranch, branches]
+      githubOwnerRepo
+        ? computePRIntent(branchRef, {
+            currentBranch, defaultBranch, branches,
+            // The list the panel already holds — the same one that puts the
+            // #N chip on a branch. A row must not offer to start what that
+            // chip says is already open (rule 6).
+            openPRs: githubPRs,
+          })
+        : null,
+    [githubOwnerRepo, currentBranch, defaultBranch, branches, githubPRs]
   )
 
   // The push itself happens in the composer, right before the GitHub call.

@@ -124,3 +124,48 @@ describe('prIntentFor', () => {
     })
   })
 })
+
+// Rule 6 — Victor's report: a branch whose pull request is already open still
+// offered "Push and start a Pull Request" on right-click. The panel knew: the
+// same list puts the #N chip on that branch two panels away.
+describe('rule 6 — a request that already exists is not proposed again', () => {
+  const openPR = (headRef: string, baseRef: string) => ({ headRef, baseRef })
+
+  test('the branch you are on, with its request already open, offers nothing', () => {
+    const ctx = repo('feat/published', { openPRs: [openPR('feat/published', 'main')] })
+    expect(prIntentFor('feat/published', ctx)).toBeNull()
+  })
+
+  test('and offers it again once nothing is open for that pair', () => {
+    expect(prIntentFor('feat/published', repo('feat/published', { openPRs: [] })))
+      .toMatchObject({ head: 'feat/published', base: 'main' })
+  })
+
+  // Rule 5's direction has to be checked against the SAME pair it proposes —
+  // the row clicked is the head there, not the base.
+  test('from the default branch, a row whose request is open is suppressed too', () => {
+    const ctx = repo('main', { openPRs: [openPR('feat/published', 'main')] })
+    expect(prIntentFor('feat/published', ctx)).toBeNull()
+  })
+
+  // GitHub only refuses the exact pair; a different base is a stacked request.
+  test('the same head into a different base is still a request to start', () => {
+    const ctx = repo('main', { openPRs: [openPR('feat/published', 'feat/other')] })
+    expect(prIntentFor('feat/published', ctx)).toMatchObject({
+      head: 'feat/published', base: 'main',
+    })
+  })
+
+  test('someone else\'s open request does not silence your branch', () => {
+    const ctx = repo('feat/published', { openPRs: [openPR('feat/unrelated', 'main')] })
+    expect(prIntentFor('feat/published', ctx)).toMatchObject({ head: 'feat/published' })
+  })
+
+  // Before the list arrives, and in a repo with no GitHub at all, the row must
+  // behave exactly as it did — absent is not empty.
+  test('no list at all proposes as before', () => {
+    expect(prIntentFor('feat/published', repo('feat/published'))).toMatchObject({
+      head: 'feat/published', base: 'main',
+    })
+  })
+})
