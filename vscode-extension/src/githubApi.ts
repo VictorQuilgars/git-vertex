@@ -313,9 +313,39 @@ export async function githubGetPR(
         assignees: (pr.assignees ?? []).map((a: any) => a.login),
         reviewers: (pr.requested_reviewers ?? []).map((r: any) => r.login),
         url: pr.html_url,
+        ...(await prBlockedSupplement(api, owner, repo, num)),
       },
     }
   } catch (e: any) { return { error: e.message } }
+}
+
+/**
+ * Why a request is blocked, and whether this viewer could bypass — the
+ * desktop's twin. viewerPermission ADMIN is the bypass signal:
+ * viewerCanMergeAsAdmin stays false for ruleset bypassers (measured).
+ */
+async function prBlockedSupplement(
+  api: GithubApi, owner: string, repo: string, num: number,
+): Promise<{ reviewDecision: string | null; canBypass: boolean }> {
+  try {
+    const gqlUrl = api.base.endsWith('/api/v3')
+      ? api.base.replace(/\/api\/v3$/, '/api/graphql')
+      : `${api.base}/graphql`
+    const res = await fetch(gqlUrl, {
+      method: 'POST',
+      headers: { ...HEADERS(api.token!), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: 'query($o: String!, $r: String!, $n: Int!) { repository(owner: $o, name: $r) { viewerPermission pullRequest(number: $n) { reviewDecision } } }',
+        variables: { o: owner, r: repo, n: num },
+      }),
+    })
+    const d = await res.json().catch(() => ({})) as any
+    const repoNode = d?.data?.repository
+    return {
+      reviewDecision: repoNode?.pullRequest?.reviewDecision ?? null,
+      canBypass: repoNode?.viewerPermission === 'ADMIN',
+    }
+  } catch { return { reviewDecision: null, canBypass: false } }
 }
 
 /**

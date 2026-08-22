@@ -167,7 +167,8 @@
 .idv-merge-row--unknown { color: var(--text-tertiary); }
 
 /* ── #73 P2: the merge action — the one write of the pane ─────────────── */
-.idv-merge-act { position: relative; display: flex; gap: 2px; margin-top: var(--space-sm); }
+.idv-merge-act { position: relative; display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-sm); }
+.idv-merge-row-btns { position: relative; display: flex; gap: 2px; }
 .idv-merge-btn {
   flex: 1; justify-content: center;
   border-color: color-mix(in srgb, var(--success) var(--alpha-muted), transparent);
@@ -185,12 +186,27 @@
   box-shadow: 0 8px 24px color-mix(in srgb, var(--bg-inset) var(--alpha-dense), transparent);
 }
 
-/* The armed bypass: the second, deliberate click — in the colour of the act. */
-.idv-merge-btn--armed {
+/* Blocked, github.com's way: the warning block above the buttons. */
+.idv-blocked {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--warning) var(--alpha-muted), transparent);
+  border-radius: var(--radius-sm);
+  background: var(--warning-block-bg);
+}
+.idv-blocked-head {
+  display: flex; align-items: center; gap: var(--space-sm);
+  color: var(--warning-bright); font-size: var(--text-xs); font-weight: var(--weight-semibold);
+}
+.idv-blocked-why { color: var(--text-secondary); font-size: var(--text-xs); }
+
+/* The bypass is ANOTHER button — the deliberate act, in its colour. */
+.idv-bypass-btn {
+  width: 100%; justify-content: center;
   border-color: color-mix(in srgb, var(--danger) var(--alpha-muted), transparent);
   color: var(--danger);
 }
-.idv-merge-btn--armed:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); }
+.idv-bypass-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); }
 .idv-cleanup {
   display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-sm);
   color: var(--text-secondary); font-size: var(--text-xs);

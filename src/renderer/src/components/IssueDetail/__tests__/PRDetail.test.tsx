@@ -64,32 +64,56 @@ describe('the PR detail', () => {
     expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
   })
 
-  // The repo's own case: checks green, no conflicts, but a ruleset demands a
-  // review the bypass will skip. The button says so — the web UI's consent
-  // checkbox, folded into the label.
-  // #124: the bypass consents TWICE, like GitHub's own UI — the first click
-  // arms, the second merges, a click elsewhere disarms.
-  test('a blocked request needs two clicks: arm, then confirm', async () => {
-    const { api } = draw({ mergeableState: 'blocked' })
+  // GitHub's own shape: the method button keeps its method label even when
+  // blocked; the bypass is ANOTHER button, revealed by the first click,
+  // danger-toned, and only it merges.
+  test('blocked with bypass rights: the method button reveals a separate bypass button', async () => {
+    const { api } = draw({ mergeableState: 'blocked', reviewDecision: 'REVIEW_REQUIRED', canBypass: true })
     await screen.findByText('Speed up the graph')
-    const btn = await screen.findByText('Merge, Bypassing Rules')
+    // the blocked block says so, github.com's way
+    expect(await screen.findByText('Merging is blocked')).toBeInTheDocument()
+    expect(screen.getByText('At least one approving review is awaited.')).toBeInTheDocument()
+    // the method button keeps its method label
+    const btn = await screen.findByText('Merge Pull Request')
+    expect(btn).toBeEnabled()
+    expect(screen.queryByText('Bypass Rules and Merge')).not.toBeInTheDocument()
     await userEvent.click(btn)
-    // armed, not merged
     expect(api.githubMergePR).not.toHaveBeenCalled()
-    const confirm = await screen.findByText('Confirm: Bypass and Merge')
-    await userEvent.click(confirm)
+    const bypass = await screen.findByText('Bypass Rules and Merge')
+    await userEvent.click(bypass)
     await waitFor(() => expect(api.githubMergePR).toHaveBeenCalledWith('o', 'r', 42, 'merge'))
     expect(await screen.findByText('Merged')).toBeInTheDocument()
   })
 
-  test('a click anywhere else disarms the bypass', async () => {
-    const { api } = draw({ mergeableState: 'blocked' })
+  test('a click anywhere else hides the bypass button again', async () => {
+    const { api } = draw({ mergeableState: 'blocked', reviewDecision: 'REVIEW_REQUIRED', canBypass: true })
     await screen.findByText('Speed up the graph')
-    await userEvent.click(await screen.findByText('Merge, Bypassing Rules'))
-    await screen.findByText('Confirm: Bypass and Merge')
+    await userEvent.click(await screen.findByText('Merge Pull Request'))
+    await screen.findByText('Bypass Rules and Merge')
     fireEvent.mouseDown(screen.getByText('Speed up the graph'))
-    expect(await screen.findByText('Merge, Bypassing Rules')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByText('Bypass Rules and Merge')).not.toBeInTheDocument())
     expect(api.githubMergePR).not.toHaveBeenCalled()
+  })
+
+  // Without the rights: github.com's interface — the reason, and a disabled
+  // method button. No bypass button, ever.
+  test('blocked without bypass rights: reviews awaited, disabled button, no bypass', async () => {
+    const { api } = draw({ mergeableState: 'blocked', reviewDecision: 'REVIEW_REQUIRED', canBypass: false })
+    await screen.findByText('Speed up the graph')
+    expect(await screen.findByText('Merging is blocked')).toBeInTheDocument()
+    expect(screen.getByText('At least one approving review is awaited.')).toBeInTheDocument()
+    const btn = await screen.findByText('Merge Pull Request')
+    expect(btn.closest('button')).toBeDisabled()
+    await userEvent.click(btn)
+    expect(screen.queryByText('Bypass Rules and Merge')).not.toBeInTheDocument()
+    expect(api.githubMergePR).not.toHaveBeenCalled()
+  })
+
+  test('changes requested is named as the reason', async () => {
+    draw({ mergeableState: 'blocked', reviewDecision: 'CHANGES_REQUESTED', canBypass: true })
+    await screen.findByText('Speed up the graph')
+    expect(await screen.findByText('Changes have been requested.')).toBeInTheDocument()
   })
 
   // #124: a merged request offers its branches' cleanup, both sides in one
@@ -144,13 +168,16 @@ describe('the PR detail', () => {
     expect(screen.queryByText('Delete Work Branches')).not.toBeInTheDocument()
   })
 
-  test('the method picker changes what the click sends', async () => {
+  test('the method picker relabels the button, and changes what the click sends', async () => {
     const { api } = draw()
     await screen.findByText('Speed up the graph')
     await screen.findByText('Merge Pull Request')
     await userEvent.click(screen.getByTitle('Merge method'))
     await userEvent.click(screen.getByText('Squash and Merge'))
-    await userEvent.click(screen.getByText('Squash and Merge'))
+    // the button now SAYS the chosen method
+    const btn = await screen.findByText('Squash and Merge')
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+    await userEvent.click(btn)
     await waitFor(() => expect(api.githubMergePR).toHaveBeenCalledWith('o', 'r', 42, 'squash'))
   })
 

@@ -2441,10 +2441,45 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
         assignees: (pr.assignees ?? []).map((a: any) => a.login),
         reviewers: (pr.requested_reviewers ?? []).map((r: any) => r.login),
         url: pr.html_url,
+        ...(await prBlockedSupplement(api, token, owner, repo, number)),
       },
     }
   } catch (e: any) { return { error: e.message } }
 })
+
+/**
+ * What REST does not say about a blocked request: WHY (reviewDecision), and
+ * whether this viewer could bypass. The bypass signal is the repository
+ * permission — viewerCanMergeAsAdmin is about classic branch protection and
+ * stays false for ruleset bypassers (measured on this repository, where the
+ * ruleset's bypass works for an ADMIN the field calls false). ADMIN is the
+ * honest approximation: a ruleset that lists someone narrower will still
+ * answer through the merge itself, inline. Failure here degrades to
+ * "cannot bypass, reason unknown" — the pane stays truthful either way.
+ */
+async function prBlockedSupplement(
+  api: { base: string }, token: string, owner: string, repo: string, number: number,
+): Promise<{ reviewDecision: string | null; canBypass: boolean }> {
+  try {
+    const gqlUrl = api.base.endsWith('/api/v3')
+      ? api.base.replace(/\/api\/v3$/, '/api/graphql')
+      : `${api.base}/graphql`
+    const res = await fetch(gqlUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      body: JSON.stringify({
+        query: 'query($o: String!, $r: String!, $n: Int!) { repository(owner: $o, name: $r) { viewerPermission pullRequest(number: $n) { reviewDecision } } }',
+        variables: { o: owner, r: repo, n: number },
+      }),
+    })
+    const d = await res.json().catch(() => ({})) as any
+    const repoNode = d?.data?.repository
+    return {
+      reviewDecision: repoNode?.pullRequest?.reviewDecision ?? null,
+      canBypass: repoNode?.viewerPermission === 'ADMIN',
+    }
+  } catch { return { reviewDecision: null, canBypass: false } }
+}
 
 // The one write of #110's pane, #73's P2: merge the request. GitHub is the
 // judge — branch protections, required checks and the rest answer here, so
