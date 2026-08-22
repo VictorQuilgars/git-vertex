@@ -182,7 +182,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             // An error interrupts; the rest waits its turn. Nested on purpose
             // — the item's own role is what a reader uses for that node.
             role={t.type === 'error' ? 'alert' : 'status'}>
-            <span className="chip-icon"><Icon name={ICONS[t.type]} size={13} /></span>
+            <span className="chip-icon"><Icon name={ICONS[t.type]} size={16} /></span>
             <span className="chip-msg">{t.message}</span>
             {t.count > 1 && <span className="chip-count">×{t.count}</span>}
             {t.actions?.map((a, i) => (
