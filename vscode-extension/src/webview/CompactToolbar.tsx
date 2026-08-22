@@ -16,7 +16,6 @@ interface Props {
   branches: BranchInfo[]
   loading: boolean
   stashCount: number
-  showAllBranches: boolean
   searchQuery: string
   searchMatches?: number
   lastFetch: Date | null
@@ -24,7 +23,6 @@ interface Props {
   behind?: number
   onCheckout: (ref: string) => void
   onSearch: (q: string) => void
-  onToggleAllBranches: () => void
   onFetch: () => void
   onPull: () => void
   onPush: () => void
@@ -243,9 +241,6 @@ export default function CompactToolbar(p: Props) {
 
       <span className="gvt-sep" />
 
-      <IconBtn title={t('gvt.allBranches')} onClick={p.onToggleAllBranches} active={p.showAllBranches}>
-        <Icon name="branch" size={14} />
-      </IconBtn>
       <IconBtn title={t('gvt.openDesktop')} onClick={p.onOpenDesktop} hideNarrow>
         <Icon name="externalLink" size={14} />
       </IconBtn>

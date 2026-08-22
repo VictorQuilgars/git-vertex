@@ -136,6 +136,14 @@ interface SidebarProps {
    * the stale one, so the button says which — refreshing both because one
    * looks wrong spends two requests to answer one question.
    */
+  /**
+   * The graph's widest scope: every branch, or only the one you are on — the
+   * `--all` of the log query. It lives here because everything else that
+   * decides what the graph draws lives here: hide per ref, hide per family,
+   * solo. It was the one part of that system in the toolbar (#132).
+   */
+  showAllBranches?: boolean
+  onToggleAllBranches?: () => void
   onRefreshGithub?: (section: 'prs' | 'issues') => void
   /** The section currently in flight, so its button is out of action. */
   githubRefreshing?: 'prs' | 'issues' | null
@@ -853,6 +861,7 @@ export default function Sidebar({
   githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
+  showAllBranches, onToggleAllBranches,
   onRefreshGithub, githubRefreshing, githubRefreshTick,
   onCopyBranchLink, onDeleteBranchBoth,
   showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
@@ -1108,6 +1117,27 @@ export default function Sidebar({
   ]
   const showAll = (family: RefFamily) => onSetFamilyHidden && (() => onSetFamilyHidden(family, false))
 
+  /**
+   * LOCAL's menu is the family rows plus the graph's scope, ruled off from
+   * them. The two are not the same kind of setting and must not read as three
+   * versions of one: hiding takes refs away from `--all`, this decides whether
+   * there is an `--all` at all. With it off, the hide rows above have nothing
+   * to act on — the log is already one branch (git-service.ts, `options.all`).
+   */
+  const localMenu = (): MenuItemDef[] | undefined => {
+    const family = familyMenu('branches')
+    if (!onToggleAllBranches) return family
+    const scope: MenuItemDef[] = [
+      { separator: true },
+      {
+        label: t('sb.graph.allBranches'),
+        action: onToggleAllBranches,
+        checked: !!showAllBranches,
+      },
+    ]
+    return [...(family ?? []), ...scope]
+  }
+
   const remoteBranches = branches
     .filter(b => b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
@@ -1238,7 +1268,7 @@ export default function Sidebar({
           {/* LOCAL (also shown in the overview "current work" home) */}
           {(show('branches') || view === 'overview') && (
           <Section title="LOCAL" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
-            menuItems={familyMenu('branches')}
+            menuItems={localMenu()}
             hiddenCount={localBranches.filter(branchHidden).length}
             onShowAll={showAll('branches')}>
             {localBranches.length === 0 && <div className="sb-empty">{t('sb.noLocalBranch')}</div>}

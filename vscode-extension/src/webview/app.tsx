@@ -1007,7 +1007,6 @@ function VertexApp() {
         branches={branches}
         loading={loading}
         stashCount={stashCount}
-        showAllBranches={showAllBranches}
         searchQuery={searchQuery}
         searchMatches={searchMatches}
         lastFetch={lastFetch}
@@ -1015,7 +1014,6 @@ function VertexApp() {
         behind={tracking.behind}
         onCheckout={handleCheckout}
         onSearch={setSearchQuery}
-        onToggleAllBranches={handleToggleAllBranches}
         onFetch={handleFetch}
         onPull={handlePull}
         onPush={handlePush}
@@ -1110,6 +1108,8 @@ function VertexApp() {
             onRefreshStashes={loadStashes}
             onCreateTag={handleCreateTagPrompt}
             onCheckoutTag={handleCheckout}
+            showAllBranches={showAllBranches}
+            onToggleAllBranches={() => setShowAllBranches(v => !v)}
             onRefreshGithub={refreshGithubSection}
             githubRefreshing={githubRefreshing}
             githubRefreshTick={githubRefreshTick}

@@ -2205,7 +2205,6 @@ export default function App() {
         currentBranch={currentBranch}
         searchQuery={searchQuery}
         searchMatches={searchMatches}
-        showAllBranches={showAllBranches}
         onSearch={setSearchQuery}
         onUndo={handleUndo}
         onRedo={handleRedo}
@@ -2220,7 +2219,6 @@ export default function App() {
         onPop={handlePop}
         onTerminal={handleTerminal}
         stashCount={stashes.length}
-        onToggleAllBranches={() => setShowAllBranches(v => !v)}
         onRefresh={loadRepoData}
         loading={loading}
         lastFetchTime={lastFetchTime}
@@ -2360,6 +2358,8 @@ export default function App() {
               onOpenBranchOnRemote={handleOpenBranchOnRemote}
               onAssociateIssue={setIssueModalBranch}
               prIntentFor={prIntentFor}
+              showAllBranches={showAllBranches}
+              onToggleAllBranches={() => setShowAllBranches(v => !v)}
               onRefreshGithub={refreshGithubSection}
               githubRefreshing={githubRefreshing}
               githubRefreshTick={githubRefreshTick}

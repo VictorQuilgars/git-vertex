@@ -120,3 +120,44 @@ describe('hiding a whole section', () => {
     expect(screen.queryByTitle(/click to show them all/i)).not.toBeInTheDocument()
   })
 })
+
+// #132 - the graph's widest scope moved out of the toolbar and in here, where
+// everything else that decides what the graph draws already lived.
+describe('the graph scope on the LOCAL header', () => {
+  const openLocalMenu = async (overrides: Record<string, any> = {}) => {
+    const props = render('branches' as any, overrides)
+    await waitFor(() => expect(screen.getByText('LOCAL')).toBeInTheDocument())
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('LOCAL') })
+    return props
+  }
+
+  test('the entry is there when every branch is drawn', async () => {
+    await openLocalMenu({ showAllBranches: true, onToggleAllBranches: jest.fn() })
+    expect(await screen.findByText('All Branches in the Graph')).toBeInTheDocument()
+  })
+
+  test('clicking it hands the decision back to the host', async () => {
+    const onToggleAllBranches = jest.fn()
+    await openLocalMenu({ showAllBranches: true, onToggleAllBranches })
+    await userEvent.click(await screen.findByText('All Branches in the Graph'))
+    expect(onToggleAllBranches).toHaveBeenCalled()
+  })
+
+  // It is not a third member of the hide family: hiding takes refs away from
+  // `--all`, this decides whether there is an `--all` at all.
+  test('it sits after the family rows, not among them', async () => {
+    await openLocalMenu({ showAllBranches: false, onToggleAllBranches: jest.fn() })
+    await screen.findByText('Hide All from Graph')
+    const labels = Array.from(document.querySelectorAll('[class*="ctx"]'))
+      .map(n => n.textContent ?? '')
+    const scope = labels.findIndex(l => l === 'All Branches in the Graph')
+    const showAll = labels.findIndex(l => l === 'Show All in Graph')
+    expect(scope).toBeGreaterThan(showAll)
+  })
+
+  test('no handler, no entry - the family rows stand alone', async () => {
+    await openLocalMenu()
+    expect(await screen.findByText('Hide All from Graph')).toBeInTheDocument()
+    expect(screen.queryByText('All Branches in the Graph')).not.toBeInTheDocument()
+  })
+})
