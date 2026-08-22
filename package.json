@@ -14,7 +14,7 @@
     "preview": "electron-vite preview",
     "start": "electron-vite dev",
     "package": "electron-vite build && electron-builder",
-    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json && tsc --noEmit -p tsconfig.typecheck.node.json",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

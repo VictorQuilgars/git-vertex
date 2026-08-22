@@ -1092,8 +1092,11 @@ export default function CommitGraph({
     while (cur && !seen.has(cur.hash)) {
       seen.add(cur.hash)
       if (cur.hash !== WIP_HASH) rows.add(cur.row)
-      const fp = cur.parents[0]
-      const next = fp ? byHash.get(fp) : undefined
+      const fp: string | undefined = cur.parents[0]
+      // Annotated because `cur` is reassigned from it below: without this the
+      // inference is circular and both land on `any`, which is how a whole
+      // walk over the graph went unchecked.
+      const next: typeof hovered | undefined = fp ? byHash.get(fp) : undefined
       if (!next) break
       // Stop before entering another branch's territory
       if (next.refs.some(isLocalBranchRef)) break

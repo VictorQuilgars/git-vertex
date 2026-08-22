@@ -22,11 +22,16 @@ function exposed(): string[] {
   return [...body.matchAll(/^ {2}([a-zA-Z][a-zA-Z0-9_]*):\s*(?:\(|async)/gm)].map(m => m[1])
 }
 
-/** Method names the renderer's `Window['gitAPI']` declares. */
+/**
+ * Method names the renderer's `GitAPI` declares. It is a named interface so
+ * the VS Code panel can merge ITS own methods into it — those live in the
+ * extension and are deliberately not read here: this mirror is the DESKTOP
+ * preload's, and a panel-only method has no preload behind it by design.
+ */
 function declared(): string[] {
   const src = fs.readFileSync(TYPES, 'utf8')
-  const body = src.slice(src.indexOf('gitAPI: {'))
-  return [...body.matchAll(/^ {6}([a-zA-Z][a-zA-Z0-9_]*)\??:\s*\(/gm)].map(m => m[1])
+  const body = src.slice(src.indexOf('interface GitAPI {'))
+  return [...body.matchAll(/^ {4}([a-zA-Z][a-zA-Z0-9_]*)\??:\s*\(/gm)].map(m => m[1])
 }
 
 describe('the preload and its typed mirror', () => {

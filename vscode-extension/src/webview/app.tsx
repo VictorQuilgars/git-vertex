@@ -51,7 +51,10 @@ import type { CommitNode, BranchInfo } from '../../../src/renderer/src/types'
 import '../../../src/renderer/src/App.css'
 import './vertex-vscode.css'
 
-declare global { interface Window { gitAPI: any; appInfo: any } }
+// The bridge is declared, not re-declared: the shared renderer's GitAPI plus
+// this panel's own methods, which panel-api.d.ts merges into it. This line
+// used to read `{ gitAPI: any; appInfo: any }`, and an `any` here is what kept
+// every call in this file — the largest file in the panel — unchecked (#105).
 
 // The rail is one view at a time, so the two GitHub lists are two more views
 // rather than sections stacked under the others — which is what the panel's
@@ -239,7 +242,7 @@ function VertexApp() {
       } catch { setDefaultBranch(null) }
       try {
         const gh = await window.gitAPI.githubDetectRepo()
-        setGithubRepo(gh?.owner ? { owner: gh.owner, repo: gh.repo } : null)
+        setGithubRepo(gh?.owner && gh?.repo ? { owner: gh.owner, repo: gh.repo } : null)
         // The two sidebar sections. Absent — not empty — when there is no
         // GitHub here or nothing to authenticate with.
         if (gh?.owner && gh?.repo) {
@@ -524,8 +527,7 @@ function VertexApp() {
   }, [showToast])
 
   const handleCreateWorktreeAt = useCallback(async (hash: string) => {
-    // The host's selectDirectory returns the fsPath string directly (or null).
-    const dirPath: string | null = await window.gitAPI.selectDirectory(t('ext.app.worktreePath'))
+    const { path: dirPath } = await window.gitAPI.selectDirectory(t('ext.app.worktreePath'))
     if (!dirPath) return
     const branch = await window.gitAPI.uiPrompt(t('ext.app.newBranchNameDetached'), '')
     if (branch === null || branch === undefined) return
@@ -1091,6 +1093,7 @@ function VertexApp() {
             onDropStash={handleDropStash}
             onRefreshStashes={loadStashes}
             onCreateTag={handleCreateTagPrompt}
+            onCheckoutTag={handleCheckout}
             onDeleteTag={handleDeleteTag}
             onPushTag={handlePushTag}
             onDeleteRemoteTag={handleDeleteRemoteTag}
@@ -1103,7 +1106,6 @@ function VertexApp() {
             onToggleHideTag={(name: string) => toggleHidden('tags', name)}
             onToggleHideRemote={(name: string) => toggleHidden('remotes', name)}
             onSetFamilyHidden={handleSetFamilyHidden}
-            onFetch={handleFetch}
             onPull={handlePull}
             isFavorite={branchMeta.isFavorite}
             githubPRs={githubPRs}

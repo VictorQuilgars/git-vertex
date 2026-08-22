@@ -88,310 +88,321 @@ export type CompareAxis = 'diverged' | 'endpoints'
 type Unnarrowed = any
 
 declare global {
+  /**
+   * The bridge, as a NAMED interface rather than a literal, so the VS Code
+   * panel can merge its own methods into it. The two products do not expose
+   * the same surface: this one is the desktop preload's, held exactly equal
+   * to it by preload-mirror.test.ts, and the panel augments it with what only
+   * the extension host answers (see the extension's panel-api.d.ts). Before
+   * that, the panel redeclared the whole thing as `any` — which is why none
+   * of its own calls were checked by anything at all (#105).
+   */
+  interface GitAPI {
+    // Repo
+    openRepo: () => Promise<{ path?: string; name?: string; error?: string }>
+    setRepo: (path: string) => Promise<{ path?: string; name?: string; error?: string }>
+    getRecentRepos: () => Promise<string[]>
+    getGitCapabilities: () => Promise<{
+      version: string | null
+      conflictPrediction: boolean
+      minimumForPrediction?: string
+      /** Absolute path of the git actually used, or 'git' if unresolved. */
+      path?: string
+      /** How that path was chosen — see git-binary.ts. */
+      source?: 'setting' | 'login-shell' | 'process-path' | 'not-found'
+      /** PATH the app searches, which is what explains `path`. */
+      searchPath?: string
+    }>
+    resolveGitBinary: (explicitPath?: string) => Promise<{
+      version: string | null
+      path: string
+      source: 'setting' | 'login-shell' | 'process-path' | 'not-found'
+    }>
+    removeRecentRepo: (path: string) => Promise<string[]>
+    // Read
+    getLog: (o?: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] }) => Promise<{ commits?: CommitNode[]; error?: string }>
+    getBranches: () => Promise<{ branches?: BranchInfo[]; error?: string }>
+    getDiff: (h: string) => Promise<{ diff?: string; error?: string }>
+    getCommitFiles: (h: string) => Promise<{ files?: FileChange[]; error?: string }>
+    getStatus: () => Promise<{ staged: string[]; unstaged: string[]; untracked: string[] }>
+    getStashes: () => Promise<{ stashes: { index: number; message: string }[] }>
+    getTags: () => Promise<{ tags: { name: string; hash: string }[] }>
+    // Branch write
+    checkout: (ref: string) => Promise<R>
+    createBranch: (name: string) => Promise<R>
+    createBranchAt: (name: string, hash: string, checkout: boolean) => Promise<R>
+    deleteBranch: (name: string) => Promise<R>
+    renameBranch: (oldName: string, newName: string) => Promise<R>
+    merge: (branch: string) => Promise<R>
+    rebaseOnto: (branch: string) => Promise<R>
+    pushBranch: (branch: string) => Promise<R>
+    pushToCommit: (hash: string) => Promise<R>
+    createPatch: (hash: string) => Promise<{ patch: string; error?: string }>
+    savePatchFile: (content: string, suggestedName: string) => Promise<{ success: boolean; canceled?: boolean; path?: string; error?: string }>
+    deleteRemoteBranch: (branch: string) => Promise<R>
+    setUpstream: (branch: string, upstream?: string) => Promise<R>
+    moveBranchTo: (branch: string, hash: string) => Promise<R>
+    rebaseBranchOnto: (branch: string, hash: string) => Promise<R>
+    mergeCommitInto: (branch: string, hash: string) => Promise<R>
+    // Remote
+    fetch: () => Promise<R>
+    push: () => Promise<R & { setUpstream?: boolean }>
+    pushTo: (remote: string, branch: string, setUpstream: boolean, force?: boolean) => Promise<R>
+    pull: (mode?: PullMode) => Promise<R>
+    pruneRemote: (name: string) => Promise<R & { pruned?: string[] }>
+    getDefaultRemote: () => Promise<{ remote: string | null; explicit: boolean }>
+    getDefaultBranch: () => Promise<{ branch: string | null }>
+    setDefaultRemote: (name: string) => Promise<R>
+    getGoneBranches: () => Promise<{ branches: string[] }>
+    pruneGoneBranches: (names: string[]) => Promise<R & { deleted: string[] }>
+    // Staging & commit
+    getWorkingChanges: () => Promise<WorkingChanges>
+    getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => Promise<{ diff: string }>
+    getFileAtCommit: (commitHash: string, filepath: string) => Promise<{ content: string; error?: string }>
+    restoreFileFromCommit: (commitHash: string, paths: string[]) => Promise<{ success: boolean; error?: string }>
+    applyPatch: (patch: string, reverse: boolean) => Promise<R>
+    stage: (files: string[]) => Promise<R>
+    stageAll: () => Promise<R>
+    unstage: (files: string[]) => Promise<R>
+    commit: (msg: string, amend?: boolean) => Promise<R>
+    discardFile: (file: string) => Promise<R>
+    // Commit operations
+    cherryPick: (hash: string) => Promise<R>
+    revert: (hash: string) => Promise<R>
+    reset: (hash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<R>
+    amendMessage: (message: string) => Promise<R>
+    dropCommit: (hash: string) => Promise<R>
+    moveCommit: (hash: string, direction: 'up' | 'down') => Promise<R>
+    diffCommitToWorking: (hash: string) => Promise<{ diff: string }>
+    diffBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ diff: string; error?: string }>
+    filesBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ files: FileChange[]; error?: string }>
+    getMergeBase: (a: string, b: string) => Promise<{ base: string | null; error?: string }>
+    getLastCommitMessage: (ref?: string) => Promise<{ message: string }>
+    // The preload has had this since the AI commit message shipped; the
+    // declaration never followed, so the one caller was typed as a mistake.
+    aiGenerateCommitMessage: () => Promise<{ message?: string; error?: string }>
+    getUpstream: () => Promise<{ upstream: string | null }>
+    // Tags
+    createTag: (name: string, hash?: string, message?: string) => Promise<R>
+    deleteTag: (name: string) => Promise<R>
+    pushTag: (name: string, remote?: string) => Promise<R>
+    deleteRemoteTag: (name: string, remote?: string) => Promise<R>
+    // Stash
+    createStash: (message?: string, opts?: { scope?: StashScope; paths?: string[] }) => Promise<R>
+    renameStash: (index: number, message: string) => Promise<R>
+    applyStash: (index: number) => Promise<R>
+    popStash: (index: number) => Promise<R>
+    dropStash: (index: number) => Promise<R>
+    // Blame
+    getBlame: (hash: string, filepath: string) => Promise<{ lines: { shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string }[] }>
+    // Submodules
+    getSubmodules: () => Promise<{ submodules: { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[] }>
+    initSubmodule: (path: string) => Promise<R>
+    updateSubmodule: (path: string) => Promise<R>
+    // Extended search & branch comparison
+    searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
+    compareBranches: (current: string, other: string) => Promise<{ ahead: { hash: string; shortHash: string; message: string }[]; behind: { hash: string; shortHash: string; message: string }[] }>
+    // Interactive Rebase
+    getRebaseSequence: (baseHash: string) => Promise<{ commits: { hash: string; shortHash: string; message: string }[] }>
+    interactiveRebase: (sequence: { action: string; hash: string }[], messages?: string[]) => Promise<R>
+    // Conflict resolution
+    // `entries` is optional on the wire: an older extension host may answer
+    // with `files` alone, and the UI must then say nothing about the kind
+    // rather than guess one.
+    getConflictedFiles: () => Promise<{ files: string[]; entries?: ConflictEntry[] }>
+    getConflictVersions: (filepath: string) => Promise<{ base: string; ours: string; theirs: string }>
+    getFileContent: (filepath: string) => Promise<{ content: string; error?: string }>
+    markResolved: (filepath: string) => Promise<R>
+    resolveConflict: (filepath: string, content: string) => Promise<R>
+    resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => Promise<R>
+    continueRebase: (messages?: string[]) => Promise<R>
+    continueMerge: (message?: string) => Promise<R>
+    abortRebase: () => Promise<R>
+    abortMerge: () => Promise<R>
+    continueCherryPick: () => Promise<R>
+    abortCherryPick: () => Promise<R>
+    continueRevert: () => Promise<R>
+    abortRevert: () => Promise<R>
+    getConflictMode: () => Promise<{ mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null }>
+    undoLastAction: () => Promise<R & { action?: string }>
+    redoLastAction: () => Promise<R & { action?: string }>
+    // Reflog
+    getReflog: () => Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }>
+    // File History
+    getFileHistory: (filepath: string) => Promise<{ commits: { hash: string; shortHash: string; message: string; author: string; date: string }[] }>
+    // Remotes
+    getRemotes: () => Promise<{ remotes: { name: string; fetchUrl: string; pushUrl: string }[] }>
+    gitflowStatus: () => Promise<{ initialized: boolean; mainBranch: string; features: string[]; releases: string[]; hotfixes: string[] }>
+    gitflowInit: () => Promise<R>
+    gitflowStart: (type: 'feature' | 'release' | 'hotfix', name: string) => Promise<R>
+    gitflowFinish: (type: 'feature' | 'release' | 'hotfix', name: string, tagName?: string) => Promise<R>
+    listWorktrees: () => Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }>
+    addWorktree: (path: string, ref: string, newBranch?: string) => Promise<R>
+    removeWorktree: (path: string, force?: boolean) => Promise<R>
+    selectDirectory: (title?: string) => Promise<{ path: string | null }>
+    addRemote: (name: string, url: string) => Promise<R>
+    removeRemote: (name: string) => Promise<R>
+    renameRemote: (oldName: string, newName: string) => Promise<R>
+    fetchRemote: (name: string) => Promise<R>
+    // Themes beyond the 32 in tokens.css. Optional because the VS Code shim
+    // and older hosts may not carry them — the callers all guard with `?.`
+    // and fall back to the built-in themes, which is the behaviour the
+    // offline path needs anyway.
+    themesCatalogue?: (opts?: { refresh?: boolean }) => Promise<{
+      version: number
+      generatedAt: string
+      count: number
+      themes: Array<{
+        id: string; name: string; dark: boolean
+        canvas: string; text: string; border: string; accent: string
+        lic: string; src: string; version: string
+        hue: string; vivid: string; dl: number
+      }>
+      stale?: boolean
+      error?: string
+    }>
+    themesInstall?: (id: string) => Promise<R & { theme?: InstalledTheme }>
+    themesRemove?: (id: string) => Promise<R>
+
+    // ── The half of the bridge this mirror never declared ──────────
+    // 199 methods are exposed; 113 were declared. The other 86 were reachable
+    // only through `(window.gitAPI as any)`, and a cast is a hole the compiler
+    // cannot see through — which is how `I is not defined` and `t is not
+    // defined` both reached users. `preload-mirror.test.ts` now fails if the
+    // two lists drift again.
+    //
+    // Where a handler's answer is already a settled shape it is written out.
+    // Where it is not, `Unnarrowed` says so rather than inventing one: the
+    // point here is that the NAME exists, so a typo stops compiling. Narrow
+    // one when you next touch its call site.
+
+    // Zoom (webFrame, no IPC — these answer synchronously)
+    zoomGet: () => number
+    zoomSet: (factor: number) => number
+
+    // Repo creation & cloning
+    initRepo: (dir: string) => Promise<{ path?: string; name?: string; error?: string }>
+    initAdvanced: (opts: Unnarrowed) => Promise<{ path?: string; name?: string; error?: string }>
+    cloneTo: (opts: Unnarrowed) => Promise<{ path?: string; name?: string; error?: string }>
+    listGitignoreTemplates: () => Promise<{ templates: string[]; error?: string }>
+    listLicenses: () => Promise<{ licenses: { key: string; name: string }[]; error?: string }>
+    scanLocalRepos: (force?: boolean) => Promise<Unnarrowed>
+    readReadme: (dir: string) => Promise<{ content: string; error?: string }>
+
+    // Workspaces & deep links
+    getWorkspaces: () => Promise<Unnarrowed>
+    setRepoWorkspace: (path: string, workspace: string) => Promise<Unnarrowed>
+    getPendingDeepLink: () => Promise<Unnarrowed>
+    onDeepLink: (cb: (link: { repo: string; view: string; file?: string; hash?: string }) => void) => () => void
+
+    // Read
+    getCommitBody: (hash: string) => Promise<{ body: string }>
+    getTracking: () => Promise<{ branch: string | null; upstream: string | null; ahead: number; behind: number }>
+    getRewordPlan: (hash: string) => Promise<Unnarrowed>
+    getCheckoutPlan: (ref: string) => Promise<Unnarrowed>
+    checkoutTracking: (remoteRef: string, localName: string) => Promise<R>
+    stashDiff: (index: number) => Promise<{ diff?: string; error?: string }>
+
+    // Conflicts
+    predictConflicts: (theirs: string, ours?: string, mergeBase?: string) => Promise<Unnarrowed>
+    predictRebaseConflicts: (upstream: string, branch?: string) => Promise<Unnarrowed>
+    getConflictSides: () => Promise<{ ours: string; theirs: string }>
+    getMergeMessage: () => Promise<{ message: string }>
+
+    // AI
+    aiGetApiKey: () => Promise<{ key: string | null }>
+    aiSetApiKey: (key: string) => Promise<R>
+    aiRecomposeCommit: (hash: string) => Promise<Unnarrowed>
+    aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => Promise<Unnarrowed>
+    aiGetExplanations: () => Promise<Unnarrowed>
+    aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
+    aiSearchCommits: (query: string) => Promise<Unnarrowed>
+    aiListModels: () => Promise<Unnarrowed>
+    aiListProviderModels: (provider: string, apiKey: string) => Promise<Unnarrowed>
+    listAgents: () => Promise<{ agents: { pid: number; name: string; cwd: string }[] }>
+
+    // Settings & git config
+    settingsGetAll: () => Promise<Record<string, string>>
+    settingsSet: (key: string, value: string) => Promise<R>
+    gitGetGlobalConfig: () => Promise<{ userName: string; userEmail: string; error?: string }>
+    gitSetGlobalConfig: (userName: string, userEmail: string) => Promise<R>
+
+    // App shell
+    appGetInfo: () => Promise<Unnarrowed>
+    getWhatsNew: () => Promise<Unnarrowed>
+    getReleaseNotes: () => Promise<Unnarrowed>
+    markWhatsNewSeen: () => Promise<R>
+    openExternal: (url: string) => Promise<R>
+    openInEditor: (filepath: string) => Promise<R>
+    openPathInEditor: (dir: string) => Promise<R>
+    openTerminal: () => Promise<R>
+    isFullscreen: () => Promise<boolean>
+    onFullscreenChanged: (cb: (fs: boolean) => void) => () => void
+
+    // External tools
+    sshBrowseKey: (kind: 'private' | 'public') => Promise<{ path?: string; error?: string }>
+    sshGenerateKey: (passphrase?: string) => Promise<Unnarrowed>
+    openExternalDiff: (leftContent: string, rightContent: string, filename: string) => Promise<R>
+    openExternalMerge: (filepath: string) => Promise<R>
+    readTempFile: (absPath: string) => Promise<{ content?: string; error?: string }>
+
+    // GitHub
+    githubDetectRepo: () => Promise<{ owner?: string; repo?: string }>
+    githubDetectRepoAt: (path: string) => Promise<{ owner?: string; repo?: string }>
+    githubCreateRepo: (opts: Unnarrowed) => Promise<Unnarrowed>
+    githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) => Promise<Unnarrowed>
+    githubListBranches: (owner: string, repo: string) => Promise<Unnarrowed>
+    githubSharePatch: (hash: string) => Promise<Unnarrowed>
+    githubShareWipPatch: (repoPath: string) => Promise<Unnarrowed>
+    githubListPRs: (owner: string, repo: string) => Promise<Unnarrowed>
+    githubListIssues: (owner: string, repo: string) => Promise<Unnarrowed>
+    githubSearchIssues: (q: string, force?: boolean) => Promise<Unnarrowed>
+    githubGetIssue: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
+    githubCloseIssue: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
+    githubIssueComments: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
+    githubAddIssueComment: (owner: string, repo: string, number: number, body: string) => Promise<Unnarrowed>
+    githubUpdateIssue: (owner: string, repo: string, number: number, patch: object) => Promise<Unnarrowed>
+    githubListAssignees: (owner: string, repo: string) => Promise<Unnarrowed>
+    githubListRepoLabels: (owner: string, repo: string) => Promise<Unnarrowed>
+    githubGetPR: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
+    githubGetChecks: (owner: string, repo: string, ref: string) => Promise<Unnarrowed>
+    githubMergePR: (owner: string, repo: string, number: number, method?: string) => Promise<Unnarrowed>
+    githubListRepos: () => Promise<Unnarrowed>
+    githubClone: (cloneUrl: string, repoName: string) => Promise<Unnarrowed>
+    githubStartAuth: () => Promise<Unnarrowed>
+    githubDisconnect: () => Promise<R>
+    githubGetToken: () => Promise<{ token: string | null }>
+    githubGetUser: () => Promise<{ user: Unnarrowed | null }>
+    onGithubAuthComplete: (cb: (result: { token?: string; error?: string }) => void) => () => void
+    avatarResolve: (email: string, sha?: string) => Promise<Unnarrowed>
+
+    // File watcher. These return their own unsubscribe — see the preload:
+    // the callback that crosses contextBridge is not the object `on`
+    // registered, so an `off(cb)` pair could never match it.
+    onRepoChanged: (cb: () => void) => () => void
+    onWorkingChanged: (cb: () => void) => () => void
+
+    // Updater
+    onUpdateAvailable: (cb: (version: string) => void) => () => void
+    onUpdateDownloaded: (cb: (version: string) => void) => () => void
+    onUpdateError: (cb: (err: string) => void) => () => void
+    onDownloadProgress: (cb: (pct: number) => void) => () => void
+    downloadUpdate: () => Promise<Unnarrowed>
+    installUpdate: () => Promise<Unnarrowed>
+    checkForUpdates: () => Promise<Unnarrowed>
+    getUpdaterState: () => Promise<{ downloadedVersion: string | null; downloadedFile: string | null }>
+    openDownloadedUpdate: () => Promise<Unnarrowed>
+    installManual: () => Promise<Unnarrowed>
+
+    themesInstalled?: () => Promise<{
+      themes: InstalledTheme[]
+      discarded: Array<{ id: string; why: string }>
+    }>
+  }
+
   interface Window {
     appInfo: { platform: string }
-    gitAPI: {
-      // Repo
-      openRepo: () => Promise<{ path?: string; name?: string; error?: string }>
-      setRepo: (path: string) => Promise<{ path?: string; name?: string; error?: string }>
-      getRecentRepos: () => Promise<string[]>
-      getGitCapabilities: () => Promise<{
-        version: string | null
-        conflictPrediction: boolean
-        minimumForPrediction?: string
-        /** Absolute path of the git actually used, or 'git' if unresolved. */
-        path?: string
-        /** How that path was chosen — see git-binary.ts. */
-        source?: 'setting' | 'login-shell' | 'process-path' | 'not-found'
-        /** PATH the app searches, which is what explains `path`. */
-        searchPath?: string
-      }>
-      resolveGitBinary: (explicitPath?: string) => Promise<{
-        version: string | null
-        path: string
-        source: 'setting' | 'login-shell' | 'process-path' | 'not-found'
-      }>
-      removeRecentRepo: (path: string) => Promise<string[]>
-      // Read
-      getLog: (o?: { maxCount?: number; all?: boolean; refs?: string[]; excludes?: string[] }) => Promise<{ commits?: CommitNode[]; error?: string }>
-      getBranches: () => Promise<{ branches?: BranchInfo[]; error?: string }>
-      getDiff: (h: string) => Promise<{ diff?: string; error?: string }>
-      getCommitFiles: (h: string) => Promise<{ files?: FileChange[]; error?: string }>
-      getStatus: () => Promise<{ staged: string[]; unstaged: string[]; untracked: string[] }>
-      getStashes: () => Promise<{ stashes: { index: number; message: string }[] }>
-      getTags: () => Promise<{ tags: { name: string; hash: string }[] }>
-      // Branch write
-      checkout: (ref: string) => Promise<R>
-      createBranch: (name: string) => Promise<R>
-      createBranchAt: (name: string, hash: string, checkout: boolean) => Promise<R>
-      deleteBranch: (name: string) => Promise<R>
-      renameBranch: (oldName: string, newName: string) => Promise<R>
-      merge: (branch: string) => Promise<R>
-      rebaseOnto: (branch: string) => Promise<R>
-      pushBranch: (branch: string) => Promise<R>
-      pushToCommit: (hash: string) => Promise<R>
-      createPatch: (hash: string) => Promise<{ patch: string; error?: string }>
-      savePatchFile: (content: string, suggestedName: string) => Promise<{ success: boolean; canceled?: boolean; path?: string; error?: string }>
-      deleteRemoteBranch: (branch: string) => Promise<R>
-      setUpstream: (branch: string, upstream?: string) => Promise<R>
-      moveBranchTo: (branch: string, hash: string) => Promise<R>
-      rebaseBranchOnto: (branch: string, hash: string) => Promise<R>
-      mergeCommitInto: (branch: string, hash: string) => Promise<R>
-      // Remote
-      fetch: () => Promise<R>
-      push: () => Promise<R & { setUpstream?: boolean }>
-      pushTo: (remote: string, branch: string, setUpstream: boolean, force?: boolean) => Promise<R>
-      pull: (mode?: PullMode) => Promise<R>
-      pruneRemote: (name: string) => Promise<R & { pruned?: string[] }>
-      getDefaultRemote: () => Promise<{ remote: string | null; explicit: boolean }>
-      getDefaultBranch: () => Promise<{ branch: string | null }>
-      setDefaultRemote: (name: string) => Promise<R>
-      getGoneBranches: () => Promise<{ branches: string[] }>
-      pruneGoneBranches: (names: string[]) => Promise<R & { deleted: string[] }>
-      // Staging & commit
-      getWorkingChanges: () => Promise<WorkingChanges>
-      getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => Promise<{ diff: string }>
-      getFileAtCommit: (commitHash: string, filepath: string) => Promise<{ content: string; error?: string }>
-      restoreFileFromCommit: (commitHash: string, paths: string[]) => Promise<{ success: boolean; error?: string }>
-      applyPatch: (patch: string, reverse: boolean) => Promise<R>
-      stage: (files: string[]) => Promise<R>
-      stageAll: () => Promise<R>
-      unstage: (files: string[]) => Promise<R>
-      commit: (msg: string, amend?: boolean) => Promise<R>
-      discardFile: (file: string) => Promise<R>
-      // Commit operations
-      cherryPick: (hash: string) => Promise<R>
-      revert: (hash: string) => Promise<R>
-      reset: (hash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<R>
-      amendMessage: (message: string) => Promise<R>
-      dropCommit: (hash: string) => Promise<R>
-      moveCommit: (hash: string, direction: 'up' | 'down') => Promise<R>
-      diffCommitToWorking: (hash: string) => Promise<{ diff: string }>
-      diffBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ diff: string; error?: string }>
-      filesBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ files: FileChange[]; error?: string }>
-      getMergeBase: (a: string, b: string) => Promise<{ base: string | null; error?: string }>
-      getLastCommitMessage: (ref?: string) => Promise<{ message: string }>
-      // The preload has had this since the AI commit message shipped; the
-      // declaration never followed, so the one caller was typed as a mistake.
-      aiGenerateCommitMessage: () => Promise<{ message?: string; error?: string }>
-      getUpstream: () => Promise<{ upstream: string | null }>
-      // Tags
-      createTag: (name: string, hash?: string, message?: string) => Promise<R>
-      deleteTag: (name: string) => Promise<R>
-      pushTag: (name: string, remote?: string) => Promise<R>
-      deleteRemoteTag: (name: string, remote?: string) => Promise<R>
-      // Stash
-      createStash: (message?: string, opts?: { scope?: StashScope; paths?: string[] }) => Promise<R>
-      renameStash: (index: number, message: string) => Promise<R>
-      applyStash: (index: number) => Promise<R>
-      popStash: (index: number) => Promise<R>
-      dropStash: (index: number) => Promise<R>
-      // Blame
-      getBlame: (hash: string, filepath: string) => Promise<{ lines: { shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string }[] }>
-      // Submodules
-      getSubmodules: () => Promise<{ submodules: { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[] }>
-      initSubmodule: (path: string) => Promise<R>
-      updateSubmodule: (path: string) => Promise<R>
-      // Extended search & branch comparison
-      searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
-      compareBranches: (current: string, other: string) => Promise<{ ahead: { hash: string; shortHash: string; message: string }[]; behind: { hash: string; shortHash: string; message: string }[] }>
-      // Interactive Rebase
-      getRebaseSequence: (baseHash: string) => Promise<{ commits: { hash: string; shortHash: string; message: string }[] }>
-      interactiveRebase: (sequence: { action: string; hash: string }[], messages?: string[]) => Promise<R>
-      // Conflict resolution
-      // `entries` is optional on the wire: an older extension host may answer
-      // with `files` alone, and the UI must then say nothing about the kind
-      // rather than guess one.
-      getConflictedFiles: () => Promise<{ files: string[]; entries?: ConflictEntry[] }>
-      getConflictVersions: (filepath: string) => Promise<{ base: string; ours: string; theirs: string }>
-      getFileContent: (filepath: string) => Promise<{ content: string; error?: string }>
-      markResolved: (filepath: string) => Promise<R>
-      resolveConflict: (filepath: string, content: string) => Promise<R>
-      resolveConflictSide: (filepath: string, side: 'ours' | 'theirs') => Promise<R>
-      continueRebase: (messages?: string[]) => Promise<R>
-      continueMerge: (message?: string) => Promise<R>
-      abortRebase: () => Promise<R>
-      abortMerge: () => Promise<R>
-      continueCherryPick: () => Promise<R>
-      abortCherryPick: () => Promise<R>
-      continueRevert: () => Promise<R>
-      abortRevert: () => Promise<R>
-      getConflictMode: () => Promise<{ mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null }>
-      undoLastAction: () => Promise<R & { action?: string }>
-      redoLastAction: () => Promise<R & { action?: string }>
-      // Reflog
-      getReflog: () => Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }>
-      // File History
-      getFileHistory: (filepath: string) => Promise<{ commits: { hash: string; shortHash: string; message: string; author: string; date: string }[] }>
-      // Remotes
-      getRemotes: () => Promise<{ remotes: { name: string; fetchUrl: string; pushUrl: string }[] }>
-      gitflowStatus: () => Promise<{ initialized: boolean; mainBranch: string; features: string[]; releases: string[]; hotfixes: string[] }>
-      gitflowInit: () => Promise<R>
-      gitflowStart: (type: 'feature' | 'release' | 'hotfix', name: string) => Promise<R>
-      gitflowFinish: (type: 'feature' | 'release' | 'hotfix', name: string, tagName?: string) => Promise<R>
-      listWorktrees: () => Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }>
-      addWorktree: (path: string, ref: string, newBranch?: string) => Promise<R>
-      removeWorktree: (path: string, force?: boolean) => Promise<R>
-      selectDirectory: (title?: string) => Promise<{ path: string | null }>
-      addRemote: (name: string, url: string) => Promise<R>
-      removeRemote: (name: string) => Promise<R>
-      renameRemote: (oldName: string, newName: string) => Promise<R>
-      fetchRemote: (name: string) => Promise<R>
-      // Themes beyond the 32 in tokens.css. Optional because the VS Code shim
-      // and older hosts may not carry them — the callers all guard with `?.`
-      // and fall back to the built-in themes, which is the behaviour the
-      // offline path needs anyway.
-      themesCatalogue?: (opts?: { refresh?: boolean }) => Promise<{
-        version: number
-        generatedAt: string
-        count: number
-        themes: Array<{
-          id: string; name: string; dark: boolean
-          canvas: string; text: string; border: string; accent: string
-          lic: string; src: string; version: string
-          hue: string; vivid: string; dl: number
-        }>
-        stale?: boolean
-        error?: string
-      }>
-      themesInstall?: (id: string) => Promise<R & { theme?: InstalledTheme }>
-      themesRemove?: (id: string) => Promise<R>
-
-      // ── The half of the bridge this mirror never declared ──────────
-      // 199 methods are exposed; 113 were declared. The other 86 were reachable
-      // only through `(window.gitAPI as any)`, and a cast is a hole the compiler
-      // cannot see through — which is how `I is not defined` and `t is not
-      // defined` both reached users. `preload-mirror.test.ts` now fails if the
-      // two lists drift again.
-      //
-      // Where a handler's answer is already a settled shape it is written out.
-      // Where it is not, `Unnarrowed` says so rather than inventing one: the
-      // point here is that the NAME exists, so a typo stops compiling. Narrow
-      // one when you next touch its call site.
-
-      // Zoom (webFrame, no IPC — these answer synchronously)
-      zoomGet: () => number
-      zoomSet: (factor: number) => number
-
-      // Repo creation & cloning
-      initRepo: (dir: string) => Promise<{ path?: string; name?: string; error?: string }>
-      initAdvanced: (opts: Unnarrowed) => Promise<{ path?: string; name?: string; error?: string }>
-      cloneTo: (opts: Unnarrowed) => Promise<{ path?: string; name?: string; error?: string }>
-      listGitignoreTemplates: () => Promise<{ templates: string[]; error?: string }>
-      listLicenses: () => Promise<{ licenses: { key: string; name: string }[]; error?: string }>
-      scanLocalRepos: (force?: boolean) => Promise<Unnarrowed>
-      readReadme: (dir: string) => Promise<{ content: string; error?: string }>
-
-      // Workspaces & deep links
-      getWorkspaces: () => Promise<Unnarrowed>
-      setRepoWorkspace: (path: string, workspace: string) => Promise<Unnarrowed>
-      getPendingDeepLink: () => Promise<Unnarrowed>
-      onDeepLink: (cb: (link: { repo: string; view: string; file?: string; hash?: string }) => void) => () => void
-
-      // Read
-      getCommitBody: (hash: string) => Promise<{ body: string }>
-      getTracking: () => Promise<{ branch: string | null; upstream: string | null; ahead: number; behind: number }>
-      getRewordPlan: (hash: string) => Promise<Unnarrowed>
-      getCheckoutPlan: (ref: string) => Promise<Unnarrowed>
-      checkoutTracking: (remoteRef: string, localName: string) => Promise<R>
-      stashDiff: (index: number) => Promise<{ diff?: string; error?: string }>
-
-      // Conflicts
-      predictConflicts: (theirs: string, ours?: string, mergeBase?: string) => Promise<Unnarrowed>
-      predictRebaseConflicts: (upstream: string, branch?: string) => Promise<Unnarrowed>
-      getConflictSides: () => Promise<{ ours: string; theirs: string }>
-      getMergeMessage: () => Promise<{ message: string }>
-
-      // AI
-      aiGetApiKey: () => Promise<{ key: string | null }>
-      aiSetApiKey: (key: string) => Promise<R>
-      aiRecomposeCommit: (hash: string) => Promise<Unnarrowed>
-      aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => Promise<Unnarrowed>
-      aiGetExplanations: () => Promise<Unnarrowed>
-      aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
-      aiSearchCommits: (query: string) => Promise<Unnarrowed>
-      aiListModels: () => Promise<Unnarrowed>
-      aiListProviderModels: (provider: string, apiKey: string) => Promise<Unnarrowed>
-      listAgents: () => Promise<{ agents: { pid: number; name: string; cwd: string }[] }>
-
-      // Settings & git config
-      settingsGetAll: () => Promise<Record<string, string>>
-      settingsSet: (key: string, value: string) => Promise<R>
-      gitGetGlobalConfig: () => Promise<{ userName: string; userEmail: string; error?: string }>
-      gitSetGlobalConfig: (userName: string, userEmail: string) => Promise<R>
-
-      // App shell
-      appGetInfo: () => Promise<Unnarrowed>
-      getWhatsNew: () => Promise<Unnarrowed>
-      getReleaseNotes: () => Promise<Unnarrowed>
-      markWhatsNewSeen: () => Promise<R>
-      openExternal: (url: string) => Promise<R>
-      openInEditor: (filepath: string) => Promise<R>
-      openPathInEditor: (dir: string) => Promise<R>
-      openTerminal: () => Promise<R>
-      isFullscreen: () => Promise<boolean>
-      onFullscreenChanged: (cb: (fs: boolean) => void) => () => void
-
-      // External tools
-      sshBrowseKey: (kind: 'private' | 'public') => Promise<{ path?: string; error?: string }>
-      sshGenerateKey: (passphrase?: string) => Promise<Unnarrowed>
-      openExternalDiff: (leftContent: string, rightContent: string, filename: string) => Promise<R>
-      openExternalMerge: (filepath: string) => Promise<R>
-      readTempFile: (absPath: string) => Promise<{ content?: string; error?: string }>
-
-      // GitHub
-      githubDetectRepo: () => Promise<{ owner?: string; repo?: string }>
-      githubDetectRepoAt: (path: string) => Promise<{ owner?: string; repo?: string }>
-      githubCreateRepo: (opts: Unnarrowed) => Promise<Unnarrowed>
-      githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) => Promise<Unnarrowed>
-      githubListBranches: (owner: string, repo: string) => Promise<Unnarrowed>
-      githubSharePatch: (hash: string) => Promise<Unnarrowed>
-      githubShareWipPatch: (repoPath: string) => Promise<Unnarrowed>
-      githubListPRs: (owner: string, repo: string) => Promise<Unnarrowed>
-      githubListIssues: (owner: string, repo: string) => Promise<Unnarrowed>
-      githubSearchIssues: (q: string, force?: boolean) => Promise<Unnarrowed>
-      githubGetIssue: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
-      githubCloseIssue: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
-      githubIssueComments: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
-      githubAddIssueComment: (owner: string, repo: string, number: number, body: string) => Promise<Unnarrowed>
-      githubUpdateIssue: (owner: string, repo: string, number: number, patch: object) => Promise<Unnarrowed>
-      githubListAssignees: (owner: string, repo: string) => Promise<Unnarrowed>
-      githubListRepoLabels: (owner: string, repo: string) => Promise<Unnarrowed>
-      githubGetPR: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
-      githubGetChecks: (owner: string, repo: string, ref: string) => Promise<Unnarrowed>
-      githubMergePR: (owner: string, repo: string, number: number, method?: string) => Promise<Unnarrowed>
-      githubListRepos: () => Promise<Unnarrowed>
-      githubClone: (cloneUrl: string, repoName: string) => Promise<Unnarrowed>
-      githubStartAuth: () => Promise<Unnarrowed>
-      githubDisconnect: () => Promise<R>
-      githubGetToken: () => Promise<{ token: string | null }>
-      githubGetUser: () => Promise<{ user: Unnarrowed | null }>
-      onGithubAuthComplete: (cb: (result: { token?: string; error?: string }) => void) => () => void
-      avatarResolve: (email: string, sha?: string) => Promise<Unnarrowed>
-
-      // File watcher. These return their own unsubscribe — see the preload:
-      // the callback that crosses contextBridge is not the object `on`
-      // registered, so an `off(cb)` pair could never match it.
-      onRepoChanged: (cb: () => void) => () => void
-      onWorkingChanged: (cb: () => void) => () => void
-
-      // Updater
-      onUpdateAvailable: (cb: (version: string) => void) => () => void
-      onUpdateDownloaded: (cb: (version: string) => void) => () => void
-      onUpdateError: (cb: (err: string) => void) => () => void
-      onDownloadProgress: (cb: (pct: number) => void) => () => void
-      downloadUpdate: () => Promise<Unnarrowed>
-      installUpdate: () => Promise<Unnarrowed>
-      checkForUpdates: () => Promise<Unnarrowed>
-      getUpdaterState: () => Promise<{ downloadedVersion: string | null; downloadedFile: string | null }>
-      openDownloadedUpdate: () => Promise<Unnarrowed>
-      installManual: () => Promise<Unnarrowed>
-
-      themesInstalled?: () => Promise<{
-        themes: InstalledTheme[]
-        discarded: Array<{ id: string; why: string }>
-      }>
-    }
+    gitAPI: GitAPI
   }
 }
 

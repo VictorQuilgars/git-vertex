@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Icon } from '../../../src/renderer/src/components/Icon/Icon'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
+import type { IssueRef } from '../../../src/renderer/src/utils/issueRef'
 import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../../../src/renderer/src/components/ContextMenu/branchMenu'
 import type { PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
@@ -53,7 +54,10 @@ interface Props {
   onToggleSolo?: (name: string) => void
   onToggleHide?: (name: string) => void
   isFavorite?: (name: string) => boolean
-  issueFor?: (name: string) => { number: number; title?: string } | null
+  // The shared IssueRef, not a `{ number }` of its own: a reference has not
+  // had to be a GitHub number since branches could carry `PROJ-421`, and this
+  // declaration had not followed (#105).
+  issueFor?: (name: string) => IssueRef | null
   soloBranch?: string | null
   hiddenBranches?: Set<string>
   /** The pull request the checked-out branch offers, if any — see prIntentFor. */
@@ -91,7 +95,10 @@ function TextBtn({ title, label, onClick, disabled, count, children }: {
   )
 }
 
-function relTime(d: Date | null, lang: string, t: (k: string) => string): string {
+/** The translator as the context actually types it — a keyed lookup, not `(k: string)`. */
+type Translate = ReturnType<typeof useLang>['t']
+
+function relTime(d: Date | null, lang: string, t: Translate): string {
   if (!d) return ''
   const s = Math.floor((Date.now() - d.getTime()) / 1000)
   if (s < 60) return t('github.justNow')

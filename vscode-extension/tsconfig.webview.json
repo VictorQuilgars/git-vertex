@@ -1,0 +1,14 @@
+{
+  "//": "The panel's own entry files (#105). tsconfig.json excludes src/webview because esbuild bundles it — and esbuild does not resolve names, so an identifier that does not exist bundles cleanly and throws at mount. That is exactly how `I is not defined` reached ext-v1.28.0 and took three versions to surface. This config is what reads them.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true
+  },
+  "//svg": "The shared renderer imports its icons as .svg source text; that declaration lives with the renderer and is pulled in here rather than copied.",
+  "include": ["src/webview/**/*", "../src/renderer/src/svg.d.ts"],
+  "exclude": []
+}
