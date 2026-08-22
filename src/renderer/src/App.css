@@ -473,20 +473,6 @@ body {
 }
 .app-sidebar > * { animation: view-in var(--dur-base) ease both; }
 
-/* Toast */
-.toast {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  padding: var(--space-md) var(--space-2xl); border-radius: var(--radius-lg); font-size: var(--text-sm); font-weight: var(--weight-semibold);
-  z-index: var(--z-tooltip); animation: fadeUp var(--dur-base) ease; pointer-events: none;
-}
-.toast-ok { background: color-mix(in srgb, var(--success-emphasis) var(--alpha-subtle), transparent); border: 1px solid color-mix(in srgb, var(--success-emphasis) var(--alpha-bold), transparent); color: var(--success); }
-.toast-err { background: color-mix(in srgb, var(--danger) var(--alpha-subtle), transparent); border: 1px solid color-mix(in srgb, var(--danger) var(--alpha-bold), transparent); color: var(--danger); }
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
 /* Global scrollbars */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

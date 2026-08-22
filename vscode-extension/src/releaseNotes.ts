@@ -18,6 +18,14 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### ✅ The chip that confirms an action, redesigned
+- It no longer lands on the **Commit button**: the stack sits at the bottom **centre**, clear of the control you reach for next, and it fits a narrow VS Code panel.
+- A **chip, not a tinted card**: one line on the ordinary surface, with a real icon in the colour of the outcome. A success no longer shouts as loudly as a failure.
+- **An error waits to be read.** Successes expire on a timer; a failure stays until you dismiss it, and carries git's own message.
+- **Ten identical results are one chip and a count**, and the stack is capped, so a loop over many files cannot bury the window.
+- **Screen readers hear it.** The stack is a live region; errors interrupt, everything else waits its turn.
+- **The staging area speaks at last** — staging, unstaging and discarding each confirm. Discarding was destructive and completely silent.
+
 ### 🧺 The staging pane, top to bottom
 - A header that names the pane and counts what is in it, with **Compare** and refresh.
 - **N of M staged** in the files header — the count that matters — and a filter field that is always there.

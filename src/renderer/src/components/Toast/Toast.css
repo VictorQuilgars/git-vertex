@@ -1,86 +1,100 @@
-.toast-container {
+/* The chip that confirms an action — #127.
+   Bottom CENTRE, not bottom right: the right is where .st2-commit-actions
+   sits, so the confirmation of what you just did used to land on the control
+   you reach for next. Centred, it clears the commit area and the left panel,
+   and it is the one spot that works in a 400-pixel VS Code panel too. */
+.chip-stack {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: var(--z-tooltip);
+  bottom: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
+  /* --z-toast exists for this. It used to take --z-tooltip, which put a
+     confirmation above every tooltip in the app. */
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  align-items: center;
+  gap: var(--space-sm);
   pointer-events: none;
+  /* Never wider than the surface, which the panel makes narrow. */
+  max-width: calc(100vw - var(--space-3xl));
 }
 
-.toast-item {
+.chip {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-lg) var(--space-xl);
-  border-radius: var(--radius-lg);
-  border: 1px solid;
-  font-size: var(--text-base);
-  min-width: 260px;
-  max-width: 400px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-default);
+  background: var(--surface);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent);
+  font-size: var(--text-sm);
+  max-width: 100%;
   pointer-events: all;
-  animation: toast-in var(--dur-base) ease-out;
+  animation: chip-in var(--dur-base) ease-out;
 }
 
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(10px); }
+@keyframes chip-in {
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.toast-success {
-  background: var(--toast-success-bg);
-  border-color: var(--success-emphasis);
-  color: var(--success);
+@media (prefers-reduced-motion: reduce) {
+  .chip { animation: none; }
 }
 
-.toast-error {
-  background: var(--toast-danger-bg);
-  border-color: var(--danger);
-  color: var(--danger);
-}
+/* The type is the ICON's colour, not the whole surface's. A tinted card made
+   every confirmation shout as loudly as every failure. */
+.chip-icon { display: flex; flex-shrink: 0; }
+.chip--success .chip-icon { color: var(--success-emphasis); }
+.chip--error .chip-icon { color: var(--danger); }
+.chip--info .chip-icon { color: var(--accent); }
 
-.toast-info {
-  background: var(--toast-info-bg);
-  border-color: var(--accent-emphasis);
-  color: var(--accent);
-}
+/* A failure keeps a hairline of its colour: it is the one the eye should find
+   in a stack without reading it. */
+.chip--error { border-color: color-mix(in srgb, var(--danger) var(--alpha-muted), transparent); }
 
-.toast-icon {
-  font-size: var(--text-md);
-  flex-shrink: 0;
-  font-weight: var(--weight-bold);
-}
-
-.toast-msg {
-  flex: 1;
+.chip-msg {
   color: var(--text-primary);
   line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.toast-dismiss {
+/* Ten identical results are one chip and a count. */
+.chip-count {
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip-dismiss {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   font-size: var(--text-lg);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
   line-height: 1;
 }
-.toast-dismiss:hover { color: var(--text-primary); }
+.chip-dismiss:hover { color: var(--text-primary); }
 
-.toast-action {
+.chip-action {
   background: transparent;
-  border: 1px solid currentColor;
-  color: inherit;
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  padding: var(--space-2xs) var(--space-lg);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-2xs) var(--space-md);
   border-radius: var(--radius-md);
   cursor: pointer;
   flex-shrink: 0;
   transition: background var(--dur-fast);
 }
-.toast-action:hover { background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent); }
+.chip-action:hover { background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent); }
