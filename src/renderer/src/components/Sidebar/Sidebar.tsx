@@ -131,6 +131,16 @@ interface SidebarProps {
   // repo has no GitHub remote.
   prIntentFor?: (branchRef: string) => PRIntent | null
   onCreatePR?: (intent: PRIntent) => void
+  /**
+   * Re-read one GitHub section. The two lists are two calls and either can be
+   * the stale one, so the button says which — refreshing both because one
+   * looks wrong spends two requests to answer one question.
+   */
+  onRefreshGithub?: (section: 'prs' | 'issues') => void
+  /** The section currently in flight, so its button is out of action. */
+  githubRefreshing?: 'prs' | 'issues' | null
+  /** Bumped per section on a manual refresh — see GhFilterGroup. */
+  githubRefreshTick?: { prs: number; issues: number }
   onCopyBranchLink?: (name: string) => void
   /** Deletes the local branch and its published counterpart together. */
   onDeleteBranchBoth?: (name: string, remoteName: string) => void
@@ -232,11 +242,19 @@ function GhFilterEditor({ kind, initial, onCreate, onCancel, t }: {
 // never the section. The count is the search's total, and when GitHub sent
 // fewer rows than it counted, the tail row says so instead of letting the
 // group read as complete.
-function GhFilterGroup({ filter, kind, repo, refreshOn, renderItem, onOpen, onEdit, onDelete, t }: {
+function GhFilterGroup({ filter, kind, repo, refreshOn, refreshTick = 0, renderItem, onOpen, onEdit, onDelete, t }: {
   filter: GhSavedFilter
   kind: 'prs' | 'issues'
   repo: { owner: string; repo: string }
   refreshOn: unknown
+  /**
+   * Bumped by the section's refresh button. It is not just another dependency:
+   * a run it triggers passes `force` to the search, because that call is cached
+   * for 20 seconds (`github:search-issues`). Without it, the one click a user
+   * makes BECAUSE the list looks wrong returns the same wrong list, and the
+   * button reads as broken.
+   */
+  refreshTick?: number
   renderItem: (item: GithubListItem, kind: 'pr' | 'issue') => React.ReactNode
   onOpen?: (url: string) => void
   onEdit: () => void
@@ -247,10 +265,14 @@ function GhFilterGroup({ filter, kind, repo, refreshOn, renderItem, onOpen, onEd
   const [state, setState] = useState<{ total: number; items: any[] } | { error: string } | null>(null)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const q = composeGhQuery(filter.query, kind, repo.owner, repo.repo)
+  // Which run this is: the tick moving means a person asked for it.
+  const seenTick = useRef(refreshTick)
   useEffect(() => {
     let alive = true
+    const forced = seenTick.current !== refreshTick
+    seenTick.current = refreshTick
     setState(null)
-    ;(window.gitAPI as any).githubSearchIssues?.(q)
+    ;(window.gitAPI as any).githubSearchIssues?.(q, forced)
       .then((r: any) => {
         if (!alive) return
         if (r?.error) setState({ error: r.error === 'rate_limited' ? t('sb.gh.filter.rateLimited', r.retryIn ?? 60) : r.error })
@@ -258,7 +280,7 @@ function GhFilterGroup({ filter, kind, repo, refreshOn, renderItem, onOpen, onEd
       })
       .catch((e: any) => { if (alive) setState({ error: e.message }) })
     return () => { alive = false }
-  }, [q, refreshOn, t])
+  }, [q, refreshOn, refreshTick, t])
 
   const failed = state && 'error' in state
   const result = state && !('error' in state) ? state : null
@@ -325,11 +347,20 @@ function GhGroup({ title, count, children, defaultOpen = true }: {
 }
 
 // ── Collapse section ─────────────────────────────────────────────
-function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onFilter, filterLabel }: {
+function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onFilter, filterLabel, onRefresh, refreshing }: {
   title: string
   count?: number
   children: React.ReactNode
   defaultOpen?: boolean
+  /**
+   * Re-read what this section lists. Omitted ⇒ no button, which is every
+   * section whose contents come from the repository on disk and are already
+   * reloaded by the watcher. The GitHub ones are the exception: they come from
+   * a server that changes without us.
+   */
+  onRefresh?: () => void
+  /** In flight — the button is out of action, so it cannot be hammered. */
+  refreshing?: boolean
   /** §4: the button opening the section's filter editor. Omitted ⇒ no button. */
   onFilter?: (e: React.MouseEvent) => void
   filterLabel?: string
@@ -366,6 +397,12 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, 
             onClick={e => { e.stopPropagation(); onShowAll() }}>
             <Icon name="eyeOff" size={11} />
             {hiddenCount}
+          </button>
+        )}
+        {onRefresh && (
+          <button className="sb-add-btn" title={t('sb.gh.refresh')} disabled={refreshing}
+            onClick={e => { e.stopPropagation(); onRefresh() }}>
+            <Icon name="refresh" size={12} />
           </button>
         )}
         {onFilter && (
@@ -816,6 +853,7 @@ export default function Sidebar({
   githubPRs, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo,
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
+  onRefreshGithub, githubRefreshing, githubRefreshTick,
   onCopyBranchLink, onDeleteBranchBoth,
   showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
 }: SidebarProps) {
@@ -1385,6 +1423,8 @@ export default function Sidebar({
               on. Absent entirely when the host has no GitHub here. */}
           {githubPRs && show('prs') && (
             <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single}
+              onRefresh={onRefreshGithub && (() => onRefreshGithub('prs'))}
+              refreshing={githubRefreshing === 'prs'}
               onFilter={() => setFilterEditor(f => f?.section === 'prs' ? null : { section: 'prs', index: -1 })}
               filterLabel={t('sb.gh.filter.new')}>
               <div className="sb-gh-search">
@@ -1432,7 +1472,8 @@ export default function Sidebar({
                     </GhGroup>
                     {githubRepo && ghFilters.prs.map((f, fi) => (
                       <GhFilterGroup key={`${f.name}:${f.query}`} filter={f} kind="prs"
-                        repo={githubRepo} refreshOn={githubPRs} t={t}
+                        repo={githubRepo} refreshOn={githubPRs}
+                        refreshTick={githubRefreshTick?.prs} t={t}
                         onOpen={url => onOpenGithubItem?.(url)}
                         renderItem={(item, k) => (
                           <GithubRow key={`${k}-${item.number}`} compact item={{ ...item, kind: k }}
@@ -1452,6 +1493,8 @@ export default function Sidebar({
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
             <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single}
+              onRefresh={onRefreshGithub && (() => onRefreshGithub('issues'))}
+              refreshing={githubRefreshing === 'issues'}
               onFilter={() => setFilterEditor(f => f?.section === 'issues' ? null : { section: 'issues', index: -1 })}
               filterLabel={t('sb.gh.filter.new')}>
               <div className="sb-gh-search">

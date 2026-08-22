@@ -977,6 +977,7 @@ const fr = {
 
   // Masquage en masse — les actions de groupe d'une section.
   'sb.hidden.hideAll': 'Tout masquer du graphe',
+  'sb.gh.refresh': 'Rafraîchir cette section',
   'sb.hidden.showAll': 'Tout réafficher dans le graphe',
   'sb.hidden.chipTitle': (n: number) => `${n} élément${n > 1 ? 's' : ''} masqué${n > 1 ? 's' : ''} du graphe — cliquer pour tout réafficher`,
   'sb.hidden.flag': 'Masqué du graphe',
@@ -2509,6 +2510,7 @@ const en: typeof fr = {
 
   // Hiding in bulk — a section's group actions.
   'sb.hidden.hideAll': 'Hide All from Graph',
+  'sb.gh.refresh': 'Refresh this section',
   'sb.hidden.showAll': 'Show All in Graph',
   'sb.hidden.chipTitle': (n: number) => `${n} hidden from the graph — click to show them all`,
   'sb.hidden.flag': 'Hidden from the graph',
