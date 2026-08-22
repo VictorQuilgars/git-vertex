@@ -223,3 +223,27 @@ describe('the branch tree in the sections', () => {
     expect(screen.getAllByText('main')).toHaveLength(2)
   })
 })
+
+// Eleven headers in a column of small capitals are told apart by reading them.
+describe('the section marks', () => {
+  test('a header carries its own icon, before its title', async () => {
+    render('branches' as any, { branches: [] })
+    await waitFor(() => expect(screen.getByText('LOCAL')).toBeInTheDocument())
+    const header = screen.getByText('LOCAL').closest('.sb-section-header')!
+    expect(header.querySelector('.sb-section-icon')).toBeTruthy()
+    // ...and it sits between the disclosure triangle and the label.
+    const marks = Array.from(header.children).map(n => n.className.toString())
+    expect(marks.findIndex(c => c.includes('sb-section-icon')))
+      .toBeLessThan(marks.findIndex(c => c.includes('sb-section-title')))
+  })
+
+  test('every section drawn has one — none is left unmarked', async () => {
+    render('branches' as any, { branches: [] })
+    await waitFor(() => expect(screen.getByText('LOCAL')).toBeInTheDocument())
+    const headers = Array.from(document.querySelectorAll('.sb-section-header'))
+    expect(headers.length).toBeGreaterThan(0)
+    for (const h of headers) {
+      expect(h.querySelector('.sb-section-icon')).toBeTruthy()
+    }
+  })
+})

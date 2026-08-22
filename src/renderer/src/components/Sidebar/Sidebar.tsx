@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Icon } from '../Icon/Icon'
+import { Icon, type IconName } from '../Icon/Icon'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import GithubRow from '../GitHubPanel/GithubRow'
@@ -356,8 +356,14 @@ function GhGroup({ title, count, children, defaultOpen = true }: {
 }
 
 // ── Collapse section ─────────────────────────────────────────────
-function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onFilter, filterLabel, onRefresh, refreshing }: {
+function Section({ title, icon, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onFilter, filterLabel, onRefresh, refreshing }: {
   title: string
+  /**
+   * What the section IS, beside what it is called. Eleven headers in a column
+   * of small capitals are told apart by reading them; a mark is found without
+   * reading, which is what a panel you glance at needs.
+   */
+  icon?: IconName
   count?: number
   children: React.ReactNode
   defaultOpen?: boolean
@@ -399,6 +405,7 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, 
           : undefined}
       >
         <Icon name="play" size={10} />
+        {icon && <Icon name={icon} size={13} className="sb-section-icon" />}
         <span className="sb-section-title">{title}</span>
         {count !== undefined && <span className="sb-section-count">{count}</span>}
         {!!hiddenCount && onShowAll && (
@@ -1339,7 +1346,7 @@ export default function Sidebar({
 
           {/* AGENTS (single-view only) */}
           {view === 'agents' && (
-            <Section title="AGENTS" count={agents.length} defaultOpen>
+            <Section title="AGENTS" icon="agent" count={agents.length} defaultOpen>
               {agents.length === 0
                 ? <div className="sb-empty">{t('sb.noAgent')}</div>
                 : agents.map(a => (
@@ -1359,7 +1366,7 @@ export default function Sidebar({
 
           {/* LOCAL (also shown in the overview "current work" home) */}
           {(show('branches') || view === 'overview') && (
-          <Section title="LOCAL" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
+          <Section title="LOCAL" icon="device" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
             menuItems={localMenu()}
             hiddenCount={localBranches.filter(branchHidden).length}
             onShowAll={showAll('branches')}>
@@ -1417,7 +1424,7 @@ export default function Sidebar({
 
           {/* REMOTE */}
           {show('branches') && remoteBranches.length > 0 && (
-            <Section title="REMOTE" count={remoteBranches.length} defaultOpen={single}
+            <Section title="REMOTE" icon="cloud" count={remoteBranches.length} defaultOpen={single}
               menuItems={familyMenu('remotes')}
               hiddenCount={remoteBranches.filter(branchHidden).length}
               onShowAll={showAll('remotes')}>
@@ -1459,7 +1466,7 @@ export default function Sidebar({
 
           {/* TAGS */}
           {show('tags') && (
-          <Section title="TAGS" count={tags.length} defaultOpen={single}
+          <Section title="TAGS" icon="tag" count={tags.length} defaultOpen={single}
             onAdd={onCreateTag} addLabel={t('sb.newTag')}
             menuItems={familyMenu('tags')}
             hiddenCount={tags.filter(tg => tagHidden(tg.name)).length}
@@ -1481,7 +1488,7 @@ export default function Sidebar({
 
           {/* REMOTES */}
           {show('remotes') && (
-          <Section title="REMOTES" count={remotes.length} defaultOpen={single}
+          <Section title="REMOTES" icon="repo" count={remotes.length} defaultOpen={single}
             onAdd={handleAddRemote} addLabel={t('sb.addRemote')}
             menuItems={familyMenu('remotes')}
             hiddenCount={remotes.filter(r => remoteHidden(r.name)).length}
@@ -1509,7 +1516,7 @@ export default function Sidebar({
 
           {/* SUBMODULES */}
           {show('overview') && submodules.length > 0 && (
-            <Section title="SUBMODULES" count={submodules.length} defaultOpen={false}>
+            <Section title="SUBMODULES" icon="listTree" count={submodules.length} defaultOpen={false}>
               {submodules.map(sub => (
                 <SubmoduleItem
                   key={sub.path}
@@ -1523,7 +1530,7 @@ export default function Sidebar({
 
           {/* WORKTREES */}
           {show('worktrees') && (
-          <Section title="WORKTREES" count={worktrees.length} defaultOpen={single}
+          <Section title="WORKTREES" icon="worktree" count={worktrees.length} defaultOpen={single}
             onAdd={handleAddWorktree} addLabel={t('sb.addWorktree')}>
             {worktrees.length === 0
               ? <div className="sb-empty">{t('sb.noWorktree')}</div>
@@ -1543,7 +1550,7 @@ export default function Sidebar({
           {/* REFLOG — recovery/history tool, kept collapsed at the bottom of
               the overview (not the point of the overview) */}
           {show('overview') && (
-          <Section title="REFLOG" count={reflog.length} defaultOpen={false}>
+          <Section title="REFLOG" icon="reflog" count={reflog.length} defaultOpen={false}>
             {reflog.length === 0
               ? <div className="sb-empty">{t('sb.reflogEmpty')}</div>
               : reflog.map((entry, i) => (
@@ -1561,7 +1568,7 @@ export default function Sidebar({
               beside the branches, and a tab would replace what is being worked
               on. Absent entirely when the host has no GitHub here. */}
           {githubPRs && show('prs') && (
-            <Section title="PULL REQUESTS" count={githubPRs.length} defaultOpen={single}
+            <Section title="PULL REQUESTS" icon="pullRequest" count={githubPRs.length} defaultOpen={single}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('prs'))}
               refreshing={githubRefreshing === 'prs'}
               onFilter={() => setFilterEditor(f => f?.section === 'prs' ? null : { section: 'prs', index: -1 })}
@@ -1631,7 +1638,7 @@ export default function Sidebar({
 
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
-            <Section title="GITHUB ISSUES" count={githubIssues.length} defaultOpen={single}
+            <Section title="GITHUB ISSUES" icon="issue" count={githubIssues.length} defaultOpen={single}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('issues'))}
               refreshing={githubRefreshing === 'issues'}
               onFilter={() => setFilterEditor(f => f?.section === 'issues' ? null : { section: 'issues', index: -1 })}
@@ -1686,6 +1693,7 @@ export default function Sidebar({
           {show('stash') && (
           <Section
             title="STASH"
+            icon="stash"
             count={stashes.length}
             defaultOpen={single}
             onAdd={e => {

@@ -224,6 +224,10 @@
   transition: color var(--dur-fast);
 }
 .sb-section-header:hover { color: var(--text-primary-soft); }
+/* The section's own mark. Dimmer than the label, which is the thing being
+   read; the icon is what the eye lands on when it is not reading. */
+.sb-section-icon { flex-shrink: 0; opacity: 0.75; }
+.sb-section-header:hover .sb-section-icon { opacity: 1; }
 
 .chevron {
   transition: transform var(--dur-base);
