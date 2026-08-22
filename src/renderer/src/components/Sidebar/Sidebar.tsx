@@ -6,6 +6,7 @@ import GithubRow from '../GitHubPanel/GithubRow'
 import { loadGhFilters, saveGhFilters, validateGhQuery, composeGhQuery, ghFilterKeys,
   GH_SEARCH_DOCS_URL, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
+import { buildBranchTree, folderPaths, type BranchNode } from './branchTree'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { publishedNameFor } from '../ContextMenu/branchRefs'
 import { isRefHidden, type GraphVisibility, type RefFamily } from '../../utils/graphVisibility'
@@ -434,6 +435,53 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, 
   )
 }
 
+// ── The branch tree ──────────────────────────────────────────────
+// A branch name is a path, so the sections draw it as one (#134). Folders are
+// rows of their own; every leaf is the same BranchItem the flat list used, so
+// nothing a row carries — the menu, the PR chip, ahead/behind, solo, hide,
+// drag-and-drop — changes with the shape it is drawn in.
+
+function BranchTree<T>({ nodes, open, onToggle, renderLeaf, depth = 0 }: {
+  nodes: BranchNode<T>[]
+  open: Set<string>
+  onToggle: (path: string) => void
+  renderLeaf: (item: T, label: string) => React.ReactNode
+  depth?: number
+}) {
+  const { t } = useLang()
+  return (
+    <>
+      {nodes.map(node => node.kind === 'leaf'
+        ? (
+          <div key={node.path} className="sb-tree-leaf" style={{ paddingLeft: depth * 12 }}>
+            {renderLeaf(node.item, node.label)}
+          </div>
+        )
+        : (
+          <div key={node.path}>
+            <div className="sb-tree-folder" style={{ paddingLeft: depth * 12 }}
+              title={node.path}
+              onClick={() => onToggle(node.path)}>
+              <Icon name={open.has(node.path) ? 'caretDown' : 'chevronRight'} size={10} />
+              <Icon name="folder" size={11} />
+              <span className="sb-tree-folder-name">{node.label}</span>
+              <span className="sb-tree-folder-count">{countLeaves([node])}</span>
+            </div>
+            {open.has(node.path) && (
+              <BranchTree nodes={node.children} open={open} onToggle={onToggle}
+                renderLeaf={renderLeaf} depth={depth + 1} />
+            )}
+          </div>
+        ))}
+      {nodes.length === 0 && <div className="sb-empty">{t('sb.noLocalBranch')}</div>}
+    </>
+  )
+}
+
+function countLeaves<T>(nodes: BranchNode<T>[]): number {
+  return nodes.reduce((n, x) => n + (x.kind === 'leaf' ? 1 : countLeaves(x.children)), 0)
+}
+
 // ── Branch item with context menu ────────────────────────────────
 interface BranchItemProps {
   name: string
@@ -473,21 +521,30 @@ interface BranchItemProps {
   // disambiguates "main" vs "main" by showing "origin/main" / "archive/main"
   // instead of collapsing both to a bare "main".
   showRemotePrefix?: boolean
+  /**
+   * What the row reads as. The tree passes the last path segment, because the
+   * folders above it already spell the rest. Everything else — the menu, the
+   * ref, copy-name — keeps using the full name (#134).
+   */
+  displayAs?: string
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
   const { t } = useLang()
-  const display = remote
+  const fullDisplay = remote
     ? (showRemotePrefix ? name.replace(/^remotes\//, '') : name.replace(/^remotes\/[^/]+\//, ''))
     : name
+  // The menu, the ref and copy-name all keep the full name; only what the eye
+  // reads is shortened by the tree.
+  const display = displayAs ?? fullDisplay
 
   // Same builder the toolbars use — right-click here and the ⋮ button up there
   // now offer the identical menu (v1.21.0).
   const menuItems: MenuItemDef[] = buildBranchMenu(
-    { name, display, current, remote: !!remote, pr: pr ?? undefined, publishedAs },
+    { name, display: fullDisplay, current, remote: !!remote, pr: pr ?? undefined, publishedAs },
     { currentBranch, soloed, hidden, favorite, issue },
     {
       onCheckout: current ? undefined : onCheckout,
@@ -497,7 +554,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
       onMerge, onRebaseOnto, onCompare,
       onOpenOnRemote, onAssociateIssue, onToggleFavorite,
       onToggleSolo, onToggleHide,
-      onCopyName: () => navigator.clipboard.writeText(display),
+      onCopyName: () => navigator.clipboard.writeText(fullDisplay),
       onCopyLink,
       onRename, onDelete, onDeleteRemote, onDeleteBoth,
     },
@@ -1115,6 +1172,32 @@ export default function Sidebar({
     },
     { label: t('sb.hidden.showAll'), action: () => onSetFamilyHidden(family, false) },
   ]
+  // Which folders are open, per repository. Everything starts open: a tree
+  // that reopens collapsed on every launch is slower than the flat list it
+  // replaced. Only what the user closed is remembered.
+  const foldersKey = `gv:branch-folders:${repoName || repoPath || ''}`
+  const [closedFolders, setClosedFolders] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(foldersKey) || '[]')) } catch { return new Set() }
+  })
+  useEffect(() => {
+    try { return void localStorage.setItem(foldersKey, JSON.stringify([...closedFolders])) } catch { /* private mode */ }
+  }, [foldersKey, closedFolders])
+  const toggleFolder = useCallback((path: string) => {
+    setClosedFolders(prev => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path); else next.add(path)
+      return next
+    })
+  }, [])
+  /** Open = everything the user has not closed. */
+  const openFolders = (nodes: BranchNode<any>[]) =>
+    new Set(folderPaths(nodes).filter(p => !closedFolders.has(p)))
+
+  // A filter FLATTENS the tree for as long as it is non-empty. A tree that
+  // stays folded while you type reads as an empty section, and expanding every
+  // ancestor of every match is the same list with indentation in front of it.
+  const filtering = !!branchFilter
+
   const showAll = (family: RefFamily) => onSetFamilyHidden && (() => onSetFamilyHidden(family, false))
 
   /**
@@ -1141,13 +1224,6 @@ export default function Sidebar({
   const remoteBranches = branches
     .filter(b => b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
-  // Same short name under more than one remote ("main" on both origin and
-  // archive) → prefix those with their remote name so they're tellable apart.
-  const remoteShortNameCounts = new Map<string, number>()
-  for (const b of remoteBranches) {
-    const short = b.name.replace(/^remotes\/[^/]+\//, '')
-    remoteShortNameCounts.set(short, (remoteShortNameCounts.get(short) ?? 0) + 1)
-  }
 
   const otherRecents = recentRepos.filter(r => r !== repoPath)
 
@@ -1271,10 +1347,12 @@ export default function Sidebar({
             menuItems={localMenu()}
             hiddenCount={localBranches.filter(branchHidden).length}
             onShowAll={showAll('branches')}>
-            {localBranches.length === 0 && <div className="sb-empty">{t('sb.noLocalBranch')}</div>}
-            {localBranches.map(b => (
-              <BranchItem
-                key={b.name}
+            {(() => {
+              // The rows themselves are unchanged; only their arrangement is.
+              const leaf = (b: BranchInfo, displayAs?: string) => (
+                <BranchItem
+                  displayAs={displayAs}
+                  key={b.name}
                 name={b.name}
                 current={b.current}
                 currentBranch={currentBranch}
@@ -1311,8 +1389,13 @@ export default function Sidebar({
                 ahead={b.ahead}
                 behind={b.behind}
                 gone={b.gone}
-              />
-            ))}
+                      />
+              )
+              if (filtering) return localBranches.map(b => leaf(b))
+              const nodes = buildBranchTree(localBranches, b => b.name)
+              return <BranchTree nodes={nodes} open={openFolders(nodes)} onToggle={toggleFolder}
+                renderLeaf={(b, label) => leaf(b, label)} />
+            })()}
           </Section>
           )}
 
@@ -1322,29 +1405,39 @@ export default function Sidebar({
               menuItems={familyMenu('remotes')}
               hiddenCount={remoteBranches.filter(branchHidden).length}
               onShowAll={showAll('remotes')}>
-              {remoteBranches.map(b => (
+              {(() => {
+              // `remotes/origin/fix/x` minus the `remotes/` prefix is
+              // `origin/fix/x` — so the remote becomes the first folder for
+              // free, and position now tells two `main`s apart. That is what
+              // `showRemotePrefix` was for, and why it is gone.
+              const leaf = (b: BranchInfo, displayAs?: string) => (
                 <BranchItem
-                  key={b.name}
-                  name={b.name}
-                  current={false}
-                  remote={true}
-                  showRemotePrefix={(remoteShortNameCounts.get(b.name.replace(/^remotes\/[^/]+\//, '')) ?? 0) > 1}
-                  currentBranch={currentBranch}
-                  onCheckout={() => onGoTo(b.name)}
-                  onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
-                  soloed={soloBranch === b.name}
-                  hidden={branchHidden(b)}
-                  onToggleSolo={() => onToggleSolo(b.name)}
-                  onToggleHide={() => onToggleHide(b.name)}
-                  favorite={isFavorite?.(b.name)}
-                  onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
-                  onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
-                  pr={prIntentFor?.(b.name)}
-                  onCreatePR={onCreatePR}
-                  publishedAs={b.name.replace(/^remotes\//, '')}
-                  onCopyLink={onCopyBranchLink && (() => onCopyBranchLink(b.name))}
-                />
-              ))}
+                    displayAs={displayAs}
+                    key={b.name}
+                    name={b.name}
+                    current={false}
+                    remote={true}
+                    currentBranch={currentBranch}
+                    onCheckout={() => onGoTo(b.name)}
+                    onDeleteRemote={() => onDeleteRemoteBranch(b.name)}
+                    soloed={soloBranch === b.name}
+                    hidden={branchHidden(b)}
+                    onToggleSolo={() => onToggleSolo(b.name)}
+                    onToggleHide={() => onToggleHide(b.name)}
+                    favorite={isFavorite?.(b.name)}
+                    onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
+                    onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
+                    pr={prIntentFor?.(b.name)}
+                    onCreatePR={onCreatePR}
+                    publishedAs={b.name.replace(/^remotes\//, '')}
+                    onCopyLink={onCopyBranchLink && (() => onCopyBranchLink(b.name))}
+                  />
+              )
+              if (filtering) return remoteBranches.map(b => leaf(b))
+              const nodes = buildBranchTree(remoteBranches, b => b.name.replace(/^remotes\//, ''))
+              return <BranchTree nodes={nodes} open={openFolders(nodes)} onToggle={toggleFolder}
+                renderLeaf={(b, label) => leaf(b, label)} />
+            })()}
             </Section>
           )}
 

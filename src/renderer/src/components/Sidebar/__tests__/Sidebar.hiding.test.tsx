@@ -161,3 +161,65 @@ describe('the graph scope on the LOCAL header', () => {
     expect(screen.queryByText('All Branches in the Graph')).not.toBeInTheDocument()
   })
 })
+
+// #134 — the sections draw a branch name as the path it is.
+describe('the branch tree in the sections', () => {
+  const b = (name: string, over: any = {}) =>
+    ({ name, current: false, remote: false, commit: 'abc1234', label: name, ...over })
+
+  const drawBranches = (branches: any[], overrides: Record<string, any> = {}) =>
+    render('branches' as any, { branches, ...overrides })
+
+  test('the segments before the last become folder rows', async () => {
+    drawBranches([b('feat/views-in-tabs'), b('fix/a'), b('fix/b'), b('main', { current: true })])
+    await waitFor(() => expect(screen.getByText('LOCAL')).toBeInTheDocument())
+    expect(await screen.findByText('feat')).toBeInTheDocument()
+    expect(screen.getByText('fix')).toBeInTheDocument()
+    // the leaf reads as its last segment, the folders spelling the rest
+    expect(screen.getByText('views-in-tabs')).toBeInTheDocument()
+    expect(screen.queryByText('feat/views-in-tabs')).not.toBeInTheDocument()
+    // and a name with no slash stays a plain row
+    expect(screen.getByText('main')).toBeInTheDocument()
+  })
+
+  test('a folder says how many branches are under it', async () => {
+    drawBranches([b('fix/a'), b('fix/b'), b('fix/c')])
+    await waitFor(() => expect(screen.getByText('fix')).toBeInTheDocument())
+    // Its own count, not the section's — both say 3 here, which is the point
+    // of asking the folder row for it.
+    const folder = screen.getByText('fix').closest('.sb-tree-folder')!
+    expect(within(folder as HTMLElement).getByText('3')).toBeInTheDocument()
+  })
+
+  test('clicking a folder folds it, and its branches go with it', async () => {
+    drawBranches([b('fix/a'), b('main')])
+    await waitFor(() => expect(screen.getByText('fix')).toBeInTheDocument())
+    expect(screen.getByText('a')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('fix'))
+    expect(screen.queryByText('a')).not.toBeInTheDocument()
+    // ...and nothing else moved
+    expect(screen.getByText('main')).toBeInTheDocument()
+  })
+
+  // A tree that stays folded while you type reads as an empty section.
+  test('a filter flattens the tree for as long as it is set', async () => {
+    drawBranches([b('fix/typecheck-gate-holes'), b('main')])
+    await waitFor(() => expect(screen.getByText('fix')).toBeInTheDocument())
+    const filter = screen.getByPlaceholderText(/filter/i)
+    await userEvent.type(filter, 'typecheck')
+    // no folder row, and the row that matched reads in full
+    expect(screen.queryByText('fix')).not.toBeInTheDocument()
+    expect(screen.getByText('fix/typecheck-gate-holes')).toBeInTheDocument()
+  })
+
+  // REMOTE is a section of the branches view, not the remotes one.
+  test('a remote is the first folder, so two mains are told apart by position', async () => {
+    drawBranches([
+      b('remotes/origin/main', { remote: true }),
+      b('remotes/upstream/main', { remote: true }),
+    ])
+    await waitFor(() => expect(screen.getByText('origin')).toBeInTheDocument())
+    expect(screen.getByText('upstream')).toBeInTheDocument()
+    expect(screen.getAllByText('main')).toHaveLength(2)
+  })
+})
