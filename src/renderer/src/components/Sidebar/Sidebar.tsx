@@ -441,6 +441,17 @@ function Section({ title, count, children, defaultOpen = true, onAdd, addLabel, 
 // nothing a row carries — the menu, the PR chip, ahead/behind, solo, hide,
 // drag-and-drop — changes with the shape it is drawn in.
 
+/**
+ * Where the tree starts: level with the section TITLE, never left of it.
+ * A folder icon further left than the word LOCAL reads as a level ABOVE the
+ * section, which is the one thing it is not.
+ */
+const TREE_INDENT_BASE = 26
+/** What .sb-branch-item already contributes itself — padding plus margin. */
+const BRANCH_ROW_INSET = 20
+/** One level of nesting. */
+const TREE_INDENT_STEP = 12
+
 function BranchTree<T>({ nodes, open, onToggle, renderLeaf, depth = 0 }: {
   nodes: BranchNode<T>[]
   open: Set<string>
@@ -453,17 +464,22 @@ function BranchTree<T>({ nodes, open, onToggle, renderLeaf, depth = 0 }: {
     <>
       {nodes.map(node => node.kind === 'leaf'
         ? (
-          <div key={node.path} className="sb-tree-leaf" style={{ paddingLeft: depth * 12 }}>
+          <div key={node.path} className="sb-tree-leaf"
+            style={{ paddingLeft: TREE_INDENT_BASE - BRANCH_ROW_INSET + depth * TREE_INDENT_STEP }}>
             {renderLeaf(node.item, node.label)}
           </div>
         )
         : (
           <div key={node.path}>
-            <div className="sb-tree-folder" style={{ paddingLeft: depth * 12 }}
+            {/* Indented from the section title, and level with the branch
+                rows beside it: a folder and a branch at the same depth are the
+                same depth. TREE_INDENT_BASE is what .sb-branch-item's own left
+                padding and margin come to, so the two icons line up. */}
+            <div className="sb-tree-folder"
+              style={{ paddingLeft: TREE_INDENT_BASE + depth * TREE_INDENT_STEP }}
               title={node.path}
               onClick={() => onToggle(node.path)}>
-              <Icon name={open.has(node.path) ? 'caretDown' : 'chevronRight'} size={10} />
-              <Icon name="folder" size={11} />
+              <Icon name="folder" size={12} />
               <span className="sb-tree-folder-name">{node.label}</span>
               <span className="sb-tree-folder-count">{countLeaves([node])}</span>
             </div>
