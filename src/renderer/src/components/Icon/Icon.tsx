@@ -165,6 +165,22 @@ const parsed: Record<string, Parsed> = Object.fromEntries(
 const DENSE = new Set<string>(['hunk', 'commandPalette'])
 
 /**
+ * The icons whose meaning is carried by NODES — a branch, a merge, a rebase.
+ * A node is a 2.4-unit disc on a 24 grid, so at 11px it is 2.2 device pixels:
+ * under three, a disc stops being a shape and becomes a smudge, and the mark
+ * reads as a squiggle rather than a graph. Floored at 13, where the disc is a
+ * clean 2.6px, the way DENSE floors the two icons with too much line in them.
+ *
+ * The floor is HERE rather than at the call sites so the rule holds wherever
+ * one of these is drawn next, and so it cannot be applied to the chevrons and
+ * carets that are deliberately 8 to 10.
+ */
+const NODED = new Set<string>([
+  'branch', 'newBranch', 'merge', 'rebase', 'pullRequest',
+  'worktree', 'gitflow', 'reflog', 'blame',
+])
+
+/**
  * A 1.7 stroke on a 24 grid is 1.7px at 24 and 1.13px at 16 — under the pixel,
  * so it greys out. Hold a rendered 1.5px below 24, which means growing the
  * authored width as the size falls. The geometry is authored once.
@@ -188,7 +204,7 @@ interface Props {
 export function Icon({ name, size = 16, className, title }: Props) {
   const ic = parsed[name]
   if (!ic) throw new Error(`Icon: no icons/${name}.svg`)
-  const s = DENSE.has(name) ? Math.max(size, 20) : size
+  const s = DENSE.has(name) ? Math.max(size, 20) : NODED.has(name) ? Math.max(size, 13) : size
 
   // A silhouette has no stroke to grow, and growing one would be drawing on
   // somebody else's shape. Only our own family gets the size-aware weight.
