@@ -9,7 +9,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import '../../../src/renderer/src/components/RebaseProgress/RebaseProgress.css'
 
-declare global { interface Window { gitAPI: any } }
+// The bridge is declared in the shared renderer and augmented by
+// panel-api.d.ts — an `any` here would have overridden both (#105).
 
 type TodoAction = 'pick' | 'reword' | 'edit' | 'squash' | 'fixup' | 'drop'
 const ACTIONS: TodoAction[] = ['pick', 'reword', 'edit', 'squash', 'fixup', 'drop']
@@ -88,7 +89,7 @@ export default function RebaseTodoApp() {
 
   useEffect(() => {
     window.gitAPI.todoGet()
-      .then((r: { text: string }) => { setEntries(parseTodo(r?.text ?? '')); setLoading(false) })
+      .then((r) => { setEntries(parseTodo(r?.text ?? '')); setLoading(false) })
       .catch(() => { setError(t('rt.readError')); setLoading(false) })
     // Best-effort — only used for the same branch/onto ref chips the
     // "Rebase en cours" tab shows; harmless if this ever comes back empty.

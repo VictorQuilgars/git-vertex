@@ -8,7 +8,8 @@ import React, { useState, useCallback } from 'react'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import '../../../src/renderer/src/components/RebaseProgress/RebaseProgress.css'
 
-declare global { interface Window { gitAPI: any } }
+// The bridge is declared in the shared renderer and augmented by
+// panel-api.d.ts — an `any` here would have overridden both (#105).
 
 interface CommitMsgBoot {
   initialMessage?: string

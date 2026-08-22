@@ -7,7 +7,8 @@ import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import DiffViewer from '../../../src/renderer/src/components/DiffViewer/DiffViewer'
 import type { CommitNode } from '../../../src/renderer/src/types'
 
-declare global { interface Window { gitAPI: any } }
+// The bridge is declared in the shared renderer and augmented by
+// panel-api.d.ts — an `any` here would have overridden both (#105).
 
 function syntheticCommit(shortHash: string, message: string): CommitNode {
   return { hash: shortHash, shortHash, message, author: '', authorEmail: '', date: '', parents: [], refs: [] }

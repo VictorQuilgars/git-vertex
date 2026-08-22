@@ -197,21 +197,22 @@ describe('buildBranchMenu (v1.21.0)', () => {
     }
   })
 
-  test('the pull request row on the current branch names it as the head', () => {
+  test('the row names both ends, on your own branch as anywhere else', () => {
     const items = buildBranchMenu(
       local({
         name: 'feature/x', display: 'feature/x', current: true,
-        pr: { head: 'feature/x', baseLabel: 'origin/main' },
+        pr: { head: 'feature/x', headLabel: 'origin/feature/x', baseLabel: 'origin/main', needsPush: true },
       }),
       { currentBranch: 'feature/x' }, allActions(), t
     )
-    // The base is the default branch and stays implicit on your own row.
-    expect(labels(items)).toContain('sb.branch.startPR(feature/x)')
+    // The base used to stay implicit here — so the row you use most said the
+    // least about what it was going to do.
+    expect(labels(items)).toContain('sb.branch.startPRTo(feature/x,origin/main)')
   })
 
   test('another row spells out both ends of the request', () => {
     const items = buildBranchMenu(
-      local({ name: 'main', display: 'main', pr: { head: 'feature/x', baseLabel: 'origin/main' } }),
+      local({ name: 'main', display: 'main', pr: { head: 'feature/x', headLabel: 'origin/feature/x', baseLabel: 'origin/main', needsPush: true } }),
       { currentBranch: 'feature/x' }, allActions(), t
     )
     expect(labels(items)).toContain('sb.branch.startPRTo(feature/x,origin/main)')
@@ -220,24 +221,50 @@ describe('buildBranchMenu (v1.21.0)', () => {
   test('the head is whatever the intent says, not the branch you are on', () => {
     // Standing on the default branch, the row you clicked becomes the head.
     const items = buildBranchMenu(
-      local({ name: 'feature/x', display: 'feature/x', pr: { head: 'feature/x', baseLabel: 'origin/main' } }),
+      local({ name: 'feature/x', display: 'feature/x', pr: { head: 'feature/x', headLabel: 'origin/feature/x', baseLabel: 'origin/main', needsPush: true } }),
       { currentBranch: 'main' }, allActions(), t
     )
     expect(labels(items)).toContain('sb.branch.startPRTo(feature/x,origin/main)')
   })
 
+  // Victor: a branch he had just pushed still read "Push X and start a Pull
+  // Request". The push had registered; only the label had not asked.
+  test('an already-pushed branch does not promise a push', () => {
+    const items = buildBranchMenu(
+      local({
+        name: 'feature/x', display: 'feature/x', current: true,
+        pr: { head: 'feature/x', headLabel: 'origin/feature/x', baseLabel: 'origin/main', needsPush: false },
+      }),
+      { currentBranch: 'feature/x' }, allActions(), t
+    )
+    const l = labels(items)
+    // The head reads as its REMOTE ref here: there is nothing left to push, so
+    // the thing the request comes from is the one the remote already holds.
+    expect(l).toContain('sb.branch.openPRTo(origin/feature/x,origin/main)')
+    expect(l.some(x => x.startsWith('sb.branch.startPR'))).toBe(false)
+  })
+
+  test('and still names both ends when the row is not the one you are on', () => {
+    const items = buildBranchMenu(
+      local({ name: 'main', display: 'main',
+              pr: { head: 'feature/x', headLabel: 'origin/feature/x', baseLabel: 'origin/main', needsPush: false } }),
+      { currentBranch: 'feature/x' }, allActions(), t
+    )
+    expect(labels(items)).toContain('sb.branch.openPRTo(origin/feature/x,origin/main)')
+  })
+
   test('no pull request row without an intent, however many handlers are wired', () => {
     const l = labels(buildBranchMenu(local(), { currentBranch: 'main' }, allActions(), t))
-    expect(l.some(x => x.startsWith('sb.branch.startPR'))).toBe(false)
+    expect(l.some(x => x.startsWith('sb.branch.startPR') || x.startsWith('sb.branch.openPR'))).toBe(false)
   })
 
   test('no pull request row when the caller cannot open one', () => {
     const { onCreatePR: _drop, ...noPR } = allActions()
     const items = buildBranchMenu(
-      local({ pr: { head: 'feature/x', baseLabel: 'origin/main' } }),
+      local({ pr: { head: 'feature/x', headLabel: 'origin/feature/x', baseLabel: 'origin/main', needsPush: true } }),
       { currentBranch: 'main' }, noPR, t
     )
-    expect(labels(items).some(x => x.startsWith('sb.branch.startPR'))).toBe(false)
+    expect(labels(items).some(x => x.startsWith('sb.branch.startPR') || x.startsWith('sb.branch.openPR'))).toBe(false)
   })
 
   // The menu carries every branch action and, in the graph, every commit action

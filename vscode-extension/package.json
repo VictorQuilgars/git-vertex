@@ -770,7 +770,7 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -p ./ && tsc -p tsconfig.test.json && node build-webview.js && node scripts/check-webview-names.js",
+    "compile": "tsc -p ./ && tsc -p tsconfig.test.json && tsc -p tsconfig.webview.json && node build-webview.js && node scripts/check-webview-names.js",
     "vscode:prepublish": "npm run compile",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",

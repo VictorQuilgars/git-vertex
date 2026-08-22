@@ -24,7 +24,9 @@ export interface BranchMenuTarget {
    * way round it points depends on where you are standing. Absent means the
    * row offers none, and no amount of handlers brings it back.
    */
-  pr?: { head: string; baseLabel: string | null }
+  // What prIntentFor decided, including whether the head still has to be
+  // pushed — the label promises a push only when that is true.
+  pr?: { head: string; headLabel: string; baseLabel: string | null; needsPush: boolean }
   /**
    * How the remote names this branch (`origin/main`), or absent when it has
    * never been pushed. Decides whether the remote half of the delete group and
@@ -131,16 +133,26 @@ export function buildBranchMenu(
   if (current && actions.onPull) sync.push({ label: t('sb.branch.pull'), action: actions.onPull })
   if (!remote && actions.onPush) sync.push({ label: t('sb.branch.push'), action: actions.onPush })
   if (!remote && actions.onSetUpstream) sync.push({ label: t('sb.branch.setUpstream'), action: actions.onSetUpstream })
-  // A pull request starts with a push — GitHub cannot see a branch it has never
-  // received — so the row says so and the composer does it. Which branch the
-  // request runs from is `prIntentFor`'s call, not this row's: it names whatever
-  // head that returned, and says nothing when it returned nothing.
+  // A pull request starts with a push when GitHub has not received the branch
+  // yet — the composer does it, and the row says so. It only says so when it is
+  // TRUE: a branch already up there was still being offered "Push X and start a
+  // Pull Request", which promises work that will not happen and reads as though
+  // the app had not noticed the push. `needsPush` was already decided by
+  // prIntentFor; the label simply was not asking.
+  //
+  // Which branch the request runs from is prIntentFor's call, not this row's:
+  // it names whatever head that returned, and says nothing when it returned
+  // nothing.
   if (actions.onCreatePR && target.pr) {
-    const { head, baseLabel } = target.pr
+    const { head, headLabel, baseLabel, needsPush } = target.pr
+    // Both ends are named whenever the base is known, on your own row too: the
+    // row is the only place that says which way the request runs, and leaving
+    // the base implicit there meant the one row you use most said the least.
+    const from = needsPush ? head : headLabel
     sync.push({
-      label: baseLabel && !current
-        ? t('sb.branch.startPRTo', head, baseLabel)
-        : t('sb.branch.startPR', head),
+      label: needsPush
+        ? (baseLabel ? t('sb.branch.startPRTo', from, baseLabel) : t('sb.branch.startPR', from))
+        : (baseLabel ? t('sb.branch.openPRTo', from, baseLabel) : t('sb.branch.openPR', from)),
       action: actions.onCreatePR,
     })
   }

@@ -540,7 +540,13 @@ export class GitVertexHost implements vscode.Disposable {
           canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
           title: args[0] ?? 'Choose a folder',
         })
-        return picked && picked.length > 0 ? picked[0].fsPath : null
+        // `{ path }`, like the desktop's — NOT the bare string this used to
+        // return. The shared renderer reads `.path` (Sidebar's Add Worktree,
+        // Clone and Init's Browse), so a bare string made `!dir.path` true
+        // every time and those three did nothing at all in the panel. The
+        // shape is the contract; a poorer one here succeeds while doing
+        // something else, which is worse than not answering (#105).
+        return { path: picked && picked.length > 0 ? picked[0].fsPath : null }
       }
       case 'zoomGet': return 1
       case 'zoomSet': return 1

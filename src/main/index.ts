@@ -2083,12 +2083,19 @@ const githubIdenticonUrl = (key: string) => {
 // cache, once. This is the reliable path for the logged-in user's own commits
 // (including unpushed ones, where the commits API 422s) and for private emails
 // that the public search can't find. Memoized so we only hit the API once.
+//
+// ⚠️ `base` is a PARAMETER and must stay one. This function used to read a
+// name `api` that exists in the caller and not here — a ReferenceError on
+// every call, swallowed whole by the catch below, which then cleared the memo
+// so the next call could fail the same way. The path never once worked, and
+// nothing said so: avatars quietly fell through to the commits API. Found by
+// the main-process typecheck this file now passes (#105).
 let authedEmailsLoaded: Promise<void> | null = null
-function loadAuthedUserEmails(token: string): Promise<void> {
+function loadAuthedUserEmails(base: string, token: string): Promise<void> {
   if (authedEmailsLoaded) return authedEmailsLoaded
   authedEmailsLoaded = (async () => {
     try {
-      const userRes = await fetch(`${api.base}/user`, {
+      const userRes = await fetch(`${base}/user`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (!userRes.ok) return
@@ -2099,7 +2106,7 @@ function loadAuthedUserEmails(token: string): Promise<void> {
       const emails = new Set<string>()
       if (user?.email) emails.add(String(user.email).trim().toLowerCase())
 
-      const emailsRes = await fetch(`${api.base}/user/emails`, {
+      const emailsRes = await fetch(`${base}/user/emails`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       })
       if (emailsRes.ok) {
@@ -2148,7 +2155,7 @@ ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
   if (token) {
     // First: resolve via the authenticated user's own email list. Works for the
     // logged-in user's commits even when unpushed or using a private email.
-    await loadAuthedUserEmails(token)
+    await loadAuthedUserEmails(api.base, token)
     if (avatarCache.has(key)) return avatarCache.get(key)!
 
     // Next: the commits API. GitHub resolves the commit's author to a real user

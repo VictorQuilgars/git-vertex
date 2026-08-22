@@ -1092,8 +1092,11 @@ export default function CommitGraph({
     while (cur && !seen.has(cur.hash)) {
       seen.add(cur.hash)
       if (cur.hash !== WIP_HASH) rows.add(cur.row)
-      const fp = cur.parents[0]
-      const next = fp ? byHash.get(fp) : undefined
+      const fp: string | undefined = cur.parents[0]
+      // Annotated because `cur` is reassigned from it below: without this the
+      // inference is circular and both land on `any`, which is how a whole
+      // walk over the graph went unchecked.
+      const next: typeof hovered | undefined = fp ? byHash.get(fp) : undefined
       if (!next) break
       // Stop before entering another branch's territory
       if (next.refs.some(isLocalBranchRef)) break
@@ -1168,10 +1171,14 @@ export default function CommitGraph({
     if (!prIntentFor || !onCreatePR) return null
     const intent = prIntentFor(branchRef)
     if (!intent) return null
+    // Same rule as branchMenu.ts, and the same wording: a push is promised only
+    // when one is needed, both ends are named whenever the base is known, and
+    // the head reads as its remote ref only when there is nothing left to push.
+    const from = intent.needsPush ? intent.head : intent.headLabel
     return {
-      label: intent.baseLabel && !isCurrent
-        ? t('sb.branch.startPRTo', intent.head, intent.baseLabel)
-        : t('sb.branch.startPR', intent.head),
+      label: intent.needsPush
+        ? (intent.baseLabel ? t('sb.branch.startPRTo', from, intent.baseLabel) : t('sb.branch.startPR', from))
+        : (intent.baseLabel ? t('sb.branch.openPRTo', from, intent.baseLabel) : t('sb.branch.openPR', from)),
       action: () => onCreatePR(intent),
     }
   }, [prIntentFor, onCreatePR, t])

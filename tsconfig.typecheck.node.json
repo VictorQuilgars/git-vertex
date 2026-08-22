@@ -1,0 +1,13 @@
+{
+  "//": "The main-process half of the gate (#105). `tsconfig.typecheck.json` extends tsconfig.web.json, so it only ever saw the renderer — src/main and src/preload were checked by nothing but ts-jest, and only for the files a test happened to import. A main-process file with no test went through unread: that is how `loadAuthedUserEmails` shipped reading a name that does not exist in it, throwing on every call into a catch that swallowed it.",
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "//noUnused": "Off for the same reason as the renderer gate: tidiness is a different job from correctness, and this gate is about a name that does not exist.",
+  "//tests": "Excluded for the same reason the renderer's are — ts-jest compiles them with the jest globals this program has no types for, and `npm test` is what reports on them.",
+  "exclude": ["src/main/**/__tests__/**"]
+}
