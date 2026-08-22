@@ -781,12 +781,20 @@ export default function App() {
     }
   }, [showToast, detectGithub, activeTabId])
 
+  // #127, decided per case against the rule in Toast.tsx: opening a
+  // repository is NAVIGATION — the whole window becomes that repository,
+  // which is its own confirmation — so these two stay silent on success and
+  // let applyRepo report a refusal.
   const handleOpenRepo = async () => applyRepo(await window.gitAPI.openRepo())
   const handleSetRepo = async (path: string) => applyRepo(await window.gitAPI.setRepo(path))
   const handleCreateRepo = async () => {
     const dir = await window.gitAPI.selectDirectory(t('welcome.createHint'))
     if (!dir.path) return
-    applyRepo(await (window.gitAPI as any).initRepo(dir.path))
+    const res = await (window.gitAPI as any).initRepo(dir.path)
+    applyRepo(res)
+    // Creating one, though, is a MUTATION: a repository now exists on disk
+    // where none did, and nothing else on screen says so.
+    if (res?.path) showToast(t('toast.repoCreated'))
   }
   // Open the current release notes on demand (welcome "Notes de version" link).
   const openReleaseNotes = async () => {
@@ -794,6 +802,8 @@ export default function App() {
     if (w) { setWhatsNew(w); setWhatsNewActive(true) }
     else showToast(t('toast.noReleaseNotes'), 'err')
   }
+  // A mutation, but a SELF-EVIDENT one — the row leaves the list you removed
+  // it from, in front of you. #127's rule sends those to silence.
   const handleRemoveRecent = async (path: string) => {
     const updated = await window.gitAPI.removeRecentRepo(path)
     setRecentRepos(updated ?? [])
@@ -1123,6 +1133,7 @@ export default function App() {
     }
   }
 
+  // Navigation: it opens the push modal, which is the confirmation.
   const handlePushModal = () => {
     if (repoPath) setPushModalOpen(true)
   }
@@ -1141,6 +1152,7 @@ export default function App() {
     else { showToast(t('toast.stashPopped', 0)); await loadRepoData() }
   }
 
+  // Navigation: a terminal window opens, which is the confirmation.
   const handleTerminal = async () => {
     if (!repoPath) return
     const r = await (window.gitAPI as any).openTerminal?.()
@@ -1594,12 +1606,18 @@ export default function App() {
   )
 
   // The push itself happens in the composer, right before the GitHub call.
+  // Navigation: this opens the composer, and the composer reports its own
+  // outcome — nothing has changed yet at this point.
   const handleStartPR = (intent: PRIntent) => {
     if (!githubOwnerRepo) { showToast(t('pr.noRemote'), 'err'); return }
     setPrIntent(intent)
     setPrModalOpen(true)
   }
 
+  // The four openers below are NAVIGATION — a browser comes to the front with
+  // the page in it. They speak only to say they cannot go (#127, decided per
+  // case): a chip confirming a window you are already looking at is the noise
+  // that pushes a real one off the stack.
   const handleOpenCommitOnRemote = (hash: string) => {
     if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
     window.gitAPI.openExternal(remoteUrl.commit(remoteRepo, hash))

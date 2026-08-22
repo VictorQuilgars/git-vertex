@@ -142,9 +142,6 @@
   --danger-block-border: color-mix(in oklab, var(--seed-canvas) 62%, var(--seed-danger));
   --warning-block-bg: color-mix(in oklab, var(--seed-canvas) 88%, var(--seed-warning));
   --warning-block-border: color-mix(in oklab, var(--seed-canvas) 62%, var(--seed-warning));
-  --toast-success-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-success));
-  --toast-danger-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-danger));
-  --toast-info-bg: color-mix(in oklab, var(--seed-canvas) 90%, var(--seed-accent));
   --amend-confirm-bg: color-mix(in oklab, var(--seed-success) 52%, #000000);
   --amend-cancel-bg: color-mix(in oklab, var(--seed-danger) 46%, #000000);
   --wip-bg: color-mix(in oklab, var(--seed-canvas) 78%, var(--seed-accent));

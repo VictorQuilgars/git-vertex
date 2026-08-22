@@ -1266,9 +1266,20 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     }
   }
 
-  const handle = async (fn: () => Promise<any>, reload = true) => {
-    await fn()
+  // #127's rule, at the one place every staging action goes through: a
+  // MUTATING action confirms, and says so when it fails. `say` is the chip's
+  // message — omitted only where the action is not a mutation.
+  const handle = async (fn: () => Promise<any>, reload = true, say?: string) => {
+    let r: any
+    try {
+      r = await fn()
+    } catch (e: any) {
+      showToast(e?.message ?? String(e), 'err')
+      return
+    }
+    if (r?.success === false) { showToast(r.error ?? t('toast.actionFailed'), 'err'); return }
     if (reload) await load()
+    if (say) showToast(say)
   }
 
   const selectFile = (file: SelectedDiffFile) => {
@@ -1285,6 +1296,8 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     if (staged.length) await window.gitAPI.unstage(staged)
     for (const f of all) await window.gitAPI.discardFile(f)
     await load()
+    // The destructive one, and it used to be the quietest of them all.
+    showToast(t('toast.discarded', all.length))
   }
 
   // Stash from the staging panel itself (v1.22.0) — it previously existed only
@@ -1379,14 +1392,20 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     && mergedFiles.length + amendOnly.length > 0
     && visibleFiles.length + visibleAmendOnly.length === 0
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; path: string } | null>(null)
-  const stageOne = (paths: string[]) => handle(() => window.gitAPI.stage(paths))
-  const unstageOne = (paths: string[]) => handle(() => window.gitAPI.unstage(paths))
+  const stageOne = (paths: string[]) =>
+    handle(() => window.gitAPI.stage(paths), true, t('toast.staged', paths.length))
+  const unstageOne = (paths: string[]) =>
+    handle(() => window.gitAPI.unstage(paths), true, t('toast.unstaged', paths.length))
   const discardOne = async (path: string) => {
     if (!window.confirm(t('panel.discard.confirm', path))) return
-    handle(() => window.gitAPI.discardFile(path))
+    handle(() => window.gitAPI.discardFile(path), true, t('toast.discarded', 1))
   }
-  const toggleAllStaged = () => handle(() =>
-    allStaged ? window.gitAPI.unstage(changes.staged.map(x => x.path)) : window.gitAPI.stageAll())
+  const toggleAllStaged = () => {
+    const staged = changes.staged.map(x => x.path)
+    return allStaged
+      ? handle(() => window.gitAPI.unstage(staged), true, t('toast.unstaged', staged.length))
+      : handle(() => window.gitAPI.stageAll(), true, t('toast.stagedAll'))
+  }
   const openFileMenu = (e: React.MouseEvent, path: string) => {
     e.preventDefault()
     setFileMenu({ x: e.clientX, y: e.clientY, path })
