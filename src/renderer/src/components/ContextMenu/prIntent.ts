@@ -25,8 +25,15 @@
 //     panels away is a lie about the state of the repository. Same head into a
 //     DIFFERENT base stays offered — that is a stacked request, and legal.
 //
-// The head is pushed before the pull request is opened whenever it is a local
-// branch the remote has not caught up with — hence `needsPush`.
+// The head is pushed before the pull request is opened whenever the remote has
+// not caught up with it — `needsPush`, which is three states read as two:
+//
+//   the branch's tip is already on the remote   → start a pull request
+//   the branch is on the remote, the tip is not → push, then start one
+//   the branch is local only                    → push, then start one
+//
+// The last two are the same action and the same label; what separates them is
+// only whether the push creates the remote branch or moves it.
 import type { BranchInfo } from '../../types'
 import { remoteNames, shortName } from './branchRefs'
 
@@ -37,6 +44,13 @@ export interface PRIntent {
   base: string | null
   /** How the base reads in a menu, e.g. `origin/main`. */
   baseLabel: string | null
+  /**
+   * How the head reads once the remote holds it, e.g. `origin/feat/x`. The
+   * label uses this only when no push is needed — when one is, what you push
+   * is the LOCAL branch, and naming the remote ref there would be a lie about
+   * which of the two the action touches.
+   */
+  headLabel: string
   /** The head is a local branch the remote does not have, or does not have in full. */
   needsPush: boolean
 }
@@ -114,6 +128,7 @@ function proposeFor(targetRef: string, ctx: PRContext): PRIntent | null {
       head: currentBranch,
       base: defaultBranch,
       baseLabel: defaultBranch ? labelFor(defaultBranch) : null,
+      headLabel: labelFor(currentBranch),
       needsPush: needsPushFor(currentBranch),
     }
   }
@@ -125,6 +140,7 @@ function proposeFor(targetRef: string, ctx: PRContext): PRIntent | null {
       head: currentBranch,
       base: target,
       baseLabel: labelFor(target),
+      headLabel: labelFor(currentBranch),
       needsPush: needsPushFor(currentBranch),
     }
   }
@@ -135,6 +151,7 @@ function proposeFor(targetRef: string, ctx: PRContext): PRIntent | null {
     head: target,
     base: defaultBranch,
     baseLabel: labelFor(defaultBranch),
+    headLabel: labelFor(target),
     needsPush: needsPushFor(target),
   }
 }

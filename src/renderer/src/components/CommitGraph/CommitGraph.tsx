@@ -1171,14 +1171,14 @@ export default function CommitGraph({
     if (!prIntentFor || !onCreatePR) return null
     const intent = prIntentFor(branchRef)
     if (!intent) return null
-    // Same rule as branchMenu.ts: the row only promises a push when one is
-    // actually needed. A branch already on the remote said "Push X and start a
-    // Pull Request", which reads as though the push had not registered.
-    const toBase = intent.baseLabel && !isCurrent
+    // Same rule as branchMenu.ts, and the same wording: a push is promised only
+    // when one is needed, both ends are named whenever the base is known, and
+    // the head reads as its remote ref only when there is nothing left to push.
+    const from = intent.needsPush ? intent.head : intent.headLabel
     return {
       label: intent.needsPush
-        ? (toBase ? t('sb.branch.startPRTo', intent.head, intent.baseLabel!) : t('sb.branch.startPR', intent.head))
-        : (toBase ? t('sb.branch.openPRTo', intent.head, intent.baseLabel!) : t('sb.branch.openPR', intent.head)),
+        ? (intent.baseLabel ? t('sb.branch.startPRTo', from, intent.baseLabel) : t('sb.branch.startPR', from))
+        : (intent.baseLabel ? t('sb.branch.openPRTo', from, intent.baseLabel) : t('sb.branch.openPR', from)),
       action: () => onCreatePR(intent),
     }
   }, [prIntentFor, onCreatePR, t])

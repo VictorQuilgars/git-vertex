@@ -26,7 +26,7 @@ export interface BranchMenuTarget {
    */
   // What prIntentFor decided, including whether the head still has to be
   // pushed — the label promises a push only when that is true.
-  pr?: { head: string; baseLabel: string | null; needsPush: boolean }
+  pr?: { head: string; headLabel: string; baseLabel: string | null; needsPush: boolean }
   /**
    * How the remote names this branch (`origin/main`), or absent when it has
    * never been pushed. Decides whether the remote half of the delete group and
@@ -144,12 +144,15 @@ export function buildBranchMenu(
   // it names whatever head that returned, and says nothing when it returned
   // nothing.
   if (actions.onCreatePR && target.pr) {
-    const { head, baseLabel, needsPush } = target.pr
-    const toBase = baseLabel && !current
+    const { head, headLabel, baseLabel, needsPush } = target.pr
+    // Both ends are named whenever the base is known, on your own row too: the
+    // row is the only place that says which way the request runs, and leaving
+    // the base implicit there meant the one row you use most said the least.
+    const from = needsPush ? head : headLabel
     sync.push({
       label: needsPush
-        ? (toBase ? t('sb.branch.startPRTo', head, baseLabel) : t('sb.branch.startPR', head))
-        : (toBase ? t('sb.branch.openPRTo', head, baseLabel) : t('sb.branch.openPR', head)),
+        ? (baseLabel ? t('sb.branch.startPRTo', from, baseLabel) : t('sb.branch.startPR', from))
+        : (baseLabel ? t('sb.branch.openPRTo', from, baseLabel) : t('sb.branch.openPR', from)),
       action: actions.onCreatePR,
     })
   }

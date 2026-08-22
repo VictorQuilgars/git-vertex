@@ -18,11 +18,25 @@ const EXT_MANIFEST = path.resolve(__dirname, '../../../../vscode-extension/packa
 const src = fs.readFileSync(TRANSLATIONS, 'utf8')
 const enSrc = src.slice(src.indexOf('const en:'))
 
-/** Every `'key': 'value'` pair of a catalogue half. */
+/**
+ * Every entry of a catalogue half, as a key and the TEXT a user would read.
+ *
+ * Two forms, and reading only the first is how the emoji rule below policed
+ * half the catalogue for a year: a plain `'key': 'value'`, and a function
+ * whose body is a template literal — `(b) => \`Delete ${b}\`` — which is what
+ * every label taking an argument is. Those were the ones carrying 🗑 🔀 🔗 ⛙,
+ * unseen, in the same menus as the labels this test was passing.
+ *
+ * The template's `${...}` holes are dropped: what is checked is the prose
+ * around them, and an interpolated branch name is not this test's business.
+ */
 function entries(half: string): Map<string, string> {
   const out = new Map<string, string>()
   for (const m of half.matchAll(/'([a-zA-Z0-9._]+)':\s*'((?:[^'\\]|\\.)*)'/g)) {
     out.set(m[1], m[2])
+  }
+  for (const m of half.matchAll(/'([a-zA-Z0-9._]+)':\s*\([^)]*\)\s*=>\s*`([^`]*)`/g)) {
+    if (!out.has(m[1])) out.set(m[1], m[2].replace(/\$\{[^}]*\}/g, '').trim())
   }
   return out
 }

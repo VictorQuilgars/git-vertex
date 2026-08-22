@@ -58,21 +58,23 @@ describe('prIntentFor', () => {
 
   test('rule 3 — the branch you are on goes into the default branch', () => {
     expect(prIntentFor('feat/published', repo('feat/published'))).toEqual({
-      head: 'feat/published', base: 'main', baseLabel: 'origin/main', needsPush: false,
+      head: 'feat/published', base: 'main', baseLabel: 'origin/main',
+      headLabel: 'origin/feat/published', needsPush: false,
     })
   })
 
   test('rule 4 — on a topic branch, the branch you clicked is the base', () => {
     expect(prIntentFor('feat/published', repo('feat/local-only'))).toEqual({
       head: 'feat/local-only', base: 'feat/published', baseLabel: 'origin/feat/published',
-      needsPush: true,
+      headLabel: 'feat/local-only', needsPush: true,
     })
   })
 
   describe('rule 5 — on the default branch, the branch you clicked is the head', () => {
     test('a local branch is pushed and proposed into the trunk', () => {
       expect(prIntentFor('feat/local-only', repo('main'))).toEqual({
-        head: 'feat/local-only', base: 'main', baseLabel: 'origin/main', needsPush: true,
+        head: 'feat/local-only', base: 'main', baseLabel: 'origin/main',
+        headLabel: 'feat/local-only', needsPush: true,
       })
     })
 
@@ -80,7 +82,8 @@ describe('prIntentFor', () => {
       const ctx = repo('main')
       ctx.branches = ctx.branches.filter(b => b.name !== 'feat/published')  // remote-only
       expect(prIntentFor('remotes/origin/feat/published', ctx)).toEqual({
-        head: 'feat/published', base: 'main', baseLabel: 'origin/main', needsPush: false,
+        head: 'feat/published', base: 'main', baseLabel: 'origin/main',
+        headLabel: 'origin/feat/published', needsPush: false,
       })
     })
 
@@ -109,7 +112,8 @@ describe('prIntentFor', () => {
 
     test('an unknown default branch still allows a pull request from where you are', () => {
       expect(prIntentFor('feat/local-only', repo('feat/local-only', { defaultBranch: null })))
-        .toEqual({ head: 'feat/local-only', base: null, baseLabel: null, needsPush: true })
+        .toEqual({ head: 'feat/local-only', base: null, baseLabel: null,
+        headLabel: 'feat/local-only', needsPush: true })
     })
 
     test('a branch published under a non-origin remote is labelled with it', () => {
