@@ -73,6 +73,8 @@ describe('the PR detail', () => {
     // the blocked block says so, github.com's way
     expect(await screen.findByText('Merging is blocked')).toBeInTheDocument()
     expect(screen.getByText('At least one approving review is awaited.')).toBeInTheDocument()
+    // ...and says the viewer is a bypass actor for it, before any click
+    expect(screen.getByText('You can bypass this rule and merge anyway')).toBeInTheDocument()
     // the method button keeps its method label
     const btn = await screen.findByText('Merge Pull Request')
     expect(btn).toBeEnabled()
@@ -103,6 +105,8 @@ describe('the PR detail', () => {
     await screen.findByText('Speed up the graph')
     expect(await screen.findByText('Merging is blocked')).toBeInTheDocument()
     expect(screen.getByText('At least one approving review is awaited.')).toBeInTheDocument()
+    // and the pane says why the button will not move FOR THIS VIEWER
+    expect(screen.getByText('You cannot bypass this rule')).toBeInTheDocument()
     const btn = await screen.findByText('Merge Pull Request')
     expect(btn.closest('button')).toBeDisabled()
     await userEvent.click(btn)
@@ -114,6 +118,35 @@ describe('the PR detail', () => {
     draw({ mergeableState: 'blocked', reviewDecision: 'CHANGES_REQUESTED', canBypass: true })
     await screen.findByText('Speed up the graph')
     expect(await screen.findByText('Changes have been requested.')).toBeInTheDocument()
+  })
+
+  // The viewer's own permission, stated with the checks and the conflicts.
+  // A measured lack of it takes the button away — GitHub would answer 403,
+  // and a button that cannot work is worse than a sentence that explains.
+  test('write access is reported alongside the checks', async () => {
+    draw({ canMerge: true })
+    await screen.findByText('Speed up the graph')
+    expect(await screen.findByText('You have merge permission')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  test('read-only access: the pane says so and offers no merge button', async () => {
+    const { api } = draw({ canMerge: false })
+    await screen.findByText('Speed up the graph')
+    expect(await screen.findByText('You do not have merge permission')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('5 checks passed')).toBeInTheDocument())
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+    expect(api.githubMergePR).not.toHaveBeenCalled()
+  })
+
+  // An older host, or a failed lookup, sends no permission at all. Unknown is
+  // not a refusal: the button stays and GitHub judges at the click.
+  test('an unknown permission says nothing and keeps the button', async () => {
+    draw({ canMerge: null })
+    await screen.findByText('Speed up the graph')
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+    expect(screen.queryByText('You have merge permission')).not.toBeInTheDocument()
+    expect(screen.queryByText('You do not have merge permission')).not.toBeInTheDocument()
   })
 
   // #124: a merged request offers its branches' cleanup, both sides in one

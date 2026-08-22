@@ -200,6 +200,17 @@
 }
 .idv-blocked-why { color: var(--text-secondary); font-size: var(--text-xs); }
 
+/* Where the viewer stands against that rule — a separate line, ruled off
+   from the reason above it: one is about the request, the other about you. */
+.idv-blocked-you {
+  display: flex; align-items: center; gap: var(--space-sm);
+  margin-top: var(--space-sm); padding-top: var(--space-sm);
+  border-top: 1px solid color-mix(in srgb, var(--warning) var(--alpha-faint), transparent);
+  font-size: var(--text-xs);
+}
+.idv-blocked-you--can { color: var(--danger); font-weight: var(--weight-semibold); }
+.idv-blocked-you--cannot { color: var(--text-tertiary); }
+
 /* The bypass is ANOTHER button — the deliberate act, in its colour. */
 .idv-bypass-btn {
   width: 100%; justify-content: center;

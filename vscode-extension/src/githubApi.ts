@@ -9,6 +9,8 @@
 // host's token from being sent to another — see src/main/github-host.ts, which
 // resolves them on the desktop side for the same reason.
 
+import { bypassVerdict, RULESET_PROBE_CAP } from '../../src/main/ruleset-bypass'
+
 /** Where a GitHub answers, and what may be sent there. */
 export interface GithubApi {
   base: string
@@ -313,20 +315,26 @@ export async function githubGetPR(
         assignees: (pr.assignees ?? []).map((a: any) => a.login),
         reviewers: (pr.requested_reviewers ?? []).map((r: any) => r.login),
         url: pr.html_url,
-        ...(await prBlockedSupplement(api, owner, repo, num)),
+        ...(await prBlockedSupplement(api, owner, repo, num,
+          { blocked: pr.mergeable_state === 'blocked', baseRef: pr.base?.ref ?? '' })),
       },
     }
   } catch (e: any) { return { error: e.message } }
 }
 
 /**
- * Why a request is blocked, and whether this viewer could bypass — the
- * desktop's twin. viewerPermission ADMIN is the bypass signal:
- * viewerCanMergeAsAdmin stays false for ruleset bypassers (measured).
+ * Why a request is blocked, and where this viewer stands against it — may
+ * they merge, may they bypass. The desktop's twin. The bypass is ASKED of the
+ * rulesets protecting the base branch (`rulesetBypass`), and only falls back
+ * to viewerPermission ADMIN when they cannot be read — viewerCanMergeAsAdmin
+ * stays false for ruleset bypassers (measured). `canMerge` is WRITE and
+ * above, `null` when the query fails: an unknown permission must not take the
+ * button from someone who has it.
  */
 async function prBlockedSupplement(
   api: GithubApi, owner: string, repo: string, num: number,
-): Promise<{ reviewDecision: string | null; canBypass: boolean }> {
+  ctx: { blocked: boolean; baseRef: string },
+): Promise<{ reviewDecision: string | null; canBypass: boolean; canMerge: boolean | null }> {
   try {
     const gqlUrl = api.base.endsWith('/api/v3')
       ? api.base.replace(/\/api\/v3$/, '/api/graphql')
@@ -341,11 +349,50 @@ async function prBlockedSupplement(
     })
     const d = await res.json().catch(() => ({})) as any
     const repoNode = d?.data?.repository
+    const perm: string | null = repoNode?.viewerPermission ?? null
+    const asked = ctx.blocked
+      ? await rulesetBypass(api, owner, repo, ctx.baseRef)
+      : null
     return {
       reviewDecision: repoNode?.pullRequest?.reviewDecision ?? null,
-      canBypass: repoNode?.viewerPermission === 'ADMIN',
+      canBypass: asked ?? perm === 'ADMIN',
+      canMerge: perm === null ? null : MERGE_PERMISSIONS.includes(perm),
     }
-  } catch { return { reviewDecision: null, canBypass: false } }
+  } catch { return { reviewDecision: null, canBypass: false, canMerge: null } }
+}
+
+/** The `viewerPermission` values GitHub lets merge a request. */
+const MERGE_PERMISSIONS = ['ADMIN', 'MAINTAIN', 'WRITE']
+
+/**
+ * May this account bypass the rules protecting `baseRef`? The desktop's twin.
+ * GitHub answers it itself, per ruleset, as `current_user_can_bypass`; what
+ * the answers mean together is `bypassVerdict`, shared with the desktop.
+ */
+async function rulesetBypass(
+  api: GithubApi, owner: string, repo: string, baseRef: string,
+): Promise<boolean | null> {
+  if (!baseRef) return null
+  const headers = HEADERS(api.token!)
+  try {
+    const res = await fetch(
+      `${api.base}/repos/${owner}/${repo}/rules/branches/${encodeURIComponent(baseRef)}`,
+      { headers },
+    )
+    if (!res.ok) return null
+    const rules = await res.json().catch(() => null) as any
+    if (!Array.isArray(rules)) return null
+    const ids = [...new Set(rules.map(r => r?.ruleset_id).filter((n: any) => typeof n === 'number'))]
+    if (!ids.length || ids.length > RULESET_PROBE_CAP) return null
+    const verdicts = await Promise.all(ids.map(async id => {
+      const r = await fetch(`${api.base}/repos/${owner}/${repo}/rulesets/${id}`, { headers })
+      if (!r.ok) return null
+      const d = await r.json().catch(() => null) as any
+      const v = d?.current_user_can_bypass
+      return typeof v === 'string' ? v : null
+    }))
+    return bypassVerdict(verdicts)
+  } catch { return null }
 }
 
 /**

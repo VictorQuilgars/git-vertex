@@ -13,9 +13,13 @@ import './IssueDetail.css'
  * the branches, the cost line, and MERGEABILITY.
  *
  * Mergeability is read and reported: the checks (passed / failed / pending,
- * from the head ref's check runs) and the conflicts (GitHub's `mergeable`,
+ * from the head ref's check runs), the conflicts (GitHub's `mergeable`,
  * including the null that means it is still computing — shown as computing,
- * never guessed). The MERGE BUTTON (#73's P2) follows the reference's rule:
+ * never guessed), and WHERE THIS VIEWER STANDS — whether the account holds
+ * the permission to merge at all, and, when a rule blocks, whether it is a
+ * bypass actor for that rule. Both are said BEFORE the click: a permission
+ * discovered by pressing a button and reading a 403 is not a permission the
+ * pane ever stated. The MERGE BUTTON (#73's P2) follows the reference's rule:
  * it exists when both hold — checks green (or absent) and no conflicts —
  * and not otherwise; a disabled button explaining itself is still a button
  * that cannot be pressed. GitHub stays the judge: protections it enforces
@@ -33,7 +37,7 @@ interface FullPR {
   headRef: string; headSha: string; baseRef: string
   commits: number; changedFiles: number; additions: number; deletions: number
   mergeable: boolean | null; mergeableState: string
-  reviewDecision?: string | null; canBypass?: boolean
+  reviewDecision?: string | null; canBypass?: boolean; canMerge?: boolean | null
   labels: GithubLabel[]; assignees: string[]; reviewers: string[]
   url: string
 }
@@ -279,6 +283,16 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                       {pr.mergeable === null ? t('gh.pr.mergeComputing')
                         : pr.mergeable ? t('gh.pr.noConflicts') : t('gh.pr.conflicts')}
                     </div>
+                    {/* Where the viewer stands, said before the click. Only a
+                        MEASURED permission speaks: `canMerge` is undefined on
+                        an older host and null when the lookup failed, and
+                        neither may be reported as a refusal. */}
+                    {!pr.merged && pr.state === 'open' && pr.canMerge != null && (
+                      <div className={`idv-merge-row idv-merge-row--${pr.canMerge ? 'ok' : 'bad'}`}>
+                        <Icon name={pr.canMerge ? 'check' : 'conflict'} size={12} />
+                        {pr.canMerge ? t('gh.pr.mergeAllowed') : t('gh.pr.mergeForbidden')}
+                      </div>
+                    )}
                     {/* The reference's rule: the button exists when BOTH hold.
                         Checks green or absent, no conflicts, and an open,
                         unmerged request. GitHub remains the judge — and when
@@ -288,6 +302,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         for, in the label rather than a checkbox. An actor
                         without bypass rights gets GitHub's refusal inline. */}
                     {!pr.merged && pr.state === 'open' && pr.mergeable === true
+                      && pr.canMerge !== false
                       && checks !== null && checks.failed === 0 && checks.pending === 0 && (
                       <div className="idv-merge-act" ref={mergeActRef}>
                         {/* Blocked, github.com's way: say so, and say what is
@@ -302,6 +317,14 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                               {pr.reviewDecision === 'REVIEW_REQUIRED' ? t('gh.pr.reviewRequired')
                                 : pr.reviewDecision === 'CHANGES_REQUESTED' ? t('gh.pr.changesRequested')
                                 : t('gh.pr.ruleUnmet')}
+                            </div>
+                            {/* And whether THIS account is a bypass actor for
+                                that rule — the answer the button's behaviour
+                                already depends on, now stated rather than
+                                discovered by pressing it. */}
+                            <div className={`idv-blocked-you idv-blocked-you--${pr.canBypass ? 'can' : 'cannot'}`}>
+                              <Icon name={pr.canBypass ? 'shield' : 'info'} size={11} />
+                              {pr.canBypass ? t('gh.pr.bypassActor') : t('gh.pr.bypassNone')}
                             </div>
                           </div>
                         )}
