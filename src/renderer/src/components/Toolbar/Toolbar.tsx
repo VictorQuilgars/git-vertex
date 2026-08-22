@@ -41,7 +41,6 @@ interface ToolbarProps {
   updateReady?: boolean
   onInstallUpdate?: () => void
   githubRepoUrl?: string | null
-  onCreatePR?: () => void
   onGitflow?: () => void
   topRow?: boolean
 }
@@ -71,7 +70,7 @@ export default function Toolbar({
   onToggleAllBranches, loading,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
   aiSearch, aiSearchLoading, onToggleAiSearch, onAiSearchSubmit,
-  updateReady, onInstallUpdate, githubRepoUrl, onCreatePR, onGitflow,
+  updateReady, onInstallUpdate, githubRepoUrl, onGitflow,
   topRow = true
 }: ToolbarProps) {
   const { t } = useLang()
@@ -162,13 +161,6 @@ export default function Toolbar({
 
       {/* Secondary right cluster */}
       <div className="tb-right">
-        {githubRepoUrl && currentBranch && !['main', 'master'].includes(currentBranch) && onCreatePR && (
-          <button className="tb-btn tb-accent-blue" disabled={disabled} onClick={onCreatePR}
-            title={t('toolbar.createPR.tooltip')}>
-            <Icon name="pullRequest" size={14} />
-            <span>PR</span>
-          </button>
-        )}
         <button className={`tb-btn tb-toggle ${showAllBranches ? 'active' : ''}`}
           onClick={onToggleAllBranches} disabled={disabled} title={t('toolbar.allBranches.tooltip')}>
           <Icon name="branch" size={14} />

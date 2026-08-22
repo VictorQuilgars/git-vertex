@@ -2208,7 +2208,6 @@ export default function App() {
         onAiSearchSubmit={runAiSearch}
         onSettings={openSettingsTab}
         githubRepoUrl={githubRepoUrl}
-        onCreatePR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
         onGitflow={repoPath ? () => setGitflowOpen(true) : undefined}
       />
       )}

@@ -899,6 +899,8 @@ const fr = {
   'sb.branch.push': 'Push',
   'sb.branch.startPR': (b: string) => `🔀 Pousser "${b}" et ouvrir une Pull Request`,
   'sb.branch.startPRTo': (b: string, base: string) => `🔀 Pousser "${b}" et ouvrir une Pull Request vers ${base}`,
+  'sb.branch.openPR': (b: string) => `🔀 Ouvrir une Pull Request depuis "${b}"`,
+  'sb.branch.openPRTo': (b: string, base: string) => `🔀 Ouvrir une Pull Request depuis "${b}" vers ${base}`,
   'sb.branch.openOnRemote': 'Ouvrir la branche sur GitHub',
   'sb.github.noPRs': 'Aucune pull request ouverte',
   'sb.github.noIssues': 'Aucune issue ouverte',
@@ -1322,7 +1324,6 @@ const fr = {
   'pr.noAuth': 'Connectez-vous à GitHub dans les Paramètres.',
   'pr.noRemote': 'Aucun remote GitHub détecté.',
   'pr.error': (e: string) => `Erreur : ${e}`,
-  'toolbar.createPR.tooltip': 'Créer une Pull Request',
 
   // GitHub Panel
   'gh.panel.noRepo': 'Aucun remote GitHub détecté pour ce dépôt.',
@@ -2429,6 +2430,8 @@ const en: typeof fr = {
   'sb.branch.push': 'Push',
   'sb.branch.startPR': (b: string) => `🔀 Push "${b}" and start a Pull Request`,
   'sb.branch.startPRTo': (b: string, base: string) => `🔀 Push "${b}" and start a Pull Request to ${base}`,
+  'sb.branch.openPR': (b: string) => `🔀 Start a Pull Request from "${b}"`,
+  'sb.branch.openPRTo': (b: string, base: string) => `🔀 Start a Pull Request from "${b}" to ${base}`,
   'sb.branch.openOnRemote': 'Open Branch on Remote',
   'sb.github.noPRs': 'No open pull requests',
   'sb.github.noIssues': 'No open issues',
@@ -2854,7 +2857,6 @@ const en: typeof fr = {
   'pr.noAuth': 'Connect to GitHub in Settings.',
   'pr.noRemote': 'No GitHub remote detected.',
   'pr.error': (e: string) => `Error: ${e}`,
-  'toolbar.createPR.tooltip': 'Create a Pull Request',
 
   // GitHub Panel
   'gh.panel.noRepo': 'No GitHub remote detected for this repository.',
