@@ -609,8 +609,15 @@ function VertexApp() {
   // GitHub remote, which is what removes the row.
   const prIntentFor = useCallback(
     (branchRef: string) =>
-      githubRepo ? computePRIntent(branchRef, { currentBranch, defaultBranch, branches }) : null,
-    [githubRepo, currentBranch, defaultBranch, branches]
+      githubRepo
+        ? computePRIntent(branchRef, {
+            currentBranch, defaultBranch, branches,
+            // Rule 6: the list that puts the #N chip on a branch is the same
+            // one that says a request is already open for it.
+            openPRs: githubPRs,
+          })
+        : null,
+    [githubRepo, currentBranch, defaultBranch, branches, githubPRs]
   )
 
   // The push itself happens in the composer, right before the GitHub call.
