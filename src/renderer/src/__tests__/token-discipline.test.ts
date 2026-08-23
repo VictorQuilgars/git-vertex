@@ -575,3 +575,48 @@ describe('the icon size floors', () => {
     expect(draws.sort()).toEqual([...setNames('NODED')].sort())
   })
 })
+
+// The panel has ONE indent scale, and it lives in the stylesheet (#138).
+//
+// It was two: the branch tree carried 26 and 12 as constants in the component
+// while the GitHub groups took 10px from a rule nobody had compared them to.
+// That is how a folder once landed left of its own section title, and how two
+// halves of the same column ended up on different systems.
+describe('the sidebar indent scale', () => {
+  const DIR = path.resolve(__dirname, '../components/Sidebar')
+  const CSS = fs.readFileSync(path.join(DIR, 'Sidebar.css'), 'utf8')
+  const TSX = fs.readFileSync(path.join(DIR, 'Sidebar.tsx'), 'utf8')
+
+  test('the stylesheet declares it, once', () => {
+    for (const prop of ['--sb-indent', '--sb-indent-step', '--sb-branch-inset']) {
+      const declared = [...CSS.matchAll(new RegExp(`^\\s*\\${prop}:`, 'gm'))]
+      expect(declared).toHaveLength(1)
+    }
+  })
+
+  test('everything indented reads the scale rather than a number of its own', () => {
+    // The rules that place a row horizontally, and what each one uses.
+    const placed = ['.sb-gh-group-head', '.sb-gh-search']
+    for (const sel of placed) {
+      const at = CSS.indexOf(sel + ' {')
+      expect(at).toBeGreaterThan(-1)
+      const block = CSS.slice(at, CSS.indexOf('}', at))
+      expect(block).toMatch(/--sb-indent/)
+    }
+  })
+
+  // The component builds its inline padding with calc() from the same
+  // properties. A literal here is the copy that drifts.
+  test('the component holds no indent number of its own', () => {
+    expect(TSX).toMatch(/calc\(var\(--sb-indent\)/)
+    expect(TSX).not.toMatch(/TREE_INDENT_BASE|BRANCH_ROW_INSET|TREE_INDENT_STEP/)
+    // A horizontal indent is either a calc() on the scale or one of the two
+    // helpers that build one. What it may never be is arithmetic on literals —
+    // `26 + depth * 12` is the copy that drifts, and it carries digits.
+    for (const m of TSX.matchAll(/paddingLeft:\s*([^,}\n]+)/g)) {
+      const value = m[1].trim()
+      const named = /^(folderIndent|leafIndent)\(/.test(value)
+      expect(named || /calc\(var\(--sb-indent/.test(value)).toBe(true)
+    }
+  })
+})
