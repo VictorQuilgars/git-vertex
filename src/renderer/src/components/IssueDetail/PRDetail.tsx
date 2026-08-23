@@ -71,6 +71,14 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
   const { t } = useLang()
   const [pr, setPr] = useState<FullPR | null>(null)
   const [checks, setChecks] = useState<Checks | null>(null)
+  /**
+   * Which commit those checks are about. Without it the previous head's
+   * result stays on screen after a push — evidence about commit A presented
+   * as evidence about commit B — and the merge button, which only asks
+   * whether the checks are green, is offered on it. GitHub then refuses the
+   * merge, because the checks it requires have not run on what you pushed.
+   */
+  const [checksSha, setChecksSha] = useState<string | null>(null)
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [newComment, setNewComment] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -106,7 +114,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
         // the first said which sha to ask about.
         if (r.pr.headSha) {
           api().githubGetChecks(repo.owner, repo.repo, r.pr.headSha)
-            .then((c: any) => { if (alive && c?.checks) setChecks(c.checks) })
+            .then((c: any) => { if (alive && c?.checks) { setChecks(c.checks); setChecksSha(r.pr.headSha) } })
             .catch(() => { /* checks stay unknown; the block says so */ })
         }
       } else setError(r?.error ?? 'error')
@@ -130,10 +138,18 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
    * green the rows above it went.
    */
   const editing = editingTitle || editingBody || editingAssignees || editingLabels || editingState
+  /**
+   * The checks, but only while they describe the head the pane is showing. The
+   * moment the head moves they read as UNKNOWN, which takes the merge button
+   * away and puts the pane back to waiting — derived rather than cleared, so
+   * no code path has to remember to do it.
+   */
+  const headChecks = pr && checksSha === pr.headSha ? checks : null
+
   const settled = !pr
     || pr.merged
     || pr.state !== 'open'
-    || (pr.mergeable !== null && checks !== null && checks.pending === 0)
+    || (pr.mergeable !== null && headChecks !== null && headChecks.pending === 0)
 
   // The pane keeps itself current for as long as it is open: the request, its
   // checks and its comments. Nothing here writes when the answer came back
@@ -151,7 +167,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
       const sha = r?.pr?.headSha
       if (sha) {
         const c = await api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null)
-        if (alive && c?.checks && !c.notModified) setChecks(c.checks)
+        if (alive && c?.checks && !c.notModified) { setChecks(c.checks); setChecksSha(sha) }
       }
       const cm = await api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null)
       if (alive && cm?.comments && !cm.notModified) setComments(cm.comments)
@@ -326,13 +342,13 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                 {/* Mergeability, read and reported — never a merge button (#73). */}
                 <SideBlock label={t('gh.pr.mergeability')}>
                   <div className="idv-merge">
-                    <div className={`idv-merge-row idv-merge-row--${checks === null ? 'unknown' : checks.failed ? 'bad' : checks.pending ? 'wait' : 'ok'}`}>
-                      <Icon name={checks === null ? 'clock' : checks.failed ? 'conflict' : checks.pending ? 'clock' : 'check'} size={12} />
-                      {checks === null ? t('gh.pr.checksUnknown')
-                        : checks.total === 0 ? t('gh.pr.checksNone')
-                        : checks.failed ? t('gh.pr.checksFailed', checks.failed, checks.total)
-                        : checks.pending ? t('gh.pr.checksPending', checks.pending, checks.total)
-                        : t('gh.pr.checksPassed', checks.total)}
+                    <div className={`idv-merge-row idv-merge-row--${headChecks === null ? 'unknown' : headChecks.failed ? 'bad' : headChecks.pending ? 'wait' : 'ok'}`}>
+                      <Icon name={headChecks === null ? 'clock' : headChecks.failed ? 'conflict' : headChecks.pending ? 'clock' : 'check'} size={12} />
+                      {headChecks === null ? t('gh.pr.checksUnknown')
+                        : headChecks.total === 0 ? t('gh.pr.checksNone')
+                        : headChecks.failed ? t('gh.pr.checksFailed', headChecks.failed, headChecks.total)
+                        : headChecks.pending ? t('gh.pr.checksPending', headChecks.pending, headChecks.total)
+                        : t('gh.pr.checksPassed', headChecks.total)}
                     </div>
                     <div className={`idv-merge-row idv-merge-row--${pr.mergeable === null ? 'unknown' : pr.mergeable ? 'ok' : 'bad'}`}>
                       <Icon name={pr.mergeable === null ? 'clock' : pr.mergeable ? 'check' : 'conflict'} size={12} />
@@ -359,7 +375,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         without bypass rights gets GitHub's refusal inline. */}
                     {!pr.merged && pr.state === 'open' && pr.mergeable === true
                       && pr.canMerge !== false
-                      && checks !== null && checks.failed === 0 && checks.pending === 0 && (
+                      && headChecks !== null && headChecks.failed === 0 && headChecks.pending === 0 && (
                       <div className="idv-merge-act" ref={mergeActRef}>
                         {/* Blocked, github.com's way: say so, and say what is
                             awaited — reviewDecision knows. */}

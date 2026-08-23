@@ -453,3 +453,45 @@ describe('a request that GitHub has not finished deciding about', () => {
     expect(githubGetPR.mock.calls.length).toBeGreaterThan(once)
   })
 })
+
+// Victor pushed, opened the request, and was offered a merge button over
+// "4 checks passed" — the previous head's result, still on screen. Merging
+// there is what GitHub refuses: the checks it requires have not run on what
+// was just pushed.
+describe('checks belong to the commit they ran on', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('a moved head takes its predecessor\'s checks — and the button — away', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, headSha: 'old111', mergeable: true } })
+      .mockResolvedValue({ pr: { ...FULL_PR, headSha: 'new222', mergeable: true } })
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+      // nothing has run on the new head yet
+      .mockResolvedValue({ checks: { total: 0, passed: 0, failed: 0, pending: 0 } })
+    draw({}, { githubGetPR, githubGetChecks })
+
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+
+    // the head moves — the old result is not evidence about the new commit
+    await settle(20_000)
+    await waitFor(() => expect(githubGetChecks).toHaveBeenCalledWith('o', 'r', 'new222'))
+    expect(screen.queryByText('4 checks passed')).not.toBeInTheDocument()
+  })
+
+  test('checks for the head that is showing are used as before', async () => {
+    const githubGetChecks = jest.fn().mockResolvedValue({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+    draw({}, { githubGetChecks })
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  // Deliberately NOT asserted here: that a head with zero check runs is "still
+  // deciding". Zero is also what a repository with no CI answers, and treating
+  // it as undecided would make those poll urgently forever. Which of the two it
+  // is, is GitHub's own `mergeableState` to say — and the pane already shows it.
+
+})
