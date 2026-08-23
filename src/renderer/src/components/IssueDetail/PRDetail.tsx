@@ -160,46 +160,65 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
       || pr.state !== 'open'
       || (pr.mergeable !== null && headChecks !== null && headChecks.pending === 0))
 
-  // The pane keeps itself current for as long as it is open: the request, its
-  // checks and its comments. Nothing here writes when the answer came back
-  // `notModified`, so a quiet request causes no re-render at all.
+  // What the loop below reads without depending on it. The loop must NOT be
+  // re-created when these change: it re-arms itself.
+  const prRef = useRef(pr); prRef.current = pr
+  const commentsRef = useRef(comments); commentsRef.current = comments
+  const settledRef = useRef(settled); settledRef.current = settled
+
+  /**
+   * The pane keeps itself current for as long as it is open: the request, its
+   * checks and its comments.
+   *
+   * ⚠️ The timer RE-ARMS ITSELF, and this effect depends only on which request
+   * is open. It used to be re-created by its own writes — which meant a poll
+   * that changed nothing armed no successor, and the pane stopped asking after
+   * one tick. Changing nothing is the normal case for a request that is simply
+   * still running its checks, so "2 of 4 pending" would sit there for ever.
+   *
+   * The same coupling made a poll cancel its own checks request, since `setPr`
+   * re-ran the effect and the cleanup killed the rest of the pass. One loop,
+   * owned by the effect, fixes both: nothing about a render can interrupt it.
+   */
   useEffect(() => {
-    // Not while the user is typing into what a refresh would replace.
     if (editing) return
     let alive = true
-    const every = settled ? OPEN_POLL_MS : SETTLE_POLL_MS
-    const id = setTimeout(async () => {
-      if (!alive || document.hidden) return
-      // ⚠️ EVERY fetch first, THEN every state write — and one `alive` check
-      // between them. Writing as they arrived meant `setPr` re-ran this effect,
-      // whose cleanup set `alive = false`, so the pane cancelled its own checks
-      // request every time it updated the request. That is "the page updates,
-      // except the checks", exactly.
-      const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
-      const sha = r?.pr?.headSha
-      const c = sha
-        ? await api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null)
-        : null
-      const cm = await api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null)
-      if (!alive) return
+    let timer: ReturnType<typeof setTimeout> | null = null
 
-      // `notModified` describes the TRANSPORT — "the same body I last sent" —
-      // not what this pane holds. The cache lives in the main process and
-      // outlives every pane, so a 304 is routine for something this side has
-      // never seen. Each answer is therefore RECORDED; only the state write is
-      // skipped when what arrived is what is already held.
-      if (r?.pr) {
-        setError(null)
-        if (!pr || !r.notModified) setPr(r.pr)
+    const tick = async () => {
+      if (!alive) return
+      if (!document.hidden) {
+        // Every fetch first, then every write, with one liveness check between:
+        // a write must never be able to cancel the fetches after it.
+        const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
+        const sha = r?.pr?.headSha
+        const c = sha
+          ? await api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null)
+          : null
+        const cm = await api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null)
+        if (!alive) return
+
+        // `notModified` describes the TRANSPORT — "the same body I last sent"
+        // — not what this pane holds. The cache saying it lives in the main
+        // process and outlives every pane, so a 304 is routine for something
+        // this side has never seen. Each answer is RECORDED; only the state
+        // write is skipped when what arrived is what is already held.
+        if (r?.pr) {
+          setError(null)
+          if (!prRef.current || !r.notModified) setPr(r.pr)
+        }
+        if (sha && c?.checks) {
+          setChecksSha(sha)
+          setChecks(prev => sameChecks(prev, c.checks) ? prev : c.checks)
+        }
+        if (cm?.comments && (commentsRef.current === null || !cm.notModified)) setComments(cm.comments)
       }
-      if (sha && c?.checks) {
-        setChecksSha(sha)
-        setChecks(prev => sameChecks(prev, c.checks) ? prev : c.checks)
-      }
-      if (cm?.comments && (comments === null || !cm.notModified)) setComments(cm.comments)
-    }, every)
-    return () => { alive = false; clearTimeout(id) }
-  }, [settled, editing, repo.owner, repo.repo, number, pr, checks, comments])
+      if (alive) timer = setTimeout(tick, settledRef.current ? OPEN_POLL_MS : SETTLE_POLL_MS)
+    }
+
+    timer = setTimeout(tick, settledRef.current ? OPEN_POLL_MS : SETTLE_POLL_MS)
+    return () => { alive = false; if (timer) clearTimeout(timer) }
+  }, [editing, repo.owner, repo.repo, number])
 
   const patch = useCallback(async (p: object, apply: () => void) => {
     setBusy(true); setError(null)
