@@ -48,6 +48,15 @@ interface FullPR {
  */
 const SETTLE_POLL_MS = 5_000
 /**
+ * ...and how far that stretches while it stays undecided. A check suite can
+ * run for twenty minutes; asking every five seconds for all of it is 240 ticks
+ * to learn nothing. The wait grows by half each time and stops at the settled
+ * cadence, so the first minute — the one somebody actually watches — is still
+ * answered in seconds, and a long build settles into the same rhythm as
+ * everything else. Any change at all puts it back to five.
+ */
+const SETTLE_BACKOFF = 1.5
+/**
  * And how often a settled one does. It keeps asking rather than stopping,
  * because a request goes on changing after it is decided: comments arrive, a
  * review lands, labels move, a failed check is re-run. Every read behind this
@@ -184,18 +193,31 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
     if (editing) return
     let alive = true
     let timer: ReturnType<typeof setTimeout> | null = null
+    let waiting = SETTLE_POLL_MS
+    const nextWait = () => {
+      if (settledRef.current) return OPEN_POLL_MS
+      const w = waiting
+      waiting = Math.min(waiting * SETTLE_BACKOFF, OPEN_POLL_MS)
+      return w
+    }
 
     const tick = async () => {
       if (!alive) return
       if (!document.hidden) {
         // Every fetch first, then every write, with one liveness check between:
         // a write must never be able to cancel the fetches after it.
+        // The request first — the checks hang off the sha it reports — then the
+        // other two TOGETHER. Three in a row is three round trips of latency
+        // per tick; measured against api.github.com, one is about half a
+        // second, so this is the difference between a tick costing 1.6s of
+        // waiting and 1.1s. None of it is CPU: ten conditional requests cost
+        // 8ms of it in total, and all of it happens in the main process.
         const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
         const sha = r?.pr?.headSha
-        const c = sha
-          ? await api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null)
-          : null
-        const cm = await api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null)
+        const [c, cm] = await Promise.all([
+          sha ? api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null) : null,
+          api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null),
+        ])
         if (!alive) return
 
         // `notModified` describes the TRANSPORT — "the same body I last sent"
@@ -209,14 +231,18 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
         }
         if (sha && c?.checks) {
           setChecksSha(sha)
-          setChecks(prev => sameChecks(prev, c.checks) ? prev : c.checks)
+          setChecks(prev => {
+            if (sameChecks(prev, c.checks)) return prev
+            waiting = SETTLE_POLL_MS      // something moved — watch closely again
+            return c.checks
+          })
         }
         if (cm?.comments && (commentsRef.current === null || !cm.notModified)) setComments(cm.comments)
       }
-      if (alive) timer = setTimeout(tick, settledRef.current ? OPEN_POLL_MS : SETTLE_POLL_MS)
+      if (alive) timer = setTimeout(tick, nextWait())
     }
 
-    timer = setTimeout(tick, settledRef.current ? OPEN_POLL_MS : SETTLE_POLL_MS)
+    timer = setTimeout(tick, nextWait())
     return () => { alive = false; if (timer) clearTimeout(timer) }
   }, [editing, repo.owner, repo.repo, number])
 

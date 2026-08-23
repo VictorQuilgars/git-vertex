@@ -346,7 +346,9 @@ describe('a request that GitHub has not finished deciding about', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())
 
-  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
 
   test('it asks again while mergeability is computing, and the button arrives', async () => {
     const githubGetPR = jest.fn()
@@ -465,7 +467,9 @@ describe('a request that GitHub has not finished deciding about', () => {
 describe('checks belong to the commit they ran on', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())
-  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
 
   test('a moved head takes its predecessor\'s checks — and the button — away', async () => {
     const githubGetPR = jest.fn()
@@ -505,7 +509,9 @@ describe('checks belong to the commit they ran on', () => {
 describe('a failed open heals itself', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())
-  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
 
   test('the error goes when the next attempt succeeds', async () => {
     const githubGetPR = jest.fn()
@@ -542,7 +548,9 @@ describe('a failed open heals itself', () => {
 describe('a 304 is not a reason to know less', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())
-  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
 
   test('checks arriving as not-modified still bind to the head being shown', async () => {
     const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, headSha: 'sha222', mergeable: true } })
@@ -581,7 +589,9 @@ describe('a 304 is not a reason to know less', () => {
 describe('the poll survives finding nothing new', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())
-  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
 
   test('it keeps asking while the answer stays identical', async () => {
     // Same numbers every time: nothing to write, nothing to re-render.
@@ -590,11 +600,11 @@ describe('the poll survives finding nothing new', () => {
     draw({}, { githubGetPR, githubGetChecks })
     expect(await screen.findByText('2 of 4 checks pending')).toBeInTheDocument()
 
-    await settle(5_000)
+    await settle(30_000)
     const after1 = githubGetChecks.mock.calls.length
-    await settle(5_000)
+    await settle(30_000)
     const after2 = githubGetChecks.mock.calls.length
-    await settle(5_000)
+    await settle(30_000)
     const after3 = githubGetChecks.mock.calls.length
 
     expect(after2).toBeGreaterThan(after1)
@@ -609,8 +619,54 @@ describe('the poll survives finding nothing new', () => {
       .mockResolvedValue({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
     draw({}, { githubGetChecks })
     await screen.findByText('2 of 4 checks pending')
-    for (let i = 0; i < 4; i++) await settle(5_000)
+    for (let i = 0; i < 6; i++) await settle(30_000)
     expect(screen.getByText('4 checks passed')).toBeInTheDocument()
     expect(screen.getByText('Merge Pull Request')).toBeInTheDocument()
+  })
+})
+
+// Victor asked whether all this polling could slow a modest machine. Measured:
+// a conditional request costs ~0.8ms of CPU and ~550ms of waiting, and the
+// waiting happens in the main process. What matters instead is that the app
+// cannot pile requests on itself, and does not keep asking urgently for ever.
+describe('what the polling costs', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  const settle = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('a slow answer cannot make ticks overlap — the next is armed after it', async () => {
+    let inFlight = 0
+    let overlapped = false
+    const githubGetPR = jest.fn().mockImplementation(async () => {
+      inFlight += 1
+      if (inFlight > 1) overlapped = true
+      await Promise.resolve()
+      inFlight -= 1
+      return { pr: { ...FULL_PR, mergeable: null } }   // never settles
+    })
+    draw({}, { githubGetPR })
+    await screen.findByText('Mergeability still computing…')
+    for (let i = 0; i < 10; i++) await settle(30_000)
+    expect(overlapped).toBe(false)
+  })
+
+  // A check suite can run for twenty minutes. Asking every five seconds for
+  // all of it is hundreds of ticks to learn nothing.
+  test('an undecided request slows down rather than hammering', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, mergeable: null } })
+    draw({}, { githubGetPR })
+    await screen.findByText('Mergeability still computing…')
+
+    await settle(60_000)
+    const firstMinute = githubGetPR.mock.calls.length
+    await settle(60_000)
+    const secondMinute = githubGetPR.mock.calls.length - firstMinute
+
+    // it keeps watching...
+    expect(secondMinute).toBeGreaterThan(0)
+    // ...but the first minute, the one somebody watches, is the busiest
+    expect(secondMinute).toBeLessThanOrEqual(firstMinute)
+    // and it never exceeds the settled cadence once stretched
+    expect(secondMinute).toBeLessThanOrEqual(60_000 / 20_000 + 1)
   })
 })
