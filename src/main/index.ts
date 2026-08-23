@@ -2346,18 +2346,51 @@ ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
   } catch { return { owner: null, repo: null } }
 })
 
+/**
+ * Conditional GETs for the lists the panel polls (#141).
+ *
+ * Every list endpoint answers with an ETag; sending it back as `If-None-Match`
+ * returns 304 with no body — and MEASURED against api.github.com, five 304s in
+ * a row cost nothing at all: x-ratelimit-remaining was 4997 before and 4997
+ * after. That is what lets these be asked often rather than every five
+ * minutes.
+ *
+ * The last body is kept beside the tag, so a 304 still answers with the data.
+ * A caller that ignores `notModified` therefore behaves exactly as before; one
+ * that reads it can leave its state — and the list the user is scrolling —
+ * untouched.
+ */
+const listCache = new Map<string, { etag: string; body: any }>()
+
+async function conditionalList<T extends object>(
+  key: string, url: string, token: string, shape: (data: any) => T,
+): Promise<(T & { notModified?: true }) | { error: string }> {
+  const hit = listCache.get(key)
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      ...(hit ? { 'If-None-Match': hit.etag } : {}),
+    },
+  })
+  if (res.status === 304 && hit) return { ...hit.body, notModified: true as const }
+  if (!res.ok) return { error: `HTTP ${res.status}` }
+  const body = shape(await res.json())
+  const etag = res.headers?.get?.('etag')
+  if (etag) listCache.set(key, { etag, body })
+  return body
+}
+
 ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
   const api = await ghApi()
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(
+    return await conditionalList(
+      `prs:${api.base}:${owner}/${repo}`,
       `${api.base}/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
-      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
-    )
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const data = await res.json() as any[]
-    return {
+      token,
+      (data: any[]) => ({
       prs: data.map(pr => ({
         number: pr.number,
         title: pr.title,
@@ -2375,7 +2408,8 @@ ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
         headRef: pr.head?.ref ?? '',
         baseRef: pr.base?.ref ?? '',
       }))
-    }
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -2757,16 +2791,13 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(
+    return await conditionalList(
+      `issues:${api.base}:${owner}/${repo}`,
       `${api.base}/repos/${owner}/${repo}/issues?per_page=50&state=open&pulls=false`,
-      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
-    )
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const data = await res.json() as any[]
-    // GitHub issues endpoint also returns PRs — filter them out
-    const issues = data.filter((i: any) => !i.pull_request)
-    return {
-      issues: issues.map((issue: any) => ({
+      token,
+      (data: any[]) => ({
+      // GitHub issues endpoint also returns PRs — filter them out
+      issues: data.filter((i: any) => !i.pull_request).map((issue: any) => ({
         number: issue.number,
         title: issue.title,
         state: issue.state,
@@ -2778,7 +2809,8 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
         assignees: (issue.assignees ?? []).map((a: any) => a.login),
         url: issue.html_url,
       }))
-    }
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 })
 

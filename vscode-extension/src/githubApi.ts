@@ -38,16 +38,40 @@ function failure(res: { status: number }): { error: string } {
   return { error: res.status === 401 ? 'not_authenticated' : `HTTP ${res.status}` }
 }
 
+/**
+ * Conditional GETs for the polled lists — the desktop's twin (#141). Every
+ * list endpoint answers with an ETag; replaying it as `If-None-Match` returns
+ * 304, which costs no rate limit at all. The last body is kept beside the tag
+ * so a 304 still answers with data: a caller ignoring `notModified` behaves as
+ * before, one reading it leaves the list the user is scrolling alone.
+ */
+const listCache = new Map<string, { etag: string; body: any }>()
+
+async function conditionalList<T extends object>(
+  key: string, url: string, token: string, shape: (data: any) => T,
+): Promise<(T & { notModified?: true }) | { error: string }> {
+  const hit = listCache.get(key)
+  const res = await fetch(url, {
+    headers: { ...HEADERS(token), ...(hit ? { 'If-None-Match': hit.etag } : {}) },
+  })
+  if (res.status === 304 && hit) return { ...hit.body, notModified: true as const }
+  // `failure` and not a bare status: 401 has to keep reading as
+  // not_authenticated, or a revoked token sends the panel round a sign-in loop.
+  if (!res.ok) return failure(res)
+  const body = shape(await res.json())
+  const etag = res.headers?.get?.('etag')
+  if (etag) listCache.set(key, { etag, body })
+  return body
+}
+
 export async function githubListPRs(api: GithubApi, owner: string, repo: string): Promise<any> {
   if (!api.token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(
+    return await conditionalList(
+      `prs:${api.base}:${owner}/${repo}`,
       `${api.base}/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
-      { headers: HEADERS(api.token) },
-    )
-    if (!res.ok) return failure(res)
-    const data = await res.json() as any[]
-    return {
+      api.token,
+      (data: any[]) => ({
       prs: data.map(pr => ({
         number: pr.number,
         title: pr.title,
@@ -65,23 +89,21 @@ export async function githubListPRs(api: GithubApi, owner: string, repo: string)
         headRef: pr.head?.ref ?? '',
         baseRef: pr.base?.ref ?? '',
       })),
-    }
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 }
 
 export async function githubListIssues(api: GithubApi, owner: string, repo: string): Promise<any> {
   if (!api.token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(
+    return await conditionalList(
+      `issues:${api.base}:${owner}/${repo}`,
       `${api.base}/repos/${owner}/${repo}/issues?per_page=50&state=open`,
-      { headers: HEADERS(api.token) },
-    )
-    if (!res.ok) return failure(res)
-    const data = await res.json() as any[]
-    // The issues endpoint also returns PRs — filter them out.
-    const issues = data.filter((i: any) => !i.pull_request)
-    return {
-      issues: issues.map((issue: any) => ({
+      api.token,
+      // The issues endpoint also returns PRs — filter them out.
+      (data: any[]) => ({
+      issues: data.filter((i: any) => !i.pull_request).map((issue: any) => ({
         number: issue.number,
         title: issue.title,
         state: issue.state,
@@ -93,7 +115,8 @@ export async function githubListIssues(api: GithubApi, owner: string, repo: stri
         assignees: (issue.assignees ?? []).map((a: any) => a.login),
         url: issue.html_url,
       })),
-    }
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 }
 

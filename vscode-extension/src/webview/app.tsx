@@ -59,6 +59,9 @@ import './vertex-vscode.css'
 // The rail is one view at a time, so the two GitHub lists are two more views
 // rather than sections stacked under the others — which is what the panel's
 // shape allows. In the desktop they stack, from the same component.
+/** GitHub's own published cadence — `X-Poll-Interval: 60` on its events endpoint. */
+const GITHUB_POLL_MS = 60_000
+
 const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
 
 /** The virtual commit that stands for the working tree. One literal, not three. */
@@ -171,7 +174,8 @@ function VertexApp() {
   // icons don't flicker on every background refresh.
   // The two sidebar lists, callable on their own: the issue detail's writes
   // refresh them without a full repo reload.
-  const loadGhLists = useCallback(async (base: { owner: string; repo: string }, only?: 'prs' | 'issues') => {
+  /** `silent` is a poll: a blip leaves the lists alone, and `notModified` writes nothing. */
+  const loadGhLists = useCallback(async (base: { owner: string; repo: string }, only?: 'prs' | 'issues', silent = false) => {
     void (window.gitAPI as any).githubGetUser?.()
       .then((r: any) => setGithubLogin(r?.user?.login ?? null))
       .catch(() => setGithubLogin(null))
@@ -188,9 +192,36 @@ function VertexApp() {
       only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
       only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
     ])
-    if (only !== 'issues') setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
-    if (only !== 'prs') setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
+    const put = (r: any, apply: (v: any) => void, shape: () => any) => {
+      if (r?.notModified) return
+      if (r?.error) { if (!silent) apply(undefined); return }
+      apply(shape())
+    }
+    if (only !== 'issues') put(prs, setGithubPRs, () => (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
+    if (only !== 'prs') put(issues, setGithubIssues, () => (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
   }, [])
+
+  // The panel had no loop at all, so its lists were whatever they were when it
+  // opened (#141). Same contract as the desktop: conditional requests, so a
+  // minute costs nothing while nothing changes, and 60s because that is the
+  // interval GitHub publishes for itself.
+  useEffect(() => {
+    if (!githubRepo) return
+    let stopped = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const tick = async () => {
+      if (!document.hidden && !stopped) await loadGhLists(githubRepo, undefined, true)
+      if (!stopped) timer = setTimeout(tick, GITHUB_POLL_MS)
+    }
+    timer = setTimeout(tick, GITHUB_POLL_MS)
+    const onVisible = () => { if (!document.hidden && !stopped) void loadGhLists(githubRepo, undefined, true) }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      stopped = true
+      if (timer) clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [githubRepo, loadGhLists])
 
   const [githubRefreshing, setGithubRefreshing] = useState<'prs' | 'issues' | null>(null)
   const [githubRefreshTick, setGithubRefreshTick] = useState({ prs: 0, issues: 0 })

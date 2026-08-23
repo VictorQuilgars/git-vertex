@@ -329,3 +329,87 @@ suite('githubApi — what the rulesets answer, together', () => {
     assert.strictEqual(bypassVerdict(['never', null]), null)
   })
 })
+
+// #141 — the lists are polled, so they are asked conditionally: an ETag
+// replayed as If-None-Match answers 304, which costs no rate limit at all
+// (measured against api.github.com: 4997 remaining before five of them, 4997
+// after). What the caller gets back is the last body plus `notModified`, so a
+// poll can write nothing and leave the list the user is scrolling alone.
+suite('githubApi — asking again without paying for it', () => {
+  /** A fetch that answers a scripted sequence, recording the headers it saw. */
+  function stubEtag(steps: { status: number; etag?: string; body?: any }[]) {
+    const real = globalThis.fetch
+    const seen: any[] = []
+    let i = 0
+    globalThis.fetch = (async (_url: string, init: any) => {
+      seen.push(init?.headers ?? {})
+      const step = steps[Math.min(i++, steps.length - 1)]
+      return {
+        ok: step.status >= 200 && step.status < 300,
+        status: step.status,
+        headers: { get: (h: string) => (h.toLowerCase() === 'etag' ? step.etag ?? null : null) },
+        json: async () => step.body ?? [],
+      }
+    }) as unknown as typeof globalThis.fetch
+    return { seen, restore: () => { globalThis.fetch = real } }
+  }
+
+  const API = { base: 'https://api.github.com', token: 'tok' }
+
+  test('the first answer is kept, and its tag sent back on the next ask', async () => {
+    const f = stubEtag([
+      { status: 200, etag: '"abc"', body: [{ number: 1, title: 'one', user: { login: 'a' } }] },
+      { status: 304, etag: '"abc"' },
+    ])
+    try {
+      const first: any = await githubListPRs(API, 'o', 'r')
+      assert.strictEqual(first.prs.length, 1)
+      assert.strictEqual(first.notModified, undefined)
+      // nothing to replay on a first ask
+      assert.strictEqual((f.seen[0] as any)['If-None-Match'], undefined)
+
+      const second: any = await githubListPRs(API, 'o', 'r')
+      assert.strictEqual((f.seen[1] as any)['If-None-Match'], '"abc"')
+      // a 304 still answers with the data — a caller ignoring the flag is safe
+      assert.strictEqual(second.prs.length, 1)
+      assert.strictEqual(second.notModified, true)
+    } finally { f.restore() }
+  })
+
+  test('a changed list replaces the cache rather than adding to it', async () => {
+    const f = stubEtag([
+      { status: 200, etag: '"v1"', body: [{ number: 1, title: 'one', user: { login: 'a' } }] },
+      { status: 200, etag: '"v2"', body: [{ number: 2, title: 'two', user: { login: 'b' } }] },
+      { status: 304, etag: '"v2"' },
+    ])
+    try {
+      await githubListPRs(API, 'o', 'r')
+      const changed: any = await githubListPRs(API, 'o', 'r')
+      assert.strictEqual(changed.prs[0].number, 2)
+      assert.strictEqual((f.seen[1] as any)['If-None-Match'], '"v1"')
+
+      const same: any = await githubListPRs(API, 'o', 'r')
+      assert.strictEqual((f.seen[2] as any)['If-None-Match'], '"v2"')
+      assert.strictEqual(same.prs[0].number, 2)
+    } finally { f.restore() }
+  })
+
+  // The two lists are two entries: a quiet issues list must not make the pull
+  // requests look unchanged.
+  test('pull requests and issues are cached apart', async () => {
+    const f = stubEtag([{ status: 200, etag: '"prs"', body: [] }, { status: 200, etag: '"iss"', body: [] }])
+    try {
+      await githubListPRs(API, 'o', 'r')
+      await githubListIssues(API, 'o', 'r')
+      assert.strictEqual((f.seen[1] as any)['If-None-Match'], undefined)
+    } finally { f.restore() }
+  })
+
+  test('a refusal is still a refusal, not a stale answer', async () => {
+    const f = stubEtag([{ status: 200, etag: '"abc"', body: [] }, { status: 401 }])
+    try {
+      await githubListPRs(API, 'o', 'r')
+      assert.deepStrictEqual(await githubListPRs(API, 'o', 'r'), { error: 'not_authenticated' })
+    } finally { f.restore() }
+  })
+})
