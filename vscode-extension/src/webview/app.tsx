@@ -1335,6 +1335,7 @@ function VertexApp() {
           // The composer pushes before creating, so ahead/behind and the
           // branch's published state are both stale afterwards.
           onPushed={() => loadRepoData(true)}
+          onCreated={() => { if (githubRepo) void loadGhLists(githubRepo, 'prs') }}
           onClose={() => setPrIntent(null)}
           showToast={showToast}
         />

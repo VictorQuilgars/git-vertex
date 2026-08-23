@@ -13,10 +13,16 @@ interface Props {
   onClose: () => void
   /** The composer pushes before creating — the host reloads its branch state. */
   onPushed?: () => void
+  /**
+   * The request exists. The host reloads the list that should now contain it —
+   * without this the app had to be told about its OWN write by a refresh, or
+   * wait out a poll, which is the one case where waiting is indefensible.
+   */
+  onCreated?: (number: number) => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
 }
 
-export default function PRModal({ owner, repo, intent, onClose, onPushed, showToast }: Props) {
+export default function PRModal({ owner, repo, intent, onClose, onPushed, onCreated, showToast }: Props) {
   const { t } = useLang()
   const head = intent.head
   const [title, setTitle] = useState('')
@@ -79,6 +85,7 @@ export default function PRModal({ owner, repo, intent, onClose, onPushed, showTo
     setCreatedUrl(r.url)
     setCreatedNumber(r.number)
     showToast(t('pr.success', r.number), 'ok')
+    onCreated?.(r.number)
   }
 
   return (

@@ -2768,6 +2768,7 @@ export default function App() {
           intent={prIntent}
           onClose={() => { setPrModalOpen(false); setPrIntent(null) }}
           onPushed={loadRepoData}
+          onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'prs') }}
           showToast={showToast}
         />
       )}
