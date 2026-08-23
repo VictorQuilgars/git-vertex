@@ -172,15 +172,75 @@ describe('the PR detail', () => {
       .mockResolvedValueOnce({ success: false, error: "error: cannot delete branch 'feat/speed' used by worktree at '/x'" })
       .mockResolvedValueOnce({ success: true })
     const checkout = jest.fn().mockResolvedValue({ success: true })
+    const pull = jest.fn().mockResolvedValue({ success: true })
     const { api } = draw({ merged: true, state: 'closed' }, {
       deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
-      deleteBranch, checkout,
+      deleteBranch, checkout, pull,
     })
     await screen.findByText('Speed up the graph')
     await userEvent.click(screen.getByText('Delete Work Branches'))
     await waitFor(() => expect(checkout).toHaveBeenCalledWith('main'))
     expect(deleteBranch).toHaveBeenCalledTimes(2)
-    expect(await screen.findByText(/Local : deleted — switched to main/)).toBeInTheDocument()
+    // The app moved them onto the base, so it owes them one that holds the
+    // merge — and a fast-forward, never anything that could rewrite work.
+    expect(pull).toHaveBeenCalledWith('ff-only')
+    expect(await screen.findByText(/switched to main and brought it up to date/))
+      .toBeInTheDocument()
+  })
+
+  // ⚠️ A diverged base is left exactly as it is: reconciling someone's trunk
+  // unasked is worse than the stale state this fixes.
+  test('a base that will not fast-forward is left alone, and said to be behind', async () => {
+    const deleteBranch = jest.fn()
+      .mockResolvedValueOnce({ success: false, error: "cannot delete branch 'feat/speed' checked out at '/x'" })
+      .mockResolvedValueOnce({ success: true })
+    const pull = jest.fn().mockResolvedValue({ success: false, error: 'Not possible to fast-forward, aborting.' })
+    draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
+      deleteBranch, pull,
+      checkout: jest.fn().mockResolvedValue({ success: true }),
+    })
+    await screen.findByText('Speed up the graph')
+    await userEvent.click(screen.getByText('Delete Work Branches'))
+    expect(await screen.findByText(/switched to main, which is still behind/))
+      .toBeInTheDocument()
+  })
+
+  test('no switch, no pull — the base is only touched because the app moved you', async () => {
+    const pull = jest.fn()
+    draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
+      deleteBranch: jest.fn().mockResolvedValue({ success: true }),
+      pull,
+    })
+    await screen.findByText('Speed up the graph')
+    await userEvent.click(screen.getByText('Delete Work Branches'))
+    expect(await screen.findByText(/Local : deleted/)).toBeInTheDocument()
+    expect(pull).not.toHaveBeenCalled()
+  })
+
+  // The action deletes ONE ref by name and must keep doing exactly that. What
+  // else stands on the merged commit is reported, never removed.
+  test('another branch on the merged commit is named, and left alone', async () => {
+    const deleteBranch = jest.fn().mockResolvedValue({ success: true })
+    draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
+      deleteBranch,
+      getBranches: jest.fn().mockResolvedValue({
+        branches: [
+          { name: 'feat/speed', commit: 'abc123', remote: false },
+          { name: 'feat/speed-1', commit: 'abc123', remote: false },
+          { name: 'main', commit: 'deadbee', remote: false },
+          { name: 'remotes/origin/feat/speed', commit: 'abc123', remote: true },
+        ],
+      }),
+    })
+    await screen.findByText('Speed up the graph')
+    await userEvent.click(screen.getByText('Delete Work Branches'))
+    expect(await screen.findByText(/Also on this commit: feat\/speed-1/)).toBeInTheDocument()
+    // named, not deleted — and the remote twin is not a local leftover
+    expect(deleteBranch).toHaveBeenCalledTimes(1)
+    expect(deleteBranch).toHaveBeenCalledWith('feat/speed')
   })
 
   test("when even the switch fails, git's own message stays", async () => {
