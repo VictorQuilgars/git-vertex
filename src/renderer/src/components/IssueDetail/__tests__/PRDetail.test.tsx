@@ -172,18 +172,19 @@ describe('the PR detail', () => {
       .mockResolvedValueOnce({ success: false, error: "error: cannot delete branch 'feat/speed' used by worktree at '/x'" })
       .mockResolvedValueOnce({ success: true })
     const checkout = jest.fn().mockResolvedValue({ success: true })
-    const pull = jest.fn().mockResolvedValue({ success: true })
+    const fastForwardToUpstream = jest.fn().mockResolvedValue({ success: true })
     const { api } = draw({ merged: true, state: 'closed' }, {
       deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
-      deleteBranch, checkout, pull,
+      deleteBranch, checkout, fastForwardToUpstream,
     })
     await screen.findByText('Speed up the graph')
     await userEvent.click(screen.getByText('Delete Work Branches'))
     await waitFor(() => expect(checkout).toHaveBeenCalledWith('main'))
     expect(deleteBranch).toHaveBeenCalledTimes(2)
     // The app moved them onto the base, so it owes them one that holds the
-    // merge — and a fast-forward, never anything that could rewrite work.
-    expect(pull).toHaveBeenCalledWith('ff-only')
+    // merge — by naming the upstream ref, never by `pull --ff-only`, which a
+    // repository fetching several refs refuses for reasons of its own.
+    expect(fastForwardToUpstream).toHaveBeenCalled()
     expect(await screen.findByText(/switched to main and brought it up to date/))
       .toBeInTheDocument()
   })
@@ -194,10 +195,10 @@ describe('the PR detail', () => {
     const deleteBranch = jest.fn()
       .mockResolvedValueOnce({ success: false, error: "cannot delete branch 'feat/speed' checked out at '/x'" })
       .mockResolvedValueOnce({ success: true })
-    const pull = jest.fn().mockResolvedValue({ success: false, error: 'Not possible to fast-forward, aborting.' })
+    const fastForwardToUpstream = jest.fn().mockResolvedValue({ success: false, error: 'Not possible to fast-forward, aborting.' })
     draw({ merged: true, state: 'closed' }, {
       deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
-      deleteBranch, pull,
+      deleteBranch, fastForwardToUpstream,
       checkout: jest.fn().mockResolvedValue({ success: true }),
     })
     await screen.findByText('Speed up the graph')
@@ -206,17 +207,17 @@ describe('the PR detail', () => {
       .toBeInTheDocument()
   })
 
-  test('no switch, no pull — the base is only touched because the app moved you', async () => {
-    const pull = jest.fn()
+  test('no switch, no fast-forward — the base is only touched because the app moved you', async () => {
+    const fastForwardToUpstream = jest.fn()
     draw({ merged: true, state: 'closed' }, {
       deleteRemoteBranch: jest.fn().mockResolvedValue({ success: true }),
       deleteBranch: jest.fn().mockResolvedValue({ success: true }),
-      pull,
+      fastForwardToUpstream,
     })
     await screen.findByText('Speed up the graph')
     await userEvent.click(screen.getByText('Delete Work Branches'))
     expect(await screen.findByText(/Local : deleted/)).toBeInTheDocument()
-    expect(pull).not.toHaveBeenCalled()
+    expect(fastForwardToUpstream).not.toHaveBeenCalled()
   })
 
   // The action deletes ONE ref by name and must keep doing exactly that. What

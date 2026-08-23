@@ -426,7 +426,12 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                               // exactly as it is and reported as behind.
                               // Reconciling someone's trunk unasked is worse than
                               // the stale state this fixes.
-                              const ff = await (api().pull?.('ff-only') ?? Promise.resolve({ success: false })).catch(() => ({ success: false }))
+                              //
+                              // And NOT `pull --ff-only`: a repository fetching
+                              // several refs makes pull refuse before it reaches
+                              // the fast-forward at all, which would be reported
+                              // here as a diverged base when nothing diverged.
+                              const ff = await (api().fastForwardToUpstream?.() ?? Promise.resolve({ success: false })).catch(() => ({ success: false }))
                               baseFresh = !!ff?.success
                             }
                           }

@@ -1304,6 +1304,32 @@ export class GitService {
     }
   }
 
+  /**
+   * Bring the CURRENT branch level with the remote it tracks, and only if that
+   * can be done without writing a commit — fetch, then `merge --ff-only @{u}`.
+   *
+   * ⚠️ Not `pull --ff-only`, which is a different operation with the same
+   * words on it. A repository whose `remote.<name>.fetch` brings several refs
+   * makes pull refuse before it ever reaches the fast-forward — "Cannot
+   * fast-forward to multiple branches" — which a caller has no way to tell
+   * apart from a base that has genuinely diverged. Naming the upstream ref
+   * asks the exact question, so a refusal here means only one thing.
+   *
+   * No argument: it acts on HEAD, so it cannot be pointed at a branch the user
+   * is not standing on, and it cannot move a ref they are not looking at.
+   */
+  async fastForwardToUpstream(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.fetch()
+      const upstream = (await this.git.raw(['rev-parse', '--abbrev-ref', '@{u}'])).trim()
+      if (!upstream) return { success: false, error: 'no upstream branch' }
+      await this.git.raw(['merge', '--ff-only', upstream])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   async merge(branch: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(branch, 'branch')
     if (bad) return { success: false, error: bad }

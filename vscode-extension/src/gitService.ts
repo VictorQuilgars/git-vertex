@@ -1847,6 +1847,24 @@ exit 0
     catch (e: any) { return { success: false, error: e.message } }
   }
 
+  /**
+   * Bring the current branch level with the remote it tracks, without writing
+   * a commit. The desktop's twin — and not `pull --ff-only`, which refuses on
+   * a repository fetching several refs before it reaches the fast-forward,
+   * indistinguishably from a base that really has diverged.
+   */
+  async fastForwardToUpstream(): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.fetch()
+      const upstream = (await this.git.raw(['rev-parse', '--abbrev-ref', '@{u}'])).trim()
+      if (!upstream) return { success: false, error: 'no upstream branch' }
+      await this.git.raw(['merge', '--ff-only', upstream])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   async merge(branch: string): Promise<{ success: boolean; error?: string }> {
     const bad = this.assertRef(branch, 'branch'); if (bad) return { success: false, error: bad }
     try {

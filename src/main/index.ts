@@ -917,6 +917,11 @@ ipcMain.handle('git:rename-branch', async (_event, oldName: string, newName: str
   return gitService.renameBranch(oldName, newName)
 })
 
+ipcMain.handle('git:fast-forward-upstream', async () => {
+  if (!gitService) return { success: false, error: 'No repository open' }
+  return gitService.fastForwardToUpstream()
+})
+
 ipcMain.handle('git:merge', async (_event, branch: string) => {
   if (!gitService) return { success: false, error: 'No repo open' }
   const r = await gitService.merge(branch)
