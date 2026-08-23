@@ -529,3 +529,43 @@ describe('a failed open heals itself', () => {
     expect(screen.queryByText('fetch failed')).not.toBeInTheDocument()
   })
 })
+
+// Third time this bit, so it gets its own test: `notModified` says "the same
+// body I last sent", and the cache saying it lives in the main process, which
+// outlives every pane. A 304 is therefore routine for something THIS pane has
+// never seen — and dropping the answer on it left "Checks: unknown" on screen
+// for a request whose checks were green.
+describe('a 304 is not a reason to know less', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('checks arriving as not-modified still bind to the head being shown', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, headSha: 'sha222', mergeable: true } })
+    // The pane never saw these; the main process had them cached.
+    const githubGetChecks = jest.fn().mockResolvedValue({
+      checks: { total: 4, passed: 4, failed: 0, pending: 0 }, notModified: true,
+    })
+    draw({}, { githubGetPR, githubGetChecks })
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(screen.queryByText('Checks: unknown')).not.toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  test('a head that moves picks up cached checks for the new sha', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, headSha: 'old111', mergeable: true } })
+      .mockResolvedValue({ pr: { ...FULL_PR, headSha: 'new222', mergeable: true } })
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+      // the new sha answers 304 — this pane has still never seen it
+      .mockResolvedValue({ checks: { total: 2, passed: 2, failed: 0, pending: 0 }, notModified: true })
+    draw({}, { githubGetPR, githubGetChecks })
+    await screen.findByText('4 checks passed')
+    await settle(20_000)
+    await waitFor(() => expect(githubGetChecks).toHaveBeenCalledWith('o', 'r', 'new222'))
+    await settle(0)   // let the checks promise land
+    // it does not fall back to unknown: the 304 carried the answer
+    expect(screen.getByText('2 checks passed')).toBeInTheDocument()
+  })
+})

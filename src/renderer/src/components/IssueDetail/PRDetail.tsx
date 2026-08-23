@@ -57,6 +57,11 @@ const SETTLE_POLL_MS = 5_000
 const OPEN_POLL_MS = 20_000
 
 interface Checks { total: number; passed: number; failed: number; pending: number }
+
+/** Same numbers — so a poll that changed nothing does not re-render the pane. */
+const sameChecks = (a: Checks | null, b: Checks): boolean =>
+  !!a && a.total === b.total && a.passed === b.passed
+  && a.failed === b.failed && a.pending === b.pending
 interface Comment { author: string; createdAt: string; body: string }
 
 function api(): any { return window.gitAPI as any }
@@ -165,22 +170,33 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
     const every = settled ? OPEN_POLL_MS : SETTLE_POLL_MS
     const id = setTimeout(async () => {
       if (!alive || document.hidden) return
+      // ⚠️ EVERY fetch first, THEN every state write — and one `alive` check
+      // between them. Writing as they arrived meant `setPr` re-ran this effect,
+      // whose cleanup set `alive = false`, so the pane cancelled its own checks
+      // request every time it updated the request. That is "the page updates,
+      // except the checks", exactly.
       const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
+      const sha = r?.pr?.headSha
+      const c = sha
+        ? await api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null)
+        : null
+      const cm = await api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null)
       if (!alive) return
-      // A poll that fails changes nothing — the pane keeps what it has and
-      // asks again. Only a poll that SUCCEEDS speaks: it clears an error left
-      // by an earlier attempt, which is what makes a transient failure heal.
+
+      // `notModified` describes the TRANSPORT — "the same body I last sent" —
+      // not what this pane holds. The cache lives in the main process and
+      // outlives every pane, so a 304 is routine for something this side has
+      // never seen. Each answer is therefore RECORDED; only the state write is
+      // skipped when what arrived is what is already held.
       if (r?.pr) {
         setError(null)
-        if (!r.notModified) setPr(r.pr)
+        if (!pr || !r.notModified) setPr(r.pr)
       }
-      const sha = r?.pr?.headSha
-      if (sha) {
-        const c = await api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null)
-        if (alive && c?.checks && !c.notModified) { setChecks(c.checks); setChecksSha(sha) }
+      if (sha && c?.checks) {
+        setChecksSha(sha)
+        setChecks(prev => sameChecks(prev, c.checks) ? prev : c.checks)
       }
-      const cm = await api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null)
-      if (alive && cm?.comments && !cm.notModified) setComments(cm.comments)
+      if (cm?.comments && (comments === null || !cm.notModified)) setComments(cm.comments)
     }, every)
     return () => { alive = false; clearTimeout(id) }
   }, [settled, editing, repo.owner, repo.repo, number, pr, checks, comments])
