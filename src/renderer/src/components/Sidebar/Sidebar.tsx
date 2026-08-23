@@ -270,7 +270,8 @@ function GhFilterGroup({ filter, kind, repo, refreshOn, refreshTick = 0, renderI
   onDelete: () => void
   t: (k: any, ...a: any[]) => string
 }) {
-  const [open, setOpen] = useState(true)
+  // Closed by default, for the same reason as GhGroup above.
+  const [open, setOpen] = useState(false)
   const [state, setState] = useState<{ total: number; items: any[] } | { error: string } | null>(null)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const q = composeGhQuery(filter.query, kind, repo.owner, repo.repo)
@@ -335,10 +336,17 @@ function GhFilterGroup({ filter, kind, repo, refreshOn, refreshTick = 0, renderI
 // it still shows, with its 0 — that is what says the query ran. Groups that
 // cannot run (the account ones, with nobody signed in) are not rendered at
 // all by the caller, which is a different statement.
-function GhGroup({ title, count, children, defaultOpen = true }: {
+function GhGroup({ title, count, children, defaultOpen = false }: {
   title: string
   count: number
   children: React.ReactNode
+  /**
+   * Closed by default, like the sections themselves. Four groups and every
+   * saved filter opening at once buries the branches under a section that was
+   * meant to be read beside them — and the count on each header already says
+   * what is behind it, which is what makes a folded group informative rather
+   * than hidden.
+   */
   defaultOpen?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)

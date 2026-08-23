@@ -43,7 +43,14 @@ const draw = (props: any) => renderWithProviders(<Sidebar {...base} {...props} /
 // The sections start folded — the graph is the point of the window, and the
 // header's count already says what is behind. Tests about rows open them the
 // way a person does.
-const unfold = (title: string) => fireEvent.click(screen.getByText(title))
+const unfold = (title: string) => {
+  fireEvent.click(screen.getByText(title))
+  // The named groups inside start folded too — their counts are what make a
+  // folded group informative. A test that wants ROWS opens them, as a person
+  // does, so these keep testing the rows rather than the default state.
+  const section = screen.getByText(title).closest('.sb-section')
+  section?.querySelectorAll('.sb-gh-group-head').forEach(h => fireEvent.click(h))
+}
 
 describe('the GitHub sections of the sidebar', () => {
   test('no GitHub here means no sections at all', () => {
@@ -481,6 +488,8 @@ describe('the saved filters', () => {
     // The second argument is the cache bypass (#133): a run nobody asked for
     // is never forced.
     await waitFor(() => expect(githubSearchIssues).toHaveBeenCalledWith('repo:o/r is:pr review:approved', false))
+    // It arrives folded, like every group — open it to read the result.
+    await userEvent.click(screen.getByText('Mine'))
     expect(await screen.findByText('Found')).toBeInTheDocument()
     // and it persisted per repository
     expect(JSON.parse(localStorage.getItem('gv:gh-filters:r')!).prs).toEqual([{ name: 'Mine', query: 'review:approved' }])
