@@ -345,7 +345,10 @@ export default function App() {
   // is no GitHub here or no answer yet — the sections then do not render at
   // all, which is not the same as rendering an empty one.
   const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
+  /** Read inside loadGithubLists without making it depend on the lists. */
+  const githubPRsRef = React.useRef(githubPRs); githubPRsRef.current = githubPRs
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
+  const githubIssuesRef = React.useRef(githubIssues); githubIssuesRef.current = githubIssues
   // The signed-in login — what the account groups of PULL REQUESTS filter on.
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
   // The issue being read in the centre (§3 bis) — the third layout: toolbar
@@ -759,13 +762,20 @@ export default function App() {
       // the rule the saved filters already follow. Except on a poll, where it
       // costs nothing at all: the user did not ask, so a blip must not empty
       // what they are looking at.
-      const put = (r: any, apply: (v: any) => void, shape: () => any) => {
-        if (r?.notModified) return          // the ETag said so: touch nothing
+      // ⚠️ `notModified` means "the same as the last body I handed out" — and
+      // the ETag cache lives in the MAIN process, which outlives this renderer.
+      // After a window reload the renderer holds nothing while that cache is
+      // still warm, so the first load comes back 304. Skipping it there left
+      // the sections undefined, which is how they disappear entirely rather
+      // than showing as empty. It is only safe to skip when there is already
+      // something to keep — and the answer carries the body either way.
+      const put = (r: any, current: any, apply: (v: any) => void, shape: () => any) => {
+        if (r?.notModified && current !== undefined) return
         if (r?.error) { if (!silent) apply(undefined); return }
         apply(shape())
       }
-      if (only !== 'issues') put(prs, setGithubPRs, () => rows(prs?.prs, 'pr'))
-      if (only !== 'prs') put(issues, setGithubIssues, () => rows(issues?.issues, 'issue'))
+      if (only !== 'issues') put(prs, githubPRsRef.current, setGithubPRs, () => rows(prs?.prs, 'pr'))
+      if (only !== 'prs') put(issues, githubIssuesRef.current, setGithubIssues, () => rows(issues?.issues, 'issue'))
     } catch {
       if (silent) return
       if (only !== 'issues') setGithubPRs(undefined)

@@ -655,3 +655,20 @@ describe('refreshing a GitHub section', () => {
     expect(githubSearchIssues.mock.calls[0][1]).toBe(true)
   })
 })
+
+// The sections are drawn only when the host has a list — undefined means "no
+// GitHub here", which is a different answer from "nothing open". A poll that
+// says "not modified" must never be able to produce the first of those.
+describe('absent and empty stay different answers', () => {
+  test('a list, even an empty one, still draws its section', async () => {
+    draw({ githubPRs: [], githubIssues: [] })
+    expect(screen.getByText('PULL REQUESTS')).toBeInTheDocument()
+    expect(screen.getByText('GITHUB ISSUES')).toBeInTheDocument()
+  })
+
+  test('no list at all draws no section', async () => {
+    draw({})
+    expect(screen.queryByText('PULL REQUESTS')).not.toBeInTheDocument()
+    expect(screen.queryByText('GITHUB ISSUES')).not.toBeInTheDocument()
+  })
+})

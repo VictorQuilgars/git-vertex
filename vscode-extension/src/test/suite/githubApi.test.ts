@@ -413,3 +413,43 @@ suite('githubApi — asking again without paying for it', () => {
     } finally { f.restore() }
   })
 })
+
+// The bug this pins: `notModified` means "the same as the last body I handed
+// out", and the cache handing it out lives in the HOST, which outlives the
+// webview. After a reload the view holds nothing while the cache is warm, so
+// the very first load answers 304 — and a caller that treats that as "change
+// nothing" ends up with no list at all, which is how the sections disappeared
+// rather than showing as empty.
+suite('githubApi — a 304 still carries the body', () => {
+  function stub(steps: { status: number; etag?: string; body?: any }[]) {
+    const real = globalThis.fetch
+    let i = 0
+    globalThis.fetch = (async () => {
+      const step = steps[Math.min(i++, steps.length - 1)]
+      return {
+        ok: step.status >= 200 && step.status < 300,
+        status: step.status,
+        headers: { get: (h: string) => (h.toLowerCase() === 'etag' ? step.etag ?? null : null) },
+        json: async () => step.body ?? [],
+      }
+    }) as unknown as typeof globalThis.fetch
+    return () => { globalThis.fetch = real }
+  }
+
+  const API = { base: 'https://api.github.com', token: 'tok' }
+
+  test('a not-modified answer is still a usable list, not an empty one', async () => {
+    const restore = stub([
+      { status: 200, etag: '"e"', body: [{ number: 5, title: 'five', user: { login: 'a' } }] },
+      { status: 304, etag: '"e"' },
+    ])
+    try {
+      await githubListPRs(API, 'o', 'r')          // warms the cache
+      const again: any = await githubListPRs(API, 'o', 'r')
+      assert.strictEqual(again.notModified, true)
+      // the body is there — a caller starting from nothing can use it
+      assert.strictEqual(again.prs.length, 1)
+      assert.strictEqual(again.prs[0].number, 5)
+    } finally { restore() }
+  })
+})

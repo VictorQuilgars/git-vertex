@@ -98,7 +98,9 @@ function VertexApp() {
   const showConfirm = useCallback((msg: string): Promise<boolean> => window.gitAPI.uiConfirm(msg), [])
 
   const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
+  const githubPRsRef = useRef(githubPRs); githubPRsRef.current = githubPRs
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
+  const githubIssuesRef = useRef(githubIssues); githubIssuesRef.current = githubIssues
   // The signed-in login — what the account groups of PULL REQUESTS filter on.
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
   // The issue being read in the centre (§3 bis): graph replaced, commit
@@ -192,13 +194,17 @@ function VertexApp() {
       only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
       only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
     ])
-    const put = (r: any, apply: (v: any) => void, shape: () => any) => {
-      if (r?.notModified) return
+    // ⚠️ Only skip when there is already something to keep: the ETag cache
+    // lives in the host and outlives this webview, so the first load after a
+    // reload can answer 304 while this side holds nothing. Skipping there is
+    // what makes the sections vanish rather than show empty.
+    const put = (r: any, current: any, apply: (v: any) => void, shape: () => any) => {
+      if (r?.notModified && current !== undefined) return
       if (r?.error) { if (!silent) apply(undefined); return }
       apply(shape())
     }
-    if (only !== 'issues') put(prs, setGithubPRs, () => (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
-    if (only !== 'prs') put(issues, setGithubIssues, () => (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
+    if (only !== 'issues') put(prs, githubPRsRef.current, setGithubPRs, () => (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
+    if (only !== 'prs') put(issues, githubIssuesRef.current, setGithubIssues, () => (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
   }, [])
 
   // The panel had no loop at all, so its lists were whatever they were when it
