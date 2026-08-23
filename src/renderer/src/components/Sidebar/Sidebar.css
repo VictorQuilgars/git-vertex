@@ -1,4 +1,18 @@
 .sidebar {
+  /* ── The panel's one indent scale (#138) ──────────────────────────────
+     Everything inside a section starts at --sb-indent: level with the
+     section's own title, never left of it. One level in adds --sb-indent-step.
+
+     These are the ONLY place the numbers live. Sidebar.tsx builds the tree's
+     inline padding from them with calc(), rather than carrying its own copy —
+     two copies is how the tree's folders once landed at zero while the
+     stylesheet said otherwise. --sb-branch-inset is what .sb-branch-item
+     already contributes on its own, subtracted so a leaf lands on the same
+     line as a folder at the same depth. */
+  --sb-indent: 26px;
+  --sb-indent-step: 12px;
+  --sb-branch-inset: 20px;
+
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -689,9 +703,13 @@
 
 /* ── The named groups inside a GitHub section (§1 bis) ─────────────────── */
 .sb-gh-group { margin-bottom: var(--space-2xs); }
+/* A group is one level inside its section, so it lands where a top-level
+   folder of the branch tree does — and stands as tall, rather than letting
+   2px of padding on 11px text decide it. */
 .sb-gh-group-head {
   display: flex; align-items: center; gap: var(--space-sm);
-  padding: var(--space-2xs) var(--space-md) var(--space-2xs) var(--space-lg);
+  height: 26px;
+  padding: 0 var(--space-md) 0 var(--sb-indent);
   color: var(--text-secondary); font-size: var(--text-xs);
   cursor: pointer; user-select: none;
 }
@@ -701,12 +719,14 @@
 .sb-gh-group-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-gh-group-count { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 .sb-gh-group-body { display: flex; flex-direction: column; }
-.sb-gh-group .sb-gh-row { padding-left: var(--space-2xl); }
+.sb-gh-group .sb-gh-row { padding-left: calc(var(--sb-indent) + var(--sb-indent-step)); }
 
 /* ── §2: the search lens of a section ──────────────────────────────────── */
 .sb-gh-search {
   display: flex; align-items: center; gap: var(--space-sm);
-  margin: var(--space-xs) var(--space-md) var(--space-xs) var(--space-lg);
+  /* Aligned with the groups below it: everything inside a section shares one
+     left edge, whether it is a row or a field. */
+  margin: var(--space-xs) var(--space-md) var(--space-xs) var(--sb-indent);
   padding: 0 var(--space-sm);
   background: var(--surface-sunken); border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm); color: var(--text-tertiary);
@@ -767,9 +787,11 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  /* The left is set inline, per depth — see TREE_INDENT_BASE. */
-  padding: 3px var(--space-lg) 3px 0;
-  height: 24px;
+  /* The left is set inline, per depth, from --sb-indent. */
+  padding: 0 var(--space-lg) 0 0;
+  /* 26, like every other row in the panel: a branch row, a GitHub group, a
+     section header. One vertical rhythm, or the column reads as ragged. */
+  height: 26px;
   color: var(--text-secondary);
   font-size: var(--text-xs);
   cursor: pointer;

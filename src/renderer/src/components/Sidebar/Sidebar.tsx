@@ -458,15 +458,19 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
 // drag-and-drop — changes with the shape it is drawn in.
 
 /**
- * Where the tree starts: level with the section TITLE, never left of it.
- * A folder icon further left than the word LOCAL reads as a level ABOVE the
- * section, which is the one thing it is not.
+ * The tree's indent, built from the panel's one scale rather than a copy of
+ * it: `--sb-indent`, `--sb-indent-step` and `--sb-branch-inset` are declared
+ * once on `.sidebar` in Sidebar.css, and these read them.
+ *
+ * A number kept in both files is how the folders once landed at zero while the
+ * stylesheet said 26 — and how the GitHub groups ended up on an indent scale
+ * of their own (#138). There is one scale, and it is in the stylesheet.
  */
-const TREE_INDENT_BASE = 26
-/** What .sb-branch-item already contributes itself — padding plus margin. */
-const BRANCH_ROW_INSET = 20
-/** One level of nesting. */
-const TREE_INDENT_STEP = 12
+const folderIndent = (depth: number) =>
+  `calc(var(--sb-indent) + ${depth} * var(--sb-indent-step))`
+/** A leaf is a BranchItem, which already carries `--sb-branch-inset` itself. */
+const leafIndent = (depth: number) =>
+  `calc(var(--sb-indent) - var(--sb-branch-inset) + ${depth} * var(--sb-indent-step))`
 
 function BranchTree<T>({ nodes, open, onToggle, renderLeaf, depth = 0 }: {
   nodes: BranchNode<T>[]
@@ -481,7 +485,7 @@ function BranchTree<T>({ nodes, open, onToggle, renderLeaf, depth = 0 }: {
       {nodes.map(node => node.kind === 'leaf'
         ? (
           <div key={node.path} className="sb-tree-leaf"
-            style={{ paddingLeft: TREE_INDENT_BASE - BRANCH_ROW_INSET + depth * TREE_INDENT_STEP }}>
+            style={{ paddingLeft: leafIndent(depth) }}>
             {renderLeaf(node.item, node.label)}
           </div>
         )
@@ -489,10 +493,9 @@ function BranchTree<T>({ nodes, open, onToggle, renderLeaf, depth = 0 }: {
           <div key={node.path}>
             {/* Indented from the section title, and level with the branch
                 rows beside it: a folder and a branch at the same depth are the
-                same depth. TREE_INDENT_BASE is what .sb-branch-item's own left
-                padding and margin come to, so the two icons line up. */}
+                same depth. The scale is the panel's, declared on `.sidebar`. */}
             <div className="sb-tree-folder"
-              style={{ paddingLeft: TREE_INDENT_BASE + depth * TREE_INDENT_STEP }}
+              style={{ paddingLeft: folderIndent(depth) }}
               title={node.path}
               onClick={() => onToggle(node.path)}>
               <Icon name="folder" size={12} />
