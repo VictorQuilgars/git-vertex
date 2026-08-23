@@ -146,10 +146,14 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
    */
   const headChecks = pr && checksSha === pr.headSha ? checks : null
 
-  const settled = !pr
-    || pr.merged
-    || pr.state !== 'open'
-    || (pr.mergeable !== null && headChecks !== null && headChecks.pending === 0)
+  // Nothing loaded — a first fetch that failed, or one still in flight — counts
+  // as UNSETTLED, so the pane retries in seconds rather than sitting dead for
+  // twenty. A transient "fetch failed" at open should heal itself, not leave a
+  // red line and nothing else until the pane is closed and reopened.
+  const settled = !!pr
+    && (pr.merged
+      || pr.state !== 'open'
+      || (pr.mergeable !== null && headChecks !== null && headChecks.pending === 0))
 
   // The pane keeps itself current for as long as it is open: the request, its
   // checks and its comments. Nothing here writes when the answer came back
@@ -163,7 +167,13 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
       if (!alive || document.hidden) return
       const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
       if (!alive) return
-      if (r?.pr && !r.notModified) setPr(r.pr)
+      // A poll that fails changes nothing — the pane keeps what it has and
+      // asks again. Only a poll that SUCCEEDS speaks: it clears an error left
+      // by an earlier attempt, which is what makes a transient failure heal.
+      if (r?.pr) {
+        setError(null)
+        if (!r.notModified) setPr(r.pr)
+      }
       const sha = r?.pr?.headSha
       if (sha) {
         const c = await api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null)

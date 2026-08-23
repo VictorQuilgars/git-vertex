@@ -2517,10 +2517,24 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
  * someone who has it. Unknown reads as today's behaviour, GitHub judging at
  * the click; only a MEASURED lack of permission is stated in the pane.
  */
+/**
+ * The supplement is five requests on a blocked request — GraphQL, the branch's
+ * rules, and one per ruleset — and the detail pane now re-asks every few
+ * seconds while it waits (#141). Rulesets and repository permissions do not
+ * change on that timescale, so the answer is held briefly: it turns a poll on
+ * a blocked request from five requests into one, which is also what stops a
+ * burst of them from failing on the socket.
+ */
+const supplementCache = new Map<string, { at: number; value: any }>()
+const SUPPLEMENT_TTL_MS = 60_000
+
 async function prBlockedSupplement(
   api: { base: string }, token: string, owner: string, repo: string, number: number,
   ctx: { blocked: boolean; baseRef: string },
 ): Promise<{ reviewDecision: string | null; canBypass: boolean; canMerge: boolean | null }> {
+  const key = `${api.base}:${owner}/${repo}#${number}:${ctx.blocked}`
+  const hit = supplementCache.get(key)
+  if (hit && Date.now() - hit.at < SUPPLEMENT_TTL_MS) return hit.value
   try {
     const gqlUrl = api.base.endsWith('/api/v3')
       ? api.base.replace(/\/api\/v3$/, '/api/graphql')
@@ -2541,11 +2555,15 @@ async function prBlockedSupplement(
     const asked = ctx.blocked
       ? await rulesetBypass(api, token, owner, repo, ctx.baseRef)
       : null
-    return {
+    const value = {
       reviewDecision: repoNode?.pullRequest?.reviewDecision ?? null,
       canBypass: asked ?? perm === 'ADMIN',
       canMerge: perm === null ? null : MERGE_PERMISSIONS.includes(perm),
     }
+    supplementCache.set(key, { at: Date.now(), value })
+    return value
+    // A failure is NOT cached: the next poll should ask again rather than
+    // repeat a shrug for a minute.
   } catch { return { reviewDecision: null, canBypass: false, canMerge: null } }
 }
 

@@ -495,3 +495,37 @@ describe('checks belong to the commit they ran on', () => {
   // is, is GitHub's own `mergeableState` to say — and the pane already shows it.
 
 })
+
+// Victor pushed, opened the request, and got a bare "fetch failed" — the pane
+// replaced by a red line with no way back but closing it.
+describe('a failed open heals itself', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('the error goes when the next attempt succeeds', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ error: 'fetch failed' })
+      .mockResolvedValue({ pr: { ...FULL_PR, mergeable: true } })
+    draw({}, { githubGetPR })
+    expect(await screen.findByText('fetch failed')).toBeInTheDocument()
+
+    // nothing loaded is UNSETTLED: it retries in seconds, not twenty
+    await settle(5_000)
+    expect(await screen.findByText('Speed up the graph')).toBeInTheDocument()
+    expect(screen.queryByText('fetch failed')).not.toBeInTheDocument()
+  })
+
+  test('a failed retry changes nothing that is already on screen', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, mergeable: true } })
+      .mockResolvedValue({ error: 'fetch failed' })
+    draw({}, { githubGetPR })
+    await screen.findByText('Speed up the graph')
+    await settle(20_000)
+    await settle(20_000)
+    // the request is still there, and the failure is not shown
+    expect(screen.getByText('Speed up the graph')).toBeInTheDocument()
+    expect(screen.queryByText('fetch failed')).not.toBeInTheDocument()
+  })
+})
