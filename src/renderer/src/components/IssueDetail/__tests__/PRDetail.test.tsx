@@ -368,6 +368,25 @@ describe('a request that GitHub has not finished deciding about', () => {
     expect(api.githubGetPR).toHaveBeenCalled()
   })
 
+  // "au fur et à mesure" — each poll shows where the checks have got to, not
+  // just the final answer.
+  test('the counts move as the checks land, one poll at a time', async () => {
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 1, failed: 0, pending: 3 } })
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 3, failed: 0, pending: 1 } })
+      .mockResolvedValue({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+    draw({}, { githubGetChecks })
+    expect(await screen.findByText('3 of 4 checks pending')).toBeInTheDocument()
+    await settle()
+    expect(await screen.findByText('2 of 4 checks pending')).toBeInTheDocument()
+    await settle()
+    expect(await screen.findByText('1 of 4 checks pending')).toBeInTheDocument()
+    await settle()
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
   test('a pending check is unsettled too', async () => {
     const githubGetChecks = jest.fn()
       .mockResolvedValueOnce({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
