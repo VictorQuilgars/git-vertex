@@ -166,7 +166,7 @@ describe('the PR detail', () => {
       deleteBranch: jest.fn().mockResolvedValue({ success: false, error: 'branch not found' }),
     })
     await screen.findByText('Speed up the graph')
-    await userEvent.click(screen.getByText('Delete Work Branches'))
+    await userEvent.click(await screen.findByText('Delete Work Branches'))
     await waitFor(() => expect(api.deleteRemoteBranch).toHaveBeenCalledWith('feat/speed'))
     expect(api.deleteBranch).toHaveBeenCalledWith('feat/speed')
     expect(await screen.findByText(/Remote : deleted/)).toBeInTheDocument()
@@ -187,7 +187,7 @@ describe('the PR detail', () => {
       deleteBranch, checkout, fastForwardToUpstream,
     })
     await screen.findByText('Speed up the graph')
-    await userEvent.click(screen.getByText('Delete Work Branches'))
+    await userEvent.click(await screen.findByText('Delete Work Branches'))
     await waitFor(() => expect(checkout).toHaveBeenCalledWith('main'))
     expect(deleteBranch).toHaveBeenCalledTimes(2)
     // The app moved them onto the base, so it owes them one that holds the
@@ -211,7 +211,7 @@ describe('the PR detail', () => {
       checkout: jest.fn().mockResolvedValue({ success: true }),
     })
     await screen.findByText('Speed up the graph')
-    await userEvent.click(screen.getByText('Delete Work Branches'))
+    await userEvent.click(await screen.findByText('Delete Work Branches'))
     expect(await screen.findByText(/switched to main, which is still behind/))
       .toBeInTheDocument()
   })
@@ -224,7 +224,7 @@ describe('the PR detail', () => {
       fastForwardToUpstream,
     })
     await screen.findByText('Speed up the graph')
-    await userEvent.click(screen.getByText('Delete Work Branches'))
+    await userEvent.click(await screen.findByText('Delete Work Branches'))
     expect(await screen.findByText(/Local : deleted/)).toBeInTheDocument()
     expect(fastForwardToUpstream).not.toHaveBeenCalled()
   })
@@ -246,7 +246,7 @@ describe('the PR detail', () => {
       }),
     })
     await screen.findByText('Speed up the graph')
-    await userEvent.click(screen.getByText('Delete Work Branches'))
+    await userEvent.click(await screen.findByText('Delete Work Branches'))
     expect(await screen.findByText(/Also on this commit: feat\/speed-1/)).toBeInTheDocument()
     // named, not deleted — and the remote twin is not a local leftover
     expect(deleteBranch).toHaveBeenCalledTimes(1)
@@ -260,7 +260,7 @@ describe('the PR detail', () => {
       checkout: jest.fn().mockResolvedValue({ success: false, error: 'local changes would be overwritten' }),
     })
     await screen.findByText('Speed up the graph')
-    await userEvent.click(screen.getByText('Delete Work Branches'))
+    await userEvent.click(await screen.findByText('Delete Work Branches'))
     expect(await screen.findByText(/used by worktree/)).toBeInTheDocument()
     expect(api.deleteBranch).toHaveBeenCalledTimes(1)
   })
