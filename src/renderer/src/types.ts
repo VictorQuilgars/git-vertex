@@ -134,6 +134,8 @@ declare global {
     deleteBranch: (name: string) => Promise<R>
     renameBranch: (oldName: string, newName: string) => Promise<R>
     merge: (branch: string) => Promise<R>
+    /** Fetch, then `merge --ff-only @{u}` — never writes a commit. */
+    fastForwardToUpstream: () => Promise<R>
     rebaseOnto: (branch: string) => Promise<R>
     pushBranch: (branch: string) => Promise<R>
     pushToCommit: (hash: string) => Promise<R>

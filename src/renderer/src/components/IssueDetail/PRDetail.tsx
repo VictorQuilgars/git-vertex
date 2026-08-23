@@ -77,7 +77,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
   const disarm = useCallback(() => setBypassArmed(false), [])
   const mergeActRef = useClickAway(bypassArmed, disarm)
   // The cleanup's per-branch outcomes, reported where the click happened.
-  const [cleanup, setCleanup] = useState<{ remote: string; local: string } | null>(null)
+  const [cleanup, setCleanup] = useState<{ remote: string; local: string; others?: string[] } | null>(null)
   const [cleaning, setCleaning] = useState(false)
   const [allAssignees, setAllAssignees] = useState<string[] | null>(null)
   const [allLabels, setAllLabels] = useState<GithubLabel[] | null>(null)
@@ -408,19 +408,58 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                           // refusal (another worktree, a dirty tree blocking
                           // the checkout) stays git's message, verbatim.
                           let switched = false
+                          // Whether the base we moved onto now holds the merge.
+                          let baseFresh: boolean | null = null
                           let lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
                           if (!lr?.success && /used by worktree|checked out/i.test(lr?.error ?? '') && pr.baseRef) {
                             const co = await api().checkout?.(pr.baseRef).catch((e: any) => ({ success: false, error: e.message }))
                             if (co?.success) {
                               switched = true
                               lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                              // The APP moved them onto the base, so the app owes
+                              // them a base that contains the merge they just
+                              // made — before this, the tidy-up ended standing on
+                              // a trunk without it, and nothing said so (#136).
+                              //
+                              // ⚠️ Fast-forward or nothing. A base that has
+                              // diverged — their own commits, a rebase — is left
+                              // exactly as it is and reported as behind.
+                              // Reconciling someone's trunk unasked is worse than
+                              // the stale state this fixes.
+                              //
+                              // And NOT `pull --ff-only`: a repository fetching
+                              // several refs makes pull refuse before it reaches
+                              // the fast-forward at all, which would be reported
+                              // here as a diverged base when nothing diverged.
+                              const ff = await (api().fastForwardToUpstream?.() ?? Promise.resolve({ success: false })).catch(() => ({ success: false }))
+                              baseFresh = !!ff?.success
                             }
                           }
                           const word = (r: any, sw = false) => r?.success
-                            ? (sw ? t('gh.pr.branchDeletedSwitched', pr.baseRef) : t('gh.pr.branchDeleted'))
+                            ? (sw
+                                ? (baseFresh
+                                    ? t('gh.pr.branchDeletedSwitchedUpdated', pr.baseRef)
+                                    : t('gh.pr.branchDeletedSwitchedStale', pr.baseRef))
+                                : t('gh.pr.branchDeleted'))
                             : /not found|introuvable|no such|unknown branch/i.test(r?.error ?? '') ? t('gh.pr.branchAbsent')
                             : (r?.error ?? 'error')
-                          setCleanup({ remote: word(rr), local: word(lr, switched) })
+
+                          // What else is standing on the merged commit. The
+                          // action deletes ONE ref by name and must keep doing
+                          // exactly that — a cleanup that removes branches
+                          // nobody named is a worse bug than the one it fixes.
+                          // So they are reported, not touched (#136).
+                          const others = await (async () => {
+                            if (!pr.headSha) return []
+                            const r = await api().getBranches?.().catch(() => null)
+                            return ((r?.branches ?? []) as any[])
+                              .filter(b => !b.remote && b.name !== pr.headRef
+                                && typeof b.commit === 'string'
+                                && (b.commit.startsWith(pr.headSha) || pr.headSha.startsWith(b.commit)))
+                              .map(b => b.name)
+                          })()
+
+                          setCleanup({ remote: word(rr), local: word(lr, switched), others })
                           setCleaning(false)
                           onChanged?.()
                         })()
@@ -432,6 +471,11 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                       <div className="idv-cleanup">
                         <span>{t('gh.pr.branchRemote')} : {cleanup.remote}</span>
                         <span>{t('gh.pr.branchLocal')} : {cleanup.local}</span>
+                        {!!cleanup.others?.length && (
+                          <span className="idv-cleanup-others">
+                            {t('gh.pr.otherRefsHere', cleanup.others.join(', '))}
+                          </span>
+                        )}
                       </div>
                     )}
                   </SideBlock>
