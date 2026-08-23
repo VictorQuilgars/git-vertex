@@ -114,6 +114,12 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
   const mergeActRef = useClickAway(bypassArmed, disarm)
   // The cleanup's per-branch outcomes, reported where the click happened.
   const [cleanup, setCleanup] = useState<{ remote: string; local: string; others?: string[] } | null>(null)
+  /**
+   * Which of the work branches the repository still has — `null` while unknown.
+   * The block used to be drawn on `merged || closed` alone, so it offered to
+   * delete what was already gone and answered with two errors (#140).
+   */
+  const [work, setWork] = useState<{ local: boolean; remote: boolean } | null>(null)
   const [cleaning, setCleaning] = useState(false)
   const [allAssignees, setAllAssignees] = useState<string[] | null>(null)
   const [allLabels, setAllLabels] = useState<GithubLabel[] | null>(null)
@@ -126,7 +132,9 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
         setPr(r.pr)
         // The checks hang off the head ref — a second call, made only once
         // the first said which sha to ask about.
-        if (r.pr.headSha) {
+        // A merged request shows no mergeability, so its checks are a request
+        // per merged PR opened, for a block nobody will see (#140).
+        if (r.pr.headSha && !r.pr.merged) {
           api().githubGetChecks(repo.owner, repo.repo, r.pr.headSha)
             .then((c: any) => { if (alive && c?.checks) { setChecks(c.checks); setChecksSha(r.pr.headSha) } })
             .catch(() => { /* checks stay unknown; the block says so */ })
@@ -213,7 +221,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
         // waiting and 1.1s. None of it is CPU: ten conditional requests cost
         // 8ms of it in total, and all of it happens in the main process.
         const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
-        const sha = r?.pr?.headSha
+        const sha = r?.pr?.merged ? undefined : r?.pr?.headSha
         const [c, cm] = await Promise.all([
           sha ? api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null) : null,
           api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null),
@@ -245,6 +253,25 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
     timer = setTimeout(tick, nextWait())
     return () => { alive = false; if (timer) clearTimeout(timer) }
   }, [editing, repo.owner, repo.repo, number])
+
+  useEffect(() => {
+    const finished = pr && (pr.merged || pr.state === 'closed') && pr.headRef
+    if (!finished) { setWork(null); return }
+    let alive = true
+    void (api().getBranches?.() ?? Promise.resolve(null))
+      .then((r: any) => {
+        if (!alive) return
+        const names = (r?.branches ?? []) as any[]
+        setWork({
+          local: names.some(b => !b.remote && b.name === pr.headRef),
+          remote: names.some(b => b.remote && b.name.replace(/^remotes\/[^/]+\//, '') === pr.headRef),
+        })
+      })
+      .catch(() => { /* unknown stays unknown — the block simply is not offered */ })
+    return () => { alive = false }
+    // `cleanup` is a dependency so the answer is re-taken after a delete: what
+    // is left decides whether anything is still worth offering.
+  }, [pr, cleanup])
 
   const patch = useCallback(async (p: object, apply: () => void) => {
     setBusy(true); setError(null)
@@ -411,6 +438,13 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
 
               <div className="idv-side">
                 {/* Mergeability, read and reported — never a merge button (#73). */}
+                {/* Mergeability answers "can this be merged". A MERGED request
+                    has that answer, and the header says it — so the block is
+                    not shown, and its checks are never asked for (#140).
+                    A request closed WITHOUT merging is deliberately not folded
+                    in: it can be reopened, and its checks are still the truth
+                    about its head. */}
+                {!pr.merged && (
                 <SideBlock label={t('gh.pr.mergeability')}>
                   <div className="idv-merge">
                     <div className={`idv-merge-row idv-merge-row--${headChecks === null ? 'unknown' : headChecks.failed ? 'bad' : headChecks.pending ? 'wait' : 'ok'}`}>
@@ -512,6 +546,8 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                   </div>
                 </SideBlock>
 
+                )}
+
                 {!pr.merged && (
                   <SideBlock label={t('gh.card.status')} editing={editingState}
                     onToggleEdit={() => setEditingState(v => !v)}>
@@ -535,7 +571,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                   </SideBlock>
                 )}
 
-                {(pr.merged || pr.state === 'closed') && pr.headRef && (
+                {(pr.merged || pr.state === 'closed') && pr.headRef && (work?.local || work?.remote) && (
                   <SideBlock label={t('gh.detail.branches')}>
                     <button className="idv-btn idv-branch-btn" disabled={cleaning}
                       onClick={() => {
@@ -543,7 +579,10 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         void (async () => {
                           // Remote first: it exists independently of the
                           // checkout.
-                          const rr = await (api().deleteRemoteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                          // Only the sides that are still there are touched.
+                          const rr = work?.remote
+                            ? await (api().deleteRemoteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                            : { success: false, error: 'not found' }
                           // The commonest case is deleting the branch you are
                           // ON — you just merged its PR. git refuses that, and
                           // rightly; the answer is the reference clients':
@@ -553,7 +592,9 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                           let switched = false
                           // Whether the base we moved onto now holds the merge.
                           let baseFresh: boolean | null = null
-                          let lr = await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                          let lr: any = work?.local
+                            ? await (api().deleteBranch?.(pr.headRef) ?? Promise.resolve({ success: false, error: 'not-implemented' })).catch((e: any) => ({ success: false, error: e.message }))
+                            : { success: false, error: 'not found' }
                           if (!lr?.success && /used by worktree|checked out/i.test(lr?.error ?? '') && pr.baseRef) {
                             const co = await api().checkout?.(pr.baseRef).catch((e: any) => ({ success: false, error: e.message }))
                             if (co?.success) {
@@ -584,7 +625,11 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                                     ? t('gh.pr.branchDeletedSwitchedUpdated', pr.baseRef)
                                     : t('gh.pr.branchDeletedSwitchedStale', pr.baseRef))
                                 : t('gh.pr.branchDeleted'))
-                            : /not found|introuvable|no such|unknown branch/i.test(r?.error ?? '') ? t('gh.pr.branchAbsent')
+                            // "already gone" is not a failure when absence was
+                            // the goal. The remote side says it in git's push
+                            // words — two lines of noise for a branch that is
+                            // simply not there (#140).
+                            : /not found|introuvable|no such|unknown branch|remote ref does not exist/i.test(r?.error ?? '') ? t('gh.pr.branchAbsent')
                             : (r?.error ?? 'error')
 
                           // What else is standing on the merged commit. The
@@ -608,7 +653,9 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         })()
                       }}>
                       <Icon name="trash" size={13} />
-                      {t('gh.pr.deleteBranches')}
+                      {work?.local && work?.remote ? t('gh.pr.deleteBranches')
+                        : work?.local ? t('gh.pr.deleteBranchLocal')
+                        : t('gh.pr.deleteBranchRemote')}
                     </button>
                     {cleanup && (
                       <div className="idv-cleanup">

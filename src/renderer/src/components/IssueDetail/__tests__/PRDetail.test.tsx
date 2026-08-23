@@ -30,6 +30,15 @@ function draw(prOverrides: Record<string, any> = {}, apiOverrides: Record<string
     githubMergePR: jest.fn().mockResolvedValue({ success: true, sha: 'deadbeef' }),
     githubListAssignees: jest.fn().mockResolvedValue({ assignees: ['alice', 'victor'] }),
     githubListRepoLabels: jest.fn().mockResolvedValue({ labels: [{ name: 'perf', color: '00ff00' }] }),
+    // The cleanup is only offered for branches that still exist (#140), so the
+    // default repository has the request's head on both sides.
+    getBranches: jest.fn().mockResolvedValue({
+      branches: [
+        { name: 'feat/speed', commit: 'abc123', remote: false },
+        { name: 'remotes/origin/feat/speed', commit: 'abc123', remote: true },
+        { name: 'main', commit: 'deadbee', remote: false },
+      ],
+    }),
     openExternal: jest.fn(),
     ...apiOverrides,
   })
@@ -668,5 +677,82 @@ describe('what the polling costs', () => {
     expect(secondMinute).toBeLessThanOrEqual(firstMinute)
     // and it never exceeds the settled cadence once stretched
     expect(secondMinute).toBeLessThanOrEqual(60_000 / 20_000 + 1)
+  })
+})
+
+// Victor, on a request he had merged and whose branches he had already deleted:
+// the pane offered him both mergeability and a cleanup, and the cleanup
+// answered with two errors.
+describe('a finished request offers only what is left to do', () => {
+  const noBranches = { getBranches: jest.fn().mockResolvedValue({ branches: [{ name: 'main', commit: 'deadbee', remote: false }] }) }
+
+  test('a merged request shows no mergeability, and asks for no checks', async () => {
+    const { api } = draw({ merged: true, state: 'closed' })
+    await screen.findByText('Merged')
+    expect(screen.queryByText('MERGEABILITY')).not.toBeInTheDocument()
+    expect(screen.queryByText('5 checks passed')).not.toBeInTheDocument()
+    // and the request per merged PR opened is not spent
+    expect(api.githubGetChecks).not.toHaveBeenCalled()
+  })
+
+  // Closed without merging is NOT the same case: it can be reopened, and its
+  // checks are still the truth about its head.
+  test('a request closed without merging keeps its mergeability', async () => {
+    draw({ merged: false, state: 'closed' })
+    await screen.findByText('Speed up the graph')
+    expect(await screen.findByText('5 checks passed')).toBeInTheDocument()
+  })
+
+  test('branches already gone: no cleanup offered at all', async () => {
+    draw({ merged: true, state: 'closed' }, noBranches)
+    await screen.findByText('Merged')
+    await waitFor(() => expect(screen.queryByText('Delete Work Branches')).not.toBeInTheDocument())
+    expect(screen.queryByText('Delete Local Branch')).not.toBeInTheDocument()
+    expect(screen.queryByText('Delete Remote Branch')).not.toBeInTheDocument()
+  })
+
+  test('only the local one left: it says so, and touches only that', async () => {
+    const deleteRemoteBranch = jest.fn()
+    const deleteBranch = jest.fn().mockResolvedValue({ success: true })
+    draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch, deleteBranch,
+      getBranches: jest.fn().mockResolvedValue({
+        branches: [{ name: 'feat/speed', commit: 'abc123', remote: false }],
+      }),
+    })
+    await screen.findByText('Merged')
+    await userEvent.click(await screen.findByText('Delete Local Branch'))
+    await waitFor(() => expect(deleteBranch).toHaveBeenCalledWith('feat/speed'))
+    expect(deleteRemoteBranch).not.toHaveBeenCalled()
+  })
+
+  test('only the remote one left: the same, the other way round', async () => {
+    const deleteRemoteBranch = jest.fn().mockResolvedValue({ success: true })
+    const deleteBranch = jest.fn()
+    draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch, deleteBranch,
+      getBranches: jest.fn().mockResolvedValue({
+        branches: [{ name: 'remotes/origin/feat/speed', commit: 'abc123', remote: true }],
+      }),
+    })
+    await screen.findByText('Merged')
+    await userEvent.click(await screen.findByText('Delete Remote Branch'))
+    await waitFor(() => expect(deleteRemoteBranch).toHaveBeenCalledWith('feat/speed'))
+    expect(deleteBranch).not.toHaveBeenCalled()
+  })
+
+  // git's push refusal for a branch that is simply not there is two lines of
+  // noise, not a failure.
+  test("the remote's own not-there wording reads as absent", async () => {
+    draw({ merged: true, state: 'closed' }, {
+      deleteRemoteBranch: jest.fn().mockResolvedValue({
+        success: false,
+        error: "error: unable to delete 'feat/speed': remote ref does not exist\nerror: failed to push some refs",
+      }),
+      deleteBranch: jest.fn().mockResolvedValue({ success: true }),
+    })
+    await screen.findByText('Merged')
+    await userEvent.click(await screen.findByText('Delete Work Branches'))
+    expect(await screen.findByText(/Remote : not found/)).toBeInTheDocument()
   })
 })
