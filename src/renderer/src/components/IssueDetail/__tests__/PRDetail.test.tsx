@@ -348,11 +348,11 @@ describe('a request that GitHub has not finished deciding about', () => {
 
   const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
 
-  test('it asks again while mergeability is computing, and stops once it is not', async () => {
+  test('it asks again while mergeability is computing, and the button arrives', async () => {
     const githubGetPR = jest.fn()
       .mockResolvedValueOnce({ pr: { ...FULL_PR, mergeable: null, mergeableState: 'unknown' } })
       .mockResolvedValue({ pr: { ...FULL_PR, mergeable: true, mergeableState: 'clean' } })
-    const { api } = draw({}, { githubGetPR })
+    draw({}, { githubGetPR })
     expect(await screen.findByText('Mergeability still computing…')).toBeInTheDocument()
     // no button while it is unknown — that is the reported state
     expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
@@ -360,12 +360,37 @@ describe('a request that GitHub has not finished deciding about', () => {
     await settle()
     expect(await screen.findByText('No conflicts')).toBeInTheDocument()
     expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
 
-    // settled: it stops asking
-    const calls = githubGetPR.mock.calls.length
-    await settle(60_000)
-    expect(githubGetPR.mock.calls.length).toBe(calls)
-    expect(api.githubGetPR).toHaveBeenCalled()
+  // Settled does not mean finished: comments arrive, a review lands, a failed
+  // check is re-run. The reads are conditional, so watching costs nothing —
+  // it slows down rather than stopping.
+  test('a settled request keeps watching, at a slower cadence', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, mergeable: true } })
+    draw({}, { githubGetPR })
+    await screen.findByText('No conflicts')
+    const settledAt = githubGetPR.mock.calls.length
+
+    // the unsettled cadence is too soon for a settled request
+    await settle(5_000)
+    expect(githubGetPR.mock.calls.length).toBe(settledAt)
+
+    await settle(20_000)
+    expect(githubGetPR.mock.calls.length).toBeGreaterThan(settledAt)
+  })
+
+  // A poll that finds nothing new must not re-render the pane under the
+  // reader — the whole reason the reads carry an ETag.
+  test('an unchanged answer is not written back', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, mergeable: true } })
+      .mockResolvedValue({ pr: { ...FULL_PR, title: 'SHOULD NOT APPEAR' }, notModified: true })
+    draw({}, { githubGetPR })
+    await screen.findByText('Speed up the graph')
+    await settle(20_000)
+    await settle(20_000)
+    expect(screen.getByText('Speed up the graph')).toBeInTheDocument()
+    expect(screen.queryByText('SHOULD NOT APPEAR')).not.toBeInTheDocument()
   })
 
   // "au fur et à mesure" — each poll shows where the checks have got to, not
@@ -413,15 +438,18 @@ describe('a request that GitHub has not finished deciding about', () => {
     expect(githubGetPR.mock.calls.length).toBe(once)
   })
 
-  // A merged request is settled by definition — nothing left to decide.
-  test('a merged request never asks again', async () => {
+  // A merged request has nothing left to DECIDE, so it takes the slow cadence
+  // rather than the urgent one — but it still gets comments.
+  test('a merged request watches slowly, not urgently', async () => {
     const githubGetPR = jest.fn().mockResolvedValue({
       pr: { ...FULL_PR, merged: true, state: 'closed', mergeable: null },
     })
     draw({}, { githubGetPR })
     await screen.findByText('Merged')
     const once = githubGetPR.mock.calls.length
-    await settle(60_000)
+    await settle(5_000)
     expect(githubGetPR.mock.calls.length).toBe(once)
+    await settle(20_000)
+    expect(githubGetPR.mock.calls.length).toBeGreaterThan(once)
   })
 })

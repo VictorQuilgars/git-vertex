@@ -725,6 +725,8 @@ export default function App() {
   // tells the saved-filter groups to bypass the search cache (#133).
   const [githubRefreshing, setGithubRefreshing] = useState<'prs' | 'issues' | null>(null)
   const [githubRefreshTick, setGithubRefreshTick] = useState({ prs: 0, issues: 0 })
+  /** Bumped by each background poll, so the saved filters re-query with it. */
+  const [githubPollTick, setGithubPollTick] = useState(0)
 
   /**
    * `silent` is a poll rather than something the user asked for (#141). Two
@@ -794,6 +796,10 @@ export default function App() {
       // one is reading.
       if (!document.hidden && !stopped) {
         await loadGithubLists(githubOwnerRepo, undefined, true)
+        // The named groups come from the list; the saved filters are their own
+        // queries and would otherwise re-run only when the list happened to
+        // change. They ride the same tick, without forcing.
+        setGithubPollTick(n => n + 1)
       }
       if (!stopped) timer = setTimeout(tick, GITHUB_POLL_MS)
     }
@@ -2440,6 +2446,7 @@ export default function App() {
               onRefreshGithub={refreshGithubSection}
               githubRefreshing={githubRefreshing}
               githubRefreshTick={githubRefreshTick}
+              githubPollTick={githubPollTick}
               onCreatePR={handleStartPR}
               onCopyBranchLink={githubOwnerRepo ? handleCopyBranchLink : undefined}
               onDeleteBranchBoth={handleDeleteBranchBoth}

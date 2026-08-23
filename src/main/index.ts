@@ -2347,7 +2347,7 @@ ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
 })
 
 /**
- * Conditional GETs for the lists the panel polls (#141).
+ * Conditional GETs for everything the app re-asks (#141).
  *
  * Every list endpoint answers with an ETag; sending it back as `If-None-Match`
  * returns 304 with no body — and MEASURED against api.github.com, five 304s in
@@ -2362,8 +2362,8 @@ ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
  */
 const listCache = new Map<string, { etag: string; body: any }>()
 
-async function conditionalList<T extends object>(
-  key: string, url: string, token: string, shape: (data: any) => T,
+async function conditionalGet<T extends object>(
+  key: string, url: string, token: string, shape: (data: any) => T | Promise<T>,
 ): Promise<(T & { notModified?: true }) | { error: string }> {
   const hit = listCache.get(key)
   const res = await fetch(url, {
@@ -2375,7 +2375,7 @@ async function conditionalList<T extends object>(
   })
   if (res.status === 304 && hit) return { ...hit.body, notModified: true as const }
   if (!res.ok) return { error: `HTTP ${res.status}` }
-  const body = shape(await res.json())
+  const body = await shape(await res.json())
   const etag = res.headers?.get?.('etag')
   if (etag) listCache.set(key, { etag, body })
   return body
@@ -2386,7 +2386,7 @@ ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    return await conditionalList(
+    return await conditionalGet(
       `prs:${api.base}:${owner}/${repo}`,
       `${api.base}/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
       token,
@@ -2458,12 +2458,15 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    })
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const pr = await res.json() as any
-    return {
+    // Conditional, because the detail pane re-asks while you watch it (#141):
+    // a 304 costs no rate limit, and the cached body already carries the
+    // GraphQL supplement below, so an unchanged request costs one free call
+    // instead of three paid ones.
+    return await conditionalGet(
+      `pr:${api.base}:${owner}/${repo}#${number}`,
+      `${api.base}/repos/${owner}/${repo}/pulls/${number}`,
+      token,
+      async (pr: any) => ({
       pr: {
         number: pr.number,
         title: pr.title,
@@ -2491,7 +2494,8 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
         ...(await prBlockedSupplement(api, token, owner, repo, number,
           { blocked: pr.mergeable_state === 'blocked', baseRef: pr.base?.ref ?? '' })),
       },
-    }
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -2628,22 +2632,24 @@ ipcMain.handle('github:get-checks', async (_e, owner: string, repo: string, ref:
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`${api.base}/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    })
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const data = await res.json() as any
-    const runs = (data.check_runs ?? []) as any[]
-    const failed = runs.filter(r => r.conclusion && !['success', 'neutral', 'skipped'].includes(r.conclusion)).length
-    const pending = runs.filter(r => r.status !== 'completed').length
-    return {
-      checks: {
-        total: runs.length,
-        passed: runs.length - failed - pending,
-        failed,
-        pending,
+    return await conditionalGet(
+      `checks:${api.base}:${owner}/${repo}@${ref}`,
+      `${api.base}/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100`,
+      token,
+      (data: any) => {
+        const runs = (data.check_runs ?? []) as any[]
+        const failed = runs.filter(r => r.conclusion && !['success', 'neutral', 'skipped'].includes(r.conclusion)).length
+        const pending = runs.filter(r => r.status !== 'completed').length
+        return {
+          checks: {
+            total: runs.length,
+            passed: runs.length - failed - pending,
+            failed,
+            pending,
+          },
+        }
       },
-    }
+    )
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -2657,18 +2663,18 @@ ipcMain.handle('github:issue-comments', async (_e, owner: string, repo: string, 
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}/comments?per_page=100`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    })
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const data = await res.json() as any[]
-    return {
-      comments: data.map(c => ({
-        author: c.user?.login ?? '',
-        createdAt: c.created_at,
-        body: c.body ?? '',
-      })),
-    }
+    return await conditionalGet(
+      `comments:${api.base}:${owner}/${repo}#${number}`,
+      `${api.base}/repos/${owner}/${repo}/issues/${number}/comments?per_page=100`,
+      token,
+      (data: any[]) => ({
+        comments: data.map(c => ({
+          author: c.user?.login ?? '',
+          createdAt: c.created_at,
+          body: c.body ?? '',
+        })),
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -2791,7 +2797,7 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    return await conditionalList(
+    return await conditionalGet(
       `issues:${api.base}:${owner}/${repo}`,
       `${api.base}/repos/${owner}/${repo}/issues?per_page=50&state=open&pulls=false`,
       token,

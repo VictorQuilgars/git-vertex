@@ -43,16 +43,18 @@ interface FullPR {
 }
 
 /**
- * How often an unsettled request asks again. Seconds, not the lists' minute:
- * this is a state someone is watching, not a background list — mergeability
- * usually resolves in a few seconds.
+ * How often an UNSETTLED request asks again — mergeability still computing, a
+ * check still running. Seconds, because this is a state someone is watching.
  */
 const SETTLE_POLL_MS = 5_000
 /**
- * And a ceiling, so a request GitHub never settles does not ask forever. Past
- * this the pane simply keeps saying what it last knew.
+ * And how often a settled one does. It keeps asking rather than stopping,
+ * because a request goes on changing after it is decided: comments arrive, a
+ * review lands, labels move, a failed check is re-run. Every read behind this
+ * is conditional (#141), so an unchanged request answers 304 and costs no
+ * rate limit — which is what makes watching it free rather than a trade.
  */
-const SETTLE_MAX_TRIES = 24
+const OPEN_POLL_MS = 20_000
 
 interface Checks { total: number; passed: number; failed: number; pending: number }
 interface Comment { author: string; createdAt: string; body: string }
@@ -133,26 +135,29 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
     || pr.state !== 'open'
     || (pr.mergeable !== null && checks !== null && checks.pending === 0)
 
-  const settleTries = useRef(0)
+  // The pane keeps itself current for as long as it is open: the request, its
+  // checks and its comments. Nothing here writes when the answer came back
+  // `notModified`, so a quiet request causes no re-render at all.
   useEffect(() => {
-    // Nothing to wait for, or the user is typing into the thing a refresh
-    // would overwrite.
-    if (settled || editing) return
-    if (settleTries.current >= SETTLE_MAX_TRIES) return
+    // Not while the user is typing into what a refresh would replace.
+    if (editing) return
     let alive = true
+    const every = settled ? OPEN_POLL_MS : SETTLE_POLL_MS
     const id = setTimeout(async () => {
-      if (!alive || document.hidden) { settleTries.current += 1; return }
-      settleTries.current += 1
+      if (!alive || document.hidden) return
       const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
-      if (!alive || !r?.pr) return
-      setPr(r.pr)
-      if (r.pr.headSha) {
-        const c = await api().githubGetChecks(repo.owner, repo.repo, r.pr.headSha).catch(() => null)
-        if (alive && c?.checks) setChecks(c.checks)
+      if (!alive) return
+      if (r?.pr && !r.notModified) setPr(r.pr)
+      const sha = r?.pr?.headSha
+      if (sha) {
+        const c = await api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null)
+        if (alive && c?.checks && !c.notModified) setChecks(c.checks)
       }
-    }, SETTLE_POLL_MS)
+      const cm = await api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null)
+      if (alive && cm?.comments && !cm.notModified) setComments(cm.comments)
+    }, every)
     return () => { alive = false; clearTimeout(id) }
-  }, [settled, editing, repo.owner, repo.repo, number, pr, checks])
+  }, [settled, editing, repo.owner, repo.repo, number, pr, checks, comments])
 
   const patch = useCallback(async (p: object, apply: () => void) => {
     setBusy(true); setError(null)

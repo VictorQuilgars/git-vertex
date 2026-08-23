@@ -150,6 +150,8 @@ interface SidebarProps {
   githubRefreshing?: 'prs' | 'issues' | null
   /** Bumped per section on a manual refresh — see GhFilterGroup. */
   githubRefreshTick?: { prs: number; issues: number }
+  /** Background poll counter — see GhFilterGroup's pollTick. */
+  githubPollTick?: number
   onCopyBranchLink?: (name: string) => void
   /** Deletes the local branch and its published counterpart together. */
   onDeleteBranchBoth?: (name: string, remoteName: string) => void
@@ -251,7 +253,7 @@ function GhFilterEditor({ kind, initial, onCreate, onCancel, t }: {
 // never the section. The count is the search's total, and when GitHub sent
 // fewer rows than it counted, the tail row says so instead of letting the
 // group read as complete.
-function GhFilterGroup({ filter, kind, repo, refreshOn, refreshTick = 0, renderItem, onOpen, onEdit, onDelete, t }: {
+function GhFilterGroup({ filter, kind, repo, refreshOn, refreshTick = 0, pollTick = 0, renderItem, onOpen, onEdit, onDelete, t }: {
   filter: GhSavedFilter
   kind: 'prs' | 'issues'
   repo: { owner: string; repo: string }
@@ -264,6 +266,13 @@ function GhFilterGroup({ filter, kind, repo, refreshOn, refreshTick = 0, renderI
    * button reads as broken.
    */
   refreshTick?: number
+  /**
+   * Bumped by the background poll (#141). Unlike `refreshTick` it does NOT
+   * force: the search's own 20-second cache absorbs it, so a saved filter
+   * stays current without each one costing a request every tick against an
+   * API capped at thirty a minute.
+   */
+  pollTick?: number
   renderItem: (item: GithubListItem, kind: 'pr' | 'issue') => React.ReactNode
   onOpen?: (url: string) => void
   onEdit: () => void
@@ -290,7 +299,7 @@ function GhFilterGroup({ filter, kind, repo, refreshOn, refreshTick = 0, renderI
       })
       .catch((e: any) => { if (alive) setState({ error: e.message }) })
     return () => { alive = false }
-  }, [q, refreshOn, refreshTick, t])
+  }, [q, refreshOn, refreshTick, pollTick, t])
 
   const failed = state && 'error' in state
   const result = state && !('error' in state) ? state : null
@@ -962,7 +971,7 @@ export default function Sidebar({
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   showAllBranches, onToggleAllBranches,
-  onRefreshGithub, githubRefreshing, githubRefreshTick,
+  onRefreshGithub, githubRefreshing, githubRefreshTick, githubPollTick,
   onCopyBranchLink, onDeleteBranchBoth,
   showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
 }: SidebarProps) {
@@ -1639,7 +1648,7 @@ export default function Sidebar({
                     {githubRepo && ghFilters.prs.map((f, fi) => (
                       <GhFilterGroup key={`${f.name}:${f.query}`} filter={f} kind="prs"
                         repo={githubRepo} refreshOn={githubPRs}
-                        refreshTick={githubRefreshTick?.prs} t={t}
+                        refreshTick={githubRefreshTick?.prs} pollTick={githubPollTick} t={t}
                         onOpen={url => onOpenGithubItem?.(url)}
                         renderItem={(item, k) => (
                           <GithubRow key={`${k}-${item.number}`} compact item={{ ...item, kind: k }}
