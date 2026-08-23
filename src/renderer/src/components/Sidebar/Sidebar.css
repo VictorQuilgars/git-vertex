@@ -238,6 +238,36 @@
   transition: color var(--dur-fast);
 }
 .sb-section-header:hover { color: var(--text-primary-soft); }
+
+/* ── Header buttons appear on hover (#144) ──────────────────────────────
+   Two controls drawn at rest on every section is a row competing with the
+   count, which is the one thing on that header that must read at a glance.
+
+   `opacity`, never `display`, so the space stays reserved: the title must not
+   reflow as the pointer crosses the row.
+
+   ⚠️ `:focus-within` is not decoration. A control that exists only on hover is
+   unreachable by keyboard and on a touch screen, so the header shows them when
+   anything inside it takes focus — which is what Tab does.
+
+   And `--pinned` keeps a refresh visible while its section is in flight: its
+   disabled state is the only feedback there is, and it must not vanish because
+   the pointer moved away. */
+.sb-on-hover { opacity: 0; transition: opacity var(--dur-fast); }
+.sb-section-header:hover .sb-on-hover,
+.sb-section-header:focus-within .sb-on-hover,
+.sb-on-hover:focus-visible,
+.sb-on-hover--pinned { opacity: 1; }
+@media (hover: none) { .sb-on-hover { opacity: 1; } }
+
+/* The filter editor's opener, now beside the search field it belongs with. */
+.sb-gh-filter-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; width: 20px; height: 20px; padding: 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary); border-radius: var(--radius-xs);
+}
+.sb-gh-filter-btn:hover { color: var(--text-primary); background: var(--surface-hover); }
 /* The section's own mark. Dimmer than the label, which is the thing being
    read; the icon is what the eye lands on when it is not reading. */
 .sb-section-icon { flex-shrink: 0; opacity: 0.75; }
