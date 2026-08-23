@@ -1,4 +1,4 @@
-import { screen, waitFor, fireEvent } from '@testing-library/react'
+import { screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PRDetail from '../PRDetail'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
@@ -336,5 +336,73 @@ describe('the PR detail', () => {
   test('a refused load shows the error, not an empty frame', async () => {
     draw({}, { githubGetPR: jest.fn().mockResolvedValue({ error: 'HTTP 404' }) })
     expect(await screen.findByText('HTTP 404')).toBeInTheDocument()
+  })
+})
+
+// Victor: he pushed, opened the request and waited for its checks. They went
+// green above and the merge buttons never came — because GitHub answers
+// `mergeable: null` while it computes, and this pane asked exactly once.
+describe('a request that GitHub has not finished deciding about', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+
+  const settle = async (ms = 5_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('it asks again while mergeability is computing, and stops once it is not', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, mergeable: null, mergeableState: 'unknown' } })
+      .mockResolvedValue({ pr: { ...FULL_PR, mergeable: true, mergeableState: 'clean' } })
+    const { api } = draw({}, { githubGetPR })
+    expect(await screen.findByText('Mergeability still computing…')).toBeInTheDocument()
+    // no button while it is unknown — that is the reported state
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+
+    await settle()
+    expect(await screen.findByText('No conflicts')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+
+    // settled: it stops asking
+    const calls = githubGetPR.mock.calls.length
+    await settle(60_000)
+    expect(githubGetPR.mock.calls.length).toBe(calls)
+    expect(api.githubGetPR).toHaveBeenCalled()
+  })
+
+  test('a pending check is unsettled too', async () => {
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
+      .mockResolvedValue({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+    draw({}, { githubGetChecks })
+    expect(await screen.findByText('2 of 4 checks pending')).toBeInTheDocument()
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+    await settle()
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  // A refresh would replace the text under the cursor.
+  test('it does not ask while the description is being edited', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, mergeable: null } })
+    draw({}, { githubGetPR })
+    await screen.findByText('Mergeability still computing…')
+    const once = githubGetPR.mock.calls.length
+    // Clicking the title opens its editor — a refresh there would replace the
+    // text under the cursor.
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    await user.click(screen.getByText('Speed up the graph'))
+    await settle()
+    expect(githubGetPR.mock.calls.length).toBe(once)
+  })
+
+  // A merged request is settled by definition — nothing left to decide.
+  test('a merged request never asks again', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({
+      pr: { ...FULL_PR, merged: true, state: 'closed', mergeable: null },
+    })
+    draw({}, { githubGetPR })
+    await screen.findByText('Merged')
+    const once = githubGetPR.mock.calls.length
+    await settle(60_000)
+    expect(githubGetPR.mock.calls.length).toBe(once)
   })
 })

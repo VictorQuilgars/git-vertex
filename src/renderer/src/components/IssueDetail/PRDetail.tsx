@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
 import MdLite from '../GitHubPanel/mdLite'
 import { LabelChip, timeAgo, type GithubLabel } from '../GitHubPanel/GithubRow'
@@ -41,6 +41,18 @@ interface FullPR {
   labels: GithubLabel[]; assignees: string[]; reviewers: string[]
   url: string
 }
+
+/**
+ * How often an unsettled request asks again. Seconds, not the lists' minute:
+ * this is a state someone is watching, not a background list — mergeability
+ * usually resolves in a few seconds.
+ */
+const SETTLE_POLL_MS = 5_000
+/**
+ * And a ceiling, so a request GitHub never settles does not ask forever. Past
+ * this the pane simply keeps saying what it last knew.
+ */
+const SETTLE_MAX_TRIES = 24
 
 interface Checks { total: number; passed: number; failed: number; pending: number }
 interface Comment { author: string; createdAt: string; body: string }
@@ -102,6 +114,45 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
     }).catch(() => { /* the comments block shows loading forever only on a dead host */ })
     return () => { alive = false }
   }, [repo.owner, repo.repo, number])
+
+  /**
+   * A request is UNSETTLED while GitHub has not finished deciding about it:
+   * `mergeable` comes back **null** while it computes the merge, and the
+   * checks report `pending` while they run. Both are the normal answer in the
+   * seconds after a push — which is exactly when someone opens this pane and
+   * waits.
+   *
+   * It fetched once. So a request opened right after a push sat at "still
+   * computing" for as long as it was left open, and the merge button — which
+   * needs `mergeable === true` and no pending check — never appeared, however
+   * green the rows above it went.
+   */
+  const editing = editingTitle || editingBody || editingAssignees || editingLabels || editingState
+  const settled = !pr
+    || pr.merged
+    || pr.state !== 'open'
+    || (pr.mergeable !== null && checks !== null && checks.pending === 0)
+
+  const settleTries = useRef(0)
+  useEffect(() => {
+    // Nothing to wait for, or the user is typing into the thing a refresh
+    // would overwrite.
+    if (settled || editing) return
+    if (settleTries.current >= SETTLE_MAX_TRIES) return
+    let alive = true
+    const id = setTimeout(async () => {
+      if (!alive || document.hidden) { settleTries.current += 1; return }
+      settleTries.current += 1
+      const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
+      if (!alive || !r?.pr) return
+      setPr(r.pr)
+      if (r.pr.headSha) {
+        const c = await api().githubGetChecks(repo.owner, repo.repo, r.pr.headSha).catch(() => null)
+        if (alive && c?.checks) setChecks(c.checks)
+      }
+    }, SETTLE_POLL_MS)
+    return () => { alive = false; clearTimeout(id) }
+  }, [settled, editing, repo.owner, repo.repo, number, pr, checks])
 
   const patch = useCallback(async (p: object, apply: () => void) => {
     setBusy(true); setError(null)
