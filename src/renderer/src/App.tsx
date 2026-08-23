@@ -197,6 +197,14 @@ function sameDiffTarget(a: CenterDiffTarget, b: CenterDiffTarget): boolean {
 let tabSeq = 0
 const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
 
+/**
+ * How often the GitHub lists are asked. GitHub publishes this number itself —
+ * `X-Poll-Interval: 60` on its events endpoint — so it is its contract, not
+ * our guess. The requests are conditional, so a minute costs nothing while
+ * nothing changes.
+ */
+const GITHUB_POLL_MS = 60_000
+
 export default function App() {
   // ── Dialog state ───────────────────────────────────────────
   const [dlg, setDlg] = useState<DialogState | null>(null)
@@ -337,7 +345,10 @@ export default function App() {
   // is no GitHub here or no answer yet — the sections then do not render at
   // all, which is not the same as rendering an empty one.
   const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
+  /** Read inside loadGithubLists without making it depend on the lists. */
+  const githubPRsRef = React.useRef(githubPRs); githubPRsRef.current = githubPRs
   const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
+  const githubIssuesRef = React.useRef(githubIssues); githubIssuesRef.current = githubIssues
   // The signed-in login — what the account groups of PULL REQUESTS filter on.
   const [githubLogin, setGithubLogin] = useState<string | null>(null)
   // The issue being read in the centre (§3 bis) — the third layout: toolbar
@@ -391,9 +402,14 @@ export default function App() {
   // the resolver's manual editor — review-only until the user saves it.
   const [conflictResolverProposal, setConflictResolverProposal] = useState<string | null>(null)
   const [wipCount, setWipCount] = useState(0)
-  const autoFetchEnabled = useRef(
-    localStorage.getItem('autoFetch') !== 'false'
-  )
+  /**
+   * The auto-fetch interval, in minutes — 0 disables it. Read as STATE, not
+   * once into a ref: it used to be `localStorage('autoFetch')`, a key nothing
+   * in the app ever wrote, so the loop could not be turned off and the setting
+   * the user can actually change — `autoFetchInterval`, in Settings — drove
+   * only the main process's own timer and never this loop (#141).
+   */
+  const [autoFetchMinutes, setAutoFetchMinutes] = useState(0)
 
   // ── Toast (via ToastProvider) ──────────────────────────────
   const toastApi = useToast()
@@ -685,25 +701,44 @@ export default function App() {
 
   // ── Auto-fetch ─────────────────────────────────────────────
   useEffect(() => {
-    if (!repoPath || !autoFetchEnabled.current) return
-    const INTERVAL = 5 * 60 * 1000 // 5 minutes
+    let alive = true
+    void window.gitAPI.settingsGetAll().then((s: any) => {
+      if (alive) setAutoFetchMinutes(parseInt(s?.autoFetchInterval ?? '0', 10) || 0)
+    }).catch(() => {})
+    return () => { alive = false }
+    // Settings is a tab, not a modal, so there is no close to hook: re-reading
+    // on every tab change is what makes editing the interval and coming back
+    // take effect without a reload.
+  }, [activeTabId])
+
+  useEffect(() => {
+    if (!repoPath || !autoFetchMinutes) return
     const id = setInterval(async () => {
       const r = await window.gitAPI.fetch()
       if (r.success) {
         setLastFetchTime(new Date())
         await loadRepoData()
       }
-    }, INTERVAL)
+    }, autoFetchMinutes * 60 * 1000)
     return () => clearInterval(id)
-  }, [repoPath, loadRepoData])
+  }, [repoPath, autoFetchMinutes, loadRepoData])
 
   // ── Open repo helpers ──────────────────────────────────────
   // Which section a manual refresh is reading, and a tick per section that
   // tells the saved-filter groups to bypass the search cache (#133).
   const [githubRefreshing, setGithubRefreshing] = useState<'prs' | 'issues' | null>(null)
   const [githubRefreshTick, setGithubRefreshTick] = useState({ prs: 0, issues: 0 })
+  /** Bumped by each background poll, so the saved filters re-query with it. */
+  const [githubPollTick, setGithubPollTick] = useState(0)
 
-  const loadGithubLists = useCallback(async (base: { owner: string; repo: string }, only?: 'prs' | 'issues') => {
+  /**
+   * `silent` is a poll rather than something the user asked for (#141). Two
+   * things change: a refused read leaves the lists exactly as they are instead
+   * of taking the sections away, and nothing is written when the answer came
+   * back `notModified` — a list that reorders under an open hover card is
+   * worse than a list that is a minute old.
+   */
+  const loadGithubLists = useCallback(async (base: { owner: string; repo: string }, only?: 'prs' | 'issues', silent = false) => {
     void (window.gitAPI as any).githubGetUser?.()
       .then((r: any) => setGithubLogin(r?.user?.login ?? null))
       .catch(() => setGithubLogin(null))
@@ -724,14 +759,72 @@ export default function App() {
         only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
       ])
       // A refused read costs that section's list, never the section itself —
-      // the rule the saved filters already follow.
-      if (only !== 'issues') setGithubPRs(prs?.error ? undefined : rows(prs?.prs, 'pr'))
-      if (only !== 'prs') setGithubIssues(issues?.error ? undefined : rows(issues?.issues, 'issue'))
+      // the rule the saved filters already follow. Except on a poll, where it
+      // costs nothing at all: the user did not ask, so a blip must not empty
+      // what they are looking at.
+      // ⚠️ `notModified` means "the same as the last body I handed out" — and
+      // the ETag cache lives in the MAIN process, which outlives this renderer.
+      // After a window reload the renderer holds nothing while that cache is
+      // still warm, so the first load comes back 304. Skipping it there left
+      // the sections undefined, which is how they disappear entirely rather
+      // than showing as empty. It is only safe to skip when there is already
+      // something to keep — and the answer carries the body either way.
+      const put = (r: any, current: any, apply: (v: any) => void, shape: () => any) => {
+        if (r?.notModified && current !== undefined) return
+        if (r?.error) { if (!silent) apply(undefined); return }
+        apply(shape())
+      }
+      if (only !== 'issues') put(prs, githubPRsRef.current, setGithubPRs, () => rows(prs?.prs, 'pr'))
+      if (only !== 'prs') put(issues, githubIssuesRef.current, setGithubIssues, () => rows(issues?.issues, 'issue'))
     } catch {
+      if (silent) return
       if (only !== 'issues') setGithubPRs(undefined)
       if (only !== 'prs') setGithubIssues(undefined)
     }
   }, [])
+
+  // ── The GitHub lists poll themselves (#141) ────────────────
+  //
+  // There is no push channel a desktop client can subscribe to — webhooks are
+  // server to server. What GitHub offers instead is polling made cheap, and
+  // the main process already sends `If-None-Match`: a 304 costs no rate limit
+  // at all (measured — 4997 remaining before five of them, 4997 after), and
+  // answers `notModified`, which loadGithubLists uses to write nothing.
+  //
+  // 60 seconds because that is the number GitHub itself publishes on its
+  // events endpoint (`X-Poll-Interval: 60`) — its contract rather than one of
+  // ours. This is deliberately NOT the git auto-fetch's interval: a fetch
+  // costs a network round trip against a remote, a conditional list costs
+  // nothing when nothing changed. They are different questions.
+  useEffect(() => {
+    if (!githubOwnerRepo) return
+    let stopped = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const tick = async () => {
+      // A window nobody is looking at does not ask. This is what stops a
+      // background window from spending a secondary rate limit on a forge no
+      // one is reading.
+      if (!document.hidden && !stopped) {
+        await loadGithubLists(githubOwnerRepo, undefined, true)
+        // The named groups come from the list; the saved filters are their own
+        // queries and would otherwise re-run only when the list happened to
+        // change. They ride the same tick, without forcing.
+        setGithubPollTick(n => n + 1)
+      }
+      if (!stopped) timer = setTimeout(tick, GITHUB_POLL_MS)
+    }
+    timer = setTimeout(tick, GITHUB_POLL_MS)
+    // Coming back to the window asks straight away rather than waiting out the
+    // rest of an interval that ran while it was hidden.
+    const onVisible = () => { if (!document.hidden && !stopped) void loadGithubLists(githubOwnerRepo, undefined, true) }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      stopped = true
+      if (timer) clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [githubOwnerRepo, loadGithubLists])
+
 
   /** The section headers' refresh button — one section, and never two at once. */
   const refreshGithubSection = useCallback(async (section: 'prs' | 'issues') => {
@@ -2363,6 +2456,7 @@ export default function App() {
               onRefreshGithub={refreshGithubSection}
               githubRefreshing={githubRefreshing}
               githubRefreshTick={githubRefreshTick}
+              githubPollTick={githubPollTick}
               onCreatePR={handleStartPR}
               onCopyBranchLink={githubOwnerRepo ? handleCopyBranchLink : undefined}
               onDeleteBranchBoth={handleDeleteBranchBoth}
@@ -2691,6 +2785,7 @@ export default function App() {
           intent={prIntent}
           onClose={() => { setPrModalOpen(false); setPrIntent(null) }}
           onPushed={loadRepoData}
+          onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'prs') }}
           showToast={showToast}
         />
       )}

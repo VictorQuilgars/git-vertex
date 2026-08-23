@@ -2346,18 +2346,51 @@ ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
   } catch { return { owner: null, repo: null } }
 })
 
+/**
+ * Conditional GETs for everything the app re-asks (#141).
+ *
+ * Every list endpoint answers with an ETag; sending it back as `If-None-Match`
+ * returns 304 with no body — and MEASURED against api.github.com, five 304s in
+ * a row cost nothing at all: x-ratelimit-remaining was 4997 before and 4997
+ * after. That is what lets these be asked often rather than every five
+ * minutes.
+ *
+ * The last body is kept beside the tag, so a 304 still answers with the data.
+ * A caller that ignores `notModified` therefore behaves exactly as before; one
+ * that reads it can leave its state — and the list the user is scrolling —
+ * untouched.
+ */
+const listCache = new Map<string, { etag: string; body: any }>()
+
+async function conditionalGet<T extends object>(
+  key: string, url: string, token: string, shape: (data: any) => T | Promise<T>,
+): Promise<(T & { notModified?: true }) | { error: string }> {
+  const hit = listCache.get(key)
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      ...(hit ? { 'If-None-Match': hit.etag } : {}),
+    },
+  })
+  if (res.status === 304 && hit) return { ...hit.body, notModified: true as const }
+  if (!res.ok) return { error: `HTTP ${res.status}` }
+  const body = await shape(await res.json())
+  const etag = res.headers?.get?.('etag')
+  if (etag) listCache.set(key, { etag, body })
+  return body
+}
+
 ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
   const api = await ghApi()
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(
+    return await conditionalGet(
+      `prs:${api.base}:${owner}/${repo}`,
       `${api.base}/repos/${owner}/${repo}/pulls?per_page=50&state=open`,
-      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
-    )
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const data = await res.json() as any[]
-    return {
+      token,
+      (data: any[]) => ({
       prs: data.map(pr => ({
         number: pr.number,
         title: pr.title,
@@ -2375,7 +2408,8 @@ ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
         headRef: pr.head?.ref ?? '',
         baseRef: pr.base?.ref ?? '',
       }))
-    }
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -2424,12 +2458,15 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    })
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const pr = await res.json() as any
-    return {
+    // Conditional, because the detail pane re-asks while you watch it (#141):
+    // a 304 costs no rate limit, and the cached body already carries the
+    // GraphQL supplement below, so an unchanged request costs one free call
+    // instead of three paid ones.
+    return await conditionalGet(
+      `pr:${api.base}:${owner}/${repo}#${number}`,
+      `${api.base}/repos/${owner}/${repo}/pulls/${number}`,
+      token,
+      async (pr: any) => ({
       pr: {
         number: pr.number,
         title: pr.title,
@@ -2457,7 +2494,8 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
         ...(await prBlockedSupplement(api, token, owner, repo, number,
           { blocked: pr.mergeable_state === 'blocked', baseRef: pr.base?.ref ?? '' })),
       },
-    }
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -2479,10 +2517,24 @@ ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: 
  * someone who has it. Unknown reads as today's behaviour, GitHub judging at
  * the click; only a MEASURED lack of permission is stated in the pane.
  */
+/**
+ * The supplement is five requests on a blocked request — GraphQL, the branch's
+ * rules, and one per ruleset — and the detail pane now re-asks every few
+ * seconds while it waits (#141). Rulesets and repository permissions do not
+ * change on that timescale, so the answer is held briefly: it turns a poll on
+ * a blocked request from five requests into one, which is also what stops a
+ * burst of them from failing on the socket.
+ */
+const supplementCache = new Map<string, { at: number; value: any }>()
+const SUPPLEMENT_TTL_MS = 60_000
+
 async function prBlockedSupplement(
   api: { base: string }, token: string, owner: string, repo: string, number: number,
   ctx: { blocked: boolean; baseRef: string },
 ): Promise<{ reviewDecision: string | null; canBypass: boolean; canMerge: boolean | null }> {
+  const key = `${api.base}:${owner}/${repo}#${number}:${ctx.blocked}`
+  const hit = supplementCache.get(key)
+  if (hit && Date.now() - hit.at < SUPPLEMENT_TTL_MS) return hit.value
   try {
     const gqlUrl = api.base.endsWith('/api/v3')
       ? api.base.replace(/\/api\/v3$/, '/api/graphql')
@@ -2503,11 +2555,15 @@ async function prBlockedSupplement(
     const asked = ctx.blocked
       ? await rulesetBypass(api, token, owner, repo, ctx.baseRef)
       : null
-    return {
+    const value = {
       reviewDecision: repoNode?.pullRequest?.reviewDecision ?? null,
       canBypass: asked ?? perm === 'ADMIN',
       canMerge: perm === null ? null : MERGE_PERMISSIONS.includes(perm),
     }
+    supplementCache.set(key, { at: Date.now(), value })
+    return value
+    // A failure is NOT cached: the next poll should ask again rather than
+    // repeat a shrug for a minute.
   } catch { return { reviewDecision: null, canBypass: false, canMerge: null } }
 }
 
@@ -2594,22 +2650,24 @@ ipcMain.handle('github:get-checks', async (_e, owner: string, repo: string, ref:
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`${api.base}/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    })
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const data = await res.json() as any
-    const runs = (data.check_runs ?? []) as any[]
-    const failed = runs.filter(r => r.conclusion && !['success', 'neutral', 'skipped'].includes(r.conclusion)).length
-    const pending = runs.filter(r => r.status !== 'completed').length
-    return {
-      checks: {
-        total: runs.length,
-        passed: runs.length - failed - pending,
-        failed,
-        pending,
+    return await conditionalGet(
+      `checks:${api.base}:${owner}/${repo}@${ref}`,
+      `${api.base}/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100`,
+      token,
+      (data: any) => {
+        const runs = (data.check_runs ?? []) as any[]
+        const failed = runs.filter(r => r.conclusion && !['success', 'neutral', 'skipped'].includes(r.conclusion)).length
+        const pending = runs.filter(r => r.status !== 'completed').length
+        return {
+          checks: {
+            total: runs.length,
+            passed: runs.length - failed - pending,
+            failed,
+            pending,
+          },
+        }
       },
-    }
+    )
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -2623,18 +2681,18 @@ ipcMain.handle('github:issue-comments', async (_e, owner: string, repo: string, 
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues/${number}/comments?per_page=100`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    })
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const data = await res.json() as any[]
-    return {
-      comments: data.map(c => ({
-        author: c.user?.login ?? '',
-        createdAt: c.created_at,
-        body: c.body ?? '',
-      })),
-    }
+    return await conditionalGet(
+      `comments:${api.base}:${owner}/${repo}#${number}`,
+      `${api.base}/repos/${owner}/${repo}/issues/${number}/comments?per_page=100`,
+      token,
+      (data: any[]) => ({
+        comments: data.map(c => ({
+          author: c.user?.login ?? '',
+          createdAt: c.created_at,
+          body: c.body ?? '',
+        })),
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -2757,16 +2815,13 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
   try {
-    const res = await fetch(
+    return await conditionalGet(
+      `issues:${api.base}:${owner}/${repo}`,
       `${api.base}/repos/${owner}/${repo}/issues?per_page=50&state=open&pulls=false`,
-      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
-    )
-    if (!res.ok) return { error: `HTTP ${res.status}` }
-    const data = await res.json() as any[]
-    // GitHub issues endpoint also returns PRs — filter them out
-    const issues = data.filter((i: any) => !i.pull_request)
-    return {
-      issues: issues.map((issue: any) => ({
+      token,
+      (data: any[]) => ({
+      // GitHub issues endpoint also returns PRs — filter them out
+      issues: data.filter((i: any) => !i.pull_request).map((issue: any) => ({
         number: issue.number,
         title: issue.title,
         state: issue.state,
@@ -2778,7 +2833,8 @@ ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => 
         assignees: (issue.assignees ?? []).map((a: any) => a.login),
         url: issue.html_url,
       }))
-    }
+      }),
+    )
   } catch (e: any) { return { error: e.message } }
 })
 

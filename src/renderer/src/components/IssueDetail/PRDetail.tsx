@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
 import MdLite from '../GitHubPanel/mdLite'
 import { LabelChip, timeAgo, type GithubLabel } from '../GitHubPanel/GithubRow'
@@ -42,7 +42,35 @@ interface FullPR {
   url: string
 }
 
+/**
+ * How often an UNSETTLED request asks again — mergeability still computing, a
+ * check still running. Seconds, because this is a state someone is watching.
+ */
+const SETTLE_POLL_MS = 5_000
+/**
+ * ...and how far that stretches while it stays undecided. A check suite can
+ * run for twenty minutes; asking every five seconds for all of it is 240 ticks
+ * to learn nothing. The wait grows by half each time and stops at the settled
+ * cadence, so the first minute — the one somebody actually watches — is still
+ * answered in seconds, and a long build settles into the same rhythm as
+ * everything else. Any change at all puts it back to five.
+ */
+const SETTLE_BACKOFF = 1.5
+/**
+ * And how often a settled one does. It keeps asking rather than stopping,
+ * because a request goes on changing after it is decided: comments arrive, a
+ * review lands, labels move, a failed check is re-run. Every read behind this
+ * is conditional (#141), so an unchanged request answers 304 and costs no
+ * rate limit — which is what makes watching it free rather than a trade.
+ */
+const OPEN_POLL_MS = 20_000
+
 interface Checks { total: number; passed: number; failed: number; pending: number }
+
+/** Same numbers — so a poll that changed nothing does not re-render the pane. */
+const sameChecks = (a: Checks | null, b: Checks): boolean =>
+  !!a && a.total === b.total && a.passed === b.passed
+  && a.failed === b.failed && a.pending === b.pending
 interface Comment { author: string; createdAt: string; body: string }
 
 function api(): any { return window.gitAPI as any }
@@ -57,6 +85,14 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
   const { t } = useLang()
   const [pr, setPr] = useState<FullPR | null>(null)
   const [checks, setChecks] = useState<Checks | null>(null)
+  /**
+   * Which commit those checks are about. Without it the previous head's
+   * result stays on screen after a push — evidence about commit A presented
+   * as evidence about commit B — and the merge button, which only asks
+   * whether the checks are green, is offered on it. GitHub then refuses the
+   * merge, because the checks it requires have not run on what you pushed.
+   */
+  const [checksSha, setChecksSha] = useState<string | null>(null)
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [newComment, setNewComment] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -92,7 +128,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
         // the first said which sha to ask about.
         if (r.pr.headSha) {
           api().githubGetChecks(repo.owner, repo.repo, r.pr.headSha)
-            .then((c: any) => { if (alive && c?.checks) setChecks(c.checks) })
+            .then((c: any) => { if (alive && c?.checks) { setChecks(c.checks); setChecksSha(r.pr.headSha) } })
             .catch(() => { /* checks stay unknown; the block says so */ })
         }
       } else setError(r?.error ?? 'error')
@@ -102,6 +138,113 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
     }).catch(() => { /* the comments block shows loading forever only on a dead host */ })
     return () => { alive = false }
   }, [repo.owner, repo.repo, number])
+
+  /**
+   * A request is UNSETTLED while GitHub has not finished deciding about it:
+   * `mergeable` comes back **null** while it computes the merge, and the
+   * checks report `pending` while they run. Both are the normal answer in the
+   * seconds after a push — which is exactly when someone opens this pane and
+   * waits.
+   *
+   * It fetched once. So a request opened right after a push sat at "still
+   * computing" for as long as it was left open, and the merge button — which
+   * needs `mergeable === true` and no pending check — never appeared, however
+   * green the rows above it went.
+   */
+  const editing = editingTitle || editingBody || editingAssignees || editingLabels || editingState
+  /**
+   * The checks, but only while they describe the head the pane is showing. The
+   * moment the head moves they read as UNKNOWN, which takes the merge button
+   * away and puts the pane back to waiting — derived rather than cleared, so
+   * no code path has to remember to do it.
+   */
+  const headChecks = pr && checksSha === pr.headSha ? checks : null
+
+  // Nothing loaded — a first fetch that failed, or one still in flight — counts
+  // as UNSETTLED, so the pane retries in seconds rather than sitting dead for
+  // twenty. A transient "fetch failed" at open should heal itself, not leave a
+  // red line and nothing else until the pane is closed and reopened.
+  const settled = !!pr
+    && (pr.merged
+      || pr.state !== 'open'
+      || (pr.mergeable !== null && headChecks !== null && headChecks.pending === 0))
+
+  // What the loop below reads without depending on it. The loop must NOT be
+  // re-created when these change: it re-arms itself.
+  const prRef = useRef(pr); prRef.current = pr
+  const commentsRef = useRef(comments); commentsRef.current = comments
+  const settledRef = useRef(settled); settledRef.current = settled
+
+  /**
+   * The pane keeps itself current for as long as it is open: the request, its
+   * checks and its comments.
+   *
+   * ⚠️ The timer RE-ARMS ITSELF, and this effect depends only on which request
+   * is open. It used to be re-created by its own writes — which meant a poll
+   * that changed nothing armed no successor, and the pane stopped asking after
+   * one tick. Changing nothing is the normal case for a request that is simply
+   * still running its checks, so "2 of 4 pending" would sit there for ever.
+   *
+   * The same coupling made a poll cancel its own checks request, since `setPr`
+   * re-ran the effect and the cleanup killed the rest of the pass. One loop,
+   * owned by the effect, fixes both: nothing about a render can interrupt it.
+   */
+  useEffect(() => {
+    if (editing) return
+    let alive = true
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let waiting = SETTLE_POLL_MS
+    const nextWait = () => {
+      if (settledRef.current) return OPEN_POLL_MS
+      const w = waiting
+      waiting = Math.min(waiting * SETTLE_BACKOFF, OPEN_POLL_MS)
+      return w
+    }
+
+    const tick = async () => {
+      if (!alive) return
+      if (!document.hidden) {
+        // Every fetch first, then every write, with one liveness check between:
+        // a write must never be able to cancel the fetches after it.
+        // The request first — the checks hang off the sha it reports — then the
+        // other two TOGETHER. Three in a row is three round trips of latency
+        // per tick; measured against api.github.com, one is about half a
+        // second, so this is the difference between a tick costing 1.6s of
+        // waiting and 1.1s. None of it is CPU: ten conditional requests cost
+        // 8ms of it in total, and all of it happens in the main process.
+        const r = await api().githubGetPR(repo.owner, repo.repo, number).catch(() => null)
+        const sha = r?.pr?.headSha
+        const [c, cm] = await Promise.all([
+          sha ? api().githubGetChecks(repo.owner, repo.repo, sha).catch(() => null) : null,
+          api().githubIssueComments(repo.owner, repo.repo, number).catch(() => null),
+        ])
+        if (!alive) return
+
+        // `notModified` describes the TRANSPORT — "the same body I last sent"
+        // — not what this pane holds. The cache saying it lives in the main
+        // process and outlives every pane, so a 304 is routine for something
+        // this side has never seen. Each answer is RECORDED; only the state
+        // write is skipped when what arrived is what is already held.
+        if (r?.pr) {
+          setError(null)
+          if (!prRef.current || !r.notModified) setPr(r.pr)
+        }
+        if (sha && c?.checks) {
+          setChecksSha(sha)
+          setChecks(prev => {
+            if (sameChecks(prev, c.checks)) return prev
+            waiting = SETTLE_POLL_MS      // something moved — watch closely again
+            return c.checks
+          })
+        }
+        if (cm?.comments && (commentsRef.current === null || !cm.notModified)) setComments(cm.comments)
+      }
+      if (alive) timer = setTimeout(tick, nextWait())
+    }
+
+    timer = setTimeout(tick, nextWait())
+    return () => { alive = false; if (timer) clearTimeout(timer) }
+  }, [editing, repo.owner, repo.repo, number])
 
   const patch = useCallback(async (p: object, apply: () => void) => {
     setBusy(true); setError(null)
@@ -270,13 +413,13 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                 {/* Mergeability, read and reported — never a merge button (#73). */}
                 <SideBlock label={t('gh.pr.mergeability')}>
                   <div className="idv-merge">
-                    <div className={`idv-merge-row idv-merge-row--${checks === null ? 'unknown' : checks.failed ? 'bad' : checks.pending ? 'wait' : 'ok'}`}>
-                      <Icon name={checks === null ? 'clock' : checks.failed ? 'conflict' : checks.pending ? 'clock' : 'check'} size={12} />
-                      {checks === null ? t('gh.pr.checksUnknown')
-                        : checks.total === 0 ? t('gh.pr.checksNone')
-                        : checks.failed ? t('gh.pr.checksFailed', checks.failed, checks.total)
-                        : checks.pending ? t('gh.pr.checksPending', checks.pending, checks.total)
-                        : t('gh.pr.checksPassed', checks.total)}
+                    <div className={`idv-merge-row idv-merge-row--${headChecks === null ? 'unknown' : headChecks.failed ? 'bad' : headChecks.pending ? 'wait' : 'ok'}`}>
+                      <Icon name={headChecks === null ? 'clock' : headChecks.failed ? 'conflict' : headChecks.pending ? 'clock' : 'check'} size={12} />
+                      {headChecks === null ? t('gh.pr.checksUnknown')
+                        : headChecks.total === 0 ? t('gh.pr.checksNone')
+                        : headChecks.failed ? t('gh.pr.checksFailed', headChecks.failed, headChecks.total)
+                        : headChecks.pending ? t('gh.pr.checksPending', headChecks.pending, headChecks.total)
+                        : t('gh.pr.checksPassed', headChecks.total)}
                     </div>
                     <div className={`idv-merge-row idv-merge-row--${pr.mergeable === null ? 'unknown' : pr.mergeable ? 'ok' : 'bad'}`}>
                       <Icon name={pr.mergeable === null ? 'clock' : pr.mergeable ? 'check' : 'conflict'} size={12} />
@@ -303,7 +446,7 @@ export default function PRDetail({ repo, number, onClose, onChanged }: {
                         without bypass rights gets GitHub's refusal inline. */}
                     {!pr.merged && pr.state === 'open' && pr.mergeable === true
                       && pr.canMerge !== false
-                      && checks !== null && checks.failed === 0 && checks.pending === 0 && (
+                      && headChecks !== null && headChecks.failed === 0 && headChecks.pending === 0 && (
                       <div className="idv-merge-act" ref={mergeActRef}>
                         {/* Blocked, github.com's way: say so, and say what is
                             awaited — reviewDecision knows. */}

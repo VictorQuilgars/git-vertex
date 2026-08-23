@@ -1,4 +1,4 @@
-import { screen, waitFor, fireEvent } from '@testing-library/react'
+import { screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PRDetail from '../PRDetail'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
@@ -336,5 +336,337 @@ describe('the PR detail', () => {
   test('a refused load shows the error, not an empty frame', async () => {
     draw({}, { githubGetPR: jest.fn().mockResolvedValue({ error: 'HTTP 404' }) })
     expect(await screen.findByText('HTTP 404')).toBeInTheDocument()
+  })
+})
+
+// Victor: he pushed, opened the request and waited for its checks. They went
+// green above and the merge buttons never came — because GitHub answers
+// `mergeable: null` while it computes, and this pane asked exactly once.
+describe('a request that GitHub has not finished deciding about', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('it asks again while mergeability is computing, and the button arrives', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, mergeable: null, mergeableState: 'unknown' } })
+      .mockResolvedValue({ pr: { ...FULL_PR, mergeable: true, mergeableState: 'clean' } })
+    draw({}, { githubGetPR })
+    expect(await screen.findByText('Mergeability still computing…')).toBeInTheDocument()
+    // no button while it is unknown — that is the reported state
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+
+    await settle()
+    expect(await screen.findByText('No conflicts')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  // Settled does not mean finished: comments arrive, a review lands, a failed
+  // check is re-run. The reads are conditional, so watching costs nothing —
+  // it slows down rather than stopping.
+  test('a settled request keeps watching, at a slower cadence', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, mergeable: true } })
+    draw({}, { githubGetPR })
+    await screen.findByText('No conflicts')
+    // The first tick is armed before the pane knows what it is looking at —
+    // nothing is loaded yet, so it asks at the urgent cadence once.
+    await settle(5_000)
+    const settledAt = githubGetPR.mock.calls.length
+
+    // from then on the urgent cadence is too soon for a settled request
+    await settle(5_000)
+    expect(githubGetPR.mock.calls.length).toBe(settledAt)
+
+    await settle(20_000)
+    expect(githubGetPR.mock.calls.length).toBeGreaterThan(settledAt)
+  })
+
+  // A poll that finds nothing new must not re-render the pane under the
+  // reader — the whole reason the reads carry an ETag.
+  test('an unchanged answer is not written back', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, mergeable: true } })
+      .mockResolvedValue({ pr: { ...FULL_PR, title: 'SHOULD NOT APPEAR' }, notModified: true })
+    draw({}, { githubGetPR })
+    await screen.findByText('Speed up the graph')
+    await settle(20_000)
+    await settle(20_000)
+    expect(screen.getByText('Speed up the graph')).toBeInTheDocument()
+    expect(screen.queryByText('SHOULD NOT APPEAR')).not.toBeInTheDocument()
+  })
+
+  // "au fur et à mesure" — each poll shows where the checks have got to, not
+  // just the final answer.
+  test('the counts move as the checks land, one poll at a time', async () => {
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 1, failed: 0, pending: 3 } })
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 3, failed: 0, pending: 1 } })
+      .mockResolvedValue({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+    draw({}, { githubGetChecks })
+    expect(await screen.findByText('3 of 4 checks pending')).toBeInTheDocument()
+    await settle()
+    expect(await screen.findByText('2 of 4 checks pending')).toBeInTheDocument()
+    await settle()
+    expect(await screen.findByText('1 of 4 checks pending')).toBeInTheDocument()
+    await settle()
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  test('a pending check is unsettled too', async () => {
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
+      .mockResolvedValue({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+    draw({}, { githubGetChecks })
+    expect(await screen.findByText('2 of 4 checks pending')).toBeInTheDocument()
+    expect(screen.queryByText('Merge Pull Request')).not.toBeInTheDocument()
+    await settle()
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  // A refresh would replace the text under the cursor.
+  test('it does not ask while the description is being edited', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, mergeable: null } })
+    draw({}, { githubGetPR })
+    await screen.findByText('Mergeability still computing…')
+    const once = githubGetPR.mock.calls.length
+    // Clicking the title opens its editor — a refresh there would replace the
+    // text under the cursor.
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    await user.click(screen.getByText('Speed up the graph'))
+    await settle()
+    expect(githubGetPR.mock.calls.length).toBe(once)
+  })
+
+  // A merged request has nothing left to DECIDE, so it takes the slow cadence
+  // rather than the urgent one — but it still gets comments.
+  test('a merged request watches slowly, not urgently', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({
+      pr: { ...FULL_PR, merged: true, state: 'closed', mergeable: null },
+    })
+    draw({}, { githubGetPR })
+    await screen.findByText('Merged')
+    await settle(5_000)            // the one tick armed before anything loaded
+    const once = githubGetPR.mock.calls.length
+    await settle(5_000)
+    expect(githubGetPR.mock.calls.length).toBe(once)
+    await settle(20_000)
+    expect(githubGetPR.mock.calls.length).toBeGreaterThan(once)
+  })
+})
+
+// Victor pushed, opened the request, and was offered a merge button over
+// "4 checks passed" — the previous head's result, still on screen. Merging
+// there is what GitHub refuses: the checks it requires have not run on what
+// was just pushed.
+describe('checks belong to the commit they ran on', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('a moved head takes its predecessor\'s checks — and the button — away', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, headSha: 'old111', mergeable: true } })
+      .mockResolvedValue({ pr: { ...FULL_PR, headSha: 'new222', mergeable: true } })
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+      // nothing has run on the new head yet
+      .mockResolvedValue({ checks: { total: 0, passed: 0, failed: 0, pending: 0 } })
+    draw({}, { githubGetPR, githubGetChecks })
+
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+
+    // the head moves — the old result is not evidence about the new commit
+    await settle(20_000)
+    await waitFor(() => expect(githubGetChecks).toHaveBeenCalledWith('o', 'r', 'new222'))
+    expect(screen.queryByText('4 checks passed')).not.toBeInTheDocument()
+  })
+
+  test('checks for the head that is showing are used as before', async () => {
+    const githubGetChecks = jest.fn().mockResolvedValue({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+    draw({}, { githubGetChecks })
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  // Deliberately NOT asserted here: that a head with zero check runs is "still
+  // deciding". Zero is also what a repository with no CI answers, and treating
+  // it as undecided would make those poll urgently forever. Which of the two it
+  // is, is GitHub's own `mergeableState` to say — and the pane already shows it.
+
+})
+
+// Victor pushed, opened the request, and got a bare "fetch failed" — the pane
+// replaced by a red line with no way back but closing it.
+describe('a failed open heals itself', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('the error goes when the next attempt succeeds', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ error: 'fetch failed' })
+      .mockResolvedValue({ pr: { ...FULL_PR, mergeable: true } })
+    draw({}, { githubGetPR })
+    expect(await screen.findByText('fetch failed')).toBeInTheDocument()
+
+    // nothing loaded is UNSETTLED: it retries in seconds, not twenty
+    await settle(5_000)
+    expect(await screen.findByText('Speed up the graph')).toBeInTheDocument()
+    expect(screen.queryByText('fetch failed')).not.toBeInTheDocument()
+  })
+
+  test('a failed retry changes nothing that is already on screen', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, mergeable: true } })
+      .mockResolvedValue({ error: 'fetch failed' })
+    draw({}, { githubGetPR })
+    await screen.findByText('Speed up the graph')
+    await settle(20_000)
+    await settle(20_000)
+    // the request is still there, and the failure is not shown
+    expect(screen.getByText('Speed up the graph')).toBeInTheDocument()
+    expect(screen.queryByText('fetch failed')).not.toBeInTheDocument()
+  })
+})
+
+// Third time this bit, so it gets its own test: `notModified` says "the same
+// body I last sent", and the cache saying it lives in the main process, which
+// outlives every pane. A 304 is therefore routine for something THIS pane has
+// never seen — and dropping the answer on it left "Checks: unknown" on screen
+// for a request whose checks were green.
+describe('a 304 is not a reason to know less', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('checks arriving as not-modified still bind to the head being shown', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, headSha: 'sha222', mergeable: true } })
+    // The pane never saw these; the main process had them cached.
+    const githubGetChecks = jest.fn().mockResolvedValue({
+      checks: { total: 4, passed: 4, failed: 0, pending: 0 }, notModified: true,
+    })
+    draw({}, { githubGetPR, githubGetChecks })
+    expect(await screen.findByText('4 checks passed')).toBeInTheDocument()
+    expect(screen.queryByText('Checks: unknown')).not.toBeInTheDocument()
+    expect(await screen.findByText('Merge Pull Request')).toBeInTheDocument()
+  })
+
+  test('a head that moves picks up cached checks for the new sha', async () => {
+    const githubGetPR = jest.fn()
+      .mockResolvedValueOnce({ pr: { ...FULL_PR, headSha: 'old111', mergeable: true } })
+      .mockResolvedValue({ pr: { ...FULL_PR, headSha: 'new222', mergeable: true } })
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+      // the new sha answers 304 — this pane has still never seen it
+      .mockResolvedValue({ checks: { total: 2, passed: 2, failed: 0, pending: 0 }, notModified: true })
+    draw({}, { githubGetPR, githubGetChecks })
+    await screen.findByText('4 checks passed')
+    await settle(20_000)
+    await waitFor(() => expect(githubGetChecks).toHaveBeenCalledWith('o', 'r', 'new222'))
+    await settle(0)   // let the checks promise land
+    // it does not fall back to unknown: the 304 carried the answer
+    expect(screen.getByText('2 checks passed')).toBeInTheDocument()
+  })
+})
+
+// Victor: "2 of 4 checks pending", stuck. The poll had run once and armed no
+// successor, because the timer was re-created by the effect and the effect was
+// re-created by its own writes — so a tick that changed nothing ended the loop.
+// Changing nothing is the NORMAL case for a request still running its checks.
+describe('the poll survives finding nothing new', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  // Generous by default: the wait stretches while nothing changes (backoff),
+  // so a test that advanced exactly one cadence would miss the next tick.
+  const settle = async (ms = 30_000) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('it keeps asking while the answer stays identical', async () => {
+    // Same numbers every time: nothing to write, nothing to re-render.
+    const githubGetChecks = jest.fn().mockResolvedValue({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, mergeable: true }, notModified: true })
+    draw({}, { githubGetPR, githubGetChecks })
+    expect(await screen.findByText('2 of 4 checks pending')).toBeInTheDocument()
+
+    await settle(30_000)
+    const after1 = githubGetChecks.mock.calls.length
+    await settle(30_000)
+    const after2 = githubGetChecks.mock.calls.length
+    await settle(30_000)
+    const after3 = githubGetChecks.mock.calls.length
+
+    expect(after2).toBeGreaterThan(after1)
+    expect(after3).toBeGreaterThan(after2)
+  })
+
+  test('and it gets there in the end', async () => {
+    const githubGetChecks = jest.fn()
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
+      .mockResolvedValueOnce({ checks: { total: 4, passed: 2, failed: 0, pending: 2 } })
+      .mockResolvedValue({ checks: { total: 4, passed: 4, failed: 0, pending: 0 } })
+    draw({}, { githubGetChecks })
+    await screen.findByText('2 of 4 checks pending')
+    for (let i = 0; i < 6; i++) await settle(30_000)
+    expect(screen.getByText('4 checks passed')).toBeInTheDocument()
+    expect(screen.getByText('Merge Pull Request')).toBeInTheDocument()
+  })
+})
+
+// Victor asked whether all this polling could slow a modest machine. Measured:
+// a conditional request costs ~0.8ms of CPU and ~550ms of waiting, and the
+// waiting happens in the main process. What matters instead is that the app
+// cannot pile requests on itself, and does not keep asking urgently for ever.
+describe('what the polling costs', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  const settle = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms) }) }
+
+  test('a slow answer cannot make ticks overlap — the next is armed after it', async () => {
+    let inFlight = 0
+    let overlapped = false
+    const githubGetPR = jest.fn().mockImplementation(async () => {
+      inFlight += 1
+      if (inFlight > 1) overlapped = true
+      await Promise.resolve()
+      inFlight -= 1
+      return { pr: { ...FULL_PR, mergeable: null } }   // never settles
+    })
+    draw({}, { githubGetPR })
+    await screen.findByText('Mergeability still computing…')
+    for (let i = 0; i < 10; i++) await settle(30_000)
+    expect(overlapped).toBe(false)
+  })
+
+  // A check suite can run for twenty minutes. Asking every five seconds for
+  // all of it is hundreds of ticks to learn nothing.
+  test('an undecided request slows down rather than hammering', async () => {
+    const githubGetPR = jest.fn().mockResolvedValue({ pr: { ...FULL_PR, mergeable: null } })
+    draw({}, { githubGetPR })
+    await screen.findByText('Mergeability still computing…')
+
+    await settle(60_000)
+    const firstMinute = githubGetPR.mock.calls.length
+    await settle(60_000)
+    const secondMinute = githubGetPR.mock.calls.length - firstMinute
+
+    // it keeps watching...
+    expect(secondMinute).toBeGreaterThan(0)
+    // ...but the first minute, the one somebody watches, is the busiest
+    expect(secondMinute).toBeLessThanOrEqual(firstMinute)
+    // and it never exceeds the settled cadence once stretched
+    expect(secondMinute).toBeLessThanOrEqual(60_000 / 20_000 + 1)
   })
 })
