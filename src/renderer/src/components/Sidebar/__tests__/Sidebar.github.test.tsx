@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { screen, fireEvent, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Sidebar from '../Sidebar'
@@ -477,7 +478,9 @@ describe('the saved filters', () => {
     await userEvent.type(query, 'review:approved')
     await userEvent.click(screen.getByText('Create Filter'))
     // the new group ran its search, pinned and typed
-    await waitFor(() => expect(githubSearchIssues).toHaveBeenCalledWith('repo:o/r is:pr review:approved'))
+    // The second argument is the cache bypass (#133): a run nobody asked for
+    // is never forced.
+    await waitFor(() => expect(githubSearchIssues).toHaveBeenCalledWith('repo:o/r is:pr review:approved', false))
     expect(await screen.findByText('Found')).toBeInTheDocument()
     // and it persisted per repository
     expect(JSON.parse(localStorage.getItem('gv:gh-filters:r')!).prs).toEqual([{ name: 'Mine', query: 'review:approved' }])
@@ -558,5 +561,88 @@ describe('the saved filters', () => {
     await userEvent.click(await screen.findByText('Delete Filter'))
     expect(screen.queryByText('Doomed')).not.toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem('gv:gh-filters:r')!).prs).toEqual([])
+  })
+})
+
+// #133 — the two lists come from a server that changes without us, and until
+// now the only way to re-read them was to reopen the repository.
+describe('refreshing a GitHub section', () => {
+  const pr = (n: number) => ({ number: n, title: `pr ${n}`, author: 'a', url: 'u', createdAt: '', comments: 0, labels: [] })
+  const issue = (n: number) => ({ number: n, title: `issue ${n}`, author: 'a', url: 'u', createdAt: '', comments: 0, labels: [] })
+
+  /** The button lives on the header, so the section need not be unfolded. */
+  const refreshOf = (title: string) =>
+    screen.getByText(title).closest('.sb-section')!.querySelector('.sb-add-btn[title="Refresh this section"]') as HTMLElement
+
+  test('each section refreshes itself, and says which one it is', async () => {
+    const onRefreshGithub = jest.fn()
+    draw({ githubPRs: [pr(1)], githubIssues: [issue(2)], onRefreshGithub })
+    await userEvent.click(refreshOf('PULL REQUESTS'))
+    expect(onRefreshGithub).toHaveBeenCalledWith('prs')
+    await userEvent.click(refreshOf('GITHUB ISSUES'))
+    expect(onRefreshGithub).toHaveBeenCalledWith('issues')
+  })
+
+  // Two lists, two calls, and either can be the stale one: refreshing both
+  // because one looks wrong spends two requests to answer one question.
+  test('refreshing one section does not refresh the other', async () => {
+    const onRefreshGithub = jest.fn()
+    draw({ githubPRs: [pr(1)], githubIssues: [issue(2)], onRefreshGithub })
+    await userEvent.click(refreshOf('PULL REQUESTS'))
+    expect(onRefreshGithub).toHaveBeenCalledTimes(1)
+    expect(onRefreshGithub).toHaveBeenCalledWith('prs')
+  })
+
+  test('the button of the section in flight cannot be pressed again', async () => {
+    const onRefreshGithub = jest.fn()
+    draw({ githubPRs: [pr(1)], githubIssues: [issue(2)], onRefreshGithub, githubRefreshing: 'prs' })
+    expect(refreshOf('PULL REQUESTS')).toBeDisabled()
+    // ...and the other one is still usable: they are two lists.
+    expect(refreshOf('GITHUB ISSUES')).toBeEnabled()
+  })
+
+  test('no handler, no button — the host decides whether it can refresh at all', () => {
+    draw({ githubPRs: [pr(1)], githubIssues: [issue(2)] })
+    expect(screen.getByText('PULL REQUESTS').closest('.sb-section')!
+      .querySelector('.sb-add-btn[title="Refresh this section"]')).toBeNull()
+  })
+
+  // The trap this issue was written around: `github:search-issues` is cached
+  // for 20 seconds, so a saved filter re-queried without `force` answers with
+  // exactly the list the user pressed the button to get away from.
+  test('a saved filter re-queries with force when the tick moves', async () => {
+    const githubSearchIssues = jest.fn().mockResolvedValue({ total: 0, items: [] })
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+      githubSearchIssues,
+    })
+    // Filters live per repository in localStorage, which is where the section
+    // reads them from.
+    localStorage.setItem('gv:gh-filters:r', JSON.stringify({ prs: [{ name: 'Mine', query: 'author:@me' }], issues: [] }))
+
+    // The real flow: the button bumps the tick, the tick reaches the group.
+    function Host() {
+      const [tick, setTick] = useState({ prs: 0, issues: 0 })
+      return <Sidebar {...base} githubPRs={[pr(1)]} githubIssues={[]}
+        githubRepo={{ owner: 'o', repo: 'r' }} repoName="r"
+        githubRefreshTick={tick}
+        onRefreshGithub={(s: 'prs' | 'issues') => setTick(v => ({ ...v, [s]: v[s] + 1 }))} />
+    }
+    renderWithProviders(<Host />)
+    unfold('PULL REQUESTS')
+    await waitFor(() => expect(githubSearchIssues).toHaveBeenCalled())
+    // The first run is not a refresh: it must not spend a forced request.
+    expect(githubSearchIssues.mock.calls[0][1]).toBe(false)
+
+    githubSearchIssues.mockClear()
+    await userEvent.click(refreshOf('PULL REQUESTS'))
+    await waitFor(() => expect(githubSearchIssues).toHaveBeenCalled())
+    expect(githubSearchIssues.mock.calls[0][1]).toBe(true)
   })
 })

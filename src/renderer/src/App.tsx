@@ -698,7 +698,12 @@ export default function App() {
   }, [repoPath, loadRepoData])
 
   // ── Open repo helpers ──────────────────────────────────────
-  const loadGithubLists = useCallback(async (base: { owner: string; repo: string }) => {
+  // Which section a manual refresh is reading, and a tick per section that
+  // tells the saved-filter groups to bypass the search cache (#133).
+  const [githubRefreshing, setGithubRefreshing] = useState<'prs' | 'issues' | null>(null)
+  const [githubRefreshTick, setGithubRefreshTick] = useState({ prs: 0, issues: 0 })
+
+  const loadGithubLists = useCallback(async (base: { owner: string; repo: string }, only?: 'prs' | 'issues') => {
     void (window.gitAPI as any).githubGetUser?.()
       .then((r: any) => setGithubLogin(r?.user?.login ?? null))
       .catch(() => setGithubLogin(null))
@@ -711,16 +716,36 @@ export default function App() {
         body: x.body, assignees: x.assignees, reviewers: x.reviewers,
       }))
     try {
+      // `only` narrows it to the section whose button was pressed: the two are
+      // two calls, and refreshing both because one looks stale spends two
+      // requests to answer one question.
       const [prs, issues] = await Promise.all([
-        (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
-        (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
+        only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
+        only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
       ])
-      setGithubPRs(prs?.error ? undefined : rows(prs?.prs, 'pr'))
-      setGithubIssues(issues?.error ? undefined : rows(issues?.issues, 'issue'))
+      // A refused read costs that section's list, never the section itself —
+      // the rule the saved filters already follow.
+      if (only !== 'issues') setGithubPRs(prs?.error ? undefined : rows(prs?.prs, 'pr'))
+      if (only !== 'prs') setGithubIssues(issues?.error ? undefined : rows(issues?.issues, 'issue'))
     } catch {
-      setGithubPRs(undefined); setGithubIssues(undefined)
+      if (only !== 'issues') setGithubPRs(undefined)
+      if (only !== 'prs') setGithubIssues(undefined)
     }
   }, [])
+
+  /** The section headers' refresh button — one section, and never two at once. */
+  const refreshGithubSection = useCallback(async (section: 'prs' | 'issues') => {
+    if (!githubOwnerRepo || githubRefreshing) return
+    setGithubRefreshing(section)
+    try {
+      await loadGithubLists(githubOwnerRepo, section)
+      // Only after the list is back: the tick is what makes each saved filter
+      // re-query with `force`, and they should not race the list they sit under.
+      setGithubRefreshTick(t => ({ ...t, [section]: t[section] + 1 }))
+    } finally {
+      setGithubRefreshing(null)
+    }
+  }, [githubOwnerRepo, githubRefreshing, loadGithubLists])
 
 
   useEffect(() => { setIssueDetail(null) }, [repoPath])
@@ -2180,7 +2205,6 @@ export default function App() {
         currentBranch={currentBranch}
         searchQuery={searchQuery}
         searchMatches={searchMatches}
-        showAllBranches={showAllBranches}
         onSearch={setSearchQuery}
         onUndo={handleUndo}
         onRedo={handleRedo}
@@ -2195,7 +2219,6 @@ export default function App() {
         onPop={handlePop}
         onTerminal={handleTerminal}
         stashCount={stashes.length}
-        onToggleAllBranches={() => setShowAllBranches(v => !v)}
         onRefresh={loadRepoData}
         loading={loading}
         lastFetchTime={lastFetchTime}
@@ -2335,6 +2358,11 @@ export default function App() {
               onOpenBranchOnRemote={handleOpenBranchOnRemote}
               onAssociateIssue={setIssueModalBranch}
               prIntentFor={prIntentFor}
+              showAllBranches={showAllBranches}
+              onToggleAllBranches={() => setShowAllBranches(v => !v)}
+              onRefreshGithub={refreshGithubSection}
+              githubRefreshing={githubRefreshing}
+              githubRefreshTick={githubRefreshTick}
               onCreatePR={handleStartPR}
               onCopyBranchLink={githubOwnerRepo ? handleCopyBranchLink : undefined}
               onDeleteBranchBoth={handleDeleteBranchBoth}

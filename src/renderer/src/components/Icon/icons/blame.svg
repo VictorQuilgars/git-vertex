@@ -1,10 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
   <!-- blame — Git Vertex icon set. Grid 24, stroke 1.7, round caps.
-       Nodes are open rings, arrival points filled: the mark's own vocabulary.
+       Nodes are FILLED discs. An open ring of r1.9 has a 0.12px hole at the
+       11px this is drawn at, so it rendered as a soft blob rather than a node
+       — the ring said nothing and cost the legibility.
        EDIT THIS FILE to change the icon — components/Icon reads the folder.
        Do not put stroke-width on a shape: the component sets it, growing it
        as the icon shrinks so a 1.7 stroke never falls under a pixel. -->
   <path d="M5 4v16M9.5 7h10M9.5 12h10M9.5 17h10"/>
-  <circle cx="5" cy="12" r="1.9" stroke="var(--accent, #3FD8C2)"/>
+  <circle cx="5" cy="12" r="2.4" stroke="var(--accent, #3FD8C2)"/>
 </svg>

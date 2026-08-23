@@ -540,3 +540,38 @@ describe('token discipline', () => {
     })
   })
 })
+
+// The two size floors the Icon component applies, and why they are in the
+// component rather than at ~100 call sites.
+describe('the icon size floors', () => {
+  const ICON_SRC = fs.readFileSync(
+    path.resolve(__dirname, '../components/Icon/Icon.tsx'), 'utf8')
+
+  /** The icon names listed in `const <name> = new Set<string>([ … ])`. */
+  const setNames = (name: string): string[] => {
+    const at = ICON_SRC.indexOf(`const ${name} = new Set<string>(`)
+    if (at < 0) return []
+    const body = ICON_SRC.slice(at, ICON_SRC.indexOf('])', at))
+    return [...body.matchAll(/'([a-zA-Z]+)'/g)].map(x => x[1])
+  }
+
+  test('every floored name is a real icon', () => {
+    const files = new Set(fs.readdirSync(path.resolve(__dirname, '../components/Icon/icons'))
+      .filter(f => f.endsWith('.svg')).map(f => f.replace(/\.svg$/, '')))
+    for (const name of [...setNames('NODED'), ...setNames('DENSE')]) {
+      expect(files.has(name)).toBe(true)
+    }
+  })
+
+  // A node is a 2.4-unit disc on a 24 grid; below 13px it is under three
+  // device pixels and stops reading as a shape. Every icon that draws one is
+  // in the set, or it will be the one that looks thin again.
+  test('every icon that draws a node is floored', () => {
+    const dir = path.resolve(__dirname, '../components/Icon/icons')
+    const draws = fs.readdirSync(dir).filter(f => f.endsWith('.svg')).filter(f => {
+      const src = fs.readFileSync(path.join(dir, f), 'utf8').replace(/<!--[\s\S]*?-->/g, '')
+      return /<circle[^>]*r="2\.4"/.test(src)
+    }).map(f => f.replace(/\.svg$/, ''))
+    expect(draws.sort()).toEqual([...setNames('NODED')].sort())
+  })
+})

@@ -10,7 +10,6 @@ interface ToolbarProps {
   currentBranch: string
   searchQuery: string
   searchMatches?: number
-  showAllBranches: boolean
   onSearch: (q: string) => void
   onUndo: () => void
   onRedo: () => void
@@ -25,7 +24,6 @@ interface ToolbarProps {
   onPop?: () => void
   onTerminal?: () => void
   stashCount?: number
-  onToggleAllBranches: () => void
   onRefresh: () => void
   loading: boolean
   lastFetchTime?: Date | null
@@ -64,10 +62,10 @@ function TBtn({ icon, label, onClick, disabled, title, accent }: {
 }
 
 export default function Toolbar({
-  repoPath, currentBranch, showAllBranches, searchQuery, searchMatches, onSearch,
+  repoPath, currentBranch, searchQuery, searchMatches, onSearch,
   onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
   onStash, onPop, onTerminal, stashCount = 0,
-  onToggleAllBranches, loading,
+  loading,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
   aiSearch, aiSearchLoading, onToggleAiSearch, onAiSearchSubmit,
   updateReady, onInstallUpdate, githubRepoUrl, onGitflow,
@@ -161,10 +159,6 @@ export default function Toolbar({
 
       {/* Secondary right cluster */}
       <div className="tb-right">
-        <button className={`tb-btn tb-toggle ${showAllBranches ? 'active' : ''}`}
-          onClick={onToggleAllBranches} disabled={disabled} title={t('toolbar.allBranches.tooltip')}>
-          <Icon name="branch" size={14} />
-        </button>
         <div className={`tb-search${aiSearch ? ' tb-search--ai' : ''}`}>
           <Icon name="search" size={13} />
           <input type="text"

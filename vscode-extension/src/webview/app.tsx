@@ -171,7 +171,7 @@ function VertexApp() {
   // icons don't flicker on every background refresh.
   // The two sidebar lists, callable on their own: the issue detail's writes
   // refresh them without a full repo reload.
-  const loadGhLists = useCallback(async (base: { owner: string; repo: string }) => {
+  const loadGhLists = useCallback(async (base: { owner: string; repo: string }, only?: 'prs' | 'issues') => {
     void (window.gitAPI as any).githubGetUser?.()
       .then((r: any) => setGithubLogin(r?.user?.login ?? null))
       .catch(() => setGithubLogin(null))
@@ -182,13 +182,29 @@ function VertexApp() {
       headRef: x.headRef, baseRef: x.baseRef,
       body: x.body, assignees: x.assignees, reviewers: x.reviewers,
     })
+    // `only` narrows it to the section whose button was pressed — the desktop's
+    // twin, and for the same reason (#133).
     const [prs, issues] = await Promise.all([
-      (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
-      (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
+      only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
+      only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
     ])
-    setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
-    setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
+    if (only !== 'issues') setGithubPRs(prs?.error ? undefined : (prs?.prs ?? []).map((x: any) => row(x, 'pr')))
+    if (only !== 'prs') setGithubIssues(issues?.error ? undefined : (issues?.issues ?? []).map((x: any) => row(x, 'issue')))
   }, [])
+
+  const [githubRefreshing, setGithubRefreshing] = useState<'prs' | 'issues' | null>(null)
+  const [githubRefreshTick, setGithubRefreshTick] = useState({ prs: 0, issues: 0 })
+
+  const refreshGithubSection = useCallback(async (section: 'prs' | 'issues') => {
+    if (!githubRepo || githubRefreshing) return
+    setGithubRefreshing(section)
+    try {
+      await loadGhLists(githubRepo, section)
+      setGithubRefreshTick(t => ({ ...t, [section]: t[section] + 1 }))
+    } finally {
+      setGithubRefreshing(null)
+    }
+  }, [githubRepo, githubRefreshing, loadGhLists])
 
 
   const loadRepoData = useCallback(async (silent = false) => {
@@ -991,7 +1007,6 @@ function VertexApp() {
         branches={branches}
         loading={loading}
         stashCount={stashCount}
-        showAllBranches={showAllBranches}
         searchQuery={searchQuery}
         searchMatches={searchMatches}
         lastFetch={lastFetch}
@@ -999,7 +1014,6 @@ function VertexApp() {
         behind={tracking.behind}
         onCheckout={handleCheckout}
         onSearch={setSearchQuery}
-        onToggleAllBranches={handleToggleAllBranches}
         onFetch={handleFetch}
         onPull={handlePull}
         onPush={handlePush}
@@ -1094,6 +1108,11 @@ function VertexApp() {
             onRefreshStashes={loadStashes}
             onCreateTag={handleCreateTagPrompt}
             onCheckoutTag={handleCheckout}
+            showAllBranches={showAllBranches}
+            onToggleAllBranches={() => setShowAllBranches(v => !v)}
+            onRefreshGithub={refreshGithubSection}
+            githubRefreshing={githubRefreshing}
+            githubRefreshTick={githubRefreshTick}
             onDeleteTag={handleDeleteTag}
             onPushTag={handlePushTag}
             onDeleteRemoteTag={handleDeleteRemoteTag}
