@@ -769,16 +769,42 @@ describe('the saved-filter drawer', () => {
     expect(screen.getByTitle('Add milestone: to the query')).toBeTruthy()
   })
 
-  test('Escape closes it', async () => {
+  test('the close button shuts it — after the drawer has pulled itself in', async () => {
     await open()
-    fireEvent.keyDown(document, { key: 'Escape' })
+    await userEvent.click(screen.getByTitle('Close'))
+    // it is still there, playing its exit
+    expect(drawer()!.className).toContain('pdrawer--closing')
+    fireEvent.animationEnd(drawer()!)
     await waitFor(() => expect(drawer()).toBeNull())
   })
 
-  test('a click outside closes it', async () => {
+  // ⚠️ An animation that never starts must not leave it open: the close is on
+  // a timer as well, and whichever arrives first wins.
+  //
+  // Real timers on purpose. jsdom runs no animations, so nothing here ever
+  // fires `animationend` — which is exactly the situation being tested. Fake
+  // timers would need userEvent to be set up to advance them, and installing
+  // them around a userEvent call that is not is how this test first hung and
+  // left every test after it hanging too.
+  test('a close completes even where no animation runs', async () => {
     await open()
-    fireEvent.mouseDown(document.querySelector('.pdrawer-away')!)
-    await waitFor(() => expect(drawer()).toBeNull())
+    fireEvent.click(screen.getByTitle('Close'))
+    await waitFor(() => expect(drawer()).toBeNull(), { timeout: 2000 })
+  })
+
+  // A drawer is not a modal: the list behind it is meant to be read while the
+  // query is written, so a stray click there must not take the query away.
+  test('a click outside leaves it open', async () => {
+    await open()
+    fireEvent.mouseDown(document.body)
+    await userEvent.click(screen.getByText('LOCAL'))
+    expect(drawer()).toBeTruthy()
+  })
+
+  test('the filter button opens it and never shuts it', async () => {
+    await open()
+    await userEvent.click(screen.getByTitle('New Filter'))
+    expect(drawer()).toBeTruthy()
   })
 
   // ⚠️ Escape and click-outside are hostile if they lose what was typed.
@@ -786,6 +812,7 @@ describe('the saved-filter drawer', () => {
     await open()
     await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Half')
     fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.animationEnd(drawer()!)
     await waitFor(() => expect(drawer()).toBeNull())
 
     await userEvent.click(screen.getByTitle('New Filter'))
@@ -797,6 +824,8 @@ describe('the saved-filter drawer', () => {
     // empty draft is no draft.
     await userEvent.clear(screen.getByPlaceholderText('Enter a name for this filter'))
     fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.animationEnd(document.querySelector('.pdrawer')!)
+    await waitFor(() => expect(document.querySelector('.pdrawer')).toBeNull())
     await userEvent.click(screen.getByTitle('New Filter'))
     expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('')
   })
@@ -857,6 +886,7 @@ describe('completing a filter query', () => {
     expect(document.querySelector('.pdrawer')).toBeTruthy()
 
     fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.animationEnd(document.querySelector('.pdrawer')!)
     await waitFor(() => expect(document.querySelector('.pdrawer')).toBeNull())
   })
 

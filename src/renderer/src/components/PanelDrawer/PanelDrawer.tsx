@@ -42,6 +42,18 @@ export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, on
   children: ReactNode
 }) {
   const [box, setBox] = useState<{ left: number; top: number; height: number; width: number } | null>(null)
+  /** Pulling shut: the drawer stays mounted until its exit animation ends. */
+  const [closing, setClosing] = useState(false)
+
+  // ⚠️ `animationend` is the normal way out, but it is not a guarantee: an
+  // animation that never starts — reduced motion, a hidden ancestor, a test
+  // environment that does not run them — would leave the drawer open for ever.
+  // So the close is also on a timer, and whichever arrives first wins.
+  useEffect(() => {
+    if (!closing) return
+    const id = setTimeout(onClose, CLOSE_FALLBACK_MS)
+    return () => clearTimeout(id)
+  }, [closing, onClose])
 
   const measure = useCallback(() => {
     const el = anchor.current
@@ -60,19 +72,27 @@ export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, on
     return () => window.removeEventListener('resize', measure)
   }, [measure])
 
+  // Escape closes it too. It is not a stray click — nobody presses it by
+  // accident — and without it the drawer is a trap for anyone not using a
+  // mouse.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setClosing(true) } }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [])
 
   if (!box) return null
   return createPortal(
     <>
-      {/* Catches a click anywhere else. Transparent: the graph stays readable,
-          which is the point of a drawer rather than a modal. */}
-      <div className="pdrawer-away" onMouseDown={onClose} />
-      <div className="pdrawer" role="dialog" aria-label={title}
+      {/* No click-away. A drawer is not a modal: the list behind it stays
+          readable BECAUSE you are meant to read it while writing, and closing
+          on a stray click there took a half-written query with it. It closes
+          from its own control. */}
+      <div className={`pdrawer${closing ? ' pdrawer--closing' : ''}`}
+        role="dialog" aria-label={title}
+        // The exit animation has to finish before the drawer is unmounted, so
+        // the parent is told only when it ends.
+        onAnimationEnd={() => { if (closing) onClose() }}
         style={{ left: box.left, top: box.top, height: box.height, width: box.width }}>
         <div className="pdrawer-head">
           {icon && <Icon name={icon} size={15} className="pdrawer-icon" />}
@@ -80,7 +100,7 @@ export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, on
           <span className="pdrawer-title">{title}</span>
           {/* Close on the right, where a pane's close lives everywhere else in
               this app — the drawer is a surface, not a step to go back from. */}
-          <button className="pdrawer-close" onClick={onClose} title={closeLabel}>×</button>
+          <button className="pdrawer-close" onClick={() => setClosing(true)} title={closeLabel}>×</button>
         </div>
         <div className="pdrawer-body">{children}</div>
       </div>
@@ -94,4 +114,7 @@ export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, on
  * its reference are read rather than wrapped — the drawer exists because the
  * panel's column was too narrow, so being merely less narrow would miss.
  */
-const DRAWER_WIDTH = 520
+const DRAWER_WIDTH = 600
+
+/** Comfortably past the exit animation, and short enough not to be noticed. */
+const CLOSE_FALLBACK_MS = 400

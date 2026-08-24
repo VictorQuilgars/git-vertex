@@ -2,15 +2,19 @@
    top edge to bottom edge, flush with the surface it extends, so nothing of
    the graph shows above or below it. That is what makes it read as the panel
    having grown rather than as a card laid on top. */
-/* It comes OUT of the panel, so it arrives from the panel's edge rather than
-   fading in place. Short — a drawer that takes its time is a drawer you wait
-   for — and it never animates for someone who asked not to be moved. */
-@keyframes pdrawer-in {
-  from { transform: translateX(-16px); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
-}
+/* It is PULLED out of the panel and pushed back in — not faded.
+   `translateX(-100%)` starts it entirely behind the panel's edge, so what you
+   see is the drawer sliding out from under it, and the same motion in reverse
+   on the way back. The panel is `overflow: hidden` and this is a portal, so
+   the drawer is never actually seen through it; it simply arrives from there.
+
+   The close waits for this to finish before the drawer is unmounted — an exit
+   animation on a component that has already gone is no animation at all. */
+@keyframes pdrawer-open  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes pdrawer-shut  { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+
 .pdrawer {
-  animation: pdrawer-in var(--dur-base) ease-out;
+  animation: pdrawer-open var(--dur-base) ease-out;
   position: fixed;
   z-index: var(--z-drawer);
   display: flex;
@@ -20,14 +24,8 @@
   box-shadow: 8px 0 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
   overflow: hidden;
 }
+.pdrawer--closing { animation: pdrawer-shut var(--dur-base) ease-in forwards; }
 
-/* Transparent on purpose: a drawer is not a modal, and the list the query is
-   written against has to stay readable beside it. */
-.pdrawer-away {
-  position: fixed;
-  inset: 0;
-  z-index: calc(var(--z-drawer) - 1);
-}
 
 .pdrawer-head {
   display: flex;
@@ -61,6 +59,9 @@
   padding: var(--space-lg) var(--space-2xl);
 }
 
+/* ⚠️ Reduced motion still needs the close to COMPLETE: the parent unmounts on
+   animationend, so removing the animation entirely would leave the drawer
+   open for ever. It is made instant instead of absent. */
 @media (prefers-reduced-motion: reduce) {
-  .pdrawer { animation: none; }
+  .pdrawer, .pdrawer--closing { animation-duration: 1ms; }
 }

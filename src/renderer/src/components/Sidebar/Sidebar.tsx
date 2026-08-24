@@ -570,7 +570,8 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
         {icon && <Icon name={icon} size={13} className="sb-section-icon" />}
         {brand && <Brand name={brand} size={13} className="sb-section-icon" />}
         <span className="sb-section-title">{title}</span>
-        {count !== undefined && <span className="sb-section-count">{count}</span>}
+        {/* Outside the slot: what a section is hiding from the graph is not a
+            control that comes and goes, it is a fact the header states. */}
         {!!hiddenCount && onShowAll && (
           <button className="sb-section-hidden" title={t('sb.hidden.chipTitle', hiddenCount)}
             onClick={e => { e.stopPropagation(); onShowAll() }}>
@@ -578,19 +579,25 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
             {hiddenCount}
           </button>
         )}
-        {onRefresh && (
-          <button className={`sb-add-btn sb-on-hover${refreshing ? ' sb-on-hover--pinned' : ''}`}
-            title={t('sb.gh.refresh')} disabled={refreshing}
-            onClick={e => { e.stopPropagation(); onRefresh() }}>
-            <Icon name="refresh" size={12} />
-          </button>
-        )}
-        {onAdd && (
-          <button className="sb-add-btn sb-on-hover" title={addLabel ?? t('sb.add')}
-            onClick={e => { e.stopPropagation(); onAdd(e) }}>
-            <Icon name="plus" size={12} />
-          </button>
-        )}
+        {/* The count and the controls share ONE slot, stacked. Nothing changes
+            width when the pointer arrives, so nothing slides: they cross-fade
+            in place. */}
+        <span className="sb-section-slot">
+          {onRefresh && (
+            <button className={`sb-add-btn sb-on-hover${refreshing ? ' sb-on-hover--pinned' : ''}`}
+              title={t('sb.gh.refresh')} disabled={refreshing}
+              onClick={e => { e.stopPropagation(); onRefresh() }}>
+              <Icon name="refresh" size={12} />
+            </button>
+          )}
+          {onAdd && (
+            <button className="sb-add-btn sb-on-hover" title={addLabel ?? t('sb.add')}
+              onClick={e => { e.stopPropagation(); onAdd(e) }}>
+              <Icon name="plus" size={12} />
+            </button>
+          )}
+          {count !== undefined && <span className="sb-section-count">{count}</span>}
+        </span>
       </div>
       {open && <div className="sb-section-body">{children}</div>}
       {ctx && !!menuItems?.length && (
@@ -1788,8 +1795,11 @@ export default function Sidebar({
                   onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setPrsQuery('') } }} />
                 {/* The filter editor opens from HERE, not the header: it is an
                     action on the list, and the list is what folds (#144). */}
+                {/* Opens it. Closing is the drawer's own control's job — a
+                    button that toggles would shut it from behind whatever the
+                    drawer is covering (#145 follow-up). */}
                 <button className="sb-gh-filter-btn" title={t('sb.gh.filter.new')}
-                  onClick={() => setFilterEditor(f => f?.section === 'prs' ? null : { section: 'prs', index: -1 })}>
+                  onClick={() => setFilterEditor({ section: 'prs', index: -1 })}>
                   <Icon name="sliders" size={12} />
                 </button>
               </div>
@@ -1854,7 +1864,7 @@ export default function Sidebar({
                 {/* The filter editor opens from HERE, not the header: it is an
                     action on the list, and the list is what folds (#144). */}
                 <button className="sb-gh-filter-btn" title={t('sb.gh.filter.new')}
-                  onClick={() => setFilterEditor(f => f?.section === 'issues' ? null : { section: 'issues', index: -1 })}>
+                  onClick={() => setFilterEditor({ section: 'issues', index: -1 })}>
                   <Icon name="sliders" size={12} />
                 </button>
               </div>
