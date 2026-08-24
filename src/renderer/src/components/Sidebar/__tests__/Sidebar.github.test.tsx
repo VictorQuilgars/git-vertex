@@ -730,3 +730,70 @@ describe('where a section keeps its controls', () => {
     expect(screen.getByPlaceholderText(/search pull requests/i)).toHaveValue('')
   })
 })
+
+// #145 — the filter editor is a drawer out of the panel, not a form wedged
+// into a 280-pixel column. Built to be reused: #130 wants the same drawer.
+describe('the saved-filter drawer', () => {
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+  const drawer = () => document.querySelector('.pdrawer')
+
+  const open = async () => {
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+  }
+
+  test('it opens as a drawer, not inside the section', async () => {
+    await open()
+    expect(drawer()).toBeTruthy()
+    // outside the panel it came from — the panel is `overflow: hidden`, so a
+    // drawer rendered inside it would simply be clipped
+    expect(document.querySelector('.sidebar .pdrawer')).toBeNull()
+  })
+
+  // The part that was squeezed out of the column, and the reason it earns room.
+  test('the section vocabulary is beside the field, and clicking a key writes it', async () => {
+    await open()
+    const key = screen.getByTitle('Add review: to the query')
+    await userEvent.click(key)
+    expect(screen.getByPlaceholderText(/label:bug/)).toHaveValue('review:')
+  })
+
+  test("each section brings its own vocabulary — review: is a pull request's", async () => {
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    unfold('GITHUB ISSUES')
+    // only that section is unfolded, so there is exactly one opener on screen
+    await userEvent.click(screen.getByTitle('New Filter'))
+    expect(screen.queryByTitle('Add review: to the query')).toBeNull()
+    expect(screen.getByTitle('Add milestone: to the query')).toBeTruthy()
+  })
+
+  test('Escape closes it', async () => {
+    await open()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(drawer()).toBeNull())
+  })
+
+  test('a click outside closes it', async () => {
+    await open()
+    fireEvent.mouseDown(document.querySelector('.pdrawer-away')!)
+    await waitFor(() => expect(drawer()).toBeNull())
+  })
+
+  // ⚠️ Escape and click-outside are hostile if they lose what was typed.
+  test('a half-written query survives a close, and Cancel clears it', async () => {
+    await open()
+    await userEvent.type(screen.getByPlaceholderText('Filter name'), 'Half')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(drawer()).toBeNull())
+
+    await userEvent.click(screen.getByTitle('New Filter'))
+    expect(screen.getByPlaceholderText('Filter name')).toHaveValue('Half')
+    // it is still a filter being CREATED, not one being edited
+    expect(screen.getByText('Create Filter')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('Cancel'))
+    await userEvent.click(screen.getByTitle('New Filter'))
+    expect(screen.getByPlaceholderText('Filter name')).toHaveValue('')
+  })
+})

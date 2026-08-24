@@ -1,0 +1,54 @@
+/* The drawer comes out of the panel's right edge and takes its full height:
+   top edge to bottom edge, flush with the surface it extends, so nothing of
+   the graph shows above or below it. That is what makes it read as the panel
+   having grown rather than as a card laid on top. */
+.pdrawer {
+  position: fixed;
+  z-index: var(--z-drawer);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border-muted);
+  box-shadow: 8px 0 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  overflow: hidden;
+}
+
+/* Transparent on purpose: a drawer is not a modal, and the list the query is
+   written against has to stay readable beside it. */
+.pdrawer-away {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-drawer) - 1);
+}
+
+.pdrawer-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 34px;
+  padding: 0 var(--space-sm) 0 var(--space-2xl);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.pdrawer-title { flex: 1; }
+.pdrawer-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary); border-radius: var(--radius-xs);
+}
+.pdrawer-close:hover { color: var(--text-primary); background: var(--surface-hover); }
+
+.pdrawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* The drawer is its own surface, so it takes a surface's padding rather
+     than the panel's indent scale — which lives on `.sidebar` and cannot
+     reach a portal anyway. */
+  padding: var(--space-lg) var(--space-2xl);
+}

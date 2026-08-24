@@ -14,6 +14,7 @@ import { issueRefLabel, type IssueRef as LinkedIssueRef } from '../../utils/issu
 import { useLang } from '../../i18n/LanguageContext'
 import './Sidebar.css'
 import { Brand, type BrandName } from '../BrandMark/BrandMark'
+import PanelDrawer from '../PanelDrawer/PanelDrawer'
 
 interface StashEntry { index: number; message: string }
 interface TagEntry   { name: string; hash: string }
@@ -204,15 +205,24 @@ function ghMatch(item: GithubListItem, q: string): boolean {
 }
 
 // ── §4: the filter editor of a section — beside the list, not over it ────
-function GhFilterEditor({ kind, initial, onCreate, onCancel, t }: {
+function GhFilterEditor({ kind, initial, draft, onCreate, onCancel, onDraft, t }: {
   kind: 'prs' | 'issues'
+  /**
+   * An existing filter being edited. This — and only this — is what makes the
+   * button read Save: a restored draft is still a filter being CREATED.
+   */
   initial?: GhSavedFilter
+  /** Text kept from a previous open, so closing the drawer loses nothing. */
+  draft?: GhSavedFilter
   onCreate: (f: GhSavedFilter) => void
   onCancel: () => void
+  /** Reported as it is typed, so closing the drawer does not lose it (#145). */
+  onDraft?: (f: GhSavedFilter) => void
   t: (k: any, ...a: any[]) => string
 }) {
-  const [name, setName] = useState(initial?.name ?? '')
-  const [query, setQuery] = useState(initial?.query ?? '')
+  const [name, setName] = useState(initial?.name ?? draft?.name ?? '')
+  const [query, setQuery] = useState(initial?.query ?? draft?.query ?? '')
+  useEffect(() => { onDraft?.({ name, query }) }, [name, query])
   const verdict = validateGhQuery(query, kind)
   const ready = name.trim() !== '' && query.trim() !== '' && verdict.ok
   return (
@@ -227,11 +237,21 @@ function GhFilterEditor({ kind, initial, onCreate, onCancel, t }: {
       {!verdict.ok && (
         <div className="sb-gh-fedit-bad">{t('sb.gh.filter.badToken', (verdict as any).bad)}</div>
       )}
-      {/* The syntax beside the field — the editor is unusable otherwise —
-          and the full reference linked rather than restated. */}
-      <div className="sb-gh-fedit-hint">
-        {ghFilterKeys(kind).map(k => `${k}:`).join(' ')}
-        {' '}
+      {/* The vocabulary BESIDE the field rather than a link away from it. In a
+          280-pixel column this was one wrapped line of `key:` and the help was
+          the first thing squeezed out — which is the part that makes a query
+          writable at all (#145). Clicking a key puts it in the query. */}
+      <div className="sb-gh-fedit-vocab">
+        <div className="sb-gh-fedit-vocab-head">{t('sb.gh.filter.vocab')}</div>
+        <div className="sb-gh-fedit-keys">
+          {ghFilterKeys(kind).map(k => (
+            <button key={k} type="button" className="sb-gh-fedit-key"
+              title={t('sb.gh.filter.addKey', k)}
+              onClick={() => setQuery(q => (q.trim() ? `${q.trim()} ` : '') + `${k}:`)}>
+              {k}:
+            </button>
+          ))}
+        </div>
         <a className="sb-gh-fedit-link"
           onClick={() => (window.gitAPI as any).openExternal?.(GH_SEARCH_DOCS_URL)}>
           {t('sb.gh.filter.docs')}
@@ -1249,6 +1269,16 @@ export default function Sidebar({
   // ancestor of every match is the same list with indentation in front of it.
   const filtering = !!branchFilter
 
+  /** The panel the filter drawer measures itself against (#145). */
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  /**
+   * A half-written query survives closing the drawer, per section. Escape and
+   * a click outside close it, and losing what was typed there would make both
+   * of those hostile — so the draft is kept and restored, and only Cancel or a
+   * successful create clears it.
+   */
+  const [filterDraft, setFilterDraft] = useState<{ prs?: GhSavedFilter; issues?: GhSavedFilter }>({})
+
   const showAll = (family: RefFamily) => onSetFamilyHidden && (() => onSetFamilyHidden(family, false))
 
   /**
@@ -1279,7 +1309,37 @@ export default function Sidebar({
   const otherRecents = recentRepos.filter(r => r !== repoPath)
 
   return (
-    <div className="sidebar">
+    <div className="sidebar" ref={rootRef}>
+      {/* One drawer, given which section opened it — the two vocabularies are
+          a prop, not a second component (#145). */}
+      {filterEditor && githubRepo && (
+        <PanelDrawer anchor={rootRef} onClose={() => setFilterEditor(null)}
+          title={filterEditor.index >= 0 ? t('sb.gh.filter.edit') : t('sb.gh.filter.new')}>
+          <GhFilterEditor
+            kind={filterEditor.section}
+            t={t}
+            initial={filterEditor.index >= 0
+              ? ghFilters[filterEditor.section][filterEditor.index]
+              : undefined}
+            draft={filterEditor.index >= 0 ? undefined : filterDraft[filterEditor.section]}
+            // An EMPTY draft is no draft: kept as an object it would make the
+            // editor think it is editing an existing filter, and its button
+            // would read Save on a form that has never been filled in.
+            onDraft={f => setFilterDraft(d => ({
+              ...d, [filterEditor.section]: (f.name || f.query) ? f : undefined,
+            }))}
+            onCancel={() => {
+              setFilterDraft(d => ({ ...d, [filterEditor.section]: undefined }))
+              setFilterEditor(null)
+            }}
+            onCreate={f => {
+              const at = filterEditor.index
+              mutateFilters(filterEditor.section, a => at >= 0 ? a.map((x, i) => i === at ? f : x) : [...a, f])
+              setFilterDraft(d => ({ ...d, [filterEditor.section]: undefined }))
+              setFilterEditor(null)
+            }} />
+        </PanelDrawer>
+      )}
       {/* ── Repo selector ── (hidden when embedded in the VS Code panel: the
           repo is always the workspace, so open/clone/recent don't apply) */}
       {!embedded && (
@@ -1612,16 +1672,6 @@ export default function Sidebar({
                   <Icon name="sliders" size={12} />
                 </button>
               </div>
-              {filterEditor?.section === 'prs' && (
-                <GhFilterEditor kind="prs" t={t}
-                  initial={filterEditor.index >= 0 ? ghFilters.prs[filterEditor.index] : undefined}
-                  onCancel={() => setFilterEditor(null)}
-                  onCreate={f => {
-                    const at = filterEditor.index
-                    mutateFilters('prs', a => at >= 0 ? a.map((x, i) => i === at ? f : x) : [...a, f])
-                    setFilterEditor(null)
-                  }} />
-              )}
               {(() => {
                 const prRow = (pr: GithubListItem) => (
                   <GithubRow key={pr.number} compact item={{ ...pr, kind: 'pr' }}
@@ -1687,16 +1737,6 @@ export default function Sidebar({
                   <Icon name="sliders" size={12} />
                 </button>
               </div>
-              {filterEditor?.section === 'issues' && (
-                <GhFilterEditor kind="issues" t={t}
-                  initial={filterEditor.index >= 0 ? ghFilters.issues[filterEditor.index] : undefined}
-                  onCancel={() => setFilterEditor(null)}
-                  onCreate={f => {
-                    const at = filterEditor.index
-                    mutateFilters('issues', a => at >= 0 ? a.map((x, i) => i === at ? f : x) : [...a, f])
-                    setFilterEditor(null)
-                  }} />
-              )}
               <GhGroup title={t('sb.gh.group.allIssues')} count={githubIssues.length}>
                 {githubIssues.filter(issue => ghMatch(issue, issuesQuery)).map(issue => (
                   <GithubRow key={issue.number} compact item={{ ...issue, kind: 'issue' }}
