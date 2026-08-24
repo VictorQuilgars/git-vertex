@@ -672,3 +672,61 @@ describe('absent and empty stay different answers', () => {
     expect(screen.queryByText('GITHUB ISSUES')).not.toBeInTheDocument()
   })
 })
+
+// #144 — the header keeps its mark, its title and its count; everything you
+// can DO to the list lives inside the part that folds, or on hover.
+describe('where a section keeps its controls', () => {
+  const pr = (n: number) => ({ number: n, title: `pr ${n}`, author: 'a', url: 'u', createdAt: '', comments: 0, labels: [] })
+  const header = (title: string) => screen.getByText(title).closest('.sb-section-header')!
+
+  test('the filter editor opens from beside the search box, not the header', async () => {
+    draw({ githubPRs: [pr(1)], githubIssues: [], githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' })
+    // nothing on the header for it
+    expect(header('PULL REQUESTS').querySelector('.sb-gh-filter-btn')).toBeNull()
+    unfold('PULL REQUESTS')
+    // and it is there, in the body, with the field
+    const box = document.querySelector('.sb-gh-search')!
+    expect(box.querySelector('.sb-gh-filter-btn')).toBeTruthy()
+    await userEvent.click(box.querySelector('.sb-gh-filter-btn') as HTMLElement)
+    expect(await screen.findByPlaceholderText('Filter name')).toBeInTheDocument()
+  })
+
+  test('both sections get it, not just the first', async () => {
+    draw({ githubPRs: [pr(1)], githubIssues: [], githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' })
+    unfold('GITHUB ISSUES')
+    const boxes = document.querySelectorAll('.sb-gh-search')
+    expect(boxes.length).toBeGreaterThan(0)
+    for (const b of boxes) expect(b.querySelector('.sb-gh-filter-btn')).toBeTruthy()
+  })
+
+  // ⚠️ A control that only exists on hover is unreachable by keyboard, so the
+  // class has to be the thing CSS reveals — not a conditional render.
+  test('the hover buttons are always in the tree, only styled away', () => {
+    draw({ githubPRs: [pr(1)], githubIssues: [], onRefreshGithub: () => {} })
+    const refresh = header('PULL REQUESTS').querySelector('.sb-on-hover[title="Refresh this section"]')
+    expect(refresh).toBeTruthy()
+    expect(refresh).toBeEnabled()
+  })
+
+  // Its disabled state is the only feedback a refresh has; it must not vanish
+  // because the pointer moved away.
+  test('a refresh in flight stays visible', () => {
+    draw({ githubPRs: [pr(1)], githubIssues: [], onRefreshGithub: () => {}, githubRefreshing: 'prs' })
+    const refresh = header('PULL REQUESTS').querySelector('.sb-on-hover[title="Refresh this section"]')!
+    expect(refresh.className).toContain('sb-on-hover--pinned')
+    expect(refresh).toBeDisabled()
+  })
+
+  // Folding hides the box AND what was typed in it. Keeping the filter would
+  // make the section come back looking empty while its count says otherwise.
+  test('folding a section drops what was typed in its search', async () => {
+    draw({ githubPRs: [pr(1), pr(2)], githubIssues: [] })
+    unfold('PULL REQUESTS')
+    const field = screen.getByPlaceholderText(/search pull requests/i)
+    await userEvent.type(field, 'pr 1')
+    expect(field).toHaveValue('pr 1')
+    fireEvent.click(screen.getByText('PULL REQUESTS'))   // fold
+    unfold('PULL REQUESTS')                               // and back
+    expect(screen.getByPlaceholderText(/search pull requests/i)).toHaveValue('')
+  })
+})

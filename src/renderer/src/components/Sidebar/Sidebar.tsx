@@ -373,7 +373,7 @@ function GhGroup({ title, count, children, defaultOpen = false }: {
 }
 
 // ── Collapse section ─────────────────────────────────────────────
-function Section({ title, icon, brand, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onFilter, filterLabel, onRefresh, refreshing }: {
+function Section({ title, icon, brand, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onRefresh, refreshing, onFold }: {
   title: string
   /**
    * What the section IS, beside what it is called. Eleven headers in a column
@@ -401,9 +401,13 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
   onRefresh?: () => void
   /** In flight — the button is out of action, so it cannot be hammered. */
   refreshing?: boolean
-  /** §4: the button opening the section's filter editor. Omitted ⇒ no button. */
-  onFilter?: (e: React.MouseEvent) => void
-  filterLabel?: string
+  /**
+   * Folded shut. The GitHub sections use it to drop whatever was typed in
+   * their search box: the box folds away with the rows, and a filter still
+   * applied but no longer visible is how a section comes back looking empty
+   * while its count says otherwise (#144).
+   */
+  onFold?: () => void
   // The event is handed over so a section can anchor a menu to the + button
   // (the stash one offers a scope) instead of acting straight away.
   onAdd?: (e: React.MouseEvent) => void
@@ -424,7 +428,7 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
   return (
     <div className="sb-section">
       <div className="sb-section-header"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(o => { if (o) onFold?.(); return !o })}
         onContextMenu={menuItems?.length
           ? e => { e.preventDefault(); e.stopPropagation(); setCtx({ x: e.clientX, y: e.clientY }) }
           : undefined}
@@ -442,19 +446,14 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
           </button>
         )}
         {onRefresh && (
-          <button className="sb-add-btn" title={t('sb.gh.refresh')} disabled={refreshing}
+          <button className={`sb-add-btn sb-on-hover${refreshing ? ' sb-on-hover--pinned' : ''}`}
+            title={t('sb.gh.refresh')} disabled={refreshing}
             onClick={e => { e.stopPropagation(); onRefresh() }}>
             <Icon name="refresh" size={12} />
           </button>
         )}
-        {onFilter && (
-          <button className="sb-add-btn" title={filterLabel}
-            onClick={e => { e.stopPropagation(); onFilter(e) }}>
-            <Icon name="sliders" size={12} />
-          </button>
-        )}
         {onAdd && (
-          <button className="sb-add-btn" title={addLabel ?? t('sb.add')}
+          <button className="sb-add-btn sb-on-hover" title={addLabel ?? t('sb.add')}
             onClick={e => { e.stopPropagation(); onAdd(e) }}>
             <Icon name="plus" size={12} />
           </button>
@@ -1600,13 +1599,18 @@ export default function Sidebar({
             <Section title="PULL REQUESTS" icon="pullRequest" count={githubPRs.length} defaultOpen={single}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('prs'))}
               refreshing={githubRefreshing === 'prs'}
-              onFilter={() => setFilterEditor(f => f?.section === 'prs' ? null : { section: 'prs', index: -1 })}
-              filterLabel={t('sb.gh.filter.new')}>
+              onFold={() => setPrsQuery('')}>
               <div className="sb-gh-search">
                 <Icon name="search" size={11} />
                 <input type="text" placeholder={t('sb.gh.searchPrs')} value={prsQuery}
                   onChange={e => setPrsQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setPrsQuery('') } }} />
+                {/* The filter editor opens from HERE, not the header: it is an
+                    action on the list, and the list is what folds (#144). */}
+                <button className="sb-gh-filter-btn" title={t('sb.gh.filter.new')}
+                  onClick={() => setFilterEditor(f => f?.section === 'prs' ? null : { section: 'prs', index: -1 })}>
+                  <Icon name="sliders" size={12} />
+                </button>
               </div>
               {filterEditor?.section === 'prs' && (
                 <GhFilterEditor kind="prs" t={t}
@@ -1670,13 +1674,18 @@ export default function Sidebar({
             <Section title="GITHUB ISSUES" brand="github" count={githubIssues.length} defaultOpen={single}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('issues'))}
               refreshing={githubRefreshing === 'issues'}
-              onFilter={() => setFilterEditor(f => f?.section === 'issues' ? null : { section: 'issues', index: -1 })}
-              filterLabel={t('sb.gh.filter.new')}>
+              onFold={() => setIssuesQuery('')}>
               <div className="sb-gh-search">
                 <Icon name="search" size={11} />
                 <input type="text" placeholder={t('sb.gh.searchIssues')} value={issuesQuery}
                   onChange={e => setIssuesQuery(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setIssuesQuery('') } }} />
+                {/* The filter editor opens from HERE, not the header: it is an
+                    action on the list, and the list is what folds (#144). */}
+                <button className="sb-gh-filter-btn" title={t('sb.gh.filter.new')}
+                  onClick={() => setFilterEditor(f => f?.section === 'issues' ? null : { section: 'issues', index: -1 })}>
+                  <Icon name="sliders" size={12} />
+                </button>
               </div>
               {filterEditor?.section === 'issues' && (
                 <GhFilterEditor kind="issues" t={t}

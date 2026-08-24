@@ -120,19 +120,33 @@ function dimColor(hex: string, factor = 0.4): string {
 function initials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
-// GPG signature badge from `%G?` status code. Returns null for unsigned commits.
+/**
+ * The signature badge, from `%G?` — and it is drawn only when there is
+ * something WRONG with the signature (#146).
+ *
+ * It used to mark every signed commit, which on a repository that signs is a
+ * mark on every row saying the same thing: no information, a mark's worth of
+ * attention each, and the only strongly coloured thing in a row nobody scans
+ * for signatures. Silence is the right answer for a normal commit.
+ *
+ * But silence for ALL of them would drop the only place the app has ever said
+ * a signature is bad. So the line is drawn at "can this be vouched for":
+ * nothing for good (`G`), good-but-unknown-validity (`U`) and unsigned (`N`);
+ * a badge for bad, unverifiable, expired and revoked — a row is marked when
+ * something is wrong, and never when everything is normal.
+ *
+ * `signature` stays on CommitNode either way: this is about what the LIST
+ * draws, not about the app forgetting.
+ */
 type TFn = (key: any, ...args: any[]) => string
 function sigBadge(sig: string | undefined, t: TFn) {
-  if (!sig || sig === 'N') return null
-  const good = sig === 'G' || sig === 'U'
+  if (!sig || sig === 'N' || sig === 'G' || sig === 'U') return null
   const bad = sig === 'B' || sig === 'E'
-  const cls = good ? 'cg-sig--good' : bad ? 'cg-sig--bad' : 'cg-sig--warn'
   const titles: Record<string, string> = {
-    G: t('graph.sig.valid'), U: t('graph.sig.validUnknown'),
     X: t('graph.sig.expired'), Y: t('graph.sig.keyExpired'), R: t('graph.sig.revoked'),
     B: t('graph.sig.invalid'), E: t('graph.sig.unverifiable'),
   }
-  return <Icon name="shield" size={12} className={`cg-sig ${cls}`}
+  return <Icon name="shield" size={12} className={`cg-sig ${bad ? 'cg-sig--bad' : 'cg-sig--warn'}`}
     title={titles[sig] ?? t('graph.sig.signed')} />
 }
 // Resolves an author's avatar (AI-bot logo, else GitHub/Gravatar via the main
