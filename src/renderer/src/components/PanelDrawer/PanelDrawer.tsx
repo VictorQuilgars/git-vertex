@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon, type IconName } from '../Icon/Icon'
+import { Brand, type BrandName } from '../BrandMark/BrandMark'
 import './PanelDrawer.css'
 
 /**
@@ -23,12 +24,14 @@ import './PanelDrawer.css'
  * learned that with its indent scale, where two families were positioned by
  * two systems (#138).
  */
-export default function PanelDrawer({ anchor, title, icon, closeLabel, onClose, children }: {
+export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, onClose, children }: {
   /** The panel this comes out of — its right edge, top and height are taken. */
   anchor: RefObject<HTMLElement | null>
   title: string
   /** What the drawer is about, beside its name. */
   icon?: IconName
+  /** ...or a third party's mark, when the drawer is about their product. */
+  brand?: BrandName
   closeLabel: string
   /**
    * Escape, the close button, or a click outside. The caller decides what that
@@ -73,6 +76,7 @@ export default function PanelDrawer({ anchor, title, icon, closeLabel, onClose, 
         style={{ left: box.left, top: box.top, height: box.height, width: box.width }}>
         <div className="pdrawer-head">
           {icon && <Icon name={icon} size={15} className="pdrawer-icon" />}
+          {brand && <Brand name={brand} size={15} className="pdrawer-icon" />}
           <span className="pdrawer-title">{title}</span>
           {/* Close on the right, where a pane's close lives everywhere else in
               this app — the drawer is a surface, not a step to go back from. */}

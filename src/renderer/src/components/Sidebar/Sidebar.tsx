@@ -205,7 +205,7 @@ function ghMatch(item: GithubListItem, q: string): boolean {
 }
 
 // ── §4: the filter editor of a section — beside the list, not over it ────
-function GhFilterEditor({ kind, initial, draft, onCreate, onCancel, onDraft, t }: {
+function GhFilterEditor({ kind, initial, draft, repoLabel, onCreate, onCancel, onDraft, t }: {
   kind: 'prs' | 'issues'
   /**
    * An existing filter being edited. This — and only this — is what makes the
@@ -214,6 +214,8 @@ function GhFilterEditor({ kind, initial, draft, onCreate, onCancel, onDraft, t }
   initial?: GhSavedFilter
   /** Text kept from a previous open, so closing the drawer loses nothing. */
   draft?: GhSavedFilter
+  /** `owner/repo` — the field says WHICH repository it will filter. */
+  repoLabel: string
   onCreate: (f: GhSavedFilter) => void
   onCancel: () => void
   /** Reported as it is typed, so closing the drawer does not lose it (#145). */
@@ -230,14 +232,14 @@ function GhFilterEditor({ kind, initial, draft, onCreate, onCancel, onDraft, t }
       {/* Labels above their fields, and a placeholder that says what to type
           rather than showing an example of the answer. */}
       <label className="sb-gh-fedit-field">
-        <span className="sb-gh-fedit-label">{t('sb.gh.filter.name')}</span>
+        <span className="sb-gh-fedit-label">{t('sb.gh.filter.nameLabel')}</span>
         <input className="sb-gh-fedit-name" placeholder={t('sb.gh.filter.namePlaceholder')} autoFocus
           value={name} onChange={e => setName(e.target.value)} />
       </label>
 
       <label className="sb-gh-fedit-field">
         <span className="sb-gh-fedit-label">
-          {kind === 'prs' ? t('sb.gh.filter.queryPrs') : t('sb.gh.filter.queryIssues')}
+          {kind === 'prs' ? t('sb.gh.filter.queryPrs', repoLabel) : t('sb.gh.filter.queryIssues', repoLabel)}
         </span>
         <div className={`sb-gh-fedit-querybox${query.trim() && !verdict.ok ? ' sb-gh-fedit-querybox--bad' : ''}`}>
           {/* The verdict lives IN the field: it is about what is typed there. */}
@@ -267,13 +269,15 @@ function GhFilterEditor({ kind, initial, draft, onCreate, onCancel, onDraft, t }
           {kind === 'prs' ? t('sb.gh.filter.syntaxPrs') : t('sb.gh.filter.syntaxIssues')}
         </div>
         <p className="sb-gh-fedit-syntax-more">
-          {t('sb.gh.filter.readMore')}{' '}
+          {kind === 'prs' ? t('sb.gh.filter.readMorePrs') : t('sb.gh.filter.readMoreIssues')}{' '}
           <a className="sb-gh-fedit-link"
             onClick={() => (window.gitAPI as any).openExternal?.(GH_SEARCH_DOCS_URL)}>
             {t('sb.gh.filter.docs')}
           </a>
         </p>
-        <div className="sb-gh-fedit-syntax-head sb-gh-fedit-syntax-by">{t('sb.gh.filter.filterBy')}</div>
+        <div className="sb-gh-fedit-syntax-head sb-gh-fedit-syntax-by">
+          {kind === 'prs' ? t('sb.gh.filter.filterBy') : t('sb.gh.filter.operators')}
+        </div>
         <dl className="sb-gh-fedit-keys">
           {ghFilterSyntax(kind).map(k => (
             <div key={k.key} className="sb-gh-fedit-keyrow">
@@ -1341,7 +1345,9 @@ export default function Sidebar({
           a prop, not a second component (#145). */}
       {filterEditor && githubRepo && (
         <PanelDrawer anchor={rootRef} onClose={() => setFilterEditor(null)}
-          icon={filterEditor.section === 'prs' ? 'pullRequest' : 'issue'}
+          {...(filterEditor.section === 'prs'
+            ? { icon: 'pullRequest' as const }
+            : { brand: 'github' as const })}
           closeLabel={t('common.close')}
           title={filterEditor.index >= 0
             ? t('sb.gh.filter.edit')
@@ -1353,6 +1359,7 @@ export default function Sidebar({
               ? ghFilters[filterEditor.section][filterEditor.index]
               : undefined}
             draft={filterEditor.index >= 0 ? undefined : filterDraft[filterEditor.section]}
+            repoLabel={`${githubRepo.owner}/${githubRepo.repo}`}
             // An EMPTY draft is no draft: kept as an object it would make the
             // editor think it is editing an existing filter, and its button
             // would read Save on a form that has never been filled in.
