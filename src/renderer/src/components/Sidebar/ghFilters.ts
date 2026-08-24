@@ -93,6 +93,74 @@ export function ghFilterSyntax(kind: 'prs' | 'issues'): { key: string; label: st
   return ghFilterKeys(kind).map(k => ({ key: k, ...KEY_SYNTAX[k] }))
 }
 
+/**
+ * The values a qualifier can take, where they are a closed set. Everything
+ * absent here takes free text — a user name, a branch, a date — and offers
+ * nothing to choose from.
+ *
+ * `is` and `no` differ per section: a pull request can be merged and can want
+ * a reviewer; an issue can do neither.
+ */
+const CLOSED_VALUES: Record<string, readonly string[]> = {
+  draft: ['true', 'false'],
+  review: ['approved', 'changes_requested', 'none'],
+  status: ['success', 'pending', 'failure'],
+  state: ['open', 'closed'],
+  sort: ['created', 'updated', 'comments'],
+}
+const CLOSED_BY_KIND: Record<'prs' | 'issues', Record<string, readonly string[]>> = {
+  prs: {
+    is: ['open', 'closed', 'merged', 'draft'],
+    no: ['assignee', 'label', 'milestone', 'review-requested'],
+  },
+  issues: {
+    is: ['open', 'closed'],
+    no: ['assignee', 'label', 'milestone'],
+  },
+}
+
+export function ghFilterValues(key: string, kind: 'prs' | 'issues'): readonly string[] {
+  return CLOSED_BY_KIND[kind][key] ?? CLOSED_VALUES[key] ?? []
+}
+
+/**
+ * What to offer for the token the caret is sitting in.
+ *
+ * Before the colon it completes the QUALIFIER, after it the VALUE — and only
+ * where the value is a closed set, because suggesting a list of user names
+ * this app does not have would be worse than suggesting nothing.
+ *
+ * `from`/`to` are the slice the chosen option replaces, so the caller does not
+ * have to work out where the token began: a query is edited in the middle as
+ * often as at the end.
+ */
+export function ghFilterSuggest(
+  query: string, caret: number, kind: 'prs' | 'issues',
+): { from: number; to: number; options: string[]; kind: 'key' | 'value' } | null {
+  const before = query.slice(0, caret)
+  const start = Math.max(before.lastIndexOf(' ') + 1, 0)
+  let end = query.indexOf(' ', caret)
+  if (end < 0) end = query.length
+  const token = query.slice(start, end)
+  const typed = token.replace(/^-/, '')          // `-label:x` excludes; same vocabulary
+  const dash = token.length - typed.length
+
+  const colon = typed.indexOf(':')
+  if (colon < 0) {
+    // No colon yet: complete the qualifier, and write the colon with it.
+    const options = ghFilterKeys(kind)
+      .filter(k => k.startsWith(typed.toLowerCase()))
+      .map(k => `${k}:`)
+    return options.length ? { from: start + dash, to: end, options, kind: 'key' } : null
+  }
+
+  const key = SYNONYMS[typed.slice(0, colon).toLowerCase()] ?? typed.slice(0, colon).toLowerCase()
+  const partial = typed.slice(colon + 1).toLowerCase()
+  const options = ghFilterValues(key, kind).filter(v => v.startsWith(partial))
+  if (!options.length) return null
+  return { from: start + dash + colon + 1, to: end, options: [...options], kind: 'value' }
+}
+
 const SYNONYMS: Record<string, string> = {
   creator: 'author', labels: 'label', mentioned: 'mentions', since: 'updated',
 }

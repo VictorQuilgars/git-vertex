@@ -3,7 +3,7 @@ import { Icon, type IconName } from '../Icon/Icon'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import GithubRow from '../GitHubPanel/GithubRow'
-import { loadGhFilters, saveGhFilters, validateGhQuery, composeGhQuery, ghFilterSyntax,
+import { loadGhFilters, saveGhFilters, validateGhQuery, composeGhQuery, ghFilterSyntax, ghFilterSuggest,
   GH_SEARCH_DOCS_URL, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import { buildBranchTree, folderPaths, type BranchNode } from './branchTree'
@@ -225,6 +225,48 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, onCreate, onCancel, o
   const [name, setName] = useState(initial?.name ?? draft?.name ?? '')
   const [query, setQuery] = useState(initial?.query ?? draft?.query ?? '')
   useEffect(() => { onDraft?.({ name, query }) }, [name, query])
+
+  // ── Completion ────────────────────────────────────────────────
+  // What to offer is `ghFilterSuggest`'s call, not this component's: it knows
+  // the vocabulary, the section and where the token the caret sits in begins.
+  const queryRef = useRef<HTMLInputElement | null>(null)
+  const [caret, setCaret] = useState(0)
+  const [picking, setPicking] = useState(false)
+  const [pick, setPick] = useState(0)
+  const suggest = picking ? ghFilterSuggest(query, caret, kind) : null
+  useEffect(() => { setPick(0) }, [suggest?.options.join(' ')])
+
+  const accept = (option: string) => {
+    if (!suggest) return
+    const next = query.slice(0, suggest.from) + option + query.slice(suggest.to)
+    setQuery(next)
+    // A qualifier lands with its colon and the caret after it, so the value
+    // list opens straight away; a value is finished, so a space follows.
+    const at = suggest.from + option.length
+    setPicking(suggest.kind === 'key')
+    requestAnimationFrame(() => {
+      const el = queryRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(at, at)
+      setCaret(at)
+    })
+  }
+
+  const onQueryKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!suggest) {
+      // Escape with no list open belongs to the drawer, which closes on it.
+      if (e.key === 'ArrowDown') { setPicking(true); e.preventDefault() }
+      return
+    }
+    if (e.key === 'ArrowDown') { setPick(i => (i + 1) % suggest.options.length); e.preventDefault() }
+    else if (e.key === 'ArrowUp') { setPick(i => (i - 1 + suggest.options.length) % suggest.options.length); e.preventDefault() }
+    else if (e.key === 'Enter' || e.key === 'Tab') { accept(suggest.options[pick]); e.preventDefault() }
+    else if (e.key === 'Escape') {
+      // The list goes first; the drawer only closes once there is no list.
+      setPicking(false); e.preventDefault(); e.stopPropagation()
+    }
+  }
   const verdict = validateGhQuery(query, kind)
   const ready = name.trim() !== '' && query.trim() !== '' && verdict.ok
   return (
@@ -245,9 +287,27 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, onCreate, onCancel, o
           {/* The verdict lives IN the field: it is about what is typed there. */}
           <Icon name={query.trim() && !verdict.ok ? 'conflict' : 'check'} size={13}
             className={query.trim() && !verdict.ok ? 'sb-gh-fedit-mark--bad' : 'sb-gh-fedit-mark--ok'} />
-          <input className="sb-gh-fedit-query"
+          <input className="sb-gh-fedit-query" ref={queryRef}
             placeholder={kind === 'prs' ? t('sb.gh.filter.queryPrsPlaceholder') : t('sb.gh.filter.queryIssuesPlaceholder')}
-            value={query} onChange={e => setQuery(e.target.value)} />
+            value={query}
+            onChange={e => { setQuery(e.target.value); setCaret(e.target.selectionStart ?? 0); setPicking(true) }}
+            onSelect={e => setCaret((e.target as HTMLInputElement).selectionStart ?? 0)}
+            onFocus={() => setPicking(true)}
+            onBlur={() => setTimeout(() => setPicking(false), 120)}
+            onKeyDown={onQueryKey} />
+          {suggest && (
+            <ul className="sb-gh-fedit-suggest" role="listbox">
+              {suggest.options.map((o, i) => (
+                <li key={o} role="option" aria-selected={i === pick}
+                  className={`sb-gh-fedit-option${i === pick ? ' sb-gh-fedit-option--on' : ''}`}
+                  // mousedown, not click: blur would close the list first.
+                  onMouseDown={e => { e.preventDefault(); accept(o) }}
+                  onMouseEnter={() => setPick(i)}>
+                  {o}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </label>
 

@@ -801,3 +801,71 @@ describe('the saved-filter drawer', () => {
     expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('')
   })
 })
+
+// Typing a qualifier should not mean remembering what may follow the colon.
+describe('completing a filter query', () => {
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+  const open = async () => {
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+    return screen.getByPlaceholderText(/Enter a query to filter pull requests/)
+  }
+  const options = () => Array.from(document.querySelectorAll('.sb-gh-fedit-option')).map(n => n.textContent)
+
+  test('a qualifier completes, colon included', async () => {
+    const field = await open()
+    await userEvent.type(field, 'stat')
+    expect(options()).toContain('status:')
+    await userEvent.click(screen.getByText('status:'))
+    expect(field).toHaveValue('status:')
+  })
+
+  test('and then its values are offered', async () => {
+    const field = await open()
+    await userEvent.type(field, 'status:')
+    expect(options()).toEqual(['success', 'pending', 'failure'])
+    await userEvent.click(screen.getByText('pending'))
+    expect(field).toHaveValue('status:pending')
+  })
+
+  // A list of user names this app has never fetched would be worse than none.
+  test('a free-text qualifier offers nothing', async () => {
+    const field = await open()
+    await userEvent.type(field, 'author:')
+    expect(options()).toEqual([])
+  })
+
+  test('the arrows move the choice and Enter takes it', async () => {
+    const field = await open()
+    await userEvent.type(field, 'status:')
+    await userEvent.keyboard('{ArrowDown}{Enter}')
+    expect(field).toHaveValue('status:pending')
+  })
+
+  // ⚠️ Escape belongs to the list first: closing the whole drawer on the key
+  // that dismisses a dropdown would lose the query with it.
+  test('Escape closes the list, and only then the drawer', async () => {
+    const field = await open()
+    await userEvent.type(field, 'status:')
+    expect(options().length).toBeGreaterThan(0)
+
+    await userEvent.keyboard('{Escape}')
+    expect(options()).toEqual([])
+    expect(document.querySelector('.pdrawer')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(document.querySelector('.pdrawer')).toBeNull())
+  })
+
+  // The check the user asked for is the one that was already here — this pins
+  // that a half-typed qualifier cannot be saved.
+  test('a qualifier with no value cannot be saved', async () => {
+    const field = await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Mine')
+    await userEvent.type(field, 'status:')
+    expect(screen.getByText('Create Filter')).toBeDisabled()
+    await userEvent.click(screen.getByText('success'))
+    expect(screen.getByText('Create Filter')).toBeEnabled()
+  })
+})

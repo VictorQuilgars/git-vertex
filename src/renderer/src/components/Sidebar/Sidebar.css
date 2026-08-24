@@ -784,6 +784,7 @@
 
 /* The verdict sits IN the field: it is about what is typed there. */
 .sb-gh-fedit-querybox {
+  position: relative;
   display: flex; align-items: center; gap: var(--space-sm);
   padding-left: var(--space-md);
   background: var(--surface-sunken); border: 1px solid var(--border-subtle);
@@ -876,3 +877,27 @@
   background: transparent; border: none; color: var(--text-tertiary);
   font-size: var(--text-xs); cursor: pointer; text-align: left;
 }
+
+/* The completion list, under the field it completes. */
+.sb-gh-fedit-suggest {
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  z-index: var(--z-dropdown);
+  margin: var(--space-2xs) 0 0;
+  padding: var(--space-2xs) 0;
+  max-height: 180px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+}
+.sb-gh-fedit-option {
+  padding: var(--space-xs) var(--space-md);
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.sb-gh-fedit-option--on { background: var(--surface-hover); color: var(--text-primary); }
