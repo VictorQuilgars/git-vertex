@@ -797,6 +797,8 @@
 .sb-gh-fedit-mark--ok { color: var(--success); flex-shrink: 0; }
 .sb-gh-fedit-mark--bad { color: var(--danger); flex-shrink: 0; }
 .sb-gh-fedit-bad { color: var(--danger); font-size: var(--text-xs); }
+/* Not a refusal — a second name for the same query can be deliberate. */
+.sb-gh-fedit-note { color: var(--attention); font-size: var(--text-xs); }
 
 .sb-gh-fedit-create {
   width: 100%; height: 32px;

@@ -804,6 +804,8 @@ describe('the saved-filter drawer', () => {
 
 // Typing a qualifier should not mean remembering what may follow the colon.
 describe('completing a filter query', () => {
+  // Filters live in localStorage, and a previous test may have saved one.
+  beforeEach(() => localStorage.clear())
   const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
   const open = async () => {
     draw({ githubPRs: [], githubIssues: [], ...gh })
@@ -867,5 +869,58 @@ describe('completing a filter query', () => {
     expect(screen.getByText('Create Filter')).toBeDisabled()
     await userEvent.click(screen.getByText('success'))
     expect(screen.getByText('Create Filter')).toBeEnabled()
+  })
+})
+
+// Victor's panel had two filters called "closed", both showing 50 — two
+// identical rows told apart by nothing, because the editor only ever appended.
+describe('a filter that already exists', () => {
+  // Filters live in localStorage, and a previous test may have saved one.
+  beforeEach(() => localStorage.clear())
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+  const withFilters = (prs: any[]) => {
+    localStorage.setItem('gv:gh-filters:r', JSON.stringify({ prs, issues: [] }))
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+  }
+  const open = async () => {
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+  }
+
+  test('the same name is named, and cannot be saved', async () => {
+    withFilters([{ name: 'closed', query: 'is:closed' }])
+    await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'closed')
+    await userEvent.type(screen.getByPlaceholderText(/Enter a query to filter pull requests/), 'is:open')
+    expect(await screen.findByText(/A filter called .closed. already exists/)).toBeInTheDocument()
+    expect(screen.getByText('Create Filter')).toBeDisabled()
+  })
+
+  test('the check ignores case and surrounding space', async () => {
+    withFilters([{ name: 'Closed', query: 'is:closed' }])
+    await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), '  closed ')
+    expect(await screen.findByText(/already exists/)).toBeInTheDocument()
+  })
+
+  // Two views on the same search can be deliberate, so this is said and not
+  // refused.
+  test('the same query under another name is a warning, not a refusal', async () => {
+    withFilters([{ name: 'Done', query: 'is:closed' }])
+    await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Finished')
+    await userEvent.type(screen.getByPlaceholderText(/Enter a query to filter pull requests/), 'is:closed')
+    expect(await screen.findByText(/.Done. already runs exactly this query/)).toBeInTheDocument()
+    expect(screen.getByText('Create Filter')).toBeEnabled()
+  })
+
+  test('editing a filter does not clash with itself', async () => {
+    withFilters([{ name: 'closed', query: 'is:closed' }])
+    unfold('PULL REQUESTS')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('closed') })
+    await userEvent.click(await screen.findByText('Edit Filter…'))
+    expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('closed')
+    expect(screen.queryByText(/already exists/)).not.toBeInTheDocument()
+    expect(screen.getByText('Save Filter')).toBeEnabled()
   })
 })

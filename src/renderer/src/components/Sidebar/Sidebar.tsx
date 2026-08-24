@@ -205,7 +205,7 @@ function ghMatch(item: GithubListItem, q: string): boolean {
 }
 
 // ── §4: the filter editor of a section — beside the list, not over it ────
-function GhFilterEditor({ kind, initial, draft, repoLabel, onCreate, onCancel, onDraft, t }: {
+function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, onCancel, onDraft, t }: {
   kind: 'prs' | 'issues'
   /**
    * An existing filter being edited. This — and only this — is what makes the
@@ -216,6 +216,12 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, onCreate, onCancel, o
   draft?: GhSavedFilter
   /** `owner/repo` — the field says WHICH repository it will filter. */
   repoLabel: string
+  /**
+   * What this section already has. Two filters with the same name are two
+   * identical rows in the panel, told apart by nothing — which is what the
+   * editor let happen, since it only ever appended.
+   */
+  existing: readonly GhSavedFilter[]
   onCreate: (f: GhSavedFilter) => void
   onCancel: () => void
   /** Reported as it is typed, so closing the drawer does not lose it (#145). */
@@ -268,7 +274,19 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, onCreate, onCancel, o
     }
   }
   const verdict = validateGhQuery(query, kind)
-  const ready = name.trim() !== '' && query.trim() !== '' && verdict.ok
+
+  // The one being edited is not a clash with itself.
+  const others = existing.filter(f => !(initial && f.name === initial.name && f.query === initial.query))
+  const nameTaken = !!name.trim()
+    && others.some(f => f.name.trim().toLowerCase() === name.trim().toLowerCase())
+  // A different name for a query that already exists is not refused — two
+  // views on the same search can be deliberate — but it is said, because it is
+  // usually a mistake.
+  const sameQueryAs = query.trim()
+    ? others.find(f => f.query.trim() === query.trim())?.name
+    : undefined
+
+  const ready = name.trim() !== '' && query.trim() !== '' && verdict.ok && !nameTaken
   return (
     <div className="sb-gh-fedit">
       {/* Labels above their fields, and a placeholder that says what to type
@@ -314,6 +332,10 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, onCreate, onCancel, o
       {/* A bad token is NAMED, not just refused. */}
       {query.trim() !== '' && !verdict.ok && (
         <div className="sb-gh-fedit-bad">{t('sb.gh.filter.badToken', (verdict as any).bad)}</div>
+      )}
+      {nameTaken && <div className="sb-gh-fedit-bad">{t('sb.gh.filter.nameTaken', name.trim())}</div>}
+      {!nameTaken && sameQueryAs && (
+        <div className="sb-gh-fedit-note">{t('sb.gh.filter.sameQuery', sameQueryAs)}</div>
       )}
 
       <button className="sb-gh-fedit-create" disabled={!ready}
@@ -1420,6 +1442,7 @@ export default function Sidebar({
               : undefined}
             draft={filterEditor.index >= 0 ? undefined : filterDraft[filterEditor.section]}
             repoLabel={`${githubRepo.owner}/${githubRepo.repo}`}
+            existing={ghFilters[filterEditor.section]}
             // An EMPTY draft is no draft: kept as an object it would make the
             // editor think it is editing an existing filter, and its button
             // would read Save on a form that has never been filled in.
