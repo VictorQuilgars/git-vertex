@@ -130,21 +130,36 @@ function initials(name: string) {
  * for signatures. Silence is the right answer for a normal commit.
  *
  * But silence for ALL of them would drop the only place the app has ever said
- * a signature is bad. So the line is drawn at "can this be vouched for":
- * nothing for good (`G`), good-but-unknown-validity (`U`) and unsigned (`N`);
- * a badge for bad, unverifiable, expired and revoked — a row is marked when
- * something is wrong, and never when everything is normal.
+ * a signature is bad. So the line is drawn at what the STATUS says about the
+ * COMMIT: nothing for good (`G`), good-but-unknown-validity (`U`) or unsigned
+ * (`N`); a badge for bad (`B`), expired (`X`), expired key (`Y`) and revoked
+ * (`R`).
+ *
+ * ⚠️ `E` — "cannot be checked" — is deliberately NOT marked, and that was
+ * wrong here first. It does not mean something is amiss with the commit; it
+ * means the local keyring has no public key for whoever signed it. Every merge
+ * GitHub makes is signed with its own web-flow key, which almost nobody
+ * imports, so marking `E` put a warning on every merge commit in the graph —
+ * 33 of 300 on this repository — over a fact about the reader's keyring rather
+ * than about the history. That is the same "a mark on every row saying the
+ * same thing" this badge was narrowed to escape.
  *
  * `signature` stays on CommitNode either way: this is about what the LIST
  * draws, not about the app forgetting.
  */
+/**
+ * The `%G?` codes that say something about the COMMIT. Everything else — good,
+ * unknown validity, unsigned, and `E` for "no public key here" — is silence.
+ */
+const SIG_TROUBLE = new Set(['B', 'X', 'Y', 'R'])
+
 type TFn = (key: any, ...args: any[]) => string
 function sigBadge(sig: string | undefined, t: TFn) {
-  if (!sig || sig === 'N' || sig === 'G' || sig === 'U') return null
-  const bad = sig === 'B' || sig === 'E'
+  if (!sig || !SIG_TROUBLE.has(sig)) return null
+  const bad = sig === 'B'
   const titles: Record<string, string> = {
     X: t('graph.sig.expired'), Y: t('graph.sig.keyExpired'), R: t('graph.sig.revoked'),
-    B: t('graph.sig.invalid'), E: t('graph.sig.unverifiable'),
+    B: t('graph.sig.invalid'),
   }
   return <Icon name="shield" size={12} className={`cg-sig ${bad ? 'cg-sig--bad' : 'cg-sig--warn'}`}
     title={titles[sig] ?? t('graph.sig.signed')} />

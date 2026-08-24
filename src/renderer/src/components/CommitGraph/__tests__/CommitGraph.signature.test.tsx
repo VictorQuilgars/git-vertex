@@ -43,9 +43,17 @@ describe('the signature badge', () => {
     expect(badge()).toBeNull()
   })
 
+  // ⚠️ `E` is "cannot be checked", which is a fact about the reader's keyring
+  // and not about the commit. Every merge GitHub makes is signed with its own
+  // key, which almost nobody imports — marking E put a warning on every merge
+  // commit in the graph, 33 of 300 on this repository.
+  test('E — no badge: a missing public key is not a bad signature', () => {
+    render('E')
+    expect(badge()).toBeNull()
+  })
+
   test.each([
     ['B', 'cg-sig--bad'],
-    ['E', 'cg-sig--bad'],
     ['X', 'cg-sig--warn'],
     ['Y', 'cg-sig--warn'],
     ['R', 'cg-sig--warn'],
@@ -57,9 +65,12 @@ describe('the signature badge', () => {
     expect(el!.getAttribute('class')).toContain(cls)
   })
 
-  test('an unfamiliar code is still marked rather than trusted', () => {
+  // Narrowed to the codes that say something about the commit, so a code
+  // nobody has seen is silence rather than a guess — the alternative marked
+  // every GitHub merge on the strength of one.
+  test('an unfamiliar code is not marked', () => {
     render('Z')
-    expect(badge()).toBeTruthy()
+    expect(badge()).toBeNull()
   })
 
   // The row draws less; the data is untouched, because a detail pane or a
