@@ -247,3 +247,23 @@ describe('the section marks', () => {
     }
   })
 })
+
+// A header shows its count at rest and its controls on hover — they SWAP, so
+// the corner never carries two things at once. Both stay in the tree, which is
+// what keeps them reachable by Tab.
+describe('the header swaps its count for its controls', () => {
+  test('the count and the buttons are both present, and both styled', async () => {
+    const props = render('branches' as any, { branches: [] })
+    await waitFor(() => expect(screen.getByText('LOCAL')).toBeInTheDocument())
+    const header = screen.getByText('LOCAL').closest('.sb-section-header')!
+    expect(header.querySelector('.sb-section-count')).toBeTruthy()
+    // hidden by CSS, never unmounted: a button that is not in the tree cannot
+    // be reached by keyboard
+    expect(header.querySelector('.sb-add-btn.sb-on-hover')).toBeTruthy()
+    expect(props).toBeTruthy()
+  })
+
+  // The pinned state is covered where the GitHub sections are drawn — see
+  // "a refresh in flight stays visible" in Sidebar.github.test.tsx.
+
+})

@@ -89,5 +89,9 @@ export default function PanelDrawer({ anchor, title, icon, brand, closeLabel, on
   )
 }
 
-/** What the form wants when there is room for it. */
-const DRAWER_WIDTH = 420
+/**
+ * What the form wants when there is room for it. Wide enough that a query and
+ * its reference are read rather than wrapped — the drawer exists because the
+ * panel's column was too narrow, so being merely less narrow would miss.
+ */
+const DRAWER_WIDTH = 520

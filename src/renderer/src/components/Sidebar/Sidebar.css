@@ -253,12 +253,34 @@
    And `--pinned` keeps a refresh visible while its section is in flight: its
    disabled state is the only feedback there is, and it must not vanish because
    the pointer moved away. */
-.sb-on-hover { opacity: 0; transition: opacity var(--dur-fast); }
+/* At rest a header shows its COUNT; on hover the count gives its place to the
+   controls. They swap rather than sit side by side, so the row never carries
+   two things competing for the same corner.
+
+   Width and opacity rather than `display`, for two reasons: the buttons stay
+   in the tree and therefore reachable by Tab, and both halves can transition
+   instead of jumping. `.sb-section-title` is `flex: 1`, so it absorbs the
+   difference and the title itself never moves. */
+.sb-on-hover {
+  opacity: 0;
+  /* max-width, not width: the button keeps its own size and this only lets it
+     out, so its dimensions are not written down twice. */
+  max-width: 0;
+  overflow: hidden;
+  transition: opacity var(--dur-fast), max-width var(--dur-fast);
+}
+.sb-section-count { transition: opacity var(--dur-fast); }
 .sb-section-header:hover .sb-on-hover,
 .sb-section-header:focus-within .sb-on-hover,
 .sb-on-hover:focus-visible,
-.sb-on-hover--pinned { opacity: 1; }
-@media (hover: none) { .sb-on-hover { opacity: 1; } }
+.sb-on-hover--pinned { opacity: 1; max-width: 40px; }
+.sb-section-header:hover .sb-section-count,
+.sb-section-header:focus-within .sb-section-count { opacity: 0; }
+/* No hover to wait for: the controls are simply there, beside the count. */
+@media (hover: none) {
+  .sb-on-hover { opacity: 1; max-width: 40px; }
+  .sb-section-header .sb-section-count { opacity: 1; }
+}
 
 /* The filter editor's opener, now beside the search field it belongs with. */
 .sb-gh-filter-btn {
