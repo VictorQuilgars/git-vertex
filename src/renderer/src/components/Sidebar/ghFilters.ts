@@ -54,6 +54,45 @@ export const PR_KEYS = [
   'created', 'updated', 'state', 'is', 'sort',
 ] as const
 
+/**
+ * What each qualifier is called, and the SHAPE of the value it takes.
+ *
+ * The editor used to list the keys alone — `author:` — which says a token
+ * exists without saying what may follow the colon, and that is the half that
+ * makes a query writable. Every entry here is one line of reference: the name
+ * a person would use, then the syntax with its value spelled out.
+ *
+ * Keyed on the same constants the validator reads, so a key added to one and
+ * not the other is caught by the test below rather than silently
+ * undocumented.
+ */
+export const KEY_SYNTAX: Record<string, { label: string; syntax: string }> = {
+  author: { label: 'Author', syntax: 'author:user_name' },
+  assignee: { label: 'Assignee', syntax: 'assignee:user_name' },
+  involves: { label: 'Involves', syntax: 'involves:user_name' },
+  mentions: { label: 'Mentions', syntax: 'mentions:user_name' },
+  'review-requested': { label: 'Requested reviewer', syntax: 'review-requested:user_name' },
+  'reviewed-by': { label: 'Reviewed by', syntax: 'reviewed-by:user_name' },
+  base: { label: 'Base branch', syntax: 'base:branch_name' },
+  head: { label: 'Head branch', syntax: 'head:branch_name' },
+  draft: { label: 'Draft', syntax: 'draft:true or draft:false' },
+  label: { label: 'Label', syntax: 'label:label_name' },
+  milestone: { label: 'Milestone', syntax: 'milestone:milestone_name' },
+  review: { label: 'Review state', syntax: 'review:approved or review:changes_requested or review:none' },
+  status: { label: 'Checks', syntax: 'status:success or status:pending or status:failure' },
+  state: { label: 'State', syntax: 'state:open or state:closed' },
+  is: { label: 'Is', syntax: 'is:open or is:closed or is:merged' },
+  no: { label: 'Without', syntax: 'no:assignee or no:label or no:milestone' },
+  created: { label: 'Created', syntax: 'created:2026-01-31 or created:>=2026-01-01' },
+  updated: { label: 'Updated', syntax: 'updated:2026-01-31 or updated:>=2026-01-01' },
+  sort: { label: 'Sort', syntax: 'sort:created or sort:updated or sort:comments' },
+}
+
+/** The vocabulary of a section, documented — one line per qualifier. */
+export function ghFilterSyntax(kind: 'prs' | 'issues'): { key: string; label: string; syntax: string }[] {
+  return ghFilterKeys(kind).map(k => ({ key: k, ...KEY_SYNTAX[k] }))
+}
+
 const SYNONYMS: Record<string, string> = {
   creator: 'author', labels: 'label', mentioned: 'mentions', since: 'updated',
 }

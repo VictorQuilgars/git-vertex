@@ -3,7 +3,7 @@ import { Icon, type IconName } from '../Icon/Icon'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import GithubRow from '../GitHubPanel/GithubRow'
-import { loadGhFilters, saveGhFilters, validateGhQuery, composeGhQuery, ghFilterKeys,
+import { loadGhFilters, saveGhFilters, validateGhQuery, composeGhQuery, ghFilterSyntax,
   GH_SEARCH_DOCS_URL, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
 import { buildBranchTree, folderPaths, type BranchNode } from './branchTree'
@@ -227,42 +227,69 @@ function GhFilterEditor({ kind, initial, draft, onCreate, onCancel, onDraft, t }
   const ready = name.trim() !== '' && query.trim() !== '' && verdict.ok
   return (
     <div className="sb-gh-fedit">
-      <input className="sb-gh-fedit-name" placeholder={t('sb.gh.filter.name')} autoFocus
-        value={name} onChange={e => setName(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); onCancel() } }} />
-      <input className="sb-gh-fedit-query" placeholder={t('sb.gh.filter.query')}
-        value={query} onChange={e => setQuery(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); onCancel() } }} />
-      {/* Live validation: a bad token is named, not just refused. */}
-      {!verdict.ok && (
+      {/* Labels above their fields, and a placeholder that says what to type
+          rather than showing an example of the answer. */}
+      <label className="sb-gh-fedit-field">
+        <span className="sb-gh-fedit-label">{t('sb.gh.filter.name')}</span>
+        <input className="sb-gh-fedit-name" placeholder={t('sb.gh.filter.namePlaceholder')} autoFocus
+          value={name} onChange={e => setName(e.target.value)} />
+      </label>
+
+      <label className="sb-gh-fedit-field">
+        <span className="sb-gh-fedit-label">
+          {kind === 'prs' ? t('sb.gh.filter.queryPrs') : t('sb.gh.filter.queryIssues')}
+        </span>
+        <div className={`sb-gh-fedit-querybox${query.trim() && !verdict.ok ? ' sb-gh-fedit-querybox--bad' : ''}`}>
+          {/* The verdict lives IN the field: it is about what is typed there. */}
+          <Icon name={query.trim() && !verdict.ok ? 'conflict' : 'check'} size={13}
+            className={query.trim() && !verdict.ok ? 'sb-gh-fedit-mark--bad' : 'sb-gh-fedit-mark--ok'} />
+          <input className="sb-gh-fedit-query"
+            placeholder={kind === 'prs' ? t('sb.gh.filter.queryPrsPlaceholder') : t('sb.gh.filter.queryIssuesPlaceholder')}
+            value={query} onChange={e => setQuery(e.target.value)} />
+        </div>
+      </label>
+
+      {/* A bad token is NAMED, not just refused. */}
+      {query.trim() !== '' && !verdict.ok && (
         <div className="sb-gh-fedit-bad">{t('sb.gh.filter.badToken', (verdict as any).bad)}</div>
       )}
-      {/* The vocabulary BESIDE the field rather than a link away from it. In a
-          280-pixel column this was one wrapped line of `key:` and the help was
-          the first thing squeezed out — which is the part that makes a query
-          writable at all (#145). Clicking a key puts it in the query. */}
-      <div className="sb-gh-fedit-vocab">
-        <div className="sb-gh-fedit-vocab-head">{t('sb.gh.filter.vocab')}</div>
-        <div className="sb-gh-fedit-keys">
-          {ghFilterKeys(kind).map(k => (
-            <button key={k} type="button" className="sb-gh-fedit-key"
-              title={t('sb.gh.filter.addKey', k)}
-              onClick={() => setQuery(q => (q.trim() ? `${q.trim()} ` : '') + `${k}:`)}>
-              {k}:
-            </button>
-          ))}
+
+      <button className="sb-gh-fedit-create" disabled={!ready}
+        onClick={() => onCreate({ name: name.trim(), query: query.trim() })}>
+        {initial ? t('sb.gh.filter.save') : t('sb.gh.filter.create')}
+      </button>
+
+      {/* The reference, in the room the drawer bought (#145). Keys alone said a
+          token exists without saying what may follow the colon — which is the
+          half that makes a query writable. */}
+      <div className="sb-gh-fedit-syntax">
+        <div className="sb-gh-fedit-syntax-head">
+          {kind === 'prs' ? t('sb.gh.filter.syntaxPrs') : t('sb.gh.filter.syntaxIssues')}
         </div>
-        <a className="sb-gh-fedit-link"
-          onClick={() => (window.gitAPI as any).openExternal?.(GH_SEARCH_DOCS_URL)}>
-          {t('sb.gh.filter.docs')}
-        </a>
-      </div>
-      <div className="sb-gh-fedit-actions">
-        <button className="sb-gh-fedit-create" disabled={!ready}
-          onClick={() => onCreate({ name: name.trim(), query: query.trim() })}>
-          {initial ? t('sb.gh.filter.save') : t('sb.gh.filter.create')}
-        </button>
-        <button className="sb-gh-fedit-cancel" onClick={onCancel}>{t('gh.detail.cancel')}</button>
+        <p className="sb-gh-fedit-syntax-more">
+          {t('sb.gh.filter.readMore')}{' '}
+          <a className="sb-gh-fedit-link"
+            onClick={() => (window.gitAPI as any).openExternal?.(GH_SEARCH_DOCS_URL)}>
+            {t('sb.gh.filter.docs')}
+          </a>
+        </p>
+        <div className="sb-gh-fedit-syntax-head sb-gh-fedit-syntax-by">{t('sb.gh.filter.filterBy')}</div>
+        <dl className="sb-gh-fedit-keys">
+          {ghFilterSyntax(kind).map(k => (
+            <div key={k.key} className="sb-gh-fedit-keyrow">
+              <dt>{k.label}:</dt>
+              {/* Clicking it writes the qualifier into the query — the
+                  reference is usable, not only readable. */}
+              <dd>
+                <button type="button" className="sb-gh-fedit-key"
+                  title={t('sb.gh.filter.addKey', k.key)}
+                  onClick={() => setQuery(q => (q.trim() ? `${q.trim()} ` : '') + `${k.key}:`)}>
+                  {k.syntax}
+                </button>
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </div>
   )
@@ -1314,7 +1341,11 @@ export default function Sidebar({
           a prop, not a second component (#145). */}
       {filterEditor && githubRepo && (
         <PanelDrawer anchor={rootRef} onClose={() => setFilterEditor(null)}
-          title={filterEditor.index >= 0 ? t('sb.gh.filter.edit') : t('sb.gh.filter.new')}>
+          icon={filterEditor.section === 'prs' ? 'pullRequest' : 'issue'}
+          closeLabel={t('common.close')}
+          title={filterEditor.index >= 0
+            ? t('sb.gh.filter.edit')
+            : filterEditor.section === 'prs' ? t('sb.gh.filter.newPr') : t('sb.gh.filter.newIssue')}>
           <GhFilterEditor
             kind={filterEditor.section}
             t={t}

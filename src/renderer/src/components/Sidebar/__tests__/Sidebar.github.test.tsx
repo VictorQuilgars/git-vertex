@@ -476,8 +476,8 @@ describe('the saved filters', () => {
     })
     draw({ githubPRs: [], ...gh })
     await openEditor()
-    await userEvent.type(screen.getByPlaceholderText('Filter name'), 'Mine')
-    const query = screen.getByPlaceholderText(/label:bug/)
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Mine')
+    const query = screen.getByPlaceholderText(/Enter a query to filter pull requests/)
     await userEvent.type(query, 'reviiew:approved')
     expect(screen.getByText(/Unknown token: reviiew:approved/)).toBeInTheDocument()
     expect(screen.getByText('Create Filter')).toBeDisabled()
@@ -508,7 +508,8 @@ describe('the saved filters', () => {
     draw({ githubIssues: [], ...gh })
     unfold('GITHUB ISSUES')
     await userEvent.click(screen.getByTitle('New Filter'))
-    await userEvent.type(screen.getByPlaceholderText(/label:bug/), 'review:approved')
+    // the issues editor asks for an ISSUES query — the placeholder says which
+    await userEvent.type(screen.getByPlaceholderText(/Enter a query to filter issues/), 'review:approved')
     expect(screen.getByText(/Unknown token: review:approved/)).toBeInTheDocument()
   })
 
@@ -688,7 +689,7 @@ describe('where a section keeps its controls', () => {
     const box = document.querySelector('.sb-gh-search')!
     expect(box.querySelector('.sb-gh-filter-btn')).toBeTruthy()
     await userEvent.click(box.querySelector('.sb-gh-filter-btn') as HTMLElement)
-    expect(await screen.findByPlaceholderText('Filter name')).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText('Enter a name for this filter')).toBeInTheDocument()
   })
 
   test('both sections get it, not just the first', async () => {
@@ -756,7 +757,7 @@ describe('the saved-filter drawer', () => {
     await open()
     const key = screen.getByTitle('Add review: to the query')
     await userEvent.click(key)
-    expect(screen.getByPlaceholderText(/label:bug/)).toHaveValue('review:')
+    expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/)).toHaveValue('review:')
   })
 
   test("each section brings its own vocabulary — review: is a pull request's", async () => {
@@ -781,19 +782,22 @@ describe('the saved-filter drawer', () => {
   })
 
   // ⚠️ Escape and click-outside are hostile if they lose what was typed.
-  test('a half-written query survives a close, and Cancel clears it', async () => {
+  test('a half-written query survives a close, and emptying it discards', async () => {
     await open()
-    await userEvent.type(screen.getByPlaceholderText('Filter name'), 'Half')
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Half')
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(drawer()).toBeNull())
 
     await userEvent.click(screen.getByTitle('New Filter'))
-    expect(screen.getByPlaceholderText('Filter name')).toHaveValue('Half')
+    expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('Half')
     // it is still a filter being CREATED, not one being edited
     expect(screen.getByText('Create Filter')).toBeInTheDocument()
 
-    await userEvent.click(screen.getByText('Cancel'))
+    // There is no Cancel: emptying the field is what discards, because an
+    // empty draft is no draft.
+    await userEvent.clear(screen.getByPlaceholderText('Enter a name for this filter'))
+    fireEvent.keyDown(document, { key: 'Escape' })
     await userEvent.click(screen.getByTitle('New Filter'))
-    expect(screen.getByPlaceholderText('Filter name')).toHaveValue('')
+    expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('')
   })
 })

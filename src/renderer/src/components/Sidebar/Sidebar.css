@@ -768,106 +768,60 @@
 }
 
 /* ── §4: the filter editor and the saved-filter groups ─────────────────── */
-/* In the drawer now (#145), so it has room: fields at full width, and the
-   vocabulary as a real list rather than one wrapped line of `key:` that was
-   the first thing squeezed out of a 280-pixel column. */
-.sb-gh-fedit {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
+/* In the drawer now (#145): labels above their fields, one primary action,
+   and the reference below it — the layout a form of this size wants once it
+   has the room. */
+.sb-gh-fedit { display: flex; flex-direction: column; gap: var(--space-lg); }
+.sb-gh-fedit-field { display: flex; flex-direction: column; gap: var(--space-sm); }
+.sb-gh-fedit-label { color: var(--text-primary); font-size: var(--text-sm); }
 .sb-gh-fedit-name, .sb-gh-fedit-query {
-  width: 100%; height: 26px; padding: 0 var(--space-sm);
-  background: var(--surface-sunken); color: var(--text-primary);
-  border: 1px solid var(--border-muted); border-radius: var(--radius-xs);
-  font-size: var(--text-xs);
+  width: 100%; height: 30px; padding: 0 var(--space-md);
+  background: var(--surface-sunken); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-size: var(--text-sm);
 }
-.sb-gh-fedit-bad { color: var(--danger); font-size: var(--text-micro); }
-.sb-gh-fedit-hint {
-  color: var(--text-tertiary); font-size: var(--text-micro);
-  font-family: 'JetBrains Mono', monospace; line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.sb-gh-fedit-link { color: var(--accent); cursor: pointer; font-family: inherit; }
-.sb-gh-fedit-actions { display: flex; gap: var(--space-sm); }
-.sb-gh-fedit-create {
-  padding: var(--space-2xs) var(--space-md);
-  background: transparent; border: 1px solid color-mix(in srgb, var(--accent) var(--alpha-muted), transparent);
-  border-radius: var(--radius-sm); color: var(--accent); font-size: var(--text-xs); cursor: pointer;
-}
-.sb-gh-fedit-create:disabled { opacity: .5; cursor: default; }
-.sb-gh-fedit-cancel {
-  padding: var(--space-2xs) var(--space-md);
-  background: transparent; border: 1px solid var(--border-muted);
-  border-radius: var(--radius-sm); color: var(--text-secondary); font-size: var(--text-xs); cursor: pointer;
-}
-.sb-gh-filter-error {
-  margin: 0 var(--space-md) var(--space-2xs) var(--space-2xl);
-  color: var(--danger); font-size: var(--text-micro);
-}
-.sb-gh-more {
-  margin-left: var(--space-2xl); padding: var(--space-2xs) var(--space-sm);
-  background: transparent; border: none; color: var(--text-tertiary);
-  font-size: var(--text-xs); cursor: pointer; text-align: left;
-}
-.sb-gh-more:hover { color: var(--text-primary); }
+.sb-gh-fedit-name:focus, .sb-gh-fedit-querybox:focus-within { outline: none; border-color: var(--accent); }
 
-/* ── The branch tree (#134) ──────────────────────────────────────
-   A branch name is a path, so the sections draw it as one. Folders are rows
-   of their own; the leaves are the same branch rows as before, indented. */
-.sb-tree-folder {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  /* The left is set inline, per depth, from --sb-indent. */
-  padding: 0 var(--space-lg) 0 0;
-  /* 26, like every other row in the panel: a branch row, a GitHub group, a
-     section header. One vertical rhythm, or the column reads as ragged. */
-  height: 26px;
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.sb-tree-folder:hover { background: var(--surface-hover); color: var(--text-primary); }
-.sb-tree-folder-name { overflow: hidden; text-overflow: ellipsis; }
-/* How many branches are under it — the same courtesy the section headers pay. */
-.sb-tree-folder-count {
-  margin-left: auto;
-  padding-left: var(--space-sm);
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-.sb-gh-fedit-name, .sb-gh-fedit-query { width: 100%; }
-
-.sb-gh-fedit-vocab {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--border-subtle);
-}
-.sb-gh-fedit-vocab-head {
-  color: var(--text-tertiary);
-  font-size: var(--text-tiny);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-weight: var(--weight-bold);
-}
-.sb-gh-fedit-keys { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
-/* Clicking one appends it to the query — the vocabulary is usable, not just
-   readable. */
-.sb-gh-fedit-key {
-  padding: 2px var(--space-sm);
-  background: var(--surface-sunken);
-  border: 1px solid var(--border-subtle);
+/* The verdict sits IN the field: it is about what is typed there. */
+.sb-gh-fedit-querybox {
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding-left: var(--space-md);
+  background: var(--surface-sunken); border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--text-xs);
-  cursor: pointer;
 }
-.sb-gh-fedit-key:hover { color: var(--text-primary); border-color: var(--border-muted); }
+.sb-gh-fedit-querybox--bad { border-color: var(--danger); }
+.sb-gh-fedit-querybox .sb-gh-fedit-query {
+  border: none; background: none; padding-left: 0; height: 28px;
+}
+.sb-gh-fedit-mark--ok { color: var(--success); flex-shrink: 0; }
+.sb-gh-fedit-mark--bad { color: var(--danger); flex-shrink: 0; }
+.sb-gh-fedit-bad { color: var(--danger); font-size: var(--text-xs); }
+
+.sb-gh-fedit-create {
+  width: 100%; height: 32px;
+  background: color-mix(in srgb, var(--success) var(--alpha-faint), transparent);
+  border: 1px solid color-mix(in srgb, var(--success) var(--alpha-muted), transparent);
+  border-radius: var(--radius-sm);
+  color: var(--success-emphasis); font-size: var(--text-sm); cursor: pointer;
+}
+.sb-gh-fedit-create:disabled { opacity: var(--alpha-half); cursor: default; }
+.sb-gh-fedit-create:hover:not(:disabled) { background: color-mix(in srgb, var(--success) var(--alpha-muted), transparent); }
+
+/* The reference. One line per qualifier: the name a person uses, then the
+   syntax with its value spelled out. */
+.sb-gh-fedit-syntax { display: flex; flex-direction: column; gap: var(--space-sm); }
+.sb-gh-fedit-syntax-head { color: var(--text-primary); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.sb-gh-fedit-syntax-by { margin-top: var(--space-sm); }
+.sb-gh-fedit-syntax-more { margin: 0; color: var(--text-secondary); font-size: var(--text-xs); }
+.sb-gh-fedit-link { color: var(--accent); cursor: pointer; }
+.sb-gh-fedit-keys { display: flex; flex-direction: column; gap: var(--space-sm); margin: 0; }
+.sb-gh-fedit-keyrow { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: baseline; }
+.sb-gh-fedit-keyrow dt { color: var(--text-primary); font-size: var(--text-xs); }
+.sb-gh-fedit-keyrow dd { margin: 0; }
+/* Clicking it writes the qualifier into the query. */
+.sb-gh-fedit-key {
+  padding: 0; background: none; border: none; cursor: pointer; text-align: left;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs);
+}
+.sb-gh-fedit-key:hover { color: var(--accent); }
