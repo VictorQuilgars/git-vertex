@@ -2,16 +2,19 @@
    top edge to bottom edge, flush with the surface it extends, so nothing of
    the graph shows above or below it. That is what makes it read as the panel
    having grown rather than as a card laid on top. */
-/* It is PULLED out of the panel and pushed back in — not faded.
-   `translateX(-100%)` starts it entirely behind the panel's edge, so what you
-   see is the drawer sliding out from under it, and the same motion in reverse
-   on the way back. The panel is `overflow: hidden` and this is a portal, so
-   the drawer is never actually seen through it; it simply arrives from there.
-
+/* It is PULLED out of the panel and pushed back in.
+   ⚠️ Not `translateX`. Translating the box by its own width starts it 600px to
+   the LEFT of the panel's edge — out by the side of the screen — and it flies
+   in from there, which is what a sliding panel does, not a drawer.
+   A drawer's back stays where it is and its front travels: the left edge is
+   pinned to the panel's edge and the box is REVEALED rightwards, so it grows
+   out of the panel exactly where it is anchored.
+   `clip-path` rather than `width`, so the form inside is laid out at its final
+   size from the first frame and nothing reflows as it opens.
    The close waits for this to finish before the drawer is unmounted — an exit
    animation on a component that has already gone is no animation at all. */
-@keyframes pdrawer-open  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-@keyframes pdrawer-shut  { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes pdrawer-open { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes pdrawer-shut { from { clip-path: inset(0); } to { clip-path: inset(0 100% 0 0); } }
 
 .pdrawer {
   animation: pdrawer-open var(--dur-base) ease-out;
