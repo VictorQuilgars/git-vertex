@@ -1,0 +1,70 @@
+/* The drawer comes out of the panel's right edge and takes its full height:
+   top edge to bottom edge, flush with the surface it extends, so nothing of
+   the graph shows above or below it. That is what makes it read as the panel
+   having grown rather than as a card laid on top. */
+/* It is PULLED out of the panel and pushed back in.
+   ⚠️ Not `translateX`. Translating the box by its own width starts it 600px to
+   the LEFT of the panel's edge — out by the side of the screen — and it flies
+   in from there, which is what a sliding panel does, not a drawer.
+   A drawer's back stays where it is and its front travels: the left edge is
+   pinned to the panel's edge and the box is REVEALED rightwards, so it grows
+   out of the panel exactly where it is anchored.
+   `clip-path` rather than `width`, so the form inside is laid out at its final
+   size from the first frame and nothing reflows as it opens.
+   The close waits for this to finish before the drawer is unmounted — an exit
+   animation on a component that has already gone is no animation at all. */
+@keyframes pdrawer-open { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes pdrawer-shut { from { clip-path: inset(0); } to { clip-path: inset(0 100% 0 0); } }
+
+.pdrawer {
+  animation: pdrawer-open var(--dur-base) ease-out;
+  position: fixed;
+  z-index: var(--z-drawer);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border-muted);
+  box-shadow: 8px 0 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  overflow: hidden;
+}
+.pdrawer--closing { animation: pdrawer-shut var(--dur-base) ease-in forwards; }
+
+
+.pdrawer-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  height: 40px;
+  padding: 0 var(--space-md) 0 var(--space-2xl);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  flex-shrink: 0;
+}
+.pdrawer-icon { color: var(--text-tertiary); flex-shrink: 0; }
+.pdrawer-title { flex: 1; }
+.pdrawer-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; flex-shrink: 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary); border-radius: var(--radius-xs);
+  font-size: var(--text-lg); line-height: 1;
+}
+.pdrawer-close:hover { color: var(--text-primary); background: var(--surface-hover); }
+
+.pdrawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* The drawer is its own surface, so it takes a surface's padding rather
+     than the panel's indent scale — which lives on `.sidebar` and cannot
+     reach a portal anyway. */
+  padding: var(--space-lg) var(--space-2xl);
+}
+
+/* ⚠️ Reduced motion still needs the close to COMPLETE: the parent unmounts on
+   animationend, so removing the animation entirely would leave the drawer
+   open for ever. It is made instant instead of absent. */
+@media (prefers-reduced-motion: reduce) {
+  .pdrawer, .pdrawer--closing { animation-duration: 1ms; }
+}

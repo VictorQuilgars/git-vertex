@@ -476,8 +476,8 @@ describe('the saved filters', () => {
     })
     draw({ githubPRs: [], ...gh })
     await openEditor()
-    await userEvent.type(screen.getByPlaceholderText('Filter name'), 'Mine')
-    const query = screen.getByPlaceholderText(/label:bug/)
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Mine')
+    const query = screen.getByPlaceholderText(/Enter a query to filter pull requests/)
     await userEvent.type(query, 'reviiew:approved')
     expect(screen.getByText(/Unknown token: reviiew:approved/)).toBeInTheDocument()
     expect(screen.getByText('Create Filter')).toBeDisabled()
@@ -508,7 +508,8 @@ describe('the saved filters', () => {
     draw({ githubIssues: [], ...gh })
     unfold('GITHUB ISSUES')
     await userEvent.click(screen.getByTitle('New Filter'))
-    await userEvent.type(screen.getByPlaceholderText(/label:bug/), 'review:approved')
+    // the issues editor asks for an ISSUES query — the placeholder says which
+    await userEvent.type(screen.getByPlaceholderText(/Enter a query to filter issues/), 'review:approved')
     expect(screen.getByText(/Unknown token: review:approved/)).toBeInTheDocument()
   })
 
@@ -688,7 +689,7 @@ describe('where a section keeps its controls', () => {
     const box = document.querySelector('.sb-gh-search')!
     expect(box.querySelector('.sb-gh-filter-btn')).toBeTruthy()
     await userEvent.click(box.querySelector('.sb-gh-filter-btn') as HTMLElement)
-    expect(await screen.findByPlaceholderText('Filter name')).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText('Enter a name for this filter')).toBeInTheDocument()
   })
 
   test('both sections get it, not just the first', async () => {
@@ -728,5 +729,228 @@ describe('where a section keeps its controls', () => {
     fireEvent.click(screen.getByText('PULL REQUESTS'))   // fold
     unfold('PULL REQUESTS')                               // and back
     expect(screen.getByPlaceholderText(/search pull requests/i)).toHaveValue('')
+  })
+})
+
+// #145 — the filter editor is a drawer out of the panel, not a form wedged
+// into a 280-pixel column. Built to be reused: #130 wants the same drawer.
+describe('the saved-filter drawer', () => {
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+  const drawer = () => document.querySelector('.pdrawer')
+
+  const open = async () => {
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+  }
+
+  test('it opens as a drawer, not inside the section', async () => {
+    await open()
+    expect(drawer()).toBeTruthy()
+    // outside the panel it came from — the panel is `overflow: hidden`, so a
+    // drawer rendered inside it would simply be clipped
+    expect(document.querySelector('.sidebar .pdrawer')).toBeNull()
+  })
+
+  // The part that was squeezed out of the column, and the reason it earns room.
+  test('the section vocabulary is beside the field, and clicking a key writes it', async () => {
+    await open()
+    const key = screen.getByTitle('Add review: to the query')
+    await userEvent.click(key)
+    expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/)).toHaveValue('review:')
+  })
+
+  test("each section brings its own vocabulary — review: is a pull request's", async () => {
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    unfold('GITHUB ISSUES')
+    // only that section is unfolded, so there is exactly one opener on screen
+    await userEvent.click(screen.getByTitle('New Filter'))
+    expect(screen.queryByTitle('Add review: to the query')).toBeNull()
+    expect(screen.getByTitle('Add milestone: to the query')).toBeTruthy()
+  })
+
+  test('the close button shuts it — after the drawer has pulled itself in', async () => {
+    await open()
+    await userEvent.click(screen.getByTitle('Close'))
+    // it is still there, playing its exit
+    expect(drawer()!.className).toContain('pdrawer--closing')
+    fireEvent.animationEnd(drawer()!)
+    await waitFor(() => expect(drawer()).toBeNull())
+  })
+
+  // ⚠️ An animation that never starts must not leave it open: the close is on
+  // a timer as well, and whichever arrives first wins.
+  //
+  // Real timers on purpose. jsdom runs no animations, so nothing here ever
+  // fires `animationend` — which is exactly the situation being tested. Fake
+  // timers would need userEvent to be set up to advance them, and installing
+  // them around a userEvent call that is not is how this test first hung and
+  // left every test after it hanging too.
+  test('a close completes even where no animation runs', async () => {
+    await open()
+    fireEvent.click(screen.getByTitle('Close'))
+    await waitFor(() => expect(drawer()).toBeNull(), { timeout: 2000 })
+  })
+
+  // A drawer is not a modal: the list behind it is meant to be read while the
+  // query is written, so a stray click there must not take the query away.
+  test('a click outside leaves it open', async () => {
+    await open()
+    fireEvent.mouseDown(document.body)
+    await userEvent.click(screen.getByText('LOCAL'))
+    expect(drawer()).toBeTruthy()
+  })
+
+  test('the filter button opens it and never shuts it', async () => {
+    await open()
+    await userEvent.click(screen.getByTitle('New Filter'))
+    expect(drawer()).toBeTruthy()
+  })
+
+  // ⚠️ Escape and click-outside are hostile if they lose what was typed.
+  test('a half-written query survives a close, and emptying it discards', async () => {
+    await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Half')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.animationEnd(drawer()!)
+    await waitFor(() => expect(drawer()).toBeNull())
+
+    await userEvent.click(screen.getByTitle('New Filter'))
+    expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('Half')
+    // it is still a filter being CREATED, not one being edited
+    expect(screen.getByText('Create Filter')).toBeInTheDocument()
+
+    // There is no Cancel: emptying the field is what discards, because an
+    // empty draft is no draft.
+    await userEvent.clear(screen.getByPlaceholderText('Enter a name for this filter'))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.animationEnd(document.querySelector('.pdrawer')!)
+    await waitFor(() => expect(document.querySelector('.pdrawer')).toBeNull())
+    await userEvent.click(screen.getByTitle('New Filter'))
+    expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('')
+  })
+})
+
+// Typing a qualifier should not mean remembering what may follow the colon.
+describe('completing a filter query', () => {
+  // Filters live in localStorage, and a previous test may have saved one.
+  beforeEach(() => localStorage.clear())
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+  const open = async () => {
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+    return screen.getByPlaceholderText(/Enter a query to filter pull requests/)
+  }
+  const options = () => Array.from(document.querySelectorAll('.sb-gh-fedit-option')).map(n => n.textContent)
+
+  test('a qualifier completes, colon included', async () => {
+    const field = await open()
+    await userEvent.type(field, 'stat')
+    expect(options()).toContain('status:')
+    await userEvent.click(screen.getByText('status:'))
+    expect(field).toHaveValue('status:')
+  })
+
+  test('and then its values are offered', async () => {
+    const field = await open()
+    await userEvent.type(field, 'status:')
+    expect(options()).toEqual(['success', 'pending', 'failure'])
+    await userEvent.click(screen.getByText('pending'))
+    expect(field).toHaveValue('status:pending')
+  })
+
+  // A list of user names this app has never fetched would be worse than none.
+  test('a free-text qualifier offers nothing', async () => {
+    const field = await open()
+    await userEvent.type(field, 'author:')
+    expect(options()).toEqual([])
+  })
+
+  test('the arrows move the choice and Enter takes it', async () => {
+    const field = await open()
+    await userEvent.type(field, 'status:')
+    await userEvent.keyboard('{ArrowDown}{Enter}')
+    expect(field).toHaveValue('status:pending')
+  })
+
+  // ⚠️ Escape belongs to the list first: closing the whole drawer on the key
+  // that dismisses a dropdown would lose the query with it.
+  test('Escape closes the list, and only then the drawer', async () => {
+    const field = await open()
+    await userEvent.type(field, 'status:')
+    expect(options().length).toBeGreaterThan(0)
+
+    await userEvent.keyboard('{Escape}')
+    expect(options()).toEqual([])
+    expect(document.querySelector('.pdrawer')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.animationEnd(document.querySelector('.pdrawer')!)
+    await waitFor(() => expect(document.querySelector('.pdrawer')).toBeNull())
+  })
+
+  // The check the user asked for is the one that was already here — this pins
+  // that a half-typed qualifier cannot be saved.
+  test('a qualifier with no value cannot be saved', async () => {
+    const field = await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Mine')
+    await userEvent.type(field, 'status:')
+    expect(screen.getByText('Create Filter')).toBeDisabled()
+    await userEvent.click(screen.getByText('success'))
+    expect(screen.getByText('Create Filter')).toBeEnabled()
+  })
+})
+
+// Victor's panel had two filters called "closed", both showing 50 — two
+// identical rows told apart by nothing, because the editor only ever appended.
+describe('a filter that already exists', () => {
+  // Filters live in localStorage, and a previous test may have saved one.
+  beforeEach(() => localStorage.clear())
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+  const withFilters = (prs: any[]) => {
+    localStorage.setItem('gv:gh-filters:r', JSON.stringify({ prs, issues: [] }))
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+  }
+  const open = async () => {
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+  }
+
+  test('the same name is named, and cannot be saved', async () => {
+    withFilters([{ name: 'closed', query: 'is:closed' }])
+    await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'closed')
+    await userEvent.type(screen.getByPlaceholderText(/Enter a query to filter pull requests/), 'is:open')
+    expect(await screen.findByText(/A filter called .closed. already exists/)).toBeInTheDocument()
+    expect(screen.getByText('Create Filter')).toBeDisabled()
+  })
+
+  test('the check ignores case and surrounding space', async () => {
+    withFilters([{ name: 'Closed', query: 'is:closed' }])
+    await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), '  closed ')
+    expect(await screen.findByText(/already exists/)).toBeInTheDocument()
+  })
+
+  // Two views on the same search can be deliberate, so this is said and not
+  // refused.
+  test('the same query under another name is a warning, not a refusal', async () => {
+    withFilters([{ name: 'Done', query: 'is:closed' }])
+    await open()
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Finished')
+    await userEvent.type(screen.getByPlaceholderText(/Enter a query to filter pull requests/), 'is:closed')
+    expect(await screen.findByText(/.Done. already runs exactly this query/)).toBeInTheDocument()
+    expect(screen.getByText('Create Filter')).toBeEnabled()
+  })
+
+  test('editing a filter does not clash with itself', async () => {
+    withFilters([{ name: 'closed', query: 'is:closed' }])
+    unfold('PULL REQUESTS')
+    await userEvent.pointer({ keys: '[MouseRight]', target: screen.getByText('closed') })
+    await userEvent.click(await screen.findByText('Edit Filter…'))
+    expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('closed')
+    expect(screen.queryByText(/already exists/)).not.toBeInTheDocument()
+    expect(screen.getByText('Save Filter')).toBeEnabled()
   })
 })

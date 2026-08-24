@@ -261,6 +261,8 @@
   --z-raised: 1;
   --z-sticky: 10;
   --z-dropdown: 100;
+  /* Above the graph it opens over, below the menus that can open on top of it. */
+  --z-drawer: 500;
   --z-overlay: 1000;
   --z-modal: 2000;
   --z-toast: 5000;

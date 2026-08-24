@@ -239,26 +239,46 @@
 }
 .sb-section-header:hover { color: var(--text-primary-soft); }
 
-/* ── Header buttons appear on hover (#144) ──────────────────────────────
-   Two controls drawn at rest on every section is a row competing with the
-   count, which is the one thing on that header that must read at a glance.
+/* ── Header buttons appear on hover (#144) ────────────────────────────── */
+/* At rest a header shows its COUNT; on hover the count gives its place to the
+   controls. They occupy ONE slot, stacked on top of each other, so nothing
+   changes width when the pointer arrives — the first attempt animated the
+   buttons' width and the number slid sideways on its way out, which is exactly
+   the movement a cross-fade is for.
 
-   `opacity`, never `display`, so the space stays reserved: the title must not
-   reflow as the pointer crosses the row.
+   The buttons define the slot's size in normal flow; the count is laid over
+   them, right-aligned. Opacity only: nothing moves, ever.
 
-   ⚠️ `:focus-within` is not decoration. A control that exists only on hover is
-   unreachable by keyboard and on a touch screen, so the header shows them when
-   anything inside it takes focus — which is what Tab does.
+   `--pinned` keeps a refresh visible while its section is in flight: its
+   disabled state is the only feedback it has.
 
-   And `--pinned` keeps a refresh visible while its section is in flight: its
-   disabled state is the only feedback there is, and it must not vanish because
-   the pointer moved away. */
+   ⚠️ Never `display`. Both halves stay in the tree, so Tab reaches a button
+   that is invisible — a control only a mouse can find is not a control for
+   everyone. */
+.sb-section-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
 .sb-on-hover { opacity: 0; transition: opacity var(--dur-fast); }
+.sb-section-count {
+  position: absolute;
+  right: 0;
+  transition: opacity var(--dur-fast);
+}
 .sb-section-header:hover .sb-on-hover,
 .sb-section-header:focus-within .sb-on-hover,
 .sb-on-hover:focus-visible,
 .sb-on-hover--pinned { opacity: 1; }
-@media (hover: none) { .sb-on-hover { opacity: 1; } }
+.sb-section-header:hover .sb-section-count,
+.sb-section-header:focus-within .sb-section-count { opacity: 0; }
+/* No hover to wait for: the controls are simply there, and the count moves out
+   of the stack so the two sit side by side. */
+@media (hover: none) {
+  .sb-on-hover { opacity: 1; }
+  .sb-section-count { position: static; }
+}
 
 /* The filter editor's opener, now beside the search field it belongs with. */
 .sb-gh-filter-btn {
@@ -768,51 +788,74 @@
 }
 
 /* ── §4: the filter editor and the saved-filter groups ─────────────────── */
-.sb-gh-fedit {
-  display: flex; flex-direction: column; gap: var(--space-sm);
-  margin: var(--space-xs) var(--space-md) var(--space-sm) var(--space-lg);
-  padding: var(--space-sm); border: 1px solid var(--border-subtle);
+/* In the drawer now (#145): labels above their fields, one primary action,
+   and the reference below it — the layout a form of this size wants once it
+   has the room. */
+.sb-gh-fedit { display: flex; flex-direction: column; gap: var(--space-lg); }
+.sb-gh-fedit-field { display: flex; flex-direction: column; gap: var(--space-sm); }
+.sb-gh-fedit-label { color: var(--text-primary); font-size: var(--text-sm); }
+.sb-gh-fedit-name, .sb-gh-fedit-query {
+  width: 100%; height: 30px; padding: 0 var(--space-md);
+  background: var(--surface-sunken); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+.sb-gh-fedit-name:focus, .sb-gh-fedit-querybox:focus-within { outline: none; border-color: var(--accent); }
+
+/* The verdict sits IN the field: it is about what is typed there. */
+.sb-gh-fedit-querybox {
+  position: relative;
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding-left: var(--space-md);
+  background: var(--surface-sunken); border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
 }
-.sb-gh-fedit-name, .sb-gh-fedit-query {
-  width: 100%; height: 26px; padding: 0 var(--space-sm);
-  background: var(--surface-sunken); color: var(--text-primary);
-  border: 1px solid var(--border-muted); border-radius: var(--radius-xs);
-  font-size: var(--text-xs);
+.sb-gh-fedit-querybox--bad { border-color: var(--danger); }
+.sb-gh-fedit-querybox .sb-gh-fedit-query {
+  border: none; background: none; padding-left: 0; height: 28px;
 }
-.sb-gh-fedit-bad { color: var(--danger); font-size: var(--text-micro); }
-.sb-gh-fedit-hint {
-  color: var(--text-tertiary); font-size: var(--text-micro);
-  font-family: 'JetBrains Mono', monospace; line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.sb-gh-fedit-link { color: var(--accent); cursor: pointer; font-family: inherit; }
-.sb-gh-fedit-actions { display: flex; gap: var(--space-sm); }
+.sb-gh-fedit-mark--ok { color: var(--success); flex-shrink: 0; }
+.sb-gh-fedit-mark--bad { color: var(--danger); flex-shrink: 0; }
+.sb-gh-fedit-bad { color: var(--danger); font-size: var(--text-xs); }
+/* Not a refusal — a second name for the same query can be deliberate. */
+.sb-gh-fedit-note { color: var(--attention); font-size: var(--text-xs); }
+
 .sb-gh-fedit-create {
-  padding: var(--space-2xs) var(--space-md);
-  background: transparent; border: 1px solid color-mix(in srgb, var(--accent) var(--alpha-muted), transparent);
-  border-radius: var(--radius-sm); color: var(--accent); font-size: var(--text-xs); cursor: pointer;
+  width: 100%; height: 32px;
+  background: color-mix(in srgb, var(--success) var(--alpha-faint), transparent);
+  border: 1px solid color-mix(in srgb, var(--success) var(--alpha-muted), transparent);
+  border-radius: var(--radius-sm);
+  color: var(--success-emphasis); font-size: var(--text-sm); cursor: pointer;
 }
-.sb-gh-fedit-create:disabled { opacity: .5; cursor: default; }
-.sb-gh-fedit-cancel {
-  padding: var(--space-2xs) var(--space-md);
-  background: transparent; border: 1px solid var(--border-muted);
-  border-radius: var(--radius-sm); color: var(--text-secondary); font-size: var(--text-xs); cursor: pointer;
+.sb-gh-fedit-create:disabled { opacity: var(--alpha-half); cursor: default; }
+.sb-gh-fedit-create:hover:not(:disabled) { background: color-mix(in srgb, var(--success) var(--alpha-muted), transparent); }
+
+/* The reference. One line per qualifier: the name a person uses, then the
+   syntax with its value spelled out. */
+.sb-gh-fedit-syntax { display: flex; flex-direction: column; gap: var(--space-sm); }
+.sb-gh-fedit-syntax-head { color: var(--text-primary); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.sb-gh-fedit-syntax-by { margin-top: var(--space-sm); }
+.sb-gh-fedit-syntax-more { margin: 0; color: var(--text-secondary); font-size: var(--text-xs); }
+.sb-gh-fedit-link { color: var(--accent); cursor: pointer; }
+.sb-gh-fedit-keys { display: flex; flex-direction: column; gap: var(--space-sm); margin: 0; }
+.sb-gh-fedit-keyrow { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: baseline; }
+.sb-gh-fedit-keyrow dt { color: var(--text-primary); font-size: var(--text-xs); }
+.sb-gh-fedit-keyrow dd { margin: 0; }
+/* Clicking it writes the qualifier into the query. */
+.sb-gh-fedit-key {
+  padding: 0; background: none; border: none; cursor: pointer; text-align: left;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs);
 }
-.sb-gh-filter-error {
-  margin: 0 var(--space-md) var(--space-2xs) var(--space-2xl);
-  color: var(--danger); font-size: var(--text-micro);
-}
-.sb-gh-more {
-  margin-left: var(--space-2xl); padding: var(--space-2xs) var(--space-sm);
-  background: transparent; border: none; color: var(--text-tertiary);
-  font-size: var(--text-xs); cursor: pointer; text-align: left;
-}
-.sb-gh-more:hover { color: var(--text-primary); }
+.sb-gh-fedit-key:hover { color: var(--accent); }
 
 /* ── The branch tree (#134) ──────────────────────────────────────
    A branch name is a path, so the sections draw it as one. Folders are rows
-   of their own; the leaves are the same branch rows as before, indented. */
+   of their own; the leaves are the same branch rows as before, indented.
+
+   Lost once to a careless edit and restored here — without these the row is
+   not a flex line at all, so the count sticks to the folder's name and reads
+   as part of it ("feat2"). */
 .sb-tree-folder {
   display: flex;
   align-items: center;
@@ -830,11 +873,53 @@
   overflow: hidden;
 }
 .sb-tree-folder:hover { background: var(--surface-hover); color: var(--text-primary); }
+/* The wrapper a leaf's indent is applied to — the row inside it is an ordinary
+   branch row. `min-width: 0` is what lets that row's name still ellipsise
+   once it is nested. */
+.sb-tree-leaf { min-width: 0; }
 .sb-tree-folder-name { overflow: hidden; text-overflow: ellipsis; }
-/* How many branches are under it — the same courtesy the section headers pay. */
+/* How many branches are under it — pushed to the right edge, or it reads as
+   part of the name. */
 .sb-tree-folder-count {
   margin-left: auto;
   padding-left: var(--space-sm);
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
+
+/* A saved filter that GitHub refused: the message costs that group, never the
+   section. */
+.sb-gh-filter-error {
+  margin: 0 var(--space-md) var(--space-2xs) var(--space-2xl);
+  color: var(--danger); font-size: var(--text-micro);
+}
+/* "+N more on GitHub", when the page is shorter than the search's own total. */
+.sb-gh-more {
+  margin-left: var(--space-2xl); padding: var(--space-2xs) var(--space-sm);
+  background: transparent; border: none; color: var(--text-tertiary);
+  font-size: var(--text-xs); cursor: pointer; text-align: left;
+}
+
+/* The completion list, under the field it completes. */
+.sb-gh-fedit-suggest {
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  z-index: var(--z-dropdown);
+  margin: var(--space-2xs) 0 0;
+  padding: var(--space-2xs) 0;
+  max-height: 180px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+}
+.sb-gh-fedit-option {
+  padding: var(--space-xs) var(--space-md);
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.sb-gh-fedit-option--on { background: var(--surface-hover); color: var(--text-primary); }
