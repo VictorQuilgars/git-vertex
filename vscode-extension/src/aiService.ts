@@ -176,6 +176,54 @@ export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
+/**
+ * A saved filter described in words → a query. The desktop's twin (#150).
+ *
+ * The vocabulary is handed over rather than assumed: the two sections do not
+ * share one, and a model left to guess writes GitHub's web search syntax —
+ * close enough to look right, wrong enough to be refused. The answer is
+ * checked by the caller against the same validator a typed query goes through.
+ */
+/**
+ * The budget for a filter query. NOT small, however short the answer is: a
+ * reasoning model spends this before it emits anything, and at 128 the
+ * configured one was cut off mid-thought — `finish_reason: length`, empty
+ * content, three times, which is what "the model returned an empty response
+ * after 3 attempts" was. Measured: 128 fails, 512 barely clears, 1024 leaves
+ * room. A ceiling only costs what is used.
+ */
+const AI_QUERY_TOKENS = 1024
+
+export async function aiFilterQuery(
+  cfg: AIConfig, kind: 'prs' | 'issues', described: string, vocabulary: string,
+): Promise<{ query?: string; error?: string }> {
+  if (!described.trim()) return { error: 'nothing to describe' }
+  const what = kind === 'prs' ? 'pull requests' : 'issues'
+  const prompt = [
+    `You write GitHub search queries that filter ${what}.`,
+    `ONLY these qualifiers exist. Using any other is an error:`,
+    vocabulary,
+    // Measured against the configured model: without these three the answers
+    // are valid and wrong. "head contains fix or feat" came back as
+    // `head:fix head:feat`, which ANDs and therefore matches nothing, and
+    // "pull requests I wrote" lost its author entirely for want of @me.
+    `Every term is combined with AND. There is no OR and no wildcard: the same qualifier given twice matches nothing.`,
+    `base: and head: match a branch name by PREFIX, case-insensitively.`,
+    `@me stands for the signed-in user wherever a user_name is taken.`,
+    `Rules: reply with the query and nothing else — no prose, no quotes, no backticks.`,
+    `Use only the qualifiers listed. Bare words are allowed as free text.`,
+    `If the request cannot be expressed exactly, reply with the closest single query that can.`,
+    ``,
+    `Request: ${described.trim()}`,
+  ].join('\n')
+  const r = await runAIPrompt(cfg, prompt, AI_QUERY_TOKENS)
+  if (r.error) return { error: r.error }
+  const query = (r.text ?? '')
+    .replace(/```[a-z]*/gi, '')
+    .split('\n').map(l => l.trim()).filter(Boolean)[0] ?? ''
+  return query ? { query: query.replace(/^["'`]|["'`]$/g, '') } : { error: 'empty answer' }
+}
+
 export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``

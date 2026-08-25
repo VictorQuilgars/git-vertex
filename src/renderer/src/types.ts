@@ -183,6 +183,9 @@ declare global {
     // The preload has had this since the AI commit message shipped; the
     // declaration never followed, so the one caller was typed as a mistake.
     aiGenerateCommitMessage: () => Promise<{ message?: string; error?: string }>
+    /** A saved filter described in words → a query. Checked before it is used. */
+    aiFilterQuery: (kind: 'prs' | 'issues', described: string, vocabulary: string)
+      => Promise<{ query?: string; error?: string }>
     getUpstream: () => Promise<{ upstream: string | null }>
     // Tags
     createTag: (name: string, hash?: string, message?: string) => Promise<R>
