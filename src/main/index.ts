@@ -1629,6 +1629,47 @@ ipcMain.handle('ai:generate-commit-message', async () => {
   return r.error ? { error: r.error } : { message: r.text }
 })
 
+/**
+ * A saved filter, described in words (#150).
+ *
+ * The completion in the drawer helps someone who knows the vocabulary is
+ * there. It does nothing for someone who knows what they want and not how
+ * GitHub spells it — "the ones waiting on my review that nobody has touched
+ * in a fortnight" is one sentence and four qualifiers.
+ *
+ * ⚠️ The vocabulary is HANDED to the model rather than assumed: the two
+ * sections do not share one (`review:` is a pull request's, `milestone:` an
+ * issue's), and a model left to guess writes GitHub's web search syntax, which
+ * is close enough to look right and wrong enough to be refused.
+ *
+ * The answer is not trusted either — see the renderer, which runs it through
+ * the same validator a typed query goes through before it is put in the field.
+ * This is the rare AI action whose output can be checked before anyone sees
+ * it, and not checking it would be a decision.
+ */
+ipcMain.handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: string, vocabulary: string) => {
+  if (!described.trim()) return { error: 'nothing to describe' }
+  const what = kind === 'prs' ? 'pull requests' : 'issues'
+  const prompt = [
+    `You write GitHub search queries that filter ${what}.`,
+    `ONLY these qualifiers exist. Using any other is an error:`,
+    vocabulary,
+    `Rules: reply with the query and nothing else — no prose, no quotes, no backticks.`,
+    `Use only the qualifiers listed. Bare words are allowed as free text.`,
+    `If the request cannot be expressed with them, reply with the closest query you can.`,
+    ``,
+    `Request: ${described.trim()}`,
+  ].join('\n')
+  const r = await runAIPrompt(prompt, 128)
+  if (r.error) return { error: r.error }
+  // Models like to wrap an answer in prose or fences however firmly they are
+  // told not to. The first non-empty line, stripped of them, is the query.
+  const query = (r.text ?? '')
+    .replace(/```[a-z]*/gi, '')
+    .split('\n').map(l => l.trim()).filter(Boolean)[0] ?? ''
+  return query ? { query: query.replace(/^["'`]|["'`]$/g, '') } : { error: 'empty answer' }
+})
+
 // Recompose: regenerate an EXISTING commit's message from its actual diff.
 // The renderer applies the result through the normal amend/reword flow, so
 // the user always reviews the proposal before anything is rewritten.

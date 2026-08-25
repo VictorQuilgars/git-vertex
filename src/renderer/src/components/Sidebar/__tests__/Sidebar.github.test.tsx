@@ -954,3 +954,98 @@ describe('a filter that already exists', () => {
     expect(screen.getByText('Save Filter')).toBeEnabled()
   })
 })
+
+// #150 — the completion helps someone who knows the vocabulary is there. This
+// is for someone who knows what they want and not how GitHub spells it.
+describe('describing a filter in words', () => {
+  beforeEach(() => localStorage.clear())
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+
+  const open = async (aiFilterQuery: any) => {
+    // `draw` takes props only; the API is installed separately in this file.
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+      aiFilterQuery,
+    })
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+    await userEvent.type(
+      screen.getByPlaceholderText(/waiting on my review/), 'ones I still have to review')
+    await userEvent.click(screen.getByText('Write the query'))
+  }
+
+  test('the answer lands in the query field', async () => {
+    const aiFilterQuery = jest.fn().mockResolvedValue({ query: 'review-requested:@me is:open' })
+    await open(aiFilterQuery)
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/))
+        .toHaveValue('review-requested:@me is:open'))
+  })
+
+  // The section is part of the question: `review:` is a pull request's
+  // vocabulary, and a model left to guess writes GitHub's web search syntax.
+  test('the section and its vocabulary are handed to the model', async () => {
+    const aiFilterQuery = jest.fn().mockResolvedValue({ query: 'is:open' })
+    await open(aiFilterQuery)
+    const [kind, described, vocabulary] = aiFilterQuery.mock.calls[0]
+    expect(kind).toBe('prs')
+    expect(described).toContain('review')
+    expect(vocabulary).toContain('review-requested:user_name')
+    expect(vocabulary).not.toContain('milestone:')
+  })
+
+  // ⚠️ The point of the issue: this answer is verifiable, so it is verified.
+  test('an answer using a qualifier we refuse is named, not written', async () => {
+    const aiFilterQuery = jest.fn().mockResolvedValue({ query: 'direction:asc is:open' })
+    await open(aiFilterQuery)
+    expect(await screen.findByText(/The model suggested direction:asc/)).toBeInTheDocument()
+    // and the field is left exactly as it was
+    expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/)).toHaveValue('')
+  })
+
+  test('a refusal is reported and changes nothing', async () => {
+    const aiFilterQuery = jest.fn().mockResolvedValue({ error: 'NO_API_KEY' })
+    await open(aiFilterQuery)
+    expect(await screen.findByText('NO_API_KEY')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/)).toHaveValue('')
+  })
+
+  // Naming a saved view is the other half of creating one, and the sentence is
+  // already a better name than most.
+  test('an unnamed filter takes its name from the sentence', async () => {
+    const aiFilterQuery = jest.fn().mockResolvedValue({ query: 'is:open' })
+    await open(aiFilterQuery)
+    await waitFor(() => expect(screen.getByPlaceholderText('Enter a name for this filter'))
+      .toHaveValue('ones I still have to review'))
+  })
+
+  test('a name already typed is left alone', async () => {
+    const aiFilterQuery = jest.fn().mockResolvedValue({ query: 'is:open' })
+    installMockGitAPI({
+      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
+      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
+      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
+      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
+      aiFilterQuery,
+    })
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    unfold('PULL REQUESTS')
+    await userEvent.click(screen.getByTitle('New Filter'))
+    await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Mine')
+    await userEvent.type(screen.getByPlaceholderText(/waiting on my review/), 'anything')
+    await userEvent.click(screen.getByText('Write the query'))
+    await waitFor(() => expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/))
+      .toHaveValue('is:open'))
+    expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('Mine')
+  })
+})

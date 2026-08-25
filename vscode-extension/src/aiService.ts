@@ -176,6 +176,37 @@ export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
+/**
+ * A saved filter described in words → a query. The desktop's twin (#150).
+ *
+ * The vocabulary is handed over rather than assumed: the two sections do not
+ * share one, and a model left to guess writes GitHub's web search syntax —
+ * close enough to look right, wrong enough to be refused. The answer is
+ * checked by the caller against the same validator a typed query goes through.
+ */
+export async function aiFilterQuery(
+  cfg: AIConfig, kind: 'prs' | 'issues', described: string, vocabulary: string,
+): Promise<{ query?: string; error?: string }> {
+  if (!described.trim()) return { error: 'nothing to describe' }
+  const what = kind === 'prs' ? 'pull requests' : 'issues'
+  const prompt = [
+    `You write GitHub search queries that filter ${what}.`,
+    `ONLY these qualifiers exist. Using any other is an error:`,
+    vocabulary,
+    `Rules: reply with the query and nothing else — no prose, no quotes, no backticks.`,
+    `Use only the qualifiers listed. Bare words are allowed as free text.`,
+    `If the request cannot be expressed with them, reply with the closest query you can.`,
+    ``,
+    `Request: ${described.trim()}`,
+  ].join('\n')
+  const r = await runAIPrompt(cfg, prompt)
+  if (r.error) return { error: r.error }
+  const query = (r.text ?? '')
+    .replace(/```[a-z]*/gi, '')
+    .split('\n').map(l => l.trim()).filter(Boolean)[0] ?? ''
+  return query ? { query: query.replace(/^["'`]|["'`]$/g, '') } : { error: 'empty answer' }
+}
+
 export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``

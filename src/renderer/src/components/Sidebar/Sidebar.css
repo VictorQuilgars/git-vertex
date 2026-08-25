@@ -820,6 +820,26 @@
 /* Not a refusal — a second name for the same query can be deliberate. */
 .sb-gh-fedit-note { color: var(--attention); font-size: var(--text-xs); }
 
+/* Describe it in words, and ask. The field and its button share a row: the
+   sentence is the input and the button is what turns it into a query.
+   In the AI ink, and never a filled button — what a model proposes is a
+   proposal, which is what that colour means here. */
+.sb-gh-fedit-describe { display: flex; gap: var(--space-sm); }
+.sb-gh-fedit-ask {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  padding: 0 var(--space-md); height: 30px;
+  background: transparent;
+  border: 1px solid var(--ai-border);
+  border-radius: var(--radius-sm);
+  color: var(--ai-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sb-gh-fedit-ask:hover:not(:disabled) { background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
+.sb-gh-fedit-ask:disabled { opacity: var(--alpha-half); cursor: default; }
+
 .sb-gh-fedit-create {
   width: 100%; height: 32px;
   background: color-mix(in srgb, var(--success) var(--alpha-faint), transparent);

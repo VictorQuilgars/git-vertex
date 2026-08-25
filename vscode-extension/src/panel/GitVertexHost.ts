@@ -25,7 +25,7 @@ import {
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
-import { readAIConfig, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
+import { readAIConfig, aiFilterQuery, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
@@ -730,6 +730,11 @@ export class GitVertexHost implements vscode.Disposable {
           const u = await res.json() as any
           return { user: { login: u.login, avatar: u.avatar_url }, source: identity.source }
         } catch { return { user: null } }
+      }
+      case 'aiFilterQuery': {
+        const cfg = readAIConfig(this._state)
+        if (!cfg) return { error: 'NO_API_KEY' }
+        return aiFilterQuery(cfg, args[0], args[1], args[2])
       }
       case 'aiGenerateCommitMessage': {
         const cfg = readAIConfig(this._state)

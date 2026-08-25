@@ -148,6 +148,8 @@ const gitAPI = {
   aiGetApiKey: () => ipcRenderer.invoke('ai:get-api-key'),
   aiSetApiKey: (key: string) => ipcRenderer.invoke('ai:set-api-key', key),
   aiGenerateCommitMessage: () => ipcRenderer.invoke('ai:generate-commit-message'),
+  aiFilterQuery: (kind: 'prs' | 'issues', described: string, vocabulary: string) =>
+    ipcRenderer.invoke('ai:filter-query', kind, described, vocabulary),
   aiRecomposeCommit: (hash: string) => ipcRenderer.invoke('ai:recompose-commit', hash),
   aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => ipcRenderer.invoke('ai:explain-commit', hash, force, guidance),
   aiGetExplanations: () => ipcRenderer.invoke('ai:get-explanations'),

@@ -259,6 +259,32 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, o
     })
   }
 
+  // ── Described in words ────────────────────────────────────────
+  const [described, setDescribed] = useState('')
+  const [asking, setAsking] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+
+  const askForQuery = async () => {
+    if (!described.trim() || asking) return
+    setAsking(true); setAiError(null)
+    const vocabulary = ghFilterSyntax(kind).map(k => `${k.syntax}   (${k.label})`).join('\n')
+    const r = await ((window.gitAPI as any).aiFilterQuery?.(kind, described, vocabulary)
+      ?? Promise.resolve({ error: 'not-implemented' })).catch((e: any) => ({ error: e.message }))
+    setAsking(false)
+    if (r?.error || !r?.query) { setAiError(r?.error ?? 'empty answer'); return }
+
+    // ⚠️ The answer is CHECKED before it is used. Every other AI action here
+    // proposes prose a person reads; this one proposes a query, and the same
+    // validator a typed query goes through can say whether it is one. Writing
+    // an invalid query into the field as though it were fine would be a
+    // choice, and the wrong one (#150).
+    const v = validateGhQuery(r.query, kind)
+    if (!v.ok) { setAiError(t('sb.gh.filter.aiBadToken', (v as any).bad)); return }
+    setQuery(r.query)
+    // The sentence that was typed is usually a better name than most.
+    if (!name.trim()) setName(described.trim().slice(0, 40))
+  }
+
   const onQueryKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!suggest) {
       // Escape with no list open belongs to the drawer, which closes on it.
@@ -337,6 +363,25 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, o
       {!nameTaken && sameQueryAs && (
         <div className="sb-gh-fedit-note">{t('sb.gh.filter.sameQuery', sameQueryAs)}</div>
       )}
+
+      {/* Described in words, since the completion only helps someone who
+          already knows the vocabulary is there. */}
+      <label className="sb-gh-fedit-field">
+        <span className="sb-gh-fedit-label">{t('sb.gh.filter.describeLabel')}</span>
+        <div className="sb-gh-fedit-describe">
+          <input className="sb-gh-fedit-name" value={described}
+            placeholder={t('sb.gh.filter.describePlaceholder')}
+            onChange={e => setDescribed(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void askForQuery() } }} />
+          <button type="button" className="sb-gh-fedit-ask"
+            disabled={!described.trim() || asking}
+            onClick={() => void askForQuery()}>
+            <Icon name="ai" size={13} />
+            {asking ? t('sb.gh.filter.asking') : t('sb.gh.filter.ask')}
+          </button>
+        </div>
+      </label>
+      {aiError && <div className="sb-gh-fedit-bad">{aiError}</div>}
 
       <button className="sb-gh-fedit-create" disabled={!ready}
         onClick={() => onCreate({ name: name.trim(), query: query.trim() })}>
