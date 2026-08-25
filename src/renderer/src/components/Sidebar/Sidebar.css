@@ -269,6 +269,11 @@
   position: absolute;
   right: 0;
   transition: opacity var(--dur-fast);
+  /* The count paints OVER the buttons (last in the slot), and opacity 0 does
+     not stop an element catching clicks — every press on the controls was
+     landing on the invisible chip and folding the section instead. The chip
+     is display only; clicks belong to whatever is under it. */
+  pointer-events: none;
 }
 .sb-section-header:hover .sb-on-hover,
 .sb-section-header:focus-within .sb-on-hover,
