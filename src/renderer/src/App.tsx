@@ -37,7 +37,7 @@ import {
   type GraphVisibility, type RefFamily,
 } from './utils/graphVisibility'
 import InitModal from './components/InitModal/InitModal'
-import PRModal from './components/PRModal/PRModal'
+import PRComposer from './components/PRComposer/PRComposer'
 import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
 import { canonicalRef, publishedNameFor } from './components/ContextMenu/branchRefs'
@@ -359,6 +359,8 @@ export default function App() {
   // Which pull request the composer is opening — head, base and whether the
   // head still has to be pushed. Decided by prIntentFor, never by the composer.
   const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
+  // The left panel's box — what the composer's drawer measures itself against.
+  const sidebarPanelRef = useRef<HTMLDivElement | null>(null)
   // Branch everything merges into (origin/HEAD). Drives which pull requests
   // make sense at all, so it is loaded with the repo rather than on demand.
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
@@ -1750,8 +1752,8 @@ export default function App() {
   }
 
   // The pull request the checked-out branch offers — null on the default
-  // branch, which is where requests land rather than start. Both the toolbar
-  // button and the branch strip follow it.
+  // branch, which is where requests land rather than start. The toolbar
+  // button, the branch strip and the PULL REQUESTS header's `+` all follow it.
   const currentBranchPR = prIntentFor(currentBranch)
 
   const handleCopyBranchLink = (name: string) => {
@@ -2388,7 +2390,7 @@ export default function App() {
       <div className="app-body" style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
         {repoPath && !viewTab && (
-        <div className="app-sidebar" style={{ width: sidebarW }}>
+        <div className="app-sidebar" style={{ width: sidebarW }} ref={sidebarPanelRef}>
           {(
             <Sidebar
               githubPRs={githubPRs}
@@ -2454,6 +2456,8 @@ export default function App() {
               showAllBranches={showAllBranches}
               onToggleAllBranches={() => setShowAllBranches(v => !v)}
               onRefreshGithub={refreshGithubSection}
+              onStartPR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
+              onNewIssue={remoteRepo ? () => window.gitAPI.openExternal(remoteUrl.newIssue(remoteRepo)) : undefined}
               githubRefreshing={githubRefreshing}
               githubRefreshTick={githubRefreshTick}
               githubPollTick={githubPollTick}
@@ -2777,12 +2781,14 @@ export default function App() {
         />
       )}
 
-      {/* PR Modal */}
+      {/* PR composer — a drawer out of the left panel, not a modal (#130) */}
       {prModalOpen && githubOwnerRepo && prIntent && (
-        <PRModal
+        <PRComposer
           owner={githubOwnerRepo.owner}
           repo={githubOwnerRepo.repo}
           intent={prIntent}
+          branches={branches}
+          anchor={sidebarPanelRef}
           onClose={() => { setPrModalOpen(false); setPrIntent(null) }}
           onPushed={loadRepoData}
           onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'prs') }}

@@ -440,6 +440,8 @@ const fr = {
   'gh.detail.addComment': 'Ajouter le commentaire',
   'gh.detail.selectPlaceholder': 'Filtrer…',
   'sb.gh.filter.new': 'Nouveau filtre',
+  'sb.gh.newPr': 'Démarrer une pull request depuis la branche courante',
+  'sb.gh.newIssue': 'Nouvelle issue sur GitHub',
   'sb.gh.filter.name': 'Nom du filtre',
   'sb.gh.filter.query': 'label:bug state:open…',
   'sb.gh.filter.create': 'Créer le filtre',
@@ -1349,6 +1351,11 @@ const fr = {
   'pr.noAuth': 'Connectez-vous à GitHub dans les Paramètres.',
   'pr.noRemote': 'Aucun remote GitHub détecté.',
   'pr.error': (e: string) => `Erreur : ${e}`,
+  'pr.generate': 'Rédiger le titre et la description',
+  'pr.generating': 'Rédaction…',
+  'pr.draftLabel': 'Ouvrir en brouillon',
+  'pr.sourceRepo': 'Dépôt source',
+  'pr.targetRepo': 'Dépôt de destination',
 
   // GitHub Panel
   'gh.panel.noRepo': 'Aucun remote GitHub détecté pour ce dépôt.',
@@ -1995,6 +2002,8 @@ const en: typeof fr = {
   'gh.detail.addComment': 'Add Comment',
   'gh.detail.selectPlaceholder': 'Select…',
   'sb.gh.filter.new': 'New Filter',
+  'sb.gh.newPr': 'Start a pull request from the current branch',
+  'sb.gh.newIssue': 'New issue on GitHub',
   'sb.gh.filter.name': 'Filter name',
   'sb.gh.filter.query': 'label:bug state:open…',
   'sb.gh.filter.create': 'Create Filter',
@@ -2906,6 +2915,11 @@ const en: typeof fr = {
   'pr.noAuth': 'Connect to GitHub in Settings.',
   'pr.noRemote': 'No GitHub remote detected.',
   'pr.error': (e: string) => `Error: ${e}`,
+  'pr.generate': 'Draft the title and description',
+  'pr.generating': 'Writing…',
+  'pr.draftLabel': 'Open as a draft',
+  'pr.sourceRepo': 'Source repository',
+  'pr.targetRepo': 'Target repository',
 
   // GitHub Panel
   'gh.panel.noRepo': 'No GitHub remote detected for this repository.',

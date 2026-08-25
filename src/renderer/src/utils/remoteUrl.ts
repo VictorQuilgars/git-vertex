@@ -52,6 +52,8 @@ const SHAPES: Record<HostKind, {
   compare: (a: string, b: string) => string
   pullRequest: (n: number) => string
   issue: (n: number) => string
+  /** The host's own "open a new issue" form. */
+  newIssue: () => string
 }> = {
   github: {
     commit: h => `/commit/${h}`,
@@ -62,6 +64,7 @@ const SHAPES: Record<HostKind, {
     compare: (a, b) => `/compare/${a}...${b}`,
     pullRequest: n => `/pull/${n}`,
     issue: n => `/issues/${n}`,
+    newIssue: () => '/issues/new/choose',
   },
   gitlab: {
     commit: h => `/-/commit/${h}`,
@@ -72,6 +75,7 @@ const SHAPES: Record<HostKind, {
     compare: (a, b) => `/-/compare/${a}...${b}`,
     pullRequest: n => `/-/merge_requests/${n}`,
     issue: n => `/-/issues/${n}`,
+    newIssue: () => '/-/issues/new',
   },
   bitbucket: {
     commit: h => `/commits/${h}`,
@@ -82,6 +86,7 @@ const SHAPES: Record<HostKind, {
     compare: (a, b) => `/branches/compare/${b}%0D${a}`,
     pullRequest: n => `/pull-requests/${n}`,
     issue: n => `/issues/${n}`,
+    newIssue: () => '/issues/new',
   },
 }
 
@@ -285,4 +290,7 @@ export const remoteUrl = {
 
   issue: (r: RemoteRepo, number: number): string =>
     r.base + SHAPES[r.kind].issue(number),
+
+  /** The host's "open a new issue" form — the app has no composer for one. */
+  newIssue: (r: RemoteRepo): string => r.base + SHAPES[r.kind].newIssue(),
 }

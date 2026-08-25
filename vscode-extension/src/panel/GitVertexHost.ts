@@ -21,11 +21,12 @@ import {
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, type GithubApi,
   githubIssueComments, githubAddIssueComment, githubUpdateIssue,
   githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks, githubMergePR,
+  githubRepoParent,
 } from '../githubApi'
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
-import { readAIConfig, aiFilterQuery, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
+import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
@@ -598,8 +599,9 @@ export class GitVertexHost implements vscode.Disposable {
       // bare "#123 — owner/repo" with no title or state.
       case 'githubGetIssue': return githubGetIssue(await this._githubApi(), args[0], args[1], args[2])
       case 'githubCreatePR':
-        return githubCreatePR(await this._githubApi(), args[0], args[1], args[2], args[3], args[4], args[5])
+        return githubCreatePR(await this._githubApi(), args[0], args[1], args[2], args[3], args[4], args[5], args[6])
       case 'githubListBranches': return githubListBranches(await this._githubApi(), args[0], args[1])
+      case 'githubRepoParent': return githubRepoParent(await this._githubApi(), args[0], args[1])
       // A search across everything the account can see, rather than one
       // repository — what a saved filter and an "assigned to me" group are.
       case 'githubSearchIssues': return githubSearchIssues(await this._githubApi(), args[0], args[1])
@@ -735,6 +737,30 @@ export class GitVertexHost implements vscode.Disposable {
         const cfg = readAIConfig(this._state)
         if (!cfg) return { error: 'NO_API_KEY' }
         return aiFilterQuery(cfg, args[0], args[1], args[2])
+      }
+      // The material is assembled here — aiService has no repository to ask.
+      // Same ref resolution as the desktop handler: the base as the remote
+      // holds it when possible, the head as the local repo does.
+      case 'aiPrDescription': {
+        const cfg = readAIConfig(this._state)
+        if (!cfg) return { error: 'NO_API_KEY' }
+        if (!svc) return { error: 'No repository open' }
+        const resolveRef = async (name: string, preferLocal: boolean): Promise<string> => {
+          const candidates = preferLocal
+            ? [`refs/heads/${name}`, `refs/remotes/origin/${name}`]
+            : [`refs/remotes/origin/${name}`, `refs/heads/${name}`]
+          for (const c of candidates) {
+            try { await svc.raw(['rev-parse', '--verify', '--quiet', c]); return c } catch { /* next */ }
+          }
+          return name
+        }
+        const base = await resolveRef(args[0], false)
+        const head = await resolveRef(args[1], true)
+        const subjects = (await svc.raw(['log', '--format=%s', `${base}..${head}`]).catch(() => ''))
+          .split('\n').map(s => s.trim()).filter(Boolean)
+        const diffstat = await svc.raw(['diff', '--stat', `${base}...${head}`]).catch(() => '')
+        const diff = await svc.raw(['diff', `${base}...${head}`]).catch(() => '')
+        return aiPrDescription(cfg, args[0], args[1], subjects, diffstat, diff)
       }
       case 'aiGenerateCommitMessage': {
         const cfg = readAIConfig(this._state)

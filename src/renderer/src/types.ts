@@ -186,6 +186,9 @@ declare global {
     /** A saved filter described in words → a query. Checked before it is used. */
     aiFilterQuery: (kind: 'prs' | 'issues', described: string, vocabulary: string)
       => Promise<{ query?: string; error?: string }>
+    /** The composer's title and description, generated together (#130). */
+    aiPrDescription: (base: string, head: string)
+      => Promise<{ title?: string; body?: string; error?: string }>
     getUpstream: () => Promise<{ upstream: string | null }>
     // Tags
     createTag: (name: string, hash?: string, message?: string) => Promise<R>
@@ -355,8 +358,11 @@ declare global {
     githubDetectRepo: () => Promise<{ owner?: string; repo?: string }>
     githubDetectRepoAt: (path: string) => Promise<{ owner?: string; repo?: string }>
     githubCreateRepo: (opts: Unnarrowed) => Promise<Unnarrowed>
-    githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) => Promise<Unnarrowed>
+    githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string, draft?: boolean) => Promise<Unnarrowed>
     githubListBranches: (owner: string, repo: string) => Promise<Unnarrowed>
+    /** A fork's parent, or null — the composer offers it as a target (#130). */
+    githubRepoParent: (owner: string, repo: string)
+      => Promise<{ parent: { owner: string; repo: string; defaultBranch: string | null } | null }>
     githubSharePatch: (hash: string) => Promise<Unnarrowed>
     githubShareWipPatch: (repoPath: string) => Promise<Unnarrowed>
     githubListPRs: (owner: string, repo: string) => Promise<Unnarrowed>

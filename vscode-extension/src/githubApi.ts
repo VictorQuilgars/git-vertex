@@ -157,16 +157,22 @@ export async function githubGetIssue(
  * Open a pull request. The head branch must already be on the remote — the
  * shared PRModal pushes it first, which is why its button says so.
  */
+// `head` crosses repositories as `owner:branch` — the fork case (#130). GitHub
+// reads the bare form as "this repository's branch", so same-repo callers
+// change nothing.
 export async function githubCreatePR(
   api: GithubApi,
   owner: string, repo: string, title: string, body: string, head: string, base: string,
+  draft?: boolean,
 ): Promise<any> {
   if (!api.token) return { error: 'not_authenticated' }
   try {
     const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls`, {
       method: 'POST',
       headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, body, head, base }),
+      // A refused `draft` (plan without draft PRs) comes back through the
+      // errors array below, named — not swallowed.
+      body: JSON.stringify({ title, body, head, base, draft: !!draft }),
     })
     const data = await res.json() as any
     if (!res.ok) {
@@ -185,6 +191,31 @@ export async function githubCreatePR(
     }
     return { url: data.html_url, number: data.number }
   } catch (e: any) { return { error: e.message } }
+}
+
+/**
+ * A fork's parent, or null — the composer offers it as a target (#130).
+ * Every failure reads as "not a fork": a composer that cannot ask this
+ * question still composes.
+ */
+export async function githubRepoParent(
+  api: GithubApi, owner: string, repo: string,
+): Promise<{ parent: { owner: string; repo: string; defaultBranch: string | null } | null }> {
+  if (!api.token) return { parent: null }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}`, { headers: HEADERS(api.token) })
+    if (!res.ok) return { parent: null }
+    const data = await res.json() as any
+    return data.fork && data.parent
+      ? {
+          parent: {
+            owner: data.parent.owner.login,
+            repo: data.parent.name,
+            defaultBranch: data.parent.default_branch ?? null,
+          }
+        }
+      : { parent: null }
+  } catch { return { parent: null } }
 }
 
 /** Branches the remote holds — the base selector of the PR composer. */
@@ -613,6 +644,8 @@ export async function githubListRepos(api: GithubApi): Promise<any> {
         updatedAt: r.updated_at,
         cloneUrl: r.clone_url,
         sshUrl: r.ssh_url,
+        // The composer picks a target repository's base from this (#130).
+        defaultBranch: r.default_branch ?? null,
       })),
     }
   } catch (e: any) { return { error: e.message } }

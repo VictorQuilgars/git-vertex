@@ -147,6 +147,16 @@ interface SidebarProps {
   showAllBranches?: boolean
   onToggleAllBranches?: () => void
   onRefreshGithub?: (section: 'prs' | 'issues') => void
+  /**
+   * The header's `+` on PULL REQUESTS — opens the composer for the request
+   * the checked-out branch proposes. The caller passes it only when
+   * `prIntentFor` has an answer: on the default branch there is nothing to
+   * start (rule 2), and a `+` that opens an error would be worse than none.
+   */
+  onStartPR?: () => void
+  /** The header's `+` on GITHUB ISSUES — the host's own new-issue form; the
+   *  app has no composer for one. */
+  onNewIssue?: () => void
   /** The section currently in flight, so its button is out of action. */
   githubRefreshing?: 'prs' | 'issues' | null
   /** Bumped per section on a manual refresh — see GhFilterGroup. */
@@ -1194,7 +1204,7 @@ export default function Sidebar({
   isFavorite, issueFor, onToggleFavorite,
   onOpenBranchOnRemote, onAssociateIssue, prIntentFor, onCreatePR,
   showAllBranches, onToggleAllBranches,
-  onRefreshGithub, githubRefreshing, githubRefreshTick, githubPollTick,
+  onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick,
   onCopyBranchLink, onDeleteBranchBoth,
   showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
 }: SidebarProps) {
@@ -1869,6 +1879,7 @@ export default function Sidebar({
               on. Absent entirely when the host has no GitHub here. */}
           {githubPRs && show('prs') && (
             <Section title="PULL REQUESTS" icon="pullRequest" count={githubPRs.length} defaultOpen={single}
+              onAdd={onStartPR && (() => onStartPR())} addLabel={t('sb.gh.newPr')}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('prs'))}
               refreshing={githubRefreshing === 'prs'}
               onFold={() => setPrsQuery('')}>
@@ -1937,6 +1948,7 @@ export default function Sidebar({
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
             <Section title="GITHUB ISSUES" brand="github" count={githubIssues.length} defaultOpen={single}
+              onAdd={onNewIssue && (() => onNewIssue())} addLabel={t('sb.gh.newIssue')}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('issues'))}
               refreshing={githubRefreshing === 'issues'}
               onFold={() => setIssuesQuery('')}>

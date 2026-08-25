@@ -74,6 +74,39 @@ export interface PRContext {
 const remoteName = (ref: string): string | null => ref.match(/^remotes\/([^/]+)\//)?.[1] ?? null
 
 /**
+ * Which short names the remote holds and which are local — the one reading of
+ * `branches` that rule 1 and the push question share.
+ */
+function branchIndex(branches: readonly BranchInfo[]) {
+  const remotes = remoteNames(branches as BranchInfo[])
+  const published = new Map<string, string>()
+  const locals = new Map<string, BranchInfo>()
+  for (const b of branches) {
+    if (b.remote) {
+      const s = shortName(b.name, remotes)
+      if (!published.has(s)) published.set(s, remoteName(b.name) ?? '')
+    } else {
+      locals.set(b.name, b)
+    }
+  }
+  return { remotes, published, locals }
+}
+
+/**
+ * Whether starting a request from `branch` means pushing it first. Exported
+ * for the composer, which lets the head be re-chosen (#130) — the intent's
+ * own `needsPush` answered for the head the rules proposed, not the one
+ * picked. Same three states as the header comment: tip on the remote, tip
+ * ahead of it, branch local-only — and a remote-only branch needs nothing.
+ */
+export function branchNeedsPush(branch: string, branches: readonly BranchInfo[]): boolean {
+  const { published, locals } = branchIndex(branches)
+  const local = locals.get(branch)
+  if (!local) return false
+  return !published.has(branch) || (local.ahead ?? 0) > 0
+}
+
+/**
  * The pull request a branch row should offer, or `null` when it should offer
  * none. `targetRef` is the row's ref as git names it (`main`, `remotes/origin/main`).
  */
@@ -92,27 +125,13 @@ function proposeFor(targetRef: string, ctx: PRContext): PRIntent | null {
   if (!currentBranch) return null   // detached HEAD — nothing to propose
 
   // Short name → the remote holding it, for every branch the remote has.
-  const remotes = remoteNames(branches)
-  const published = new Map<string, string>()
-  const locals = new Map<string, BranchInfo>()
-  for (const b of branches) {
-    if (b.remote) {
-      const s = shortName(b.name, remotes)
-      if (!published.has(s)) published.set(s, remoteName(b.name) ?? '')
-    } else {
-      locals.set(b.name, b)
-    }
-  }
+  const { remotes, published } = branchIndex(branches)
 
   const labelFor = (branch: string): string => {
     const remote = published.get(branch)
     return remote ? `${remote}/${branch}` : branch
   }
-  const needsPushFor = (branch: string): boolean => {
-    const local = locals.get(branch)
-    if (!local) return false                                  // remote-only: already up there
-    return !published.has(branch) || (local.ahead ?? 0) > 0
-  }
+  const needsPushFor = (branch: string): boolean => branchNeedsPush(branch, branches)
   // A base has to be a branch the remote already holds (rule 1).
   const usableBase = (branch: string | null): branch is string =>
     !!branch && published.has(branch)

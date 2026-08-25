@@ -224,6 +224,56 @@ export async function aiFilterQuery(
   return query ? { query: query.replace(/^["'`]|["'`]$/g, '') } : { error: 'empty answer' }
 }
 
+/**
+ * The composer's title and description, generated together — the desktop's
+ * twin (#130). The host assembles the material (subjects, diffstat, diff) from
+ * its own git service, because this module has no repository to ask; the
+ * prompt and its budgets stay identical to src/main/index.ts. One call for
+ * both fields: they are one answer about one branch, and two calls would let
+ * them disagree.
+ */
+const PR_SUBJECTS_MAX = 50
+const PR_DIFF_BUDGET = 12000
+const PR_DESCRIPTION_TOKENS = 1024
+
+export async function aiPrDescription(
+  cfg: AIConfig, baseName: string, headName: string,
+  subjects: string[], diffstat: string, diff: string,
+): Promise<{ title?: string; body?: string; error?: string }> {
+  if (subjects.length === 0) return { error: `No commits between ${baseName} and ${headName}` }
+  const listed = subjects.slice(0, PR_SUBJECTS_MAX)
+  const omitted = subjects.length - listed.length
+  const cut = diff.length > PR_DIFF_BUDGET
+  const prompt = [
+    `You write pull request titles and descriptions for a Git branch.`,
+    `First line of your reply: the title — imperative, specific, at most 72 characters.`,
+    `Then a blank line, then the description in Markdown: one short paragraph saying what the branch does and why, then a bullet list of the notable changes. No heading that restates the title, no preamble, no code fences around the reply.`,
+    `Write in English. Reply with nothing but the title and the description.`,
+    ``,
+    `Branch: ${headName} into ${baseName}`,
+    `Commit subjects (${subjects.length}):`,
+    listed.map(s => `- ${s}`).join('\n') + (omitted > 0 ? `\n- … and ${omitted} more` : ''),
+    ``,
+    `Diffstat:`,
+    truncateDiff(diffstat, 3000),
+    ``,
+    cut
+      ? `The full diff is too large to include; what follows is its beginning. Weigh the diffstat and the subjects for the rest.`
+      : `Full diff:`,
+    '```diff',
+    truncateDiff(diff, PR_DIFF_BUDGET),
+    '```',
+  ].join('\n')
+  const r = await runAIPrompt(cfg, prompt, PR_DESCRIPTION_TOKENS)
+  if (r.error) return { error: r.error }
+  const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
+  const at = lines.findIndex(l => l.trim())
+  if (at < 0) return { error: 'empty answer' }
+  const title = lines[at].trim().replace(/^["'#*\s]+|["'*\s]+$/g, '')
+  const body = lines.slice(at + 1).join('\n').trim()
+  return { title, body }
+}
+
 export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``

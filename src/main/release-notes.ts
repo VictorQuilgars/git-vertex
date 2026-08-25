@@ -4,6 +4,13 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧵 The pull request composer
+- **A drawer out of the left panel**, like the filter editor — the graph stays readable beside it.
+- **The title and description write themselves** on request: one call reads the branch — subjects, diffstat, and as much diff as fits — and fills both fields for you to edit. It never submits.
+- **Choose all four ends** — source repository and branch, target repository and branch. A fork's parent is offered as a target, and a cross-repository head spells itself \`owner:branch\`.
+- **Open as a draft**, at last a checkbox.
+- **A \`+\` on the section headers**: PULL REQUESTS opens the composer for the checked-out branch, GITHUB ISSUES opens GitHub's own new-issue form.
+
 ### ✅ The chip that confirms an action, redesigned
 - It no longer lands on the **Commit button**: the stack sits at the bottom **centre**, clear of the control you reach for next, and it fits a narrow VS Code panel.
 - A **chip, not a tinted card**: one line on the ordinary surface, with a real icon in the colour of the outcome. A success no longer shouts as loudly as a failure.

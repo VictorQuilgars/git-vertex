@@ -1067,3 +1067,33 @@ describe('describing a filter in words', () => {
     expect(screen.getByPlaceholderText('Enter a name for this filter')).toHaveValue('Mine')
   })
 })
+
+// The section headers can START things: `+` on PULL REQUESTS opens the
+// composer, `+` on GITHUB ISSUES opens the host's own new-issue form. Each
+// exists only when its caller has something for it to do — a `+` that opens
+// an error, or nothing, would be worse than none.
+describe('the + on the github section headers', () => {
+  const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
+
+  test('the + on PULL REQUESTS opens the composer', async () => {
+    const onStartPR = jest.fn()
+    draw({ githubPRs: [], githubIssues: [], ...gh, onStartPR })
+    await userEvent.click(screen.getByTitle('Start a pull request from the current branch'))
+    expect(onStartPR).toHaveBeenCalled()
+  })
+
+  test('the + on GITHUB ISSUES opens the host form', async () => {
+    const onNewIssue = jest.fn()
+    draw({ githubPRs: [], githubIssues: [], ...gh, onNewIssue })
+    await userEvent.click(screen.getByTitle('New issue on GitHub'))
+    expect(onNewIssue).toHaveBeenCalled()
+  })
+
+  // On the default branch prIntentFor proposes nothing (rule 2), and the
+  // caller passes no handler — so there is no button, not a dead one.
+  test('no proposal, no +', () => {
+    draw({ githubPRs: [], githubIssues: [], ...gh })
+    expect(screen.queryByTitle('Start a pull request from the current branch')).not.toBeInTheDocument()
+    expect(screen.queryByTitle('New issue on GitHub')).not.toBeInTheDocument()
+  })
+})

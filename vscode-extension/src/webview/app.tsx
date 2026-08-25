@@ -30,7 +30,7 @@ import CompareView from '../../../src/renderer/src/components/CompareView/Compar
 import CompareWorkingView from './CompareWorkingView'
 import GitHubPanel from '../../../src/renderer/src/components/GitHubPanel/GitHubPanel'
 import AssociateIssueModal from '../../../src/renderer/src/components/IssueLink/AssociateIssueModal'
-import PRModal from '../../../src/renderer/src/components/PRModal/PRModal'
+import PRComposer from '../../../src/renderer/src/components/PRComposer/PRComposer'
 import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
@@ -944,6 +944,8 @@ function VertexApp() {
   const stacked = viewportW < 640
 
   const appBodyRef = useRef<HTMLDivElement>(null)
+  // The composer's drawer measures this — see the post beside .app-center.
+  const composerAnchorRef = useRef<HTMLDivElement>(null)
 
   // The right panel is always freely resizable (drag its handle). We no longer
   // auto-widen it when the terminal is short — that fought the user's own sizing;
@@ -1148,6 +1150,8 @@ function VertexApp() {
             showAllBranches={showAllBranches}
             onToggleAllBranches={() => setShowAllBranches(v => !v)}
             onRefreshGithub={refreshGithubSection}
+            onStartPR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
+            onNewIssue={remoteRepo ? () => window.gitAPI.openExternal(remoteUrl.newIssue(remoteRepo)) : undefined}
             githubRefreshing={githubRefreshing}
             githubRefreshTick={githubRefreshTick}
             onDeleteTag={handleDeleteTag}
@@ -1184,6 +1188,10 @@ function VertexApp() {
           <div className="resize-handle" onMouseDown={startResizeSide} />
           </>
         )}
+        {/* Where the composer's drawer emerges: the right edge of whatever
+            panel column exists — and the window's left edge when none does
+            (stacked). Zero width: a measuring post, not layout. */}
+        <div ref={composerAnchorRef} style={{ width: 0, alignSelf: 'stretch' }} />
         <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           {issueDetail && githubRepo ? (
             issueDetail.kind === 'pr' ? (
@@ -1334,10 +1342,12 @@ function VertexApp() {
         />
       )}
       {prIntent && githubRepo && (
-        <PRModal
+        <PRComposer
           owner={githubRepo.owner}
           repo={githubRepo.repo}
           intent={prIntent}
+          branches={branches}
+          anchor={composerAnchorRef}
           // The composer pushes before creating, so ahead/behind and the
           // branch's published state are both stale afterwards.
           onPushed={() => loadRepoData(true)}
