@@ -184,6 +184,16 @@ export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string)
  * close enough to look right, wrong enough to be refused. The answer is
  * checked by the caller against the same validator a typed query goes through.
  */
+/**
+ * The budget for a filter query. NOT small, however short the answer is: a
+ * reasoning model spends this before it emits anything, and at 128 the
+ * configured one was cut off mid-thought — `finish_reason: length`, empty
+ * content, three times, which is what "the model returned an empty response
+ * after 3 attempts" was. Measured: 128 fails, 512 barely clears, 1024 leaves
+ * room. A ceiling only costs what is used.
+ */
+const AI_QUERY_TOKENS = 1024
+
 export async function aiFilterQuery(
   cfg: AIConfig, kind: 'prs' | 'issues', described: string, vocabulary: string,
 ): Promise<{ query?: string; error?: string }> {
@@ -193,13 +203,20 @@ export async function aiFilterQuery(
     `You write GitHub search queries that filter ${what}.`,
     `ONLY these qualifiers exist. Using any other is an error:`,
     vocabulary,
+    // Measured against the configured model: without these three the answers
+    // are valid and wrong. "head contains fix or feat" came back as
+    // `head:fix head:feat`, which ANDs and therefore matches nothing, and
+    // "pull requests I wrote" lost its author entirely for want of @me.
+    `Every term is combined with AND. There is no OR and no wildcard: the same qualifier given twice matches nothing.`,
+    `base: and head: match a branch name by PREFIX, case-insensitively.`,
+    `@me stands for the signed-in user wherever a user_name is taken.`,
     `Rules: reply with the query and nothing else — no prose, no quotes, no backticks.`,
     `Use only the qualifiers listed. Bare words are allowed as free text.`,
-    `If the request cannot be expressed with them, reply with the closest query you can.`,
+    `If the request cannot be expressed exactly, reply with the closest single query that can.`,
     ``,
     `Request: ${described.trim()}`,
   ].join('\n')
-  const r = await runAIPrompt(cfg, prompt)
+  const r = await runAIPrompt(cfg, prompt, AI_QUERY_TOKENS)
   if (r.error) return { error: r.error }
   const query = (r.text ?? '')
     .replace(/```[a-z]*/gi, '')
