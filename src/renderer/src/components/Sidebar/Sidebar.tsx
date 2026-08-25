@@ -685,7 +685,7 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
             </button>
           )}
           {onAdd && (
-            <button className="sb-add-btn sb-on-hover" title={addLabel ?? t('sb.add')}
+            <button className="sb-add-btn sb-add-btn--create sb-on-hover" title={addLabel ?? t('sb.add')}
               onClick={e => { e.stopPropagation(); onAdd(e) }}>
               <Icon name="plus" size={12} />
             </button>

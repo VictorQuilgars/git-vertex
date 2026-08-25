@@ -259,6 +259,9 @@
   position: relative;
   display: flex;
   align-items: center;
+  /* Two 12px glyphs flush against each other read as one control — the gap
+     is what says there are two. The count overlays the slot and ignores it. */
+  gap: var(--space-md);
   flex-shrink: 0;
 }
 .sb-on-hover { opacity: 0; transition: opacity var(--dur-fast); }
@@ -319,6 +322,12 @@
   align-items: center;
 }
 .sb-add-btn:hover { color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
+
+/* The + is the header's one ACT — creation, in the acting colour — and the
+   glyphs beside it (refresh) stay quiet. Same grey for both was how the pair
+   read as one control. The square of ground still waits for its own hover. */
+.sb-add-btn--create { color: var(--accent); }
+.sb-add-btn--create:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-muted), transparent); }
 
 /* How many of a section's rows are out of the graph, and the way back.
    Sits next to the count it qualifies: the count says what the section holds,
