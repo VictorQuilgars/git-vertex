@@ -820,10 +820,24 @@
 /* Not a refusal — a second name for the same query can be deliberate. */
 .sb-gh-fedit-note { color: var(--attention); font-size: var(--text-xs); }
 
-/* Describe it in words, and ask. The field and its button share a row: the
-   sentence is the input and the button is what turns it into a query.
-   In the AI ink, and never a filled button — what a model proposes is a
+/* Describe it in words — summoned, not resident. The trigger shares the query
+   label's line, since it is a way of filling that field; the row it opens is
+   the sentence and the button that turns it into a query. Everything here is
+   in the AI ink, and never a filled button — what a model proposes is a
    proposal, which is what that colour means here. */
+.sb-gh-fedit-label--split {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-sm);
+}
+.sb-gh-fedit-describe-open {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  padding: 2px var(--space-xs);
+  background: transparent; border: none; border-radius: var(--radius-sm);
+  color: var(--ai-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.sb-gh-fedit-describe-open:hover { background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
 .sb-gh-fedit-describe { display: flex; gap: var(--space-sm); }
 .sb-gh-fedit-ask {
   flex-shrink: 0;

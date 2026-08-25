@@ -961,7 +961,7 @@ describe('describing a filter in words', () => {
   beforeEach(() => localStorage.clear())
   const gh = { githubRepo: { owner: 'o', repo: 'r' }, repoName: 'r' }
 
-  const open = async (aiFilterQuery: any) => {
+  const mount = async (aiFilterQuery: any) => {
     // `draw` takes props only; the API is installed separately in this file.
     installMockGitAPI({
       getReflog: jest.fn().mockResolvedValue({ entries: [] }),
@@ -976,17 +976,46 @@ describe('describing a filter in words', () => {
     draw({ githubPRs: [], githubIssues: [], ...gh })
     unfold('PULL REQUESTS')
     await userEvent.click(screen.getByTitle('New Filter'))
+  }
+
+  const open = async (aiFilterQuery: any) => {
+    await mount(aiFilterQuery)
+    await userEvent.click(screen.getByText('Or describe it'))
     await userEvent.type(
       screen.getByPlaceholderText(/waiting on my review/), 'ones I still have to review')
     await userEvent.click(screen.getByText('Write the query'))
   }
 
-  test('the answer lands in the query field', async () => {
+  // The field is summoned, not resident: the drawer at rest asks its two
+  // questions, and describing is an offer on the query's own label row.
+  test('the describe field only exists once asked for', async () => {
+    await mount(jest.fn())
+    expect(screen.queryByPlaceholderText(/waiting on my review/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByText('Or describe it'))
+    expect(screen.getByPlaceholderText(/waiting on my review/)).toHaveFocus()
+  })
+
+  test('Escape folds the row, keeps the drawer, and keeps the sentence', async () => {
+    await mount(jest.fn())
+    await userEvent.click(screen.getByText('Or describe it'))
+    await userEvent.type(screen.getByPlaceholderText(/waiting on my review/), 'mine')
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByPlaceholderText(/waiting on my review/)).not.toBeInTheDocument()
+    // the drawer took nothing of it: its fields are still there
+    expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/)).toBeInTheDocument()
+    // and reopening is not retyping
+    await userEvent.click(screen.getByText('Or describe it'))
+    expect(screen.getByPlaceholderText(/waiting on my review/)).toHaveValue('mine')
+  })
+
+  test('the answer lands in the query field, and the row folds', async () => {
     const aiFilterQuery = jest.fn().mockResolvedValue({ query: 'review-requested:@me is:open' })
     await open(aiFilterQuery)
     await waitFor(() =>
       expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/))
         .toHaveValue('review-requested:@me is:open'))
+    // an answer that landed is the row's job done
+    expect(screen.queryByPlaceholderText(/waiting on my review/)).not.toBeInTheDocument()
   })
 
   // The section is part of the question: `review:` is a pull request's
@@ -1028,20 +1057,9 @@ describe('describing a filter in words', () => {
 
   test('a name already typed is left alone', async () => {
     const aiFilterQuery = jest.fn().mockResolvedValue({ query: 'is:open' })
-    installMockGitAPI({
-      getReflog: jest.fn().mockResolvedValue({ entries: [] }),
-      getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
-      getSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
-      getWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
-      listWorktrees: jest.fn().mockResolvedValue({ worktrees: [] }),
-      listSubmodules: jest.fn().mockResolvedValue({ submodules: [] }),
-      listAgents: jest.fn().mockResolvedValue({ agents: [] }),
-      aiFilterQuery,
-    })
-    draw({ githubPRs: [], githubIssues: [], ...gh })
-    unfold('PULL REQUESTS')
-    await userEvent.click(screen.getByTitle('New Filter'))
+    await mount(aiFilterQuery)
     await userEvent.type(screen.getByPlaceholderText('Enter a name for this filter'), 'Mine')
+    await userEvent.click(screen.getByText('Or describe it'))
     await userEvent.type(screen.getByPlaceholderText(/waiting on my review/), 'anything')
     await userEvent.click(screen.getByText('Write the query'))
     await waitFor(() => expect(screen.getByPlaceholderText(/Enter a query to filter pull requests/))

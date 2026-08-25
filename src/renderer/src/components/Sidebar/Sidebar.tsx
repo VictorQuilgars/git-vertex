@@ -232,6 +232,10 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, o
   const [query, setQuery] = useState(initial?.query ?? draft?.query ?? '')
   useEffect(() => { onDraft?.({ name, query }) }, [name, query])
 
+  // The query label points at its input with `for`: the field's header row
+  // also holds a button, so the input cannot be found by wrapping.
+  const queryId = `gv-fedit-query-${kind}`
+
   // ── Completion ────────────────────────────────────────────────
   // What to offer is `ghFilterSuggest`'s call, not this component's: it knows
   // the vocabulary, the section and where the token the caret sits in begins.
@@ -260,9 +264,15 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, o
   }
 
   // ── Described in words ────────────────────────────────────────
+  // The field is summoned, not resident: a filter is usually typed, and the
+  // drawer at rest should not present describing as a third thing to fill in.
+  const [describing, setDescribing] = useState(false)
   const [described, setDescribed] = useState('')
   const [asking, setAsking] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
+  // Folding keeps the sentence — reopening must not mean retyping — but not
+  // the complaint, which is about an attempt that is over.
+  const toggleDescribe = () => { setAiError(null); setDescribing(d => !d) }
 
   const askForQuery = async () => {
     if (!described.trim() || asking) return
@@ -283,6 +293,19 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, o
     setQuery(r.query)
     // The sentence that was typed is usually a better name than most.
     if (!name.trim()) setName(described.trim().slice(0, 40))
+    // An answer that landed folds the row, and focus goes where the verdict
+    // shows — the query field. Without the completion list: it opens for
+    // typing, and nothing was typed there.
+    setDescribing(false)
+    requestAnimationFrame(() => {
+      const el = queryRef.current
+      if (!el) return
+      el.focus()
+      const at = el.value.length
+      el.setSelectionRange(at, at)
+      setCaret(at)
+      setPicking(false)
+    })
   }
 
   const onQueryKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -323,15 +346,27 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, o
           value={name} onChange={e => setName(e.target.value)} />
       </label>
 
-      <label className="sb-gh-fedit-field">
-        <span className="sb-gh-fedit-label">
-          {kind === 'prs' ? t('sb.gh.filter.queryPrs', repoLabel) : t('sb.gh.filter.queryIssues', repoLabel)}
+      {/* A div, not a wrapping label: the describe trigger is a button, and a
+          button inside a bare label becomes the label's target. */}
+      <div className="sb-gh-fedit-field">
+        <span className="sb-gh-fedit-label sb-gh-fedit-label--split">
+          <label htmlFor={queryId}>
+            {kind === 'prs' ? t('sb.gh.filter.queryPrs', repoLabel) : t('sb.gh.filter.queryIssues', repoLabel)}
+          </label>
+          {/* The way in to describing it in words, on the line of the field it
+              fills — a way of writing the query, not a third field. In the AI
+              ink, and quiet: what a model proposes is a proposal. */}
+          <button type="button" className="sb-gh-fedit-describe-open"
+            aria-expanded={describing} onClick={toggleDescribe}>
+            <Icon name="ai" size={13} />
+            {t('sb.gh.filter.describeLabel')}
+          </button>
         </span>
         <div className={`sb-gh-fedit-querybox${query.trim() && !verdict.ok ? ' sb-gh-fedit-querybox--bad' : ''}`}>
           {/* The verdict lives IN the field: it is about what is typed there. */}
           <Icon name={query.trim() && !verdict.ok ? 'conflict' : 'check'} size={13}
             className={query.trim() && !verdict.ok ? 'sb-gh-fedit-mark--bad' : 'sb-gh-fedit-mark--ok'} />
-          <input className="sb-gh-fedit-query" ref={queryRef}
+          <input id={queryId} className="sb-gh-fedit-query" ref={queryRef}
             placeholder={kind === 'prs' ? t('sb.gh.filter.queryPrsPlaceholder') : t('sb.gh.filter.queryIssuesPlaceholder')}
             value={query}
             onChange={e => { setQuery(e.target.value); setCaret(e.target.selectionStart ?? 0); setPicking(true) }}
@@ -353,26 +388,25 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, o
             </ul>
           )}
         </div>
-      </label>
+      </div>
 
       {/* A bad token is NAMED, not just refused. */}
       {query.trim() !== '' && !verdict.ok && (
         <div className="sb-gh-fedit-bad">{t('sb.gh.filter.badToken', (verdict as any).bad)}</div>
       )}
-      {nameTaken && <div className="sb-gh-fedit-bad">{t('sb.gh.filter.nameTaken', name.trim())}</div>}
-      {!nameTaken && sameQueryAs && (
-        <div className="sb-gh-fedit-note">{t('sb.gh.filter.sameQuery', sameQueryAs)}</div>
-      )}
 
-      {/* Described in words, since the completion only helps someone who
-          already knows the vocabulary is there. */}
-      <label className="sb-gh-fedit-field">
-        <span className="sb-gh-fedit-label">{t('sb.gh.filter.describeLabel')}</span>
+      {/* The summoned row: the sentence, and the button that turns it into a
+          query. It sits under the field it writes. */}
+      {describing && (
         <div className="sb-gh-fedit-describe">
-          <input className="sb-gh-fedit-name" value={described}
+          <input className="sb-gh-fedit-name" value={described} autoFocus
             placeholder={t('sb.gh.filter.describePlaceholder')}
             onChange={e => setDescribed(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void askForQuery() } }} />
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); void askForQuery() }
+              // The row goes first; the drawer only closes once there is no row.
+              else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); toggleDescribe() }
+            }} />
           <button type="button" className="sb-gh-fedit-ask"
             disabled={!described.trim() || asking}
             onClick={() => void askForQuery()}>
@@ -380,8 +414,13 @@ function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, o
             {asking ? t('sb.gh.filter.asking') : t('sb.gh.filter.ask')}
           </button>
         </div>
-      </label>
-      {aiError && <div className="sb-gh-fedit-bad">{aiError}</div>}
+      )}
+      {describing && aiError && <div className="sb-gh-fedit-bad">{aiError}</div>}
+
+      {nameTaken && <div className="sb-gh-fedit-bad">{t('sb.gh.filter.nameTaken', name.trim())}</div>}
+      {!nameTaken && sameQueryAs && (
+        <div className="sb-gh-fedit-note">{t('sb.gh.filter.sameQuery', sameQueryAs)}</div>
+      )}
 
       <button className="sb-gh-fedit-create" disabled={!ready}
         onClick={() => onCreate({ name: name.trim(), query: query.trim() })}>
