@@ -1687,6 +1687,86 @@ ipcMain.handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: 
   return query ? { query: query.replace(/^["'`]|["'`]$/g, '') } : { error: 'empty answer' }
 })
 
+/**
+ * The composer's title and description, generated together (#130).
+ *
+ * A commit message summarises one staged diff; a request summarises
+ * `base..head` — N subjects AND their cumulative diff, and a branch of thirty
+ * commits is the normal case, not the edge one. What goes in, decided: the
+ * subjects always (they are the authors' own summary, and they are small),
+ * the diffstat always (breadth survives even when depth cannot), and as much
+ * of the three-dot diff as fits. When it does not fit, the prompt SAYS so —
+ * a model reading a silently cut diff describes half a branch with full
+ * confidence.
+ *
+ * One call for both fields: they are one answer about one branch, and two
+ * calls would let them disagree.
+ */
+const PR_SUBJECTS_MAX = 50
+const PR_DIFF_BUDGET = 12000
+const PR_DESCRIPTION_TOKENS = 1024
+
+ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headName: string) => {
+  if (!gitService) return { error: 'No repository open' }
+  const git = (gitService as any).git
+  // The caller speaks in short branch names. The base is compared as the
+  // REMOTE holds it when possible — that is what the request will land on —
+  // and the head as the LOCAL repo does, since the local tip is what gets
+  // pushed. A branch on a remote that is not `origin` falls through to its
+  // bare name, which git still resolves for anything local.
+  const resolveRef = async (name: string, preferLocal: boolean): Promise<string> => {
+    const candidates = preferLocal
+      ? [`refs/heads/${name}`, `refs/remotes/origin/${name}`]
+      : [`refs/remotes/origin/${name}`, `refs/heads/${name}`]
+    for (const c of candidates) {
+      try { await git.raw(['rev-parse', '--verify', '--quiet', c]); return c } catch { /* next */ }
+    }
+    return name
+  }
+  try {
+    const base = await resolveRef(baseName, false)
+    const head = await resolveRef(headName, true)
+    const subjects = (await git.raw(['log', '--format=%s', `${base}..${head}`]) as string)
+      .split('\n').map((s: string) => s.trim()).filter(Boolean)
+    if (subjects.length === 0) return { error: `No commits between ${baseName} and ${headName}` }
+    const diffstat = await git.raw(['diff', '--stat', `${base}...${head}`]) as string
+    const diff = await git.raw(['diff', `${base}...${head}`]) as string
+
+    const listed = subjects.slice(0, PR_SUBJECTS_MAX)
+    const omitted = subjects.length - listed.length
+    const cut = diff.length > PR_DIFF_BUDGET
+    const prompt = [
+      `You write pull request titles and descriptions for a Git branch.`,
+      `First line of your reply: the title — imperative, specific, at most 72 characters.`,
+      `Then a blank line, then the description in Markdown: one short paragraph saying what the branch does and why, then a bullet list of the notable changes. No heading that restates the title, no preamble, no code fences around the reply.`,
+      `Write in English. Reply with nothing but the title and the description.`,
+      ``,
+      `Branch: ${headName} into ${baseName}`,
+      `Commit subjects (${subjects.length}):`,
+      listed.map(s => `- ${s}`).join('\n') + (omitted > 0 ? `\n- … and ${omitted} more` : ''),
+      ``,
+      `Diffstat:`,
+      truncateDiff(diffstat, 3000),
+      ``,
+      cut
+        ? `The full diff is too large to include; what follows is its beginning. Weigh the diffstat and the subjects for the rest.`
+        : `Full diff:`,
+      '```diff',
+      truncateDiff(diff, PR_DIFF_BUDGET),
+      '```',
+    ].join('\n')
+
+    const r = await runAIPrompt(prompt, PR_DESCRIPTION_TOKENS)
+    if (r.error) return { error: r.error }
+    const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
+    const at = lines.findIndex(l => l.trim())
+    if (at < 0) return { error: 'empty answer' }
+    const title = lines[at].trim().replace(/^["'#*\s]+|["'*\s]+$/g, '')
+    const body = lines.slice(at + 1).join('\n').trim()
+    return { title, body }
+  } catch (e: any) { return { error: e.message } }
+})
+
 // Recompose: regenerate an EXISTING commit's message from its actual diff.
 // The renderer applies the result through the normal amend/reword flow, so
 // the user always reviews the proposal before anything is rewritten.
@@ -2789,6 +2869,32 @@ ipcMain.handle('github:update-issue', async (_e, owner: string, repo: string, nu
   } catch (e: any) { return { error: e.message } }
 })
 
+// Review is asked for AFTER creation — the create endpoint does not take
+// reviewers, so the composer makes two calls and says so when the second
+// fails (#130): a request that exists with nobody asked is not a rollback
+// case, it is a fact to report.
+ipcMain.handle('github:request-reviewers', async (_e, owner: string, repo: string, number: number, reviewers: string[]) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}/requested_reviewers`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ reviewers }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as any
+      return { error: data.message ?? `HTTP ${res.status}` }
+    }
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:list-assignees', async (_e, owner: string, repo: string) => {
   const api = await ghApi()
   const token = api.token
@@ -2800,6 +2906,36 @@ ipcMain.handle('github:list-assignees', async (_e, owner: string, repo: string) 
     if (!res.ok) return { error: `HTTP ${res.status}` }
     const data = await res.json() as any[]
     return { assignees: data.map(a => a.login) }
+  } catch (e: any) { return { error: e.message } }
+})
+
+// The composer's label picker can CREATE a label that does not exist yet
+// (#130). Explicit — a POST with a colour we chose — rather than leaning on
+// any endpoint's implicit auto-creation, so the write is announced, the
+// colour is deterministic, and a refusal has one place to surface.
+ipcMain.handle('github:create-label', async (_e, owner: string, repo: string, name: string, color: string) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/labels`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, color }),
+    })
+    const data = await res.json().catch(() => ({})) as any
+    if (!res.ok) {
+      const detail = Array.isArray(data.errors)
+        ? data.errors.map((e: any) => e.code ?? e.message).filter(Boolean).join(' — ')
+        : ''
+      const msg = data.message ?? `HTTP ${res.status}`
+      return { error: detail ? `${msg} (${detail})` : msg }
+    }
+    return { label: { name: data.name, color: data.color } }
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -3037,7 +3173,10 @@ ipcMain.handle('github:get-issue', async (_e, owner: string, repo: string, numbe
   } catch (e: any) { return { error: e.message } }
 })
 
-ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title: string, body: string, head: string, base: string) => {
+// `head` crosses repositories as `owner:branch` — the fork case (#130). GitHub
+// reads the bare form as "this repository's branch", so same-repo callers
+// change nothing.
+ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title: string, body: string, head: string, base: string, draft?: boolean) => {
   const api = await ghApi()
   const token = api.token
   if (!token) return { error: 'not_authenticated' }
@@ -3049,7 +3188,9 @@ ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title
         Accept: 'application/vnd.github+json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ title, body, head, base }),
+      // A refused `draft` (plan without draft PRs) comes back through the
+      // errors array below, named — not swallowed.
+      body: JSON.stringify({ title, body, head, base, draft: !!draft }),
     })
     const data = await res.json() as any
     if (!res.ok) {
@@ -3067,6 +3208,32 @@ ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title
     }
     return { url: data.html_url, number: data.number }
   } catch (e: any) { return { error: e.message } }
+})
+
+// A fork's pull request usually lands on its parent — a repository the
+// /user/repos listing has no reason to hold. One lookup so the composer can
+// offer it as a target (#130); every failure reads as "not a fork", because
+// a composer that cannot ask this question still composes.
+ipcMain.handle('github:repo-parent', async (_e, owner: string, repo: string) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { parent: null }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+    })
+    if (!res.ok) return { parent: null }
+    const data = await res.json() as any
+    return data.fork && data.parent
+      ? {
+          parent: {
+            owner: data.parent.owner.login,
+            repo: data.parent.name,
+            defaultBranch: data.parent.default_branch ?? null,
+          }
+        }
+      : { parent: null }
+  } catch { return { parent: null } }
 })
 
 ipcMain.handle('github:list-branches', async (_e, owner: string, repo: string) => {
@@ -3113,6 +3280,8 @@ ipcMain.handle('github:list-repos', async () => {
         updatedAt: r.updated_at,
         cloneUrl: r.clone_url,
         sshUrl: r.ssh_url,
+        // The composer picks a target repository's base from this (#130).
+        defaultBranch: r.default_branch ?? null,
       }))
     }
   } catch (e: any) { return { error: e.message } }

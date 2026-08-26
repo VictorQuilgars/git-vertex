@@ -259,6 +259,9 @@
   position: relative;
   display: flex;
   align-items: center;
+  /* Two 12px glyphs flush against each other read as one control — the gap
+     is what says there are two. The count overlays the slot and ignores it. */
+  gap: var(--space-md);
   flex-shrink: 0;
 }
 .sb-on-hover { opacity: 0; transition: opacity var(--dur-fast); }
@@ -266,6 +269,11 @@
   position: absolute;
   right: 0;
   transition: opacity var(--dur-fast);
+  /* The count paints OVER the buttons (last in the slot), and opacity 0 does
+     not stop an element catching clicks — every press on the controls was
+     landing on the invisible chip and folding the section instead. The chip
+     is display only; clicks belong to whatever is under it. */
+  pointer-events: none;
 }
 .sb-section-header:hover .sb-on-hover,
 .sb-section-header:focus-within .sb-on-hover,
@@ -319,6 +327,21 @@
   align-items: center;
 }
 .sb-add-btn:hover { color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
+
+/* The + is the header's one ACT — creation — and it stands on a FILLED square
+   of the acting colour while refresh stays a ghost. A coloured glyph was
+   tried first and taught something: a theme's accent may be grey (Dracula's
+   is #9798A1, faithful to its own chrome), so hue cannot be what separates
+   the two — the fill is, in any theme, and the accent/on-fill pair is one of
+   the five the theme validator holds at 4.5:1. */
+.sb-add-btn--create {
+  color: var(--text-on-emphasis);
+  background: var(--accent-strong);
+}
+.sb-add-btn--create:hover {
+  color: var(--text-on-emphasis);
+  background: var(--accent-emphasis);
+}
 
 /* How many of a section's rows are out of the graph, and the way back.
    Sits next to the count it qualifies: the count says what the section holds,

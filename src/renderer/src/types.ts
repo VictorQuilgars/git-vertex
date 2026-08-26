@@ -186,6 +186,9 @@ declare global {
     /** A saved filter described in words → a query. Checked before it is used. */
     aiFilterQuery: (kind: 'prs' | 'issues', described: string, vocabulary: string)
       => Promise<{ query?: string; error?: string }>
+    /** The composer's title and description, generated together (#130). */
+    aiPrDescription: (base: string, head: string)
+      => Promise<{ title?: string; body?: string; error?: string }>
     getUpstream: () => Promise<{ upstream: string | null }>
     // Tags
     createTag: (name: string, hash?: string, message?: string) => Promise<R>
@@ -355,8 +358,11 @@ declare global {
     githubDetectRepo: () => Promise<{ owner?: string; repo?: string }>
     githubDetectRepoAt: (path: string) => Promise<{ owner?: string; repo?: string }>
     githubCreateRepo: (opts: Unnarrowed) => Promise<Unnarrowed>
-    githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) => Promise<Unnarrowed>
+    githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string, draft?: boolean) => Promise<Unnarrowed>
     githubListBranches: (owner: string, repo: string) => Promise<Unnarrowed>
+    /** A fork's parent, or null — the composer offers it as a target (#130). */
+    githubRepoParent: (owner: string, repo: string)
+      => Promise<{ parent: { owner: string; repo: string; defaultBranch: string | null } | null }>
     githubSharePatch: (hash: string) => Promise<Unnarrowed>
     githubShareWipPatch: (repoPath: string) => Promise<Unnarrowed>
     githubListPRs: (owner: string, repo: string) => Promise<Unnarrowed>
@@ -368,7 +374,11 @@ declare global {
     githubAddIssueComment: (owner: string, repo: string, number: number, body: string) => Promise<Unnarrowed>
     githubUpdateIssue: (owner: string, repo: string, number: number, patch: object) => Promise<Unnarrowed>
     githubListAssignees: (owner: string, repo: string) => Promise<Unnarrowed>
+    /** Review is asked for after creation — the create endpoint does not take reviewers (#130). */
+    githubRequestReviewers: (owner: string, repo: string, number: number, reviewers: string[]) => Promise<Unnarrowed>
     githubListRepoLabels: (owner: string, repo: string) => Promise<Unnarrowed>
+    /** The composer's picker can create a label that does not exist yet (#130). */
+    githubCreateLabel: (owner: string, repo: string, name: string, color: string) => Promise<Unnarrowed>
     githubGetPR: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
     githubGetChecks: (owner: string, repo: string, ref: string) => Promise<Unnarrowed>
     githubMergePR: (owner: string, repo: string, number: number, method?: string) => Promise<Unnarrowed>

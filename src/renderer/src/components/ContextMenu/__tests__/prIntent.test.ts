@@ -1,4 +1,4 @@
-import { prIntentFor, type PRContext } from '../prIntent'
+import { prIntentFor, branchNeedsPush, type PRContext } from '../prIntent'
 import type { BranchInfo } from '../../../types'
 
 const local = (name: string, over: Partial<BranchInfo> = {}): BranchInfo =>
@@ -171,5 +171,31 @@ describe('rule 6 — a request that already exists is not proposed again', () =>
     expect(prIntentFor('feat/published', repo('feat/published'))).toMatchObject({
       head: 'feat/published', base: 'main',
     })
+  })
+})
+
+// The composer lets the head be re-chosen (#130), and asks this instead of
+// trusting an intent that answered for a different branch. Same three states
+// as the module's header: tip on the remote, tip ahead of it, local-only.
+describe('branchNeedsPush', () => {
+  const branches = repo('main').branches
+
+  test('a branch the remote holds in full needs nothing', () => {
+    expect(branchNeedsPush('feat/published', branches)).toBe(false)
+  })
+
+  test('a published branch whose tip is ahead needs a push', () => {
+    const ahead = branches.map(b =>
+      !b.remote && b.name === 'feat/published' ? { ...b, ahead: 2 } : b)
+    expect(branchNeedsPush('feat/published', ahead)).toBe(true)
+  })
+
+  test('a local-only branch needs the push that creates it', () => {
+    expect(branchNeedsPush('feat/local-only', branches)).toBe(true)
+  })
+
+  test('a remote-only branch is already up there', () => {
+    const remoteOnly = branches.filter(b => b.remote || b.name !== 'feat/published')
+    expect(branchNeedsPush('feat/published', remoteOnly)).toBe(false)
   })
 })

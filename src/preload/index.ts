@@ -150,6 +150,8 @@ const gitAPI = {
   aiGenerateCommitMessage: () => ipcRenderer.invoke('ai:generate-commit-message'),
   aiFilterQuery: (kind: 'prs' | 'issues', described: string, vocabulary: string) =>
     ipcRenderer.invoke('ai:filter-query', kind, described, vocabulary),
+  aiPrDescription: (base: string, head: string) =>
+    ipcRenderer.invoke('ai:generate-pr-description', base, head),
   aiRecomposeCommit: (hash: string) => ipcRenderer.invoke('ai:recompose-commit', hash),
   aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => ipcRenderer.invoke('ai:explain-commit', hash, force, guidance),
   aiGetExplanations: () => ipcRenderer.invoke('ai:get-explanations'),
@@ -206,9 +208,10 @@ const gitAPI = {
   // GitHub
   githubDetectRepo: () => ipcRenderer.invoke('github:detect-repo'),
   githubDetectRepoAt: (path: string) => ipcRenderer.invoke('github:detect-repo-at', path),
-  githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string) =>
-    ipcRenderer.invoke('github:create-pr', owner, repo, title, body, head, base),
+  githubCreatePR: (owner: string, repo: string, title: string, body: string, head: string, base: string, draft?: boolean) =>
+    ipcRenderer.invoke('github:create-pr', owner, repo, title, body, head, base, draft),
   githubListBranches: (owner: string, repo: string) => ipcRenderer.invoke('github:list-branches', owner, repo),
+  githubRepoParent: (owner: string, repo: string) => ipcRenderer.invoke('github:repo-parent', owner, repo),
   githubSharePatch: (hash: string) => ipcRenderer.invoke('github:share-patch', hash),
   githubListPRs: (owner: string, repo: string) => ipcRenderer.invoke('github:list-prs', owner, repo),
   githubListIssues: (owner: string, repo: string) => ipcRenderer.invoke('github:list-issues', owner, repo),
@@ -218,7 +221,11 @@ const gitAPI = {
   githubAddIssueComment: (owner: string, repo: string, number: number, body: string) => ipcRenderer.invoke('github:add-issue-comment', owner, repo, number, body),
   githubUpdateIssue: (owner: string, repo: string, number: number, patch: object) => ipcRenderer.invoke('github:update-issue', owner, repo, number, patch),
   githubListAssignees: (owner: string, repo: string) => ipcRenderer.invoke('github:list-assignees', owner, repo),
+  githubRequestReviewers: (owner: string, repo: string, number: number, reviewers: string[]) =>
+    ipcRenderer.invoke('github:request-reviewers', owner, repo, number, reviewers),
   githubListRepoLabels: (owner: string, repo: string) => ipcRenderer.invoke('github:list-repo-labels', owner, repo),
+  githubCreateLabel: (owner: string, repo: string, name: string, color: string) =>
+    ipcRenderer.invoke('github:create-label', owner, repo, name, color),
   githubGetPR: (owner: string, repo: string, number: number) => ipcRenderer.invoke('github:get-pr', owner, repo, number),
   githubGetChecks: (owner: string, repo: string, ref: string) => ipcRenderer.invoke('github:get-checks', owner, repo, ref),
   githubMergePR: (owner: string, repo: string, number: number, method?: string) => ipcRenderer.invoke('github:merge-pr', owner, repo, number, method),

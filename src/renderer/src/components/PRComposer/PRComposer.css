@@ -1,0 +1,336 @@
+/* The composer is a drawer out of the left panel (#130) — PanelDrawer owns
+   the chrome (position, head, close, Escape), this file owns the form. */
+
+.pr-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* ── The four ends ──────────────────────────── */
+/* Two labelled columns — repository over branch — with the arrow between,
+   as the reference lays it out. It wraps rather than shrinks: the VS Code
+   panel is far narrower than a window, and four selectors are what has to
+   survive that. */
+.pr-ends {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.pr-end {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 180px;
+}
+
+.pr-ends-arrow { flex-shrink: 0; color: var(--text-tertiary); margin-top: 30px; }
+
+.pr-label--stacked { margin-top: var(--space-md); }
+
+.pr-select {
+  width: 100%;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  padding: var(--space-md) var(--space-lg);
+  outline: none;
+  cursor: pointer;
+}
+.pr-select:focus { border-color: var(--accent); }
+
+.pr-select--branch {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── Fields ─────────────────────────────────── */
+.pr-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.pr-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+}
+
+/* Label on the left, the AI offer on the right — the same line, because the
+   offer is a way of filling the field, not a field. */
+.pr-label--split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+/* In the AI ink, bordered like the filter drawer's ask button, and never a
+   filled button — what a model proposes is a proposal, which is what that
+   colour means here. */
+.pr-generate {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-2xs) var(--space-md);
+  background: transparent;
+  border: 1px solid var(--ai-border);
+  border-radius: var(--radius-sm);
+  color: var(--ai-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.pr-generate:hover:not(:disabled) { background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
+.pr-generate:disabled { opacity: var(--alpha-half); cursor: default; }
+
+.pr-input {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  padding: var(--space-md) var(--space-xl);
+  outline: none;
+  transition: border-color var(--dur-fast);
+}
+.pr-input:focus { border-color: var(--accent); }
+.pr-input::placeholder { color: var(--text-disabled); }
+
+.pr-textarea {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  padding: var(--space-md) var(--space-xl);
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color var(--dur-fast);
+}
+.pr-textarea:focus { border-color: var(--accent); }
+.pr-textarea::placeholder { color: var(--text-disabled); }
+
+/* ── Reviewers / assignees / labels ─────────── */
+/* Their fold. Quiet, left-aligned, and honest while closed: the count says
+   picks were made in there. */
+.pr-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  align-self: flex-start;
+  padding: var(--space-2xs) 0;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.pr-more:hover { color: var(--text-primary); }
+.pr-more-chev { transition: transform var(--dur-fast); }
+.pr-more-chev--open { transform: rotate(90deg); }
+.pr-more-count {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-lg);
+  padding: var(--space-px) var(--space-sm);
+  font-size: var(--text-tiny);
+  color: var(--text-secondary);
+}
+
+/* One pick component for the three fields — the field shows the choices as
+   chips, the list toggles them. Colours on the dots are the forge's own
+   label colours: data, not design, same as LabelChip. */
+.pr-pick { position: relative; }
+
+.pr-pick-face {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  min-height: 38px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-lg);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: var(--text-base);
+}
+.pr-pick-face:focus-visible { outline: none; border-color: var(--accent); }
+
+.pr-pick-placeholder { color: var(--text-disabled); }
+
+.pr-pick-caret { margin-left: auto; color: var(--text-tertiary); flex-shrink: 0; }
+
+.pr-pick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-px) var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.pr-pick-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pr-pick-list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0; right: 0;
+  z-index: var(--z-dropdown);
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  padding: var(--space-xs);
+}
+.pr-pick-list ul {
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0; padding: 0;
+  list-style: none;
+}
+
+.pr-pick-filter {
+  width: 100%;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  padding: var(--space-xs) var(--space-md);
+  outline: none;
+  margin-bottom: var(--space-xs);
+}
+.pr-pick-filter:focus { border-color: var(--accent); }
+.pr-pick-filter::placeholder { color: var(--text-disabled); }
+
+/* Creation is an act, so it wears the acting colour — and a top border rules
+   it off from the matches: it makes a thing, it does not find one. */
+.pr-pick-create {
+  color: var(--accent);
+  border-top: 1px solid var(--border-muted);
+  border-radius: 0;
+  margin-top: var(--space-xs);
+}
+.pr-pick-create:hover { color: var(--accent); }
+
+.pr-pick-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.pr-pick-option:hover { background: var(--surface-hover); color: var(--text-primary); }
+.pr-pick-option--on { color: var(--text-primary); }
+.pr-pick-option-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-pick-none { padding: var(--space-sm) var(--space-md); color: var(--text-tertiary); font-style: italic; }
+
+/* ── Draft ──────────────────────────────────── */
+.pr-draft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.pr-draft input { accent-color: var(--accent); }
+
+/* ── Error ──────────────────────────────────── */
+.pr-error {
+  font-size: var(--text-sm);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) var(--alpha-muted), transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-xl);
+}
+
+/* Not a failure, barely a notice — what submitting will also do. Quiet on
+   purpose: boxed like an alert, a routine fact wore a warning's weight. */
+.pr-note { font-size: var(--text-xs); color: var(--text-tertiary); }
+
+/* ── Footer ─────────────────────────────────── */
+/* Cancel and Create share the row, half each, as the reference lays them —
+   the drawer's × still works, but a form this tall deserves its own way out
+   at the bottom, where the reader already is. */
+.pr-footer {
+  display: flex;
+  gap: var(--space-md);
+  padding-top: var(--space-xs);
+}
+.pr-footer .pr-btn-secondary,
+.pr-footer .pr-btn-primary { flex: 1; justify-content: center; }
+.pr-footer .pr-btn-secondary { text-align: center; }
+
+.pr-btn-primary {
+  padding: var(--space-md) var(--space-2xl);
+  background: var(--accent-strong);
+  border: 1px solid var(--accent-emphasis);
+  border-radius: var(--radius-md);
+  color: var(--text-on-emphasis);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: all var(--dur-base);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.pr-btn-primary:hover:not(:disabled) { background: var(--accent-emphasis); transform: translateY(-1px); }
+.pr-btn-primary:disabled { opacity: var(--alpha-half); cursor: not-allowed; }
+
+.pr-btn-secondary {
+  padding: var(--space-md) var(--space-2xl);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: all var(--dur-fast);
+}
+.pr-btn-secondary:hover { border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Success state ──────────────────────────── */
+.pr-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xl);
+  padding: var(--space-6xl) var(--space-2xl);
+  text-align: center;
+}
+
+.pr-success-text {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.pr-success-actions {
+  display: flex;
+  gap: var(--space-lg);
+}
