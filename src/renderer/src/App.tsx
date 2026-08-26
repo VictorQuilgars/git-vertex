@@ -844,6 +844,10 @@ export default function App() {
 
 
   useEffect(() => { setIssueDetail(null) }, [repoPath])
+  // The composer belongs to the repository it opened on. Left in state, a
+  // drawer open when the tab was closed greeted the NEXT open of the repo —
+  // with an intent computed for branches that may have moved since.
+  useEffect(() => { setPrModalOpen(false); setPrIntent(null) }, [repoPath])
 
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()

@@ -119,6 +119,31 @@
 .pr-textarea::placeholder { color: var(--text-disabled); }
 
 /* ── Reviewers / assignees / labels ─────────── */
+/* Their fold. Quiet, left-aligned, and honest while closed: the count says
+   picks were made in there. */
+.pr-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  align-self: flex-start;
+  padding: var(--space-2xs) 0;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.pr-more:hover { color: var(--text-primary); }
+.pr-more-chev { transition: transform var(--dur-fast); }
+.pr-more-chev--open { transform: rotate(90deg); }
+.pr-more-count {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-lg);
+  padding: var(--space-px) var(--space-sm);
+  font-size: var(--text-tiny);
+  color: var(--text-secondary);
+}
+
 /* One pick component for the three fields — the field shows the choices as
    chips, the list toggles them. Colours on the dots are the forge's own
    label colours: data, not design, same as LabelChip. */

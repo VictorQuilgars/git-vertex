@@ -144,6 +144,10 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
   // ── Draft (#130 §3) ───────────────────────────────────────────
   const [draft, setDraft] = useState(false)
 
+  // Reviewers, assignees and labels wait behind a fold: most requests need
+  // none of them, and three empty fields made the everyday case scroll.
+  const [moreOpen, setMoreOpen] = useState(false)
+
   // Cleared once the push has happened, so a retry after a GitHub error does
   // not push a second time. Derived, not stored: the intent answered for the
   // head IT proposed; a re-chosen head is asked through the same module, and
@@ -409,14 +413,29 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
           </div>
 
           {/* Who reads it, who owns it, how it is filed — the target
-              repository's people and labels, applied right after creation. */}
-          <PickField label={t('pr.reviewersLabel')} placeholder={t('pr.reviewersPlaceholder')}
-            options={people} chosen={reviewers} onToggle={toggle(setReviewers)} />
-          <PickField label={t('pr.assigneesLabel')} placeholder={t('pr.assigneesPlaceholder')}
-            options={people} chosen={assignees} onToggle={toggle(setAssignees)} />
-          <PickField label={t('pr.labelsLabel')} placeholder={t('pr.labelsPlaceholder')}
-            options={repoLabels.map(l => l.name)} chosen={labels} onToggle={toggle(setLabels)}
-            dots={labelDots} />
+              repository's people and labels, applied right after creation.
+              Behind a fold, and the fold does not lie: picks made and folded
+              away still show as a count. */}
+          <button type="button" className="pr-more" aria-expanded={moreOpen}
+            onClick={() => setMoreOpen(o => !o)}>
+            <Icon name="chevronRight" size={10}
+              className={`pr-more-chev${moreOpen ? ' pr-more-chev--open' : ''}`} />
+            {t('pr.moreOptions')}
+            {!moreOpen && (reviewers.length + assignees.length + labels.length) > 0 && (
+              <span className="pr-more-count">{reviewers.length + assignees.length + labels.length}</span>
+            )}
+          </button>
+          {moreOpen && (
+            <>
+              <PickField label={t('pr.reviewersLabel')} placeholder={t('pr.reviewersPlaceholder')}
+                options={people} chosen={reviewers} onToggle={toggle(setReviewers)} />
+              <PickField label={t('pr.assigneesLabel')} placeholder={t('pr.assigneesPlaceholder')}
+                options={people} chosen={assignees} onToggle={toggle(setAssignees)} />
+              <PickField label={t('pr.labelsLabel')} placeholder={t('pr.labelsPlaceholder')}
+                options={repoLabels.map(l => l.name)} chosen={labels} onToggle={toggle(setLabels)}
+                dots={labelDots} />
+            </>
+          )}
 
           <label className="pr-draft" title={t('pr.draftHelp')}>
             <input type="checkbox" checked={draft} onChange={e => setDraft(e.target.checked)} />
