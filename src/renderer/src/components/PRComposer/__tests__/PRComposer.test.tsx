@@ -14,7 +14,7 @@ function draw(over: Record<string, any> = {}, api: Record<string, any> = {}) {
     getLastCommitMessage: jest.fn().mockResolvedValue({ message: 'feat: a thing' }),
     githubListBranches: jest.fn().mockResolvedValue({ branches: ['main', 'feat/x'] }),
     githubCreatePR: jest.fn().mockResolvedValue({ url: 'https://x/pr/7', number: 7 }),
-    githubListRepos: jest.fn().mockResolvedValue({ repos: [] }),
+    getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
     githubRepoParent: jest.fn().mockResolvedValue({ parent: null }),
     pushBranch: jest.fn().mockResolvedValue({ success: true }),
     ...api,
@@ -112,6 +112,19 @@ describe('opening as a draft', () => {
 // #130 §2 — both ends. A fork's request lands on its parent, and the head
 // crosses repositories as `owner:branch`.
 describe('choosing both ends', () => {
+  // The selectors offer what this repository is CONNECTED to — its remotes
+  // and its fork parent — not everything the account can see: a request
+  // cannot run between repositories this one is not related to.
+  test('the ends offer the repositories behind the remotes, and no more', async () => {
+    const getRemotes = jest.fn().mockResolvedValue({ remotes: [
+      { name: 'origin', fetchUrl: 'git@github.com:o/r.git', pushUrl: '' },
+      { name: 'upstream', fetchUrl: 'https://github.com/up/r.git', pushUrl: '' },
+    ] })
+    draw({}, { getRemotes })
+    await waitFor(() => expect(screen.getByLabelText('To repository')).toHaveTextContent('up/r'))
+    expect(screen.getByLabelText('From repository')).toHaveTextContent('up/r')
+  })
+
   test('a target in another repository prefixes the head with its owner', async () => {
     const githubRepoParent = jest.fn().mockResolvedValue({
       parent: { owner: 'up', repo: 'r', defaultBranch: 'main' },

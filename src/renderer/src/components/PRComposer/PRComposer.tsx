@@ -7,6 +7,7 @@ import { branchNeedsPush } from '../ContextMenu/prIntent'
 import type { BranchInfo } from '../../types'
 import { Brand } from '../BrandMark/BrandMark'
 import PanelDrawer from '../PanelDrawer/PanelDrawer'
+import { parseRemote } from '../../utils/remoteUrl'
 
 // A repository as the selectors speak of it: `owner/name`, one string, because
 // that is how GitHub prints it and how the `head` of a cross-repository
@@ -158,16 +159,26 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
     window.gitAPI.getLastCommitMessage?.(intent.head).then((r: any) => {
       if (r?.message) setTitle(r.message.split('\n')[0])
     })
-    // The repositories the selectors offer: the open one, everything the
-    // account holds, and — the case the selectors exist for — a fork's
-    // parent, which the account listing has no reason to contain.
-    ;(window.gitAPI as any).githubListRepos?.().then((r: any) => {
-      if (!Array.isArray(r?.repos)) return
+    // The repositories the selectors offer are the ones THIS repository is
+    // connected to: each git remote that parses to a repository on the same
+    // host, plus — below — a fork's parent, which a clone with no `upstream`
+    // remote does not name. The account's whole repository list has no
+    // business here: a request cannot run between repositories this one is
+    // not related to.
+    window.gitAPI.getRemotes?.().then((r: any) => {
+      const parsed = ((r?.remotes ?? []) as { fetchUrl?: string; pushUrl?: string }[])
+        .map(rm => parseRemote(rm.fetchUrl || rm.pushUrl))
+        .filter((p): p is NonNullable<typeof p> => p !== null)
+      // The host is the current repository's own; a remote elsewhere (a
+      // GitLab mirror, say) cannot be an end of a GitHub request.
+      const host = parsed.find(p => joinRepo(p.owner, p.repo) === currentFull)?.host
+      const found = parsed
+        .filter(p => !host || p.host === host)
+        .map(p => joinRepo(p.owner, p.repo))
+      if (found.length === 0) return
       setRepoOptions(prev => {
         const next = new Map(prev)
-        for (const it of r.repos) {
-          if (it?.fullName) next.set(it.fullName, { defaultBranch: it.defaultBranch ?? null })
-        }
+        for (const fn of found) if (!next.has(fn)) next.set(fn, { defaultBranch: null })
         return next
       })
     })
