@@ -374,6 +374,8 @@ declare global {
     githubAddIssueComment: (owner: string, repo: string, number: number, body: string) => Promise<Unnarrowed>
     githubUpdateIssue: (owner: string, repo: string, number: number, patch: object) => Promise<Unnarrowed>
     githubListAssignees: (owner: string, repo: string) => Promise<Unnarrowed>
+    /** Review is asked for after creation — the create endpoint does not take reviewers (#130). */
+    githubRequestReviewers: (owner: string, repo: string, number: number, reviewers: string[]) => Promise<Unnarrowed>
     githubListRepoLabels: (owner: string, repo: string) => Promise<Unnarrowed>
     githubGetPR: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
     githubGetChecks: (owner: string, repo: string, ref: string) => Promise<Unnarrowed>

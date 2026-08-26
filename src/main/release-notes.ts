@@ -8,6 +8,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **A drawer out of the left panel**, like the filter editor — the graph stays readable beside it.
 - **The title and description write themselves** on request: one call reads the branch — subjects, diffstat, and as much diff as fits — and fills both fields for you to edit. It never submits.
 - **Choose all four ends** — source repository and branch, target repository and branch. A fork's parent is offered as a target, and a cross-repository head spells itself \`owner:branch\`.
+- **Reviewers, assignees and labels**, picked in the composer and applied the moment the request exists.
 - **Open as a draft**, at last a checkbox.
 - **A \`+\` on the section headers**: PULL REQUESTS opens the composer for the checked-out branch, GITHUB ISSUES opens GitHub's own new-issue form.
 

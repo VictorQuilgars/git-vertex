@@ -584,6 +584,29 @@ export async function githubUpdateIssue(
   } catch (e: any) { return { error: e.message } }
 }
 
+/**
+ * Review is asked for AFTER creation — the create endpoint does not take
+ * reviewers, so the composer makes two calls and reports when the second
+ * fails (#130).
+ */
+export async function githubRequestReviewers(
+  api: GithubApi, owner: string, repo: string, number: number, reviewers: string[],
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}/requested_reviewers`, {
+      method: 'POST',
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewers }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as any
+      return { error: data.message ?? `HTTP ${res.status}` }
+    }
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+}
+
 export async function githubListAssignees(
   api: GithubApi, owner: string, repo: string,
 ): Promise<any> {

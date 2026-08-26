@@ -2869,6 +2869,32 @@ ipcMain.handle('github:update-issue', async (_e, owner: string, repo: string, nu
   } catch (e: any) { return { error: e.message } }
 })
 
+// Review is asked for AFTER creation — the create endpoint does not take
+// reviewers, so the composer makes two calls and says so when the second
+// fails (#130): a request that exists with nobody asked is not a rollback
+// case, it is a fact to report.
+ipcMain.handle('github:request-reviewers', async (_e, owner: string, repo: string, number: number, reviewers: string[]) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/pulls/${number}/requested_reviewers`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ reviewers }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as any
+      return { error: data.message ?? `HTTP ${res.status}` }
+    }
+    return { success: true }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:list-assignees', async (_e, owner: string, repo: string) => {
   const api = await ghApi()
   const token = api.token

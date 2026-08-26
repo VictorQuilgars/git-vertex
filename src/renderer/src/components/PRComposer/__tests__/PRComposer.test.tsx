@@ -119,11 +119,48 @@ describe('choosing both ends', () => {
     const { api } = draw({}, { githubRepoParent })
     await waitFor(() => expect(screen.getByDisplayValue('feat: a thing')).toBeInTheDocument())
     // the parent surfaced by the lookup is offered as a target
-    await waitFor(() => expect(screen.getByTitle('Target repository')).toHaveTextContent('up/r'))
-    await userEvent.selectOptions(screen.getByTitle('Target repository'), 'up/r')
+    await waitFor(() => expect(screen.getByLabelText('To repository')).toHaveTextContent('up/r'))
+    await userEvent.selectOptions(screen.getByLabelText('To repository'), 'up/r')
     await userEvent.click(screen.getByText('Create Pull Request'))
     // the request lives in the TARGET repository, the head names the source
     await waitFor(() => expect(api.githubCreatePR).toHaveBeenCalledWith(
       'up', 'r', 'feat: a thing', '', 'o:feat/x', 'main', false))
+  })
+})
+
+// Reviewers, assignees and labels ride AFTER the creation — the create
+// endpoint takes none of them — and what they need already exists host-side
+// (#95's write surface). A failure there is a fact to report, never a
+// failure to create.
+describe('reviewers, assignees and labels', () => {
+  const staffed = () => ({
+    githubListAssignees: jest.fn().mockResolvedValue({ assignees: ['ana', 'bob'] }),
+    githubListRepoLabels: jest.fn().mockResolvedValue({ labels: [{ name: 'bug', color: 'ff0000' }] }),
+  })
+
+  test('the picks are applied to the created request, in its repository', async () => {
+    const githubRequestReviewers = jest.fn().mockResolvedValue({ success: true })
+    const githubUpdateIssue = jest.fn().mockResolvedValue({ success: true })
+    const { props } = draw({}, { ...staffed(), githubRequestReviewers, githubUpdateIssue })
+    await waitFor(() => expect(screen.getByDisplayValue('feat: a thing')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Add reviewers…'))
+    await userEvent.click(await screen.findByText('ana'))
+    await userEvent.click(screen.getByText('Add labels…'))
+    await userEvent.click(await screen.findByText('bug'))
+    await userEvent.click(screen.getByText('Create Pull Request'))
+    await waitFor(() => expect(props.onCreated).toHaveBeenCalledWith(7))
+    expect(githubRequestReviewers).toHaveBeenCalledWith('o', 'r', 7, ['ana'])
+    expect(githubUpdateIssue).toHaveBeenCalledWith('o', 'r', 7, { labels: ['bug'] })
+  })
+
+  test('a refusal after creation is reported, and the creation stands', async () => {
+    const githubRequestReviewers = jest.fn().mockResolvedValue({ error: 'Reviews may only be requested from collaborators' })
+    const { props } = draw({}, { ...staffed(), githubRequestReviewers, githubUpdateIssue: jest.fn() })
+    await waitFor(() => expect(screen.getByDisplayValue('feat: a thing')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Add reviewers…'))
+    await userEvent.click(await screen.findByText('ana'))
+    await userEvent.click(screen.getByText('Create Pull Request'))
+    await waitFor(() => expect(props.onCreated).toHaveBeenCalledWith(7))
+    expect(props.showToast).toHaveBeenCalledWith(expect.stringContaining('collaborators'), 'err')
   })
 })

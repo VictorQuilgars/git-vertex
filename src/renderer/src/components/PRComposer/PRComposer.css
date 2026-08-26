@@ -8,59 +8,46 @@
 }
 
 /* ── The four ends ──────────────────────────── */
-/* Source repo + branch into target repo + branch. It wraps rather than
-   shrinks: the VS Code panel is far narrower than a window, and four
-   selectors are what has to survive that. */
+/* Two labelled columns — repository over branch — with the arrow between,
+   as the reference lays it out. It wraps rather than shrinks: the VS Code
+   panel is far narrower than a window, and four selectors are what has to
+   survive that. */
 .pr-ends {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-xl);
   flex-wrap: wrap;
-  background: var(--bg-canvas);
-  border: 1px solid var(--border-muted);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg) var(--space-xl);
 }
 
 .pr-end {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
+  gap: var(--space-sm);
   flex: 1;
   min-width: 180px;
 }
 
-.pr-ends-arrow { flex-shrink: 0; color: var(--text-tertiary); }
+.pr-ends-arrow { flex-shrink: 0; color: var(--text-tertiary); margin-top: 30px; }
 
-.pr-branch-label {
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-semibold);
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+.pr-label--stacked { margin-top: var(--space-md); }
 
-.pr-branch-select {
-  background: var(--surface-sunken);
+.pr-select {
+  width: 100%;
+  background: var(--bg-canvas);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--accent);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
   font-size: var(--text-base);
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: var(--weight-semibold);
-  padding: var(--space-2xs) var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
   outline: none;
   cursor: pointer;
-  max-width: 100%;
 }
-.pr-branch-select:focus { border-color: var(--accent); }
+.pr-select:focus { border-color: var(--accent); }
 
-/* The repository above its branch, quieter than it: the branch is the choice
-   being made, the repository is its context. */
-.pr-repo-select {
-  color: var(--text-secondary);
-  font-weight: var(--weight-medium);
-  margin-bottom: var(--space-2xs);
+.pr-select--branch {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
 }
 
 /* ── Fields ─────────────────────────────────── */
@@ -85,12 +72,15 @@
   gap: var(--space-sm);
 }
 
-/* In the AI ink, and never a filled button — what a model proposes is a
-   proposal, which is what that colour means here. */
+/* In the AI ink, bordered like the filter drawer's ask button, and never a
+   filled button — what a model proposes is a proposal, which is what that
+   colour means here. */
 .pr-generate {
   display: inline-flex; align-items: center; gap: var(--space-xs);
-  padding: 2px var(--space-xs);
-  background: transparent; border: none; border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-md);
+  background: transparent;
+  border: 1px solid var(--ai-border);
+  border-radius: var(--radius-sm);
   color: var(--ai-text);
   font-size: var(--text-xs);
   cursor: pointer;
@@ -128,6 +118,82 @@
 .pr-textarea:focus { border-color: var(--accent); }
 .pr-textarea::placeholder { color: var(--text-disabled); }
 
+/* ── Reviewers / assignees / labels ─────────── */
+/* One pick component for the three fields — the field shows the choices as
+   chips, the list toggles them. Colours on the dots are the forge's own
+   label colours: data, not design, same as LabelChip. */
+.pr-pick { position: relative; }
+
+.pr-pick-face {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  min-height: 38px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-lg);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: var(--text-base);
+}
+.pr-pick-face:focus-visible { outline: none; border-color: var(--accent); }
+
+.pr-pick-placeholder { color: var(--text-disabled); }
+
+.pr-pick-caret { margin-left: auto; color: var(--text-tertiary); flex-shrink: 0; }
+
+.pr-pick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-px) var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.pr-pick-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pr-pick-list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0; right: 0;
+  z-index: var(--z-dropdown);
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0; padding: var(--space-xs);
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+}
+
+.pr-pick-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.pr-pick-option:hover { background: var(--surface-hover); color: var(--text-primary); }
+.pr-pick-option--on { color: var(--text-primary); }
+.pr-pick-option-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-pick-none { padding: var(--space-sm) var(--space-md); color: var(--text-tertiary); font-style: italic; }
+
 /* ── Draft ──────────────────────────────────── */
 .pr-draft {
   display: flex;
@@ -161,14 +227,17 @@
 }
 
 /* ── Footer ─────────────────────────────────── */
-/* One action. The drawer's own close is the cancel, as it is for every other
-   drawer — a second Cancel button beside it would be the same door twice. */
+/* Cancel and Create share the row, half each, as the reference lays them —
+   the drawer's × still works, but a form this tall deserves its own way out
+   at the bottom, where the reader already is. */
 .pr-footer {
   display: flex;
-  justify-content: flex-end;
   gap: var(--space-md);
   padding-top: var(--space-xs);
 }
+.pr-footer .pr-btn-secondary,
+.pr-footer .pr-btn-primary { flex: 1; justify-content: center; }
+.pr-footer .pr-btn-secondary { text-align: center; }
 
 .pr-btn-primary {
   padding: var(--space-md) var(--space-2xl);

@@ -17,6 +17,70 @@ const splitRepo = (full: string): { owner: string; repo: string } => {
   return { owner, repo: rest.join('/') }
 }
 
+/**
+ * A field that holds several picks — reviewers, assignees, labels. One
+ * component, because three of them written separately would disagree about
+ * how they open, close and show a choice. Display-only chips in the field,
+ * the list below it; clicking an option toggles it.
+ */
+function PickField({ label, placeholder, options, chosen, onToggle, dots }: {
+  label: string
+  placeholder: string
+  options: string[]
+  chosen: string[]
+  onToggle: (id: string) => void
+  /** Option → its colour swatch (labels). Absent for people. */
+  dots?: Record<string, string>
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="pr-field">
+      <span className="pr-label">{label}</span>
+      <div className="pr-pick">
+        <button type="button" className="pr-pick-face"
+          aria-expanded={open}
+          onClick={() => setOpen(o => !o)}
+          // As the suggest list does: mousedown on an option runs before this
+          // blur, so the timeout lets a toggle land before the list closes.
+          onBlur={() => setTimeout(() => setOpen(false), 120)}
+          onKeyDown={e => {
+            // The list goes first; the drawer only closes once there is no list.
+            if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false) }
+          }}>
+          {chosen.length === 0
+            ? <span className="pr-pick-placeholder">{placeholder}</span>
+            : chosen.map(c => (
+                <span key={c} className="pr-pick-chip">
+                  {/* The forge's own colour, like LabelChip — data, not design. */}
+                  {dots?.[c] !== undefined && (
+                    <span className="pr-pick-dot" style={{ background: `#${dots[c]}` }} />
+                  )}
+                  {c}
+                </span>
+              ))}
+          <Icon name="chevronDown" size={10} className="pr-pick-caret" />
+        </button>
+        {open && (
+          <ul className="pr-pick-list" role="listbox" aria-label={label}>
+            {options.length === 0 && <li className="pr-pick-none">—</li>}
+            {options.map(o => (
+              <li key={o} role="option" aria-selected={chosen.includes(o)}
+                className={`pr-pick-option${chosen.includes(o) ? ' pr-pick-option--on' : ''}`}
+                onMouseDown={e => { e.preventDefault(); onToggle(o) }}>
+                {dots?.[o] !== undefined && (
+                  <span className="pr-pick-dot" style={{ background: `#${dots[o]}` }} />
+                )}
+                <span className="pr-pick-option-name">{o}</span>
+                {chosen.includes(o) && <Icon name="check" size={11} />}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface Props {
   owner: string
   repo: string
@@ -58,6 +122,13 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
   )
   const [srcBranches, setSrcBranches] = useState<string[]>([])
   const [dstBranches, setDstBranches] = useState<string[]>([])
+
+  // ── Reviewers, assignees, labels — the target repository's ────
+  const [people, setPeople] = useState<string[]>([])
+  const [repoLabels, setRepoLabels] = useState<{ name: string; color: string }[]>([])
+  const [reviewers, setReviewers] = useState<string[]>([])
+  const [assignees, setAssignees] = useState<string[]>([])
+  const [labels, setLabels] = useState<string[]>([])
 
   const [submitting, setSubmitting] = useState(false)
   const [pushing, setPushing] = useState(false)
@@ -141,6 +212,17 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
         : list.find(b => b === 'main') ?? list.find(b => b === 'master') ?? list[0]
       setBase(preferred)
     })
+    // Reviewers, assignees and labels belong to the repository the request
+    // will LIVE in. A change of target drops the picks: a person or label
+    // chosen for one repository means nothing to another, and GitHub would
+    // refuse them anyway.
+    setReviewers([]); setAssignees([]); setLabels([])
+    ;(window.gitAPI as any).githubListAssignees?.(o, rp).then((r: any) => {
+      setPeople(Array.isArray(r?.assignees) ? r.assignees : [])
+    }).catch(() => setPeople([]))
+    ;(window.gitAPI as any).githubListRepoLabels?.(o, rp).then((r: any) => {
+      setRepoLabels(Array.isArray(r?.labels) ? r.labels : [])
+    }).catch(() => setRepoLabels([]))
     // Re-listing when `base`/`repoOptions` move would fight the user's choice.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dst])
@@ -160,6 +242,8 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
 
   const samePair = src === dst && head === base
   const crossRepo = src !== dst
+  const toggle = (set: React.Dispatch<React.SetStateAction<string[]>>) => (id: string) =>
+    set(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   async function handleSubmit() {
     if (!title.trim() || samePair || !head || !base) return
@@ -192,6 +276,26 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
       setError(r.error === 'not_authenticated' ? t('pr.noAuth') : t('pr.error', r.error))
       return
     }
+
+    // Reviewers, assignees and labels ride AFTER the creation — the create
+    // endpoint takes none of them. The request exists whatever happens next,
+    // so a failure here is reported, never treated as a failure to create.
+    const after: string[] = []
+    if (reviewers.length > 0) {
+      const rr = await (window.gitAPI as any).githubRequestReviewers?.(dstRef.owner, dstRef.repo, r.number, reviewers)
+        .catch((e: any) => ({ error: e.message }))
+      if (rr?.error) after.push(rr.error)
+    }
+    if (assignees.length > 0 || labels.length > 0) {
+      const patch: { assignees?: string[]; labels?: string[] } = {}
+      if (assignees.length > 0) patch.assignees = assignees
+      if (labels.length > 0) patch.labels = labels
+      const pr = await (window.gitAPI as any).githubUpdateIssue?.(dstRef.owner, dstRef.repo, r.number, patch)
+        .catch((e: any) => ({ error: e.message }))
+      if (pr?.error) after.push(pr.error)
+    }
+    if (after.length > 0) showToast(t('pr.afterCreateError', after.join(' — ')), 'err')
+
     setCreatedUrl(r.url)
     setCreatedNumber(r.number)
     showToast(t('pr.success', r.number), 'ok')
@@ -201,6 +305,7 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
   const repoNames = Array.from(repoOptions.keys())
   const withCurrent = (list: string[], value: string) =>
     Array.from(new Set([...list, value])).filter(Boolean)
+  const labelDots = Object.fromEntries(repoLabels.map(l => [l.name, l.color]))
 
   return (
     <PanelDrawer anchor={anchor} title={t('pr.title')} icon="pullRequest"
@@ -223,13 +328,13 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
               The intent prefilled them; from here they are the user's. */}
           <div className="pr-ends">
             <div className="pr-end">
-              <span className="pr-branch-label">{t('pr.headLabel')}</span>
-              <select className="pr-branch-select pr-repo-select" value={src}
-                title={t('pr.sourceRepo')}
+              <label className="pr-label" htmlFor="gv-pr-src-repo">{t('pr.sourceRepo')}</label>
+              <select id="gv-pr-src-repo" className="pr-select" value={src}
                 onChange={e => setSrc(e.target.value)}>
                 {withCurrent(repoNames, src).map(rn => <option key={rn} value={rn}>{rn}</option>)}
               </select>
-              <select className="pr-branch-select" value={head}
+              <label className="pr-label pr-label--stacked" htmlFor="gv-pr-head">{t('pr.branchLabel')}</label>
+              <select id="gv-pr-head" className="pr-select pr-select--branch" value={head}
                 title={t('pr.headLabel')}
                 onChange={e => setHead(e.target.value)}>
                 {withCurrent(srcBranches, head).map(b => <option key={b} value={b}>{b}</option>)}
@@ -237,13 +342,13 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
             </div>
             <Icon name="arrowRight" className="pr-ends-arrow" />
             <div className="pr-end">
-              <span className="pr-branch-label">{t('pr.baseLabel')}</span>
-              <select className="pr-branch-select pr-repo-select" value={dst}
-                title={t('pr.targetRepo')}
+              <label className="pr-label" htmlFor="gv-pr-dst-repo">{t('pr.targetRepo')}</label>
+              <select id="gv-pr-dst-repo" className="pr-select" value={dst}
                 onChange={e => setDst(e.target.value)}>
                 {withCurrent(repoNames, dst).map(rn => <option key={rn} value={rn}>{rn}</option>)}
               </select>
-              <select className="pr-branch-select" value={base}
+              <label className="pr-label pr-label--stacked" htmlFor="gv-pr-base">{t('pr.branchLabel')}</label>
+              <select id="gv-pr-base" className="pr-select pr-select--branch" value={base}
                 title={t('pr.baseLabel')}
                 onChange={e => setBase(e.target.value)}>
                 {withCurrent(dstBranches, base)
@@ -288,11 +393,21 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
               value={body}
               onChange={e => setBody(e.target.value)}
               placeholder={t('pr.bodyPlaceholder')}
-              rows={8}
+              rows={6}
             />
           </div>
 
-          <label className="pr-draft">
+          {/* Who reads it, who owns it, how it is filed — the target
+              repository's people and labels, applied right after creation. */}
+          <PickField label={t('pr.reviewersLabel')} placeholder={t('pr.reviewersPlaceholder')}
+            options={people} chosen={reviewers} onToggle={toggle(setReviewers)} />
+          <PickField label={t('pr.assigneesLabel')} placeholder={t('pr.assigneesPlaceholder')}
+            options={people} chosen={assignees} onToggle={toggle(setAssignees)} />
+          <PickField label={t('pr.labelsLabel')} placeholder={t('pr.labelsPlaceholder')}
+            options={repoLabels.map(l => l.name)} chosen={labels} onToggle={toggle(setLabels)}
+            dots={labelDots} />
+
+          <label className="pr-draft" title={t('pr.draftHelp')}>
             <input type="checkbox" checked={draft} onChange={e => setDraft(e.target.checked)} />
             {t('pr.draftLabel')}
           </label>
@@ -304,6 +419,7 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
           {error && <div className="pr-error">{error}</div>}
 
           <div className="pr-footer">
+            <button className="pr-btn-secondary" onClick={onClose}>{t('dlg.cancel')}</button>
             <button
               className="pr-btn-primary"
               onClick={handleSubmit}

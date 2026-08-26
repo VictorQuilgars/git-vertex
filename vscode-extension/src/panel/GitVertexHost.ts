@@ -21,7 +21,7 @@ import {
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, type GithubApi,
   githubIssueComments, githubAddIssueComment, githubUpdateIssue,
   githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks, githubMergePR,
-  githubRepoParent,
+  githubRepoParent, githubRequestReviewers,
 } from '../githubApi'
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
@@ -615,6 +615,8 @@ export class GitVertexHost implements vscode.Disposable {
         return githubUpdateIssue(await this._githubApi(), args[0], args[1], args[2], args[3])
       case 'githubListAssignees':
         return githubListAssignees(await this._githubApi(), args[0], args[1])
+      case 'githubRequestReviewers':
+        return githubRequestReviewers(await this._githubApi(), args[0], args[1], args[2], args[3])
       case 'githubListRepoLabels':
         return githubListRepoLabels(await this._githubApi(), args[0], args[1])
       case 'githubGetPR':

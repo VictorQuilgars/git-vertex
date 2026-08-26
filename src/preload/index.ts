@@ -221,6 +221,8 @@ const gitAPI = {
   githubAddIssueComment: (owner: string, repo: string, number: number, body: string) => ipcRenderer.invoke('github:add-issue-comment', owner, repo, number, body),
   githubUpdateIssue: (owner: string, repo: string, number: number, patch: object) => ipcRenderer.invoke('github:update-issue', owner, repo, number, patch),
   githubListAssignees: (owner: string, repo: string) => ipcRenderer.invoke('github:list-assignees', owner, repo),
+  githubRequestReviewers: (owner: string, repo: string, number: number, reviewers: string[]) =>
+    ipcRenderer.invoke('github:request-reviewers', owner, repo, number, reviewers),
   githubListRepoLabels: (owner: string, repo: string) => ipcRenderer.invoke('github:list-repo-labels', owner, repo),
   githubGetPR: (owner: string, repo: string, number: number) => ipcRenderer.invoke('github:get-pr', owner, repo, number),
   githubGetChecks: (owner: string, repo: string, ref: string) => ipcRenderer.invoke('github:get-checks', owner, repo, ref),
