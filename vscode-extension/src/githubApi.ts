@@ -622,6 +622,33 @@ export async function githubListAssignees(
   } catch (e: any) { return { error: e.message } }
 }
 
+/**
+ * Create a label — the composer's picker offers it when the typed name
+ * matches nothing (#130). Explicit, with a colour the caller chose, so the
+ * write is announced and a refusal has one place to surface.
+ */
+export async function githubCreateLabel(
+  api: GithubApi, owner: string, repo: string, name: string, color: string,
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/labels`, {
+      method: 'POST',
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, color }),
+    })
+    const data = await res.json().catch(() => ({})) as any
+    if (!res.ok) {
+      const detail = Array.isArray(data.errors)
+        ? data.errors.map((e: any) => e.code ?? e.message).filter(Boolean).join(' — ')
+        : ''
+      const msg = data.message ?? `HTTP ${res.status}`
+      return { error: detail ? `${msg} (${detail})` : msg }
+    }
+    return { label: { name: data.name, color: data.color } }
+  } catch (e: any) { return { error: e.message } }
+}
+
 export async function githubListRepoLabels(
   api: GithubApi, owner: string, repo: string,
 ): Promise<any> {

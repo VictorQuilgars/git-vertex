@@ -21,32 +21,45 @@ const splitRepo = (full: string): { owner: string; repo: string } => {
 /**
  * A field that holds several picks — reviewers, assignees, labels. One
  * component, because three of them written separately would disagree about
- * how they open, close and show a choice. Display-only chips in the field,
- * the list below it; clicking an option toggles it.
+ * how they open, close and show a choice. Display-only chips in the field;
+ * the list below carries a filter, since a repository's people and labels
+ * outgrow scanning; clicking an option toggles it. With `onCreate`, a typed
+ * name that matches nothing is offered as a label to create.
  */
-function PickField({ label, placeholder, options, chosen, onToggle, dots }: {
+function PickField({ label, placeholder, filterPlaceholder, options, chosen, onToggle, dots, onCreate, createRow }: {
   label: string
   placeholder: string
+  filterPlaceholder: string
   options: string[]
   chosen: string[]
   onToggle: (id: string) => void
   /** Option → its colour swatch (labels). Absent for people. */
   dots?: Record<string, string>
+  /** Labels only: make the typed name exist, then choose it. */
+  onCreate?: (name: string) => void
+  createRow?: (name: string) => string
 }) {
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const close = () => { setOpen(false); setQuery('') }
+  const q = query.trim()
+  const shown = q ? options.filter(o => o.toLowerCase().includes(q.toLowerCase())) : options
+  const exact = options.some(o => o.toLowerCase() === q.toLowerCase())
+  const creatable = !!onCreate && q !== '' && !exact
   return (
     <div className="pr-field">
       <span className="pr-label">{label}</span>
-      <div className="pr-pick">
+      {/* One blur handler for the whole control: focus moves from the face to
+          the filter and back, and only LEAVING the control closes it. Options
+          take mousedown with preventDefault, so choosing moves no focus. */}
+      <div className="pr-pick"
+        onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) close() }}>
         <button type="button" className="pr-pick-face"
           aria-expanded={open}
-          onClick={() => setOpen(o => !o)}
-          // As the suggest list does: mousedown on an option runs before this
-          // blur, so the timeout lets a toggle land before the list closes.
-          onBlur={() => setTimeout(() => setOpen(false), 120)}
+          onClick={() => (open ? close() : setOpen(true))}
           onKeyDown={e => {
             // The list goes first; the drawer only closes once there is no list.
-            if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false) }
+            if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); close() }
           }}>
           {chosen.length === 0
             ? <span className="pr-pick-placeholder">{placeholder}</span>
@@ -62,25 +75,58 @@ function PickField({ label, placeholder, options, chosen, onToggle, dots }: {
           <Icon name="chevronDown" size={10} className="pr-pick-caret" />
         </button>
         {open && (
-          <ul className="pr-pick-list" role="listbox" aria-label={label}>
-            {options.length === 0 && <li className="pr-pick-none">—</li>}
-            {options.map(o => (
-              <li key={o} role="option" aria-selected={chosen.includes(o)}
-                className={`pr-pick-option${chosen.includes(o) ? ' pr-pick-option--on' : ''}`}
-                onMouseDown={e => { e.preventDefault(); onToggle(o) }}>
-                {dots?.[o] !== undefined && (
-                  <span className="pr-pick-dot" style={{ background: `#${dots[o]}` }} />
-                )}
-                <span className="pr-pick-option-name">{o}</span>
-                {chosen.includes(o) && <Icon name="check" size={11} />}
-              </li>
-            ))}
-          </ul>
+          <div className="pr-pick-list">
+            <input className="pr-pick-filter" autoFocus value={query}
+              placeholder={filterPlaceholder}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() }
+                // Enter takes the one thing the text can mean: the exact
+                // match, or the creation the row below is offering.
+                else if (e.key === 'Enter') {
+                  e.preventDefault()
+                  const hit = options.find(o => o.toLowerCase() === q.toLowerCase())
+                  if (hit) onToggle(hit)
+                  else if (creatable) { onCreate!(q); close() }
+                }
+              }} />
+            <ul role="listbox" aria-label={label}>
+              {shown.length === 0 && !creatable && <li className="pr-pick-none">—</li>}
+              {shown.map(o => (
+                <li key={o} role="option" aria-selected={chosen.includes(o)}
+                  className={`pr-pick-option${chosen.includes(o) ? ' pr-pick-option--on' : ''}`}
+                  onMouseDown={e => { e.preventDefault(); onToggle(o) }}>
+                  {dots?.[o] !== undefined && (
+                    <span className="pr-pick-dot" style={{ background: `#${dots[o]}` }} />
+                  )}
+                  <span className="pr-pick-option-name">{o}</span>
+                  {chosen.includes(o) && <Icon name="check" size={11} />}
+                </li>
+              ))}
+              {creatable && (
+                <li className="pr-pick-option pr-pick-create"
+                  onMouseDown={e => { e.preventDefault(); onCreate!(q); close() }}>
+                  <Icon name="plus" size={11} />
+                  <span className="pr-pick-option-name">{createRow?.(q) ?? q}</span>
+                </li>
+              )}
+            </ul>
+          </div>
         )}
       </div>
     </div>
   )
 }
+
+/**
+ * A colour for a label born in the composer — deterministic (the same name
+ * always proposes the same colour, and nothing here may call Math.random into
+ * a review surface), drawn from GitHub's own default-palette hues. Data the
+ * forge will store, not design: the same standing as LabelChip's colours.
+ */
+const LABEL_COLORS = ['0052cc', '5319e7', 'b60205', 'd93f0b', 'fbca04', '0e8a16', '006b75', '1d76db']
+const labelColorFor = (name: string): string =>
+  LABEL_COLORS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 0) % LABEL_COLORS.length]
 
 interface Props {
   owner: string
@@ -260,6 +306,21 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
   const toggle = (set: React.Dispatch<React.SetStateAction<string[]>>) => (id: string) =>
     set(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
+  // A label typed into the picker that matches nothing can be MADE — a real
+  // write, done right away, which is what the row offering it says. Created
+  // in the target repository, where the request will carry it, and chosen on
+  // arrival; a refusal costs nothing but the toast that names it.
+  const createLabel = async (name: string) => {
+    const { owner: o, repo: rp } = splitRepo(dst)
+    const color = labelColorFor(name)
+    const r = await ((window.gitAPI as any).githubCreateLabel?.(o, rp, name, color)
+      ?? Promise.resolve({ error: 'not-implemented' })).catch((e: any) => ({ error: e.message }))
+    if (r?.error) { showToast(t('pr.labelCreateError', r.error), 'err'); return }
+    const made = { name: r?.label?.name ?? name, color: r?.label?.color ?? color }
+    setRepoLabels(prev => [...prev, made])
+    setLabels(prev => [...prev, made.name])
+  }
+
   async function handleSubmit() {
     if (!title.trim() || samePair || !head || !base) return
     setSubmitting(true)
@@ -428,12 +489,17 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
           {moreOpen && (
             <>
               <PickField label={t('pr.reviewersLabel')} placeholder={t('pr.reviewersPlaceholder')}
+                filterPlaceholder={t('pr.pickFilter')}
                 options={people} chosen={reviewers} onToggle={toggle(setReviewers)} />
               <PickField label={t('pr.assigneesLabel')} placeholder={t('pr.assigneesPlaceholder')}
+                filterPlaceholder={t('pr.pickFilter')}
                 options={people} chosen={assignees} onToggle={toggle(setAssignees)} />
               <PickField label={t('pr.labelsLabel')} placeholder={t('pr.labelsPlaceholder')}
+                filterPlaceholder={t('pr.pickFilter')}
                 options={repoLabels.map(l => l.name)} chosen={labels} onToggle={toggle(setLabels)}
-                dots={labelDots} />
+                dots={labelDots}
+                onCreate={name => void createLabel(name)}
+                createRow={name => t('pr.createLabel', name)} />
             </>
           )}
 

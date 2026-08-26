@@ -1365,6 +1365,9 @@ const fr = {
   'pr.assigneesPlaceholder': 'Ajouter des assignés…',
   'pr.labelsLabel': 'Étiquettes',
   'pr.labelsPlaceholder': 'Ajouter des étiquettes…',
+  'pr.pickFilter': 'Taper pour filtrer…',
+  'pr.createLabel': (n: string) => `Créer l’étiquette « ${n} »`,
+  'pr.labelCreateError': (e: string) => `L’étiquette n’a pas été créée : ${e}`,
   'pr.afterCreateError': (e: string) => `La requête est créée, mais tout n’a pas suivi : ${e}`,
 
   // GitHub Panel
@@ -2939,6 +2942,9 @@ const en: typeof fr = {
   'pr.assigneesPlaceholder': 'Add assignees…',
   'pr.labelsLabel': 'Labels',
   'pr.labelsPlaceholder': 'Add labels…',
+  'pr.pickFilter': 'Type to filter…',
+  'pr.createLabel': (n: string) => `Create label “${n}”`,
+  'pr.labelCreateError': (e: string) => `The label was not created: ${e}`,
   'pr.afterCreateError': (e: string) => `The request was created, but not everything followed: ${e}`,
 
   // GitHub Panel

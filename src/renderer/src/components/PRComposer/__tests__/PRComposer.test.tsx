@@ -181,3 +181,54 @@ describe('reviewers, assignees and labels', () => {
     expect(props.showToast).toHaveBeenCalledWith(expect.stringContaining('collaborators'), 'err')
   })
 })
+
+// The picker filters as you type — a repository's labels outgrow scanning —
+// and a name that matches nothing can be MADE, right away, in the target
+// repository, which is what the row offering it says.
+describe('the label picker', () => {
+  const opened = async (api: Record<string, any>) => {
+    const drawn = draw({}, {
+      githubListRepoLabels: jest.fn().mockResolvedValue({ labels: [
+        { name: 'bug', color: 'ff0000' }, { name: 'build', color: '00ff00' }, { name: 'docs', color: '0000ff' },
+      ] }),
+      ...api,
+    })
+    await waitFor(() => expect(screen.getByDisplayValue('feat: a thing')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('More options'))
+    await userEvent.click(screen.getByText('Add labels…'))
+    return drawn
+  }
+
+  test('typing narrows the list', async () => {
+    await opened({})
+    await userEvent.type(screen.getByPlaceholderText('Type to filter…'), 'bu')
+    expect(screen.getByText('bug')).toBeInTheDocument()
+    expect(screen.getByText('build')).toBeInTheDocument()
+    expect(screen.queryByText('docs')).not.toBeInTheDocument()
+  })
+
+  test('a name that matches nothing is offered as a creation, and created', async () => {
+    const githubCreateLabel = jest.fn().mockResolvedValue({ label: { name: 'urgent', color: '0052cc' } })
+    await opened({ githubCreateLabel })
+    await userEvent.type(screen.getByPlaceholderText('Type to filter…'), 'urgent')
+    await userEvent.click(screen.getByText('Create label “urgent”'))
+    await waitFor(() => expect(githubCreateLabel).toHaveBeenCalledWith('o', 'r', 'urgent', expect.stringMatching(/^[0-9a-f]{6}$/)))
+    // chosen on arrival: the chip is in the field
+    expect(await screen.findByText('urgent')).toBeInTheDocument()
+  })
+
+  test('an existing name offers no creation', async () => {
+    await opened({})
+    await userEvent.type(screen.getByPlaceholderText('Type to filter…'), 'bug')
+    expect(screen.queryByText(/Create label/)).not.toBeInTheDocument()
+  })
+
+  test('a refused creation is named and chooses nothing', async () => {
+    const githubCreateLabel = jest.fn().mockResolvedValue({ error: 'Validation Failed (already_exists)' })
+    const { props } = await opened({ githubCreateLabel })
+    await userEvent.type(screen.getByPlaceholderText('Type to filter…'), 'urgent')
+    await userEvent.click(screen.getByText('Create label “urgent”'))
+    await waitFor(() => expect(props.showToast).toHaveBeenCalledWith(expect.stringContaining('already_exists'), 'err'))
+    expect(screen.queryByText('urgent')).not.toBeInTheDocument()
+  })
+})

@@ -194,15 +194,42 @@
   top: calc(100% + 2px);
   left: 0; right: 0;
   z-index: var(--z-dropdown);
-  max-height: 180px;
-  overflow-y: auto;
-  margin: 0; padding: var(--space-xs);
-  list-style: none;
   background: var(--surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  padding: var(--space-xs);
 }
+.pr-pick-list ul {
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0; padding: 0;
+  list-style: none;
+}
+
+.pr-pick-filter {
+  width: 100%;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  padding: var(--space-xs) var(--space-md);
+  outline: none;
+  margin-bottom: var(--space-xs);
+}
+.pr-pick-filter:focus { border-color: var(--accent); }
+.pr-pick-filter::placeholder { color: var(--text-disabled); }
+
+/* Creation is an act, so it wears the acting colour — and a top border rules
+   it off from the matches: it makes a thing, it does not find one. */
+.pr-pick-create {
+  color: var(--accent);
+  border-top: 1px solid var(--border-muted);
+  border-radius: 0;
+  margin-top: var(--space-xs);
+}
+.pr-pick-create:hover { color: var(--accent); }
 
 .pr-pick-option {
   display: flex;

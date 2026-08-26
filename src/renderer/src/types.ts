@@ -377,6 +377,8 @@ declare global {
     /** Review is asked for after creation — the create endpoint does not take reviewers (#130). */
     githubRequestReviewers: (owner: string, repo: string, number: number, reviewers: string[]) => Promise<Unnarrowed>
     githubListRepoLabels: (owner: string, repo: string) => Promise<Unnarrowed>
+    /** The composer's picker can create a label that does not exist yet (#130). */
+    githubCreateLabel: (owner: string, repo: string, name: string, color: string) => Promise<Unnarrowed>
     githubGetPR: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
     githubGetChecks: (owner: string, repo: string, ref: string) => Promise<Unnarrowed>
     githubMergePR: (owner: string, repo: string, number: number, method?: string) => Promise<Unnarrowed>

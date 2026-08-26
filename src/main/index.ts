@@ -2909,6 +2909,36 @@ ipcMain.handle('github:list-assignees', async (_e, owner: string, repo: string) 
   } catch (e: any) { return { error: e.message } }
 })
 
+// The composer's label picker can CREATE a label that does not exist yet
+// (#130). Explicit — a POST with a colour we chose — rather than leaning on
+// any endpoint's implicit auto-creation, so the write is announced, the
+// colour is deterministic, and a refusal has one place to surface.
+ipcMain.handle('github:create-label', async (_e, owner: string, repo: string, name: string, color: string) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/labels`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, color }),
+    })
+    const data = await res.json().catch(() => ({})) as any
+    if (!res.ok) {
+      const detail = Array.isArray(data.errors)
+        ? data.errors.map((e: any) => e.code ?? e.message).filter(Boolean).join(' — ')
+        : ''
+      const msg = data.message ?? `HTTP ${res.status}`
+      return { error: detail ? `${msg} (${detail})` : msg }
+    }
+    return { label: { name: data.name, color: data.color } }
+  } catch (e: any) { return { error: e.message } }
+})
+
 ipcMain.handle('github:list-repo-labels', async (_e, owner: string, repo: string) => {
   const api = await ghApi()
   const token = api.token

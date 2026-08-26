@@ -224,6 +224,8 @@ const gitAPI = {
   githubRequestReviewers: (owner: string, repo: string, number: number, reviewers: string[]) =>
     ipcRenderer.invoke('github:request-reviewers', owner, repo, number, reviewers),
   githubListRepoLabels: (owner: string, repo: string) => ipcRenderer.invoke('github:list-repo-labels', owner, repo),
+  githubCreateLabel: (owner: string, repo: string, name: string, color: string) =>
+    ipcRenderer.invoke('github:create-label', owner, repo, name, color),
   githubGetPR: (owner: string, repo: string, number: number) => ipcRenderer.invoke('github:get-pr', owner, repo, number),
   githubGetChecks: (owner: string, repo: string, ref: string) => ipcRenderer.invoke('github:get-checks', owner, repo, ref),
   githubMergePR: (owner: string, repo: string, number: number, method?: string) => ipcRenderer.invoke('github:merge-pr', owner, repo, number, method),
