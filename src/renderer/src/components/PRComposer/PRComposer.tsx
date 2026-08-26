@@ -443,8 +443,10 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
           </label>
 
           {/* Say up front that submitting also pushes — the branch has to
-              exist on the remote for GitHub to accept the PR at all. */}
-          {needsPush && !error && <div className="pr-hint">{t('pr.willPush', head)}</div>}
+              exist on the remote for GitHub to accept the PR at all. Quietly:
+              it is a routine fact, not a warning, and the menu row that opens
+              this composer already promised it. */}
+          {needsPush && !error && <div className="pr-note">{t('pr.willPush', head)}</div>}
           {samePair && <div className="pr-error">{t('pr.sameBranch')}</div>}
           {error && <div className="pr-error">{error}</div>}
 

@@ -241,15 +241,9 @@
   padding: var(--space-md) var(--space-xl);
 }
 
-/* Not a failure — just what submitting is about to do on your behalf. */
-.pr-hint {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) var(--alpha-muted), transparent);
-  border-radius: var(--radius-md);
-  padding: var(--space-md) var(--space-xl);
-}
+/* Not a failure, barely a notice — what submitting will also do. Quiet on
+   purpose: boxed like an alert, a routine fact wore a warning's weight. */
+.pr-note { font-size: var(--text-xs); color: var(--text-tertiary); }
 
 /* ── Footer ─────────────────────────────────── */
 /* Cancel and Create share the row, half each, as the reference lays them —
