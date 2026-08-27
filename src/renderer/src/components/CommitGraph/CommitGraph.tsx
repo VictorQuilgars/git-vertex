@@ -977,10 +977,13 @@ export default function CommitGraph({
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   // The stacked layout pulls everything left (#111 follow-up): the graph
-  // starts at 26 instead of 36 — the stripe only needs 9 — so the text sits
-  // closer to the bullets, which is where the eye already is.
-  const svgPadL = refsBelow ? 26 : SVG_PAD_L
-  const svgW = Math.max(svgPadL + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
+  // starts at 24 instead of 36 — stripe (9) + a breath (2) + node radius
+  // (13), zero slack — and its lanes sit 16 apart instead of 22, the
+  // reference's proportion of big avatars on tight rails. The classic
+  // columns keep both constants.
+  const svgPadL = refsBelow ? 24 : SVG_PAD_L
+  const laneW = refsBelow ? 16 : LANE_WIDTH
+  const svgW = Math.max(svgPadL + (maxLane + 1) * laneW + SVG_PAD_R, 48)
   const svgH = rowTops[displayLayout.length] ?? displayLayout.length * ROW_HEIGHT
 
   // Availability-based column visibility. The message column must always keep
@@ -1145,9 +1148,9 @@ export default function CommitGraph({
   // That was the "line pointing at no commit" in the third screenshot.
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
-    const x1 = svgPadL + edge.fromLane * LANE_WIDTH
+    const x1 = svgPadL + edge.fromLane * laneW
     const y1 = rowMid(commit.row)
-    const x2 = svgPadL + edge.toLane * LANE_WIDTH
+    const x2 = svgPadL + edge.toLane * laneW
     const y2 = rowMid(edge.toRow)
     const key = `${commit.hash}-${edge.fromLane}-${edge.toLane}-${edge.toRow}`
     const dashArray = isWip || edge.dashed ? '4 3' : undefined
@@ -1174,7 +1177,7 @@ export default function CommitGraph({
     //  - merge (a merge commit reaching a 2nd parent): the horizontal jog
     //    happens at the TOP, on the merge commit's row, then the vertical runs
     //    down the parent's lane (toLane).
-    const r = Math.min(LANE_WIDTH * 0.6, Math.abs(y2 - y1) / 2)
+    const r = Math.min(laneW * 0.6, Math.abs(y2 - y1) / 2)
     const dx = x2 > x1 ? r : -r
     const isFork = edge.type === 'fork-left' || edge.type === 'fork-right'
     const d = isFork
@@ -1196,7 +1199,7 @@ export default function CommitGraph({
         fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
         strokeDasharray={dashArray} />
     )
-  }, [rowMid, svgPadL])
+  }, [rowMid, svgPadL, laneW])
 
   // The "start a Pull Request" row, pointing whichever way prIntentFor decided
   // — from this branch, or into it, depending on where you are standing.
@@ -1545,7 +1548,7 @@ export default function CommitGraph({
                 reads as a stray mark beside the bullet. */}
             {!refsBelow && displayLayout.map(commit => {
               if (commit.hash === WIP_HASH) return null
-              const cx = svgPadL + commit.lane * LANE_WIDTH
+              const cx = svgPadL + commit.lane * laneW
               const bandH = 24
               const y = rowTop(commit.row) + (ROW_HEIGHT - bandH) / 2
               const right = svgW - SVG_PAD_R
@@ -1567,7 +1570,7 @@ export default function CommitGraph({
                 now, so the line ran left of the bullet toward nothing. */}
             {!refsBelow && displayLayout.map(commit => {
               if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
-              const cx = svgPadL + commit.lane * LANE_WIDTH
+              const cx = svgPadL + commit.lane * laneW
               const cy = rowMid(commit.row)
               if (cx - NODE_RADIUS <= 0) return null
               return (
@@ -1583,7 +1586,7 @@ export default function CommitGraph({
 
             {/* Nodes */}
             {displayLayout.map(commit => {
-              const cx = svgPadL + commit.lane * LANE_WIDTH
+              const cx = svgPadL + commit.lane * laneW
               const cy = rowMid(commit.row)
               const isSelected = commit.hash === selectedHash
               const isWip = commit.hash === WIP_HASH
@@ -1797,9 +1800,9 @@ export default function CommitGraph({
 
                 {/* Spacer for SVG — the stacked text tucks into the graph's
                     right padding, up against the bullets: the column keeps
-                    LANE_WIDTH + SVG_PAD_R (30px) past the last lane's centre,
-                    and a node ends 13px past it (radius 11 + ring 2). 16 is
-                    that node edge plus a breath; the reference sits its text
+                    laneW + SVG_PAD_R (24px) past the last lane's centre, and
+                    a node ends 13px past it (radius 11 + ring 2). 16 is that
+                    node edge plus a breath; the reference sits its text
                     exactly there. */}
                 <div style={{ width: refsBelow ? svgW - 14 : svgW, flexShrink: 0 }} />
 
