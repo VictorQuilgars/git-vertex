@@ -1,6 +1,12 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-  "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*"],
+  "include": [
+    "electron.vite.config.*",
+    "src/main/**/*",
+    "src/preload/**/*",
+    "src/renderer/src/utils/remoteUrl.ts"
+  ],
+  "//": "remoteUrl.ts: the one renderer file the main process imports (github-host, #96). A composite project must list every file it reaches; without this line the config reports TS6307 for anyone who runs it (#105).",
   "compilerOptions": {
     "composite": true,
     "types": ["electron-vite/node"]
