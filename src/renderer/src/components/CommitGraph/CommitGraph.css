@@ -457,6 +457,9 @@
   justify-content: center;
   gap: 0;
   min-width: 0;
+  /* Closer to the bullets: the classic columns keep their breathing room,
+     the stacked text starts where the graph ends. */
+  padding-left: var(--space-sm);
 }
 .cg-col-msg--stacked .cg-msg-line {
   display: flex;
@@ -505,8 +508,8 @@
   border-bottom: none;
   background: linear-gradient(to right,
     color-mix(in srgb, var(--cg-row-color) 14%, transparent),
-    color-mix(in srgb, var(--cg-row-color) 6%, transparent) min(160px, 40%),
-    transparent min(380px, 78%));
+    color-mix(in srgb, var(--cg-row-color) 6%, transparent) min(110px, 35%),
+    transparent min(250px, 65%));
   background-repeat: no-repeat;
   background-size: 100% calc(100% - 1px);
 }

@@ -74,6 +74,11 @@
    is a pill nobody reads. */
 .mchip-seg:first-child .mchip-label { max-width: 22ch; opacity: 1; }
 
+/* In the stacked layout the chip has the whole row's width under the message
+   — a branch name cut at 22ch there is caution with nothing to protect. The
+   classic columns keep the cap: their refs column is a measured budget. */
+.cg-row--stacked .mchip-seg:first-child .mchip-label { max-width: none; }
+
 /* Kinds. Only the icon changes tone; the pill keeps one background, or a row
    with four segments turns into four colours competing for the same eye. */
 .mchip-branch  .mchip-ico { opacity: 1; }
