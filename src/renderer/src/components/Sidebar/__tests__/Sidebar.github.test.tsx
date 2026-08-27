@@ -1089,9 +1089,10 @@ describe('the + on the github section headers', () => {
     expect(onNewIssue).toHaveBeenCalled()
   })
 
-  // On the default branch prIntentFor proposes nothing (rule 2), and the
-  // caller passes no handler — so there is no button, not a dead one.
-  test('no proposal, no +', () => {
+  // Without GitHub to compose against the caller passes no handler — so
+  // there is no button, not a dead one. (With GitHub the + is permanent:
+  // the composer's ends are choosable, the rules only prefill.)
+  test('no handler, no +', () => {
     draw({ githubPRs: [], githubIssues: [], ...gh })
     expect(screen.queryByTitle('Start a pull request from the current branch')).not.toBeInTheDocument()
     expect(screen.queryByTitle('New issue')).not.toBeInTheDocument()

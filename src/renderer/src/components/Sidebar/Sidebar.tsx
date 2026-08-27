@@ -148,10 +148,12 @@ interface SidebarProps {
   onToggleAllBranches?: () => void
   onRefreshGithub?: (section: 'prs' | 'issues') => void
   /**
-   * The header's `+` on PULL REQUESTS — opens the composer for the request
-   * the checked-out branch proposes. The caller passes it only when
-   * `prIntentFor` has an answer: on the default branch there is nothing to
-   * start (rule 2), and a `+` that opens an error would be worse than none.
+   * The header's `+` on PULL REQUESTS — opens the composer, prefilled with
+   * the request the checked-out branch proposes when the rules have one, and
+   * with where you stand when they do not: the composer's four ends are
+   * choosable, so the door stays open even where a single pair would not
+   * (default branch, or the pair's request already open). Absent only when
+   * there is no GitHub to compose against.
    */
   onStartPR?: () => void
   /** The header's `+` on GITHUB ISSUES — the host's own new-issue form; the

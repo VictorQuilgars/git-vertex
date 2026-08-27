@@ -31,7 +31,7 @@ import CompareWorkingView from './CompareWorkingView'
 import AssociateIssueModal from '../../../src/renderer/src/components/IssueLink/AssociateIssueModal'
 import PRComposer from '../../../src/renderer/src/components/PRComposer/PRComposer'
 import IssueComposer from '../../../src/renderer/src/components/IssueComposer/IssueComposer'
-import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
+import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
 import { issueBranchName } from '../../../src/renderer/src/utils/issueBranch'
@@ -1156,7 +1156,15 @@ function VertexApp() {
             showAllBranches={showAllBranches}
             onToggleAllBranches={() => setShowAllBranches(v => !v)}
             onRefreshGithub={refreshGithubSection}
-            onStartPR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
+            onStartPR={githubRepo ? () => handleStartPR(currentBranchPR ?? {
+              // A door to the whole composer, not a promise about one pair —
+              // see the desktop's twin wiring.
+              head: currentBranch,
+              base: defaultBranch,
+              baseLabel: null,
+              headLabel: currentBranch,
+              needsPush: branchNeedsPush(currentBranch, branches),
+            }) : undefined}
             onNewIssue={githubRepo ? () => setIssueComposerOpen(true) : undefined}
             githubRefreshing={githubRefreshing}
             githubRefreshTick={githubRefreshTick}

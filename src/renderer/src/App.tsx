@@ -39,7 +39,7 @@ import {
 import InitModal from './components/InitModal/InitModal'
 import PRComposer from './components/PRComposer/PRComposer'
 import IssueComposer from './components/IssueComposer/IssueComposer'
-import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
+import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from './components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
 import { canonicalRef, publishedNameFor } from './components/ContextMenu/branchRefs'
 import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu/branchMenu'
@@ -2462,7 +2462,18 @@ export default function App() {
               showAllBranches={showAllBranches}
               onToggleAllBranches={() => setShowAllBranches(v => !v)}
               onRefreshGithub={refreshGithubSection}
-              onStartPR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
+              onStartPR={githubOwnerRepo ? () => handleStartPR(currentBranchPR ?? {
+                // The header's + is a door to the whole composer, not a
+                // promise about one pair — the four ends are choosable in
+                // there. When the rules propose nothing (default branch, or
+                // the pair's request already open — rule 6), the composer
+                // still opens, prefilled with where you stand.
+                head: currentBranch,
+                base: defaultBranch,
+                baseLabel: null,
+                headLabel: currentBranch,
+                needsPush: branchNeedsPush(currentBranch, branches),
+              }) : undefined}
               onNewIssue={githubOwnerRepo ? () => setIssueComposerOpen(true) : undefined}
               githubRefreshing={githubRefreshing}
               githubRefreshTick={githubRefreshTick}

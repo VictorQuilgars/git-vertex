@@ -24,7 +24,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Choose all four ends** — source repository and branch, target repository and branch. A fork's parent is offered as a target, and a cross-repository head spells itself \`owner:branch\`.
 - **Reviewers, assignees and labels**, behind a *More options* fold, applied the moment the request exists — each picker filters as you type, and a missing label can be created from the picker itself.
 - **Open as a draft**, at last a checkbox.
-- **A \`+\` on the section headers**: PULL REQUESTS opens the composer for the checked-out branch, GITHUB ISSUES opens the issue composer.
+- **A \`+\` on the section headers**: PULL REQUESTS opens the PR composer — prefilled by the rules when they have an answer, open regardless — and GITHUB ISSUES the issue composer.
 
 ### 🗒 The issue composer
 - **GITHUB ISSUES' \`+\` opens a composer now** — the PR composer's sibling drawer: title, description, and the repository's labels and assignees in the same filtering pickers. One POST carries all four.
