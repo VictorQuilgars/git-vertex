@@ -3168,6 +3168,13 @@ ipcMain.handle('github:get-issue', async (_e, owner: string, repo: string, numbe
         isPR: !!d.pull_request,
         merged: d.pull_request?.merged_at != null,
         url: d.html_url,
+        // What the hover card renders (#95 §3): the `#123` reference shows
+        // the same card as a sidebar row, so it needs the same material.
+        body: d.body ?? '',
+        labels: (d.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        assignees: (d.assignees ?? []).map((a: any) => a.login),
+        author: d.user?.login,
+        draft: !!d.draft,
       }
     }
   } catch (e: any) { return { error: e.message } }

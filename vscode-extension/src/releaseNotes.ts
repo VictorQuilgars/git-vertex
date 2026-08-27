@@ -26,6 +26,11 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Open as a draft**, at last a checkbox.
 - **A \`+\` on the section headers**: PULL REQUESTS opens the composer for the checked-out branch, GITHUB ISSUES opens GitHub's own new-issue form.
 
+### 🪪 One hover card, everywhere
+- The \`#123\` reference opens **the same rich card** as a sidebar row — description, labels, people — not a two-line tooltip.
+- The card says **closed and merged** now, each in its own colour: a closed pull request failed, a closed issue completed.
+- **The GitHub tab is gone here too** — the rail's lists and the centre detail are the integration, and the Launchpad rows switch the rail instead of opening a tab.
+
 ### ✅ The chip that confirms an action, redesigned
 - It no longer lands on the **Commit button**: the stack sits at the bottom **centre**, clear of the control you reach for next, and it fits a narrow VS Code panel.
 - A **chip, not a tinted card**: one line on the ordinary surface, with a real icon in the colour of the outcome. A success no longer shouts as loudly as a failure.

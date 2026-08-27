@@ -95,9 +95,18 @@ export default function GithubHoverCard({ item, pos, inside, onClose, onOpen, on
         </div>
         <div className="ghc-side">
           <div className="ghc-label">{t('gh.card.status')}</div>
-          <div className={`ghc-status${item.draft ? ' ghc-status--draft' : ''}`}>
-            {item.draft ? t('gh.panel.draft') : t('issue.open')}
-          </div>
+          {/* Same reading as the old `#123` tooltip: merged wins, a closed
+              pull request failed where a closed issue completed. */}
+          {(() => {
+            const s = item.merged
+              ? { label: t('issue.merged'), mod: 'merged' }
+              : item.state === 'closed'
+                ? { label: t('issue.closed'), mod: item.kind === 'pr' ? 'closed-pr' : 'closed-issue' }
+                : item.draft
+                  ? { label: t('gh.panel.draft'), mod: 'draft' }
+                  : { label: t('issue.open'), mod: 'open' }
+            return <div className={`ghc-status ghc-status--${s.mod}`}>{s.label}</div>
+          })()}
           {(item.labels?.length ?? 0) > 0 && (
             <>
               <div className="ghc-label">{t('gh.card.labels')}</div>

@@ -6,7 +6,7 @@ import { GitVertexStatusBar } from './statusBar'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexGitHubTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider } from './panel/GitVertexHost'
 import { blameFile } from './blame/blame'
 import { GitService } from './gitService'
 import { RELEASE_NOTES } from './releaseNotes'
@@ -431,12 +431,6 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     // Route `git rebase -i` todo files into the visual editor (toggle).
     vscode.commands.registerCommand('gitVertex.enableRebaseEditor', () => toggleSequenceEditor()),
-    // GitHub PRs & issues tab (needs a PAT — gitVertex.setGithubToken).
-    vscode.commands.registerCommand('gitVertex.openGitHub', () => {
-      const root = resolveRepoRoot()
-      if (!root) { vscode.window.showWarningMessage('No Git repository found for this workspace.'); return }
-      openGitVertexGitHubTab(context.extensionUri, context.globalState, root)
-    }),
     // Re-read the notes on demand. Without this the only way to see them is to
     // be updating at that moment — and the tab is closable.
     vscode.commands.registerCommand('gitVertex.showWhatsNew', () => {

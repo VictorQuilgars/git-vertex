@@ -1,7 +1,8 @@
 // githubApi.ts — GitHub REST calls for the extension host.
 // Mirrors the desktop handlers in src/main/index.ts (github:list-prs /
 // github:list-issues / github:create-pr / github:list-branches) so the shared
-// GitHubPanel and PRModal work unchanged.
+// renderer — the sidebar sections, the issue detail, the PR composer — works
+// unchanged.
 //
 // Every call takes an `api`, not a bare token: a GitHub Enterprise Server
 // instance is the same API on the customer's own host, under `/api/v3`, and it
@@ -148,6 +149,13 @@ export async function githubGetIssue(
         isPR: !!d.pull_request,
         merged: d.pull_request?.merged_at != null,
         url: d.html_url,
+        // What the hover card renders (#95 §3): the `#123` reference shows
+        // the same card as a sidebar row, so it needs the same material.
+        body: d.body ?? '',
+        labels: (d.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        assignees: (d.assignees ?? []).map((a: any) => a.login),
+        author: d.user?.login,
+        draft: !!d.draft,
       },
     }
   } catch (e: any) { return { error: e.message } }

@@ -1900,7 +1900,7 @@ export default function Sidebar({
               </div>
               {(() => {
                 const prRow = (pr: GithubListItem) => (
-                  <GithubRow key={pr.number} compact item={{ ...pr, kind: 'pr' }}
+                  <GithubRow key={pr.number} item={{ ...pr, kind: 'pr' }}
                     hoverCard={!githubDetailOpen}
                     onOpen={url => onOpenGithubItem?.(url)}
                     onDetail={onShowGithubDetail ? () => onShowGithubDetail(pr, 'pr') : undefined} />
@@ -1931,7 +1931,7 @@ export default function Sidebar({
                         refreshTick={githubRefreshTick?.prs} pollTick={githubPollTick} t={t}
                         onOpen={url => onOpenGithubItem?.(url)}
                         renderItem={(item, k) => (
-                          <GithubRow key={`${k}-${item.number}`} compact item={{ ...item, kind: k }}
+                          <GithubRow key={`${k}-${item.number}`} item={{ ...item, kind: k }}
                             hoverCard={!githubDetailOpen}
                             onOpen={url => onOpenGithubItem?.(url)}
                             onDetail={onShowGithubDetail ? () => onShowGithubDetail(item, k) : undefined} />
@@ -1966,7 +1966,7 @@ export default function Sidebar({
               </div>
               <GhGroup title={t('sb.gh.group.allIssues')} count={githubIssues.length}>
                 {githubIssues.filter(issue => ghMatch(issue, issuesQuery)).map(issue => (
-                  <GithubRow key={issue.number} compact item={{ ...issue, kind: 'issue' }}
+                  <GithubRow key={issue.number} item={{ ...issue, kind: 'issue' }}
                     hoverCard={!githubDetailOpen}
                     onOpen={url => onOpenGithubItem?.(url)}
                     onDetail={onShowGithubDetail ? () => onShowGithubDetail(issue, 'issue') : undefined}
@@ -1980,7 +1980,7 @@ export default function Sidebar({
                   repo={githubRepo} refreshOn={githubIssues} t={t}
                   onOpen={url => onOpenGithubItem?.(url)}
                   renderItem={(item, k) => (
-                    <GithubRow key={`${k}-${item.number}`} compact item={{ ...item, kind: k }}
+                    <GithubRow key={`${k}-${item.number}`} item={{ ...item, kind: k }}
                       hoverCard={!githubDetailOpen}
                       onOpen={url => onOpenGithubItem?.(url)}
                       onDetail={onShowGithubDetail ? () => onShowGithubDetail(item, k) : undefined}
