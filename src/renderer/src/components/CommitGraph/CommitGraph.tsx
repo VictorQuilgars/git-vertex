@@ -1796,8 +1796,12 @@ export default function CommitGraph({
                 )}
 
                 {/* Spacer for SVG — the stacked text tucks into the graph's
-                    right padding, closer to the bullets. */}
-                <div style={{ width: refsBelow ? svgW - 6 : svgW, flexShrink: 0 }} />
+                    right padding, up against the bullets: the column keeps
+                    LANE_WIDTH + SVG_PAD_R (30px) past the last lane's centre,
+                    and a node ends 13px past it (radius 11 + ring 2). 16 is
+                    that node edge plus a breath; the reference sits its text
+                    exactly there. */}
+                <div style={{ width: refsBelow ? svgW - 14 : svgW, flexShrink: 0 }} />
 
                 {/* Message */}
                 <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>
