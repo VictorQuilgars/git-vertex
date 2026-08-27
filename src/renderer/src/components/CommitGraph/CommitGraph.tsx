@@ -986,6 +986,31 @@ export default function CommitGraph({
   const svgW = Math.max(svgPadL + (maxLane + 1) * laneW + SVG_PAD_R, 48)
   const svgH = rowTops[displayLayout.length] ?? displayLayout.length * ROW_HEIGHT
 
+  // The stacked text is RAGGED on purpose (at Victor's call): each row's text
+  // starts just past its own graph — its node, or the rightmost rail passing
+  // through that row, whichever reaches further. A shared column reserved the
+  // history's deepest lane on every row, and most rows sat two empty lanes
+  // from their own bullet. A pass-through edge occupies its target lane for
+  // the rows it crosses, and up to both of its lanes where it bends.
+  const rowEdgeLane = useMemo(() => {
+    if (!refsBelow) return null
+    const m = new Map<number, number>()
+    const bump = (row: number, lane: number) => {
+      const cur = m.get(row)
+      if (cur === undefined || lane > cur) m.set(row, lane)
+    }
+    for (const c of displayLayout) {
+      bump(c.row, c.lane)
+      for (const e of c.edges) {
+        bump(c.row, Math.max(e.fromLane, e.toLane))
+        const lo = Math.min(c.row, e.toRow), hi = Math.max(c.row, e.toRow)
+        for (let r = lo + 1; r < hi; r++) bump(r, e.toLane)
+        bump(e.toRow, e.toLane)
+      }
+    }
+    return m
+  }, [refsBelow, displayLayout])
+
   // Availability-based column visibility. The message column must always keep
   // MSG_MIN px; the optional columns are granted space in priority order
   // (sha kept longest, author dropped first) only if it remains after the
@@ -1798,13 +1823,16 @@ export default function CommitGraph({
                   </div>
                 )}
 
-                {/* Spacer for SVG — the stacked text tucks into the graph's
-                    right padding, up against the bullets: the column keeps
-                    laneW + SVG_PAD_R (24px) past the last lane's centre, and
-                    a node ends 13px past it (radius 11 + ring 2). 16 is that
-                    node edge plus a breath; the reference sits its text
-                    exactly there. */}
-                <div style={{ width: refsBelow ? svgW - 14 : svgW, flexShrink: 0 }} />
+                {/* Spacer for SVG. Classic columns: the shared width. Stacked:
+                    THIS row's graph edge — its rightmost lane's centre plus
+                    the node radius (13) — and the message column's own 8px of
+                    padding is the breath. Ragged, and meant to be. */}
+                <div style={{
+                  width: refsBelow
+                    ? svgPadL + (rowEdgeLane?.get(commit.row) ?? commit.lane) * laneW + 13
+                    : svgW,
+                  flexShrink: 0,
+                }} />
 
                 {/* Message */}
                 <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>
