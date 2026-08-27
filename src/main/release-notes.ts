@@ -21,6 +21,12 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The \`#123\` reference opens **the same rich card** as a sidebar row — description, labels, people — not a two-line tooltip.
 - The card says **closed and merged** now, each in its own colour: a closed pull request failed, a closed issue completed.
 
+### 🔄 The GitHub surface keeps itself current
+- The lists, an open request's checks, its comments and every saved filter **re-ask on their own** — refresh is for the impatient, not the only way to the truth.
+- Affordable because every read carries an **ETag**: an unchanged answer costs no rate limit and rewrites nothing, so the screen never shuffles because a poll happened.
+- The lists ask once a minute — GitHub's own published interval — an open request every few seconds while it is being decided, every twenty once it is not.
+- The *Auto-Fetch Interval* setting drives the loop it names, and **0 stops it**.
+
 ### ✅ The chip that confirms an action, redesigned
 - It no longer lands on the **Commit button**: the stack sits at the bottom **centre**, clear of the control you reach for next, and it fits a narrow VS Code panel.
 - A **chip, not a tinted card**: one line on the ordinary surface, with a real icon in the colour of the outcome. A success no longer shouts as loudly as a failure.
