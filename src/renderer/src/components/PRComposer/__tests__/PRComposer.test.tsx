@@ -82,7 +82,9 @@ describe('generating the title and description', () => {
     await waitFor(() => expect(screen.getByDisplayValue('feat: a thing')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Generate title and description'))
     await waitFor(() => expect(screen.getByDisplayValue('feat: the branch')).toBeInTheDocument())
-    expect(screen.getByDisplayValue('What it does.')).toBeInTheDocument()
+    // The reveal writes the title, then the body — the answer exists in full
+    // before the first word shows, but the fields fill in sequence.
+    await waitFor(() => expect(screen.getByDisplayValue('What it does.')).toBeInTheDocument())
     expect(aiPrDescription).toHaveBeenCalledWith('main', 'feat/x')
     expect(api.githubCreatePR).not.toHaveBeenCalled()
   })

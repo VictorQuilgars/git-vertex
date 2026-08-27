@@ -68,31 +68,50 @@ describe('creating an issue', () => {
   })
 })
 
-describe('an issue written from a sentence', () => {
-  test('the answer fills both fields and submits nothing', async () => {
+describe('an issue written from what is there', () => {
+  // No summoned field: the brief and the finished issue are the same
+  // language in the same place, so the model reads the fields and rewrites
+  // them — and what it replaced is one click away.
+  test('the click generates from the fields and submits nothing', async () => {
     const aiGenerateIssue = jest.fn().mockResolvedValue({
       title: 'The graph loses the selection after a rebase', body: 'Context.\n\n- done when…',
     })
     const { api } = draw({}, { aiGenerateIssue })
-    await userEvent.click(screen.getByText('Generate from a sentence'))
-    await userEvent.type(
-      screen.getByPlaceholderText(/what it is about/), 'graph selection lost after rebase')
-    await userEvent.click(screen.getByText('Write the issue'))
+    await userEvent.type(screen.getByPlaceholderText(/Describe it/), 'graph selection lost after rebase')
+    await userEvent.click(screen.getByText('Generate title and description'))
     await waitFor(() => expect(screen.getByDisplayValue(/loses the selection/)).toBeInTheDocument())
-    expect(screen.getByDisplayValue(/done when/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByDisplayValue(/done when/)).toBeInTheDocument())
     expect(aiGenerateIssue).toHaveBeenCalledWith('graph selection lost after rebase')
     expect(api.githubCreateIssue).not.toHaveBeenCalled()
-    // an answer that landed folds the row
-    expect(screen.queryByPlaceholderText(/what it is about/)).not.toBeInTheDocument()
+  })
+
+  test('with nothing to write from, the button is disabled and says why', () => {
+    draw({}, { aiGenerateIssue: jest.fn() })
+    const btn = screen.getByText('Generate title and description').closest('button')!
+    expect(btn).toBeDisabled()
+    expect(btn).toHaveAttribute('title', expect.stringContaining('a few words'))
+  })
+
+  test('what the model replaced is one click away', async () => {
+    const aiGenerateIssue = jest.fn().mockResolvedValue({ title: 'Proper title', body: 'Proper body.' })
+    draw({}, { aiGenerateIssue })
+    await userEvent.type(screen.getByPlaceholderText(/Describe it/), 'my rough note')
+    await userEvent.click(screen.getByText('Generate title and description'))
+    await waitFor(() => expect(screen.getByDisplayValue('Proper title')).toBeInTheDocument())
+    await userEvent.click(await screen.findByText('Put it back'))
+    expect(screen.getByPlaceholderText(/Describe it/)).toHaveValue('my rough note')
+    expect(screen.getByPlaceholderText('A title for the issue')).toHaveValue('')
+    // the way back was taken; the line is gone
+    expect(screen.queryByText('Put it back')).not.toBeInTheDocument()
   })
 
   test('a refusal is named and the fields are left exactly as they were', async () => {
     const aiGenerateIssue = jest.fn().mockResolvedValue({ error: 'NO_API_KEY' })
     draw({}, { aiGenerateIssue })
-    await userEvent.click(screen.getByText('Generate from a sentence'))
-    await userEvent.type(screen.getByPlaceholderText(/what it is about/), 'anything')
-    await userEvent.click(screen.getByText('Write the issue'))
+    await userEvent.type(screen.getByPlaceholderText(/Describe it/), 'anything')
+    await userEvent.click(screen.getByText('Generate title and description'))
     expect(await screen.findByText('NO_API_KEY')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('A title for the issue')).toHaveValue('')
+    expect(screen.getByPlaceholderText(/Describe it/)).toHaveValue('anything')
+    expect(screen.queryByText('Put it back')).not.toBeInTheDocument()
   })
 })

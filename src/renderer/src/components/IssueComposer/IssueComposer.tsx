@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type RefObject } from 'react'
+import React, { useState, useEffect, useRef, type RefObject } from 'react'
 import { Icon } from '../Icon/Icon'
 import './IssueComposer.css'
 import { useLang } from '../../i18n/LanguageContext'
@@ -6,6 +6,7 @@ import { PickField } from '../PRComposer/PRComposer'
 import type { GithubLabel } from '../GitHubPanel/GithubRow'
 import { Brand } from '../BrandMark/BrandMark'
 import PanelDrawer from '../PanelDrawer/PanelDrawer'
+import { revealText, type Reveal } from '../../utils/aiReveal'
 
 /**
  * The issue composer — the PR composer's sibling, and it speaks that
@@ -14,8 +15,13 @@ import PanelDrawer from '../PanelDrawer/PanelDrawer'
  * would disagree the way the two hover cards did (#95 §3).
  *
  * What is its own: one POST carries everything (an issue's create endpoint
- * takes labels and assignees, a pull request's does not), and the AI writes
- * from a SENTENCE — there is no diff to read, the brief is the material.
+ * takes labels and assignees, a pull request's does not), and the AI's
+ * material is THE FIELDS THEMSELVES — a rough note in the title or the
+ * description, however few words. There is no separate field to describe
+ * into: the brief and the finished issue are the same language in the same
+ * place, so the button reads what is there, rewrites it in place, and the
+ * way back is one click. A first attempt summoned a second input for the
+ * sentence; a second input for the same language is a form asking twice.
  */
 export default function IssueComposer({ owner, repo, anchor, onClose, onCreated, onStartBranch, showToast }: {
   owner: string
@@ -58,28 +64,46 @@ export default function IssueComposer({ owner, repo, anchor, onClose, onCreated,
   const toggle = (set: React.Dispatch<React.SetStateAction<string[]>>) => (id: string) =>
     set(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
-  // ── Written from a sentence ───────────────────────────────────
-  // Summoned, not resident — the same contract as the filter drawer's
-  // describe row: Escape folds the row before the drawer, the sentence
-  // survives folding, the complaint does not.
-  const [describing, setDescribing] = useState(false)
-  const [described, setDescribed] = useState('')
+  // ── Written from what is there ────────────────────────────────
+  // The click generates. The wait breathes on the fields the answer will
+  // land in, the answer writes itself in word by word, and what was typed
+  // is one click away — because the model REPLACED it, and a replacement
+  // without a way back is not a proposal.
   const [generating, setGenerating] = useState(false)
+  const [writing, setWriting] = useState(false)
   const [genError, setGenError] = useState<string | null>(null)
-  const toggleDescribe = () => { setGenError(null); setDescribing(d => !d) }
+  const [restorePoint, setRestorePoint] = useState<{ title: string; body: string } | null>(null)
+  const reveal = useRef<Reveal | null>(null)
+  useEffect(() => () => reveal.current?.stop(), [])
 
   const generate = async () => {
-    if (!described.trim() || generating) return
+    if (generating || writing) return
+    const note = [title.trim(), body.trim()].filter(Boolean).join('\n\n')
+    if (!note) return
     setGenerating(true); setGenError(null)
-    const r = await ((window.gitAPI as any).aiGenerateIssue?.(described)
+    const r = await ((window.gitAPI as any).aiGenerateIssue?.(note)
       ?? Promise.resolve({ error: 'not-implemented' })).catch((e: any) => ({ error: e.message }))
     setGenerating(false)
     if (r?.error || !r?.title) { setGenError(r?.error ?? 'empty answer'); return }
-    // It fills the fields; it never submits. The proposal is reviewed.
-    setTitle(r.title)
-    setBody(r.body ?? '')
-    setDescribing(false)
+    // It fills the fields; it never submits. The proposal is reviewed —
+    // and what it replaced is kept, per generation, for the restore line.
+    setRestorePoint({ title, body })
+    setWriting(true)
+    reveal.current = revealText(r.title, setTitle, () => {
+      reveal.current = revealText(r.body ?? '', setBody, () => setWriting(false))
+    })
   }
+
+  const restore = () => {
+    if (!restorePoint) return
+    reveal.current?.stop()
+    setWriting(false)
+    setTitle(restorePoint.title)
+    setBody(restorePoint.body)
+    setRestorePoint(null)
+  }
+
+  const hasMaterial = !!(title.trim() || body.trim())
 
   async function handleSubmit() {
     if (!title.trim() || submitting) return
@@ -110,53 +134,47 @@ export default function IssueComposer({ owner, repo, anchor, onClose, onCreated,
             <label htmlFor="gv-issue-title">
               {t('ghn.titleLabel')} <span className="ic-required">*</span>
             </label>
-            <button type="button" className="pr-generate" aria-expanded={describing}
-              onClick={toggleDescribe}>
+            {/* The click GENERATES — from whatever the fields hold, a few
+                words or a full draft. Nothing to summon, nothing to retype. */}
+            <button type="button" className="pr-generate"
+              disabled={!hasMaterial || generating || writing}
+              title={hasMaterial ? undefined : t('ghn.generateHint')}
+              onClick={() => void generate()}>
               <Icon name="ai" size={13} />
-              {t('ghn.generate')}
+              {generating || writing ? t('pr.generating') : t('pr.generate')}
             </button>
           </span>
           <input
             id="gv-issue-title"
-            className="pr-input"
+            className={`pr-input${generating || writing ? ' pr-ai-writing' : ''}`}
             value={title}
+            readOnly={writing}
             onChange={e => setTitle(e.target.value)}
             placeholder={t('ghn.titlePlaceholder')}
             autoFocus
           />
         </div>
-
-        {describing && (
-          <div className="ic-describe">
-            <input className="pr-input" value={described} autoFocus
-              placeholder={t('ghn.describePlaceholder')}
-              onChange={e => setDescribed(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { e.preventDefault(); void generate() }
-                // The row goes first; the drawer only closes once there is no row.
-                else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); toggleDescribe() }
-              }} />
-            <button type="button" className="ic-ask"
-              disabled={!described.trim() || generating}
-              onClick={() => void generate()}>
-              <Icon name="ai" size={13} />
-              {generating ? t('ghn.generating') : t('ghn.write')}
-            </button>
-          </div>
-        )}
-        {describing && genError && <div className="pr-error">{genError}</div>}
+        {genError && <div className="pr-error">{genError}</div>}
 
         <div className="pr-field">
           <label className="pr-label" htmlFor="gv-issue-body">{t('ghn.bodyLabel')}</label>
           <textarea
             id="gv-issue-body"
-            className="pr-textarea"
+            className={`pr-textarea${generating || writing ? ' pr-ai-writing' : ''}`}
             value={body}
+            readOnly={writing}
             onChange={e => setBody(e.target.value)}
             placeholder={t('ghn.bodyPlaceholder')}
             rows={8}
           />
         </div>
+        {restorePoint && !writing && (
+          <div className="pr-restore">
+            <Icon name="ai" size={12} />
+            {t('ai.rewrote')}
+            <button type="button" onClick={restore}>{t('ai.restore')}</button>
+          </div>
+        )}
 
         <PickField label={t('pr.labelsLabel')} placeholder={t('pr.labelsPlaceholder')}
           filterPlaceholder={t('pr.pickFilter')}
@@ -179,7 +197,7 @@ export default function IssueComposer({ owner, repo, anchor, onClose, onCreated,
           <button
             className="pr-btn-primary"
             onClick={handleSubmit}
-            disabled={submitting || !title.trim()}
+            disabled={submitting || writing || !title.trim()}
           >
             <Brand name="github" size={13} />
             {submitting ? t('ghn.creating') : t('ghn.submit')}

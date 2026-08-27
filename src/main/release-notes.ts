@@ -14,7 +14,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🗒 The issue composer
 - **GITHUB ISSUES' \`+\` opens a composer now** — the PR composer's sibling drawer: title, description, and the repository's labels and assignees in the same filtering pickers. One POST carries all four.
-- **Written from a sentence**: a brief note becomes a drafted title and body — only what the note supports — filled in for you to edit, never submitted.
+- **The AI writes from what is there**: a few words in the fields, one click, and the model rewrites them in place — the answer writes itself in word by word, and what it replaced is one click away. The PR composer breathes and reveals the same way.
 - **A checkbox starts the branch** the issue suggests, the moment the issue exists.
 
 ### 🪪 One hover card, everywhere

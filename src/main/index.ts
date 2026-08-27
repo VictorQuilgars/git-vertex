@@ -1778,7 +1778,7 @@ const AI_ISSUE_TOKENS = 1024
 ipcMain.handle('ai:generate-issue', async (_e, described: string) => {
   if (!described.trim()) return { error: 'nothing to describe' }
   const prompt = [
-    `You write GitHub issues from a maintainer's brief note.`,
+    `You write GitHub issues from a maintainer's note — anything from a few words to a full draft. Keep what is right, tighten what is not, and structure it.`,
     `First line of your reply: the title — specific, at most 72 characters, no trailing period.`,
     `Then a blank line, then the body in Markdown: a short paragraph of context saying what is wrong or wanted and why it matters, then a bullet list of what done looks like. Only state what the note supports — never invent reproduction steps, versions or numbers it does not contain.`,
     `Write in English, whatever language the note is in. Reply with nothing but the title and the body.`,
