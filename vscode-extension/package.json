@@ -133,11 +133,6 @@
         "icon": "$(git-compare)"
       },
       {
-        "command": "gitVertex.openGitHub",
-        "title": "Git Vertex: GitHub PRs & Issues",
-        "icon": "$(github)"
-      },
-      {
         "command": "gitVertex.copyRemoteFileUrl",
         "title": "Git Vertex: Copy Link to These Lines"
       },
@@ -356,9 +351,6 @@
         {
           "command": "gitVertex.blame.copyHash",
           "when": "false"
-        },
-        {
-          "command": "gitVertex.openGitHub"
         },
         {
           "command": "gitVertex.showWhatsNew"

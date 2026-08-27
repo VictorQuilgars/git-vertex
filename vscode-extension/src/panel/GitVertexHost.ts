@@ -21,12 +21,12 @@ import {
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, type GithubApi,
   githubIssueComments, githubAddIssueComment, githubUpdateIssue,
   githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks, githubMergePR,
-  githubRepoParent, githubRequestReviewers, githubCreateLabel,
+  githubRepoParent, githubRequestReviewers, githubCreateLabel, githubCreateIssue,
 } from '../githubApi'
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
-import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
+import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
@@ -494,13 +494,6 @@ export class GitVertexHost implements vscode.Disposable {
       // its App a callback and opens a tab directly, because the renderer owns
       // the tab strip there and a round trip through main would buy nothing.
       // Here the webview cannot open an editor tab itself, so it asks.
-      // The empty staging pane's Launchpad and Start-new rows land here: the
-      // GitHub tab carries the PR and issue lists, and the webview cannot open
-      // an editor tab itself.
-      case 'openGithubTab': {
-        openGitVertexGitHubTab(this._extensionUri, this._state, this._repoPath || '.')
-        return { success: true }
-      }
       case 'themesOpenGallery': {
         openGitVertexThemesTab(this._extensionUri, this._state, this._repoPath || '.')
         return { success: true }
@@ -619,6 +612,8 @@ export class GitVertexHost implements vscode.Disposable {
         return githubRequestReviewers(await this._githubApi(), args[0], args[1], args[2], args[3])
       case 'githubCreateLabel':
         return githubCreateLabel(await this._githubApi(), args[0], args[1], args[2], args[3])
+      case 'githubCreateIssue':
+        return githubCreateIssue(await this._githubApi(), args[0], args[1], args[2], args[3], args[4], args[5])
       case 'githubListRepoLabels':
         return githubListRepoLabels(await this._githubApi(), args[0], args[1])
       case 'githubGetPR':
@@ -741,6 +736,11 @@ export class GitVertexHost implements vscode.Disposable {
         const cfg = readAIConfig(this._state)
         if (!cfg) return { error: 'NO_API_KEY' }
         return aiFilterQuery(cfg, args[0], args[1], args[2])
+      }
+      case 'aiGenerateIssue': {
+        const cfg = readAIConfig(this._state)
+        if (!cfg) return { error: 'NO_API_KEY' }
+        return aiGenerateIssue(cfg, args[0])
       }
       // The material is assembled here — aiService has no repository to ask.
       // Same ref resolution as the desktop handler: the base as the remote
@@ -1085,45 +1085,6 @@ export function openGitVertexRebasePlanTab(
     planPanels.delete(baseHash)
   })
   planPanels.set(baseHash, panel)
-}
-
-// ── GitHub tab (singleton WebviewPanel) ───────────────────────────
-// Open PRs & issues of the repo's GitHub remote (mini-Launchpad).
-const GITHUB_VIEW_TYPE = 'gitVertex.github'
-let githubPanel: vscode.WebviewPanel | undefined
-let githubHost: GitVertexHost | undefined
-
-export function openGitVertexGitHubTab(
-  extensionUri: vscode.Uri,
-  state: vscode.Memento,
-  repoPath: string,
-): void {
-  if (githubPanel) {
-    githubPanel.reveal(githubPanel.viewColumn)
-    githubHost?.setRepo(repoPath)
-    return
-  }
-
-  githubPanel = vscode.window.createWebviewPanel(
-    GITHUB_VIEW_TYPE,
-    'GitHub — PRs & Issues',
-    vscode.ViewColumn.Active,
-    {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
-    },
-  )
-  githubPanel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
-
-  githubHost = new GitVertexHost(githubPanel.webview, extensionUri, state, { mode: 'github' })
-  githubHost.setRepo(repoPath)
-
-  githubPanel.onDidDispose(() => {
-    githubHost?.dispose()
-    githubHost = undefined
-    githubPanel = undefined
-  })
 }
 
 // ── Theme gallery tab ─────────────────────────────────────────────

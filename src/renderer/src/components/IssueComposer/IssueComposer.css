@@ -1,0 +1,7 @@
+/* The issue composer speaks PRComposer's form language (pr-field, pr-input,
+   the pickers, the AI breath and the restore line) — one stylesheet for the
+   two composers' shared vocabulary. This file holds only what the PR form
+   does not have. */
+
+/* The required mark on the one field the POST cannot do without. */
+.ic-required { color: var(--accent); }

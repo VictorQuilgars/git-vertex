@@ -1,7 +1,8 @@
 // githubApi.ts — GitHub REST calls for the extension host.
 // Mirrors the desktop handlers in src/main/index.ts (github:list-prs /
 // github:list-issues / github:create-pr / github:list-branches) so the shared
-// GitHubPanel and PRModal work unchanged.
+// renderer — the sidebar sections, the issue detail, the PR composer — works
+// unchanged.
 //
 // Every call takes an `api`, not a bare token: a GitHub Enterprise Server
 // instance is the same API on the customer's own host, under `/api/v3`, and it
@@ -148,6 +149,13 @@ export async function githubGetIssue(
         isPR: !!d.pull_request,
         merged: d.pull_request?.merged_at != null,
         url: d.html_url,
+        // What the hover card renders (#95 §3): the `#123` reference shows
+        // the same card as a sidebar row, so it needs the same material.
+        body: d.body ?? '',
+        labels: (d.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        assignees: (d.assignees ?? []).map((a: any) => a.login),
+        author: d.user?.login,
+        draft: !!d.draft,
       },
     }
   } catch (e: any) { return { error: e.message } }
@@ -180,6 +188,38 @@ export async function githubCreatePR(
       // tells you what to fix ("No commits between main and x", an unpublished
       // head branch) is in the errors array. Surface that instead — the desktop
       // shipped for a while without it and the message was unactionable.
+      const detail = Array.isArray(data.errors)
+        ? data.errors
+            .map((e: any) => e.message ?? (e.field ? `${e.field}: ${e.code}` : null))
+            .filter(Boolean)
+            .join(' — ')
+        : ''
+      const msg = data.message ?? `HTTP ${res.status}`
+      return { error: detail ? `${msg} (${detail})` : msg }
+    }
+    return { url: data.html_url, number: data.number }
+  } catch (e: any) { return { error: e.message } }
+}
+
+/**
+ * Create an issue — one POST carries title, body, labels and assignees
+ * together, unlike a pull request's create. Without push access GitHub
+ * silently ignores the staffing rather than refusing.
+ */
+export async function githubCreateIssue(
+  api: GithubApi,
+  owner: string, repo: string, title: string, body: string,
+  labels: string[], assignees: string[],
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues`, {
+      method: 'POST',
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, labels: labels ?? [], assignees: assignees ?? [] }),
+    })
+    const data = await res.json() as any
+    if (!res.ok) {
       const detail = Array.isArray(data.errors)
         ? data.errors
             .map((e: any) => e.message ?? (e.field ? `${e.field}: ${e.code}` : null))

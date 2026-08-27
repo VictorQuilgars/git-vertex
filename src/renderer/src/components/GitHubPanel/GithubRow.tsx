@@ -3,22 +3,18 @@ import { Icon } from '../Icon/Icon'
 import ContextMenu from '../ContextMenu/ContextMenu'
 import GithubHoverCard, { useHoverCard } from './GithubHoverCard'
 import { useLang } from '../../i18n/LanguageContext'
+import './GithubRow.css'
 
 /**
- * ONE row for a pull request or an issue, wherever the list is shown.
+ * ONE row for a pull request or an issue, wherever the list is shown — today
+ * that is the sidebar sections, on both products. Two lines: state icon,
+ * number and title, then author · age · comments. The labels live in the
+ * hover card and the detail, not on the row — width is the scarce resource
+ * here, and the kebab of actions has the right edge.
  *
- * The GitHub tab and the sidebar sections display the same lists, and for a
- * while they did it with two renderings: the tab's card carried the author,
- * the age, the comment count and the labels, while the sidebar drew a bare
- * grey `#number title` — the data was fetched and then thrown away at the
- * mapper. Two renderings of one list drift; this is the one component both
- * mount, with `compact` deciding how much room it takes:
- *
- * - full (the tab): the three-line card — title line, meta line, label chips.
- * - compact (the sidebar): two lines — state icon, number and title, then
- *   author · age · comments. The labels live in the hover card and the
- *   detail, not on the row — width is the scarce resource there, and the
- *   kebab of actions has the right edge.
+ * It once carried a second, three-line rendering for the GitHub tab; the tab
+ * is gone on both products (#95 §1) and the `compact` switch went with it —
+ * a prop with one caller's value is not a prop.
  *
  * Fields beyond number/title/url are optional: a host that still sends the
  * old narrow shape gets the old narrow row, not a row of empty separators.
@@ -42,6 +38,13 @@ export interface GithubRowItem {
   assignees?: string[]
   /** Set in cross-repo mode: which repository this item belongs to. */
   repoLabel?: string
+  /**
+   * Absent on the sidebar lists, which are open items by construction. The
+   * `#123` card resolves closed and merged things too (#95 §3), and the card
+   * says which rather than calling everything open.
+   */
+  state?: 'open' | 'closed'
+  merged?: boolean
 }
 
 export function timeAgo(dateStr: string, t: (key: any, ...args: any[]) => string): string {
@@ -66,31 +69,8 @@ export function LabelChip({ label }: { label: GithubLabel }) {
   )
 }
 
-/**
- * Copy the forge's own URL for a row. GitHub hands us `html_url` with every
- * item, so this copies what the forge said rather than rebuilding it — the
- * builder is for the cases where nobody handed us one.
- */
-export function CopyLinkButton({ url }: { url: string }) {
-  const { t } = useLang()
-  const [done, setDone] = useState(false)
-  return (
-    <button
-      className="ghp-copy-link"
-      title={t('gh.panel.copyLink')}
-      onClick={e => {
-        e.stopPropagation()
-        navigator.clipboard.writeText(url)
-        setDone(true)
-        setTimeout(() => setDone(false), 1500)
-      }}
-    >{done ? '✓' : <Icon name="link" size={12} />}</button>
-  )
-}
-
-export default function GithubRow({ item, compact = false, onOpen, onDetail, onCreateBranch, hoverCard = true }: {
+export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, hoverCard = true }: {
   item: GithubRowItem
-  compact?: boolean
   onOpen?: (url: string) => void
   /** Open the in-app detail (§3 bis). Present ⇒ a click goes here, not to a
       browser; the browser stays one click away inside the detail. */
@@ -110,24 +90,21 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
   const menued = item.kind === 'issue' && !!onCreateBranch
   // The row's actions, one list for its two openings: the kebab that appears
   // on hover, and the right-click. Every entry has a real handler behind it.
-  const menuItems = compact ? [
+  const menuItems = [
     ...(onDetail ? [{ label: t(item.kind === 'pr' ? 'gh.pr.view' : 'gh.issue.view'), action: onDetail }] : []),
     ...(menued ? [{ label: t('gh.issue.createBranch'), action: onCreateBranch! }] : []),
     { label: t('gh.panel.copyLink'), action: () => navigator.clipboard.writeText(item.url) },
     ...(onOpen ? [{ label: t('gh.panel.openIn'), action: () => onOpen(item.url) }] : []),
-  ] : (menued ? [{ label: t('gh.issue.createBranch'), action: onCreateBranch! }] : [])
-  const onContextMenu = menuItems.length
-    ? (e: React.MouseEvent) => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }
-    : undefined
+  ]
+  const onContextMenu = (e: React.MouseEvent) => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }
   const hasMeta = !!(item.author || item.createdAt || (item.comments ?? 0) > 0)
   // The hover card exists only where there is something beyond the row —
   // a narrow-shape item gets no card rather than an empty frame.
-  const carded = compact && hoverCard && !!(item.body !== undefined || item.labels || item.author)
+  const carded = hoverCard && !!(item.body !== undefined || item.labels || item.author)
   const hover = useHoverCard()
   const activate = onDetail ?? (onOpen ? () => onOpen(item.url) : undefined)
 
-  if (compact) {
-    return (
+  return (
       <>
       <div className="sb-item sb-gh-row" title={carded ? undefined : item.title}
         onClick={() => activate?.()} onContextMenu={onContextMenu}
@@ -171,59 +148,5 @@ export default function GithubRow({ item, compact = false, onOpen, onDetail, onC
           onClose={hover.close} onOpen={onOpen} onActivate={activate} />
       )}
       </>
-    )
-  }
-
-  return (
-    <>
-    <div className="ghp-item" onClick={() => onOpen?.(item.url)}
-      onContextMenu={onContextMenu} title={t('gh.panel.openIn')}>
-      <div className="ghp-item-top">
-        {item.repoLabel && <span className="ghp-repo-badge">{item.repoLabel}</span>}
-        <span className="ghp-number">#{item.number}</span>
-        {item.draft && <span className="ghp-badge ghp-draft">{t('gh.panel.draft')}</span>}
-        <span className="ghp-title">{item.title}</span>
-        <CopyLinkButton url={item.url} />
-      </div>
-      {(hasMeta || (item.kind === 'pr' && item.headRef)) && (
-        <div className="ghp-item-meta">
-          {item.kind === 'pr' && item.headRef && (
-            <>
-              <span className="ghp-refs">
-                <code>{item.headRef}</code>
-                <Icon name="arrowSwitch" size={10} />
-                <code>{item.baseRef}</code>
-              </span>
-              <span className="ghp-dot">·</span>
-            </>
-          )}
-          {item.author && <span className="ghp-author">@{item.author}</span>}
-          {item.createdAt && (
-            <>
-              <span className="ghp-dot">·</span>
-              <span className="ghp-time">{timeAgo(item.createdAt, t)}</span>
-            </>
-          )}
-          {(item.comments ?? 0) > 0 && (
-            <>
-              <span className="ghp-dot">·</span>
-              <span className="ghp-comments">
-                <Icon name="comment" size={11} />
-                {item.comments}
-              </span>
-            </>
-          )}
-        </div>
-      )}
-      {(item.labels?.length ?? 0) > 0 && (
-        <div className="ghp-labels">
-          {item.labels!.slice(0, 4).map(l => <LabelChip key={l.name} label={l} />)}
-        </div>
-      )}
-    </div>
-    {ctx && menuItems.length > 0 && (
-      <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={menuItems} />
-    )}
-    </>
   )
 }

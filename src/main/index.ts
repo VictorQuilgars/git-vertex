@@ -1767,6 +1767,34 @@ ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headNa
   } catch (e: any) { return { error: e.message } }
 })
 
+/**
+ * An issue from a sentence (#95's sibling surface). The brief is the only
+ * material — there is no diff to read: the model turns "the graph loses the
+ * selection after a rebase" into a title and a body someone else can act on.
+ * One call for both fields, like the PR description: they are one answer.
+ */
+const AI_ISSUE_TOKENS = 1024
+
+ipcMain.handle('ai:generate-issue', async (_e, described: string) => {
+  if (!described.trim()) return { error: 'nothing to describe' }
+  const prompt = [
+    `You write GitHub issues from a maintainer's note — anything from a few words to a full draft. Keep what is right, tighten what is not, and structure it.`,
+    `First line of your reply: the title — specific, at most 72 characters, no trailing period.`,
+    `Then a blank line, then the body in Markdown: a short paragraph of context saying what is wrong or wanted and why it matters, then a bullet list of what done looks like. Only state what the note supports — never invent reproduction steps, versions or numbers it does not contain.`,
+    `Write in English, whatever language the note is in. Reply with nothing but the title and the body.`,
+    ``,
+    `Note: ${described.trim()}`,
+  ].join('\n')
+  const r = await runAIPrompt(prompt, AI_ISSUE_TOKENS)
+  if (r.error) return { error: r.error }
+  const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
+  const at = lines.findIndex(l => l.trim())
+  if (at < 0) return { error: 'empty answer' }
+  const title = lines[at].trim().replace(/^["'#*\s]+|["'*\s]+$/g, '')
+  const body = lines.slice(at + 1).join('\n').trim()
+  return { title, body }
+})
+
 // Recompose: regenerate an EXISTING commit's message from its actual diff.
 // The renderer applies the result through the normal amend/reword flow, so
 // the user always reviews the proposal before anything is rewritten.
@@ -2909,6 +2937,39 @@ ipcMain.handle('github:list-assignees', async (_e, owner: string, repo: string) 
   } catch (e: any) { return { error: e.message } }
 })
 
+// The issue composer (#95's sibling surface): one POST carries title, body,
+// labels and assignees together — unlike a pull request, an issue's create
+// endpoint takes its staffing. Without push access GitHub silently ignores
+// the labels and assignees rather than refusing, which is the right degrade.
+ipcMain.handle('github:create-issue', async (_e, owner: string, repo: string, title: string, body: string, labels: string[], assignees: string[]) => {
+  const api = await ghApi()
+  const token = api.token
+  if (!token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, body, labels: labels ?? [], assignees: assignees ?? [] }),
+    })
+    const data = await res.json() as any
+    if (!res.ok) {
+      const detail = Array.isArray(data.errors)
+        ? data.errors
+            .map((e: any) => e.message ?? (e.field ? `${e.field}: ${e.code}` : null))
+            .filter(Boolean)
+            .join(' — ')
+        : ''
+      const msg = data.message ?? `HTTP ${res.status}`
+      return { error: detail ? `${msg} (${detail})` : msg }
+    }
+    return { url: data.html_url, number: data.number }
+  } catch (e: any) { return { error: e.message } }
+})
+
 // The composer's label picker can CREATE a label that does not exist yet
 // (#130). Explicit — a POST with a colour we chose — rather than leaning on
 // any endpoint's implicit auto-creation, so the write is announced, the
@@ -3168,6 +3229,13 @@ ipcMain.handle('github:get-issue', async (_e, owner: string, repo: string, numbe
         isPR: !!d.pull_request,
         merged: d.pull_request?.merged_at != null,
         url: d.html_url,
+        // What the hover card renders (#95 §3): the `#123` reference shows
+        // the same card as a sidebar row, so it needs the same material.
+        body: d.body ?? '',
+        labels: (d.labels ?? []).map((l: any) => ({ name: l.name, color: l.color })),
+        assignees: (d.assignees ?? []).map((a: any) => a.login),
+        author: d.user?.login,
+        draft: !!d.draft,
       }
     }
   } catch (e: any) { return { error: e.message } }

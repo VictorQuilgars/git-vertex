@@ -1,0 +1,11 @@
+/* The label chip travels with LabelChip — the hover card and the issue
+   detail render it far from any list. Its colours are GitHub's own, carried
+   with each label: data, not theme, which is why they are inline and not
+   tokens. */
+.ghp-label {
+  font-size: var(--text-tiny);
+  padding: var(--space-px) var(--space-sm);
+  border-radius: var(--radius-lg);
+  border: 1px solid;
+  font-weight: var(--weight-medium);
+}

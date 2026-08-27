@@ -274,6 +274,34 @@ export async function aiPrDescription(
   return { title, body }
 }
 
+/**
+ * An issue from a sentence — the desktop's twin. The brief is the only
+ * material; prompt and parse stay identical to src/main/index.ts.
+ */
+const AI_ISSUE_TOKENS = 1024
+
+export async function aiGenerateIssue(
+  cfg: AIConfig, described: string,
+): Promise<{ title?: string; body?: string; error?: string }> {
+  if (!described.trim()) return { error: 'nothing to describe' }
+  const prompt = [
+    `You write GitHub issues from a maintainer's note — anything from a few words to a full draft. Keep what is right, tighten what is not, and structure it.`,
+    `First line of your reply: the title — specific, at most 72 characters, no trailing period.`,
+    `Then a blank line, then the body in Markdown: a short paragraph of context saying what is wrong or wanted and why it matters, then a bullet list of what done looks like. Only state what the note supports — never invent reproduction steps, versions or numbers it does not contain.`,
+    `Write in English, whatever language the note is in. Reply with nothing but the title and the body.`,
+    ``,
+    `Note: ${described.trim()}`,
+  ].join('\n')
+  const r = await runAIPrompt(cfg, prompt, AI_ISSUE_TOKENS)
+  if (r.error) return { error: r.error }
+  const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
+  const at = lines.findIndex(l => l.trim())
+  if (at < 0) return { error: 'empty answer' }
+  const title = lines[at].trim().replace(/^["'#*\s]+|["'*\s]+$/g, '')
+  const body = lines.slice(at + 1).join('\n').trim()
+  return { title, body }
+}
+
 export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``

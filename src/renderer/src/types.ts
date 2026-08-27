@@ -379,6 +379,10 @@ declare global {
     githubListRepoLabels: (owner: string, repo: string) => Promise<Unnarrowed>
     /** The composer's picker can create a label that does not exist yet (#130). */
     githubCreateLabel: (owner: string, repo: string, name: string, color: string) => Promise<Unnarrowed>
+    /** The issue composer: one POST carries title, body, labels and assignees. */
+    githubCreateIssue: (owner: string, repo: string, title: string, body: string, labels: string[], assignees: string[]) => Promise<Unnarrowed>
+    /** An issue drafted from a sentence — title and body from one call. */
+    aiGenerateIssue: (described: string) => Promise<Unnarrowed>
     githubGetPR: (owner: string, repo: string, number: number) => Promise<Unnarrowed>
     githubGetChecks: (owner: string, repo: string, ref: string) => Promise<Unnarrowed>
     githubMergePR: (owner: string, repo: string, number: number, method?: string) => Promise<Unnarrowed>

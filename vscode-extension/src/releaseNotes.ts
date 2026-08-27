@@ -24,7 +24,17 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Choose all four ends** — source repository and branch, target repository and branch. A fork's parent is offered as a target, and a cross-repository head spells itself \`owner:branch\`.
 - **Reviewers, assignees and labels**, behind a *More options* fold, applied the moment the request exists — each picker filters as you type, and a missing label can be created from the picker itself.
 - **Open as a draft**, at last a checkbox.
-- **A \`+\` on the section headers**: PULL REQUESTS opens the composer for the checked-out branch, GITHUB ISSUES opens GitHub's own new-issue form.
+- **A \`+\` on the section headers**: PULL REQUESTS opens the PR composer — prefilled by the rules when they have an answer, open regardless — and GITHUB ISSUES the issue composer.
+
+### 🗒 The issue composer
+- **GITHUB ISSUES' \`+\` opens a composer now** — the PR composer's sibling drawer: title, description, and the repository's labels and assignees in the same filtering pickers. One POST carries all four.
+- **The AI writes from what is there**: a few words in the fields, one click, and the model rewrites them in place — the answer writes itself in word by word, and what it replaced is one click away. The PR composer breathes and reveals the same way.
+- **A checkbox starts the branch** the issue suggests, the moment the issue exists.
+
+### 🪪 One hover card, everywhere
+- The \`#123\` reference opens **the same rich card** as a sidebar row — description, labels, people — not a two-line tooltip.
+- The card says **closed and merged** now, each in its own colour: a closed pull request failed, a closed issue completed.
+- **The GitHub tab is gone here too** — the rail's lists and the centre detail are the integration, and the Launchpad rows switch the rail instead of opening a tab.
 
 ### ✅ The chip that confirms an action, redesigned
 - It no longer lands on the **Commit button**: the stack sits at the bottom **centre**, clear of the control you reach for next, and it fits a narrow VS Code panel.

@@ -38,7 +38,8 @@ import {
 } from './utils/graphVisibility'
 import InitModal from './components/InitModal/InitModal'
 import PRComposer from './components/PRComposer/PRComposer'
-import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
+import IssueComposer from './components/IssueComposer/IssueComposer'
+import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from './components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
 import { canonicalRef, publishedNameFor } from './components/ContextMenu/branchRefs'
 import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu/branchMenu'
@@ -847,7 +848,8 @@ export default function App() {
   // The composer belongs to the repository it opened on. Left in state, a
   // drawer open when the tab was closed greeted the NEXT open of the repo —
   // with an intent computed for branches that may have moved since.
-  useEffect(() => { setPrModalOpen(false); setPrIntent(null) }, [repoPath])
+  const [issueComposerOpen, setIssueComposerOpen] = useState(false)
+  useEffect(() => { setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false) }, [repoPath])
 
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
@@ -2460,8 +2462,19 @@ export default function App() {
               showAllBranches={showAllBranches}
               onToggleAllBranches={() => setShowAllBranches(v => !v)}
               onRefreshGithub={refreshGithubSection}
-              onStartPR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
-              onNewIssue={remoteRepo ? () => window.gitAPI.openExternal(remoteUrl.newIssue(remoteRepo)) : undefined}
+              onStartPR={githubOwnerRepo ? () => handleStartPR(currentBranchPR ?? {
+                // The header's + is a door to the whole composer, not a
+                // promise about one pair — the four ends are choosable in
+                // there. When the rules propose nothing (default branch, or
+                // the pair's request already open — rule 6), the composer
+                // still opens, prefilled with where you stand.
+                head: currentBranch,
+                base: defaultBranch,
+                baseLabel: null,
+                headLabel: currentBranch,
+                needsPush: branchNeedsPush(currentBranch, branches),
+              }) : undefined}
+              onNewIssue={githubOwnerRepo ? () => setIssueComposerOpen(true) : undefined}
               githubRefreshing={githubRefreshing}
               githubRefreshTick={githubRefreshTick}
               githubPollTick={githubPollTick}
@@ -2796,6 +2809,19 @@ export default function App() {
           onClose={() => { setPrModalOpen(false); setPrIntent(null) }}
           onPushed={loadRepoData}
           onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'prs') }}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Issue composer — the PR composer's sibling drawer (#95). */}
+      {issueComposerOpen && githubOwnerRepo && (
+        <IssueComposer
+          owner={githubOwnerRepo.owner}
+          repo={githubOwnerRepo.repo}
+          anchor={sidebarPanelRef}
+          onClose={() => setIssueComposerOpen(false)}
+          onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'issues') }}
+          onStartBranch={handleCreateBranchFromIssue}
           showToast={showToast}
         />
       )}

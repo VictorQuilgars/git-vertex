@@ -28,10 +28,10 @@ import ConflictResolver from '../../../src/renderer/src/components/ConflictResol
 import FileHistory from '../../../src/renderer/src/components/FileHistory/FileHistory'
 import CompareView from '../../../src/renderer/src/components/CompareView/CompareView'
 import CompareWorkingView from './CompareWorkingView'
-import GitHubPanel from '../../../src/renderer/src/components/GitHubPanel/GitHubPanel'
 import AssociateIssueModal from '../../../src/renderer/src/components/IssueLink/AssociateIssueModal'
 import PRComposer from '../../../src/renderer/src/components/PRComposer/PRComposer'
-import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
+import IssueComposer from '../../../src/renderer/src/components/IssueComposer/IssueComposer'
+import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
 import { issueBranchName } from '../../../src/renderer/src/utils/issueBranch'
@@ -149,6 +149,7 @@ function VertexApp() {
   const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
   const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
+  const [issueComposerOpen, setIssueComposerOpen] = useState(false)
   // The activity rail is always visible; `activeView` is the section its
   // resizable side-panel shows, or null when collapsed (only the rail). Closed
   // by default so the first thing a new user sees is the commit graph. The
@@ -981,9 +982,14 @@ function VertexApp() {
       onReviewChanges: defaultBranch && currentBranch && currentBranch !== defaultBranch
         ? () => window.gitAPI.openCompare(defaultBranch, currentBranch)
         : undefined,
-      onShowPRs: githubPRs !== undefined ? () => (window.gitAPI as any).openGithubTab() : undefined,
-      onStartFromIssue: githubRepo ? () => (window.gitAPI as any).openGithubTab() : undefined,
-      onStartReviewPR: githubPRs?.length ? () => (window.gitAPI as any).openGithubTab() : undefined,
+      // The PR and issue lists live on the rail like everything else — the
+      // GitHub tab these rows used to open is gone on both products (#95 §1).
+      onShowPRs: githubPRs !== undefined
+        ? () => { setActiveView('prs'); lastViewRef.current = 'prs' } : undefined,
+      onStartFromIssue: githubRepo
+        ? () => { setActiveView('issues'); lastViewRef.current = 'issues' } : undefined,
+      onStartReviewPR: githubPRs?.length
+        ? () => { setActiveView('prs'); lastViewRef.current = 'prs' } : undefined,
       // The stash, worktree and branch lists live on the rail; the row takes
       // you to the list where the action is, which is the honest wiring.
       onApplyStash: stashCount > 0
@@ -1150,8 +1156,16 @@ function VertexApp() {
             showAllBranches={showAllBranches}
             onToggleAllBranches={() => setShowAllBranches(v => !v)}
             onRefreshGithub={refreshGithubSection}
-            onStartPR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
-            onNewIssue={remoteRepo ? () => window.gitAPI.openExternal(remoteUrl.newIssue(remoteRepo)) : undefined}
+            onStartPR={githubRepo ? () => handleStartPR(currentBranchPR ?? {
+              // A door to the whole composer, not a promise about one pair —
+              // see the desktop's twin wiring.
+              head: currentBranch,
+              base: defaultBranch,
+              baseLabel: null,
+              headLabel: currentBranch,
+              needsPush: branchNeedsPush(currentBranch, branches),
+            }) : undefined}
+            onNewIssue={githubRepo ? () => setIssueComposerOpen(true) : undefined}
             githubRefreshing={githubRefreshing}
             githubRefreshTick={githubRefreshTick}
             onDeleteTag={handleDeleteTag}
@@ -1341,6 +1355,17 @@ function VertexApp() {
           onClose={() => setIssueModalBranch(null)}
         />
       )}
+      {issueComposerOpen && githubRepo && (
+        <IssueComposer
+          owner={githubRepo.owner}
+          repo={githubRepo.repo}
+          anchor={composerAnchorRef}
+          onClose={() => setIssueComposerOpen(false)}
+          onCreated={() => { if (githubRepo) void loadGhLists(githubRepo, 'issues') }}
+          onStartBranch={handleCreateBranchFromIssue}
+          showToast={showToast}
+        />
+      )}
       {prIntent && githubRepo && (
         <PRComposer
           owner={githubRepo.owner}
@@ -1450,24 +1475,6 @@ function CompareTab({ refA, refB }: { refA?: string; refB?: string }) {
   return <CompareView initialA={refA} initialB={refB} repoKey={repoKey ?? 'repo'} />
 }
 
-function GitHubTab() {
-  const { t } = useLang()
-  // The same gesture as in the panel, with the two things VertexApp supplies
-  // taken from the bridge directly: there is no toast host in this tab, so a
-  // failure is reported where the panel would have put one — in the log.
-  const onCreateBranchFromIssue = useCallback(async (issue: { number: number; title: string; url: string }) => {
-    const ref: IssueRef = {
-      provider: 'github', key: String(issue.number), title: issue.title, url: issue.url,
-    }
-    const suggested = issueBranchName(ref.key, ref.title)
-    const name = await window.gitAPI.uiPrompt(t('gh.issue.branchPrompt', issueRefLabel(ref)), suggested)
-    if (!name) return
-    const r = await window.gitAPI.createBranch(String(name))
-    if (!r?.success) console.warn('[GitVertex] could not create the branch:', r?.error)
-  }, [])
-  return <GitHubPanel repoPath="." onCreateBranchFromIssue={onCreateBranchFromIssue} />
-}
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <PanelErrorBoundary>
   <SettingsProvider>
@@ -1483,9 +1490,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 ? <CompareTab refA={boot.refA} refB={boot.refB} />
                 : boot?.mode === 'compareWorking' && boot.hash
                   ? <CompareWorkingView hash={boot.hash} />
-                : boot?.mode === 'github'
-                  ? <GitHubTab />
-                  : boot?.mode === 'rebase'
+                : boot?.mode === 'rebase'
                     ? <RebaseProgress />
                     : boot?.mode === 'todo'
                       ? <RebaseTodoApp />

@@ -39,6 +39,10 @@
 .ghc-none { color: var(--text-tertiary); font-style: italic; }
 .ghc-status { color: var(--success-emphasis); }
 .ghc-status--draft { color: var(--text-tertiary); }
+.ghc-status--merged { color: var(--pr-merged); }
+.ghc-status--closed-pr { color: var(--danger); }
+/* A closed issue COMPLETED — the forge's own reading, not a failure red. */
+.ghc-status--closed-issue { color: var(--pr-merged); }
 .ghc-labels { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
 .ghc-people { display: flex; flex-direction: column; gap: 2px; color: var(--text-secondary); }
 

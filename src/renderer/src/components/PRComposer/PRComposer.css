@@ -88,6 +88,37 @@
 .pr-generate:hover:not(:disabled) { background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
 .pr-generate:disabled { opacity: var(--alpha-half); cursor: default; }
 
+/* While the model writes, the fields it will fill breathe in the AI ink —
+   the wait has a place, and it is where the answer will land. The word-by-
+   word reveal that follows is presentation (utils/aiReveal.ts); under
+   reduced motion both the breath and the reveal stand down. */
+.pr-ai-writing {
+  border-color: var(--ai-border) !important;
+  animation: pr-ai-breathe 1.2s ease-in-out infinite;
+}
+@keyframes pr-ai-breathe {
+  50% {
+    border-color: var(--ai-text);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pr-ai-writing { animation: none; }
+}
+
+/* A generation replaced what was typed — so the way back sits right under
+   it, one click, in the AI ink because it undoes the model's act. */
+.pr-restore {
+  display: flex; align-items: center; gap: var(--space-sm);
+  font-size: var(--text-xs); color: var(--text-tertiary);
+}
+.pr-restore button {
+  background: transparent; border: none; padding: 0;
+  color: var(--ai-text); font-size: var(--text-xs);
+  cursor: pointer;
+}
+.pr-restore button:hover { text-decoration: underline; }
+
 .pr-input {
   background: var(--bg-canvas);
   border: 1px solid var(--border-default);
@@ -314,23 +345,3 @@
 }
 .pr-btn-secondary:hover { border-color: var(--border-strong); color: var(--text-primary); }
 
-/* ── Success state ──────────────────────────── */
-.pr-success {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2xl);
-  padding: var(--space-6xl) var(--space-2xl);
-  text-align: center;
-}
-
-.pr-success-text {
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  color: var(--text-primary);
-}
-
-.pr-success-actions {
-  display: flex;
-  gap: var(--space-lg);
-}

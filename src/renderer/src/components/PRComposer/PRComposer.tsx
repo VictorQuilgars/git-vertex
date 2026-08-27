@@ -1,12 +1,12 @@
-import React, { useState, useEffect, type RefObject } from 'react'
+import React, { useState, useEffect, useRef, type RefObject } from 'react'
 import { Icon } from '../Icon/Icon'
 import './PRComposer.css'
 import { useLang } from '../../i18n/LanguageContext'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { branchNeedsPush } from '../ContextMenu/prIntent'
 import type { BranchInfo } from '../../types'
-import { Brand } from '../BrandMark/BrandMark'
 import PanelDrawer from '../PanelDrawer/PanelDrawer'
+import { revealText, type Reveal } from '../../utils/aiReveal'
 import { parseRemote } from '../../utils/remoteUrl'
 
 // A repository as the selectors speak of it: `owner/name`, one string, because
@@ -26,7 +26,7 @@ const splitRepo = (full: string): { owner: string; repo: string } => {
  * outgrow scanning; clicking an option toggles it. With `onCreate`, a typed
  * name that matches nothing is offered as a label to create.
  */
-function PickField({ label, placeholder, filterPlaceholder, options, chosen, onToggle, dots, onCreate, createRow }: {
+export function PickField({ label, placeholder, filterPlaceholder, options, chosen, onToggle, dots, onCreate, createRow }: {
   label: string
   placeholder: string
   filterPlaceholder: string
@@ -179,13 +179,18 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
 
   const [submitting, setSubmitting] = useState(false)
   const [pushing, setPushing] = useState(false)
-  const [createdUrl, setCreatedUrl] = useState<string | null>(null)
-  const [createdNumber, setCreatedNumber] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // ── Generated together (#130 §1) ──────────────────────────────
+  // The wait breathes on the fields the answer will land in, the answer
+  // writes itself in word by word, and what it replaced is one click away —
+  // the same contract as the issue composer's.
   const [generating, setGenerating] = useState(false)
+  const [writing, setWriting] = useState(false)
   const [genError, setGenError] = useState<string | null>(null)
+  const [restorePoint, setRestorePoint] = useState<{ title: string; body: string } | null>(null)
+  const reveal = useRef<Reveal | null>(null)
+  useEffect(() => () => reveal.current?.stop(), [])
 
   // ── Draft (#130 §3) ───────────────────────────────────────────
   const [draft, setDraft] = useState(false)
@@ -289,16 +294,29 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
   }, [dst])
 
   const generate = async () => {
-    if (generating) return
+    if (generating || writing) return
     setGenerating(true); setGenError(null)
     const r = await ((window.gitAPI as any).aiPrDescription?.(base, head)
       ?? Promise.resolve({ error: 'not-implemented' })).catch((e: any) => ({ error: e.message }))
     setGenerating(false)
     if (r?.error || !r?.title) { setGenError(r?.error ?? 'empty answer'); return }
     // It fills the fields; it never submits. The proposal is reviewed, like
-    // every other AI action here.
-    setTitle(r.title)
-    setBody(r.body ?? '')
+    // every other AI action here — and what it replaced is kept for the
+    // restore line, per generation.
+    setRestorePoint({ title, body })
+    setWriting(true)
+    reveal.current = revealText(r.title, setTitle, () => {
+      reveal.current = revealText(r.body ?? '', setBody, () => setWriting(false))
+    })
+  }
+
+  const restore = () => {
+    if (!restorePoint) return
+    reveal.current?.stop()
+    setWriting(false)
+    setTitle(restorePoint.title)
+    setBody(restorePoint.body)
+    setRestorePoint(null)
   }
 
   const samePair = src === dst && head === base
@@ -372,10 +390,12 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
     }
     if (after.length > 0) showToast(t('pr.afterCreateError', after.join(' — ')), 'err')
 
-    setCreatedUrl(r.url)
-    setCreatedNumber(r.number)
+    // The chip says it, the reloaded list holds it, the branch's #N opens
+    // it — a success pane inside the drawer said the same thing a third
+    // time and made leaving a second decision. Done means closed.
     showToast(t('pr.success', r.number), 'ok')
     onCreated?.(r.number)
+    onClose()
   }
 
   const repoNames = Array.from(repoOptions.keys())
@@ -386,19 +406,7 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
   return (
     <PanelDrawer anchor={anchor} title={t('pr.title')} icon="pullRequest"
       closeLabel={t('common.close')} onClose={onClose}>
-      {createdUrl ? (
-        <div className="pr-success">
-          <Icon name="check" size={32} />
-          <p className="pr-success-text">{t('pr.success', createdNumber!)}</p>
-          <div className="pr-success-actions">
-            <button className="pr-btn-primary" onClick={() => window.gitAPI.openExternal(createdUrl)}>
-              <Brand name="github" size={13} />
-              {t('pr.openInBrowser')}
-            </button>
-            <button className="pr-btn-secondary" onClick={onClose}>{t('pr.close')}</button>
-          </div>
-        </div>
-      ) : (
+      {(
         <div className="pr-body">
           {/* The four ends: source repo + branch into target repo + branch.
               The intent prefilled them; from here they are the user's. */}
@@ -442,17 +450,18 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
             <span className="pr-label pr-label--split">
               <label htmlFor="gv-pr-title">{t('pr.titleLabel')}</label>
               {src === currentFull && (
-                <button type="button" className="pr-generate" disabled={generating}
+                <button type="button" className="pr-generate" disabled={generating || writing}
                   onClick={() => void generate()}>
                   <Icon name="ai" size={13} />
-                  {generating ? t('pr.generating') : t('pr.generate')}
+                  {generating || writing ? t('pr.generating') : t('pr.generate')}
                 </button>
               )}
             </span>
             <input
               id="gv-pr-title"
-              className="pr-input"
+              className={`pr-input${generating || writing ? ' pr-ai-writing' : ''}`}
               value={title}
+              readOnly={writing}
               onChange={e => setTitle(e.target.value)}
               placeholder={t('pr.titlePlaceholder')}
               autoFocus
@@ -465,13 +474,21 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
             <label className="pr-label" htmlFor="gv-pr-body">{t('pr.bodyLabel')}</label>
             <textarea
               id="gv-pr-body"
-              className="pr-textarea"
+              className={`pr-textarea${generating || writing ? ' pr-ai-writing' : ''}`}
               value={body}
+              readOnly={writing}
               onChange={e => setBody(e.target.value)}
               placeholder={t('pr.bodyPlaceholder')}
               rows={6}
             />
           </div>
+          {restorePoint && !writing && (
+            <div className="pr-restore">
+              <Icon name="ai" size={12} />
+              {t('ai.rewrote')}
+              <button type="button" onClick={restore}>{t('ai.restore')}</button>
+            </div>
+          )}
 
           {/* Who reads it, who owns it, how it is filed — the target
               repository's people and labels, applied right after creation.
@@ -521,7 +538,7 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
             <button
               className="pr-btn-primary"
               onClick={handleSubmit}
-              disabled={submitting || !title.trim() || samePair || !head || !base}
+              disabled={submitting || writing || !title.trim() || samePair || !head || !base}
             >
               {pushing ? t('pr.pushing') : submitting ? t('pr.submitting') : t('pr.submit')}
             </button>
