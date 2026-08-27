@@ -233,13 +233,15 @@ describe('the stacked row, after the screenshots', () => {
     expect(gated).toBeGreaterThanOrEqual(2)
   })
 
-  test('the separator is a fade out of the branch colour, not a rule', () => {
-    // Born beside the bullet in the row's own colour, gone before the message
-    // ends — and the full-width hairlines (border and base shadow) stand down
-    // so the fade is the only boundary.
-    expect(css).toMatch(/\.cg-row--stacked \{ border-bottom: none/)
+  test('the cell wears the wash; the seam is the ground itself', () => {
+    // The row's ground is a fade of its branch's colour, born beside the
+    // bullet and gone before the message ends; the separator is the page's
+    // own ground showing through the one pixel the wash does not paint. The
+    // full-width hairlines stand down so nothing else draws a grid.
+    expect(css).toMatch(/\.cg-row--stacked \{\n  border-bottom: none/)
     expect(css).toMatch(/\.cg-row--stacked:not\(\.cg-selected\) \{ box-shadow: none/)
-    expect(css).toMatch(/\.cg-row--stacked::after[\s\S]{0,400}linear-gradient\(to right,[\s\S]{0,80}var\(--cg-row-color\)/)
+    expect(css).toMatch(/\.cg-row--stacked \{[\s\S]{0,200}linear-gradient\(to right,[\s\S]{0,80}var\(--cg-row-color\)/)
+    expect(css).toMatch(/background-size: 100% calc\(100% - 1px\)/)
   })
 
   test('the checked-out branch is the one filled chip', () => {
