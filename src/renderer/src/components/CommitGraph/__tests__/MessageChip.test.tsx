@@ -286,6 +286,8 @@ describe('no closure captures the row geometry and keeps it', () => {
   })
 
   test('renderEdge in particular', () => {
-    expect(src).toMatch(/const renderEdge = useCallback\([\s\S]*?\}, \[rowMid\]\)/)
+    // rowMid for the geometry, svgPadL because the stacked layout starts its
+    // lanes further left — both read inside, both declared, nothing captured.
+    expect(src).toMatch(/const renderEdge = useCallback\([\s\S]*?\}, \[rowMid, svgPadL\]\)/)
   })
 })
