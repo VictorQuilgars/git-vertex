@@ -1,0 +1,25 @@
+/* The issue composer speaks PRComposer's form language (pr-field, pr-input,
+   the pickers) — one stylesheet for the two composers' shared vocabulary.
+   This file holds only what the PR form does not have. */
+
+/* The required mark on the one field the POST cannot do without. */
+.ic-required { color: var(--accent); }
+
+/* The sentence and the button that turns it into an issue — the summoned
+   row, in the AI ink and never a filled button. */
+.ic-describe { display: flex; gap: var(--space-sm); }
+.ic-describe .pr-input { flex: 1; min-width: 0; }
+.ic-ask {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  padding: 0 var(--space-md);
+  background: transparent;
+  border: 1px solid var(--ai-border);
+  border-radius: var(--radius-sm);
+  color: var(--ai-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ic-ask:hover:not(:disabled) { background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
+.ic-ask:disabled { opacity: var(--alpha-half); cursor: default; }

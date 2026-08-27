@@ -26,7 +26,7 @@ const splitRepo = (full: string): { owner: string; repo: string } => {
  * outgrow scanning; clicking an option toggles it. With `onCreate`, a typed
  * name that matches nothing is offered as a label to create.
  */
-function PickField({ label, placeholder, filterPlaceholder, options, chosen, onToggle, dots, onCreate, createRow }: {
+export function PickField({ label, placeholder, filterPlaceholder, options, chosen, onToggle, dots, onCreate, createRow }: {
   label: string
   placeholder: string
   filterPlaceholder: string

@@ -38,6 +38,7 @@ import {
 } from './utils/graphVisibility'
 import InitModal from './components/InitModal/InitModal'
 import PRComposer from './components/PRComposer/PRComposer'
+import IssueComposer from './components/IssueComposer/IssueComposer'
 import { prIntentFor as computePRIntent, type PRIntent } from './components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
 import { canonicalRef, publishedNameFor } from './components/ContextMenu/branchRefs'
@@ -847,7 +848,8 @@ export default function App() {
   // The composer belongs to the repository it opened on. Left in state, a
   // drawer open when the tab was closed greeted the NEXT open of the repo —
   // with an intent computed for branches that may have moved since.
-  useEffect(() => { setPrModalOpen(false); setPrIntent(null) }, [repoPath])
+  const [issueComposerOpen, setIssueComposerOpen] = useState(false)
+  useEffect(() => { setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false) }, [repoPath])
 
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
@@ -2461,7 +2463,7 @@ export default function App() {
               onToggleAllBranches={() => setShowAllBranches(v => !v)}
               onRefreshGithub={refreshGithubSection}
               onStartPR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
-              onNewIssue={remoteRepo ? () => window.gitAPI.openExternal(remoteUrl.newIssue(remoteRepo)) : undefined}
+              onNewIssue={githubOwnerRepo ? () => setIssueComposerOpen(true) : undefined}
               githubRefreshing={githubRefreshing}
               githubRefreshTick={githubRefreshTick}
               githubPollTick={githubPollTick}
@@ -2796,6 +2798,19 @@ export default function App() {
           onClose={() => { setPrModalOpen(false); setPrIntent(null) }}
           onPushed={loadRepoData}
           onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'prs') }}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Issue composer — the PR composer's sibling drawer (#95). */}
+      {issueComposerOpen && githubOwnerRepo && (
+        <IssueComposer
+          owner={githubOwnerRepo.owner}
+          repo={githubOwnerRepo.repo}
+          anchor={sidebarPanelRef}
+          onClose={() => setIssueComposerOpen(false)}
+          onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'issues') }}
+          onStartBranch={handleCreateBranchFromIssue}
           showToast={showToast}
         />
       )}

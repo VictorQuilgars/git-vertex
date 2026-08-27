@@ -21,12 +21,12 @@ import {
   githubSearchIssues, githubCloseIssue, githubListRepos, githubCreateGist, type GithubApi,
   githubIssueComments, githubAddIssueComment, githubUpdateIssue,
   githubListAssignees, githubListRepoLabels, githubGetPR, githubGetChecks, githubMergePR,
-  githubRepoParent, githubRequestReviewers, githubCreateLabel,
+  githubRepoParent, githubRequestReviewers, githubCreateLabel, githubCreateIssue,
 } from '../githubApi'
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
-import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
+import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
@@ -612,6 +612,8 @@ export class GitVertexHost implements vscode.Disposable {
         return githubRequestReviewers(await this._githubApi(), args[0], args[1], args[2], args[3])
       case 'githubCreateLabel':
         return githubCreateLabel(await this._githubApi(), args[0], args[1], args[2], args[3])
+      case 'githubCreateIssue':
+        return githubCreateIssue(await this._githubApi(), args[0], args[1], args[2], args[3], args[4], args[5])
       case 'githubListRepoLabels':
         return githubListRepoLabels(await this._githubApi(), args[0], args[1])
       case 'githubGetPR':
@@ -734,6 +736,11 @@ export class GitVertexHost implements vscode.Disposable {
         const cfg = readAIConfig(this._state)
         if (!cfg) return { error: 'NO_API_KEY' }
         return aiFilterQuery(cfg, args[0], args[1], args[2])
+      }
+      case 'aiGenerateIssue': {
+        const cfg = readAIConfig(this._state)
+        if (!cfg) return { error: 'NO_API_KEY' }
+        return aiGenerateIssue(cfg, args[0])
       }
       // The material is assembled here — aiService has no repository to ask.
       // Same ref resolution as the desktop handler: the base as the remote

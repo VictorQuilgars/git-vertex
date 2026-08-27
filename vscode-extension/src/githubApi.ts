@@ -202,6 +202,38 @@ export async function githubCreatePR(
 }
 
 /**
+ * Create an issue — one POST carries title, body, labels and assignees
+ * together, unlike a pull request's create. Without push access GitHub
+ * silently ignores the staffing rather than refusing.
+ */
+export async function githubCreateIssue(
+  api: GithubApi,
+  owner: string, repo: string, title: string, body: string,
+  labels: string[], assignees: string[],
+): Promise<any> {
+  if (!api.token) return { error: 'not_authenticated' }
+  try {
+    const res = await fetch(`${api.base}/repos/${owner}/${repo}/issues`, {
+      method: 'POST',
+      headers: { ...HEADERS(api.token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, labels: labels ?? [], assignees: assignees ?? [] }),
+    })
+    const data = await res.json() as any
+    if (!res.ok) {
+      const detail = Array.isArray(data.errors)
+        ? data.errors
+            .map((e: any) => e.message ?? (e.field ? `${e.field}: ${e.code}` : null))
+            .filter(Boolean)
+            .join(' — ')
+        : ''
+      const msg = data.message ?? `HTTP ${res.status}`
+      return { error: detail ? `${msg} (${detail})` : msg }
+    }
+    return { url: data.html_url, number: data.number }
+  } catch (e: any) { return { error: e.message } }
+}
+
+/**
  * A fork's parent, or null — the composer offers it as a target (#130).
  * Every failure reads as "not a fork": a composer that cannot ask this
  * question still composes.

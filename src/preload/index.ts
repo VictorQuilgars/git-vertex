@@ -152,6 +152,7 @@ const gitAPI = {
     ipcRenderer.invoke('ai:filter-query', kind, described, vocabulary),
   aiPrDescription: (base: string, head: string) =>
     ipcRenderer.invoke('ai:generate-pr-description', base, head),
+  aiGenerateIssue: (described: string) => ipcRenderer.invoke('ai:generate-issue', described),
   aiRecomposeCommit: (hash: string) => ipcRenderer.invoke('ai:recompose-commit', hash),
   aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => ipcRenderer.invoke('ai:explain-commit', hash, force, guidance),
   aiGetExplanations: () => ipcRenderer.invoke('ai:get-explanations'),
@@ -212,6 +213,8 @@ const gitAPI = {
     ipcRenderer.invoke('github:create-pr', owner, repo, title, body, head, base, draft),
   githubListBranches: (owner: string, repo: string) => ipcRenderer.invoke('github:list-branches', owner, repo),
   githubRepoParent: (owner: string, repo: string) => ipcRenderer.invoke('github:repo-parent', owner, repo),
+  githubCreateIssue: (owner: string, repo: string, title: string, body: string, labels: string[], assignees: string[]) =>
+    ipcRenderer.invoke('github:create-issue', owner, repo, title, body, labels, assignees),
   githubSharePatch: (hash: string) => ipcRenderer.invoke('github:share-patch', hash),
   githubListPRs: (owner: string, repo: string) => ipcRenderer.invoke('github:list-prs', owner, repo),
   githubListIssues: (owner: string, repo: string) => ipcRenderer.invoke('github:list-issues', owner, repo),

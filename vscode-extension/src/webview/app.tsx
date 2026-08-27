@@ -30,6 +30,7 @@ import CompareView from '../../../src/renderer/src/components/CompareView/Compar
 import CompareWorkingView from './CompareWorkingView'
 import AssociateIssueModal from '../../../src/renderer/src/components/IssueLink/AssociateIssueModal'
 import PRComposer from '../../../src/renderer/src/components/PRComposer/PRComposer'
+import IssueComposer from '../../../src/renderer/src/components/IssueComposer/IssueComposer'
 import { prIntentFor as computePRIntent, type PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
@@ -148,6 +149,7 @@ function VertexApp() {
   const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
   const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
+  const [issueComposerOpen, setIssueComposerOpen] = useState(false)
   // The activity rail is always visible; `activeView` is the section its
   // resizable side-panel shows, or null when collapsed (only the rail). Closed
   // by default so the first thing a new user sees is the commit graph. The
@@ -1155,7 +1157,7 @@ function VertexApp() {
             onToggleAllBranches={() => setShowAllBranches(v => !v)}
             onRefreshGithub={refreshGithubSection}
             onStartPR={currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined}
-            onNewIssue={remoteRepo ? () => window.gitAPI.openExternal(remoteUrl.newIssue(remoteRepo)) : undefined}
+            onNewIssue={githubRepo ? () => setIssueComposerOpen(true) : undefined}
             githubRefreshing={githubRefreshing}
             githubRefreshTick={githubRefreshTick}
             onDeleteTag={handleDeleteTag}
@@ -1343,6 +1345,17 @@ function VertexApp() {
             setIssueModalBranch(null)
           }}
           onClose={() => setIssueModalBranch(null)}
+        />
+      )}
+      {issueComposerOpen && githubRepo && (
+        <IssueComposer
+          owner={githubRepo.owner}
+          repo={githubRepo.repo}
+          anchor={composerAnchorRef}
+          onClose={() => setIssueComposerOpen(false)}
+          onCreated={() => { if (githubRepo) void loadGhLists(githubRepo, 'issues') }}
+          onStartBranch={handleCreateBranchFromIssue}
+          showToast={showToast}
         />
       )}
       {prIntent && githubRepo && (
