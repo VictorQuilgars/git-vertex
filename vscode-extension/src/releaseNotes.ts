@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.29.0': `## What's new in 1.29.0
 
 ### 🧵 The pull request composer
 - **A drawer out of the left panel**, like the filter editor — and it holds at a panel's width, four selectors and all.
