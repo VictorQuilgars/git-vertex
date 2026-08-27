@@ -233,8 +233,15 @@ describe('the stacked row, after the screenshots', () => {
     expect(gated).toBeGreaterThanOrEqual(2)
   })
 
-  test('the separator is a whisper, not a rule', () => {
-    expect(css).toMatch(/\.cg-row--stacked \{ border-bottom: 1px solid color-mix/)
+  test('the cell wears the wash; the seam is the ground itself', () => {
+    // The row's ground is a fade of its branch's colour, born beside the
+    // bullet and gone before the message ends; the separator is the page's
+    // own ground showing through the one pixel the wash does not paint. The
+    // full-width hairlines stand down so nothing else draws a grid.
+    expect(css).toMatch(/\.cg-row--stacked \{\n  border-bottom: none/)
+    expect(css).toMatch(/\.cg-row--stacked:not\(\.cg-selected\) \{ box-shadow: none/)
+    expect(css).toMatch(/\.cg-row--stacked \{[\s\S]{0,200}linear-gradient\(to right,[\s\S]{0,80}var\(--cg-row-color\)/)
+    expect(css).toMatch(/background-size: 100% calc\(100% - 1px\)/)
   })
 
   test('the checked-out branch is the one filled chip', () => {
@@ -279,6 +286,8 @@ describe('no closure captures the row geometry and keeps it', () => {
   })
 
   test('renderEdge in particular', () => {
-    expect(src).toMatch(/const renderEdge = useCallback\([\s\S]*?\}, \[rowMid\]\)/)
+    // rowMid for the geometry, svgPadL and laneW because the stacked layout
+    // starts further left on tighter rails — everything read is declared.
+    expect(src).toMatch(/const renderEdge = useCallback\([\s\S]*?\}, \[rowMid, svgPadL, laneW\]\)/)
   })
 })

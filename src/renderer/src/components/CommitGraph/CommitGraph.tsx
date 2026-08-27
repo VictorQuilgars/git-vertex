@@ -976,8 +976,40 @@ export default function CommitGraph({
 
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
-  const svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 48)
+  // The stacked layout pulls everything left (#111 follow-up): the graph
+  // starts at 24 instead of 36 — stripe (9) + a breath (2) + node radius
+  // (13), zero slack — and its lanes sit 16 apart instead of 22, the
+  // reference's proportion of big avatars on tight rails. The classic
+  // columns keep both constants.
+  const svgPadL = refsBelow ? 24 : SVG_PAD_L
+  const laneW = refsBelow ? 16 : LANE_WIDTH
+  const svgW = Math.max(svgPadL + (maxLane + 1) * laneW + SVG_PAD_R, 48)
   const svgH = rowTops[displayLayout.length] ?? displayLayout.length * ROW_HEIGHT
+
+  // The stacked text is RAGGED on purpose (at Victor's call): each row's text
+  // starts just past its own graph — its node, or the rightmost rail passing
+  // through that row, whichever reaches further. A shared column reserved the
+  // history's deepest lane on every row, and most rows sat two empty lanes
+  // from their own bullet. A pass-through edge occupies its target lane for
+  // the rows it crosses, and up to both of its lanes where it bends.
+  const rowEdgeLane = useMemo(() => {
+    if (!refsBelow) return null
+    const m = new Map<number, number>()
+    const bump = (row: number, lane: number) => {
+      const cur = m.get(row)
+      if (cur === undefined || lane > cur) m.set(row, lane)
+    }
+    for (const c of displayLayout) {
+      bump(c.row, c.lane)
+      for (const e of c.edges) {
+        bump(c.row, Math.max(e.fromLane, e.toLane))
+        const lo = Math.min(c.row, e.toRow), hi = Math.max(c.row, e.toRow)
+        for (let r = lo + 1; r < hi; r++) bump(r, e.toLane)
+        bump(e.toRow, e.toLane)
+      }
+    }
+    return m
+  }, [refsBelow, displayLayout])
 
   // Availability-based column visibility. The message column must always keep
   // MSG_MIN px; the optional columns are granted space in priority order
@@ -1141,9 +1173,9 @@ export default function CommitGraph({
   // That was the "line pointing at no commit" in the third screenshot.
   const renderEdge = useCallback((commit: LayoutCommit, edge: typeof commit.edges[0]) => {
     const isWip = commit.hash === WIP_HASH
-    const x1 = SVG_PAD_L + edge.fromLane * LANE_WIDTH
+    const x1 = svgPadL + edge.fromLane * laneW
     const y1 = rowMid(commit.row)
-    const x2 = SVG_PAD_L + edge.toLane * LANE_WIDTH
+    const x2 = svgPadL + edge.toLane * laneW
     const y2 = rowMid(edge.toRow)
     const key = `${commit.hash}-${edge.fromLane}-${edge.toLane}-${edge.toRow}`
     const dashArray = isWip || edge.dashed ? '4 3' : undefined
@@ -1170,7 +1202,7 @@ export default function CommitGraph({
     //  - merge (a merge commit reaching a 2nd parent): the horizontal jog
     //    happens at the TOP, on the merge commit's row, then the vertical runs
     //    down the parent's lane (toLane).
-    const r = Math.min(LANE_WIDTH * 0.6, Math.abs(y2 - y1) / 2)
+    const r = Math.min(laneW * 0.6, Math.abs(y2 - y1) / 2)
     const dx = x2 > x1 ? r : -r
     const isFork = edge.type === 'fork-left' || edge.type === 'fork-right'
     const d = isFork
@@ -1192,7 +1224,7 @@ export default function CommitGraph({
         fill="none" stroke={edge.color} strokeWidth={2} strokeLinecap="round"
         strokeDasharray={dashArray} />
     )
-  }, [rowMid])
+  }, [rowMid, svgPadL, laneW])
 
   // The "start a Pull Request" row, pointing whichever way prIntentFor decided
   // — from this branch, or into it, depending on where you are standing.
@@ -1541,7 +1573,7 @@ export default function CommitGraph({
                 reads as a stray mark beside the bullet. */}
             {!refsBelow && displayLayout.map(commit => {
               if (commit.hash === WIP_HASH) return null
-              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
+              const cx = svgPadL + commit.lane * laneW
               const bandH = 24
               const y = rowTop(commit.row) + (ROW_HEIGHT - bandH) / 2
               const right = svgW - SVG_PAD_R
@@ -1563,7 +1595,7 @@ export default function CommitGraph({
                 now, so the line ran left of the bullet toward nothing. */}
             {!refsBelow && displayLayout.map(commit => {
               if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
-              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
+              const cx = svgPadL + commit.lane * laneW
               const cy = rowMid(commit.row)
               if (cx - NODE_RADIUS <= 0) return null
               return (
@@ -1579,7 +1611,7 @@ export default function CommitGraph({
 
             {/* Nodes */}
             {displayLayout.map(commit => {
-              const cx = SVG_PAD_L + commit.lane * LANE_WIDTH
+              const cx = svgPadL + commit.lane * laneW
               const cy = rowMid(commit.row)
               const isSelected = commit.hash === selectedHash
               const isWip = commit.hash === WIP_HASH
@@ -1678,7 +1710,12 @@ export default function CommitGraph({
               <div
                 key={commit.hash}
                 className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
-                style={{ top: rowTop(commit.row), height: rowHeight(commit.row) }}
+                style={{
+                  top: rowTop(commit.row), height: rowHeight(commit.row),
+                  // The branch's colour, for anything the row draws in it —
+                  // the stripe, and the stacked separator's fade.
+                  '--cg-row-color': isWip ? 'var(--text-disabled)' : commit.color,
+                } as React.CSSProperties}
                 onClick={() => onSelectCommit(commit)}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
                 data-vscode-context={nativeContextMenu && !isWip ? JSON.stringify({
@@ -1786,8 +1823,16 @@ export default function CommitGraph({
                   </div>
                 )}
 
-                {/* Spacer for SVG */}
-                <div style={{ width: svgW, flexShrink: 0 }} />
+                {/* Spacer for SVG. Classic columns: the shared width. Stacked:
+                    THIS row's graph edge — its rightmost lane's centre plus
+                    the node radius (13) — and the message column's own 8px of
+                    padding is the breath. Ragged, and meant to be. */}
+                <div style={{
+                  width: refsBelow
+                    ? svgPadL + (rowEdgeLane?.get(commit.row) ?? commit.lane) * laneW + 13
+                    : svgW,
+                  flexShrink: 0,
+                }} />
 
                 {/* Message */}
                 <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>

@@ -57,6 +57,10 @@
 
 /* ── Rows ────────────────────────────────────────────────── */
 .cg-row {
+  /* The branch's colour, set per row by the renderer (commit.color); this is
+     the fallback for a row that never got one. The stripe and the stacked
+     separator's fade both drink from it. */
+  --cg-row-color: var(--border-subtle);
   display: flex;
   align-items: center;
   height: 28px;
@@ -453,6 +457,9 @@
   justify-content: center;
   gap: 0;
   min-width: 0;
+  /* Closer to the bullets: the classic columns keep their breathing room,
+     the stacked text starts where the graph ends. */
+  padding-left: var(--space-sm);
 }
 .cg-col-msg--stacked .cg-msg-line {
   display: flex;
@@ -485,9 +492,27 @@
 .cg-meta-date { margin-left: auto; flex-shrink: 0; padding-left: var(--space-sm); }
 
 /* A separator per row — without it two stacked rows read as one four-line
-   block. A whisper, not a rule: at full --border-subtle it was the loudest
-   line on screen, which is backwards for a divider. */
-.cg-row--stacked { border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 40%, transparent); }
+   block. The reference's actual gesture, read closely: it is not the LINE
+   that is treated, it is the CELL — each row's ground is a wash of its
+   branch's colour, born beside the bullet where the row is densest and gone
+   before the message ends. The separation is then nothing at all: the page's
+   own ground showing through a one-pixel seam the wash does not paint
+   (background-size, so no token has to guess what the ground is). Visible
+   where the washes are, invisible where they are not — which is enough,
+   because past the left cluster the two-line rhythm already separates the
+   rows. The full-width hairlines stand down; hover and selection keep their
+   flat backgrounds by specificity and !important respectively; the selection
+   ring keeps its shadow via the :not() guard. */
+.cg-row--stacked:not(.cg-selected) { box-shadow: none; }
+.cg-row--stacked {
+  border-bottom: none;
+  background: linear-gradient(to right,
+    color-mix(in srgb, var(--cg-row-color) 14%, transparent),
+    color-mix(in srgb, var(--cg-row-color) 6%, transparent) min(110px, 35%),
+    transparent min(250px, 65%));
+  background-repeat: no-repeat;
+  background-size: 100% calc(100% - 1px);
+}
 
 /* ⚠️ Below the graph overlay, where the desktop rows sit above it. The rows
    carry the separators, and a separator drawn over the SVG cuts every branch
