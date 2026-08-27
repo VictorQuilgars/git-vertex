@@ -233,8 +233,13 @@ describe('the stacked row, after the screenshots', () => {
     expect(gated).toBeGreaterThanOrEqual(2)
   })
 
-  test('the separator is a whisper, not a rule', () => {
-    expect(css).toMatch(/\.cg-row--stacked \{ border-bottom: 1px solid color-mix/)
+  test('the separator is a fade out of the branch colour, not a rule', () => {
+    // Born beside the bullet in the row's own colour, gone before the message
+    // ends — and the full-width hairlines (border and base shadow) stand down
+    // so the fade is the only boundary.
+    expect(css).toMatch(/\.cg-row--stacked \{ border-bottom: none/)
+    expect(css).toMatch(/\.cg-row--stacked:not\(\.cg-selected\) \{ box-shadow: none/)
+    expect(css).toMatch(/\.cg-row--stacked::after[\s\S]{0,400}linear-gradient\(to right,[\s\S]{0,80}var\(--cg-row-color\)/)
   })
 
   test('the checked-out branch is the one filled chip', () => {

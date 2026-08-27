@@ -1678,7 +1678,12 @@ export default function CommitGraph({
               <div
                 key={commit.hash}
                 className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
-                style={{ top: rowTop(commit.row), height: rowHeight(commit.row) }}
+                style={{
+                  top: rowTop(commit.row), height: rowHeight(commit.row),
+                  // The branch's colour, for anything the row draws in it —
+                  // the stripe, and the stacked separator's fade.
+                  '--cg-row-color': isWip ? 'var(--text-disabled)' : commit.color,
+                } as React.CSSProperties}
                 onClick={() => onSelectCommit(commit)}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
                 data-vscode-context={nativeContextMenu && !isWip ? JSON.stringify({

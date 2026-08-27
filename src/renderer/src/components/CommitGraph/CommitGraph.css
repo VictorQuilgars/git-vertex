@@ -57,6 +57,10 @@
 
 /* ── Rows ────────────────────────────────────────────────── */
 .cg-row {
+  /* The branch's colour, set per row by the renderer (commit.color); this is
+     the fallback for a row that never got one. The stripe and the stacked
+     separator's fade both drink from it. */
+  --cg-row-color: var(--border-subtle);
   display: flex;
   align-items: center;
   height: 28px;
@@ -485,9 +489,25 @@
 .cg-meta-date { margin-left: auto; flex-shrink: 0; padding-left: var(--space-sm); }
 
 /* A separator per row — without it two stacked rows read as one four-line
-   block. A whisper, not a rule: at full --border-subtle it was the loudest
-   line on screen, which is backwards for a divider. */
-.cg-row--stacked { border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 40%, transparent); }
+   block. Not a rule but a FADE, the reference's gesture: the line is born
+   from the branch's own colour beside the bullet, where a row is densest —
+   stripe, lanes, avatar, chips — and is gone before the message ends. That
+   is enough on purpose: past the left cluster the two-line rhythm already
+   separates the rows, and a full-width hairline over forty of them reads
+   as a grid. The base row hairline (box-shadow) stands down with it; the
+   selection ring keeps its own shadow via the :not() guard. */
+.cg-row--stacked:not(.cg-selected) { box-shadow: none; }
+.cg-row--stacked { border-bottom: none; }
+.cg-row--stacked::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0; height: 1px;
+  pointer-events: none;
+  background: linear-gradient(to right,
+    color-mix(in srgb, var(--cg-row-color) 55%, transparent),
+    color-mix(in srgb, var(--border-subtle) 35%, transparent) min(180px, 40%),
+    transparent min(380px, 78%));
+}
 
 /* ⚠️ Below the graph overlay, where the desktop rows sit above it. The rows
    carry the separators, and a separator drawn over the SVG cuts every branch
