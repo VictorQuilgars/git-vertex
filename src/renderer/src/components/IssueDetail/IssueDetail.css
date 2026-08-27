@@ -58,11 +58,19 @@
 .idv-cols { flex-wrap: wrap; }
 .idv-main { flex-basis: 320px; }
 
+/* The side column reads as a stack of ruled sections: a sentence-case title
+   with its pencil at the far edge, a rule between sections — headings that
+   are read, not glanced past, because this column IS the issue's facts. */
 .idv-label {
-  font-size: var(--text-micro); letter-spacing: .06em; text-transform: uppercase;
-  color: var(--text-tertiary);
+  font-size: var(--text-md); font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
 }
-.idv-block-head { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-sm); }
+.idv-block-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-sm); margin-bottom: var(--space-md);
+}
+.idv-side .idv-block { border-top: 1px solid var(--border-muted); padding-top: var(--space-lg); }
+.idv-side .idv-block:last-child { border-bottom: 1px solid var(--border-muted); padding-bottom: var(--space-lg); }
 .idv-pencil {
   display: inline-flex; align-items: center; justify-content: center;
   width: 20px; height: 20px; padding: 0;
@@ -73,7 +81,17 @@
 .idv-none { color: var(--text-tertiary); font-style: italic; font-size: var(--text-sm); }
 
 .idv-people { display: flex; flex-direction: column; gap: 2px; color: var(--text-secondary); }
-.idv-labels { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+/* In the side column a label is a ROW, not a pill: one per line, full width,
+   the label's own colour as ink over its faint tint. The pill stays what the
+   hover card and the pickers use — there the labels are a crowd, here they
+   are a list being read. */
+.idv-labels { display: flex; flex-direction: column; gap: var(--space-xs); }
+.idv-labels .ghp-label {
+  display: block; width: 100%;
+  border: none; border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+}
 
 .idv-btn {
   display: inline-flex; align-items: center; gap: var(--space-sm); justify-content: center;
@@ -89,14 +107,20 @@
   color: var(--accent);
 }
 .idv-btn--primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent); }
-.idv-branch-btn { width: 100%; }
+/* Creating a branch is the constructive act here — it wears the doing green,
+   as an outline: the button proposes, the click is what does. */
+.idv-branch-btn {
+  width: 100%; height: 30px;
+  border-color: color-mix(in srgb, var(--success) var(--alpha-half), transparent);
+}
+.idv-branch-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--success) var(--alpha-faint), transparent); }
 
 /* The status as a value: the current state, full width, in its colour. */
 .idv-state-bar {
   padding: var(--space-xs) var(--space-md); border-radius: var(--radius-sm);
   font-size: var(--text-sm); font-weight: var(--weight-semibold); text-align: left;
 }
-.idv-state-bar--open { background: var(--success); color: var(--surface); }
+.idv-state-bar--open { background: var(--success-emphasis); color: var(--text-on-emphasis); }
 .idv-state-bar--closed { background: var(--surface-sunken); color: var(--text-tertiary); }
 
 /* The picker: a search on top, immediate toggles below, no submit. */
