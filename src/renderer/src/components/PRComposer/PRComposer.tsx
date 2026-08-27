@@ -5,7 +5,6 @@ import { useLang } from '../../i18n/LanguageContext'
 import type { PRIntent } from '../ContextMenu/prIntent'
 import { branchNeedsPush } from '../ContextMenu/prIntent'
 import type { BranchInfo } from '../../types'
-import { Brand } from '../BrandMark/BrandMark'
 import PanelDrawer from '../PanelDrawer/PanelDrawer'
 import { revealText, type Reveal } from '../../utils/aiReveal'
 import { parseRemote } from '../../utils/remoteUrl'
@@ -180,8 +179,6 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
 
   const [submitting, setSubmitting] = useState(false)
   const [pushing, setPushing] = useState(false)
-  const [createdUrl, setCreatedUrl] = useState<string | null>(null)
-  const [createdNumber, setCreatedNumber] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // ── Generated together (#130 §1) ──────────────────────────────
@@ -393,10 +390,12 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
     }
     if (after.length > 0) showToast(t('pr.afterCreateError', after.join(' — ')), 'err')
 
-    setCreatedUrl(r.url)
-    setCreatedNumber(r.number)
+    // The chip says it, the reloaded list holds it, the branch's #N opens
+    // it — a success pane inside the drawer said the same thing a third
+    // time and made leaving a second decision. Done means closed.
     showToast(t('pr.success', r.number), 'ok')
     onCreated?.(r.number)
+    onClose()
   }
 
   const repoNames = Array.from(repoOptions.keys())
@@ -407,19 +406,7 @@ export default function PRComposer({ owner, repo, intent, branches, anchor, onCl
   return (
     <PanelDrawer anchor={anchor} title={t('pr.title')} icon="pullRequest"
       closeLabel={t('common.close')} onClose={onClose}>
-      {createdUrl ? (
-        <div className="pr-success">
-          <Icon name="check" size={32} />
-          <p className="pr-success-text">{t('pr.success', createdNumber!)}</p>
-          <div className="pr-success-actions">
-            <button className="pr-btn-primary" onClick={() => window.gitAPI.openExternal(createdUrl)}>
-              <Brand name="github" size={13} />
-              {t('pr.openInBrowser')}
-            </button>
-            <button className="pr-btn-secondary" onClick={onClose}>{t('pr.close')}</button>
-          </div>
-        </div>
-      ) : (
+      {(
         <div className="pr-body">
           {/* The four ends: source repo + branch into target repo + branch.
               The intent prefilled them; from here they are the user's. */}

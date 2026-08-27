@@ -345,23 +345,3 @@
 }
 .pr-btn-secondary:hover { border-color: var(--border-strong); color: var(--text-primary); }
 
-/* ── Success state ──────────────────────────── */
-.pr-success {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2xl);
-  padding: var(--space-6xl) var(--space-2xl);
-  text-align: center;
-}
-
-.pr-success-text {
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  color: var(--text-primary);
-}
-
-.pr-success-actions {
-  display: flex;
-  gap: var(--space-lg);
-}
