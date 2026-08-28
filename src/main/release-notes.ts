@@ -2,6 +2,12 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🩹 The stacked graph, trued up
+- The bullet centres on its two-line cell, and the seam between cells is two pixels of ground — one read as a scratch.
+`,
+
   '1.31.0': `## What's new in 1.31.0
 
 ### 🧵 The pull request composer
