@@ -511,7 +511,8 @@
     color-mix(in srgb, var(--cg-row-color) 6%, transparent) min(110px, 35%),
     transparent min(250px, 65%));
   background-repeat: no-repeat;
-  background-size: 100% calc(100% - 1px);
+  /* Two pixels of ground between cells — one read as a scratch. */
+  background-size: 100% calc(100% - 2px);
 }
 
 /* ⚠️ Below the graph overlay, where the desktop rows sit above it. The rows
