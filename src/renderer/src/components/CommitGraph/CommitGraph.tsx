@@ -925,9 +925,12 @@ export default function CommitGraph({
 
   const rowTop = useCallback((row: number) => rowTops[row] ?? row * ROW_HEIGHT, [rowTops])
   /** The middle of a row's first line — where the node and every edge meet it. */
-  const rowMid = useCallback((row: number) => rowTop(row) + ROW_HEIGHT / 2, [rowTop])
   const rowHeight = useCallback(
     (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || ROW_HEIGHT, [rowTops])
+  // The CELL's middle, not the first line's: a stacked row is two lines tall
+  // and its bullet sits at its centre, the way the reference centres its
+  // avatar on the block. Classic single-line rows: the same number as before.
+  const rowMid = useCallback((row: number) => rowTop(row) + rowHeight(row) / 2, [rowTop, rowHeight])
 
   // keyboard …), make sure the selected row is visible.
   useEffect(() => {
