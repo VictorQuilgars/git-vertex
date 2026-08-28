@@ -241,7 +241,7 @@ describe('the stacked row, after the screenshots', () => {
     expect(css).toMatch(/\.cg-row--stacked \{\n  border-bottom: none/)
     expect(css).toMatch(/\.cg-row--stacked:not\(\.cg-selected\) \{ box-shadow: none/)
     expect(css).toMatch(/\.cg-row--stacked \{[\s\S]{0,200}linear-gradient\(to right,[\s\S]{0,80}var\(--cg-row-color\)/)
-    expect(css).toMatch(/background-size: 100% calc\(100% - 1px\)/)
+    expect(css).toMatch(/background-size: 100% calc\(100% - 2px\)/)
   })
 
   test('the checked-out branch is the one filled chip', () => {

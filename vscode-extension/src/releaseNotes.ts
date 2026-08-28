@@ -16,6 +16,12 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🩹 The stacked graph, trued up
+- The bullet centres on its two-line cell, and the seam between cells is two pixels of ground — one read as a scratch.
+`,
+
   '1.29.0': `## What's new in 1.29.0
 
 ### 🧵 The pull request composer
