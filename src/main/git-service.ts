@@ -1218,16 +1218,40 @@ export class GitService {
   }
 
   async dropCommit(hash: string): Promise<{ success: boolean; error?: string }> {
-    const bad = this.assertRef(hash, 'commit')
-    if (bad) return { success: false, error: bad }
+    return this.dropCommits([hash])
+  }
+
+  /**
+   * Drop several commits in ONE rebase (#69). A loop of single drops would
+   * not survive its first step: every drop rewrites the hashes above it, so
+   * the loop's second hash names a commit that no longer exists. One sequence
+   * from the oldest selection's parent, every selected line marked drop, is
+   * the operation such a loop pretends to be.
+   */
+  async dropCommits(hashes: string[]): Promise<{ success: boolean; error?: string }> {
+    if (hashes.length === 0) return { success: false, error: 'Nothing selected' }
+    for (const h of hashes) {
+      const bad = this.assertRef(h, 'commit')
+      if (bad) return { success: false, error: bad }
+    }
     try {
-      const picks = await this.buildPickSequence(`${hash}^`)
+      // The oldest selection bounds the rebase — ranked against rev-list
+      // order rather than trusted from the caller's click order.
+      const order = (await this.git.raw(['rev-list', 'HEAD']))
+        .split('\n').map((s: string) => s.trim()).filter(Boolean)
+      const ranked = hashes.map(h => ({
+        h, i: order.findIndex(o => o.startsWith(h) || h.startsWith(o)),
+      }))
+      if (ranked.some(r => r.i === -1)) return { success: false, error: 'Commit not found' }
+      const oldest = ranked.reduce((a, b) => (b.i > a.i ? b : a)).h
+      const picks = await this.buildPickSequence(`${oldest}^`)
       if (picks.length === 0) return { success: false, error: 'Commit not found' }
+      const dropped = (p: string) => hashes.some(h => p.startsWith(h) || h.startsWith(p))
       const sequence = picks.map(p => ({
-        action: p.hash.startsWith(hash) || hash.startsWith(p.hash) ? 'drop' : 'pick',
+        action: dropped(p.hash) ? 'drop' : 'pick',
         hash: p.hash
       }))
-      return await this.runRebaseSequence(`${hash}^`, sequence)
+      return await this.runRebaseSequence(`${oldest}^`, sequence)
     } catch (e: any) {
       return { success: false, error: e.message }
     }

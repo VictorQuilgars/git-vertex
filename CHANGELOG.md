@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- **Hold several commits at once.** Shift-click takes the range from the last click, ctrl/cmd-click adds or removes a single row, and the selection reads as a grip on the graph — a plain click, the arrows or Escape let it go. **Right-click inside the selection and the menu is about the lot**: cherry-pick the N commits (applied oldest first, and stopping honestly where git stops — the first conflict hands over to the conflict flow, reported as far as it got), **drop the N commits as one rebase** — a loop of single drops would chase hashes its own first step rewrote, so the whole selection is one sequence with N lines marked drop — copy the N hashes or the N messages, or open them all on the remote.
+
 ### Fixed
 - **The signature shield leaves the graph.** #146 narrowed it to signatures that could not be vouched for; one key rotation later the trouble codes did what the E code had been excused for — GitHub's expired signing key marked every merge in the graph, a fact about a keyring worn as a wound on the history. The graph draws no signature at all now; the data stays on the commit for a surface that can afford the nuance.
 - **The stacked bullet centres on its cell.** It sat one half-line high — centred on the message line, an old deliberate choice the two-line cell outgrew. The edges end where the nodes are, so they moved with it.

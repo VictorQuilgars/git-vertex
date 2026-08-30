@@ -174,6 +174,8 @@ declare global {
     reset: (hash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<R>
     amendMessage: (message: string) => Promise<R>
     dropCommit: (hash: string) => Promise<R>
+    /** N commits, ONE rebase — a loop of drops would chase stale hashes (#69). */
+    dropCommits: (hashes: string[]) => Promise<Unnarrowed>
     moveCommit: (hash: string, direction: 'up' | 'down') => Promise<R>
     diffCommitToWorking: (hash: string) => Promise<{ diff: string }>
     diffBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ diff: string; error?: string }>

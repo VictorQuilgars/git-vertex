@@ -68,6 +68,7 @@ const gitAPI = {
   checkoutTracking: (remoteRef: string, localName: string) =>
     ipcRenderer.invoke('git:checkout-tracking', remoteRef, localName),
   dropCommit: (hash: string) => ipcRenderer.invoke('git:drop-commit', hash),
+  dropCommits: (hashes: string[]) => ipcRenderer.invoke('git:drop-commits', hashes),
   moveCommit: (hash: string, direction: 'up' | 'down') => ipcRenderer.invoke('git:move-commit', hash, direction),
   diffCommitToWorking: (hash: string) => ipcRenderer.invoke('git:diff-commit-to-working', hash),
   diffBetweenCommits: (fromHash: string, toHash: string | null, axis?: 'diverged' | 'endpoints') =>

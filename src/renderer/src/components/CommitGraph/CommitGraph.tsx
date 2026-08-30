@@ -681,6 +681,10 @@ interface CommitGraphProps {
   onCompareWithSelected?: (hash: string) => void
   compareBaseHash?: string | null
   onDropCommit?: (hash: string) => void
+  /** Batch actions over the multi-selection (#69) — hashes arrive OLDEST
+   *  first, the order a cherry-pick applies and a drop sequence reads. */
+  onCherryPickMany?: (hashes: string[]) => void
+  onDropCommits?: (hashes: string[]) => void
   onMoveCommit?: (hash: string, direction: 'up' | 'down') => void
   onBranchDrop?: (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => void
   // Commit-menu actions added for competitive parity (all optional — only
@@ -708,7 +712,7 @@ interface CommitGraphProps {
   onNativeMenuTarget?: (hash: string) => void
 }
 
-interface CtxState { x: number; y: number; commit: LayoutCommit; branchName?: string }
+interface CtxState { x: number; y: number; commit: LayoutCommit; branchName?: string; batch?: boolean }
 interface DropState { x: number; y: number; hash: string; branch: string }
 
 export default function CommitGraph({
@@ -724,6 +728,7 @@ export default function CommitGraph({
   onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit,
   onCompareWorking, onSelectForCompare, onCompareWithSelected, compareBaseHash,
   onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
+  onCherryPickMany, onDropCommits,
   conflictMode = null, githubRepo = null, loading = false, onSearchMatches,
   onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch,
   onPushBranch, onSetUpstream, prIntentFor, onCreatePR, branchMenuItems,
@@ -933,6 +938,45 @@ export default function CommitGraph({
     }
   }, [selectedHash, rowTop, rowHeight])  // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Multiple selection (#69) ──────────────────────────────────
+  // Graph-local: `selectedHash` stays the panel's single subject, the SET is
+  // what batch actions read. Shift-click takes the range from the anchor,
+  // ctrl/cmd-click toggles one row (seeding the set with the single selection,
+  // so growing FROM what is selected does what it looks like). A plain click,
+  // the arrows and Escape all collapse it — the set exists while it is being
+  // used and never lingers as invisible state.
+  const [multiSel, setMultiSel] = useState<Set<string>>(() => new Set())
+  const [selAnchor, setSelAnchor] = useState<string | null>(null)
+
+  const handleRowClick = (e: React.MouseEvent, commit: LayoutCommit) => {
+    if (commit.hash !== WIP_HASH) {
+      if (e.shiftKey && selAnchor) {
+        const a = displayLayout.find(c => c.hash === selAnchor)?.row
+        if (a !== undefined) {
+          const [lo, hi] = a < commit.row ? [a, commit.row] : [commit.row, a]
+          setMultiSel(new Set(
+            displayLayout.filter(c => c.row >= lo && c.row <= hi && c.hash !== WIP_HASH).map(c => c.hash)
+          ))
+          return
+        }
+      }
+      if (e.metaKey || e.ctrlKey) {
+        setMultiSel(prev => {
+          const next = new Set(prev)
+          if (next.size === 0 && selectedHash && selectedHash !== commit.hash) next.add(selectedHash)
+          if (next.has(commit.hash)) next.delete(commit.hash)
+          else next.add(commit.hash)
+          return next
+        })
+        setSelAnchor(commit.hash)
+        return
+      }
+    }
+    setMultiSel(new Set())
+    setSelAnchor(commit.hash)
+    onSelectCommit(commit)
+  }
+
   // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel.
   // Skipped while an input/textarea has focus.
   useEffect(() => {
@@ -946,9 +990,12 @@ export default function CommitGraph({
       if (displayLayout.length === 0) return
       const idx = displayLayout.findIndex(c => c.hash === selectedHash)
       if (e.key === 'Escape') {
+        // The set goes first; the panel only closes once there is no set.
+        if (multiSel.size) { setMultiSel(new Set()); return }
         if (idx !== -1) onSelectCommit(displayLayout[idx]) // toggles the selection off
         return
       }
+      if (multiSel.size) setMultiSel(new Set())  // arrow nav is single-minded
       const next = idx === -1 ? 0 : idx + (e.key === 'ArrowDown' ? 1 : -1)
       if (next < 0 || next >= displayLayout.length) return
       e.preventDefault()
@@ -964,7 +1011,7 @@ export default function CommitGraph({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight])
+  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight, multiSel])
 
 
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
@@ -1358,13 +1405,54 @@ export default function CommitGraph({
       onCreatePatch, onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote,
       onCopyCommitLink, onCreateAnnotatedTag, t, branchActionItems, branchMenuItems])
 
+  // The batch menu (#69): what makes sense for N commits at once, and only
+  // that — cherry-pick and drop read OLDEST FIRST (history order, what a
+  // pick sequence means), the copies read as displayed (newest first, what
+  // the eye just scanned).
+  const batchMenuItems = useCallback((): MenuItemDef[] => {
+    const asShown = displayLayout.filter(c => multiSel.has(c.hash))
+    const oldestFirst = [...asShown].sort((a, b) => b.row - a.row)
+    const hashes = oldestFirst.map(c => c.hash)
+    const n = hashes.length
+    const items: MenuItemDef[] = [
+      { label: t('graph.multi.count', n), disabled: true },
+      { separator: true },
+    ]
+    if (onCherryPickMany) {
+      items.push({ label: t('graph.multi.cherryPick', n), action: () => { setMultiSel(new Set()); onCherryPickMany(hashes) } })
+    }
+    if (onDropCommits) {
+      items.push({ label: t('graph.multi.drop', n), action: () => { setMultiSel(new Set()); onDropCommits(hashes) }, danger: true })
+    }
+    items.push({ separator: true })
+    if (onOpenCommitOnRemote) {
+      items.push({ label: t('graph.multi.openOnRemote', n), action: () => asShown.forEach(c => onOpenCommitOnRemote(c.hash)) })
+    }
+    items.push(
+      { label: t('graph.multi.copyHashes', n), action: () => navigator.clipboard.writeText(asShown.map(c => c.hash).join('\n')) },
+      { label: t('graph.multi.copyMessages', n), action: () => navigator.clipboard.writeText(asShown.map(c => c.message).join('\n')) },
+    )
+    return items
+  }, [displayLayout, multiSel, onCherryPickMany, onDropCommits, onOpenCommitOnRemote, t])
+
   const handleRowContextMenu = useCallback((e: React.MouseEvent, commit: LayoutCommit) => {
     if (commit.hash === WIP_HASH) return
+    // A right-click on a row IN the set opens the batch menu — ours on both
+    // products: the native menu's contributions are declared per single
+    // commit, and a selection is a renderer fact it cannot see.
+    if (multiSel.size >= 2 && multiSel.has(commit.hash)) {
+      e.preventDefault()
+      e.stopPropagation()
+      setCtx({ x: e.clientX, y: e.clientY, commit, batch: true })
+      return
+    }
+    // Outside the set, the set is over — the menu that opens is the row's.
+    if (multiSel.size) setMultiSel(new Set())
     if (nativeContextMenu) { onNativeMenuTarget?.(commit.hash); return }
     e.preventDefault()
     e.stopPropagation()
     setCtx({ x: e.clientX, y: e.clientY, commit })
-  }, [nativeContextMenu, onNativeMenuTarget])
+  }, [nativeContextMenu, onNativeMenuTarget, multiSel])
 
   // Right-click on a ref chip. A LOCAL branch opens the same menu as its tip
   // commit (branch actions + commit actions); tags and remote
@@ -1701,14 +1789,16 @@ export default function CommitGraph({
             return (
               <div
                 key={commit.hash}
-                className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
+                className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${multiSel.has(commit.hash) ? 'cg-multisel' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
                 style={{
                   top: rowTop(commit.row), height: rowHeight(commit.row),
                   // The branch's colour, for anything the row draws in it —
                   // the stripe, and the stacked separator's fade.
                   '--cg-row-color': isWip ? 'var(--text-disabled)' : commit.color,
                 } as React.CSSProperties}
-                onClick={() => onSelectCommit(commit)}
+                onClick={e => handleRowClick(e, commit)}
+                // Shift-click means "take the range", never "select the text".
+                onMouseDown={e => { if (e.shiftKey) e.preventDefault() }}
                 onContextMenu={e => handleRowContextMenu(e, commit)}
                 data-vscode-context={nativeContextMenu && !isWip ? JSON.stringify({
                   webviewSection: 'gitVertexCommit',
@@ -1930,7 +2020,7 @@ export default function CommitGraph({
       {ctx && (
         <ContextMenu
           x={ctx.x} y={ctx.y}
-          items={buildMenuItems(ctx.commit, ctx.branchName)}
+          items={ctx.batch ? batchMenuItems() : buildMenuItems(ctx.commit, ctx.branchName)}
           onClose={() => setCtx(null)}
         />
       )}
