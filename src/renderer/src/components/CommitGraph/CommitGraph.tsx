@@ -151,19 +151,8 @@ function initials(name: string) {
  * The `%G?` codes that say something about the COMMIT. Everything else — good,
  * unknown validity, unsigned, and `E` for "no public key here" — is silence.
  */
-const SIG_TROUBLE = new Set(['B', 'X', 'Y', 'R'])
 
 type TFn = (key: any, ...args: any[]) => string
-function sigBadge(sig: string | undefined, t: TFn) {
-  if (!sig || !SIG_TROUBLE.has(sig)) return null
-  const bad = sig === 'B'
-  const titles: Record<string, string> = {
-    X: t('graph.sig.expired'), Y: t('graph.sig.keyExpired'), R: t('graph.sig.revoked'),
-    B: t('graph.sig.invalid'),
-  }
-  return <Icon name="shield" size={12} className={`cg-sig ${bad ? 'cg-sig--bad' : 'cg-sig--warn'}`}
-    title={titles[sig] ?? t('graph.sig.signed')} />
-}
 // Resolves an author's avatar (AI-bot logo, else GitHub/Gravatar via the main
 // process), shared by the SVG graph node and the compact-layout HTML bullet.
 function useAvatarSrc(email: string, sha: string | undefined, aiLogo: string | null) {
@@ -1840,7 +1829,6 @@ export default function CommitGraph({
                 {/* Message */}
                 <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>
                   <div className="cg-msg-line">
-                    {!isWip && sigBadge(commit.signature, t)}
                     <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
                   </div>
                   {/* The second line. What the columns used to say, said by

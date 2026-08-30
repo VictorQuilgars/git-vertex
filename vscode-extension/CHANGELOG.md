@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- **The signature shield leaves the graph.** #146 narrowed it to signatures that could not be vouched for; one key rotation later the trouble codes did what the E code had been excused for — GitHub's expired signing key marked every merge in the graph, a fact about a keyring worn as a wound on the history. The graph draws no signature at all now; the data stays on the commit for a surface that can afford the nuance.
 - **The stacked bullet centres on its cell.** It sat one half-line high — centred on the message line, an old deliberate choice the two-line cell outgrew. The edges end where the nodes are, so they moved with it.
 - **Two pixels of ground between stacked cells** — one read as a scratch.
 

@@ -2,10 +2,14 @@ import { screen } from '@testing-library/react'
 import CommitGraph from '../CommitGraph'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
-// #146 — the shield used to mark every signed commit, which on a repository
-// that signs is a mark on every row saying the same thing. It survives only
-// where something is WRONG: a row is marked when a signature cannot be vouched
-// for, and never when everything is normal.
+// The shield's short life: it marked every signed commit, #146 narrowed it to
+// signatures that could not be vouched for, and the E code ("cannot be
+// checked") was excused because a missing public key says nothing about the
+// commit. The trouble codes then did the same thing one key-rotation later —
+// GitHub's expired signing key put a shield on every merge in the graph, a
+// fact about a keyring worn as a wound on the history. Victor's call
+// (28/08/2026): the graph draws no signature at all. The data stays on the
+// commit, because a detail pane can afford the nuance a 12px glyph cannot.
 
 const commit = (signature?: string) => ({
   hash: 'aaaa111aaaa111aaaa111aaaa111aaaa111aaaa1',
@@ -32,51 +36,25 @@ function render(signature?: string) {
 
 const badge = () => document.querySelector('.cg-sig')
 
-describe('the signature badge', () => {
+describe('the graph draws no signature badge', () => {
   test.each([
     ['G', 'a good signature'],
     ['U', 'good, of unknown validity'],
     ['N', 'unsigned'],
+    ['E', 'cannot be checked — a fact about the keyring'],
+    ['B', 'a bad signature'],
+    ['X', 'an expired signature'],
+    ['Y', 'an expired key'],
+    ['R', 'a revoked key'],
+    ['Z', 'a code nobody has seen'],
     [undefined, 'a repository that does not report one'],
   ])('%s — no badge (%s)', (sig) => {
     render(sig as string | undefined)
     expect(badge()).toBeNull()
   })
 
-  // ⚠️ `E` is "cannot be checked", which is a fact about the reader's keyring
-  // and not about the commit. Every merge GitHub makes is signed with its own
-  // key, which almost nobody imports — marking E put a warning on every merge
-  // commit in the graph, 33 of 300 on this repository.
-  test('E — no badge: a missing public key is not a bad signature', () => {
-    render('E')
-    expect(badge()).toBeNull()
-  })
-
-  test.each([
-    ['B', 'cg-sig--bad'],
-    ['X', 'cg-sig--warn'],
-    ['Y', 'cg-sig--warn'],
-    ['R', 'cg-sig--warn'],
-  ])('%s — marked, and toned %s', (sig, cls) => {
-    render(sig)
-    const el = badge()
-    expect(el).toBeTruthy()
-    // getAttribute, not className: on an <svg> that is an SVGAnimatedString.
-    expect(el!.getAttribute('class')).toContain(cls)
-  })
-
-  // Narrowed to the codes that say something about the commit, so a code
-  // nobody has seen is silence rather than a guess — the alternative marked
-  // every GitHub merge on the strength of one.
-  test('an unfamiliar code is not marked', () => {
-    render('Z')
-    expect(badge()).toBeNull()
-  })
-
-  // The row draws less; the data is untouched, because a detail pane or a
-  // later feature will want it.
-  test('a good signature is still carried on the commit, just not drawn', () => {
-    render('G')
+  test('the signature is still carried on the commit, just not drawn', () => {
+    render('B')
     expect(screen.getByText('the tip')).toBeInTheDocument()
     expect(badge()).toBeNull()
   })

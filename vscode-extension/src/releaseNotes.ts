@@ -19,6 +19,7 @@ export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
 ### 🩹 The stacked graph, trued up
+- The signature shield leaves the graph: an expired signing key at GitHub had put it on every merge — a keyring fact, not a commit's. The data stays for a finer surface.
 - The bullet centres on its two-line cell, and the seam between cells is two pixels of ground — one read as a scratch.
 `,
 

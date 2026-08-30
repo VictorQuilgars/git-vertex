@@ -167,19 +167,6 @@
   font-weight: var(--weight-medium);
 }
 
-/* This badge was a 🔏 emoji, and these were four filters bent around recolouring
-   it — grayscale to kill its own hue, then hue-rotate and sepia to force the
-   result somewhere near a state colour. It is an <Icon> now, inheriting
-   currentColor, so it takes the token directly and the filters would only wash
-   it out. */
-.cg-sig {
-  flex-shrink: 0;
-  margin-right: var(--space-xs);
-  line-height: 1;
-  color: var(--text-tertiary);
-}
-.cg-sig--bad  { color: var(--danger); }
-.cg-sig--warn { color: var(--attention); }
 
 .cg-msg-wip {
   color: var(--text-tertiary);
