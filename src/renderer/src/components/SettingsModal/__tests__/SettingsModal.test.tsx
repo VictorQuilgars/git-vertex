@@ -340,3 +340,42 @@ describe('SettingsModal — GitHub sign-in', () => {
     expect(mock.githubGetUser).not.toHaveBeenCalled()
   })
 })
+
+// #70 — a model and instructions PER FEATURE, plus one standing block. The
+// page is what writes the keys the two hosts read, so the contract under
+// test is the keys, not the pixels.
+describe('SettingsModal — per-feature AI overrides', () => {
+  const open = async (api: Record<string, any> = {}) => {
+    const mock = installMockGitAPI(api)
+    renderWithProviders(<SettingsModal onClose={() => {}} showToast={() => {}} />)
+    await waitFor(() => expect(screen.getByText('Identity & profiles')).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /ai/i }))
+    await waitFor(() => expect(screen.getByText('Standing instructions (every AI feature)')).toBeInTheDocument())
+    return mock
+  }
+
+  test('every feature has its fold, and an override marks it while folded', async () => {
+    await open({ settingsGetAll: jest.fn().mockResolvedValue({
+      'aiFeatureInstructions:filter': 'prefer label: over labels:',
+    }) })
+    for (const label of ['Commit messages', 'Explain a commit', 'Conflict resolution',
+      'Commit search', 'Filter queries', 'Pull request descriptions', 'Issue drafting']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+    // the folded row does not hide that something is set inside it
+    expect(screen.getByText('Filter queries').closest('summary')!.textContent).toContain('customised')
+  })
+
+  test('saving writes the standing block and every feature key', async () => {
+    const mock = await open()
+    await userEvent.type(
+      screen.getByPlaceholderText(/Keep answers plain/), 'No exclamation marks.')
+    await userEvent.click(screen.getByText('Explain a commit'))
+    await userEvent.type(
+      screen.getAllByPlaceholderText('Instructions for this feature only…')[1], 'Focus on the why.')
+    await userEvent.click(screen.getByText('Save'))
+    await waitFor(() => expect(mock.settingsSet).toHaveBeenCalledWith('aiGlobalInstructions', 'No exclamation marks.'))
+    expect(mock.settingsSet).toHaveBeenCalledWith('aiFeatureInstructions:explain', 'Focus on the why.')
+    expect(mock.settingsSet).toHaveBeenCalledWith('aiFeatureModel:commit', '')
+  })
+})

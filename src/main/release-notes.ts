@@ -4,6 +4,10 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🎛 A model and instructions per AI feature
+- Settings › AI: **standing instructions** that ride every feature, and **one fold per feature** — its own model (within the active provider) and its own instructions.
+- Instructions land AFTER each prompt's rules; checked outputs stay checked. Empty = the global setting, and a folded override says *customised*.
+
 ### 🤏 Hold several commits at once
 - **Shift-click for a range, ctrl/cmd-click for one more** — then right-click the selection: cherry-pick the N (oldest first), **drop the N as one rebase**, copy hashes or messages, open all on the remote.
 - Escape, an arrow or a plain click lets go.

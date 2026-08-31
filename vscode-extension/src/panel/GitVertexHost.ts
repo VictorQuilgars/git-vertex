@@ -733,12 +733,12 @@ export class GitVertexHost implements vscode.Disposable {
         } catch { return { user: null } }
       }
       case 'aiFilterQuery': {
-        const cfg = readAIConfig(this._state)
+        const cfg = readAIConfig(this._state, 'filter')
         if (!cfg) return { error: 'NO_API_KEY' }
         return aiFilterQuery(cfg, args[0], args[1], args[2])
       }
       case 'aiGenerateIssue': {
-        const cfg = readAIConfig(this._state)
+        const cfg = readAIConfig(this._state, 'issue')
         if (!cfg) return { error: 'NO_API_KEY' }
         return aiGenerateIssue(cfg, args[0])
       }
@@ -746,7 +746,7 @@ export class GitVertexHost implements vscode.Disposable {
       // Same ref resolution as the desktop handler: the base as the remote
       // holds it when possible, the head as the local repo does.
       case 'aiPrDescription': {
-        const cfg = readAIConfig(this._state)
+        const cfg = readAIConfig(this._state, 'pr')
         if (!cfg) return { error: 'NO_API_KEY' }
         if (!svc) return { error: 'No repository open' }
         const resolveRef = async (name: string, preferLocal: boolean): Promise<string> => {
@@ -767,13 +767,13 @@ export class GitVertexHost implements vscode.Disposable {
         return aiPrDescription(cfg, args[0], args[1], subjects, diffstat, diff)
       }
       case 'aiGenerateCommitMessage': {
-        const cfg = readAIConfig(this._state)
+        const cfg = readAIConfig(this._state, 'commit')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const staged = await svc.raw(['diff', '--cached']).catch(() => '')
         return aiGenerateCommitMessage(cfg, staged)
       }
       case 'aiRecomposeCommit': {
-        const cfg = readAIConfig(this._state)
+        const cfg = readAIConfig(this._state, 'commit')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const msg = (await svc.raw(['log', '-1', '--pretty=format:%B', args[0]]).catch(() => '')).trim()
@@ -792,7 +792,7 @@ export class GitVertexHost implements vscode.Disposable {
         if (!args[1] && !String(args[2] ?? '').trim() && this._repoPath && all[this._repoPath]?.[args[0]]) {
           return { explanation: all[this._repoPath][args[0]], cached: true }
         }
-        const cfg = readAIConfig(this._state)
+        const cfg = readAIConfig(this._state, 'explain')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const subject = (await svc.raw(['log', '-1', '--pretty=format:%s', args[0]]).catch(() => '')).trim()
@@ -808,14 +808,14 @@ export class GitVertexHost implements vscode.Disposable {
         return r
       }
       case 'aiResolveConflict': {
-        const cfg = readAIConfig(this._state)
+        const cfg = readAIConfig(this._state, 'conflict')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const fileRes = await (svc as any).getFileContent(args[0])
         if (fileRes?.error) return { error: fileRes.error }
         return aiResolveConflict(cfg, args[0], fileRes?.content ?? '', args[1])
       }
       case 'aiSearchCommits': {
-        const cfg = readAIConfig(this._state)
+        const cfg = readAIConfig(this._state, 'search')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         let index = await svc.raw(['log', '--all', '--max-count=200', '--date=short', '--pretty=format:%h|%an|%ad|%s']).catch(() => '')
         index = index.split('\n').map(l => l.length > 90 ? l.slice(0, 90) : l).join('\n')

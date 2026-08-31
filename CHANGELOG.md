@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **A model and instructions per AI feature.** One global model used to serve every AI call; there are seven now — commit messages, explain, conflict resolution, commit search, filter queries, pull request descriptions, issue drafting — and one size stopped fitting when they multiplied. Settings › AI gains a **standing instructions** block that rides every feature, and **one fold per feature** with its own model (within the active provider — the key entered is the provider's) and its own instructions. Instructions are appended AFTER each prompt's format rules, so a wish cannot unsay a contract, and the outputs that are checked stay checked. Empty means the global setting, and a folded feature that carries an override says so.
 - **Hold several commits at once.** Shift-click takes the range from the last click, ctrl/cmd-click adds or removes a single row, and the selection reads as a grip on the graph — a plain click, the arrows or Escape let it go. **Right-click inside the selection and the menu is about the lot**: cherry-pick the N commits (applied oldest first, and stopping honestly where git stops — the first conflict hands over to the conflict flow, reported as far as it got), **drop the N commits as one rebase** — a loop of single drops would chase hashes its own first step rewrote, so the whole selection is one sequence with N lines marked drop — copy the N hashes or the N messages, or open them all on the remote.
 
 ### Fixed

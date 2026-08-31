@@ -6,7 +6,14 @@
 // gvSettings store (same keys as the desktop app) if present.
 import * as vscode from 'vscode'
 
-export interface AIConfig { provider: string; apiKey: string; model: string }
+export interface AIConfig {
+  provider: string; apiKey: string; model: string
+  /** The user's standing instructions — global plus the feature's own (#70). */
+  instructions?: string
+}
+
+/** The desktop's AIFeature vocabulary — see src/main/index.ts (#70). */
+export type AIFeature = 'commit' | 'explain' | 'conflict' | 'search' | 'filter' | 'pr' | 'issue'
 
 const MODEL_DEFAULTS: Record<string, string> = {
   anthropic: 'claude-haiku-4-5-20251001',
@@ -32,7 +39,7 @@ function userSetting(cfg: vscode.WorkspaceConfiguration, key: string): string | 
   return v?.trim() ? v : undefined
 }
 
-export function readAIConfig(state: vscode.Memento): AIConfig | null {
+export function readAIConfig(state: vscode.Memento, feature?: AIFeature): AIConfig | null {
   const cfg = vscode.workspace.getConfiguration('gitVertex')
   const gv = state.get<Record<string, string>>('gvSettings', {})
   const provider = (userSetting(cfg, 'aiProvider') || gv.aiProvider || 'groq').toLowerCase()
@@ -40,12 +47,17 @@ export function readAIConfig(state: vscode.Memento): AIConfig | null {
     || gv[KEY_SETTING[provider] ?? 'aiGroqKey']
     || (provider === 'groq' ? gv.groqApiKey : '')
     || ''
+  // A feature's own model wins within the active provider (#70); the VS Code
+  // setting keeps its precedence as the editor-level override it always was.
   const model = userSetting(cfg, 'aiModel')
+    || (feature ? (gv[`aiFeatureModel:${feature}`] ?? '').trim() : '')
     || gv[MODEL_SETTING[provider] ?? '']
     || MODEL_DEFAULTS[provider]
     || MODEL_DEFAULTS.groq
   if (!apiKey) return null
-  return { provider, apiKey, model }
+  const extras = [gv.aiGlobalInstructions, feature ? gv[`aiFeatureInstructions:${feature}`] : '']
+    .map(x => (x ?? '').trim()).filter(Boolean)
+  return { provider, apiKey, model, instructions: extras.length ? extras.join('\n') : undefined }
 }
 
 // HTTP error carrying the status + optional Retry-After so the retry loop
@@ -107,6 +119,11 @@ async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promi
 }
 
 export async function runAIPrompt(cfg: AIConfig, prompt: string, maxTokens = 512): Promise<{ text?: string; error?: string }> {
+  // The user's standing instructions ride every prompt, AFTER the format
+  // rules — a wish cannot unsay a contract, and checked outputs stay checked.
+  if (cfg.instructions) {
+    prompt += `\n\nAdditional instructions from the user — follow them where they do not conflict with the rules above:\n${cfg.instructions}`
+  }
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const text = await callOnce(cfg, prompt, maxTokens)

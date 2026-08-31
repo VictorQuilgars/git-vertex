@@ -132,6 +132,21 @@ const THEME_PRESETS: { id: ThemeId; key?: string; name?: string }[] = [
   { id: 'tokyo-night-light', name: "Tokyo Night Light" },
 ]
 
+/**
+ * The features a call can belong to (#70) — the same ids the main process and
+ * the extension host read (`aiFeatureModel:<id>` / `aiFeatureInstructions:<id>`).
+ * One list here, because this page is what writes those keys.
+ */
+const AI_FEATURES: { id: string; labelKey: string }[] = [
+  { id: 'commit', labelKey: 'settings.ai.feat.commit' },
+  { id: 'explain', labelKey: 'settings.ai.feat.explain' },
+  { id: 'conflict', labelKey: 'settings.ai.feat.conflict' },
+  { id: 'search', labelKey: 'settings.ai.feat.search' },
+  { id: 'filter', labelKey: 'settings.ai.feat.filter' },
+  { id: 'pr', labelKey: 'settings.ai.feat.pr' },
+  { id: 'issue', labelKey: 'settings.ai.feat.issue' },
+]
+
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
   { id: 'anthropic', label: 'Anthropic (Claude)', defaultModel: 'claude-haiku-4-5-20251001', color: '#d4a27f' },
   { id: 'google',    label: 'Google (Gemini)',    defaultModel: 'gemini-2.0-flash',           color: '#4285f4' },
@@ -261,6 +276,12 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
   // AI
   const [aiProvider, setAiProvider] = useState<AIProvider>('groq')
+  // Per-feature overrides (#70): a model within the active provider and the
+  // feature's own instructions, plus one block of instructions that rides
+  // every feature. Empty string = no override, and saving writes it as such.
+  const [aiGlobalInstr, setAiGlobalInstr] = useState('')
+  const [aiFeatModels, setAiFeatModels] = useState<Record<string, string>>({})
+  const [aiFeatInstr, setAiFeatInstr] = useState<Record<string, string>>({})
   const [aiKeys, setAiKeys] = useState<Record<AIProvider, string>>({ anthropic: '', google: '', groq: '', openai: '' })
   const [aiModels, setAiModels] = useState<Record<AIProvider, string>>({
     anthropic: 'claude-haiku-4-5-20251001',
@@ -338,6 +359,9 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
     }
     window.gitAPI.settingsGetAll().then((s: any) => {
       const provider: AIProvider = (s.aiProvider as AIProvider) ?? 'groq'
+      setAiGlobalInstr(s.aiGlobalInstructions ?? '')
+      setAiFeatModels(Object.fromEntries(AI_FEATURES.map(f => [f.id, s[`aiFeatureModel:${f.id}`] ?? ''])))
+      setAiFeatInstr(Object.fromEntries(AI_FEATURES.map(f => [f.id, s[`aiFeatureInstructions:${f.id}`] ?? ''])))
       const keys = {
         anthropic: s.aiAnthropicKey ?? '',
         google:    s.aiGoogleKey ?? '',
@@ -534,6 +558,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
     await window.gitAPI.settingsSet(`ai${cap}Key`, aiKeys[aiProvider])
     await window.gitAPI.settingsSet(`ai${cap}Model`, aiModels[aiProvider])
     if (aiProvider === 'groq') await window.gitAPI.settingsSet('groqApiKey', aiKeys.groq)
+    await window.gitAPI.settingsSet('aiGlobalInstructions', aiGlobalInstr)
+    for (const f of AI_FEATURES) {
+      await window.gitAPI.settingsSet(`aiFeatureModel:${f.id}`, aiFeatModels[f.id] ?? '')
+      await window.gitAPI.settingsSet(`aiFeatureInstructions:${f.id}`, aiFeatInstr[f.id] ?? '')
+    }
     showToast(t('toast.aiSaved'))
   }
 
@@ -1112,6 +1141,60 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     </ol>
                   </div>
                 )}
+
+                {/* ── Per-feature overrides (#70) ── */}
+                <label className="stg-field" style={{ marginTop: 16 }}>
+                  <span>{t('settings.ai.globalInstructions')}</span>
+                  <textarea
+                    className="stg-input stg-ai-instr"
+                    value={aiGlobalInstr}
+                    onChange={e => setAiGlobalInstr(e.target.value)}
+                    placeholder={t('settings.ai.globalInstructionsHint')}
+                    rows={2}
+                  />
+                </label>
+
+                <div className="stg-field" style={{ marginTop: 8 }}>
+                  <span>{t('settings.ai.perFeature')}</span>
+                  <p className="stg-desc">{t('settings.ai.perFeatureDesc')}</p>
+                  {AI_FEATURES.map(f => {
+                    const overridden = !!(aiFeatModels[f.id] || aiFeatInstr[f.id])
+                    return (
+                      <details key={f.id} className="stg-ai-feature">
+                        <summary>
+                          {t(f.labelKey as any)}
+                          {overridden && <span className="stg-ai-feature-mark">{t('settings.ai.overridden')}</span>}
+                        </summary>
+                        <div className="stg-ai-feature-body">
+                          {liveModels[aiProvider] ? (
+                            <select
+                              className="stg-input stg-mono"
+                              value={aiFeatModels[f.id] ?? ''}
+                              onChange={e => setAiFeatModels(m => ({ ...m, [f.id]: e.target.value }))}
+                            >
+                              <option value="">{t('settings.ai.defaultModel', aiModels[aiProvider])}</option>
+                              {liveModels[aiProvider]!.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                          ) : (
+                            <input
+                              className="stg-input stg-mono"
+                              value={aiFeatModels[f.id] ?? ''}
+                              onChange={e => setAiFeatModels(m => ({ ...m, [f.id]: e.target.value }))}
+                              placeholder={t('settings.ai.defaultModel', aiModels[aiProvider])}
+                            />
+                          )}
+                          <textarea
+                            className="stg-input stg-ai-instr"
+                            value={aiFeatInstr[f.id] ?? ''}
+                            onChange={e => setAiFeatInstr(m => ({ ...m, [f.id]: e.target.value }))}
+                            placeholder={t('settings.ai.instructionsHint')}
+                            rows={2}
+                          />
+                        </div>
+                      </details>
+                    )
+                  })}
+                </div>
 
                 <button className="stg-save" onClick={saveAI}>{t('settings.save')}</button>
               </div>
