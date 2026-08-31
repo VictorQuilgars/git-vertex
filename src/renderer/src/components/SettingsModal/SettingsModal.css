@@ -556,3 +556,29 @@
   border-radius: var(--radius-md); width: 28px; height: 28px; cursor: pointer; font-size: var(--text-md); line-height: 1;
 }
 .stg-autolink-del:hover { color: var(--danger); border-color: var(--danger); }
+
+/* ── Per-feature AI overrides (#70) ─────────────────────────── */
+/* One folded row per feature; open it and the two overrides are there. The
+   "customised" mark keeps a closed fold honest. */
+.stg-ai-instr { resize: vertical; font-family: inherit; line-height: 1.4; }
+.stg-ai-feature {
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+.stg-ai-feature summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  display: flex; align-items: center; gap: var(--space-sm);
+}
+.stg-ai-feature[open] summary { color: var(--text-primary); margin-bottom: var(--space-sm); }
+.stg-ai-feature-mark {
+  font-size: var(--text-tiny);
+  color: var(--ai-text);
+  border: 1px solid var(--ai-border);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-sm);
+}
+.stg-ai-feature-body { display: flex; flex-direction: column; gap: var(--space-sm); }

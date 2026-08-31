@@ -1558,7 +1558,15 @@ ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKe
 // Reads the configured provider/model/key from settings and runs one prompt
 // with the same 3-attempt retry loop for every AI feature (commit message,
 // recompose, explain, …). Returns { text } or { error }.
-async function runAIPrompt(prompt: string, maxTokens = 512): Promise<{ text?: string; error?: string }> {
+/**
+ * The features a model call can belong to (#70). A feature is what the
+ * settings page lets the user override — its model within the active
+ * provider, and its own instructions — so the id set here IS the settings
+ * vocabulary: `aiFeatureModel:<id>` and `aiFeatureInstructions:<id>`.
+ */
+export type AIFeature = 'commit' | 'explain' | 'conflict' | 'search' | 'filter' | 'pr' | 'issue'
+
+async function runAIPrompt(prompt: string, maxTokens = 512, feature?: AIFeature): Promise<{ text?: string; error?: string }> {
   const s = readSettings()
   const provider = s.aiProvider ?? 'groq'
   const keyMap: Record<string, string> = { anthropic: 'aiAnthropicKey', google: 'aiGoogleKey', groq: 'aiGroqKey', openai: 'aiOpenaiKey' }
@@ -1570,7 +1578,18 @@ async function runAIPrompt(prompt: string, maxTokens = 512): Promise<{ text?: st
   }
   // backward compat: groqApiKey was the old key
   const apiKey = s[keyMap[provider] ?? 'aiGroqKey'] ?? (provider === 'groq' ? s.groqApiKey : '') ?? ''
-  const model = modelMap[provider]
+  // A feature's own model wins over the provider's global one (#70) — within
+  // the active provider: the key entered is the provider's, so a per-feature
+  // provider would be a per-feature credential, which is a different feature.
+  const model = (feature && (s[`aiFeatureModel:${feature}`] ?? '').trim()) || modelMap[provider]
+  // The user's standing instructions ride every prompt — global first, the
+  // feature's own after, both AFTER the format rules so a wish cannot unsay
+  // a contract (and the checked outputs are still checked).
+  const extras = [s.aiGlobalInstructions, feature ? s[`aiFeatureInstructions:${feature}`] : '']
+    .map((x: string | undefined) => (x ?? '').trim()).filter(Boolean)
+  if (extras.length) {
+    prompt += `\n\nAdditional instructions from the user — follow them where they do not conflict with the rules above:\n${extras.join('\n')}`
+  }
   console.log(`[ai] provider=${provider} model=${model} hasKey=${!!apiKey}`)
   if (!apiKey) return { error: 'NO_API_KEY' }
 
@@ -1630,7 +1649,7 @@ ipcMain.handle('ai:generate-commit-message', async () => {
   if (!stagedDiff.trim()) { console.log('[ai] no staged diff'); return { error: 'No staged changes to analyze' } }
 
   const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${truncateDiff(stagedDiff)}\n\`\`\``
-  const r = await runAIPrompt(prompt)
+  const r = await runAIPrompt(prompt, 512, 'commit')
   return r.error ? { error: r.error } : { message: r.text }
 })
 
@@ -1682,7 +1701,7 @@ ipcMain.handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: 
     ``,
     `Request: ${described.trim()}`,
   ].join('\n')
-  const r = await runAIPrompt(prompt, AI_QUERY_TOKENS)
+  const r = await runAIPrompt(prompt, AI_QUERY_TOKENS, 'filter')
   if (r.error) return { error: r.error }
   // Models like to wrap an answer in prose or fences however firmly they are
   // told not to. The first non-empty line, stripped of them, is the query.
@@ -1761,7 +1780,7 @@ ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headNa
       '```',
     ].join('\n')
 
-    const r = await runAIPrompt(prompt, PR_DESCRIPTION_TOKENS)
+    const r = await runAIPrompt(prompt, PR_DESCRIPTION_TOKENS, 'pr')
     if (r.error) return { error: r.error }
     const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
     const at = lines.findIndex(l => l.trim())
@@ -1790,7 +1809,7 @@ ipcMain.handle('ai:generate-issue', async (_e, described: string) => {
     ``,
     `Note: ${described.trim()}`,
   ].join('\n')
-  const r = await runAIPrompt(prompt, AI_ISSUE_TOKENS)
+  const r = await runAIPrompt(prompt, AI_ISSUE_TOKENS, 'issue')
   if (r.error) return { error: r.error }
   const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
   const at = lines.findIndex(l => l.trim())
@@ -1815,7 +1834,7 @@ ipcMain.handle('ai:recompose-commit', async (_e, hash: string) => {
   if (!diff.trim()) return { error: 'This commit has no changes to analyze (merge commit?)' }
 
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
-  const r = await runAIPrompt(prompt)
+  const r = await runAIPrompt(prompt, 512, 'commit')
   return r.error ? { error: r.error } : { message: r.text }
 })
 
@@ -1850,7 +1869,7 @@ EXPLANATION: <1 to 3 sentences in English explaining which sides you chose and w
 
 File (${filepath}):
 ${content}`
-  const r = await runAIPrompt(prompt, 8192)
+  const r = await runAIPrompt(prompt, 8192, 'conflict')
   if (r.error) return { error: r.error }
   const raw = r.text ?? ''
   // Split explanation from file on the ===FILE=== marker; if the model
@@ -1888,7 +1907,7 @@ ipcMain.handle('ai:search-commits', async (_e, query: string) => {
 
   const today = new Date().toISOString().slice(0, 10)
   const prompt = `You are a Git history search engine. Today is ${today}. Below is a commit index, one commit per line: hash|author|date|subject.\n\nUser query (may be French or English, may reference dates, authors, file kinds, change intent): "${query.trim()}"\n\nReply with ONLY the hashes of matching commits, one per line, best matches first, at most 50. If nothing matches, reply with exactly NONE.\n\nIndex:\n${truncateDiff(index, 12000)}`
-  const r = await runAIPrompt(prompt, 1024)
+  const r = await runAIPrompt(prompt, 1024, 'search')
   if (r.error) return { error: r.error }
   const text = (r.text ?? '').trim()
   if (!text || text === 'NONE') return { hashes: [] }
@@ -1963,7 +1982,7 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guid
     ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
     : ''
   const prompt = `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files/behaviors change and why it was probably done. 3 to 6 sentences maximum, no bullet lists, no preamble.${guided}\n\nCommit message: ${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
-  const r = await runAIPrompt(prompt, 768)
+  const r = await runAIPrompt(prompt, 768, 'explain')
   if (r.error) return { error: r.error }
   if (!guidance?.trim()) saveExplanation(gitService.repoPath, hash, r.text ?? '')
   return { explanation: r.text }
