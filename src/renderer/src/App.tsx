@@ -1663,6 +1663,39 @@ export default function App() {
     setLoading(false)
   }
 
+  // Batch over the multi-selection (#69). Cherry-pick loops the existing
+  // single call, OLDEST first, and stops where git stops — the first
+  // conflict leaves the repo mid-pick and the conflict UI takes over, which
+  // is the honest outcome, reported as far-it-got. Drop is ONE call: a loop
+  // of drops would chase hashes its own first step rewrote.
+  const handleCherryPickMany = async (hashes: string[]) => {
+    setLoading(true)
+    let done = 0
+    for (const h of hashes) {
+      const r = await window.gitAPI.cherryPick(h)
+      if (!r.success) {
+        setLoading(false)
+        showToast(t('toast.cherryPickManyErr', done, hashes.length, r.error ?? ''), 'err')
+        await loadRepoData()
+        return
+      }
+      done++
+    }
+    setLoading(false)
+    showToast(t('toast.cherryPickManyOk', done))
+    await loadRepoData()
+  }
+
+  const handleDropCommits = async (hashes: string[]) => {
+    const ok = await showConfirm(t('prompt.dropCommits', hashes.length), true)
+    if (!ok) return
+    setLoading(true)
+    const r = await (window.gitAPI as any).dropCommits(hashes)
+    if (r?.success) { showToast(t('toast.commitsDropped', hashes.length), 'ok', undoAction()); setSelectedCommit(null); await loadRepoData() }
+    else showToast(t('toast.err', r?.error ?? ''), 'err')
+    setLoading(false)
+  }
+
   const handleRebaseCurrentOntoCommit = async (hash: string) => {
     await guardConflict(
       () => window.gitAPI.predictRebaseConflicts(hash),   // accurate per-commit replay
@@ -2716,6 +2749,8 @@ export default function App() {
                 })
               }}
               onDropCommit={handleDropCommit}
+              onCherryPickMany={handleCherryPickMany}
+              onDropCommits={handleDropCommits}
               onMoveCommit={handleMoveCommit}
               onBranchDrop={handleBranchDrop}
               onRebaseCurrentOntoCommit={handleRebaseCurrentOntoCommit}

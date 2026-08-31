@@ -896,6 +896,11 @@ ipcMain.handle('git:drop-commit', async (_event, hash: string) => {
   return gitService.dropCommit(hash)
 })
 
+ipcMain.handle('git:drop-commits', async (_event, hashes: string[]) => {
+  if (!gitService) return { success: false, error: 'No repo open' }
+  return gitService.dropCommits(hashes)
+})
+
 ipcMain.handle('git:move-commit', async (_event, hash: string, direction: 'up' | 'down') => {
   if (!gitService) return { success: false, error: 'No repo open' }
   return gitService.moveCommit(hash, direction)

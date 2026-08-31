@@ -89,6 +89,12 @@
 .cg-selected .cg-color-bar { opacity: 1 !important; }
 .cg-row:hover { background: color-mix(in srgb, var(--surface) var(--alpha-half), transparent); }
 .cg-selected  { background: var(--surface-selected) !important; }
+/* A row IN the multi-selection (#69) — quieter than THE selected row, since
+   the set is a working grip, not the panel's subject. After the stacked rules
+   in the cascade it must still win over the wash, hence the specificity. */
+.cg-row.cg-multisel:not(.cg-selected) {
+  background: color-mix(in srgb, var(--surface-selected) var(--alpha-strong), transparent);
+}
 /* Dimming applies only to the commit info columns (message, author, date, sha) —
    the branch/tag chips, color bar and graph nodes stay at full opacity.
    The transition on the base elements lets the opacity animate in both directions. */
@@ -167,19 +173,6 @@
   font-weight: var(--weight-medium);
 }
 
-/* This badge was a 🔏 emoji, and these were four filters bent around recolouring
-   it — grayscale to kill its own hue, then hue-rotate and sepia to force the
-   result somewhere near a state colour. It is an <Icon> now, inheriting
-   currentColor, so it takes the token directly and the filters would only wash
-   it out. */
-.cg-sig {
-  flex-shrink: 0;
-  margin-right: var(--space-xs);
-  line-height: 1;
-  color: var(--text-tertiary);
-}
-.cg-sig--bad  { color: var(--danger); }
-.cg-sig--warn { color: var(--attention); }
 
 .cg-msg-wip {
   color: var(--text-tertiary);

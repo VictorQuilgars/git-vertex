@@ -468,6 +468,31 @@ function VertexApp() {
     await runOp(t('ext.app.commitDeleted'), () => window.gitAPI.dropCommit(hash), true)
   }, [runOp])
 
+  // Batch over the multi-selection (#69) — the desktop's twins. Cherry-pick
+  // loops oldest-first and stops where git stops; drop is ONE rebase, since
+  // a loop of drops would chase hashes its own first step rewrote.
+  const handleCherryPickMany = useCallback(async (hashes: string[]) => {
+    let done = 0
+    for (const h of hashes) {
+      const r = await window.gitAPI.cherryPick(h)
+      if (!r?.success) {
+        showToast(t('toast.cherryPickManyErr', done, hashes.length, r?.error ?? ''), 'err')
+        await loadRepoData()
+        return
+      }
+      done++
+    }
+    showToast(t('toast.cherryPickManyOk', done))
+    await loadRepoData()
+  }, [showToast, loadRepoData])
+
+  const handleDropCommits = useCallback(async (hashes: string[]) => {
+    const ok = await window.gitAPI.uiConfirm(t('prompt.dropCommits', hashes.length))
+    if (!ok) return
+    setSelectedCommit(null)
+    await runOp(t('toast.commitsDropped', hashes.length), () => (window.gitAPI as any).dropCommits(hashes), true)
+  }, [runOp])
+
   const handleMoveCommit = useCallback((hash: string, direction: 'up' | 'down') =>
     runOp(t('ext.app.commitMoved'), () => window.gitAPI.moveCommit(hash, direction), true), [runOp])
 
@@ -1262,6 +1287,8 @@ function VertexApp() {
             onCheckoutCommit={handleCheckout}
             onRewordCommit={handleRewordCommit}
             onDropCommit={handleDropCommit}
+            onCherryPickMany={handleCherryPickMany}
+            onDropCommits={handleDropCommits}
             onMoveCommit={handleMoveCommit}
             onBranchDrop={handleBranchDrop}
             onMergeBranch={handleMergeBranch}
