@@ -189,13 +189,6 @@
 .stg-input::placeholder { color: var(--text-disabled); }
 .stg-input.stg-mono { font-family: 'JetBrains Mono', monospace; font-size: var(--text-sm); }
 
-.stg-input-row {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: center;
-}
-.stg-input-row .stg-input { flex: 1; }
-
 .stg-eye {
   background: var(--surface-sunken);
   border: 1px solid var(--border-default);
@@ -249,32 +242,7 @@
 .stg-provider-name { font-size: var(--text-base); font-weight: var(--weight-medium); }
 .stg-provider-model { font-size: var(--text-xs); opacity: 0.7; font-family: 'JetBrains Mono', monospace; }
 
-/* ── Tutorial ────────────────────────────────────────────────── */
-.stg-tuto-toggle {
-  background: transparent;
-  border: none;
-  color: var(--accent);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  padding: 0;
-  text-align: left;
-}
-.stg-tuto-toggle:hover { text-decoration: underline; }
-
-.stg-tuto {
-  background: var(--bg-canvas);
-  border: 1px solid var(--border-muted);
-  border-radius: var(--radius-md);
-  padding: var(--space-xl) var(--space-xl);
-}
-
-.stg-tuto-title {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  color: var(--text-secondary);
-  margin: 0 0 var(--space-md);
-}
-
+/* ── Key tutorial steps — a sub-row of the provider they belong to ── */
 .stg-tuto-steps {
   margin: 0;
   padding-left: var(--space-2xl);
@@ -557,57 +525,135 @@
 }
 .stg-autolink-del:hover { color: var(--danger); border-color: var(--danger); }
 
-/* ── Per-feature AI overrides (#70) ─────────────────────────── */
-/* The reference's shape, given the room the wide layout buys: every feature
-   is a ruled SECTION — a heading, the model it will use named as a sentence,
-   suggestion chips that write the fragment for you, and an instructions
-   field wide enough to think in. Folds asked the user to dig for what this
-   page exists to show. */
-.stg-ai-instr {
-  resize: vertical; font-family: inherit; line-height: 1.4;
-  width: 100%; max-width: 820px; min-height: 72px;
-}
-/* Rules between AI sections take a tone of their own — the controls' borders
+/* ── AI Assistant (#70, #169) ───────────────────────────────── */
+/* Three tiers in one column. The providers as a LIST — catalog and customs
+   alike, a row each, the connected ones wearing their brand colour — then
+   the defaults and every feature as the SAME two-column block: the model on
+   the left, the instructions on the right. Folds asked the user to dig for
+   what this page exists to show; the two columns are what lets it all stay
+   in the open without being a wall of empty fields. */
+.stg-ai { container-type: inline-size; }
+/* Rules between AI blocks take a tone of their own — the controls' borders
    already own --border-muted/-default, and a rule that matches a fieldbox
    edge separates nothing (Victor's call). */
-.stg-ai-rule-color { /* documentation anchor — the mix below is the rule */ }
-.stg-ai-providers {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: var(--space-lg);
-  max-width: 980px;
-}
-.stg-ai-provider {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  display: flex; flex-direction: column; gap: var(--space-sm);
-}
-.stg-ai-provider-head { display: flex; align-items: center; justify-content: space-between; }
-.stg-ai-provider-name { font-weight: var(--weight-semibold); }
-.stg-ai-provider-status {
-  font-size: var(--text-tiny);
-  color: var(--text-tertiary);
-  background: var(--surface-sunken);
-  border-radius: var(--radius-lg);
-  padding: var(--space-px) var(--space-sm);
-}
-.stg-ai-provider-status--on { color: var(--success); }
-.stg-ai-warn { color: var(--attention); font-size: var(--text-xs); }
-.stg-ai-dim { opacity: var(--alpha-half); pointer-events: none; }
 .stg-ai-block {
   border-top: 1px solid color-mix(in srgb, var(--text-tertiary) 35%, transparent);
-  margin-top: var(--space-2xl);
+  margin-top: var(--space-md);
   padding-top: var(--space-xl);
   display: flex; flex-direction: column; gap: var(--space-md);
 }
+.stg-ai-block--first { border-top: none; margin-top: 0; padding-top: 0; }
+.stg-ai-block-head { display: flex; align-items: center; gap: var(--space-md); }
 .stg-ai-h {
   margin: 0;
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
   color: var(--text-primary);
 }
-.stg-ai-model { max-width: 480px; }
+.stg-ai-count { font-size: var(--text-xs); color: var(--success); }
+/* The temperament line sits tight under its heading — guidance, not prose —
+   and takes the column's measure, not the prose one: it is one sentence, and
+   a break in the middle of it is a line per feature for nothing. */
+.stg-ai-temper { margin-top: calc(-1 * var(--space-xs)); }
+.stg-content--wide .stg-ai-temper { max-width: 980px; }
+/* The feature's preference, worn in the model badges' own colours so the two
+   READ against each other: a green "fast model" tag beside an iris
+   "reasoning" badge is the mismatch, visible where the choice is made. */
+.stg-temper { text-transform: none; }
+.stg-ai-warn { color: var(--attention); font-size: var(--text-xs); }
+.stg-ai-dim { opacity: var(--alpha-half); pointer-events: none; }
+
+/* ── The providers list ── */
+.stg-ai-list {
+  display: flex; flex-direction: column;
+  max-width: 980px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.stg-ai-row {
+  display: grid;
+  grid-template-columns: 190px minmax(160px, 1fr) minmax(150px, auto);
+  grid-template-areas: "id input status";
+  align-items: center;
+  column-gap: var(--space-xl); row-gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--border-muted);
+}
+.stg-ai-row:last-child { border-bottom: none; }
+.stg-ai-row .stg-input { padding: var(--space-sm) var(--space-md); }
+.stg-ai-row-id { grid-area: id; display: flex; align-items: center; gap: var(--space-md); min-width: 0; }
+.stg-ai-row-input { grid-area: input; display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
+.stg-ai-row-input .stg-input { flex: 1; min-width: 0; }
+.stg-ai-row-status { grid-area: status; display: flex; align-items: center; justify-content: flex-end; gap: var(--space-md); }
+/* Placed by column rather than named in the areas: an empty named row would
+   still take its row-gap on every line that has nothing to say. */
+.stg-ai-row-sub { grid-column: 1 / -1; grid-row: 2; display: flex; flex-direction: column; gap: var(--space-sm); }
+/* The dot is the brand once the provider answered, hollow until then. */
+.stg-ai-dot {
+  width: 8px; height: 8px; flex-shrink: 0; box-sizing: border-box;
+  border-radius: var(--radius-circle);
+  border: 1.5px solid var(--border-strong);
+}
+.stg-ai-row--on .stg-ai-dot { border-color: transparent; }
+/* A custom has no brand: connected, it wears the AI ink — it is the model
+   the user brought. */
+.stg-ai-row--custom.stg-ai-row--on .stg-ai-dot { background: var(--ai-text); }
+.stg-ai-row--custom.stg-ai-row--on .stg-ai-custom-name { color: var(--ai-text); }
+.stg-ai-provider-name {
+  font-weight: var(--weight-semibold);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.stg-ai-status {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.stg-ai-status--on { color: var(--success); }
+.stg-ai-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent); font-size: var(--text-xs); white-space: nowrap;
+}
+.stg-ai-link:hover { text-decoration: underline; }
+.stg-ai-row-del {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+}
+.stg-ai-row-del:hover { color: var(--danger); border-color: var(--danger); }
+.stg-eye { display: flex; align-items: center; color: var(--text-secondary); }
+/* The key tutorial, as a sub-row of the provider it belongs to. The steps
+   carry their own numbers; the list must not count them a second time. */
+.stg-ai-row-sub .stg-tuto-steps { list-style: none; padding-left: var(--space-3xl); }
+
+/* Custom endpoints (#169): the name is editable — it is the user's own entry
+   — and reads like the catalog names beside it, not like a form field. */
+.stg-ai-custom-name {
+  flex: 1; min-width: 0;
+  font-weight: var(--weight-semibold);
+  background: transparent;
+  border-color: transparent;
+}
+/* Pulled back by its own padding so the name sits on the catalog names' line. */
+.stg-ai-row .stg-ai-custom-name { padding: var(--space-2xs) var(--space-sm); margin-left: calc(-1 * var(--space-sm)); }
+.stg-ai-custom-name:hover, .stg-ai-custom-name:focus { border-color: var(--border-default); }
+.stg-ai-row-input .stg-ai-custom-url { flex: 3; }
+.stg-ai-row-input .stg-ai-custom-key { flex: 2; }
+/* Auth quirks (#169 P2) — behind a fold because two gateways in a hundred
+   need them; the trailing dot on the summary says the fold is not empty. */
+.stg-ai-quirks summary { cursor: pointer; color: var(--text-tertiary); font-size: var(--text-xs); }
+.stg-ai-quirks[open] { display: flex; flex-direction: column; gap: var(--space-sm); }
+.stg-ai-quirks[open] summary { color: var(--text-secondary); }
+/* The add row closes the list: the local story in a line, and the presets. */
+.stg-ai-row--add {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--space-sm) var(--space-xl);
+  background: var(--surface-sunken);
+}
+.stg-ai-add-hint { font-size: var(--text-xs); color: var(--text-tertiary); }
+
 /* The model picker — ours, because an <option> cannot wear a badge and the
    characteristics exist to be SEEN. Same closing contract as the composer's
    pickers: focus leaves, it closes. */
@@ -666,9 +712,19 @@
 .stg-kind--reasoning { color: var(--ai-text); border-color: var(--ai-border); background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
 .stg-kind--fast { color: var(--success); border-color: color-mix(in srgb, var(--success) var(--alpha-half), transparent); background: color-mix(in srgb, var(--success) var(--alpha-faint), transparent); }
 
-/* The temperament line sits tight under its heading — guidance, not prose. */
-.stg-ai-temper { margin-top: calc(-1 * var(--space-xs)); }
-.stg-ai-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); max-width: 820px; }
+/* ── The tuning pair ── */
+.stg-ai-tuning {
+  display: grid;
+  grid-template-columns: minmax(260px, 2fr) minmax(300px, 3fr);
+  gap: var(--space-md) var(--space-4xl);
+  align-items: start;
+  max-width: 980px;
+}
+.stg-ai-instr {
+  resize: vertical; font-family: inherit; line-height: 1.4;
+  width: 100%; min-height: 56px;
+}
+.stg-ai-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
 /* A chip writes its fragment into the field below — and once the text holds
    it, the chip stands down: an offer already taken is not an offer. */
 .stg-ai-chip {
@@ -682,21 +738,29 @@
 }
 .stg-ai-chip:hover { border-color: var(--accent); color: var(--accent); }
 
-/* ── Custom endpoints (#169) ─────────────────────────────────── */
-/* The card's name is editable — it is the user's own entry — and reads like
-   the catalog names beside it, not like a form field. */
-.stg-ai-custom-name {
-  flex: 1;
-  min-width: 0;
-  font-weight: var(--weight-semibold);
-  background: transparent;
-  border-color: transparent;
-  padding: var(--space-2xs) var(--space-sm);
+/* ── The save bar ── */
+/* Sticky to the bottom of the scroll, bled across the content padding so it
+   reads as the page's edge rather than a box in the flow. */
+.stg-ai-savebar {
+  position: sticky; bottom: 0; z-index: var(--z-sticky);
+  margin: var(--space-md) calc(-1 * var(--space-5xl)) 0;
+  padding: var(--space-md) var(--space-5xl);
+  background: var(--bg-canvas);
+  border-top: 1px solid var(--border-muted);
 }
-.stg-ai-custom-name:hover, .stg-ai-custom-name:focus { border-color: var(--border-default); }
+.stg-ai-savebar-inner {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-xl);
+  max-width: 980px;
+}
+.stg-ai-savebar .stg-save { margin-top: 0; }
+.stg-ai-savebar-note { font-size: var(--text-sm); color: var(--attention); }
+.stg-save:disabled { opacity: var(--alpha-half); cursor: default; }
+.stg-save:disabled:hover { background: var(--accent-strong); }
 
-/* Auth quirks (#169 P2) — behind a fold because two gateways in a hundred
-   need them; the trailing dot on the summary says the fold is not empty. */
-.stg-ai-quirks summary { cursor: pointer; color: var(--text-tertiary); font-size: var(--text-xs); }
-.stg-ai-quirks[open] { display: flex; flex-direction: column; gap: var(--space-sm); }
-.stg-ai-quirks[open] summary { color: var(--text-secondary); }
+/* Narrow hosts — the VS Code panel: a row folds to two lines, the pair to
+   one column. */
+@container (max-width: 680px) {
+  .stg-ai-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "id status" "input input"; }
+  .stg-ai-row-sub { grid-row: 3; }
+  .stg-ai-tuning { grid-template-columns: minmax(0, 1fr); }
+}

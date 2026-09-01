@@ -14,7 +14,10 @@
 export type ModelKind = 'reasoning' | 'fast'
 
 const REASONING = /gpt-oss|(^|[^a-z0-9])o[134](-|$)|deepseek-r|qwq|thinking|reason/i
-const FAST = /haiku|flash|mini|instant|nano|-[1-9]b\b|small/i
+// `mini` only at a word start: `gpt-4o-mini`, `o3-mini`, `phi-3-mini` — not the
+// one inside `gemini`, which had every Gemini wearing the fast badge, the
+// 2.5 Pro included.
+const FAST = /haiku|flash|(^|[^a-z])mini|instant|nano|-[1-9]b\b|small/i
 
 export function modelKind(id: string): ModelKind | undefined {
   // Reasoning wins the tie: `o3-mini` thinks first however small it is.
