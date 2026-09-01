@@ -354,16 +354,25 @@ describe('SettingsModal — per-feature AI overrides', () => {
     return mock
   }
 
-  test('every feature has its fold, and an override marks it while folded', async () => {
-    await open({ settingsGetAll: jest.fn().mockResolvedValue({
-      'aiFeatureInstructions:filter': 'prefer label: over labels:',
-    }) })
+  test('every feature is a section, in the open', async () => {
+    await open()
     for (const label of ['Commit messages', 'Explain a commit', 'Conflict resolution',
       'Commit search', 'Filter queries', 'Pull request descriptions', 'Issue drafting']) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
-    // the folded row does not hide that something is set inside it
-    expect(screen.getByText('Filter queries').closest('summary')!.textContent).toContain('customised')
+    // and every one names the model it will fall back to
+    expect(screen.getAllByText(/The model used for/).length).toBe(7)
+  })
+
+  test('a chip writes its fragment, then stands down', async () => {
+    await open()
+    await userEvent.click(screen.getByRole('button', { name: 'Focus on the why' }))
+    const explain = screen.getAllByPlaceholderText('Instructions for this feature only…')[1]
+    expect(explain).toHaveValue('Focus on the why')
+    // an offer already taken is not an offer
+    expect(screen.queryByRole('button', { name: 'Focus on the why' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Call out risky changes' }))
+    expect(explain).toHaveValue('Focus on the why\nCall out risky changes')
   })
 
   test('saving writes the standing block and every feature key', async () => {

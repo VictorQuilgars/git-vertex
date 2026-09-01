@@ -5,7 +5,7 @@ export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
 ### 🎛 A model and instructions per AI feature
-- Settings › AI: **standing instructions** that ride every feature, and **one fold per feature** — its own model (within the active provider) and its own instructions.
+- Settings › AI goes wide: **a section per feature** — its model named as a sentence, **suggestion chips** that write the fragment for you, a roomy instructions field — under a **standing instructions** block that rides everything.
 - Instructions land AFTER each prompt's rules; checked outputs stay checked. Empty = the global setting, and a folded override says *customised*.
 
 ### 🤏 Hold several commits at once
