@@ -137,15 +137,31 @@ const THEME_PRESETS: { id: ThemeId; key?: string; name?: string }[] = [
  * the extension host read (`aiFeatureModel:<id>` / `aiFeatureInstructions:<id>`).
  * One list here, because this page is what writes those keys.
  */
-const AI_FEATURES: { id: string; labelKey: string }[] = [
-  { id: 'commit', labelKey: 'settings.ai.feat.commit' },
-  { id: 'explain', labelKey: 'settings.ai.feat.explain' },
-  { id: 'conflict', labelKey: 'settings.ai.feat.conflict' },
-  { id: 'search', labelKey: 'settings.ai.feat.search' },
-  { id: 'filter', labelKey: 'settings.ai.feat.filter' },
-  { id: 'pr', labelKey: 'settings.ai.feat.pr' },
-  { id: 'issue', labelKey: 'settings.ai.feat.issue' },
+const AI_FEATURES: { id: string; labelKey: string; chips: string[] }[] = [
+  { id: 'commit', labelKey: 'settings.ai.feat.commit', chips: [
+    'Subject under 50 characters', 'Reference the issue number', 'No body — subject only', 'Explain the why in the body'] },
+  { id: 'explain', labelKey: 'settings.ai.feat.explain', chips: [
+    'Focus on the why', 'Call out risky changes', 'Three sentences at most'] },
+  { id: 'conflict', labelKey: 'settings.ai.feat.conflict', chips: [
+    'Explain each resolution briefly', 'When both sides are equivalent, prefer the incoming change'] },
+  { id: 'search', labelKey: 'settings.ai.feat.search', chips: [
+    'Match loosely', 'Prefer recent commits'] },
+  { id: 'filter', labelKey: 'settings.ai.feat.filter', chips: [
+    'Prefer label: over free text', 'Scope to open items unless asked'] },
+  { id: 'pr', labelKey: 'settings.ai.feat.pr', chips: [
+    'Start with a one-line summary', 'Bullet the notable changes', 'Mention breaking changes first'] },
+  { id: 'issue', labelKey: 'settings.ai.feat.issue', chips: [
+    'Add acceptance criteria', 'Title under 60 characters', 'No invented reproduction steps'] },
 ]
+
+/** The fragments offered for every feature at once. */
+const AI_GLOBAL_CHIPS = [
+  'Keep it concise', 'Plain tone, no hype', 'Use the imperative mood', 'Prefer short sentences',
+]
+
+/** Append a fragment to an instructions field, once. */
+const appendChip = (value: string, chip: string): string =>
+  value.trim() ? `${value.trimEnd()}\n${chip}` : chip
 
 const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
   { id: 'anthropic', label: 'Anthropic (Claude)', defaultModel: 'claude-haiku-4-5-20251001', color: '#d4a27f' },
@@ -602,7 +618,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
               600px reading measure is right for prose and inputs and wrong for
               a grid of theme tiles — it left two thirds of the window empty
               and made the tiles smaller than they need to be. */}
-          <div className={`stg-content ${section === 'appearance' ? 'stg-content--wide' : ''}`}>
+          <div className={`stg-content ${section === 'appearance' || section === 'ai' ? 'stg-content--wide' : ''}`}>
 
             {/* ── Git ── */}
             {section === 'git' && (
@@ -1142,59 +1158,69 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                   </div>
                 )}
 
-                {/* ── Per-feature overrides (#70) ── */}
-                <label className="stg-field" style={{ marginTop: 16 }}>
-                  <span>{t('settings.ai.globalInstructions')}</span>
+                {/* ── Per-feature overrides (#70) — the reference's shape:
+                    every feature is a SECTION with the room it deserves, a
+                    named model, and suggestion chips that write the fragment
+                    for you. A chip already in the text stands used. */}
+                <div className="stg-ai-block">
+                  <h3 className="stg-ai-h">{t('settings.ai.globalInstructions')}</h3>
+                  <p className="stg-desc">{t('settings.ai.globalInstructionsDesc')}</p>
+                  <div className="stg-ai-chips">
+                    {AI_GLOBAL_CHIPS.filter(c => !aiGlobalInstr.includes(c)).map(c => (
+                      <button key={c} type="button" className="stg-ai-chip" aria-label={c}
+                        onClick={() => setAiGlobalInstr(v => appendChip(v, c))}>{c}</button>
+                    ))}
+                  </div>
                   <textarea
                     className="stg-input stg-ai-instr"
                     value={aiGlobalInstr}
                     onChange={e => setAiGlobalInstr(e.target.value)}
                     placeholder={t('settings.ai.globalInstructionsHint')}
-                    rows={2}
+                    rows={3}
                   />
-                </label>
-
-                <div className="stg-field" style={{ marginTop: 8 }}>
-                  <span>{t('settings.ai.perFeature')}</span>
-                  <p className="stg-desc">{t('settings.ai.perFeatureDesc')}</p>
-                  {AI_FEATURES.map(f => {
-                    const overridden = !!(aiFeatModels[f.id] || aiFeatInstr[f.id])
-                    return (
-                      <details key={f.id} className="stg-ai-feature">
-                        <summary>
-                          {t(f.labelKey as any)}
-                          {overridden && <span className="stg-ai-feature-mark">{t('settings.ai.overridden')}</span>}
-                        </summary>
-                        <div className="stg-ai-feature-body">
-                          {liveModels[aiProvider] ? (
-                            <select
-                              className="stg-input stg-mono"
-                              value={aiFeatModels[f.id] ?? ''}
-                              onChange={e => setAiFeatModels(m => ({ ...m, [f.id]: e.target.value }))}
-                            >
-                              <option value="">{t('settings.ai.defaultModel', aiModels[aiProvider])}</option>
-                              {liveModels[aiProvider]!.map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
-                          ) : (
-                            <input
-                              className="stg-input stg-mono"
-                              value={aiFeatModels[f.id] ?? ''}
-                              onChange={e => setAiFeatModels(m => ({ ...m, [f.id]: e.target.value }))}
-                              placeholder={t('settings.ai.defaultModel', aiModels[aiProvider])}
-                            />
-                          )}
-                          <textarea
-                            className="stg-input stg-ai-instr"
-                            value={aiFeatInstr[f.id] ?? ''}
-                            onChange={e => setAiFeatInstr(m => ({ ...m, [f.id]: e.target.value }))}
-                            placeholder={t('settings.ai.instructionsHint')}
-                            rows={2}
-                          />
-                        </div>
-                      </details>
-                    )
-                  })}
                 </div>
+
+                {AI_FEATURES.map(f => (
+                  <div key={f.id} className="stg-ai-block">
+                    <h3 className="stg-ai-h">{t(f.labelKey as any)}</h3>
+                    <label className="stg-field stg-ai-model">
+                      <span>{t('settings.ai.featureModel', t(f.labelKey as any).toLowerCase())}</span>
+                      {liveModels[aiProvider] ? (
+                        <select
+                          className="stg-input stg-mono"
+                          value={aiFeatModels[f.id] ?? ''}
+                          onChange={e => setAiFeatModels(m => ({ ...m, [f.id]: e.target.value }))}
+                        >
+                          <option value="">{t('settings.ai.defaultModel', aiModels[aiProvider])}</option>
+                          {liveModels[aiProvider]!.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          className="stg-input stg-mono"
+                          value={aiFeatModels[f.id] ?? ''}
+                          onChange={e => setAiFeatModels(m => ({ ...m, [f.id]: e.target.value }))}
+                          placeholder={t('settings.ai.defaultModel', aiModels[aiProvider])}
+                        />
+                      )}
+                    </label>
+                    <label className="stg-field">
+                      <span>{t('settings.ai.customInstructions')}</span>
+                      <div className="stg-ai-chips">
+                        {f.chips.filter(c => !(aiFeatInstr[f.id] ?? '').includes(c)).map(c => (
+                          <button key={c} type="button" className="stg-ai-chip" aria-label={c}
+                            onClick={() => setAiFeatInstr(m => ({ ...m, [f.id]: appendChip(m[f.id] ?? '', c) }))}>{c}</button>
+                        ))}
+                      </div>
+                      <textarea
+                        className="stg-input stg-ai-instr"
+                        value={aiFeatInstr[f.id] ?? ''}
+                        onChange={e => setAiFeatInstr(m => ({ ...m, [f.id]: e.target.value }))}
+                        placeholder={t('settings.ai.instructionsHint')}
+                        rows={3}
+                      />
+                    </label>
+                  </div>
+                ))}
 
                 <button className="stg-save" onClick={saveAI}>{t('settings.save')}</button>
               </div>
