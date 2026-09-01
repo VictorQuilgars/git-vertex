@@ -20,6 +20,13 @@ import { callProvider } from '../src/main/ai-call'
 
 const FEATURES: AIFeature[] = ['commit', 'explain', 'conflict', 'search', 'filter', 'pr', 'issue']
 
+// NOT small, however short the wanted answer is — the lesson AI_QUERY_TOKENS
+// already carries in src/main/index.ts: a REASONING model (gpt-oss-120b and
+// kin) spends its budget thinking before it emits anything, and at 16 the
+// reply came back empty with finish_reason: length. You pay for what is
+// used; a ceiling only buys room.
+const BUDGET = 1024
+
 function settingsPath(): string {
   if (process.env.GV_SETTINGS_PATH) return process.env.GV_SETTINGS_PATH
   const home = os.homedir()
@@ -70,9 +77,12 @@ describe('the configuration, exercised (paid)', () => {
     for (const t of targets.values()) {
       const reply = await callProvider(
         t.provider, t.apiKey, t.model,
-        'Reply with exactly the word OK and nothing else.', 16)
+        'Reply with exactly the word OK and nothing else.', BUDGET)
       // eslint-disable-next-line no-console
       console.log(`  ${t.provider} / ${t.model}  [${t.features.join(', ')}] → "${reply.slice(0, 40)}"`)
+      if (!reply) {
+        throw new Error(`${t.provider}/${t.model} answered with empty content — with ${BUDGET} tokens of budget that usually means the model id is wrong for this provider, not a starved reasoning phase.`)
+      }
       expect(reply.length).toBeGreaterThan(0)
     }
   }, 120000)
@@ -83,7 +93,7 @@ describe('the configuration, exercised (paid)', () => {
     const prompt = appendInstructions('Say hello in one short sentence.', {
       ...s, aiGlobalInstructions: [s.aiGlobalInstructions, sentinel].filter(Boolean).join('\n'),
     })
-    const reply = await callProvider(r.provider, r.apiKey, r.model, prompt, 64)
+    const reply = await callProvider(r.provider, r.apiKey, r.model, prompt, BUDGET)
     // eslint-disable-next-line no-console
     console.log(`  global instructions → "${reply.slice(0, 80)}"`)
     expect(reply.toUpperCase()).toContain('PAMPLEMOUSSE')
@@ -97,7 +107,7 @@ describe('the configuration, exercised (paid)', () => {
     const without = appendInstructions('Say hello in one short sentence.', s2, 'search')
     expect(withIt).toContain('CITRON')
     expect(without).not.toContain('CITRON')
-    const reply = await callProvider(r.provider, r.apiKey, r.model, withIt, 64)
+    const reply = await callProvider(r.provider, r.apiKey, r.model, withIt, BUDGET)
     // eslint-disable-next-line no-console
     console.log(`  explain instructions → "${reply.slice(0, 80)}"`)
     expect(reply.toUpperCase()).toContain('CITRON')
