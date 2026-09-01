@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Icon } from '../Icon/Icon'
 import { Brand } from '../BrandMark/BrandMark'
 import './SettingsModal.css'
+import { modelKind } from '../../utils/aiModelKind'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
 import {
   useSettings, isVSCodeHost, setInstalledThemes, followsEditor,
@@ -137,20 +138,29 @@ const THEME_PRESETS: { id: ThemeId; key?: string; name?: string }[] = [
  * the extension host read (`aiFeatureModel:<id>` / `aiFeatureInstructions:<id>`).
  * One list here, because this page is what writes those keys.
  */
-const AI_FEATURES: { id: string; labelKey: string; chips: string[] }[] = [
-  { id: 'commit', labelKey: 'settings.ai.feat.commit', chips: [
+/**
+ * The temperament a feature rewards. 'fast' answers in a line and runs often
+ * — a reasoning model spends its budget thinking before that line; 'thorough'
+ * reads a lot and writes structure — thinking earns its cost there. The hint
+ * under each heading says it, and the Suggested group in the select points
+ * at live models that match.
+ */
+type AITemperament = 'fast' | 'balanced' | 'thorough'
+
+const AI_FEATURES: { id: string; labelKey: string; kind: AITemperament; chips: string[] }[] = [
+  { id: 'commit', kind: 'fast', labelKey: 'settings.ai.feat.commit', chips: [
     'Subject under 50 characters', 'Reference the issue number', 'No body — subject only', 'Explain the why in the body'] },
-  { id: 'explain', labelKey: 'settings.ai.feat.explain', chips: [
+  { id: 'explain', kind: 'thorough', labelKey: 'settings.ai.feat.explain', chips: [
     'Focus on the why', 'Call out risky changes', 'Three sentences at most'] },
-  { id: 'conflict', labelKey: 'settings.ai.feat.conflict', chips: [
+  { id: 'conflict', kind: 'thorough', labelKey: 'settings.ai.feat.conflict', chips: [
     'Explain each resolution briefly', 'When both sides are equivalent, prefer the incoming change'] },
-  { id: 'search', labelKey: 'settings.ai.feat.search', chips: [
+  { id: 'search', kind: 'fast', labelKey: 'settings.ai.feat.search', chips: [
     'Match loosely', 'Prefer recent commits'] },
-  { id: 'filter', labelKey: 'settings.ai.feat.filter', chips: [
+  { id: 'filter', kind: 'fast', labelKey: 'settings.ai.feat.filter', chips: [
     'Prefer label: over free text', 'Scope to open items unless asked'] },
-  { id: 'pr', labelKey: 'settings.ai.feat.pr', chips: [
+  { id: 'pr', kind: 'thorough', labelKey: 'settings.ai.feat.pr', chips: [
     'Start with a one-line summary', 'Bullet the notable changes', 'Mention breaking changes first'] },
-  { id: 'issue', labelKey: 'settings.ai.feat.issue', chips: [
+  { id: 'issue', kind: 'balanced', labelKey: 'settings.ai.feat.issue', chips: [
     'Add acceptance criteria', 'Title under 60 characters', 'No invented reproduction steps'] },
 ]
 
@@ -162,18 +172,31 @@ interface AIPair { provider: AIProvider; model: string }
  * exists for. A pair whose provider lost its key still shows (orphaned, so
  * the user sees what will stop working); the caller draws the warning.
  */
-function ModelSelect({ value, onChange, defaultLabel, keys, liveModels }: {
+function ModelSelect({ value, onChange, defaultLabel, keys, liveModels, suggest, suggestLabel }: {
   value: AIPair | null
   onChange: (v: AIPair | null) => void
   /** Present ⇒ an empty choice is offered, reading as the default it falls to. */
   defaultLabel?: string
   keys: Record<AIProvider, string>
   liveModels: Record<AIProvider, string[] | null>
+  /** The kind of model this caller rewards — heads the list with live
+   *  matches. A suggestion, never a gate; absent for balanced features. */
+  suggest?: 'reasoning' | 'fast'
+  suggestLabel?: string
 }) {
   const connected = AI_PROVIDERS.filter(p => keys[p.id]?.trim())
   const orphan = value && !keys[value.provider]?.trim()
     ? AI_PROVIDERS.find(p => p.id === value.provider) : null
   const enc = value ? `${value.provider}:${value.model}` : ''
+  // The id says what it can — reasoning models think before a one-liner,
+  // fast ones do not — and the label carries it so a pick is informed.
+  const tag = (m: string) => { const k = modelKind(m); return k ? `${m} · ${k}` : m }
+  const suggested = suggest
+    ? connected.flatMap(p => (liveModels[p.id] ?? [])
+        .filter(m => modelKind(m) === suggest)
+        .map(m => ({ p: p.id as AIProvider, m })))
+      .slice(0, 6)
+    : []
   return (
     <select className="stg-input stg-mono" value={enc}
       onChange={e => {
@@ -183,9 +206,14 @@ function ModelSelect({ value, onChange, defaultLabel, keys, liveModels }: {
         onChange({ provider: v.slice(0, i) as AIProvider, model: v.slice(i + 1) })
       }}>
       {defaultLabel !== undefined && <option value="">{defaultLabel}</option>}
+      {suggested.length > 0 && (
+        <optgroup label={suggestLabel ?? ''}>
+          {suggested.map(({ p, m }) => <option key={`s-${p}-${m}`} value={`${p}:${m}`}>{tag(m)}</option>)}
+        </optgroup>
+      )}
       {connected.map(p => (
         <optgroup key={p.id} label={p.label}>
-          {(liveModels[p.id] ?? []).map(m => <option key={m} value={`${p.id}:${m}`}>{m}</option>)}
+          {(liveModels[p.id] ?? []).map(m => <option key={m} value={`${p.id}:${m}`}>{tag(m)}</option>)}
           {value?.provider === p.id && !(liveModels[p.id] ?? []).includes(value.model) && (
             <option value={`${p.id}:${value.model}`}>{value.model}</option>
           )}
@@ -1212,12 +1240,15 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       {AI_FEATURES.map(f => (
                         <div key={f.id} className="stg-ai-block">
                           <h3 className="stg-ai-h">{t(f.labelKey as any)}</h3>
+                          <p className="stg-desc stg-ai-temper">{t(`settings.ai.temper.${f.kind}` as any)}</p>
                           <label className="stg-field stg-ai-model">
                             <span>{t('settings.ai.featureModel', t(f.labelKey as any).toLowerCase())}</span>
                             <ModelSelect
                               value={aiFeatSel[f.id] ?? null}
                               onChange={v => setAiFeatSel(m => ({ ...m, [f.id]: v }))}
                               defaultLabel={t('settings.ai.defaultModel', aiDefault.model)}
+                              suggest={f.kind === 'thorough' ? 'reasoning' : f.kind === 'fast' ? 'fast' : undefined}
+                              suggestLabel={t('settings.ai.suggested')}
                               keys={aiKeys} liveModels={liveModels} />
                             {orphanWarn(aiFeatSel[f.id] ?? null)}
                           </label>
