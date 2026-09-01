@@ -94,6 +94,18 @@ describe('providers beyond the original four (#169)', () => {
     expect(resolveAICall(s, 'commit').provider).toBe('groq')
   })
 
+  test('the quirks travel with the resolution to the caller', () => {
+    const r = resolveAICall({
+      aiCustomProviders: JSON.stringify([{
+        id: 'custom-gw', label: 'GW', baseUrl: 'https://gw.local/v1', key: 'k',
+        authHeader: 'api-key', extraHeaders: { 'X-Tenant': 't1' },
+      }]),
+      aiDefaultProvider: 'custom-gw', aiDefaultModel: 'm',
+    })
+    expect(r.authHeader).toBe('api-key')
+    expect(r.extraHeaders).toEqual({ 'X-Tenant': 't1' })
+  })
+
   test('a malformed customs blob costs the entry, never the resolution', () => {
     const r = resolveAICall({
       aiGroqKey: 'gsk_x', aiProvider: 'groq', aiGroqModel: 'llama-3.3-70b-versatile',

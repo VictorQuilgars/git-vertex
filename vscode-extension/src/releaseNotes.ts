@@ -22,6 +22,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The grid grows to eight: **Mistral, DeepSeek, xAI, OpenRouter** join the four — catalog data, not integrations.
 - **Custom endpoints** for anything OpenAI-compatible: one-click **Ollama** and **LM Studio** presets, a name, a URL, an *optional* key — a local runtime has none, and reaching its \`/models\` is the connection.
 - Customs join the grouped pickers like any cloud: one feature on \`deepseek-r1:14b\` at localhost, the next on Groq.
+- **Auth quirks** behind a fold: the header the key rides in (\`api-key\` style included) and extra headers a gateway may demand — quirks of auth, never request formats.
 
 ### 🎛 A model and instructions per AI feature
 - **Each feature says which temperament it rewards** — fast for the one-liners, reasoning for the readers — with the characteristics worn as **coloured badges** on the picker and its rows, and a *Suggested* group drawn from your providers' live lists.

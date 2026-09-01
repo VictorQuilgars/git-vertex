@@ -5,7 +5,7 @@
 // (gitVertex.aiProvider / aiApiKey / aiModel), falling back to the shared
 // gvSettings store (same keys as the desktop app) if present.
 import * as vscode from 'vscode'
-import { providerById, providerCredential, providerUsable, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
+import { providerById, providerCredential, providerUsable, authHeaders, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
 
 export interface AIConfig {
   provider: string; apiKey: string; model: string
@@ -15,6 +15,9 @@ export interface AIConfig {
   baseUrl?: string
   /** A custom endpoint may run keyless — local runtimes do (#169). */
   keyless?: boolean
+  /** Auth quirks (customs only, #169 P2) — interpreted by authHeaders(). */
+  authHeader?: string
+  extraHeaders?: Record<string, string>
   /** The user's standing instructions — global plus the feature's own (#70). */
   instructions?: string
 }
@@ -91,6 +94,8 @@ export function readAIConfig(state: vscode.Memento, feature?: AIFeature): AIConf
     dialect: def?.dialect ?? 'openai-compat',
     baseUrl: def?.baseUrl,
     keyless: !!def?.custom,
+    authHeader: def?.authHeader,
+    extraHeaders: def?.extraHeaders,
     instructions: extras.length ? extras.join('\n') : undefined,
   }
 }
@@ -144,8 +149,7 @@ async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promi
   // openai-compat — the base URL is the whole point: a catalog cloud, a
   // custom gateway, an Ollama on localhost (#169). Keyless stays keyless.
   const base = (cfg.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/, '')
-  const headers: Record<string, string> = { 'content-type': 'application/json' }
-  if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+  const headers: Record<string, string> = { 'content-type': 'application/json', ...authHeaders(cfg) }
   const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
     headers,
@@ -188,7 +192,7 @@ export const truncateDiff = (diff: string, max = 6000) =>
 
 // Live model list per provider — mirrors the desktop's ai:list-provider-models
 // (Groq's audio-only whisper models filtered out, OpenAI trimmed to chat models).
-export async function listProviderModels(provider: string, apiKey: string, baseUrl?: string): Promise<{ models?: string[]; error?: string }> {
+export async function listProviderModels(provider: string, apiKey: string, baseUrl?: string, quirks?: { authHeader?: string; extraHeaders?: Record<string, string> }): Promise<{ models?: string[]; error?: string }> {
   try {
     // Everything that is not Anthropic or Google is the OpenAI dialect —
     // one GET {base}/models covers the catalog's clouds, the customs and
@@ -196,8 +200,7 @@ export async function listProviderModels(provider: string, apiKey: string, baseU
     if (provider !== 'anthropic' && provider !== 'google') {
       const base = (baseUrl ?? '').replace(/\/+$/, '')
       if (base) {
-        const headers: Record<string, string> = {}
-        if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+        const headers = authHeaders({ apiKey, ...quirks })
         const res = await fetch(`${base}/models`, { headers })
         const data = await res.json().catch(() => ({})) as any
         if (!res.ok || data.error) return { error: data.error?.message ?? `HTTP ${res.status}` }

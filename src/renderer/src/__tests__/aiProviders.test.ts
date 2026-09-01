@@ -45,6 +45,38 @@ describe('the customs blob', () => {
   })
 })
 
+describe('the auth quirks — one interpreter, never formats (#169 P2)', () => {
+  const { authHeaders } = require('../utils/aiProviders')
+
+  test('the default is Bearer, and no key means no auth header at all', () => {
+    expect(authHeaders({ apiKey: 'k' })).toEqual({ Authorization: 'Bearer k' })
+    expect(authHeaders({})).toEqual({})
+  })
+
+  test('a named header carries the RAW key — the api-key style', () => {
+    expect(authHeaders({ apiKey: 'k', authHeader: 'api-key' })).toEqual({ 'api-key': 'k' })
+  })
+
+  test('naming Authorization itself keeps the Bearer prefix', () => {
+    expect(authHeaders({ apiKey: 'k', authHeader: 'Authorization' })).toEqual({ Authorization: 'Bearer k' })
+  })
+
+  test('extra headers ride along — and alone, when there is no key', () => {
+    expect(authHeaders({ apiKey: 'k', extraHeaders: { 'X-Title': 'Git Vertex' } }))
+      .toEqual({ 'X-Title': 'Git Vertex', Authorization: 'Bearer k' })
+    expect(authHeaders({ extraHeaders: { 'X-Tenant': 't1' } })).toEqual({ 'X-Tenant': 't1' })
+  })
+
+  test('the quirks survive the customs blob round-trip', () => {
+    const [c] = parseCustomProviders(JSON.stringify([{
+      id: 'custom-gw', label: 'Gateway', baseUrl: 'https://gw.local/v1',
+      key: 'k', authHeader: 'api-key', extraHeaders: { 'X-Tenant': 't1', bad: 42 },
+    }]))
+    expect(c.authHeader).toBe('api-key')
+    expect(c.extraHeaders).toEqual({ 'X-Tenant': 't1' })  // the non-string value cost its line
+  })
+})
+
 describe('usable — connected stopped meaning "has a key"', () => {
   const s = { aiCustomProviders: JSON.stringify([{ id: 'custom-lm', label: 'LM', baseUrl: 'http://localhost:1234/v1' }]) }
 

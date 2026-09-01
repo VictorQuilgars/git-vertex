@@ -8,9 +8,10 @@
 // function here (#169).
 
 import type { ResolvedAI } from './ai-resolve'
+import { authHeaders } from '../renderer/src/utils/aiProviders'
 
 export async function callProvider(
-  target: Pick<ResolvedAI, 'provider' | 'model' | 'apiKey' | 'dialect' | 'baseUrl'>,
+  target: Pick<ResolvedAI, 'provider' | 'model' | 'apiKey' | 'dialect' | 'baseUrl' | 'authHeader' | 'extraHeaders'>,
   prompt: string, maxTokens: number,
 ): Promise<string> {
   const { model, apiKey } = target
@@ -30,8 +31,9 @@ export async function callProvider(
   // openai-compat — a plain fetch, because the base URL is the whole point:
   // api.openai.com, api.groq.com/openai, a Mistral, an Ollama on localhost.
   const base = (target.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/, '')
-  const headers: Record<string, string> = { 'content-type': 'application/json' }
-  if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+  // The auth quirks live in ONE interpreter (authHeaders) — a named header
+  // carries the raw key, extras ride along, default stays Bearer.
+  const headers: Record<string, string> = { 'content-type': 'application/json', ...authHeaders(target) }
   const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
     headers,

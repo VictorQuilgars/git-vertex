@@ -700,7 +700,9 @@ export class GitVertexHost implements vscode.Disposable {
         // The base URL travels from the settings page (an entry not saved
         // yet), else the catalog/customs know it (#169).
         const gv = this._state.get<Record<string, string>>('gvSettings', {})
-        return listProviderModels(args[0], args[1], args[2] ?? providerById(gv, args[0])?.baseUrl)
+        const pdef = providerById(gv, args[0])
+        return listProviderModels(args[0], args[1], args[2] ?? pdef?.baseUrl,
+          pdef ? { authHeader: pdef.authHeader, extraHeaders: pdef.extraHeaders } : undefined)
       }
       // Settings page (shared SettingsModal, embedded mode) support
       case 'gitGetGlobalConfig': {

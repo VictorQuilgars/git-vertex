@@ -20,7 +20,7 @@ import {
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { ThemeStore } from './theme-store'
 import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
-import { providerById } from '../renderer/src/utils/aiProviders'
+import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
@@ -1505,9 +1505,10 @@ ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKe
   // GET {base}/models serves the catalog's clouds, the customs, and the
   // keyless local runtimes (#169). `baseUrl` arrives from the settings page
   // for entries not saved yet; otherwise the catalog/customs know it.
-  const generic = async (base: string) => {
-    const headers: Record<string, string> = {}
-    if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+  const generic = async (base: string, def?: ReturnType<typeof providerById>) => {
+    // The def's quirks apply when we have it; an entry not saved yet probes
+    // with plain Bearer — save first for a gateway that wants otherwise.
+    const headers = authHeaders({ apiKey, authHeader: def?.authHeader, extraHeaders: def?.extraHeaders })
     const res = await fetch(`${base.replace(/\/+$/, '')}/models`, { headers })
     const data = await res.json().catch(() => ({})) as any
     if (!res.ok || data.error) return { error: data.error?.message ?? `HTTP ${res.status}` }
@@ -1521,7 +1522,7 @@ ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKe
     const def = providerById(readSettings(), provider)
     const base = baseUrl || def?.baseUrl
     if (base && (apiKey || def?.custom)) {
-      try { return await generic(base) } catch (e: any) { return { error: e.message } }
+      try { return await generic(base, def) } catch (e: any) { return { error: e.message } }
     }
   }
   if (!apiKey) return { error: 'NO_API_KEY' }

@@ -24,6 +24,9 @@ export interface ResolvedAI {
   baseUrl?: string
   /** A custom endpoint may run with no key — local runtimes do (#169). */
   keyless: boolean
+  /** Auth quirks (customs only, #169 P2) — interpreted by authHeaders(). */
+  authHeader?: string
+  extraHeaders?: Record<string, string>
 }
 
 /** Any read-only view over the flat settings store. */
@@ -78,6 +81,8 @@ export function resolveAICall(s: AISettings, feature?: AIFeature): ResolvedAI {
     dialect: def?.dialect ?? 'openai-compat',
     baseUrl: def?.baseUrl,
     keyless: !!def?.custom,
+    authHeader: def?.authHeader,
+    extraHeaders: def?.extraHeaders,
   }
 }
 

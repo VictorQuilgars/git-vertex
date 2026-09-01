@@ -694,3 +694,9 @@
   padding: var(--space-2xs) var(--space-sm);
 }
 .stg-ai-custom-name:hover, .stg-ai-custom-name:focus { border-color: var(--border-default); }
+
+/* Auth quirks (#169 P2) — behind a fold because two gateways in a hundred
+   need them; the trailing dot on the summary says the fold is not empty. */
+.stg-ai-quirks summary { cursor: pointer; color: var(--text-tertiary); font-size: var(--text-xs); }
+.stg-ai-quirks[open] { display: flex; flex-direction: column; gap: var(--space-sm); }
+.stg-ai-quirks[open] summary { color: var(--text-secondary); }

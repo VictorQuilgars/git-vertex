@@ -281,6 +281,25 @@ const AI_GLOBAL_CHIPS = [
   'Keep it concise', 'Plain tone, no hype', 'Use the imperative mood', 'Prefer short sentences',
 ]
 
+/**
+ * Extra headers edit as text, one `Name: value` per line — a table UI for a
+ * quirk two gateways in a hundred need would be furniture. A line without a
+ * colon costs the line, the autolink rule.
+ */
+const headersToLines = (h?: Record<string, string>): string =>
+  Object.entries(h ?? {}).map(([k, v]) => `${k}: ${v}`).join('\n')
+const linesToHeaders = (text: string): Record<string, string> | undefined => {
+  const out: Record<string, string> = {}
+  for (const line of text.split('\n')) {
+    const i = line.indexOf(':')
+    if (i <= 0) continue
+    const k = line.slice(0, i).trim()
+    const v = line.slice(i + 1).trim()
+    if (k) out[k] = v
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
 /** A stable, readable id for a custom provider — slug, suffixed on clash. */
 function makeCustomId(label: string, existing: { id: string }[]): string {
   const slug = 'custom-' + (label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'endpoint')
@@ -717,7 +736,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
     await window.gitAPI.settingsSet('groqApiKey', aiKeys.groq ?? '')
     // The customs travel whole — key included — in one JSON blob (#169).
     await window.gitAPI.settingsSet('aiCustomProviders', JSON.stringify(
-      aiCustoms.map(c => ({ id: c.id, label: c.label, baseUrl: c.baseUrl, key: c.key ?? '' }))
+      aiCustoms.map(c => ({
+        id: c.id, label: c.label, baseUrl: c.baseUrl, key: c.key ?? '',
+        ...(c.authHeader ? { authHeader: c.authHeader } : {}),
+        ...(c.extraHeaders && Object.keys(c.extraHeaders).length ? { extraHeaders: c.extraHeaders } : {}),
+      }))
     ))
     await window.gitAPI.settingsSet('aiDefaultProvider', aiDefault.provider)
     await window.gitAPI.settingsSet('aiDefaultModel', aiDefault.model)
@@ -1297,6 +1320,26 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                             onChange={e => setAiCustoms(a => a.map((x, j) => j === i ? { ...x, key: e.target.value } : x))}
                             onBlur={() => { if (c.baseUrl) fetchModels(c.id, c.key ?? '', c.baseUrl) }}
                           />
+                          {/* Auth QUIRKS, never formats (#169 P2): rare by
+                              design, so they live behind a fold. */}
+                          <details className="stg-ai-quirks">
+                            <summary>{t('settings.ai.authQuirks')}{(c.authHeader || c.extraHeaders) ? ' ·' : ''}</summary>
+                            <input
+                              className="stg-input stg-mono"
+                              value={c.authHeader ?? ''}
+                              aria-label={t('settings.ai.authHeaderLabel')}
+                              placeholder={t('settings.ai.authHeaderLabel')}
+                              onChange={e => setAiCustoms(a => a.map((x, j) => j === i ? { ...x, authHeader: e.target.value.trim() || undefined } : x))}
+                            />
+                            <textarea
+                              className="stg-input stg-mono stg-ai-instr"
+                              value={headersToLines(c.extraHeaders)}
+                              aria-label={t('settings.ai.extraHeadersLabel')}
+                              placeholder={t('settings.ai.extraHeadersLabel')}
+                              rows={2}
+                              onChange={e => setAiCustoms(a => a.map((x, j) => j === i ? { ...x, extraHeaders: linesToHeaders(e.target.value) } : x))}
+                            />
+                          </details>
                           <button
                             className="stg-tuto-toggle"
                             onClick={() => setAiCustoms(a => a.filter((_, j) => j !== i))}

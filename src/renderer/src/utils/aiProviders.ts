@@ -31,6 +31,14 @@ export interface AIProviderDef {
   custom?: boolean
   /** Customs only: the credential, carried inline in the JSON entry. */
   key?: string
+  /**
+   * Customs only — the auth QUIRKS, never the request format (#169 P2):
+   * the header the key rides in (empty = `Authorization: Bearer`; a named
+   * header carries the raw key, the Azure `api-key` style), and extra
+   * headers some gateways demand beside it.
+   */
+  authHeader?: string
+  extraHeaders?: Record<string, string>
 }
 
 export const AI_PROVIDER_CATALOG: AIProviderDef[] = [
@@ -78,6 +86,12 @@ export function parseCustomProviders(raw: string | undefined): AIProviderDef[] {
         dialect: 'openai-compat' as const,
         baseUrl: String(e.baseUrl).replace(/\/+$/, ''),
         key: typeof e.key === 'string' ? e.key : '',
+        authHeader: typeof e.authHeader === 'string' ? e.authHeader.trim() : undefined,
+        extraHeaders: e.extraHeaders && typeof e.extraHeaders === 'object' && !Array.isArray(e.extraHeaders)
+          ? Object.fromEntries(Object.entries(e.extraHeaders)
+              .filter(([k, v]) => k && typeof v === 'string')
+              .map(([k, v]) => [String(k), String(v)]))
+          : undefined,
         custom: true,
       }))
   } catch { return [] }
@@ -107,4 +121,23 @@ export function providerCredential(s: AISettingsView, def: AIProviderDef): strin
  */
 export function providerUsable(s: AISettingsView, def: AIProviderDef): boolean {
   return !!providerCredential(s, def) || !!def.custom
+}
+
+/**
+ * The headers a call (or a /models probe) sends — the ONE place the auth
+ * quirks are interpreted, so the two hosts and the live suite cannot drift.
+ * Default is `Authorization: Bearer`; a named header carries the raw key.
+ * Extra headers ride with or without a key — a gateway may want them alone.
+ */
+export function authHeaders(
+  target: { apiKey?: string; authHeader?: string; extraHeaders?: Record<string, string> },
+): Record<string, string> {
+  const h: Record<string, string> = { ...(target.extraHeaders ?? {}) }
+  const key = target.apiKey ?? ''
+  if (key) {
+    const name = (target.authHeader ?? '').trim()
+    if (name && name.toLowerCase() !== 'authorization') h[name] = key
+    else h.Authorization = `Bearer ${key}`
+  }
+  return h
 }
