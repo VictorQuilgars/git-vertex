@@ -19,6 +19,8 @@ import {
 } from './git-service'
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { ThemeStore } from './theme-store'
+import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
+import { callProvider } from './ai-call'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
@@ -1558,88 +1560,21 @@ ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKe
 // Reads the configured provider/model/key from settings and runs one prompt
 // with the same 3-attempt retry loop for every AI feature (commit message,
 // recompose, explain, …). Returns { text } or { error }.
-/**
- * The features a model call can belong to (#70). A feature is what the
- * settings page lets the user override — its model within the active
- * provider, and its own instructions — so the id set here IS the settings
- * vocabulary: `aiFeatureModel:<id>` and `aiFeatureInstructions:<id>`.
- */
-export type AIFeature = 'commit' | 'explain' | 'conflict' | 'search' | 'filter' | 'pr' | 'issue'
-
+// The resolution and the wire shapes live in electron-free modules
+// (ai-resolve.ts, ai-call.ts — the theme-validate pattern) so the unit suite
+// exercises the real resolution and the manual live suite (tests-live/, run
+// by hand: it spends API money) drives the exact production path. This
+// function owns only the policy: reading settings, retrying, logging.
 async function runAIPrompt(prompt: string, maxTokens = 512, feature?: AIFeature): Promise<{ text?: string; error?: string }> {
   const s = readSettings()
-  const keyMap: Record<string, string> = { anthropic: 'aiAnthropicKey', google: 'aiGoogleKey', groq: 'aiGroqKey', openai: 'aiOpenaiKey' }
-  // backward compat: groqApiKey was the old key
-  const keyFor = (p: string) => s[keyMap[p] ?? ''] ?? (p === 'groq' ? s.groqApiKey : '') ?? ''
-  const modelMap: Record<string, string> = {
-    anthropic: s.aiAnthropicModel || 'claude-haiku-4-5-20251001',
-    google:    s.aiGoogleModel    || 'gemini-2.0-flash',
-    groq:      s.aiGroqModel      || 'llama-3.3-70b-versatile',
-    openai:    s.aiOpenaiModel    || 'gpt-4o-mini',
-  }
-  // There is no ACTIVE provider any more (#70 rework): a provider with a key
-  // is connected, and every choice carries its own (provider, model) pair —
-  // a model id alone is ambiguous across providers. Resolution, most specific
-  // first, and a pair whose provider lost its key falls through rather than
-  // calling with an empty credential:
-  //   1. the feature's own pair;
-  //   2. a legacy feature model without a provider (written before the rework)
-  //      read against the legacy provider;
-  //   3. the default pair;
-  //   4. the legacy aiProvider + its per-provider model.
-  const trimmed = (v: unknown) => typeof v === 'string' ? v.trim() : ''
-  const legacyProvider = s.aiProvider ?? 'groq'
-  const fp = feature ? trimmed(s[`aiFeatureProvider:${feature}`]) : ''
-  const fm = feature ? trimmed(s[`aiFeatureModel:${feature}`]) : ''
-  let provider: string
-  let model: string
-  if (fp && fm && keyFor(fp)) { provider = fp; model = fm }
-  else if (!fp && fm && keyFor(legacyProvider)) { provider = legacyProvider; model = fm }
-  else if (trimmed(s.aiDefaultProvider) && trimmed(s.aiDefaultModel) && keyFor(trimmed(s.aiDefaultProvider))) {
-    provider = trimmed(s.aiDefaultProvider); model = trimmed(s.aiDefaultModel)
-  } else { provider = legacyProvider; model = modelMap[legacyProvider] }
-  const apiKey = keyFor(provider)
-  // The user's standing instructions ride every prompt — global first, the
-  // feature's own after, both AFTER the format rules so a wish cannot unsay
-  // a contract (and the checked outputs are still checked).
-  const extras = [s.aiGlobalInstructions, feature ? s[`aiFeatureInstructions:${feature}`] : '']
-    .map((x: string | undefined) => (x ?? '').trim()).filter(Boolean)
-  if (extras.length) {
-    prompt += `\n\nAdditional instructions from the user — follow them where they do not conflict with the rules above:\n${extras.join('\n')}`
-  }
-  console.log(`[ai] provider=${provider} model=${model} hasKey=${!!apiKey}`)
+  const { provider, model, apiKey } = resolveAICall(s, feature)
+  prompt = appendInstructions(prompt, s, feature)
+  console.log(`[ai] feature=${feature ?? '-'} provider=${provider} model=${model} hasKey=${!!apiKey}`)
   if (!apiKey) return { error: 'NO_API_KEY' }
-
-  const callAPI = async (): Promise<string> => {
-    if (provider === 'anthropic') {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default
-      const client = new Anthropic({ apiKey })
-      const res = await client.messages.create({ model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] })
-      return (res.content[0] as any).text?.trim() ?? ''
-    }
-    if (provider === 'google') {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai')
-      const genAI = new GoogleGenerativeAI(apiKey)
-      const genModel = genAI.getGenerativeModel({ model })
-      const result = await genModel.generateContent(prompt)
-      return result.response.text().trim()
-    }
-    if (provider === 'openai') {
-      const OpenAI = (await import('openai')).default
-      const client = new OpenAI({ apiKey })
-      const response = await client.chat.completions.create({ model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] })
-      return response.choices[0]?.message?.content?.trim() ?? ''
-    }
-    // groq (default)
-    const Groq = (await import('groq-sdk')).default
-    const client = new Groq({ apiKey })
-    const response = await client.chat.completions.create({ model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] })
-    return response.choices[0]?.message?.content?.trim() ?? ''
-  }
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const text = await callAPI()
+      const text = await callProvider(provider, apiKey, model, prompt, maxTokens)
       console.log(`[ai] attempt=${attempt} length=${text.length} preview="${text.slice(0, 60)}"`)
       if (text) return { text }
       console.log(`[ai] empty response on attempt ${attempt}, retrying…`)
