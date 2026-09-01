@@ -608,6 +608,8 @@
   color: var(--text-primary);
 }
 .stg-ai-model { max-width: 480px; }
+/* The temperament line sits tight under its heading — guidance, not prose. */
+.stg-ai-temper { margin-top: calc(-1 * var(--space-xs)); }
 .stg-ai-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); max-width: 820px; }
 /* A chip writes its fragment into the field below — and once the text holds
    it, the chip stands down: an offer already taken is not an offer. */

@@ -397,6 +397,15 @@ describe('SettingsModal — per-feature AI overrides', () => {
     expect(mock.settingsSet).toHaveBeenCalledWith('aiProvider', expect.any(String))
   })
 
+  test('every feature says which temperament it rewards', async () => {
+    await open()
+    // one line under each heading; a reasoning model's tax on one-liners is
+    // said where the choice is made, not learned from an empty reply.
+    expect(screen.getAllByText(/a fast, small model shines here/).length).toBe(3)
+    expect(screen.getAllByText(/earns its cost here/).length).toBe(3)
+    expect(screen.getAllByText(/mid-tier model does well/).length).toBe(1)
+  })
+
   test('the providers zone lists all four, keyed or not', async () => {
     await open()
     for (const name of ['Anthropic (Claude)', 'Google (Gemini)', 'Groq', 'OpenAI']) {
