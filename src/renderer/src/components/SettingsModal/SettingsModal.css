@@ -681,3 +681,16 @@
   cursor: pointer;
 }
 .stg-ai-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Custom endpoints (#169) ─────────────────────────────────── */
+/* The card's name is editable — it is the user's own entry — and reads like
+   the catalog names beside it, not like a form field. */
+.stg-ai-custom-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--weight-semibold);
+  background: transparent;
+  border-color: transparent;
+  padding: var(--space-2xs) var(--space-sm);
+}
+.stg-ai-custom-name:hover, .stg-ai-custom-name:focus { border-color: var(--border-default); }

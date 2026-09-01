@@ -47,10 +47,10 @@ const s = loadSettings()
 
 // One call per DISTINCT pair — five features on the default model are one
 // call, not five. Money is the constraint this suite exists to respect.
-const targets = new Map<string, { provider: string; model: string; apiKey: string; features: string[] }>()
+const targets = new Map<string, ReturnType<typeof resolveAICall> & { features: string[] }>()
 for (const f of [undefined, ...FEATURES] as (AIFeature | undefined)[]) {
   const r = resolveAICall(s, f)
-  if (!r.apiKey) continue
+  if (!r.apiKey && !r.keyless) continue
   const k = `${r.provider}:${r.model}`
   const hit = targets.get(k)
   if (hit) hit.features.push(f ?? 'default')
@@ -67,7 +67,7 @@ describe('the configuration, resolved (free)', () => {
       const r = resolveAICall(s, f)
       // eslint-disable-next-line no-console
       console.log(`  ${f.padEnd(8)} → ${r.provider} / ${r.model}${r.apiKey ? '' : '  (NO KEY)'}`)
-      expect(r.apiKey).not.toBe('')
+      if (!r.keyless) expect(r.apiKey).not.toBe('')
     }
   })
 })
@@ -76,8 +76,7 @@ describe('the configuration, exercised (paid)', () => {
   test('every distinct (provider, model) pair answers', async () => {
     for (const t of targets.values()) {
       const reply = await callProvider(
-        t.provider, t.apiKey, t.model,
-        'Reply with exactly the word OK and nothing else.', BUDGET)
+        t, 'Reply with exactly the word OK and nothing else.', BUDGET)
       // eslint-disable-next-line no-console
       console.log(`  ${t.provider} / ${t.model}  [${t.features.join(', ')}] → "${reply.slice(0, 40)}"`)
       if (!reply) {
@@ -93,7 +92,7 @@ describe('the configuration, exercised (paid)', () => {
     const prompt = appendInstructions('Say hello in one short sentence.', {
       ...s, aiGlobalInstructions: [s.aiGlobalInstructions, sentinel].filter(Boolean).join('\n'),
     })
-    const reply = await callProvider(r.provider, r.apiKey, r.model, prompt, BUDGET)
+    const reply = await callProvider(r, prompt, BUDGET)
     // eslint-disable-next-line no-console
     console.log(`  global instructions → "${reply.slice(0, 80)}"`)
     expect(reply.toUpperCase()).toContain('PAMPLEMOUSSE')
@@ -107,7 +106,7 @@ describe('the configuration, exercised (paid)', () => {
     const without = appendInstructions('Say hello in one short sentence.', s2, 'search')
     expect(withIt).toContain('CITRON')
     expect(without).not.toContain('CITRON')
-    const reply = await callProvider(r.provider, r.apiKey, r.model, withIt, BUDGET)
+    const reply = await callProvider(r, withIt, BUDGET)
     // eslint-disable-next-line no-console
     console.log(`  explain instructions → "${reply.slice(0, 80)}"`)
     expect(reply.toUpperCase()).toContain('CITRON')

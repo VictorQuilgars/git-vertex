@@ -160,7 +160,7 @@ const gitAPI = {
   aiResolveConflict: (filepath: string, instruction?: string) => ipcRenderer.invoke('ai:resolve-conflict', filepath, instruction),
   aiSearchCommits: (query: string) => ipcRenderer.invoke('ai:search-commits', query),
   aiListModels: () => ipcRenderer.invoke('ai:list-models'),
-  aiListProviderModels: (provider: string, apiKey: string) => ipcRenderer.invoke('ai:list-provider-models', provider, apiKey),
+  aiListProviderModels: (provider: string, apiKey: string, baseUrl?: string) => ipcRenderer.invoke('ai:list-provider-models', provider, apiKey, baseUrl),
   // Reflog
   getReflog: () => ipcRenderer.invoke('git:get-reflog'),
   // File History

@@ -1,3 +1,5 @@
+import { providerById, providerCredential, providerUsable, type AIDialect } from '../renderer/src/utils/aiProviders'
+
 // ai-resolve.ts — which (provider, model, key) an AI call runs on, and which
 // instructions ride it. Free of `electron` on purpose, the theme-validate
 // pattern: the main process imports it, the unit suite exercises it, and the
@@ -13,17 +15,30 @@
  */
 export type AIFeature = 'commit' | 'explain' | 'conflict' | 'search' | 'filter' | 'pr' | 'issue'
 
-export interface ResolvedAI { provider: string; model: string; apiKey: string }
+export interface ResolvedAI {
+  provider: string
+  model: string
+  apiKey: string
+  /** How ai-call speaks to it, and where (openai-compat). */
+  dialect: AIDialect
+  baseUrl?: string
+  /** A custom endpoint may run with no key — local runtimes do (#169). */
+  keyless: boolean
+}
 
 /** Any read-only view over the flat settings store. */
 export type AISettings = Record<string, string | undefined>
 
-const KEY_MAP: Record<string, string> = {
-  anthropic: 'aiAnthropicKey', google: 'aiGoogleKey', groq: 'aiGroqKey', openai: 'aiOpenaiKey',
+const keyFor = (s: AISettings, p: string): string => {
+  const def = providerById(s, p)
+  return def ? providerCredential(s, def) : ''
 }
 
-const keyFor = (s: AISettings, p: string): string =>
-  s[KEY_MAP[p] ?? ''] ?? (p === 'groq' ? s.groqApiKey : '') ?? ''
+/** Usable = credentialed, or a custom endpoint (keyless local runtimes). */
+const usable = (s: AISettings, p: string): boolean => {
+  const def = providerById(s, p)
+  return !!def && providerUsable(s, def)
+}
 
 const trimmed = (v: unknown): string => typeof v === 'string' ? v.trim() : ''
 
@@ -51,12 +66,19 @@ export function resolveAICall(s: AISettings, feature?: AIFeature): ResolvedAI {
   const fm = feature ? trimmed(s[`aiFeatureModel:${feature}`]) : ''
   let provider: string
   let model: string
-  if (fp && fm && keyFor(s, fp)) { provider = fp; model = fm }
-  else if (!fp && fm && keyFor(s, legacyProvider)) { provider = legacyProvider; model = fm }
-  else if (trimmed(s.aiDefaultProvider) && trimmed(s.aiDefaultModel) && keyFor(s, trimmed(s.aiDefaultProvider))) {
+  if (fp && fm && usable(s, fp)) { provider = fp; model = fm }
+  else if (!fp && fm && usable(s, legacyProvider)) { provider = legacyProvider; model = fm }
+  else if (trimmed(s.aiDefaultProvider) && trimmed(s.aiDefaultModel) && usable(s, trimmed(s.aiDefaultProvider))) {
     provider = trimmed(s.aiDefaultProvider); model = trimmed(s.aiDefaultModel)
   } else { provider = legacyProvider; model = legacyModels[legacyProvider] }
-  return { provider, model, apiKey: keyFor(s, provider) }
+  const def = providerById(s, provider)
+  return {
+    provider, model,
+    apiKey: keyFor(s, provider),
+    dialect: def?.dialect ?? 'openai-compat',
+    baseUrl: def?.baseUrl,
+    keyless: !!def?.custom,
+  }
 }
 
 /**

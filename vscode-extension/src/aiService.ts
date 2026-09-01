@@ -5,9 +5,16 @@
 // (gitVertex.aiProvider / aiApiKey / aiModel), falling back to the shared
 // gvSettings store (same keys as the desktop app) if present.
 import * as vscode from 'vscode'
+import { providerById, providerCredential, providerUsable, type AIDialect } from '../../src/renderer/src/utils/aiProviders'
 
 export interface AIConfig {
   provider: string; apiKey: string; model: string
+  /** How callOnce speaks to it, and where (openai-compat) — from the shared
+   *  catalog (#169), customs included. */
+  dialect: AIDialect
+  baseUrl?: string
+  /** A custom endpoint may run keyless — local runtimes do (#169). */
+  keyless?: boolean
   /** The user's standing instructions — global plus the feature's own (#70). */
   instructions?: string
 }
@@ -43,8 +50,14 @@ export function readAIConfig(state: vscode.Memento, feature?: AIFeature): AIConf
   const cfg = vscode.workspace.getConfiguration('gitVertex')
   const gv = state.get<Record<string, string>>('gvSettings', {})
   const trimmed = (v: unknown) => typeof v === 'string' ? v.trim() : ''
-  const keyFor = (p: string) =>
-    gv[KEY_SETTING[p] ?? ''] || (p === 'groq' ? gv.groqApiKey : '') || ''
+  const keyFor = (p: string) => {
+    const def = providerById(gv, p)
+    return def ? providerCredential(gv, def) : ''
+  }
+  const usable = (p: string) => {
+    const def = providerById(gv, p)
+    return !!def && providerUsable(gv, def)
+  }
   const legacyProvider = (gv.aiProvider || 'groq').toLowerCase()
 
   // The desktop's resolution (#70 rework): no active provider — every choice
@@ -60,19 +73,26 @@ export function readAIConfig(state: vscode.Memento, feature?: AIFeature): AIConf
   if (pinnedModel) {
     provider = pinnedProvider || legacyProvider
     model = pinnedModel
-  } else if (fp && fm && keyFor(fp)) { provider = fp; model = fm }
-  else if (!fp && fm && keyFor(legacyProvider)) { provider = legacyProvider; model = fm }
-  else if (trimmed(gv.aiDefaultProvider) && trimmed(gv.aiDefaultModel) && keyFor(trimmed(gv.aiDefaultProvider))) {
+  } else if (fp && fm && usable(fp)) { provider = fp; model = fm }
+  else if (!fp && fm && usable(legacyProvider)) { provider = legacyProvider; model = fm }
+  else if (trimmed(gv.aiDefaultProvider) && trimmed(gv.aiDefaultModel) && usable(trimmed(gv.aiDefaultProvider))) {
     provider = trimmed(gv.aiDefaultProvider); model = trimmed(gv.aiDefaultModel)
   } else {
     provider = pinnedProvider || legacyProvider
     model = gv[MODEL_SETTING[provider] ?? ''] || MODEL_DEFAULTS[provider] || MODEL_DEFAULTS.groq
   }
+  const def = providerById(gv, provider)
   const apiKey = userSetting(cfg, 'aiApiKey') || keyFor(provider)
-  if (!apiKey) return null
+  if (!apiKey && !def?.custom) return null
   const extras = [gv.aiGlobalInstructions, feature ? gv[`aiFeatureInstructions:${feature}`] : '']
     .map(x => (x ?? '').trim()).filter(Boolean)
-  return { provider, apiKey, model, instructions: extras.length ? extras.join('\n') : undefined }
+  return {
+    provider, apiKey, model,
+    dialect: def?.dialect ?? 'openai-compat',
+    baseUrl: def?.baseUrl,
+    keyless: !!def?.custom,
+    instructions: extras.length ? extras.join('\n') : undefined,
+  }
 }
 
 // HTTP error carrying the status + optional Retry-After so the retry loop
@@ -101,7 +121,7 @@ async function throwHttpError(provider: string, res: Response): Promise<never> {
 
 async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promise<string> {
   const { provider, apiKey, model } = cfg
-  if (provider === 'anthropic') {
+  if (cfg.dialect === 'anthropic') {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -111,7 +131,7 @@ async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promi
     const data = await res.json() as any
     return (data.content?.[0]?.text ?? '').trim()
   }
-  if (provider === 'google') {
+  if (cfg.dialect === 'google') {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -121,11 +141,14 @@ async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promi
     const data = await res.json() as any
     return (data.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
   }
-  // groq & openai share the OpenAI chat-completions shape
-  const base = provider === 'openai' ? 'https://api.openai.com' : 'https://api.groq.com/openai'
-  const res = await fetch(`${base}/v1/chat/completions`, {
+  // openai-compat — the base URL is the whole point: a catalog cloud, a
+  // custom gateway, an Ollama on localhost (#169). Keyless stays keyless.
+  const base = (cfg.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/, '')
+  const headers: Record<string, string> = { 'content-type': 'application/json' }
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+  const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+    headers,
     body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }),
   })
   if (!res.ok) await throwHttpError(provider, res)
@@ -165,8 +188,25 @@ export const truncateDiff = (diff: string, max = 6000) =>
 
 // Live model list per provider — mirrors the desktop's ai:list-provider-models
 // (Groq's audio-only whisper models filtered out, OpenAI trimmed to chat models).
-export async function listProviderModels(provider: string, apiKey: string): Promise<{ models?: string[]; error?: string }> {
+export async function listProviderModels(provider: string, apiKey: string, baseUrl?: string): Promise<{ models?: string[]; error?: string }> {
   try {
+    // Everything that is not Anthropic or Google is the OpenAI dialect —
+    // one GET {base}/models covers the catalog's clouds, the customs and
+    // the keyless local runtimes (#169).
+    if (provider !== 'anthropic' && provider !== 'google') {
+      const base = (baseUrl ?? '').replace(/\/+$/, '')
+      if (base) {
+        const headers: Record<string, string> = {}
+        if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+        const res = await fetch(`${base}/models`, { headers })
+        const data = await res.json().catch(() => ({})) as any
+        if (!res.ok || data.error) return { error: data.error?.message ?? `HTTP ${res.status}` }
+        const list: any[] = Array.isArray(data) ? data : (data.data ?? data.models ?? [])
+        let ids = list.map((m: any) => (m.id ?? m.name) as string).filter(Boolean)
+        if (provider === 'groq') ids = ids.filter(m => !m.startsWith('whisper') && !m.startsWith('distil-whisper'))
+        return { models: ids.sort() }
+      }
+    }
     if (provider === 'anthropic') {
       const res = await fetch('https://api.anthropic.com/v1/models?limit=100', {
         headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },

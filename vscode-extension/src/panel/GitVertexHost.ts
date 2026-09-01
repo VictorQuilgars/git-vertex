@@ -24,6 +24,7 @@ import {
   githubRepoParent, githubRequestReviewers, githubCreateLabel, githubCreateIssue,
 } from '../githubApi'
 import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src/utils/remoteUrl'
+import { providerById } from '../../../src/renderer/src/utils/aiProviders'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
 import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
@@ -695,7 +696,12 @@ export class GitVertexHost implements vscode.Disposable {
       // AI features — same pipeline as the desktop app, config from VS Code
       // settings (gitVertex.aiProvider/aiApiKey/aiModel) or shared gvSettings.
       // NO_API_KEY keeps the shared UI's "configure a key" toast working.
-      case 'aiListProviderModels': return listProviderModels(args[0], args[1])
+      case 'aiListProviderModels': {
+        // The base URL travels from the settings page (an entry not saved
+        // yet), else the catalog/customs know it (#169).
+        const gv = this._state.get<Record<string, string>>('gvSettings', {})
+        return listProviderModels(args[0], args[1], args[2] ?? providerById(gv, args[0])?.baseUrl)
+      }
       // Settings page (shared SettingsModal, embedded mode) support
       case 'gitGetGlobalConfig': {
         const { execFile } = await import('child_process')

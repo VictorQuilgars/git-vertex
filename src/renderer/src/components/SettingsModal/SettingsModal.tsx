@@ -3,6 +3,7 @@ import { Icon } from '../Icon/Icon'
 import { Brand } from '../BrandMark/BrandMark'
 import './SettingsModal.css'
 import { modelKind } from '../../utils/aiModelKind'
+import { AI_PROVIDER_CATALOG, AI_LOCAL_PRESETS, parseCustomProviders, type AIProviderDef } from '../../utils/aiProviders'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
 import {
   useSettings, isVSCodeHost, setInstalledThemes, followsEditor,
@@ -42,7 +43,9 @@ function lastSection(): Section {
   const saved = localStorage.getItem(SECTION_KEY) as Section | null
   return saved && SECTIONS.includes(saved) ? saved : 'git'
 }
-type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
+// Provider ids are open strings since #169 — the catalog plus whatever the
+// user defined. The old four-way union lives on only in the tutorial gate.
+type AIProvider = string
 
 // Sections hidden in the VS Code panel (`embedded`) — desktop-only concerns
 // already handled by VS Code itself (SSH, external tools/terminal) or not
@@ -189,28 +192,29 @@ function KindBadge({ id }: { id: string }) {
  * declares a temperament, the current pick badged on the face itself. Same
  * closing contract as the composer's pickers: focus leaves, it closes.
  */
-function ModelSelect({ value, onChange, defaultLabel, defaultModel, keys, liveModels, suggest, suggestLabel }: {
+function ModelSelect({ value, onChange, defaultLabel, defaultModel, providers, liveModels, suggest, suggestLabel }: {
   value: AIPair | null
   onChange: (v: AIPair | null) => void
   /** Present ⇒ an empty choice is offered, reading as the default it falls to. */
   defaultLabel?: string
   /** The model the empty choice falls to — so its badge can be worn too. */
   defaultModel?: string
-  keys: Record<AIProvider, string>
-  liveModels: Record<AIProvider, string[] | null>
+  /** The USABLE providers — catalog entries with a key, customs regardless. */
+  providers: { id: string; label: string }[]
+  liveModels: Record<string, string[] | null>
   /** The kind of model this caller rewards — heads the list with live
    *  matches. A suggestion, never a gate; absent for balanced features. */
   suggest?: 'reasoning' | 'fast'
   suggestLabel?: string
 }) {
   const [open, setOpen] = useState(false)
-  const connected = AI_PROVIDERS.filter(p => keys[p.id]?.trim())
-  const orphan = value && !keys[value.provider]?.trim()
-    ? AI_PROVIDERS.find(p => p.id === value.provider) : null
+  const connected = providers
+  const orphan = value && !providers.some(p => p.id === value.provider)
+    ? { id: value.provider, label: value.provider } : null
   const suggested = suggest
     ? connected.flatMap(p => (liveModels[p.id] ?? [])
         .filter(m => modelKind(m) === suggest)
-        .map(m => ({ p: p.id as AIProvider, m })))
+        .map(m => ({ p: p.id, m })))
       .slice(0, 6)
     : []
   const pick = (v: AIPair | null) => { onChange(v); setOpen(false) }
@@ -277,16 +281,22 @@ const AI_GLOBAL_CHIPS = [
   'Keep it concise', 'Plain tone, no hype', 'Use the imperative mood', 'Prefer short sentences',
 ]
 
+/** A stable, readable id for a custom provider — slug, suffixed on clash. */
+function makeCustomId(label: string, existing: { id: string }[]): string {
+  const slug = 'custom-' + (label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'endpoint')
+  if (!existing.some(e => e.id === slug)) return slug
+  let n = 2
+  while (existing.some(e => e.id === `${slug}-${n}`)) n++
+  return `${slug}-${n}`
+}
+
 /** Append a fragment to an instructions field, once. */
 const appendChip = (value: string, chip: string): string =>
   value.trim() ? `${value.trimEnd()}\n${chip}` : chip
 
-const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
-  { id: 'anthropic', label: 'Anthropic (Claude)', defaultModel: 'claude-haiku-4-5-20251001', color: '#d4a27f' },
-  { id: 'google',    label: 'Google (Gemini)',    defaultModel: 'gemini-2.0-flash',           color: '#4285f4' },
-  { id: 'groq',      label: 'Groq',               defaultModel: 'llama-3.3-70b-versatile',   color: '#f55036' },
-  { id: 'openai',    label: 'OpenAI',             defaultModel: 'gpt-4o-mini',               color: '#10a37f' },
-]
+// The roster is the shared catalog now (#169) — this page renders it, the two
+// AI pipelines resolve against it, and customs join it at runtime.
+const AI_PROVIDERS = AI_PROVIDER_CATALOG
 
 const MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-opus-4-7'],
@@ -414,9 +424,13 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const [aiGlobalInstr, setAiGlobalInstr] = useState('')
   const [aiFeatSel, setAiFeatSel] = useState<Record<string, AIPair | null>>({})
   const [aiFeatInstr, setAiFeatInstr] = useState<Record<string, string>>({})
-  const [aiKeys, setAiKeys] = useState<Record<AIProvider, string>>({ anthropic: '', google: '', groq: '', openai: '' })
+  const [aiKeys, setAiKeys] = useState<Record<string, string>>({})
+  // User-defined endpoints (#169) — Ollama and kin. Kept whole (key inline)
+  // in the aiCustomProviders JSON; a custom with models fetched counts as
+  // connected even keyless, because local runtimes have no key to give.
+  const [aiCustoms, setAiCustoms] = useState<AIProviderDef[]>([])
   const [aiDefault, setAiDefault] = useState<AIPair>({ provider: 'groq', model: 'llama-3.3-70b-versatile' })
-  const [liveModels, setLiveModels] = useState<Record<AIProvider, string[] | null>>({ anthropic: null, google: null, groq: null, openai: null })
+  const [liveModels, setLiveModels] = useState<Record<string, string[] | null>>({})
   const [loadingModels, setLoadingModels] = useState(false)
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [showKeyFor, setShowKeyFor] = useState<AIProvider | null>(null)
@@ -451,11 +465,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const [sshGenerating, setSshGenerating] = useState(false)
   const [sshPassphrase, setSshPassphrase] = useState('')
 
-  const fetchModels = async (provider: AIProvider, key: string) => {
-    if (!key) return
+  const fetchModels = async (provider: AIProvider, key: string, baseUrl?: string) => {
+    if (!key && !baseUrl) return   // a custom endpoint may be keyless; a catalog cloud may not
     setLoadingModels(true)
     setModelsError(null)
-    const r = await (window.gitAPI as any).aiListProviderModels(provider, key)
+    const r = await (window.gitAPI as any).aiListProviderModels(provider, key, baseUrl)
     setLoadingModels(false)
     if (r.error) { setModelsError(r.error); return }
     const models = r.models as string[]
@@ -495,12 +509,11 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
         return [f.id, fm ? { provider: (fp || provider) as AIProvider, model: fm } : null]
       })))
       setAiFeatInstr(Object.fromEntries(AI_FEATURES.map(f => [f.id, s[`aiFeatureInstructions:${f.id}`] ?? ''])))
-      const keys = {
-        anthropic: s.aiAnthropicKey ?? '',
-        google:    s.aiGoogleKey ?? '',
-        groq:      s.aiGroqKey ?? s.groqApiKey ?? '',
-        openai:    s.aiOpenaiKey ?? '',
-      }
+      const keys: Record<string, string> = Object.fromEntries(
+        AI_PROVIDER_CATALOG.map(p => [p.id, s[p.keySetting!] ?? (p.id === 'groq' ? s.groqApiKey ?? '' : '') ?? ''])
+      )
+      const customs = parseCustomProviders(s.aiCustomProviders)
+      setAiCustoms(customs)
       setAutolinksRaw(s.autolinks ?? '')
       const token = s.githubToken ?? ''
       setGhEnterpriseHost(s.githubEnterpriseHost ?? '')
@@ -542,11 +555,13 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
         provider: ((s.aiDefaultProvider ?? '').trim() || provider) as AIProvider,
         model: (s.aiDefaultModel ?? '').trim() || legacyModels[provider],
       })
-      // Every connected provider fetches its list — the selects are grouped
-      // across all of them, not scoped to an active one.
-      for (const p of ['anthropic', 'google', 'groq', 'openai'] as AIProvider[]) {
-        if (keys[p]) fetchModels(p, keys[p])
+      // Every usable provider fetches its list — the pickers are grouped
+      // across all of them. Keyless customs fetch too: reaching /models is
+      // exactly what CONNECTED means for a local runtime.
+      for (const p of AI_PROVIDER_CATALOG) {
+        if (keys[p.id]) fetchModels(p.id, keys[p.id])
       }
+      for (const c of customs) fetchModels(c.id, c.key ?? '', c.baseUrl)
     })
 
     // Listen for OAuth callback result from main process
@@ -696,18 +711,21 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
   const saveAI = async () => {
     // Every key — a credential belongs to its provider, not to a selection.
-    for (const p of ['anthropic', 'google', 'groq', 'openai'] as AIProvider[]) {
-      const cap = p.charAt(0).toUpperCase() + p.slice(1)
-      await window.gitAPI.settingsSet(`ai${cap}Key`, aiKeys[p])
+    for (const p of AI_PROVIDER_CATALOG) {
+      await window.gitAPI.settingsSet(p.keySetting!, aiKeys[p.id] ?? '')
     }
-    await window.gitAPI.settingsSet('groqApiKey', aiKeys.groq)
+    await window.gitAPI.settingsSet('groqApiKey', aiKeys.groq ?? '')
+    // The customs travel whole — key included — in one JSON blob (#169).
+    await window.gitAPI.settingsSet('aiCustomProviders', JSON.stringify(
+      aiCustoms.map(c => ({ id: c.id, label: c.label, baseUrl: c.baseUrl, key: c.key ?? '' }))
+    ))
     await window.gitAPI.settingsSet('aiDefaultProvider', aiDefault.provider)
     await window.gitAPI.settingsSet('aiDefaultModel', aiDefault.model)
     // The legacy mirror, so anything still reading the old vocabulary keeps
     // answering with the default the user just chose.
-    const dcap = aiDefault.provider.charAt(0).toUpperCase() + aiDefault.provider.slice(1)
+    const defDef = AI_PROVIDER_CATALOG.find(p => p.id === aiDefault.provider)
     await window.gitAPI.settingsSet('aiProvider', aiDefault.provider)
-    await window.gitAPI.settingsSet(`ai${dcap}Model`, aiDefault.model)
+    if (defDef?.legacyModelSetting) await window.gitAPI.settingsSet(defDef.legacyModelSetting, aiDefault.model)
     await window.gitAPI.settingsSet('aiGlobalInstructions', aiGlobalInstr)
     for (const f of AI_FEATURES) {
       const sel = aiFeatSel[f.id]
@@ -1215,22 +1233,19 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                             value={key}
                             onChange={e => setAiKeys(k => ({ ...k, [p.id]: e.target.value }))}
                             onBlur={e => { if (e.target.value) fetchModels(p.id, e.target.value) }}
-                            placeholder={
-                              p.id === 'anthropic' ? 'sk-ant-...' :
-                              p.id === 'google'    ? 'AIza...' :
-                              p.id === 'openai'    ? 'sk-...' :
-                              'gsk_...'
-                            }
+                            placeholder={p.keyPlaceholder}
                           />
                           <button className="stg-eye" onClick={() => setShowKeyFor(v => v === p.id ? null : p.id)}
                             title={showKeyFor === p.id ? t('settings.ai.hide') : t('settings.ai.show')}>
                             {showKeyFor === p.id ? '🙈' : '👁'}
                           </button>
                         </div>
-                        <button className="stg-tuto-toggle" onClick={() => setShowTutoFor(v => v === p.id ? null : p.id)}>
-                          {showTutoFor === p.id ? '▾' : '▸'} {t('settings.ai.howToKey')}{p.label}
-                        </button>
-                        {showTutoFor === p.id && (
+                        {p.hasTuto && (
+                          <button className="stg-tuto-toggle" onClick={() => setShowTutoFor(v => v === p.id ? null : p.id)}>
+                            {showTutoFor === p.id ? '▾' : '▸'} {t('settings.ai.howToKey')}{p.label}
+                          </button>
+                        )}
+                        {p.hasTuto && showTutoFor === p.id && (
                           <div className="stg-tuto">
                             <ol className="stg-tuto-steps">
                               {(t(`settings.ai.tuto.${p.id}` as any) as unknown as string[]).map((step: string, i: number) => <li key={i}>{step}</li>)}
@@ -1241,10 +1256,82 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     )
                   })}
                 </div>
+                {/* ── Custom endpoints — the local story (#169). Anything
+                    speaking the OpenAI dialect: an Ollama, an LM Studio, a
+                    gateway. Keyless is normal here; reaching /models is what
+                    CONNECTED means for a runtime that has no key to give. */}
+                <h3 className="stg-ai-h">{t('settings.ai.customTitle')}</h3>
+                <p className="stg-desc">{t('settings.ai.customDesc')}</p>
+                {aiCustoms.length > 0 && (
+                  <div className="stg-ai-providers">
+                    {aiCustoms.map((c, i) => {
+                      const models = liveModels[c.id]
+                      return (
+                        <div key={c.id} className="stg-ai-provider">
+                          <div className="stg-ai-provider-head">
+                            <input
+                              className="stg-input stg-ai-custom-name"
+                              value={c.label}
+                              aria-label={t('settings.ai.customName')}
+                              onChange={e => setAiCustoms(a => a.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
+                            />
+                            <span className={`stg-ai-provider-status${models ? ' stg-ai-provider-status--on' : ''}`}>
+                              {models ? t('settings.ai.modelsCount', models.length)
+                                : loadingModels ? '…' : t('settings.ai.notReached')}
+                            </span>
+                          </div>
+                          <input
+                            className="stg-input stg-mono"
+                            value={c.baseUrl ?? ''}
+                            aria-label={t('settings.ai.customUrl')}
+                            placeholder="http://localhost:11434/v1"
+                            onChange={e => setAiCustoms(a => a.map((x, j) => j === i ? { ...x, baseUrl: e.target.value } : x))}
+                            onBlur={() => { if (c.baseUrl) fetchModels(c.id, c.key ?? '', c.baseUrl) }}
+                          />
+                          <input
+                            className="stg-input stg-mono"
+                            type="password"
+                            value={c.key ?? ''}
+                            aria-label={t('settings.ai.customKeyOptional')}
+                            placeholder={t('settings.ai.customKeyOptional')}
+                            onChange={e => setAiCustoms(a => a.map((x, j) => j === i ? { ...x, key: e.target.value } : x))}
+                            onBlur={() => { if (c.baseUrl) fetchModels(c.id, c.key ?? '', c.baseUrl) }}
+                          />
+                          <button
+                            className="stg-tuto-toggle"
+                            onClick={() => setAiCustoms(a => a.filter((_, j) => j !== i))}
+                          >{t('settings.ai.customRemove')}</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                <div className="stg-ai-chips">
+                  {AI_LOCAL_PRESETS.map(pr => (
+                    <button key={pr.label} type="button" className="stg-ai-chip" aria-label={pr.label}
+                      onClick={() => setAiCustoms(a => [...a, {
+                        id: makeCustomId(pr.label, a), label: pr.label, dialect: 'openai-compat',
+                        baseUrl: pr.baseUrl, key: '', custom: true,
+                      }])}>+ {pr.label}</button>
+                  ))}
+                  <button type="button" className="stg-ai-chip" aria-label={t('settings.ai.customAdd')}
+                    onClick={() => setAiCustoms(a => [...a, {
+                      id: makeCustomId('endpoint', a), label: '', dialect: 'openai-compat',
+                      baseUrl: '', key: '', custom: true,
+                    }])}>+ {t('settings.ai.customAdd')}</button>
+                </div>
+
                 {modelsError && <span className="stg-models-error">{modelsError}</span>}
 
                 {(() => {
-                  const anyConnected = AI_PROVIDERS.some(p => aiKeys[p.id]?.trim())
+                  // Usable = a catalog entry with its key, or any custom —
+                  // local runtimes are keyless, their /models answer is the
+                  // connection (#169).
+                  const usableProviders = [
+                    ...AI_PROVIDERS.filter(p => aiKeys[p.id]?.trim()),
+                    ...aiCustoms,
+                  ].map(p => ({ id: p.id, label: p.label }))
+                  const anyConnected = usableProviders.length > 0
                   const orphanWarn = (pair: AIPair | null) =>
                     pair && !aiKeys[pair.provider]?.trim()
                       ? <span className="stg-ai-warn">{t('settings.ai.keyMissing')}</span>
@@ -1258,7 +1345,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         <label className="stg-field stg-ai-model">
                           <span>{t('settings.ai.defaultModelLabel')}</span>
                           <ModelSelect value={aiDefault} onChange={v => { if (v) setAiDefault(v) }}
-                            keys={aiKeys} liveModels={liveModels} />
+                            providers={usableProviders} liveModels={liveModels} />
                           {orphanWarn(aiDefault)}
                         </label>
                         <label className="stg-field">
@@ -1294,7 +1381,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                               defaultModel={aiDefault.model}
                               suggest={f.kind === 'thorough' ? 'reasoning' : f.kind === 'fast' ? 'fast' : undefined}
                               suggestLabel={t('settings.ai.suggested')}
-                              keys={aiKeys} liveModels={liveModels} />
+                              providers={usableProviders} liveModels={liveModels} />
                             {orphanWarn(aiFeatSel[f.id] ?? null)}
                           </label>
                           <label className="stg-field">

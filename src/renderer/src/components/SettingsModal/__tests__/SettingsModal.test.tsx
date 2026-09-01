@@ -428,12 +428,27 @@ describe('SettingsModal — per-feature AI overrides', () => {
     expect(document.querySelector('.stg-msel-list')).toBeNull()
   })
 
-  test('the providers zone lists all four, keyed or not', async () => {
+  test('the providers zone lists the whole catalog, keyed or not', async () => {
     await open()
-    for (const name of ['Anthropic (Claude)', 'Google (Gemini)', 'Groq', 'OpenAI']) {
+    for (const name of ['Anthropic (Claude)', 'Google (Gemini)', 'Groq', 'OpenAI',
+      'Mistral', 'DeepSeek', 'xAI (Grok)', 'OpenRouter']) {
       expect(screen.getByText(name)).toBeInTheDocument()
     }
-    // three have no key and say so; none of them is an "active" anything
-    expect(screen.getAllByText('No key').length).toBeGreaterThanOrEqual(3)
+    // none of them is an "active" anything — the unkeyed just say so
+    expect(screen.getAllByText('No key').length).toBeGreaterThanOrEqual(7)
+  })
+
+  test('the Ollama preset writes a keyless custom endpoint into the settings', async () => {
+    const mock = await open()
+    await userEvent.click(screen.getByRole('button', { name: 'Ollama' }))
+    // the card arrives with the runtime's own URL, nothing to type
+    expect(screen.getByDisplayValue('http://localhost:11434/v1')).toBeInTheDocument()
+    // keyless is normal here — the card says it has not been reached, not that a key is missing
+    expect(screen.getByText('Not reached yet')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Save'))
+    await waitFor(() => expect(mock.settingsSet).toHaveBeenCalledWith('aiCustomProviders',
+      expect.stringContaining('"baseUrl":"http://localhost:11434/v1"')))
+    const blob = (mock.settingsSet as jest.Mock).mock.calls.find(c => c[0] === 'aiCustomProviders')![1]
+    expect(JSON.parse(blob)[0]).toEqual(expect.objectContaining({ id: 'custom-ollama', label: 'Ollama', key: '' }))
   })
 })
