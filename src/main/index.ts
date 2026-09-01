@@ -1568,20 +1568,37 @@ export type AIFeature = 'commit' | 'explain' | 'conflict' | 'search' | 'filter' 
 
 async function runAIPrompt(prompt: string, maxTokens = 512, feature?: AIFeature): Promise<{ text?: string; error?: string }> {
   const s = readSettings()
-  const provider = s.aiProvider ?? 'groq'
   const keyMap: Record<string, string> = { anthropic: 'aiAnthropicKey', google: 'aiGoogleKey', groq: 'aiGroqKey', openai: 'aiOpenaiKey' }
+  // backward compat: groqApiKey was the old key
+  const keyFor = (p: string) => s[keyMap[p] ?? ''] ?? (p === 'groq' ? s.groqApiKey : '') ?? ''
   const modelMap: Record<string, string> = {
     anthropic: s.aiAnthropicModel || 'claude-haiku-4-5-20251001',
     google:    s.aiGoogleModel    || 'gemini-2.0-flash',
     groq:      s.aiGroqModel      || 'llama-3.3-70b-versatile',
     openai:    s.aiOpenaiModel    || 'gpt-4o-mini',
   }
-  // backward compat: groqApiKey was the old key
-  const apiKey = s[keyMap[provider] ?? 'aiGroqKey'] ?? (provider === 'groq' ? s.groqApiKey : '') ?? ''
-  // A feature's own model wins over the provider's global one (#70) — within
-  // the active provider: the key entered is the provider's, so a per-feature
-  // provider would be a per-feature credential, which is a different feature.
-  const model = (feature && (s[`aiFeatureModel:${feature}`] ?? '').trim()) || modelMap[provider]
+  // There is no ACTIVE provider any more (#70 rework): a provider with a key
+  // is connected, and every choice carries its own (provider, model) pair —
+  // a model id alone is ambiguous across providers. Resolution, most specific
+  // first, and a pair whose provider lost its key falls through rather than
+  // calling with an empty credential:
+  //   1. the feature's own pair;
+  //   2. a legacy feature model without a provider (written before the rework)
+  //      read against the legacy provider;
+  //   3. the default pair;
+  //   4. the legacy aiProvider + its per-provider model.
+  const trimmed = (v: unknown) => typeof v === 'string' ? v.trim() : ''
+  const legacyProvider = s.aiProvider ?? 'groq'
+  const fp = feature ? trimmed(s[`aiFeatureProvider:${feature}`]) : ''
+  const fm = feature ? trimmed(s[`aiFeatureModel:${feature}`]) : ''
+  let provider: string
+  let model: string
+  if (fp && fm && keyFor(fp)) { provider = fp; model = fm }
+  else if (!fp && fm && keyFor(legacyProvider)) { provider = legacyProvider; model = fm }
+  else if (trimmed(s.aiDefaultProvider) && trimmed(s.aiDefaultModel) && keyFor(trimmed(s.aiDefaultProvider))) {
+    provider = trimmed(s.aiDefaultProvider); model = trimmed(s.aiDefaultModel)
+  } else { provider = legacyProvider; model = modelMap[legacyProvider] }
+  const apiKey = keyFor(provider)
   // The user's standing instructions ride every prompt — global first, the
   // feature's own after, both AFTER the format rules so a wish cannot unsay
   // a contract (and the checked outputs are still checked).

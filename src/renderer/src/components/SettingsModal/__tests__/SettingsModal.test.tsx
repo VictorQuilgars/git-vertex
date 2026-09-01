@@ -385,6 +385,24 @@ describe('SettingsModal — per-feature AI overrides', () => {
     await userEvent.click(screen.getByText('Save'))
     await waitFor(() => expect(mock.settingsSet).toHaveBeenCalledWith('aiGlobalInstructions', 'No exclamation marks.'))
     expect(mock.settingsSet).toHaveBeenCalledWith('aiFeatureInstructions:explain', 'Focus on the why.')
+    // A choice is a PAIR — model and the provider whose key it runs on — and
+    // no choice writes both halves empty.
     expect(mock.settingsSet).toHaveBeenCalledWith('aiFeatureModel:commit', '')
+    expect(mock.settingsSet).toHaveBeenCalledWith('aiFeatureProvider:commit', '')
+    expect(mock.settingsSet).toHaveBeenCalledWith('aiDefaultProvider', expect.any(String))
+    expect(mock.settingsSet).toHaveBeenCalledWith('aiDefaultModel', expect.any(String))
+    // every credential is written — a key belongs to its provider, not to a
+    // selection — and the legacy mirror keeps old readers answering.
+    expect(mock.settingsSet).toHaveBeenCalledWith('aiAnthropicKey', '')
+    expect(mock.settingsSet).toHaveBeenCalledWith('aiProvider', expect.any(String))
+  })
+
+  test('the providers zone lists all four, keyed or not', async () => {
+    await open()
+    for (const name of ['Anthropic (Claude)', 'Google (Gemini)', 'Groq', 'OpenAI']) {
+      expect(screen.getByText(name)).toBeInTheDocument()
+    }
+    // three have no key and say so; none of them is an "active" anything
+    expect(screen.getAllByText('No key').length).toBeGreaterThanOrEqual(3)
   })
 })
