@@ -567,8 +567,36 @@
   resize: vertical; font-family: inherit; line-height: 1.4;
   width: 100%; max-width: 820px; min-height: 72px;
 }
+/* Rules between AI sections take a tone of their own — the controls' borders
+   already own --border-muted/-default, and a rule that matches a fieldbox
+   edge separates nothing (Victor's call). */
+.stg-ai-rule-color { /* documentation anchor — the mix below is the rule */ }
+.stg-ai-providers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-lg);
+  max-width: 980px;
+}
+.stg-ai-provider {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-sm);
+}
+.stg-ai-provider-head { display: flex; align-items: center; justify-content: space-between; }
+.stg-ai-provider-name { font-weight: var(--weight-semibold); }
+.stg-ai-provider-status {
+  font-size: var(--text-tiny);
+  color: var(--text-tertiary);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-lg);
+  padding: var(--space-px) var(--space-sm);
+}
+.stg-ai-provider-status--on { color: var(--success); }
+.stg-ai-warn { color: var(--attention); font-size: var(--text-xs); }
+.stg-ai-dim { opacity: var(--alpha-half); pointer-events: none; }
 .stg-ai-block {
-  border-top: 1px solid var(--border-muted);
+  border-top: 1px solid color-mix(in srgb, var(--text-tertiary) 35%, transparent);
   margin-top: var(--space-2xl);
   padding-top: var(--space-xl);
   display: flex; flex-direction: column; gap: var(--space-md);

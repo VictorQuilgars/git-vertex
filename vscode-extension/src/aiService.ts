@@ -42,18 +42,33 @@ function userSetting(cfg: vscode.WorkspaceConfiguration, key: string): string | 
 export function readAIConfig(state: vscode.Memento, feature?: AIFeature): AIConfig | null {
   const cfg = vscode.workspace.getConfiguration('gitVertex')
   const gv = state.get<Record<string, string>>('gvSettings', {})
-  const provider = (userSetting(cfg, 'aiProvider') || gv.aiProvider || 'groq').toLowerCase()
-  const apiKey = userSetting(cfg, 'aiApiKey')
-    || gv[KEY_SETTING[provider] ?? 'aiGroqKey']
-    || (provider === 'groq' ? gv.groqApiKey : '')
-    || ''
-  // A feature's own model wins within the active provider (#70); the VS Code
-  // setting keeps its precedence as the editor-level override it always was.
-  const model = userSetting(cfg, 'aiModel')
-    || (feature ? (gv[`aiFeatureModel:${feature}`] ?? '').trim() : '')
-    || gv[MODEL_SETTING[provider] ?? '']
-    || MODEL_DEFAULTS[provider]
-    || MODEL_DEFAULTS.groq
+  const trimmed = (v: unknown) => typeof v === 'string' ? v.trim() : ''
+  const keyFor = (p: string) =>
+    gv[KEY_SETTING[p] ?? ''] || (p === 'groq' ? gv.groqApiKey : '') || ''
+  const legacyProvider = (gv.aiProvider || 'groq').toLowerCase()
+
+  // The desktop's resolution (#70 rework): no active provider — every choice
+  // carries its own (provider, model) pair, and a pair whose provider lost
+  // its key falls through. The VS Code settings, when the USER set them, stay
+  // the editor-level pin they always were and shortcut everything.
+  let provider: string
+  let model: string
+  const pinnedProvider = userSetting(cfg, 'aiProvider')?.toLowerCase()
+  const pinnedModel = userSetting(cfg, 'aiModel')
+  const fp = feature ? trimmed(gv[`aiFeatureProvider:${feature}`]) : ''
+  const fm = feature ? trimmed(gv[`aiFeatureModel:${feature}`]) : ''
+  if (pinnedModel) {
+    provider = pinnedProvider || legacyProvider
+    model = pinnedModel
+  } else if (fp && fm && keyFor(fp)) { provider = fp; model = fm }
+  else if (!fp && fm && keyFor(legacyProvider)) { provider = legacyProvider; model = fm }
+  else if (trimmed(gv.aiDefaultProvider) && trimmed(gv.aiDefaultModel) && keyFor(trimmed(gv.aiDefaultProvider))) {
+    provider = trimmed(gv.aiDefaultProvider); model = trimmed(gv.aiDefaultModel)
+  } else {
+    provider = pinnedProvider || legacyProvider
+    model = gv[MODEL_SETTING[provider] ?? ''] || MODEL_DEFAULTS[provider] || MODEL_DEFAULTS.groq
+  }
+  const apiKey = userSetting(cfg, 'aiApiKey') || keyFor(provider)
   if (!apiKey) return null
   const extras = [gv.aiGlobalInstructions, feature ? gv[`aiFeatureInstructions:${feature}`] : '']
     .map(x => (x ?? '').trim()).filter(Boolean)
