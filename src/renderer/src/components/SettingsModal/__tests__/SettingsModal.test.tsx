@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SettingsModal from '../SettingsModal'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
@@ -404,6 +404,28 @@ describe('SettingsModal — per-feature AI overrides', () => {
     expect(screen.getAllByText(/a fast, small model shines here/).length).toBe(3)
     expect(screen.getAllByText(/earns its cost here/).length).toBe(3)
     expect(screen.getAllByText(/mid-tier model does well/).length).toBe(1)
+  })
+
+  test('the picker wears the characteristics as badges, and suggests by temperament', async () => {
+    await open({
+      settingsGetAll: jest.fn().mockResolvedValue({ aiGroqKey: 'gsk_x' }),
+      aiListProviderModels: jest.fn().mockResolvedValue({
+        models: ['openai/gpt-oss-120b', 'llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
+      }),
+    })
+    // the commit feature rewards fast models — open its picker
+    const faces = screen.getAllByText(/^Global model \(/)
+    await userEvent.click(faces[1])   // [0] is the defaults zone… no: zone 2 has no defaultLabel; [0] = commit
+    const list = document.querySelector('.stg-msel-list')!
+    expect(list.textContent).toContain('Suggested for this feature')
+    // characteristics are BADGES now, not suffix text — coloured, countable
+    expect(list.querySelectorAll('.stg-kind--fast').length).toBeGreaterThan(0)
+    expect(list.querySelectorAll('.stg-kind--reasoning').length).toBeGreaterThan(0)
+    // the unlabelled id wears nothing
+    expect(list.textContent).toContain('llama-3.3-70b-versatile')
+    // picking writes the pair onto the face
+    await userEvent.click(within(list as HTMLElement).getByText('llama-3.1-8b-instant'))
+    expect(document.querySelector('.stg-msel-list')).toBeNull()
   })
 
   test('the providers zone lists all four, keyed or not', async () => {

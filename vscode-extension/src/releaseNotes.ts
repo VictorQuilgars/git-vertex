@@ -19,7 +19,7 @@ export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
 ### 🎛 A model and instructions per AI feature
-- **Each feature says which temperament it rewards** — fast for the one-liners, reasoning for the readers — with tagged models and a *Suggested* group drawn from your providers' live lists.
+- **Each feature says which temperament it rewards** — fast for the one-liners, reasoning for the readers — with the characteristics worn as **coloured badges** on the picker and its rows, and a *Suggested* group drawn from your providers' live lists.
 - Settings › AI is three zones: **Providers & keys** (each of the four holds its own credential and reports its state), **Defaults** (one model across every connected provider, plus standing instructions and chips), and **a section per feature** — whose model can come from a different provider than the next one's.
 - Instructions land AFTER each prompt's rules; checked outputs stay checked. Empty = the global setting, and a folded override says *customised*.
 

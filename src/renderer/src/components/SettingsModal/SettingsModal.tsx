@@ -172,11 +172,30 @@ interface AIPair { provider: AIProvider; model: string }
  * exists for. A pair whose provider lost its key still shows (orphaned, so
  * the user sees what will stop working); the caller draws the warning.
  */
-function ModelSelect({ value, onChange, defaultLabel, keys, liveModels, suggest, suggestLabel }: {
+/** The characteristic a model id gives away, worn as a coloured badge —
+    reasoning in the AI ink (it is the model thinking), fast in the doing
+    green. Unlabelled ids wear nothing: the heuristic never guesses. */
+function KindBadge({ id }: { id: string }) {
+  const k = modelKind(id)
+  if (!k) return null
+  return <span className={`stg-kind stg-kind--${k}`}>{k}</span>
+}
+
+/**
+ * One picker over EVERY connected provider — our own dropdown, not a native
+ * select, because the characteristics have to READ: an <option> cannot wear
+ * a badge, and "· reasoning" as plain text was exactly as visible as it
+ * sounds. Groups per provider, the Suggested section first where a caller
+ * declares a temperament, the current pick badged on the face itself. Same
+ * closing contract as the composer's pickers: focus leaves, it closes.
+ */
+function ModelSelect({ value, onChange, defaultLabel, defaultModel, keys, liveModels, suggest, suggestLabel }: {
   value: AIPair | null
   onChange: (v: AIPair | null) => void
   /** Present ⇒ an empty choice is offered, reading as the default it falls to. */
   defaultLabel?: string
+  /** The model the empty choice falls to — so its badge can be worn too. */
+  defaultModel?: string
   keys: Record<AIProvider, string>
   liveModels: Record<AIProvider, string[] | null>
   /** The kind of model this caller rewards — heads the list with live
@@ -184,47 +203,72 @@ function ModelSelect({ value, onChange, defaultLabel, keys, liveModels, suggest,
   suggest?: 'reasoning' | 'fast'
   suggestLabel?: string
 }) {
+  const [open, setOpen] = useState(false)
   const connected = AI_PROVIDERS.filter(p => keys[p.id]?.trim())
   const orphan = value && !keys[value.provider]?.trim()
     ? AI_PROVIDERS.find(p => p.id === value.provider) : null
-  const enc = value ? `${value.provider}:${value.model}` : ''
-  // The id says what it can — reasoning models think before a one-liner,
-  // fast ones do not — and the label carries it so a pick is informed.
-  const tag = (m: string) => { const k = modelKind(m); return k ? `${m} · ${k}` : m }
   const suggested = suggest
     ? connected.flatMap(p => (liveModels[p.id] ?? [])
         .filter(m => modelKind(m) === suggest)
         .map(m => ({ p: p.id as AIProvider, m })))
       .slice(0, 6)
     : []
+  const pick = (v: AIPair | null) => { onChange(v); setOpen(false) }
+  const row = (p: AIProvider, m: string, keyPrefix = '') => {
+    const on = value?.provider === p && value?.model === m
+    return (
+      <button key={`${keyPrefix}${p}-${m}`} type="button" role="option" aria-selected={on}
+        className={`stg-msel-row${on ? ' stg-msel-row--on' : ''}`}
+        onMouseDown={e => { e.preventDefault(); pick({ provider: p, model: m }) }}>
+        <span className="stg-msel-name">{m}</span>
+        <KindBadge id={m} />
+        {on && <span className="stg-msel-check">✓</span>}
+      </button>
+    )
+  }
   return (
-    <select className="stg-input stg-mono" value={enc}
-      onChange={e => {
-        const v = e.target.value
-        if (!v) { onChange(null); return }
-        const i = v.indexOf(':')
-        onChange({ provider: v.slice(0, i) as AIProvider, model: v.slice(i + 1) })
-      }}>
-      {defaultLabel !== undefined && <option value="">{defaultLabel}</option>}
-      {suggested.length > 0 && (
-        <optgroup label={suggestLabel ?? ''}>
-          {suggested.map(({ p, m }) => <option key={`s-${p}-${m}`} value={`${p}:${m}`}>{tag(m)}</option>)}
-        </optgroup>
-      )}
-      {connected.map(p => (
-        <optgroup key={p.id} label={p.label}>
-          {(liveModels[p.id] ?? []).map(m => <option key={m} value={`${p.id}:${m}`}>{tag(m)}</option>)}
-          {value?.provider === p.id && !(liveModels[p.id] ?? []).includes(value.model) && (
-            <option value={`${p.id}:${value.model}`}>{value.model}</option>
+    <div className="stg-msel"
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false) }}>
+      <button type="button" className="stg-input stg-mono stg-msel-face" aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        onKeyDown={e => { if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false) } }}>
+        <span className="stg-msel-name">{value ? value.model : defaultLabel}</span>
+        <KindBadge id={value ? value.model : (defaultModel ?? '')} />
+        <span className="stg-msel-caret">▾</span>
+      </button>
+      {open && (
+        <div className="stg-msel-list" role="listbox">
+          {defaultLabel !== undefined && (
+            <button type="button" role="option" aria-selected={value === null}
+              className={`stg-msel-row${value === null ? ' stg-msel-row--on' : ''}`}
+              onMouseDown={e => { e.preventDefault(); pick(null) }}>
+              <span className="stg-msel-name">{defaultLabel}</span>
+              {defaultModel && <KindBadge id={defaultModel} />}
+              {value === null && <span className="stg-msel-check">✓</span>}
+            </button>
           )}
-        </optgroup>
-      ))}
-      {orphan && value && (
-        <optgroup label={orphan.label}>
-          <option value={`${value.provider}:${value.model}`}>{value.model}</option>
-        </optgroup>
+          {suggested.length > 0 && (
+            <>
+              <div className="stg-msel-group">{suggestLabel}</div>
+              {suggested.map(({ p, m }) => row(p, m, 's-'))}
+            </>
+          )}
+          {connected.map(p => (
+            <React.Fragment key={p.id}>
+              <div className="stg-msel-group">{p.label}</div>
+              {(liveModels[p.id] ?? []).map(m => row(p.id, m))}
+              {value?.provider === p.id && !(liveModels[p.id] ?? []).includes(value.model) && row(p.id, value.model, 'x-')}
+            </React.Fragment>
+          ))}
+          {orphan && value && (
+            <>
+              <div className="stg-msel-group">{orphan.label}</div>
+              {row(value.provider, value.model, 'o-')}
+            </>
+          )}
+        </div>
       )}
-    </select>
+    </div>
   )
 }
 
@@ -1247,6 +1291,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                               value={aiFeatSel[f.id] ?? null}
                               onChange={v => setAiFeatSel(m => ({ ...m, [f.id]: v }))}
                               defaultLabel={t('settings.ai.defaultModel', aiDefault.model)}
+                              defaultModel={aiDefault.model}
                               suggest={f.kind === 'thorough' ? 'reasoning' : f.kind === 'fast' ? 'fast' : undefined}
                               suggestLabel={t('settings.ai.suggested')}
                               keys={aiKeys} liveModels={liveModels} />
