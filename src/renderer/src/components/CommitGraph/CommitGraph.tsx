@@ -817,18 +817,57 @@ export default function CommitGraph({
   const [dragBranch, setDragBranch] = useState<string | null>(null)
   const [dragOverRow, setDragOverRow] = useState<number | null>(null)
   const [drop, setDrop] = useState<DropState | null>(null)
-  const [refExpand, setRefExpand] = useState<{ row: number; rect: DOMRect } | null>(null)
+  // Which chip the "+N" panel hangs from — by hash, so a filter or a refresh
+  // that moves rows cannot hand the panel to a stranger under a stale anchor.
+  const [refExpand, setRefExpand] = useState<{ hash: string; row: number; rect: DOMRect } | null>(null)
   const refExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // The panel is anchored to where its chip WAS. A scroll, a resize or a
-  // selection — the details panel opening reflows the columns — moves the
-  // chip out from under it; the panel goes rather than float where nothing
-  // is, which is how it used to outlive the pointer.
+  // A panel opens on a REST, not on an entry: the pointer has to stay on the
+  // chip a moment. Crossing the refs column — every row has a hittable chip
+  // now, ghosts included — used to open a panel on each row it passed.
+  const refOpenTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // When the graph last scrolled. After a scroll the browser re-hovers
+  // whatever landed under the STILL pointer and fires mouseenter for it —
+  // a hover the scroll made, not the hand. Nothing opens inside this window.
+  const lastScrollAt = useRef(0)
+  useEffect(() => {
+    const on = () => {
+      lastScrollAt.current = Date.now()
+      // An opening in flight was asked for by a chip that has just moved.
+      if (refOpenTimer.current) { clearTimeout(refOpenTimer.current); refOpenTimer.current = null }
+    }
+    window.addEventListener('scroll', on, true)
+    return () => window.removeEventListener('scroll', on, true)
+  }, [])
+  // The panel lives exactly as long as the pointer is on its chip or on it.
+  // Not by mouseleave — which never comes when the thing under the pointer
+  // is re-rendered, removed or scrolled away, and that is how the panel used
+  // to outlive the pointer — but by POSITION: every move of the pointer
+  // outside the box that holds the chip and the panel closes it. A scroll,
+  // a resize, a selection (the details panel reflows the columns) and a
+  // layout that moved or lost the chip's row close it too, pointer still.
   useEffect(() => {
     if (!refExpand) return
     const off = () => setRefExpand(null)
+    const onMove = (e: MouseEvent) => {
+      const chip = document.querySelector('.cg-refs-chips--open')
+      const panel = document.querySelector('.ref-expansion-popup')
+      const rects = [chip, panel].filter((el): el is Element => !!el).map(el => el.getBoundingClientRect())
+      if (rects.length === 0) { off(); return }
+      const pad = 8
+      const box = {
+        left: Math.min(...rects.map(r => r.left)) - pad, right: Math.max(...rects.map(r => r.right)) + pad,
+        top: Math.min(...rects.map(r => r.top)) - pad, bottom: Math.max(...rects.map(r => r.bottom)) + pad,
+      }
+      if (e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom) off()
+    }
+    window.addEventListener('mousemove', onMove)
     window.addEventListener('scroll', off, true)
     window.addEventListener('resize', off)
-    return () => { window.removeEventListener('scroll', off, true); window.removeEventListener('resize', off) }
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('scroll', off, true)
+      window.removeEventListener('resize', off)
+    }
   }, [refExpand])
   useEffect(() => { setRefExpand(null) }, [selectedHash])
   const hoverDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1256,6 +1295,15 @@ export default function CommitGraph({
     if (lead < 0) return { prefs: own, ghost: false }
     return { prefs: [all[lead], ...all.filter((_, i) => i !== lead)], ghost: true }
   }, [byHash, ghostLead, hiddenChip])
+
+  // The chip's row moved, or is gone (a filter, a refresh): the anchor is
+  // stale, and a panel shown again when the row comes back would be a panel
+  // the pointer never asked for.
+  useEffect(() => {
+    if (!refExpand) return
+    const c = byHash.get(refExpand.hash)
+    if (!c || c.row !== refExpand.row) setRefExpand(null)
+  }, [refExpand, byHash])
 
   const [hoverHash, setHoverHash] = useState<string | null>(null)
   const hoverHighlight = useMemo(() => {
@@ -1911,24 +1959,46 @@ export default function CommitGraph({
                   {primary ? (
                     <>
                       <div
-                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.row === commit.row ? ' cg-refs-chips--open' : ''}`}
+                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.hash === commit.hash ? ' cg-refs-chips--open' : ''}`}
                         onMouseEnter={e => {
-                          // Highlight after 2s delay — avoids accidental triggers while scrolling
+                          // A hover the scroll made, not the hand: nothing starts.
+                          if (Date.now() - lastScrollAt.current < 300) return
+                          // Highlight after a delay — a rest, not a crossing
                           if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
                           hoverDelayTimer.current = setTimeout(() => setHoverHash(commit.hash), 1000)
                           if (stackCount < 1) return
                           if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
-                          if (refExpand?.row !== commit.row) {
+                          if (refExpand?.hash !== commit.hash) {
                             // Anchor on the CHIP, not on this wrapper: the wrapper
                             // also holds the "+N" badge, so using it made the panel
                             // wider than the name it sits under for no reason.
                             const el = e.currentTarget as HTMLElement
                             const chip = el.querySelector('.ref-chip') ?? el
-                            setRefExpand({ row: commit.row, rect: chip.getBoundingClientRect() })
+                            if (refOpenTimer.current) clearTimeout(refOpenTimer.current)
+                            refOpenTimer.current = setTimeout(() => {
+                              refOpenTimer.current = null
+                              // Asked before a scroll, firing after it: the chip moved.
+                              if (Date.now() - lastScrollAt.current < 300) return
+                              setRefExpand({ hash: commit.hash, row: commit.row, rect: chip.getBoundingClientRect() })
+                            }, 150)
                           }
+                        }}
+                        // After a scroll the pointer may already sit on a chip it
+                        // never entered: a real move on it counts as the entry.
+                        onMouseMove={e => {
+                          if (stackCount < 1 || refOpenTimer.current || refExpand?.hash === commit.hash) return
+                          if (Date.now() - lastScrollAt.current < 300) return
+                          const el = e.currentTarget as HTMLElement
+                          const chip = el.querySelector('.ref-chip') ?? el
+                          refOpenTimer.current = setTimeout(() => {
+                            refOpenTimer.current = null
+                            if (Date.now() - lastScrollAt.current < 300) return
+                            setRefExpand({ hash: commit.hash, row: commit.row, rect: chip.getBoundingClientRect() })
+                          }, 150)
                         }}
                         onMouseLeave={() => {
                           if (hoverDelayTimer.current) { clearTimeout(hoverDelayTimer.current); hoverDelayTimer.current = null }
+                          if (refOpenTimer.current) { clearTimeout(refOpenTimer.current); refOpenTimer.current = null }
                           setHoverHash(null)
                           refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
                         }}
@@ -1937,7 +2007,7 @@ export default function CommitGraph({
                           onDragStartBranch={setDragBranch}
                           onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
                           onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
-                        {stackCount > 0 && refExpand?.row !== commit.row && (
+                        {stackCount > 0 && (
                           <span className="rc-stack-badge">+{stackCount}</span>
                         )}
                       </div>
@@ -1950,24 +2020,46 @@ export default function CommitGraph({
                   {primary ? (
                     <>
                       <div
-                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.row === commit.row ? ' cg-refs-chips--open' : ''}`}
+                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.hash === commit.hash ? ' cg-refs-chips--open' : ''}`}
                         onMouseEnter={e => {
-                          // Highlight after 2s delay — avoids accidental triggers while scrolling
+                          // A hover the scroll made, not the hand: nothing starts.
+                          if (Date.now() - lastScrollAt.current < 300) return
+                          // Highlight after a delay — a rest, not a crossing
                           if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
                           hoverDelayTimer.current = setTimeout(() => setHoverHash(commit.hash), 1000)
                           if (stackCount < 1) return
                           if (refExpandTimer.current) clearTimeout(refExpandTimer.current)
-                          if (refExpand?.row !== commit.row) {
+                          if (refExpand?.hash !== commit.hash) {
                             // Anchor on the CHIP, not on this wrapper: the wrapper
                             // also holds the "+N" badge, so using it made the panel
                             // wider than the name it sits under for no reason.
                             const el = e.currentTarget as HTMLElement
                             const chip = el.querySelector('.ref-chip') ?? el
-                            setRefExpand({ row: commit.row, rect: chip.getBoundingClientRect() })
+                            if (refOpenTimer.current) clearTimeout(refOpenTimer.current)
+                            refOpenTimer.current = setTimeout(() => {
+                              refOpenTimer.current = null
+                              // Asked before a scroll, firing after it: the chip moved.
+                              if (Date.now() - lastScrollAt.current < 300) return
+                              setRefExpand({ hash: commit.hash, row: commit.row, rect: chip.getBoundingClientRect() })
+                            }, 150)
                           }
+                        }}
+                        // After a scroll the pointer may already sit on a chip it
+                        // never entered: a real move on it counts as the entry.
+                        onMouseMove={e => {
+                          if (stackCount < 1 || refOpenTimer.current || refExpand?.hash === commit.hash) return
+                          if (Date.now() - lastScrollAt.current < 300) return
+                          const el = e.currentTarget as HTMLElement
+                          const chip = el.querySelector('.ref-chip') ?? el
+                          refOpenTimer.current = setTimeout(() => {
+                            refOpenTimer.current = null
+                            if (Date.now() - lastScrollAt.current < 300) return
+                            setRefExpand({ hash: commit.hash, row: commit.row, rect: chip.getBoundingClientRect() })
+                          }, 150)
                         }}
                         onMouseLeave={() => {
                           if (hoverDelayTimer.current) { clearTimeout(hoverDelayTimer.current); hoverDelayTimer.current = null }
+                          if (refOpenTimer.current) { clearTimeout(refOpenTimer.current); refOpenTimer.current = null }
                           setHoverHash(null)
                           refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
                         }}
@@ -1976,7 +2068,7 @@ export default function CommitGraph({
                           onDragStartBranch={setDragBranch}
                           onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
                           onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
-                        {stackCount > 0 && refExpand?.row !== commit.row && (
+                        {stackCount > 0 && (
                           <span className="rc-stack-badge">+{stackCount}</span>
                         )}
                       </div>
@@ -2140,7 +2232,7 @@ export default function CommitGraph({
       })()}
 
       {refExpand && (() => {
-        const expandCommit = displayLayout.find(c => c.row === refExpand.row)
+        const expandCommit = byHash.get(refExpand.hash)
         if (!expandCommit) return null
         const hiddenPrefs = shownRefs(expandCommit).prefs.slice(1)
         if (hiddenPrefs.length === 0) return null

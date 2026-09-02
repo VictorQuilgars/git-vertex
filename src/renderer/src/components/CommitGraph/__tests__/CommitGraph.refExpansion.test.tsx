@@ -37,6 +37,12 @@ function render() {
   )
 }
 
+/** The panel, once its opening delay has passed. */
+async function findPanel(): Promise<HTMLElement> {
+  await waitFor(() => expect(document.querySelector('.ref-expansion-popup')).not.toBeNull())
+  return document.querySelector('.ref-expansion-popup') as HTMLElement
+}
+
 /** Force the anchor chip to sit at a chosen distance from the bottom. */
 function anchorAt(el: Element, top: number) {
   jest.spyOn(el, 'getBoundingClientRect').mockReturnValue({
@@ -73,6 +79,44 @@ describe('BRANCH/TAG — the panel behind "+N"', () => {
     await waitFor(() => expect(screen.queryByText('ext-v1.27.0')).not.toBeInTheDocument())
   })
 
+  // The contract is the pointer's POSITION, not a mouseleave that may never
+  // come: a move anywhere outside the chip and its panel closes it.
+  test('a move away from the chip and the panel closes it; a move within keeps it', async () => {
+    render()
+    const chip = await screen.findByText('v1.29.0')
+    await userEvent.hover(chip)
+    expect(await screen.findByText('ext-v1.27.0')).toBeInTheDocument()
+    // jsdom lays everything out at 0,0: a move at the origin is "within"
+    fireEvent.mouseMove(document.body, { clientX: 2, clientY: 2 })
+    expect(screen.getByText('ext-v1.27.0')).toBeInTheDocument()
+    fireEvent.mouseMove(document.body, { clientX: 900, clientY: 900 })
+    await waitFor(() => expect(screen.queryByText('ext-v1.27.0')).not.toBeInTheDocument())
+  })
+
+  test('the "+N" badge stays while the panel is open — the chip keeps its width under the pointer', async () => {
+    render()
+    const chip = await screen.findByText('v1.29.0')
+    expect(chip.closest('.cg-refs-chips')!.querySelector('.rc-stack-badge')).toHaveTextContent('+2')
+    await userEvent.hover(chip)
+    expect(await screen.findByText('ext-v1.27.0')).toBeInTheDocument()
+    expect(chip.closest('.cg-refs-chips')!.querySelector('.rc-stack-badge')).toHaveTextContent('+2')
+  })
+
+  // After a scroll the browser re-hovers whatever landed under the still
+  // pointer — a hover the scroll made. It must open nothing.
+  test('a hover right after a scroll opens nothing; one a moment later does', async () => {
+    render()
+    const chip = await screen.findByText('v1.29.0')
+    fireEvent.scroll(document.body)
+    await userEvent.hover(chip)
+    await new Promise(r => setTimeout(r, 250))
+    expect(screen.queryByText('ext-v1.27.0')).not.toBeInTheDocument()
+    await userEvent.unhover(chip)
+    await new Promise(r => setTimeout(r, 200))
+    await userEvent.hover(chip)
+    expect(await screen.findByText('ext-v1.27.0')).toBeInTheDocument()
+  })
+
   test('it opens below the chip when there is room', async () => {
     Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true })
     render()
@@ -80,7 +124,7 @@ describe('BRANCH/TAG — the panel behind "+N"', () => {
     anchorAt(chip.closest('.ref-chip')!, 100)
     await userEvent.hover(chip)
 
-    const panel = await waitFor(() => document.querySelector('.ref-expansion-popup') as HTMLElement)
+    const panel = await findPanel()
     expect(panel.style.top).toBe('124px')      // anchor.bottom + 4
     expect(panel.style.bottom).toBe('')
   })
@@ -93,7 +137,7 @@ describe('BRANCH/TAG — the panel behind "+N"', () => {
     anchorAt(chip.closest('.ref-chip')!, 100)
     await userEvent.hover(chip)
 
-    const panel = await waitFor(() => document.querySelector('.ref-expansion-popup') as HTMLElement)
+    const panel = await findPanel()
     expect(panel.style.minWidth).toBe('100px')   // the chip's width, from anchorAt
     expect(panel.style.left).toBe('40px')        // and its left edge
   })
@@ -107,7 +151,7 @@ describe('BRANCH/TAG — the panel behind "+N"', () => {
     anchorAt(chip.closest('.ref-chip')!, 280)
     await userEvent.hover(chip)
 
-    const panel = await waitFor(() => document.querySelector('.ref-expansion-popup') as HTMLElement)
+    const panel = await findPanel()
     await waitFor(() => expect(panel.style.bottom).not.toBe(''))
     expect(panel.style.top).toBe('')
   })
