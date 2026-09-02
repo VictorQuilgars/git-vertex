@@ -67,6 +67,10 @@ describe('the ghost ref — which line a commit is on', () => {
     expect(await screen.findByText('v2.0.0')).toBeInTheDocument()
     // and the ghost stays visible under its open panel, whatever the pointer does
     expect(ghost.classList.contains('cg-refs-chips--open')).toBe(true)
+    // the panel is as inherited as the chip it hangs from: dashed, faded
+    const panel = document.querySelector('.ref-expansion-popup')!
+    expect(panel.classList.contains('ref-expansion-popup--ghost')).toBe(true)
+    expect(panel.querySelectorAll('.ref-chip--ghost').length).toBe(1)
   })
 
   // The working-changes node sits on top of HEAD's line and owns it, and it

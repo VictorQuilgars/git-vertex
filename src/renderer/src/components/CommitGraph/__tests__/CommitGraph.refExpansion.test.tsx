@@ -67,6 +67,10 @@ describe('BRANCH/TAG — the panel behind "+N"', () => {
     // The two it was hiding appear; the visible one is not duplicated.
     expect(await screen.findByText('ext-v1.27.0')).toBeInTheDocument()
     expect(screen.getByText('mcp-v0.5.3')).toBeInTheDocument()
+    // a tip row's own refs: the panel wears no ghost tenue
+    const panel = document.querySelector('.ref-expansion-popup')!
+    expect(panel.classList.contains('ref-expansion-popup--ghost')).toBe(false)
+    expect(panel.querySelectorAll('.ref-chip--ghost').length).toBe(0)
   })
 
   // The panel is anchored to where its chip was; a scroll moves the chip out

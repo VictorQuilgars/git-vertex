@@ -392,6 +392,9 @@
 }
 /* A name wider than the panel is cut, not the panel widened past its cap. */
 .ref-expansion-popup .rc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Behind a ghost the panel is as inherited as the chip it hangs from: its
+   chips wear the ghost's dashes and fade (ref-chip--ghost), its own edge too. */
+.ref-expansion-popup--ghost { border-style: dashed; }
 
 /* ── Loading skeleton ────────────────────────────────────── */
 .cg-skeleton {

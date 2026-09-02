@@ -489,8 +489,11 @@ function StatsBar({ additions = 0, deletions = 0, compact }: { additions?: numbe
  * the bottom of the window and the names were simply unreachable. Measured
  * after mount rather than estimated: chip heights depend on the ref names.
  */
-function RefExpansionPopup({ anchor, children, onMouseEnter, onMouseLeave }: {
+function RefExpansionPopup({ anchor, ghost, children, onMouseEnter, onMouseLeave }: {
   anchor: DOMRect
+  /** Behind a ghost: the refs are the line's tip's, not this commit's — the
+      panel and its chips wear the ghost's own tenue, dashed and faded. */
+  ghost?: boolean
   children: React.ReactNode
   onMouseEnter: () => void
   onMouseLeave: () => void
@@ -509,7 +512,7 @@ function RefExpansionPopup({ anchor, children, onMouseEnter, onMouseLeave }: {
   return (
     <div
       ref={ref}
-      className="ref-expansion-popup"
+      className={`ref-expansion-popup${ghost ? ' ref-expansion-popup--ghost' : ''}`}
       style={{
         position: 'fixed',
         left: anchor.left,
@@ -2234,16 +2237,18 @@ export default function CommitGraph({
       {refExpand && (() => {
         const expandCommit = byHash.get(refExpand.hash)
         if (!expandCommit) return null
-        const hiddenPrefs = shownRefs(expandCommit).prefs.slice(1)
+        const shown = shownRefs(expandCommit)
+        const hiddenPrefs = shown.prefs.slice(1)
         if (hiddenPrefs.length === 0) return null
         return createPortal(
           <RefExpansionPopup
             anchor={refExpand.rect}
+            ghost={shown.ghost}
             onMouseEnter={() => { if (refExpandTimer.current) clearTimeout(refExpandTimer.current) }}
             onMouseLeave={() => { refExpandTimer.current = setTimeout(() => setRefExpand(null), 120) }}
           >
             {hiddenPrefs.map((p, i) => (
-              <RefChip key={i} pref={p} laneColor={expandCommit.color} onDoubleClick={onCheckoutBranch}
+              <RefChip key={i} pref={p} ghost={shown.ghost} laneColor={expandCommit.color} onDoubleClick={onCheckoutBranch}
                 onDragStartBranch={setDragBranch}
                 onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
                 onContextMenu={(e, pref) => openRefMenu(e, pref, expandCommit)} />
