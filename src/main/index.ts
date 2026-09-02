@@ -119,6 +119,11 @@ function createSplash(theme: SplashTheme): void {
     center: true,
     focusable: false,
     show: false,
+    // The card draws its own shadow (splash.ts). The system's would be drawn
+    // for the WINDOW rectangle, not the opaque card — and on macOS 26 that
+    // comes with a light glass rim, which showed as a translucent halo in
+    // the 22px of transparent margin around the card at every launch.
+    hasShadow: false,
     backgroundColor: '#00000000',
     webPreferences: { sandbox: true }
   })
