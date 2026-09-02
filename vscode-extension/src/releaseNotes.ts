@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.30.0': `## What's new in 1.30.0
 
 ### 🔌 More providers, and your own — local models included
 - The grid grows to eight: **Mistral, DeepSeek, xAI, OpenRouter** join the four — catalog data, not integrations.

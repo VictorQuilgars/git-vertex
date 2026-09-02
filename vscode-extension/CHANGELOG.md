@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.30.0
 
 ### Added
 - **More providers, and your own — local models included.** The providers grid grows to eight: **Mistral, DeepSeek, xAI (Grok) and OpenRouter** join the original four, each a line of catalog data over the OpenAI chat-completions dialect rather than an integration. Under them, **custom endpoints**: anything speaking that same dialect — an **Ollama** or **LM Studio** on localhost (one-click presets carry their URLs), a gateway — with a name, a base URL, and an *optional* key, because **connected stopped meaning "has a key"**: a local runtime has none to give, and reaching its `/models` is the connection. Every custom joins the grouped pickers like a catalog cloud, so a feature can run on `deepseek-r1:14b` at localhost while another stays on a cloud. A custom endpoint can also carry its **auth quirks** — the header its key rides in (empty = `Authorization: Bearer`; a name carries the raw key, the Azure `api-key` style) and extra headers a gateway may demand — behind a fold, because two gateways in a hundred need them. A provider speaking none of the three dialects is a catalog contribution, not a setting — configurable request formats are a footgun the OpenAI dialect exists to make unnecessary.
