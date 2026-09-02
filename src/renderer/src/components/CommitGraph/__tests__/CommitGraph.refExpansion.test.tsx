@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CommitGraph from '../CommitGraph'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
@@ -61,6 +61,16 @@ describe('BRANCH/TAG — the panel behind "+N"', () => {
     // The two it was hiding appear; the visible one is not duplicated.
     expect(await screen.findByText('ext-v1.27.0')).toBeInTheDocument()
     expect(screen.getByText('mcp-v0.5.3')).toBeInTheDocument()
+  })
+
+  // The panel is anchored to where its chip was; a scroll moves the chip out
+  // from under it, and the panel used to stay, pointer or no pointer.
+  test('a scroll closes it', async () => {
+    render()
+    await userEvent.hover(await screen.findByText('v1.29.0'))
+    expect(await screen.findByText('ext-v1.27.0')).toBeInTheDocument()
+    fireEvent.scroll(document.body)
+    await waitFor(() => expect(screen.queryByText('ext-v1.27.0')).not.toBeInTheDocument())
   })
 
   test('it opens below the chip when there is room', async () => {

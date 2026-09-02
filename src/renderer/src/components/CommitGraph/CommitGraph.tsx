@@ -520,7 +520,7 @@ function RefExpansionPopup({ anchor, children, onMouseEnter, onMouseLeave }: {
         // not fit, which is the one case where growing is better than truncating.
         minWidth: anchor.width,
         width: 'max-content',
-        maxWidth: 'min(420px, 90vw)',
+        maxWidth: 'min(300px, 90vw)',
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -819,6 +819,18 @@ export default function CommitGraph({
   const [drop, setDrop] = useState<DropState | null>(null)
   const [refExpand, setRefExpand] = useState<{ row: number; rect: DOMRect } | null>(null)
   const refExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The panel is anchored to where its chip WAS. A scroll, a resize or a
+  // selection — the details panel opening reflows the columns — moves the
+  // chip out from under it; the panel goes rather than float where nothing
+  // is, which is how it used to outlive the pointer.
+  useEffect(() => {
+    if (!refExpand) return
+    const off = () => setRefExpand(null)
+    window.addEventListener('scroll', off, true)
+    window.addEventListener('resize', off)
+    return () => { window.removeEventListener('scroll', off, true); window.removeEventListener('resize', off) }
+  }, [refExpand])
+  useEffect(() => { setRefExpand(null) }, [selectedHash])
   const hoverDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Latest layout numbers, mirrored into a ref so the resize-drag handlers
@@ -1899,7 +1911,7 @@ export default function CommitGraph({
                   {primary ? (
                     <>
                       <div
-                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}`}
+                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.row === commit.row ? ' cg-refs-chips--open' : ''}`}
                         onMouseEnter={e => {
                           // Highlight after 2s delay — avoids accidental triggers while scrolling
                           if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
@@ -1938,7 +1950,7 @@ export default function CommitGraph({
                   {primary ? (
                     <>
                       <div
-                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}`}
+                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.row === commit.row ? ' cg-refs-chips--open' : ''}`}
                         onMouseEnter={e => {
                           // Highlight after 2s delay — avoids accidental triggers while scrolling
                           if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)

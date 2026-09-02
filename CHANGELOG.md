@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- **The graph says which branch a commit is on.** A row with no ref of its own wears the name of the nearest branch that holds it — on its own line first, so the name agrees with the lane's colour; by containment otherwise, so the commits of a merged branch whose ref is gone say the branch they landed in — as a **ghost chip**: dashed, faded, shown on hover and kept on the selected row. Hover the ghost and the tip's other refs open behind it, like the tip row's own "+N". A tag never names a line. (#173)
+- **The graph says which branch a commit is on.** A row with no ref of its own wears the name of the nearest branch that holds it — on its own line first, so the name agrees with the lane's colour; by containment otherwise, so the commits of a merged branch whose ref is gone say the branch they landed in — as a **ghost chip**: dashed, faded, shown on hover and kept on the selected row. Hover the ghost and the tip's other refs open behind it, like the tip row's own "+N" — which is a column of chips the size of the one it hangs from now, one hairline around it, and it leaves on any scroll, resize or selection rather than floating where its chip was. A tag never names a line. (#173)
 - **The sidebar reads as a list, and behaves as one.** A rule between sections and a heading a step up (#174). The column no longer scrolls — each open section's body does, so the headings stay put while a long list of issues or tags scrolls under its own heading — and an open section can be **resized** by its bottom edge, double-click for automatic, the height kept for every repository like the graph's column widths (#176).
 
 ### Fixed

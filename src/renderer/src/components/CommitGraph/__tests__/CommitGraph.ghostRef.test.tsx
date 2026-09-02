@@ -65,6 +65,8 @@ describe('the ghost ref — which line a commit is on', () => {
     expect(screen.queryByText('v2.0.0')).not.toBeInTheDocument()
     await userEvent.hover(ghost)
     expect(await screen.findByText('v2.0.0')).toBeInTheDocument()
+    // and the ghost stays visible under its open panel, whatever the pointer does
+    expect(ghost.classList.contains('cg-refs-chips--open')).toBe(true)
   })
 
   // The working-changes node sits on top of HEAD's line and owns it, and it
