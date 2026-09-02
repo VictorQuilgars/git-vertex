@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import ContextMenu from '../ContextMenu/ContextMenu'
 import GithubHoverCard, { useHoverCard } from './GithubHoverCard'
@@ -103,11 +103,16 @@ export default function GithubRow({ item, onOpen, onDetail, onCreateBranch, hove
   const carded = hoverCard && !!(item.body !== undefined || item.labels || item.author)
   const hover = useHoverCard()
   const activate = onDetail ?? (onOpen ? () => onOpen(item.url) : undefined)
+  // While the card is off — a detail is open — its position must go with it:
+  // the row's hover handlers go too, so nothing would ever close it, and the
+  // card came back on its own the moment the detail closed, pointer or not.
+  const { close } = hover
+  useEffect(() => { if (!carded) close() }, [carded, close])
 
   return (
       <>
       <div className="sb-item sb-gh-row" title={carded ? undefined : item.title}
-        onClick={() => activate?.()} onContextMenu={onContextMenu}
+        onClick={() => { hover.close(); activate?.() }} onContextMenu={onContextMenu}
         onMouseEnter={carded ? hover.enter : undefined}
         onMouseLeave={carded ? hover.leaveRow : undefined}>
         <span className={`sb-gh-state${item.draft ? ' sb-gh-state--draft' : ''}`}>

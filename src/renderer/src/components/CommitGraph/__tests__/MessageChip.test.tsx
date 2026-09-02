@@ -246,7 +246,8 @@ describe('the stacked row, after the screenshots', () => {
 
   test('the checked-out branch is the one filled chip', () => {
     expect(chipCss).toContain('.mchip--emphasis')
-    expect(src).toContain('emphasis={!!prefs[0].isHead}')
+    // …and a ghost (#173) never fills: it is the line's name, not a checkout.
+    expect(src).toContain('emphasis={!ghost && !!prefs[0].isHead}')
   })
 })
 

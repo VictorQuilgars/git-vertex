@@ -116,6 +116,15 @@ export function PickerEditor({ options, chosen, onPick, render, placeholder, bus
   )
 }
 
+/**
+ * The identity a host keys the detail with (#175). The detail seeds its
+ * editable state from the item it is given once, at mount — so a second item
+ * under the same instance showed the first one's head over the second one's
+ * comments. A different item is a different instance, and this is the one
+ * place that says what "different" means.
+ */
+export const detailKey = (kind: 'pr' | 'issue', number: number): string => `${kind}-${number}`
+
 export default function IssueDetail({ repo, item, onClose, onCreateBranch, onChanged }: {
   repo: { owner: string; repo: string }
   item: IssueDetailItem
