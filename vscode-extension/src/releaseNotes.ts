@@ -21,6 +21,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🧭 The graph says which branch a commit is on
 - A row with no ref of its own wears the name of the nearest branch that holds it — dashed and faded — on hover, and keeps it while selected; the tip's other refs open behind it. A merged branch whose ref is gone says the branch it landed in.
 - The "+N" panel is a column of chips the size of the one it hangs from; it opens on a rest and leaves the moment the pointer moves off it, or a scroll moves it.
+- A branch name the column cut shows whole on a rest, drawn over the graph.
 
 ### 📚 The sidebar, as a list
 - A rule between sections, and headings a step up.

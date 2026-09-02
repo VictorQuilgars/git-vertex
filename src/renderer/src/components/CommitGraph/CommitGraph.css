@@ -392,6 +392,20 @@
 }
 /* A name wider than the panel is cut, not the panel widened past its cap. */
 .ref-expansion-popup .rc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* The chip, whole, over the graph (the peek): the column cut its name and a
+   rest on it is the ask to read it. Opaque under the chip's tint, so the
+   bullet it covers does not show through; no pointer events, so the chip
+   underneath keeps the conversation. */
+.ref-peek {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  pointer-events: none;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent);
+}
+.ref-peek .ref-chip { max-width: none; }
 /* Behind a ghost the panel is as inherited as the chip it hangs from: its
    chips wear the ghost's dashes and fade (ref-chip--ghost), its own edge too. */
 .ref-expansion-popup--ghost { border-style: dashed; }

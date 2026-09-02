@@ -121,6 +121,29 @@ describe('BRANCH/TAG — the panel behind "+N"', () => {
     expect(await screen.findByText('ext-v1.27.0')).toBeInTheDocument()
   })
 
+  // A name the column cut is read whole on a rest — the chip drawn over the
+  // graph, bullet included; a name that fit gets no such thing.
+  test('a cut name shows whole over the graph on a rest; a name that fits does not', async () => {
+    render()
+    const chip = await screen.findByText('v1.29.0')
+    await userEvent.hover(chip)
+    await findPanel()
+    expect(document.querySelector('.ref-peek')).toBeNull()
+    await userEvent.unhover(chip)
+    fireEvent.mouseMove(document.body, { clientX: 900, clientY: 900 })
+    await waitFor(() => expect(document.querySelector('.ref-expansion-popup')).toBeNull())
+    // jsdom measures nothing: say the name overflows its box
+    Object.defineProperty(chip, 'scrollWidth', { value: 300, configurable: true })
+    Object.defineProperty(chip, 'clientWidth', { value: 80, configurable: true })
+    await userEvent.hover(chip)
+    await waitFor(() => expect(document.querySelector('.ref-peek')).not.toBeNull())
+    const peek = document.querySelector('.ref-peek')!
+    expect(peek.querySelector('.rc-name')).toHaveTextContent('v1.29.0')
+    expect(peek.querySelector('.rc-stack-badge')).toHaveTextContent('+2')
+    fireEvent.mouseMove(document.body, { clientX: 900, clientY: 900 })
+    await waitFor(() => expect(document.querySelector('.ref-peek')).toBeNull())
+  })
+
   test('it opens below the chip when there is room', async () => {
     Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true })
     render()
