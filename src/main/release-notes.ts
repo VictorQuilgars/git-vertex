@@ -17,6 +17,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Save rides with the scroll**, and lights only against a real change.
 - Every Gemini wore the *fast* badge — the heuristic read the \`mini\` inside \`gemini\`. Gemini 2.5 Pro is unlabelled now, as an id it cannot read should be.
 
+### 🩹 The splash, without its halo
+- On macOS 26 the system drew a glass rim around the whole splash window rather than its card — a translucent halo at every launch. Gone.
+
 ### 🎛 A model and instructions per AI feature
 - **Each feature says which temperament it rewards** — fast for the one-liners, reasoning for the readers — with the characteristics worn as **coloured badges** on the picker and its rows, and a *Suggested* group drawn from your providers' live lists.
 - Settings › AI is three zones: **Providers & keys** (each of the four holds its own credential and reports its state), **Defaults** (one model across every connected provider, plus standing instructions and their ready-made fragments), and **a section per feature** — whose model can come from a different provider than the next one's.
