@@ -5,7 +5,7 @@ export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
 ### 🧭 The graph says which branch a commit is on
-- A row with no ref of its own wears the name of its line — the owning tip's branch, dashed and faded — on hover, and keeps it while selected; the tip's other refs open behind it.
+- A row with no ref of its own wears the name of the nearest branch that holds it — dashed and faded — on hover, and keeps it while selected; the tip's other refs open behind it. A merged branch whose ref is gone says the branch it landed in.
 
 ### 📚 The sidebar, as a list
 - A rule between sections, and headings a step up.
@@ -14,6 +14,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🩹 Fixed
 - Clicking another issue while one was open kept showing the first. Another issue is another detail now — pull requests too.
+- The issue's hover card no longer lingers after its detail closes; it leaves on the click, and on any scroll.
 `,
   '1.32.0': `## What's new in 1.32.0
 

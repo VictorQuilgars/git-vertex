@@ -3,11 +3,12 @@
 ## Unreleased
 
 ### Added
-- **The graph says which branch a commit is on.** A row with no ref of its own wears the name of the line it belongs to — the branch at the tip that owns it, the rule that already colours its lane — as a **ghost chip**: dashed, faded, shown on hover and kept on the selected row. Hover the ghost and the tip's other refs open behind it, like the tip row's own "+N". A tag-only tip names nothing, and HEAD's line is named by HEAD's own branch, working changes on top or not. (#173)
+- **The graph says which branch a commit is on.** A row with no ref of its own wears the name of the nearest branch that holds it — on its own line first, so the name agrees with the lane's colour; by containment otherwise, so the commits of a merged branch whose ref is gone say the branch they landed in — as a **ghost chip**: dashed, faded, shown on hover and kept on the selected row. Hover the ghost and the tip's other refs open behind it, like the tip row's own "+N". A tag never names a line. (#173)
 - **The sidebar reads as a list, and behaves as one.** A rule between sections and a heading a step up (#174). The column no longer scrolls — each open section's body does, so the headings stay put while a long list of issues or tags scrolls under its own heading — and an open section can be **resized** by its bottom edge, double-click for automatic, the height kept for every repository like the graph's column widths (#176).
 
 ### Fixed
 - **Clicking another issue while one was open kept showing the first** — its title, body and labels over the second one's comments. The detail seeds its state from the item once, at mount; the host keys it by identity now, so another issue is another instance, edits in flight included. Pull requests the same. (#175)
+- **The issue's hover card stayed on screen after the detail closed**, the pointer long gone: the click that opened the detail switched the card off without closing it, and it came back with the detail's closing. It closes on the click, whenever it is switched off, and on any scroll.
 
 ## 1.30.0
 

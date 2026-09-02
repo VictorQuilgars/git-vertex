@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useLayoutEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import MdLite from './mdLite'
 import { LabelChip, type GithubRowItem } from './GithubRow'
@@ -47,6 +47,16 @@ export function useHoverCard(delayMs = 400) {
     if (timer.current) { clearTimeout(timer.current); timer.current = null }
     setPos(null)
   }, [])
+
+  // The card is anchored to where its row WAS: a scroll anywhere — the
+  // section bodies scroll on their own now (#176) — moves the row out from
+  // under it, so the card goes rather than float over a stranger.
+  useEffect(() => {
+    if (!pos) return
+    const onScroll = () => setPos(null)
+    window.addEventListener('scroll', onScroll, true)
+    return () => window.removeEventListener('scroll', onScroll, true)
+  }, [pos])
 
   // Leaving the row keeps the card if the pointer went INTO the card.
   const leaveRow = useCallback(() => {
