@@ -1180,28 +1180,70 @@ export default function CommitGraph({
   // feature/api-v2 walks until it hits develop_tip (which has "HEAD -> develop")
   // and stops there; develop walks its merge commits (which have no branch refs)
   // all the way down. Tags do not stop the walk.
-  // Every commit by hash: the owner-tip lookup the ghost refs need (#173).
+  // Every commit by hash, and the branch each row is NAMED after (#173).
   const byHash = useMemo(() => new Map(displayLayout.map(c => [c.hash, c])), [displayLayout])
   /**
+   * The tip whose branch names a row that has no ref of its own — the ghost.
+   * Two passes, nearest tip first (rows are topological, so a tip that holds
+   * a commit is always above it, and the nearest is the lowest):
+   *   A. along the row's own LINE (graph-layout's ownerTip, the rule that
+   *      colours the lane): a tip on the same line beats any other, so name
+   *      and colour agree wherever they can — the commits under main's tip
+   *      say main, not the branch three rows higher that holds them too;
+   *   B. by CONTAINMENT over every parent, for what pass A left: the commits
+   *      of a merged branch whose ref is gone are named after the nearest
+   *      branch that reaches them, which is what they are on.
+   * A tag is not a tip — it names a release, not a line — nor is the
+   * working-changes node: HEAD's own commit is the tip of its line.
+   */
+  const ghostLead = useMemo(() => {
+    const isTip = (c: LayoutCommit) => c.hash !== WIP_HASH && processRefs(c.refs, hiddenChip).some(p => p.cls !== 'rc-tag')
+    const tips = displayLayout.filter(isTip).sort((a, b) => b.row - a.row)
+    const lead = new Map<string, string>()
+    const onLine = new Set<string>()
+    for (const tip of tips) {
+      let h: string | undefined = tip.hash
+      while (h && !lead.has(h)) {
+        const c = byHash.get(h)
+        if (!c || c.ownerTip !== tip.ownerTip) break
+        lead.set(h, tip.hash)
+        onLine.add(h)
+        h = c.parents[0]
+      }
+    }
+    for (const tip of tips) {
+      const stack = [tip.hash]
+      const seen = new Set<string>()
+      while (stack.length) {
+        const h = stack.pop()!
+        if (seen.has(h)) continue
+        seen.add(h)
+        const c = byHash.get(h)
+        if (!c) continue
+        // A nearer tip's ground by containment: everything under it is that
+        // tip's too. A line's own labels are crossed, never taken.
+        if (lead.has(h)) { if (!onLine.has(h)) continue }
+        else lead.set(h, tip.hash)
+        for (const p of c.parents) stack.push(p)
+      }
+    }
+    return lead
+  }, [displayLayout, byHash, hiddenChip])
+  /**
    * The refs a row SHOWS: its own — or, for a row that has none, the refs of
-   * the tip that owns its line (graph-layout's ownerTip, the rule that also
-   * colours the lane), a branch first, worn as a GHOST (#173). Tags never lead
-   * a ghost: a tag-only tip names a release, not a line. The working-changes
-   * row and a tip that owns itself show nothing.
+   * the tip that names it, that tip's branch first, worn as a GHOST (#173).
    */
   const shownRefs = useCallback((c: LayoutCommit): { prefs: ProcessedRef[]; ghost: boolean } => {
     const own = processRefs(c.refs, hiddenChip)
-    if (own.length > 0 || c.hash === WIP_HASH || !c.ownerTip || c.ownerTip === c.hash) return { prefs: own, ghost: false }
-    let tip = byHash.get(c.ownerTip)
-    // The working-changes node sits on top of HEAD's line and owns it, and it
-    // carries no ref: the line is named by the commit under it, HEAD's own.
-    if (tip && tip.hash === WIP_HASH) tip = tip.parents[0] ? byHash.get(tip.parents[0]) : undefined
+    if (own.length > 0 || c.hash === WIP_HASH) return { prefs: own, ghost: false }
+    const tipHash = ghostLead.get(c.hash)
+    const tip = tipHash ? byHash.get(tipHash) : undefined
     if (!tip) return { prefs: own, ghost: false }
     const all = processRefs(tip.refs, hiddenChip)
     const lead = all.findIndex(p => p.cls !== 'rc-tag')
     if (lead < 0) return { prefs: own, ghost: false }
     return { prefs: [all[lead], ...all.filter((_, i) => i !== lead)], ghost: true }
-  }, [byHash, hiddenChip])
+  }, [byHash, ghostLead, hiddenChip])
 
   const [hoverHash, setHoverHash] = useState<string | null>(null)
   const hoverHighlight = useMemo(() => {

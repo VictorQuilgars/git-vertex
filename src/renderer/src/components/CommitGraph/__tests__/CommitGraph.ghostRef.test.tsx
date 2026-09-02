@@ -4,11 +4,12 @@ import CommitGraph from '../CommitGraph'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
 // #173 — a commit's branch was only readable at the branch's tip. A row with
-// no ref of its own now wears the name of the line it belongs to — the owner
-// tip's branch — as a GHOST chip: dashed, faded, shown by the stylesheet on
-// hover and on the selected row (which jsdom does not apply). What IS
-// testable: which name a row wears, that the tip row itself is no ghost, that
-// a tag never leads, and that the tip's other refs open behind the ghost.
+// no ref of its own now wears the name of the nearest branch that holds it —
+// on its own line first, by containment otherwise — as a GHOST chip: dashed,
+// faded, shown by the stylesheet on hover and on the selected row (which jsdom
+// does not apply). What IS testable: which name a row wears, that the tip row
+// itself is no ghost, that a tag never leads, and that the tip's other refs
+// open behind the ghost.
 
 const C = (hash: string, message: string, parents: string[], refs: string[]) => ({
   hash, shortHash: hash, message, parents, refs,
@@ -82,5 +83,46 @@ describe('the ghost ref — which line a commit is on', () => {
     const r = row('below the tip')
     expect(r.classList.contains('cg-selected')).toBe(true)
     expect(r.querySelector('.cg-refs-chips--ghost .ref-chip--ghost')).toBeTruthy()
+  })
+})
+
+// The rule, on the shape the first real graph had: a branch merged into main
+// and then deleted — its commits belong to main now, and say so — and a
+// branch three rows above main that also holds everything main holds, which
+// must not steal main's name from the commits under main's tip.
+const MERGED = [
+  C('f000000', 'feat tip', ['t000000'], ['HEAD -> feat']),
+  C('t000000', 'between', ['m000000'], []),
+  C('m000000', 'main tip', ['g000000'], ['main', 'origin/main']),
+  C('g000000', 'merge', ['b000000', 'x200000'], []),
+  C('x200000', 'branch second', ['x100000'], []),
+  C('x100000', 'branch first', ['b000000'], []),
+  C('b000000', 'base', [], []),
+]
+
+describe('the ghost ref — the nearest branch that holds the commit', () => {
+  const draw = () => {
+    installMockGitAPI()
+    ;(Element.prototype as any).scrollTo = () => {}
+    return renderWithProviders(
+      <CommitGraph commits={MERGED as any} selectedHash={null}
+        onSelectCommit={() => {}} searchQuery="" currentBranch="feat" />
+    )
+  }
+
+  test('a merged branch whose ref is gone is named after the branch it landed in', async () => {
+    draw()
+    await screen.findByText('branch first')
+    expect(within(row('branch first').querySelector('.cg-refs-chips--ghost') as HTMLElement).getByText('main')).toBeInTheDocument()
+    expect(within(row('branch second').querySelector('.cg-refs-chips--ghost') as HTMLElement).getByText('main')).toBeInTheDocument()
+    expect(within(row('merge').querySelector('.cg-refs-chips--ghost') as HTMLElement).getByText('main')).toBeInTheDocument()
+    expect(within(row('base').querySelector('.cg-refs-chips--ghost') as HTMLElement).getByText('main')).toBeInTheDocument()
+  })
+
+  test('a tip on the same line wins, and the nearest one: between the two tips it is feat, under main it is main', async () => {
+    draw()
+    await screen.findByText('between')
+    expect(within(row('between').querySelector('.cg-refs-chips--ghost') as HTMLElement).getByText('feat')).toBeInTheDocument()
+    expect(within(row('base').querySelector('.cg-refs-chips--ghost') as HTMLElement).queryByText('feat')).toBeNull()
   })
 })
