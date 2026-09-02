@@ -1,6 +1,7 @@
 import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import IssueDetail from '../IssueDetail'
+import { useState } from 'react'
+import IssueDetail, { detailKey } from '../IssueDetail'
 import { installMockGitAPI, renderWithProviders } from '../../../__tests__/test-utils'
 
 // The issue detail — §3 bis. The contract these tests hold: every read is
@@ -202,5 +203,38 @@ describe('the two ways out and the branch', () => {
     expect(onClose).toHaveBeenCalled()
     await userEvent.click(screen.getByTitle(/Open on GitHub|Ouvrir sur GitHub/))
     expect(api.openExternal).toHaveBeenCalledWith('https://x/24')
+  })
+})
+
+// #175 — clicking another issue while one was open kept showing the first:
+// the detail seeds its state from the item once, at mount, and the host
+// handed it a new item under the same instance. The host keys it now; this
+// is the host's shape, reduced to what matters.
+describe('another issue is another instance', () => {
+  function Host({ items }: { items: any[] }) {
+    const [i, setI] = useState(0)
+    const item = items[i]
+    return (
+      <>
+        <button onClick={() => setI(1)}>next</button>
+        <IssueDetail key={detailKey('issue', item.number)} repo={{ owner: 'o', repo: 'r' }}
+          item={item} onClose={() => {}} />
+      </>
+    )
+  }
+
+  test('keyed by detailKey, the second item shows — head and all', async () => {
+    installMockGitAPI({
+      githubIssueComments: jest.fn().mockResolvedValue({ comments: [] }),
+      githubListAssignees: jest.fn().mockResolvedValue({ assignees: [] }),
+      githubListRepoLabels: jest.fn().mockResolvedValue({ labels: [] }),
+    })
+    const other = { ...ITEM, number: 25, title: 'Dark mode', body: 'Everything, inverted.', labels: [] }
+    renderWithProviders(<Host items={[ITEM, other]} />)
+    expect(await screen.findByText('Push notifications')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('next'))
+    expect(await screen.findByText('Dark mode')).toBeInTheDocument()
+    expect(screen.queryByText('Push notifications')).not.toBeInTheDocument()
+    expect(detailKey('pr', 25)).not.toBe(detailKey('issue', 25))
   })
 })

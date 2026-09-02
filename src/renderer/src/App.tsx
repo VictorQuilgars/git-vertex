@@ -46,7 +46,7 @@ import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
 import CenterFileDiff, { CenterDiffTarget } from './components/CenterFileDiff/CenterFileDiff'
-import IssueDetail from './components/IssueDetail/IssueDetail'
+import IssueDetail, { detailKey } from './components/IssueDetail/IssueDetail'
 import PRDetail from './components/IssueDetail/PRDetail'
 import ContextMenu, { MenuItemDef } from './components/ContextMenu/ContextMenu'
 import './App.css'
@@ -2683,6 +2683,7 @@ export default function App() {
           ) : issueDetail && githubOwnerRepo ? (
             issueDetail.kind === 'pr' ? (
             <PRDetail
+              key={detailKey('pr', issueDetail.item.number)}
               repo={githubOwnerRepo}
               number={issueDetail.item.number}
               onClose={() => setIssueDetail(null)}
@@ -2690,6 +2691,7 @@ export default function App() {
             />
             ) : (
             <IssueDetail
+              key={detailKey('issue', issueDetail.item.number)}
               repo={githubOwnerRepo}
               item={issueDetail.item}
               onClose={() => setIssueDetail(null)}
