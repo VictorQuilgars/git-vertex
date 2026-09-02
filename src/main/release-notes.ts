@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.32.0': `## What's new in 1.32.0
 
 ### 🔌 More providers, and your own — local models included
 - The grid grows to eight: **Mistral, DeepSeek, xAI, OpenRouter** join the four — catalog data, not integrations.
