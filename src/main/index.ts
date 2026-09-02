@@ -20,6 +20,7 @@ import {
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { ThemeStore } from './theme-store'
 import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
+import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
@@ -1499,7 +1500,31 @@ ipcMain.handle('ai:list-models', async () => {
   } catch (e: any) { return { error: e.message } }
 })
 
-ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKey: string) => {
+ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKey: string, baseUrl?: string) => {
+  // Everything that is not Anthropic or Google is the OpenAI dialect: one
+  // GET {base}/models serves the catalog's clouds, the customs, and the
+  // keyless local runtimes (#169). `baseUrl` arrives from the settings page
+  // for entries not saved yet; otherwise the catalog/customs know it.
+  const generic = async (base: string, def?: ReturnType<typeof providerById>) => {
+    // The def's quirks apply when we have it; an entry not saved yet probes
+    // with plain Bearer — save first for a gateway that wants otherwise.
+    const headers = authHeaders({ apiKey, authHeader: def?.authHeader, extraHeaders: def?.extraHeaders })
+    const res = await fetch(`${base.replace(/\/+$/, '')}/models`, { headers })
+    const data = await res.json().catch(() => ({})) as any
+    if (!res.ok || data.error) return { error: data.error?.message ?? `HTTP ${res.status}` }
+    const list: any[] = Array.isArray(data) ? data : (data.data ?? data.models ?? [])
+    const ids = list.map((m: any) => (m.id ?? m.name) as string).filter(Boolean)
+    return { models: (provider === 'groq'
+      ? ids.filter((id: string) => !id.startsWith('whisper') && !id.startsWith('distil-whisper'))
+      : ids).sort() }
+  }
+  if (provider !== 'anthropic' && provider !== 'google') {
+    const def = providerById(readSettings(), provider)
+    const base = baseUrl || def?.baseUrl
+    if (base && (apiKey || def?.custom)) {
+      try { return await generic(base, def) } catch (e: any) { return { error: e.message } }
+    }
+  }
   if (!apiKey) return { error: 'NO_API_KEY' }
   try {
     if (provider === 'anthropic') {
@@ -1567,14 +1592,15 @@ ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKe
 // function owns only the policy: reading settings, retrying, logging.
 async function runAIPrompt(prompt: string, maxTokens = 512, feature?: AIFeature): Promise<{ text?: string; error?: string }> {
   const s = readSettings()
-  const { provider, model, apiKey } = resolveAICall(s, feature)
+  const target = resolveAICall(s, feature)
   prompt = appendInstructions(prompt, s, feature)
-  console.log(`[ai] feature=${feature ?? '-'} provider=${provider} model=${model} hasKey=${!!apiKey}`)
-  if (!apiKey) return { error: 'NO_API_KEY' }
+  console.log(`[ai] feature=${feature ?? '-'} provider=${target.provider} model=${target.model} hasKey=${!!target.apiKey}`)
+  // A custom endpoint may run keyless — local runtimes do (#169).
+  if (!target.apiKey && !target.keyless) return { error: 'NO_API_KEY' }
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const text = await callProvider(provider, apiKey, model, prompt, maxTokens)
+      const text = await callProvider(target, prompt, maxTokens)
       console.log(`[ai] attempt=${attempt} length=${text.length} preview="${text.slice(0, 60)}"`)
       if (text) return { text }
       console.log(`[ai] empty response on attempt ${attempt}, retrying…`)

@@ -13,6 +13,7 @@ describe('what an id says about its model', () => {
     ['claude-haiku-4-5-20251001', 'fast'],
     ['gemini-2.0-flash', 'fast'],
     ['gpt-4o-mini', 'fast'],
+    ['gemini-2.5-flash-lite', 'fast'],
     ['llama-3.1-8b-instant', 'fast'],
   ])('%s → %s', (id, kind) => {
     expect(modelKind(id)).toBe(kind)
@@ -21,5 +22,7 @@ describe('what an id says about its model', () => {
   test('an id it cannot read stays unlabelled, never guessed', () => {
     expect(modelKind('llama-3.3-70b-versatile')).toBeUndefined()
     expect(modelKind('claude-opus-5')).toBeUndefined()
+    // ge-MINI-: the substring is not the word. This one wore "fast" for a release.
+    expect(modelKind('gemini-2.5-pro')).toBeUndefined()
   })
 })

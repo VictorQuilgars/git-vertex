@@ -15,7 +15,7 @@ describe('which pair a call runs on', () => {
       aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
       'aiFeatureProvider:pr': 'anthropic', 'aiFeatureModel:pr': 'claude-haiku-4-5-20251001',
     }, 'pr')
-    expect(r).toEqual({ provider: 'anthropic', model: 'claude-haiku-4-5-20251001', apiKey: 'sk-ant-x' })
+    expect(r).toEqual(expect.objectContaining({ provider: 'anthropic', model: 'claude-haiku-4-5-20251001', apiKey: 'sk-ant-x', dialect: 'anthropic' }))
   })
 
   test('two features can run on two providers at once', () => {
@@ -34,7 +34,7 @@ describe('which pair a call runs on', () => {
       aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
       'aiFeatureProvider:pr': 'anthropic', 'aiFeatureModel:pr': 'claude-haiku-4-5-20251001',
     }, 'pr')
-    expect(r).toEqual({ provider: 'groq', model: 'llama-3.3-70b-versatile', apiKey: 'gsk_x' })
+    expect(r).toEqual(expect.objectContaining({ provider: 'groq', model: 'llama-3.3-70b-versatile', apiKey: 'gsk_x', dialect: 'openai-compat' }))
   })
 
   test('a legacy override — model without provider — reads against the legacy provider', () => {
@@ -42,12 +42,12 @@ describe('which pair a call runs on', () => {
       aiGroqKey: 'gsk_x', aiProvider: 'groq',
       'aiFeatureModel:filter': 'llama-3.1-8b-instant',
     }, 'filter')
-    expect(r).toEqual({ provider: 'groq', model: 'llama-3.1-8b-instant', apiKey: 'gsk_x' })
+    expect(r).toEqual(expect.objectContaining({ provider: 'groq', model: 'llama-3.1-8b-instant', apiKey: 'gsk_x' }))
   })
 
   test('no overrides at all resolves the legacy single-provider settings', () => {
     const r = resolveAICall({ aiProvider: 'groq', aiGroqModel: 'llama-3.3-70b-versatile', groqApiKey: 'old-key' })
-    expect(r).toEqual({ provider: 'groq', model: 'llama-3.3-70b-versatile', apiKey: 'old-key' })
+    expect(r).toEqual(expect.objectContaining({ provider: 'groq', model: 'llama-3.3-70b-versatile', apiKey: 'old-key' }))
   })
 
   test('a default pair without its key falls through to legacy', () => {
@@ -56,6 +56,63 @@ describe('which pair a call runs on', () => {
       aiDefaultProvider: 'openai', aiDefaultModel: 'gpt-4o-mini',
     }, 'commit')
     expect(r.provider).toBe('groq')
+  })
+})
+
+describe('providers beyond the original four (#169)', () => {
+  const CUSTOM = JSON.stringify([{ id: 'custom-ollama', label: 'Ollama', baseUrl: 'http://localhost:11434/v1' }])
+
+  test('a catalog cloud resolves like any other — a key and its base URL', () => {
+    const r = resolveAICall({
+      aiMistralKey: 'mk_x',
+      aiDefaultProvider: 'mistral', aiDefaultModel: 'mistral-small-latest',
+    }, 'commit')
+    expect(r).toEqual(expect.objectContaining({
+      provider: 'mistral', model: 'mistral-small-latest', apiKey: 'mk_x',
+      dialect: 'openai-compat', baseUrl: 'https://api.mistral.ai/v1', keyless: false,
+    }))
+  })
+
+  test('a keyless local endpoint is USABLE — connected stopped meaning "has a key"', () => {
+    const r = resolveAICall({
+      aiCustomProviders: CUSTOM,
+      aiDefaultProvider: 'custom-ollama', aiDefaultModel: 'qwen2.5-coder:7b',
+    }, 'pr')
+    expect(r).toEqual(expect.objectContaining({
+      provider: 'custom-ollama', model: 'qwen2.5-coder:7b', apiKey: '',
+      dialect: 'openai-compat', baseUrl: 'http://localhost:11434/v1', keyless: true,
+    }))
+  })
+
+  test('a feature can point at the local model while the default stays cloud', () => {
+    const s = {
+      aiGroqKey: 'gsk_x', aiCustomProviders: CUSTOM,
+      aiDefaultProvider: 'groq', aiDefaultModel: 'llama-3.3-70b-versatile',
+      'aiFeatureProvider:explain': 'custom-ollama', 'aiFeatureModel:explain': 'deepseek-r1:14b',
+    }
+    expect(resolveAICall(s, 'explain').baseUrl).toBe('http://localhost:11434/v1')
+    expect(resolveAICall(s, 'commit').provider).toBe('groq')
+  })
+
+  test('the quirks travel with the resolution to the caller', () => {
+    const r = resolveAICall({
+      aiCustomProviders: JSON.stringify([{
+        id: 'custom-gw', label: 'GW', baseUrl: 'https://gw.local/v1', key: 'k',
+        authHeader: 'api-key', extraHeaders: { 'X-Tenant': 't1' },
+      }]),
+      aiDefaultProvider: 'custom-gw', aiDefaultModel: 'm',
+    })
+    expect(r.authHeader).toBe('api-key')
+    expect(r.extraHeaders).toEqual({ 'X-Tenant': 't1' })
+  })
+
+  test('a malformed customs blob costs the entry, never the resolution', () => {
+    const r = resolveAICall({
+      aiGroqKey: 'gsk_x', aiProvider: 'groq', aiGroqModel: 'llama-3.3-70b-versatile',
+      aiCustomProviders: '{not json',
+      aiDefaultProvider: 'custom-ollama', aiDefaultModel: 'qwen2.5-coder:7b',
+    })
+    expect(r.provider).toBe('groq')  // the broken custom fell through to legacy
   })
 })
 

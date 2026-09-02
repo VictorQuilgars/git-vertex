@@ -350,7 +350,7 @@ describe('SettingsModal — per-feature AI overrides', () => {
     renderWithProviders(<SettingsModal onClose={() => {}} showToast={() => {}} />)
     await waitFor(() => expect(screen.getByText('Identity & profiles')).toBeInTheDocument())
     await userEvent.click(screen.getByRole('button', { name: /ai/i }))
-    await waitFor(() => expect(screen.getByText('Standing instructions (every AI feature)')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Standing instructions')).toBeInTheDocument())
     return mock
   }
 
@@ -360,19 +360,30 @@ describe('SettingsModal — per-feature AI overrides', () => {
       'Commit search', 'Filter queries', 'Pull request descriptions', 'Issue drafting']) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
-    // and every one names the model it will fall back to
-    expect(screen.getAllByText(/The model used for/).length).toBe(7)
+    // and every one carries its own picker, the fallback named on its face
+    expect(document.querySelectorAll('.stg-ai-feature .stg-msel-face').length).toBe(7)
+    expect(screen.getAllByText(/^Global model \(/).length).toBe(7)
   })
 
-  test('a chip writes its fragment, then stands down', async () => {
+  test('the ready-made fragments wait behind Templates; a pick writes, then reads taken', async () => {
     await open()
-    await userEvent.click(screen.getByRole('button', { name: 'Focus on the why' }))
-    const explain = screen.getAllByPlaceholderText('Instructions for this feature only…')[1]
-    expect(explain).toHaveValue('Focus on the why')
-    // an offer already taken is not an offer
-    expect(screen.queryByRole('button', { name: 'Focus on the why' })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Call out risky changes' }))
-    expect(explain).toHaveValue('Focus on the why\nCall out risky changes')
+    // nothing laid out above the field — the button is the whole offer
+    expect(screen.queryByRole('option', { name: 'Focus on the why' })).not.toBeInTheDocument()
+    const explain = screen.getByText('Explain a commit').closest('.stg-ai-feature') as HTMLElement
+    await userEvent.click(within(explain).getByRole('button', { name: /templates/i }))
+    await userEvent.click(within(explain).getByRole('option', { name: 'Focus on the why' }))
+    const field = screen.getAllByPlaceholderText('Instructions for this feature only…')[1]
+    expect(field).toHaveValue('Focus on the why')
+    // a pick closes the menu; reopened, the fragment is still listed but
+    // reads taken and takes no click — an offer already taken is not an offer
+    expect(within(explain).queryByRole('listbox')).not.toBeInTheDocument()
+    await userEvent.click(within(explain).getByRole('button', { name: /templates/i }))
+    const taken = within(explain).getByRole('option', { name: /Focus on the why/ })
+    expect(taken).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(taken)
+    expect(field).toHaveValue('Focus on the why')
+    await userEvent.click(within(explain).getByRole('option', { name: 'Call out risky changes' }))
+    expect(field).toHaveValue('Focus on the why\nCall out risky changes')
   })
 
   test('saving writes the standing block and every feature key', async () => {
@@ -428,12 +439,56 @@ describe('SettingsModal — per-feature AI overrides', () => {
     expect(document.querySelector('.stg-msel-list')).toBeNull()
   })
 
-  test('the providers zone lists all four, keyed or not', async () => {
+  test('the providers zone lists the whole catalog, keyed or not', async () => {
     await open()
-    for (const name of ['Anthropic (Claude)', 'Google (Gemini)', 'Groq', 'OpenAI']) {
+    for (const name of ['Anthropic (Claude)', 'Google (Gemini)', 'Groq', 'OpenAI',
+      'Mistral', 'DeepSeek', 'xAI (Grok)', 'OpenRouter']) {
       expect(screen.getByText(name)).toBeInTheDocument()
     }
-    // three have no key and say so; none of them is an "active" anything
-    expect(screen.getAllByText('No key').length).toBeGreaterThanOrEqual(3)
+    // none of them is an "active" anything — the unkeyed just say so
+    expect(screen.getAllByText('No key').length).toBeGreaterThanOrEqual(7)
+  })
+
+  test('the Ollama preset writes a keyless custom endpoint into the settings', async () => {
+    const mock = await open()
+    await userEvent.click(screen.getByRole('button', { name: 'Ollama' }))
+    // the card arrives with the runtime's own URL, nothing to type
+    expect(screen.getByDisplayValue('http://localhost:11434/v1')).toBeInTheDocument()
+    // keyless is normal here — the card says it has not been reached, not that a key is missing
+    expect(screen.getByText('Not reached yet')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Save'))
+    await waitFor(() => expect(mock.settingsSet).toHaveBeenCalledWith('aiCustomProviders',
+      expect.stringContaining('"baseUrl":"http://localhost:11434/v1"')))
+    const blob = (mock.settingsSet as jest.Mock).mock.calls.find(c => c[0] === 'aiCustomProviders')![1]
+    expect(JSON.parse(blob)[0]).toEqual(expect.objectContaining({ id: 'custom-ollama', label: 'Ollama', key: '' }))
+  })
+
+  // The page is long and the key you just pasted is at the top of it: the
+  // Save rides with the scroll, and lights only against a real change.
+  test('Save is inert until something changed, and again once saved', async () => {
+    await open()
+    const save = screen.getByText('Save') as HTMLButtonElement
+    expect(save).toBeDisabled()
+    expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument()
+    await userEvent.type(screen.getByPlaceholderText(/Keep answers plain/), 'Be brief.')
+    expect(save).toBeEnabled()
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+    await userEvent.click(save)
+    await waitFor(() => expect(save).toBeDisabled())
+  })
+
+  // One error slot for the page had every keyed row saying "…" while any
+  // probe ran, and the refusal landing under the grid, unattributed.
+  test('a refused key says so on its own row, and only there', async () => {
+    await open({
+      settingsGetAll: jest.fn().mockResolvedValue({ aiGroqKey: 'gsk_bad', aiGoogleKey: 'AIza_ok' }),
+      aiListProviderModels: jest.fn().mockImplementation(async (p: string) =>
+        p === 'groq' ? { error: 'Invalid API key' } : { models: ['gemini-2.0-flash'] }),
+    })
+    const row = (name: string) => screen.getByText(name).closest('.stg-ai-row') as HTMLElement
+    expect(await within(row('Groq')).findByText('Invalid API key')).toBeInTheDocument()
+    expect(await within(row('Google (Gemini)')).findByText('1 model available')).toBeInTheDocument()
+    expect(within(row('Google (Gemini)')).queryByText('Invalid API key')).not.toBeInTheDocument()
+    expect(screen.getByText('1 connected')).toBeInTheDocument()
   })
 })

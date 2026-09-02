@@ -328,7 +328,7 @@ declare global {
     aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
     aiSearchCommits: (query: string) => Promise<Unnarrowed>
     aiListModels: () => Promise<Unnarrowed>
-    aiListProviderModels: (provider: string, apiKey: string) => Promise<Unnarrowed>
+    aiListProviderModels: (provider: string, apiKey: string, baseUrl?: string) => Promise<Unnarrowed>
     listAgents: () => Promise<{ agents: { pid: number; name: string; cwd: string }[] }>
 
     // Settings & git config

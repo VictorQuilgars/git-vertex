@@ -4,7 +4,8 @@
     "electron.vite.config.*",
     "src/main/**/*",
     "src/preload/**/*",
-    "src/renderer/src/utils/remoteUrl.ts"
+    "src/renderer/src/utils/remoteUrl.ts",
+    "src/renderer/src/utils/aiProviders.ts"
   ],
   "//": "remoteUrl.ts: the one renderer file the main process imports (github-host, #96). A composite project must list every file it reaches; without this line the config reports TS6307 for anyone who runs it (#105).",
   "compilerOptions": {

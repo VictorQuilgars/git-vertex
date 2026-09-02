@@ -3,6 +3,7 @@ import { Icon } from '../Icon/Icon'
 import { Brand } from '../BrandMark/BrandMark'
 import './SettingsModal.css'
 import { modelKind } from '../../utils/aiModelKind'
+import { AI_PROVIDER_CATALOG, AI_LOCAL_PRESETS, parseCustomProviders, type AIProviderDef } from '../../utils/aiProviders'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
 import {
   useSettings, isVSCodeHost, setInstalledThemes, followsEditor,
@@ -42,7 +43,9 @@ function lastSection(): Section {
   const saved = localStorage.getItem(SECTION_KEY) as Section | null
   return saved && SECTIONS.includes(saved) ? saved : 'git'
 }
-type AIProvider = 'anthropic' | 'google' | 'groq' | 'openai'
+// Provider ids are open strings since #169 — the catalog plus whatever the
+// user defined. The old four-way union lives on only in the tutorial gate.
+type AIProvider = string
 
 // Sections hidden in the VS Code panel (`embedded`) — desktop-only concerns
 // already handled by VS Code itself (SSH, external tools/terminal) or not
@@ -189,28 +192,29 @@ function KindBadge({ id }: { id: string }) {
  * declares a temperament, the current pick badged on the face itself. Same
  * closing contract as the composer's pickers: focus leaves, it closes.
  */
-function ModelSelect({ value, onChange, defaultLabel, defaultModel, keys, liveModels, suggest, suggestLabel }: {
+function ModelSelect({ value, onChange, defaultLabel, defaultModel, providers, liveModels, suggest, suggestLabel }: {
   value: AIPair | null
   onChange: (v: AIPair | null) => void
   /** Present ⇒ an empty choice is offered, reading as the default it falls to. */
   defaultLabel?: string
   /** The model the empty choice falls to — so its badge can be worn too. */
   defaultModel?: string
-  keys: Record<AIProvider, string>
-  liveModels: Record<AIProvider, string[] | null>
+  /** The USABLE providers — catalog entries with a key, customs regardless. */
+  providers: { id: string; label: string }[]
+  liveModels: Record<string, string[] | null>
   /** The kind of model this caller rewards — heads the list with live
    *  matches. A suggestion, never a gate; absent for balanced features. */
   suggest?: 'reasoning' | 'fast'
   suggestLabel?: string
 }) {
   const [open, setOpen] = useState(false)
-  const connected = AI_PROVIDERS.filter(p => keys[p.id]?.trim())
-  const orphan = value && !keys[value.provider]?.trim()
-    ? AI_PROVIDERS.find(p => p.id === value.provider) : null
+  const connected = providers
+  const orphan = value && !providers.some(p => p.id === value.provider)
+    ? { id: value.provider, label: value.provider } : null
   const suggested = suggest
     ? connected.flatMap(p => (liveModels[p.id] ?? [])
         .filter(m => modelKind(m) === suggest)
-        .map(m => ({ p: p.id as AIProvider, m })))
+        .map(m => ({ p: p.id, m })))
       .slice(0, 6)
     : []
   const pick = (v: AIPair | null) => { onChange(v); setOpen(false) }
@@ -277,16 +281,145 @@ const AI_GLOBAL_CHIPS = [
   'Keep it concise', 'Plain tone, no hype', 'Use the imperative mood', 'Prefer short sentences',
 ]
 
+/**
+ * Extra headers edit as text, one `Name: value` per line — a table UI for a
+ * quirk two gateways in a hundred need would be furniture. A line without a
+ * colon costs the line, the autolink rule.
+ */
+const headersToLines = (h?: Record<string, string>): string =>
+  Object.entries(h ?? {}).map(([k, v]) => `${k}: ${v}`).join('\n')
+const linesToHeaders = (text: string): Record<string, string> | undefined => {
+  const out: Record<string, string> = {}
+  for (const line of text.split('\n')) {
+    const i = line.indexOf(':')
+    if (i <= 0) continue
+    const k = line.slice(0, i).trim()
+    const v = line.slice(i + 1).trim()
+    if (k) out[k] = v
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+/** A stable, readable id for a custom provider — slug, suffixed on clash. */
+function makeCustomId(label: string, existing: { id: string }[]): string {
+  const slug = 'custom-' + (label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'endpoint')
+  if (!existing.some(e => e.id === slug)) return slug
+  let n = 2
+  while (existing.some(e => e.id === `${slug}-${n}`)) n++
+  return `${slug}-${n}`
+}
+
 /** Append a fragment to an instructions field, once. */
 const appendChip = (value: string, chip: string): string =>
   value.trim() ? `${value.trimEnd()}\n${chip}` : chip
 
-const AI_PROVIDERS: { id: AIProvider; label: string; defaultModel: string; color: string }[] = [
-  { id: 'anthropic', label: 'Anthropic (Claude)', defaultModel: 'claude-haiku-4-5-20251001', color: '#d4a27f' },
-  { id: 'google',    label: 'Google (Gemini)',    defaultModel: 'gemini-2.0-flash',           color: '#4285f4' },
-  { id: 'groq',      label: 'Groq',               defaultModel: 'llama-3.3-70b-versatile',   color: '#f55036' },
-  { id: 'openai',    label: 'OpenAI',             defaultModel: 'gpt-4o-mini',               color: '#10a37f' },
-]
+/**
+ * Everything the AI page writes, as one comparable string. The Save button
+ * lights when the page differs from what it last loaded or saved — the
+ * page is long, and "did I save that key?" should not need a scroll.
+ */
+interface AIDraft {
+  keys: Record<string, string>
+  customs: AIProviderDef[]
+  def: AIPair
+  global: string
+  featSel: Record<string, AIPair | null>
+  featInstr: Record<string, string>
+}
+const serializeAI = (d: AIDraft): string => JSON.stringify(d)
+
+/**
+ * The ready-made fragments, behind a button at the right of the field's
+ * caption rather than laid out above it: eight blocks of chips were the
+ * page's noise, and the field is what the user came to write in. The menu
+ * borrows the model picker's list and its closing contract — focus leaves,
+ * it closes; a pick writes the fragment and closes. A fragment the text
+ * already holds is shown taken, not hidden: the list keeps its shape, so
+ * the eye finds the one it wants where it was last time.
+ */
+function TemplateMenu({ templates, value, onPick, label }: {
+  templates: string[]
+  value: string
+  onPick: (fragment: string) => void
+  label: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="stg-ai-tpl"
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false) }}>
+      <button type="button" className="stg-ai-tpl-btn" aria-haspopup="listbox" aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        onKeyDown={e => { if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false) } }}>
+        <Icon name="list" size={12} />
+        {label}
+        <span className="stg-msel-caret">▾</span>
+      </button>
+      {open && (
+        <div className="stg-msel-list stg-ai-tpl-list" role="listbox" aria-label={label}>
+          {templates.map(c => {
+            const taken = value.includes(c)
+            return (
+              <button key={c} type="button" role="option" aria-selected={taken} aria-disabled={taken}
+                className={`stg-msel-row stg-ai-tpl-row${taken ? ' stg-msel-row--on' : ''}`}
+                onMouseDown={e => { e.preventDefault(); if (!taken) { onPick(c); setOpen(false) } }}>
+                <span className="stg-msel-name">{c}</span>
+                {taken && <span className="stg-msel-check">✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The tuning pair every block shares — the model on the left, the
+ * instructions on the right: one shape for the defaults and each feature,
+ * so the eye learns it once. The instructions column is a div, not a label —
+ * a label whose first control is the templates button would open the menu
+ * on a click of its caption.
+ */
+function AITuning({ modelLabel, picker, warn, instrLabel, templates, templatesLabel, value, onChange, placeholder }: {
+  modelLabel: string
+  picker: React.ReactNode
+  warn: React.ReactNode
+  instrLabel: string
+  templates: string[]
+  templatesLabel: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+}) {
+  return (
+    <div className="stg-ai-tuning">
+      <label className="stg-field">
+        <span>{modelLabel}</span>
+        {picker}
+        {warn}
+      </label>
+      <div className="stg-field">
+        <div className="stg-ai-field-head">
+          <span>{instrLabel}</span>
+          <TemplateMenu templates={templates} value={value} label={templatesLabel}
+            onPick={c => onChange(appendChip(value, c))} />
+        </div>
+        <textarea
+          className="stg-input stg-ai-instr"
+          value={value}
+          aria-label={instrLabel}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={2}
+        />
+      </div>
+    </div>
+  )
+}
+
+// The roster is the shared catalog now (#169) — this page renders it, the two
+// AI pipelines resolve against it, and customs join it at runtime.
+const AI_PROVIDERS = AI_PROVIDER_CATALOG
 
 const MODEL_SUGGESTIONS: Record<AIProvider, string[]> = {
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-opus-4-7'],
@@ -414,11 +547,18 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const [aiGlobalInstr, setAiGlobalInstr] = useState('')
   const [aiFeatSel, setAiFeatSel] = useState<Record<string, AIPair | null>>({})
   const [aiFeatInstr, setAiFeatInstr] = useState<Record<string, string>>({})
-  const [aiKeys, setAiKeys] = useState<Record<AIProvider, string>>({ anthropic: '', google: '', groq: '', openai: '' })
+  const [aiKeys, setAiKeys] = useState<Record<string, string>>({})
+  // User-defined endpoints (#169) — Ollama and kin. Kept whole (key inline)
+  // in the aiCustomProviders JSON; a custom with models fetched counts as
+  // connected even keyless, because local runtimes have no key to give.
+  const [aiCustoms, setAiCustoms] = useState<AIProviderDef[]>([])
   const [aiDefault, setAiDefault] = useState<AIPair>({ provider: 'groq', model: 'llama-3.3-70b-versatile' })
-  const [liveModels, setLiveModels] = useState<Record<AIProvider, string[] | null>>({ anthropic: null, google: null, groq: null, openai: null })
-  const [loadingModels, setLoadingModels] = useState(false)
-  const [modelsError, setModelsError] = useState<string | null>(null)
+  const [liveModels, setLiveModels] = useState<Record<string, string[] | null>>({})
+  // Per provider, so the row whose key was refused is the row that says so.
+  const [loadingModels, setLoadingModels] = useState<Record<string, boolean>>({})
+  const [modelsError, setModelsError] = useState<Record<string, string>>({})
+  // What the page last loaded or saved; see AIDraft.
+  const [aiSnapshot, setAiSnapshot] = useState<string | null>(null)
   const [showKeyFor, setShowKeyFor] = useState<AIProvider | null>(null)
   const [showTutoFor, setShowTutoFor] = useState<AIProvider | null>(null)
 
@@ -451,13 +591,13 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const [sshGenerating, setSshGenerating] = useState(false)
   const [sshPassphrase, setSshPassphrase] = useState('')
 
-  const fetchModels = async (provider: AIProvider, key: string) => {
-    if (!key) return
-    setLoadingModels(true)
-    setModelsError(null)
-    const r = await (window.gitAPI as any).aiListProviderModels(provider, key)
-    setLoadingModels(false)
-    if (r.error) { setModelsError(r.error); return }
+  const fetchModels = async (provider: AIProvider, key: string, baseUrl?: string) => {
+    if (!key && !baseUrl) return   // a custom endpoint may be keyless; a catalog cloud may not
+    setLoadingModels(m => ({ ...m, [provider]: true }))
+    setModelsError(({ [provider]: _gone, ...rest }) => rest)
+    const r = await (window.gitAPI as any).aiListProviderModels(provider, key, baseUrl)
+    setLoadingModels(m => ({ ...m, [provider]: false }))
+    if (r.error) { setModelsError(m => ({ ...m, [provider]: String(r.error) })); return }
     const models = r.models as string[]
     setLiveModels(prev => ({ ...prev, [provider]: models }))
     // A default that names a model this provider no longer serves moves to
@@ -486,21 +626,23 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
     }
     window.gitAPI.settingsGetAll().then((s: any) => {
       const provider: AIProvider = (s.aiProvider as AIProvider) ?? 'groq'
-      setAiGlobalInstr(s.aiGlobalInstructions ?? '')
+      const globalInstr: string = s.aiGlobalInstructions ?? ''
+      setAiGlobalInstr(globalInstr)
       // A pair needs both halves. A legacy override (model without provider,
       // written before the rework) is read against the legacy provider.
-      setAiFeatSel(Object.fromEntries(AI_FEATURES.map(f => {
+      const featSel: Record<string, AIPair | null> = Object.fromEntries(AI_FEATURES.map(f => {
         const fp = (s[`aiFeatureProvider:${f.id}`] ?? '').trim()
         const fm = (s[`aiFeatureModel:${f.id}`] ?? '').trim()
         return [f.id, fm ? { provider: (fp || provider) as AIProvider, model: fm } : null]
-      })))
-      setAiFeatInstr(Object.fromEntries(AI_FEATURES.map(f => [f.id, s[`aiFeatureInstructions:${f.id}`] ?? ''])))
-      const keys = {
-        anthropic: s.aiAnthropicKey ?? '',
-        google:    s.aiGoogleKey ?? '',
-        groq:      s.aiGroqKey ?? s.groqApiKey ?? '',
-        openai:    s.aiOpenaiKey ?? '',
-      }
+      }))
+      setAiFeatSel(featSel)
+      const featInstr: Record<string, string> = Object.fromEntries(AI_FEATURES.map(f => [f.id, s[`aiFeatureInstructions:${f.id}`] ?? '']))
+      setAiFeatInstr(featInstr)
+      const keys: Record<string, string> = Object.fromEntries(
+        AI_PROVIDER_CATALOG.map(p => [p.id, s[p.keySetting!] ?? (p.id === 'groq' ? s.groqApiKey ?? '' : '') ?? ''])
+      )
+      const customs = parseCustomProviders(s.aiCustomProviders)
+      setAiCustoms(customs)
       setAutolinksRaw(s.autolinks ?? '')
       const token = s.githubToken ?? ''
       setGhEnterpriseHost(s.githubEnterpriseHost ?? '')
@@ -538,15 +680,21 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
         groq:      s.aiGroqModel      || 'llama-3.3-70b-versatile',
         openai:    s.aiOpenaiModel    || 'gpt-4o-mini',
       }
-      setAiDefault({
+      const def: AIPair = {
         provider: ((s.aiDefaultProvider ?? '').trim() || provider) as AIProvider,
         model: (s.aiDefaultModel ?? '').trim() || legacyModels[provider],
-      })
-      // Every connected provider fetches its list — the selects are grouped
-      // across all of them, not scoped to an active one.
-      for (const p of ['anthropic', 'google', 'groq', 'openai'] as AIProvider[]) {
-        if (keys[p]) fetchModels(p, keys[p])
       }
+      setAiDefault(def)
+      // The page compares itself against this to know it has something to
+      // save — taken before the probes below, so a default they move counts.
+      setAiSnapshot(serializeAI({ keys, customs, def, global: globalInstr, featSel, featInstr }))
+      // Every usable provider fetches its list — the pickers are grouped
+      // across all of them. Keyless customs fetch too: reaching /models is
+      // exactly what CONNECTED means for a local runtime.
+      for (const p of AI_PROVIDER_CATALOG) {
+        if (keys[p.id]) fetchModels(p.id, keys[p.id])
+      }
+      for (const c of customs) fetchModels(c.id, c.key ?? '', c.baseUrl)
     })
 
     // Listen for OAuth callback result from main process
@@ -694,20 +842,33 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
     showToast(t('settings.github.tokenSaved'))
   }
 
+  const aiDraft = (): AIDraft => ({
+    keys: aiKeys, customs: aiCustoms, def: aiDefault,
+    global: aiGlobalInstr, featSel: aiFeatSel, featInstr: aiFeatInstr,
+  })
+  const aiDirty = aiSnapshot !== null && serializeAI(aiDraft()) !== aiSnapshot
+
   const saveAI = async () => {
     // Every key — a credential belongs to its provider, not to a selection.
-    for (const p of ['anthropic', 'google', 'groq', 'openai'] as AIProvider[]) {
-      const cap = p.charAt(0).toUpperCase() + p.slice(1)
-      await window.gitAPI.settingsSet(`ai${cap}Key`, aiKeys[p])
+    for (const p of AI_PROVIDER_CATALOG) {
+      await window.gitAPI.settingsSet(p.keySetting!, aiKeys[p.id] ?? '')
     }
-    await window.gitAPI.settingsSet('groqApiKey', aiKeys.groq)
+    await window.gitAPI.settingsSet('groqApiKey', aiKeys.groq ?? '')
+    // The customs travel whole — key included — in one JSON blob (#169).
+    await window.gitAPI.settingsSet('aiCustomProviders', JSON.stringify(
+      aiCustoms.map(c => ({
+        id: c.id, label: c.label, baseUrl: c.baseUrl, key: c.key ?? '',
+        ...(c.authHeader ? { authHeader: c.authHeader } : {}),
+        ...(c.extraHeaders && Object.keys(c.extraHeaders).length ? { extraHeaders: c.extraHeaders } : {}),
+      }))
+    ))
     await window.gitAPI.settingsSet('aiDefaultProvider', aiDefault.provider)
     await window.gitAPI.settingsSet('aiDefaultModel', aiDefault.model)
     // The legacy mirror, so anything still reading the old vocabulary keeps
     // answering with the default the user just chose.
-    const dcap = aiDefault.provider.charAt(0).toUpperCase() + aiDefault.provider.slice(1)
+    const defDef = AI_PROVIDER_CATALOG.find(p => p.id === aiDefault.provider)
     await window.gitAPI.settingsSet('aiProvider', aiDefault.provider)
-    await window.gitAPI.settingsSet(`ai${dcap}Model`, aiDefault.model)
+    if (defDef?.legacyModelSetting) await window.gitAPI.settingsSet(defDef.legacyModelSetting, aiDefault.model)
     await window.gitAPI.settingsSet('aiGlobalInstructions', aiGlobalInstr)
     for (const f of AI_FEATURES) {
       const sel = aiFeatSel[f.id]
@@ -715,6 +876,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       await window.gitAPI.settingsSet(`aiFeatureModel:${f.id}`, sel?.model ?? '')
       await window.gitAPI.settingsSet(`aiFeatureInstructions:${f.id}`, aiFeatInstr[f.id] ?? '')
     }
+    setAiSnapshot(serializeAI(aiDraft()))
     showToast(t('toast.aiSaved'))
   }
 
@@ -754,7 +916,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
               600px reading measure is right for prose and inputs and wrong for
               a grid of theme tiles — it left two thirds of the window empty
               and made the tiles smaller than they need to be. */}
-          <div className={`stg-content ${section === 'appearance' || section === 'ai' ? 'stg-content--wide' : ''}`}>
+          <div className={`stg-content ${section === 'appearance' || section === 'ai' ? 'stg-content--wide' : ''} ${section === 'ai' ? 'stg-content--ai' : ''}`}>
 
             {/* ── Git ── */}
             {section === 'git' && (
@@ -1185,144 +1347,254 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
             )}
 
             {/* ── AI ── */}
-            {section === 'ai' && (
-              <div className="stg-section">
+            {section === 'ai' && (() => {
+              // Usable = a catalog entry with its key, or any custom — local
+              // runtimes are keyless, their /models answer is the connection
+              // (#169). CONNECTED is stricter: the /models answer came back.
+              const usableProviders = [
+                ...AI_PROVIDERS.filter(p => aiKeys[p.id]?.trim()),
+                ...aiCustoms,
+              ].map(p => ({ id: p.id, label: p.label }))
+              const anyConnected = usableProviders.length > 0
+              const connectedCount = [...AI_PROVIDERS, ...aiCustoms].filter(p => liveModels[p.id]).length
+              const orphanWarn = (pair: AIPair | null) =>
+                pair && !usableProviders.some(p => p.id === pair.provider)
+                  ? <span className="stg-ai-warn">{t('settings.ai.keyMissing')}</span>
+                  : null
+              const status = (models: string[] | null | undefined, busy: boolean, idle: string) => (
+                <span className={`stg-ai-status${models ? ' stg-ai-status--on' : ''}`}>
+                  {models ? <><Icon name="check" size={12} />{t('settings.ai.modelsCount', models.length)}</>
+                    : busy ? t('settings.ai.checking') : idle}
+                </span>
+              )
+              return (
+              <div className="stg-section stg-ai">
                 <h2 className="stg-section-title">{t('settings.ai.title')}</h2>
                 <p className="stg-desc">{t('settings.ai.desc')}</p>
 
-                {/* ── 1. Providers & keys — the credentials zone. No active
-                    provider: a provider with a key is CONNECTED, and the
-                    grouped selects below draw from every connected one. */}
-                <h3 className="stg-ai-h">{t('settings.ai.providersTitle')}</h3>
-                <div className="stg-ai-providers">
-                  {AI_PROVIDERS.map(p => {
-                    const key = aiKeys[p.id]
-                    const models = liveModels[p.id]
-                    return (
-                      <div key={p.id} className="stg-ai-provider">
-                        <div className="stg-ai-provider-head">
-                          <span className="stg-ai-provider-name" style={models ? { color: p.color } : undefined}>{p.label}</span>
-                          <span className={`stg-ai-provider-status${models ? ' stg-ai-provider-status--on' : ''}`}>
-                            {models ? t('settings.ai.modelsCount', models.length)
-                              : key ? (loadingModels ? '…' : t('settings.ai.keyUnverified'))
-                              : t('settings.ai.noKey')}
-                          </span>
-                        </div>
-                        <div className="stg-input-row">
-                          <input
-                            className="stg-input stg-mono"
-                            type={showKeyFor === p.id ? 'text' : 'password'}
-                            value={key}
-                            onChange={e => setAiKeys(k => ({ ...k, [p.id]: e.target.value }))}
-                            onBlur={e => { if (e.target.value) fetchModels(p.id, e.target.value) }}
-                            placeholder={
-                              p.id === 'anthropic' ? 'sk-ant-...' :
-                              p.id === 'google'    ? 'AIza...' :
-                              p.id === 'openai'    ? 'sk-...' :
-                              'gsk_...'
-                            }
-                          />
-                          <button className="stg-eye" onClick={() => setShowKeyFor(v => v === p.id ? null : p.id)}
-                            title={showKeyFor === p.id ? t('settings.ai.hide') : t('settings.ai.show')}>
-                            {showKeyFor === p.id ? '🙈' : '👁'}
-                          </button>
-                        </div>
-                        <button className="stg-tuto-toggle" onClick={() => setShowTutoFor(v => v === p.id ? null : p.id)}>
-                          {showTutoFor === p.id ? '▾' : '▸'} {t('settings.ai.howToKey')}{p.label}
-                        </button>
-                        {showTutoFor === p.id && (
-                          <div className="stg-tuto">
-                            <ol className="stg-tuto-steps">
-                              {(t(`settings.ai.tuto.${p.id}` as any) as unknown as string[]).map((step: string, i: number) => <li key={i}>{step}</li>)}
-                            </ol>
+                {/* ── 1. Providers — ONE list, catalog and customs alike, a
+                    row each. No active provider: a provider that answered
+                    /models is CONNECTED, and the pickers below draw from
+                    every connected one. */}
+                <div className="stg-ai-block stg-ai-block--first">
+                  <div className="stg-ai-block-head">
+                    <h3 className="stg-ai-h">{t('settings.ai.providersTitle')}</h3>
+                    {connectedCount > 0 && <span className="stg-ai-count">{t('settings.ai.connectedCount', connectedCount)}</span>}
+                  </div>
+                  <div className="stg-ai-list">
+                    {AI_PROVIDERS.map(p => {
+                      const key = aiKeys[p.id] ?? ''
+                      const models = liveModels[p.id]
+                      const on = !!models
+                      const err = modelsError[p.id]
+                      const tuto = p.hasTuto && showTutoFor === p.id
+                      return (
+                        <div key={p.id} className={`stg-ai-row${on ? ' stg-ai-row--on' : ''}`}>
+                          <div className="stg-ai-row-id">
+                            <span className="stg-ai-dot" style={on ? { background: p.color } : undefined} />
+                            <span className="stg-ai-provider-name" style={on ? { color: p.color } : undefined}>{p.label}</span>
                           </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-                {modelsError && <span className="stg-models-error">{modelsError}</span>}
-
-                {(() => {
-                  const anyConnected = AI_PROVIDERS.some(p => aiKeys[p.id]?.trim())
-                  const orphanWarn = (pair: AIPair | null) =>
-                    pair && !aiKeys[pair.provider]?.trim()
-                      ? <span className="stg-ai-warn">{t('settings.ai.keyMissing')}</span>
-                      : null
-                  return (
-                    <div className={anyConnected ? undefined : 'stg-ai-dim'}>
-                      {/* ── 2. Defaults ── */}
-                      <div className="stg-ai-block">
-                        <h3 className="stg-ai-h">{t('settings.ai.defaultsTitle')}</h3>
-                        {!anyConnected && <p className="stg-desc">{t('settings.ai.connectFirst')}</p>}
-                        <label className="stg-field stg-ai-model">
-                          <span>{t('settings.ai.defaultModelLabel')}</span>
-                          <ModelSelect value={aiDefault} onChange={v => { if (v) setAiDefault(v) }}
-                            keys={aiKeys} liveModels={liveModels} />
-                          {orphanWarn(aiDefault)}
-                        </label>
-                        <label className="stg-field">
-                          <span>{t('settings.ai.globalInstructions')}</span>
-                          <p className="stg-desc">{t('settings.ai.globalInstructionsDesc')}</p>
-                          <div className="stg-ai-chips">
-                            {AI_GLOBAL_CHIPS.filter(c => !aiGlobalInstr.includes(c)).map(c => (
-                              <button key={c} type="button" className="stg-ai-chip" aria-label={c}
-                                onClick={() => setAiGlobalInstr(v => appendChip(v, c))}>{c}</button>
-                            ))}
-                          </div>
-                          <textarea
-                            className="stg-input stg-ai-instr"
-                            value={aiGlobalInstr}
-                            onChange={e => setAiGlobalInstr(e.target.value)}
-                            placeholder={t('settings.ai.globalInstructionsHint')}
-                            rows={3}
-                          />
-                        </label>
-                      </div>
-
-                      {/* ── 3. Per feature ── */}
-                      {AI_FEATURES.map(f => (
-                        <div key={f.id} className="stg-ai-block">
-                          <h3 className="stg-ai-h">{t(f.labelKey as any)}</h3>
-                          <p className="stg-desc stg-ai-temper">{t(`settings.ai.temper.${f.kind}` as any)}</p>
-                          <label className="stg-field stg-ai-model">
-                            <span>{t('settings.ai.featureModel', t(f.labelKey as any).toLowerCase())}</span>
-                            <ModelSelect
-                              value={aiFeatSel[f.id] ?? null}
-                              onChange={v => setAiFeatSel(m => ({ ...m, [f.id]: v }))}
-                              defaultLabel={t('settings.ai.defaultModel', aiDefault.model)}
-                              defaultModel={aiDefault.model}
-                              suggest={f.kind === 'thorough' ? 'reasoning' : f.kind === 'fast' ? 'fast' : undefined}
-                              suggestLabel={t('settings.ai.suggested')}
-                              keys={aiKeys} liveModels={liveModels} />
-                            {orphanWarn(aiFeatSel[f.id] ?? null)}
-                          </label>
-                          <label className="stg-field">
-                            <span>{t('settings.ai.customInstructions')}</span>
-                            <div className="stg-ai-chips">
-                              {f.chips.filter(c => !(aiFeatInstr[f.id] ?? '').includes(c)).map(c => (
-                                <button key={c} type="button" className="stg-ai-chip" aria-label={c}
-                                  onClick={() => setAiFeatInstr(m => ({ ...m, [f.id]: appendChip(m[f.id] ?? '', c) }))}>{c}</button>
-                              ))}
-                            </div>
-                            <textarea
-                              className="stg-input stg-ai-instr"
-                              value={aiFeatInstr[f.id] ?? ''}
-                              onChange={e => setAiFeatInstr(m => ({ ...m, [f.id]: e.target.value }))}
-                              placeholder={t('settings.ai.instructionsHint')}
-                              rows={3}
+                          <div className="stg-ai-row-input">
+                            <input
+                              className="stg-input stg-mono"
+                              type={showKeyFor === p.id ? 'text' : 'password'}
+                              value={key}
+                              aria-label={t('settings.ai.apiKey', p.label)}
+                              onChange={e => setAiKeys(k => ({ ...k, [p.id]: e.target.value }))}
+                              onBlur={e => { if (e.target.value) fetchModels(p.id, e.target.value) }}
+                              placeholder={p.keyPlaceholder}
                             />
-                          </label>
+                            <button type="button" className="stg-eye" onClick={() => setShowKeyFor(v => v === p.id ? null : p.id)}
+                              title={showKeyFor === p.id ? t('settings.ai.hide') : t('settings.ai.show')}>
+                              <Icon name={showKeyFor === p.id ? 'eyeOff' : 'eye'} size={14} />
+                            </button>
+                          </div>
+                          <div className="stg-ai-row-status">
+                            {status(models, !!loadingModels[p.id], key ? t('settings.ai.keyUnverified') : t('settings.ai.noKey'))}
+                            {p.hasTuto && !on && (
+                              <button type="button" className="stg-ai-link" aria-expanded={!!tuto}
+                                onClick={() => setShowTutoFor(v => v === p.id ? null : p.id)}>
+                                {t('settings.ai.getKey')}
+                              </button>
+                            )}
+                          </div>
+                          {(err || tuto) && (
+                            <div className="stg-ai-row-sub">
+                              {err && <span className="stg-models-error">{err}</span>}
+                              {tuto && (
+                                <ol className="stg-tuto-steps">
+                                  {(t(`settings.ai.tuto.${p.id}` as any) as unknown as string[]).map((step: string, i: number) => <li key={i}>{step}</li>)}
+                                </ol>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      ))}
+                      )
+                    })}
+                    {/* ── Custom endpoints — the local story (#169). Anything
+                        speaking the OpenAI dialect: an Ollama, an LM Studio, a
+                        gateway. Keyless is normal here; reaching /models is
+                        what CONNECTED means for a runtime with no key to give. */}
+                    {aiCustoms.map((c, i) => {
+                      const models = liveModels[c.id]
+                      const on = !!models
+                      const err = modelsError[c.id]
+                      const upd = (patch: Partial<AIProviderDef>) =>
+                        setAiCustoms(a => a.map((x, j) => j === i ? { ...x, ...patch } : x))
+                      const probe = () => { if (c.baseUrl) fetchModels(c.id, c.key ?? '', c.baseUrl) }
+                      return (
+                        <div key={c.id} className={`stg-ai-row stg-ai-row--custom${on ? ' stg-ai-row--on' : ''}`}>
+                          <div className="stg-ai-row-id">
+                            <span className="stg-ai-dot" />
+                            <input
+                              className="stg-input stg-ai-custom-name"
+                              value={c.label}
+                              aria-label={t('settings.ai.customName')}
+                              placeholder={t('settings.ai.customName')}
+                              onChange={e => upd({ label: e.target.value })}
+                            />
+                          </div>
+                          <div className="stg-ai-row-input">
+                            <input
+                              className="stg-input stg-mono stg-ai-custom-url"
+                              value={c.baseUrl ?? ''}
+                              aria-label={t('settings.ai.customUrl')}
+                              placeholder="http://localhost:11434/v1"
+                              onChange={e => upd({ baseUrl: e.target.value })}
+                              onBlur={probe}
+                            />
+                            <input
+                              className="stg-input stg-mono stg-ai-custom-key"
+                              type="password"
+                              value={c.key ?? ''}
+                              aria-label={t('settings.ai.customKeyOptional')}
+                              placeholder={t('settings.ai.customKeyOptional')}
+                              onChange={e => upd({ key: e.target.value })}
+                              onBlur={probe}
+                            />
+                          </div>
+                          <div className="stg-ai-row-status">
+                            {status(models, !!loadingModels[c.id], t('settings.ai.notReached'))}
+                            <button type="button" className="stg-ai-row-del"
+                              title={t('settings.ai.customRemove')} aria-label={t('settings.ai.customRemove')}
+                              onClick={() => setAiCustoms(a => a.filter((_, j) => j !== i))}>
+                              <Icon name="trash" size={14} />
+                            </button>
+                          </div>
+                          <div className="stg-ai-row-sub">
+                            {err && <span className="stg-models-error">{err}</span>}
+                            {/* Auth QUIRKS, never formats (#169 P2): rare by
+                                design, so they live behind a fold. */}
+                            <details className="stg-ai-quirks">
+                              <summary>{t('settings.ai.authQuirks')}{(c.authHeader || c.extraHeaders) ? ' ·' : ''}</summary>
+                              <input
+                                className="stg-input stg-mono"
+                                value={c.authHeader ?? ''}
+                                aria-label={t('settings.ai.authHeaderLabel')}
+                                placeholder={t('settings.ai.authHeaderLabel')}
+                                onChange={e => upd({ authHeader: e.target.value.trim() || undefined })}
+                              />
+                              <textarea
+                                className="stg-input stg-mono stg-ai-instr"
+                                value={headersToLines(c.extraHeaders)}
+                                aria-label={t('settings.ai.extraHeadersLabel')}
+                                placeholder={t('settings.ai.extraHeadersLabel')}
+                                rows={2}
+                                onChange={e => upd({ extraHeaders: linesToHeaders(e.target.value) })}
+                              />
+                            </details>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <div className="stg-ai-row stg-ai-row--add">
+                      <span className="stg-ai-add-hint">{t('settings.ai.customDesc')}</span>
+                      <div className="stg-ai-chips">
+                        {AI_LOCAL_PRESETS.map(pr => (
+                          <button key={pr.label} type="button" className="stg-ai-chip" aria-label={pr.label}
+                            onClick={() => setAiCustoms(a => [...a, {
+                              id: makeCustomId(pr.label, a), label: pr.label, dialect: 'openai-compat',
+                              baseUrl: pr.baseUrl, key: '', custom: true,
+                            }])}>+ {pr.label}</button>
+                        ))}
+                        <button type="button" className="stg-ai-chip" aria-label={t('settings.ai.customAdd')}
+                          onClick={() => setAiCustoms(a => [...a, {
+                            id: makeCustomId('endpoint', a), label: '', dialect: 'openai-compat',
+                            baseUrl: '', key: '', custom: true,
+                          }])}>+ {t('settings.ai.customAdd')}</button>
+                      </div>
                     </div>
-                  )
-                })()}
+                  </div>
+                </div>
 
-                <button className="stg-save" onClick={saveAI}>{t('settings.save')}</button>
+                <div className={anyConnected ? undefined : 'stg-ai-dim'}>
+                  {/* ── 2. Defaults — the same shape as a feature block: the
+                      model on the left, the instructions on the right. */}
+                  <div className="stg-ai-block">
+                    <div className="stg-ai-block-head">
+                      <h3 className="stg-ai-h">{t('settings.ai.defaultsTitle')}</h3>
+                    </div>
+                    <p className="stg-desc stg-ai-temper">{anyConnected ? t('settings.ai.defaultsDesc') : t('settings.ai.connectFirst')}</p>
+                    <AITuning
+                      modelLabel={t('settings.ai.defaultModelLabel')}
+                      picker={<ModelSelect value={aiDefault} onChange={v => { if (v) setAiDefault(v) }}
+                        providers={usableProviders} liveModels={liveModels} />}
+                      warn={orphanWarn(aiDefault)}
+                      instrLabel={t('settings.ai.globalInstructions')}
+                      templates={AI_GLOBAL_CHIPS}
+                      templatesLabel={t('settings.ai.templates')}
+                      value={aiGlobalInstr}
+                      onChange={setAiGlobalInstr}
+                      placeholder={t('settings.ai.globalInstructionsHint')}
+                    />
+                  </div>
+
+                  {/* ── 3. Per feature — the temperament worn as a tag beside
+                      the heading, in the badge colours, so it READS against
+                      the badge of the model picked below it. */}
+                  {AI_FEATURES.map(f => (
+                    <div key={f.id} className="stg-ai-block stg-ai-feature">
+                      <div className="stg-ai-block-head">
+                        <h3 className="stg-ai-h">{t(f.labelKey as any)}</h3>
+                        <span className={`stg-kind stg-temper${f.kind === 'fast' ? ' stg-kind--fast' : f.kind === 'thorough' ? ' stg-kind--reasoning' : ''}`}>
+                          {t(`settings.ai.temperTag.${f.kind}` as any)}
+                        </span>
+                      </div>
+                      <p className="stg-desc stg-ai-temper">{t(`settings.ai.temper.${f.kind}` as any)}</p>
+                      <AITuning
+                        modelLabel={t('settings.ai.modelLabel')}
+                        picker={<ModelSelect
+                          value={aiFeatSel[f.id] ?? null}
+                          onChange={v => setAiFeatSel(m => ({ ...m, [f.id]: v }))}
+                          defaultLabel={t('settings.ai.defaultModel', aiDefault.model)}
+                          defaultModel={aiDefault.model}
+                          suggest={f.kind === 'thorough' ? 'reasoning' : f.kind === 'fast' ? 'fast' : undefined}
+                          suggestLabel={t('settings.ai.suggested')}
+                          providers={usableProviders} liveModels={liveModels} />}
+                        warn={orphanWarn(aiFeatSel[f.id] ?? null)}
+                        instrLabel={t('settings.ai.instructionsLabel')}
+                        templates={f.chips}
+                        templatesLabel={t('settings.ai.templates')}
+                        value={aiFeatInstr[f.id] ?? ''}
+                        onChange={v => setAiFeatInstr(m => ({ ...m, [f.id]: v }))}
+                        placeholder={t('settings.ai.instructionsHint')}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* The Save rides with the scroll: the page is long and the
+                    key you just pasted is at the top of it. It lights only
+                    when the page differs from what it loaded or last saved. */}
+                <div className="stg-ai-savebar">
+                  <div className="stg-ai-savebar-inner">
+                    <span className="stg-ai-savebar-note">{aiDirty ? t('settings.ai.unsaved') : ''}</span>
+                    <button className="stg-save" onClick={saveAI} disabled={!aiDirty}>{t('settings.save')}</button>
+                  </div>
+                </div>
               </div>
-            )}
-
+              )
+            })()}
             {/* ── Notifications ── */}
             {section === 'notifications' && (
               <div className="stg-section">
