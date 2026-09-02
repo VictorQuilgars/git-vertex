@@ -365,15 +365,25 @@ describe('SettingsModal — per-feature AI overrides', () => {
     expect(screen.getAllByText(/^Global model \(/).length).toBe(7)
   })
 
-  test('a chip writes its fragment, then stands down', async () => {
+  test('the ready-made fragments wait behind Templates; a pick writes, then reads taken', async () => {
     await open()
-    await userEvent.click(screen.getByRole('button', { name: 'Focus on the why' }))
-    const explain = screen.getAllByPlaceholderText('Instructions for this feature only…')[1]
-    expect(explain).toHaveValue('Focus on the why')
-    // an offer already taken is not an offer
-    expect(screen.queryByRole('button', { name: 'Focus on the why' })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Call out risky changes' }))
-    expect(explain).toHaveValue('Focus on the why\nCall out risky changes')
+    // nothing laid out above the field — the button is the whole offer
+    expect(screen.queryByRole('option', { name: 'Focus on the why' })).not.toBeInTheDocument()
+    const explain = screen.getByText('Explain a commit').closest('.stg-ai-feature') as HTMLElement
+    await userEvent.click(within(explain).getByRole('button', { name: /templates/i }))
+    await userEvent.click(within(explain).getByRole('option', { name: 'Focus on the why' }))
+    const field = screen.getAllByPlaceholderText('Instructions for this feature only…')[1]
+    expect(field).toHaveValue('Focus on the why')
+    // a pick closes the menu; reopened, the fragment is still listed but
+    // reads taken and takes no click — an offer already taken is not an offer
+    expect(within(explain).queryByRole('listbox')).not.toBeInTheDocument()
+    await userEvent.click(within(explain).getByRole('button', { name: /templates/i }))
+    const taken = within(explain).getByRole('option', { name: /Focus on the why/ })
+    expect(taken).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(taken)
+    expect(field).toHaveValue('Focus on the why')
+    await userEvent.click(within(explain).getByRole('option', { name: 'Call out risky changes' }))
+    expect(field).toHaveValue('Focus on the why\nCall out risky changes')
   })
 
   test('saving writes the standing block and every feature key', async () => {

@@ -329,19 +329,64 @@ interface AIDraft {
 const serializeAI = (d: AIDraft): string => JSON.stringify(d)
 
 /**
+ * The ready-made fragments, behind a button at the right of the field's
+ * caption rather than laid out above it: eight blocks of chips were the
+ * page's noise, and the field is what the user came to write in. The menu
+ * borrows the model picker's list and its closing contract — focus leaves,
+ * it closes; a pick writes the fragment and closes. A fragment the text
+ * already holds is shown taken, not hidden: the list keeps its shape, so
+ * the eye finds the one it wants where it was last time.
+ */
+function TemplateMenu({ templates, value, onPick, label }: {
+  templates: string[]
+  value: string
+  onPick: (fragment: string) => void
+  label: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="stg-ai-tpl"
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false) }}>
+      <button type="button" className="stg-ai-tpl-btn" aria-haspopup="listbox" aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        onKeyDown={e => { if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false) } }}>
+        <Icon name="list" size={12} />
+        {label}
+        <span className="stg-msel-caret">▾</span>
+      </button>
+      {open && (
+        <div className="stg-msel-list stg-ai-tpl-list" role="listbox" aria-label={label}>
+          {templates.map(c => {
+            const taken = value.includes(c)
+            return (
+              <button key={c} type="button" role="option" aria-selected={taken} aria-disabled={taken}
+                className={`stg-msel-row stg-ai-tpl-row${taken ? ' stg-msel-row--on' : ''}`}
+                onMouseDown={e => { e.preventDefault(); if (!taken) { onPick(c); setOpen(false) } }}>
+                <span className="stg-msel-name">{c}</span>
+                {taken && <span className="stg-msel-check">✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
  * The tuning pair every block shares — the model on the left, the
  * instructions on the right: one shape for the defaults and each feature,
- * so the eye learns it once. Chips write their fragment into the field and
- * stand down once the text holds it: an offer already taken is not an offer.
- * The instructions column is a div, not a label — a label whose first
- * control is a chip button would fire that chip on a click of its caption.
+ * so the eye learns it once. The instructions column is a div, not a label —
+ * a label whose first control is the templates button would open the menu
+ * on a click of its caption.
  */
-function AITuning({ modelLabel, picker, warn, instrLabel, chips, value, onChange, placeholder }: {
+function AITuning({ modelLabel, picker, warn, instrLabel, templates, templatesLabel, value, onChange, placeholder }: {
   modelLabel: string
   picker: React.ReactNode
   warn: React.ReactNode
   instrLabel: string
-  chips: string[]
+  templates: string[]
+  templatesLabel: string
   value: string
   onChange: (v: string) => void
   placeholder: string
@@ -354,12 +399,10 @@ function AITuning({ modelLabel, picker, warn, instrLabel, chips, value, onChange
         {warn}
       </label>
       <div className="stg-field">
-        <span>{instrLabel}</span>
-        <div className="stg-ai-chips">
-          {chips.filter(c => !value.includes(c)).map(c => (
-            <button key={c} type="button" className="stg-ai-chip" aria-label={c}
-              onClick={() => onChange(appendChip(value, c))}>{c}</button>
-          ))}
+        <div className="stg-ai-field-head">
+          <span>{instrLabel}</span>
+          <TemplateMenu templates={templates} value={value} label={templatesLabel}
+            onPick={c => onChange(appendChip(value, c))} />
         </div>
         <textarea
           className="stg-input stg-ai-instr"
@@ -1498,7 +1541,8 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         providers={usableProviders} liveModels={liveModels} />}
                       warn={orphanWarn(aiDefault)}
                       instrLabel={t('settings.ai.globalInstructions')}
-                      chips={AI_GLOBAL_CHIPS}
+                      templates={AI_GLOBAL_CHIPS}
+                      templatesLabel={t('settings.ai.templates')}
                       value={aiGlobalInstr}
                       onChange={setAiGlobalInstr}
                       placeholder={t('settings.ai.globalInstructionsHint')}
@@ -1529,7 +1573,8 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                           providers={usableProviders} liveModels={liveModels} />}
                         warn={orphanWarn(aiFeatSel[f.id] ?? null)}
                         instrLabel={t('settings.ai.instructionsLabel')}
-                        chips={f.chips}
+                        templates={f.chips}
+                        templatesLabel={t('settings.ai.templates')}
                         value={aiFeatInstr[f.id] ?? ''}
                         onChange={v => setAiFeatInstr(m => ({ ...m, [f.id]: v }))}
                         placeholder={t('settings.ai.instructionsHint')}

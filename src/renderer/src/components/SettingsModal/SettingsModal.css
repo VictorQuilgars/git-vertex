@@ -729,9 +729,31 @@
   resize: vertical; font-family: inherit; line-height: 1.4;
   width: 100%; min-height: 56px;
 }
+/* The field's caption row: the label left, the templates button right. */
+.stg-ai-field-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+.stg-ai-field-head > span { font-size: var(--text-sm); color: var(--text-secondary); font-weight: var(--weight-medium); }
+/* The templates menu — the ready-made fragments one click away rather than
+   laid out above every field. The picker's list, in the UI face, wrapping;
+   a fragment the text already holds reads taken and takes no click. */
+.stg-ai-tpl { position: relative; }
+.stg-ai-tpl-btn {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  padding: var(--space-px) var(--space-md);
+  cursor: pointer;
+}
+.stg-ai-tpl-btn:hover, .stg-ai-tpl-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.stg-ai-tpl-list { left: auto; right: 0; width: max-content; min-width: 280px; max-width: 460px; }
+.stg-ai-tpl-row { font-family: inherit; font-size: var(--text-sm); }
+.stg-ai-tpl-row .stg-msel-name { white-space: normal; }
+.stg-ai-tpl-row[aria-disabled="true"] { cursor: default; }
+.stg-ai-tpl-row[aria-disabled="true"]:hover { background: transparent; }
+/* The preset chips of the providers' add row. */
 .stg-ai-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
-/* A chip writes its fragment into the field below — and once the text holds
-   it, the chip stands down: an offer already taken is not an offer. */
 .stg-ai-chip {
   background: transparent;
   border: 1px solid var(--border-default);

@@ -27,12 +27,13 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🧭 The AI Assistant page, laid out to be read
 - **Providers are one list** — the catalog and your own endpoints, a row each; the connected ones wear their brand colour and model count, and a refused key says so on its own row.
 - **The defaults and every feature share one block**: the model on the left, the instructions on the right, the feature's temperament as a tag beside its heading — in the badge colours, so *fast model* beside a *reasoning* badge reads as the mismatch it is.
+- **The ready-made fragments wait behind a Templates button** at the right of each field — a pick writes the fragment in; one already in the text reads as taken.
 - **Save rides with the scroll**, and lights only against a real change.
 - Every Gemini wore the *fast* badge — the heuristic read the \`mini\` inside \`gemini\`. Gemini 2.5 Pro is unlabelled now, as an id it cannot read should be.
 
 ### 🎛 A model and instructions per AI feature
 - **Each feature says which temperament it rewards** — fast for the one-liners, reasoning for the readers — with the characteristics worn as **coloured badges** on the picker and its rows, and a *Suggested* group drawn from your providers' live lists.
-- Settings › AI is three zones: **Providers & keys** (each of the four holds its own credential and reports its state), **Defaults** (one model across every connected provider, plus standing instructions and chips), and **a section per feature** — whose model can come from a different provider than the next one's.
+- Settings › AI is three zones: **Providers & keys** (each of the four holds its own credential and reports its state), **Defaults** (one model across every connected provider, plus standing instructions and their ready-made fragments), and **a section per feature** — whose model can come from a different provider than the next one's.
 - Instructions land AFTER each prompt's rules; checked outputs stay checked. Empty = the global setting, and a folded override says *customised*.
 
 ### 🤏 Hold several commits at once
