@@ -102,3 +102,9 @@
   letter-spacing: .02em;
 }
 .mchip-collapsible .mchip-detail { margin-left: 2px; }
+
+/* The stacked layout's ghost (#173): the same chip, faded and dashed, shown
+   on the row's hover and while it is selected. */
+.mchip--ghost { opacity: 0; border-style: dashed; transition: opacity var(--dur-fast); }
+.cg-row:hover .mchip--ghost,
+.cg-row.cg-selected .mchip--ghost { opacity: 0.65; }

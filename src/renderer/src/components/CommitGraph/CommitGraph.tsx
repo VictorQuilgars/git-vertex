@@ -530,9 +530,11 @@ function RefExpansionPopup({ anchor, children, onMouseEnter, onMouseLeave }: {
   )
 }
 
-function RefChip({ pref, laneColor, compact, onDoubleClick, onDragStartBranch, onDragEndBranch, onContextMenu }: {
+function RefChip({ pref, laneColor, compact, ghost, onDoubleClick, onDragStartBranch, onDragEndBranch, onContextMenu }: {
   pref: ProcessedRef
   laneColor?: string
+  /** Inherited from the line's tip, not a ref on this commit (#173): dashed, faded. */
+  ghost?: boolean
   // Icons + checkmark only, no branch/tag name text — used for the main-row
   // chip when the compact layout is on. The expansion popup always shows the
   // full name since it has room to breathe.
@@ -551,7 +553,7 @@ function RefChip({ pref, laneColor, compact, onDoubleClick, onDragStartBranch, o
   } : (pref.cls !== 'rc-tag' ? { cursor: 'pointer' as const } : undefined)
   return (
     <span
-      className={`ref-chip ${pref.cls} ${compact ? 'ref-chip--compact' : ''}`}
+      className={`ref-chip ${pref.cls} ${compact ? 'ref-chip--compact' : ''}${ghost ? ' ref-chip--ghost' : ''}`}
       title={pref.tooltip}
       draggable={isDraggable}
       onDragStart={e => {
@@ -1178,6 +1180,29 @@ export default function CommitGraph({
   // feature/api-v2 walks until it hits develop_tip (which has "HEAD -> develop")
   // and stops there; develop walks its merge commits (which have no branch refs)
   // all the way down. Tags do not stop the walk.
+  // Every commit by hash: the owner-tip lookup the ghost refs need (#173).
+  const byHash = useMemo(() => new Map(displayLayout.map(c => [c.hash, c])), [displayLayout])
+  /**
+   * The refs a row SHOWS: its own — or, for a row that has none, the refs of
+   * the tip that owns its line (graph-layout's ownerTip, the rule that also
+   * colours the lane), a branch first, worn as a GHOST (#173). Tags never lead
+   * a ghost: a tag-only tip names a release, not a line. The working-changes
+   * row and a tip that owns itself show nothing.
+   */
+  const shownRefs = useCallback((c: LayoutCommit): { prefs: ProcessedRef[]; ghost: boolean } => {
+    const own = processRefs(c.refs, hiddenChip)
+    if (own.length > 0 || c.hash === WIP_HASH || !c.ownerTip || c.ownerTip === c.hash) return { prefs: own, ghost: false }
+    let tip = byHash.get(c.ownerTip)
+    // The working-changes node sits on top of HEAD's line and owns it, and it
+    // carries no ref: the line is named by the commit under it, HEAD's own.
+    if (tip && tip.hash === WIP_HASH) tip = tip.parents[0] ? byHash.get(tip.parents[0]) : undefined
+    if (!tip) return { prefs: own, ghost: false }
+    const all = processRefs(tip.refs, hiddenChip)
+    const lead = all.findIndex(p => p.cls !== 'rc-tag')
+    if (lead < 0) return { prefs: own, ghost: false }
+    return { prefs: [all[lead], ...all.filter((_, i) => i !== lead)], ghost: true }
+  }, [byHash, hiddenChip])
+
   const [hoverHash, setHoverHash] = useState<string | null>(null)
   const hoverHighlight = useMemo(() => {
     if (!hoverHash) return null
@@ -1779,9 +1804,14 @@ export default function CommitGraph({
             const keep = filtered ?? hoverHighlight
             const isDimmed = !isWip && keep !== null && !keep.has(commit.row)
             const isDropTarget = dragOverRow === commit.row && !isWip
-            const prefs = processRefs(commit.refs, hiddenChip)
+            const { prefs, ghost } = shownRefs(commit)
             let renderRefs: (withStub: boolean) => React.ReactNode = () => null
-            const primary = prefs[0]
+            // A ghost's face says whose line this is; the rows behind it keep
+            // their own tooltips — and no checkmark: ✓ reads "checked out", which
+            // is a fact about the tip, not about this commit.
+            const primary: ProcessedRef | undefined = prefs[0] && ghost
+              ? { ...prefs[0], isHead: false, tooltip: t('graph.ghostTip', prefs[0].display) }
+              : prefs[0]
             const stackCount = prefs.length - 1
             const rowIsHead = !isWip && commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
             const rowCanReword = rowIsHead || commit.parents.length > 0
@@ -1827,7 +1857,7 @@ export default function CommitGraph({
                   {primary ? (
                     <>
                       <div
-                        className="cg-refs-chips"
+                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}`}
                         onMouseEnter={e => {
                           // Highlight after 2s delay — avoids accidental triggers while scrolling
                           if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
@@ -1849,7 +1879,7 @@ export default function CommitGraph({
                           refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
                         }}
                       >
-                        <RefChip pref={primary} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
+                        <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
                           onDragStartBranch={setDragBranch}
                           onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
                           onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
@@ -1857,15 +1887,16 @@ export default function CommitGraph({
                           <span className="rc-stack-badge">+{stackCount}</span>
                         )}
                       </div>
-                      {/* Flex stub: fills space from chip right edge to SVG boundary */}
-                      <div className="cg-ref-line-stub" style={{ background: dimColor(commit.color) }} />
+                      {/* Flex stub: fills space from chip right edge to SVG boundary.
+                          A ghost is not tied to the graph — no stub. */}
+                      {!ghost && <div className="cg-ref-line-stub" style={{ background: dimColor(commit.color) }} />}
                     </>
                   ) : null}
                 </>) : (<>
                   {primary ? (
                     <>
                       <div
-                        className="cg-refs-chips"
+                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}`}
                         onMouseEnter={e => {
                           // Highlight after 2s delay — avoids accidental triggers while scrolling
                           if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
@@ -1887,7 +1918,7 @@ export default function CommitGraph({
                           refExpandTimer.current = setTimeout(() => setRefExpand(null), 120)
                         }}
                       >
-                        <RefChip pref={primary} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
+                        <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
                           onDragStartBranch={setDragBranch}
                           onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
                           onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
@@ -1930,7 +1961,8 @@ export default function CommitGraph({
                       {prefs.length > 0 && (
                         <MessageChip
                           tone={commit.color}
-                          emphasis={!!prefs[0].isHead}
+                          ghost={ghost}
+                          emphasis={!ghost && !!prefs[0].isHead}
                           refsHidden={Math.max(0, prefs.length - 1)}
                           segments={messageChipSegments(prefs[0], issueForBranch, {
                             onCheckout: onCheckoutBranch,
@@ -2056,7 +2088,7 @@ export default function CommitGraph({
       {refExpand && (() => {
         const expandCommit = displayLayout.find(c => c.row === refExpand.row)
         if (!expandCommit) return null
-        const hiddenPrefs = processRefs(expandCommit.refs, hiddenChip).slice(1)
+        const hiddenPrefs = shownRefs(expandCommit).prefs.slice(1)
         if (hiddenPrefs.length === 0) return null
         return createPortal(
           <RefExpansionPopup

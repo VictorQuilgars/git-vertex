@@ -2,6 +2,19 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🧭 The graph says which branch a commit is on
+- A row with no ref of its own wears the name of its line — the owning tip's branch, dashed and faded — on hover, and keeps it while selected; the tip's other refs open behind it.
+
+### 📚 The sidebar, as a list
+- A rule between sections, and headings a step up.
+- Each open section scrolls on its own, so the headings stay put under a long list.
+- Drag a section's bottom edge to resize it — double-click for automatic. Kept for every repository.
+
+### 🩹 Fixed
+- Clicking another issue while one was open kept showing the first. Another issue is another detail now — pull requests too.
+`,
   '1.32.0': `## What's new in 1.32.0
 
 ### 🔌 More providers, and your own — local models included

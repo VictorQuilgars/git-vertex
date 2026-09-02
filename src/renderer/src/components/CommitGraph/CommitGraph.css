@@ -543,3 +543,13 @@
   color: var(--success); cursor: pointer;
 }
 .cg-wip-stage-all:hover { background: color-mix(in srgb, var(--success) 30%, transparent); }
+
+/* ── The ghost ref (#173) ─────────────────────────────────────
+   A row with no ref of its own wears the name of the line it belongs to —
+   the owner tip's branch — while hovered and while selected. Painted by the
+   row's own :hover, so the pointer moving down the graph costs no render;
+   dashed and faded, so it never reads as a ref on THIS commit. */
+.cg-refs-chips--ghost { opacity: 0; pointer-events: none; transition: opacity var(--dur-fast); }
+.cg-row:hover .cg-refs-chips--ghost,
+.cg-row.cg-selected .cg-refs-chips--ghost { opacity: 1; pointer-events: auto; }
+.ref-chip--ghost { border-style: dashed; opacity: 0.65; }
