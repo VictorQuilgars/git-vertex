@@ -601,8 +601,79 @@ function GhGroup({ title, count, children, defaultOpen = false }: {
   )
 }
 
+// ── Section heights (#176) ────────────────────────────────────────
+// A section's height is a property of the sidebar's layout, not of the
+// repository, so it is one key per section for every repository — unlike the
+// folded folders, which are a repository's own. Null means automatic: the
+// section takes its content's height and yields its spare room.
+const SB_HEIGHT_KEY = 'gv-sb-height:'
+/** A header plus two rows — the least a resized section can be. */
+const SB_MIN_SECTION = 30 + 48
+
+function useSectionHeight(id: string): [number | null, (h: number | null) => void] {
+  const [height, setHeightState] = useState<number | null>(() => {
+    try {
+      const v = parseInt(localStorage.getItem(SB_HEIGHT_KEY + id) || '', 10)
+      return v > 0 ? v : null
+    } catch { return null }
+  })
+  const setHeight = useCallback((h: number | null) => {
+    setHeightState(h)
+    try {
+      if (h === null) localStorage.removeItem(SB_HEIGHT_KEY + id)
+      else localStorage.setItem(SB_HEIGHT_KEY + id, String(Math.round(h)))
+    } catch { /* private mode */ }
+  }, [id])
+  return [height, setHeight]
+}
+
+/**
+ * Drags a section's bottom edge. The height is written live and persisted on
+ * release. The ceiling is what the column can give: its own height less the
+ * least every other child needs — a section's header, plus two rows when it
+ * is open; anything else its full height — so no sibling is ever pushed out
+ * of the column. A column that has no measured height (jsdom) sets no ceiling.
+ */
+function startSectionResize(e: React.MouseEvent, el: HTMLDivElement | null, setHeight: (h: number | null) => void): void {
+  if (!el || e.button !== 0) return
+  e.preventDefault()
+  const column = el.parentElement
+  const startY = e.clientY
+  const startH = el.getBoundingClientRect().height
+  let ceiling = Infinity
+  if (column && column.clientHeight > 0) {
+    let othersNeed = 0
+    for (const sib of Array.from(column.children) as HTMLElement[]) {
+      if (sib === el) continue
+      if (!sib.classList.contains('sb-section')) { othersNeed += sib.offsetHeight; continue }
+      // A sibling the user already pinned keeps its height — it does not
+      // shrink, so it counts for all of it, not for its floor.
+      const pinned = /^0 0 (\d+)px$/.exec(sib.style.flex)
+      if (pinned) { othersNeed += Number(pinned[1]); continue }
+      const header = sib.querySelector<HTMLElement>('.sb-section-header')
+      othersNeed += (header?.offsetHeight ?? 30) + (sib.classList.contains('sb-section--open') ? SB_MIN_SECTION - 30 : 0)
+    }
+    ceiling = Math.max(SB_MIN_SECTION, column.clientHeight - othersNeed)
+  }
+  const clamp = (h: number) => Math.min(ceiling, Math.max(SB_MIN_SECTION, h))
+  let last = startH
+  const onMove = (ev: MouseEvent) => { last = clamp(startH + ev.clientY - startY); el.style.flex = `0 0 ${last}px` }
+  const onUp = () => {
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+    document.body.style.cursor = ''
+    el.style.flex = ''
+    setHeight(last)
+  }
+  document.body.style.cursor = 'row-resize'
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
 // ── Collapse section ─────────────────────────────────────────────
-function Section({ title, icon, brand, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onRefresh, refreshing, onFold }: {
+function Section({ id, title, icon, brand, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onRefresh, refreshing, onFold }: {
+  /** Stable across repositories — the key the section's height is kept under. */
+  id: string
   title: string
   /**
    * What the section IS, beside what it is called. Eleven headers in a column
@@ -654,8 +725,11 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
   const [open, setOpen] = useState(defaultOpen)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
+  const [height, setHeight] = useSectionHeight(id)
+  const root = useRef<HTMLDivElement>(null)
   return (
-    <div className="sb-section">
+    <div ref={root} className={`sb-section${open ? ' sb-section--open' : ''}`}
+      style={open && height ? { flex: `0 0 ${height}px` } : undefined}>
       <div className="sb-section-header"
         onClick={() => setOpen(o => { if (o) onFold?.(); return !o })}
         onContextMenu={menuItems?.length
@@ -696,6 +770,12 @@ function Section({ title, icon, brand, count, children, defaultOpen = true, onAd
         </span>
       </div>
       {open && <div className="sb-section-body">{children}</div>}
+      {/* The section's bottom edge, draggable (#176). Double-click: automatic. */}
+      {open && (
+        <div className="sb-section-resizer" title={t('sb.section.resize')}
+          onMouseDown={e => startSectionResize(e, root.current, setHeight)}
+          onDoubleClick={() => setHeight(null)} />
+      )}
       {ctx && !!menuItems?.length && (
         <ContextMenu x={ctx.x} y={ctx.y} items={menuItems} onClose={() => setCtx(null)} />
       )}
@@ -1658,7 +1738,7 @@ export default function Sidebar({
 
           {/* AGENTS (single-view only) */}
           {view === 'agents' && (
-            <Section title="AGENTS" icon="agent" count={agents.length} defaultOpen>
+            <Section id="agents" title="AGENTS" icon="agent" count={agents.length} defaultOpen>
               {agents.length === 0
                 ? <div className="sb-empty">{t('sb.noAgent')}</div>
                 : agents.map(a => (
@@ -1678,7 +1758,7 @@ export default function Sidebar({
 
           {/* LOCAL (also shown in the overview "current work" home) */}
           {(show('branches') || view === 'overview') && (
-          <Section title="LOCAL" icon="device" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
+          <Section id="local" title="LOCAL" icon="device" count={localBranches.length} onAdd={onCreateBranch} addLabel={t('sb.newBranch')}
             menuItems={localMenu()}
             hiddenCount={localBranches.filter(branchHidden).length}
             onShowAll={showAll('branches')}>
@@ -1736,7 +1816,7 @@ export default function Sidebar({
 
           {/* REMOTE */}
           {show('branches') && remoteBranches.length > 0 && (
-            <Section title="REMOTE" icon="cloud" count={remoteBranches.length} defaultOpen={single}
+            <Section id="remote" title="REMOTE" icon="cloud" count={remoteBranches.length} defaultOpen={single}
               menuItems={familyMenu('remotes')}
               hiddenCount={remoteBranches.filter(branchHidden).length}
               onShowAll={showAll('remotes')}>
@@ -1778,7 +1858,7 @@ export default function Sidebar({
 
           {/* TAGS */}
           {show('tags') && (
-          <Section title="TAGS" icon="tag" count={tags.length} defaultOpen={single}
+          <Section id="tags" title="TAGS" icon="tag" count={tags.length} defaultOpen={single}
             onAdd={onCreateTag} addLabel={t('sb.newTag')}
             menuItems={familyMenu('tags')}
             hiddenCount={tags.filter(tg => tagHidden(tg.name)).length}
@@ -1800,7 +1880,7 @@ export default function Sidebar({
 
           {/* REMOTES */}
           {show('remotes') && (
-          <Section title="REMOTES" icon="repo" count={remotes.length} defaultOpen={single}
+          <Section id="remotes" title="REMOTES" icon="repo" count={remotes.length} defaultOpen={single}
             onAdd={handleAddRemote} addLabel={t('sb.addRemote')}
             menuItems={familyMenu('remotes')}
             hiddenCount={remotes.filter(r => remoteHidden(r.name)).length}
@@ -1828,7 +1908,7 @@ export default function Sidebar({
 
           {/* SUBMODULES */}
           {show('overview') && submodules.length > 0 && (
-            <Section title="SUBMODULES" icon="listTree" count={submodules.length} defaultOpen={false}>
+            <Section id="submodules" title="SUBMODULES" icon="listTree" count={submodules.length} defaultOpen={false}>
               {submodules.map(sub => (
                 <SubmoduleItem
                   key={sub.path}
@@ -1842,7 +1922,7 @@ export default function Sidebar({
 
           {/* WORKTREES */}
           {show('worktrees') && (
-          <Section title="WORKTREES" icon="worktree" count={worktrees.length} defaultOpen={single}
+          <Section id="worktrees" title="WORKTREES" icon="worktree" count={worktrees.length} defaultOpen={single}
             onAdd={handleAddWorktree} addLabel={t('sb.addWorktree')}>
             {worktrees.length === 0
               ? <div className="sb-empty">{t('sb.noWorktree')}</div>
@@ -1862,7 +1942,7 @@ export default function Sidebar({
           {/* REFLOG — recovery/history tool, kept collapsed at the bottom of
               the overview (not the point of the overview) */}
           {show('overview') && (
-          <Section title="REFLOG" icon="reflog" count={reflog.length} defaultOpen={false}>
+          <Section id="reflog" title="REFLOG" icon="reflog" count={reflog.length} defaultOpen={false}>
             {reflog.length === 0
               ? <div className="sb-empty">{t('sb.reflogEmpty')}</div>
               : reflog.map((entry, i) => (
@@ -1880,7 +1960,7 @@ export default function Sidebar({
               beside the branches, and a tab would replace what is being worked
               on. Absent entirely when the host has no GitHub here. */}
           {githubPRs && show('prs') && (
-            <Section title="PULL REQUESTS" icon="pullRequest" count={githubPRs.length} defaultOpen={single}
+            <Section id="prs" title="PULL REQUESTS" icon="pullRequest" count={githubPRs.length} defaultOpen={single}
               onAdd={onStartPR && (() => onStartPR())} addLabel={t('sb.gh.newPr')}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('prs'))}
               refreshing={githubRefreshing === 'prs'}
@@ -1949,7 +2029,7 @@ export default function Sidebar({
 
           {/* GITHUB ISSUES */}
           {githubIssues && show('issues') && (
-            <Section title="GITHUB ISSUES" brand="github" count={githubIssues.length} defaultOpen={single}
+            <Section id="issues" title="GITHUB ISSUES" brand="github" count={githubIssues.length} defaultOpen={single}
               onAdd={onNewIssue && (() => onNewIssue())} addLabel={t('sb.gh.newIssue')}
               onRefresh={onRefreshGithub && (() => onRefreshGithub('issues'))}
               refreshing={githubRefreshing === 'issues'}
@@ -1999,6 +2079,7 @@ export default function Sidebar({
           {/* STASH */}
           {show('stash') && (
           <Section
+            id="stash"
             title="STASH"
             icon="stash"
             count={stashes.length}

@@ -317,6 +317,7 @@ const fr = {
   'graph.timeShort.months': (n: number) => `-${n} m.`,
   'graph.timeShort.years': (n: number) => `-${n} a`,
   'graph.wip': (n: number) => `//WIP  ${n} fichier${n !== 1 ? 's' : ''} modifié${n !== 1 ? 's' : ''}`,
+  'graph.ghostTip': (b: string) => `Sur la ligne de ${b} — la branche à laquelle ce commit appartient`,
   'wc.nextSteps': 'Prochaines étapes',
   'wc.publish': (b: string, r: string) => `Publier ${b} sur ${r}`,
   'wc.publishBtn': 'Publier',
@@ -1070,6 +1071,7 @@ const fr = {
   'sb.graph.allBranches': 'Toutes les branches dans le graphe',
   'sb.hidden.showAll': 'Tout réafficher dans le graphe',
   'sb.hidden.chipTitle': (n: number) => `${n} élément${n > 1 ? 's' : ''} masqué${n > 1 ? 's' : ''} du graphe — cliquer pour tout réafficher`,
+  'sb.section.resize': 'Glisser pour redimensionner la section — double-clic pour revenir en automatique',
   'sb.hidden.flag': 'Masqué du graphe',
   'sb.branch.pruneGoneConfirm': (c: number, names: string) =>
     `${c} branche${c > 1 ? 's' : ''} locale${c > 1 ? 's' : ''} n'${c > 1 ? 'ont' : 'a'} plus d'upstream : ${names}.\n\nLes supprimer ?`,
@@ -1957,6 +1959,7 @@ const en: typeof fr = {
   'graph.timeShort.months': (n: number) => `-${n} mo`,
   'graph.timeShort.years': (n: number) => `-${n} y`,
   'graph.wip': (n: number) => `//WIP  ${n} file${n !== 1 ? 's' : ''} changed`,
+  'graph.ghostTip': (b: string) => `On ${b}'s line — the branch this commit belongs to`,
   'wc.nextSteps': 'Next steps',
   'wc.publish': (b: string, r: string) => `Publish ${b} to ${r}`,
   'wc.publishBtn': 'Publish',
@@ -2710,6 +2713,7 @@ const en: typeof fr = {
   'sb.graph.allBranches': 'All Branches in the Graph',
   'sb.hidden.showAll': 'Show All in Graph',
   'sb.hidden.chipTitle': (n: number) => `${n} hidden from the graph — click to show them all`,
+  'sb.section.resize': 'Drag to resize the section — double-click for automatic',
   'sb.hidden.flag': 'Hidden from the graph',
   'sb.branch.pruneGoneConfirm': (c: number, names: string) =>
     `${c} local branch${c > 1 ? 'es have' : ' has'} no upstream left: ${names}.\n\nDelete ${c > 1 ? 'them' : 'it'}?`,

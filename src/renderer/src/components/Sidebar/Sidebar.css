@@ -215,26 +215,50 @@
 .sb-filter-clear:hover { color: var(--text-primary-soft); }
 
 /* ── Sections ─────────────────────────────────────────────── */
+/* The column is a flex column of sections, and it does not scroll (#176):
+   each open section's BODY does, so the headings stay put and a long list of
+   issues scrolls under its own heading rather than taking LOCAL and TAGS with
+   it. An open section's basis is its content, and it shrinks in proportion —
+   a short list shows whole and yields its spare room; a long one scrolls. A
+   resized section carries a fixed basis inline, and the others adapt. */
 .sb-sections {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: var(--space-xs) 0;
 }
 
-.sb-section { margin-bottom: var(--space-2xs); }
+/* One rule between sections (#174): the folded column reads as rows, and the
+   rule sits under the section's BODY, never under its header. */
+.sb-section {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-height: 0;
+  position: relative;
+  border-bottom: 1px solid var(--border-muted);
+}
+.sb-section:last-child { border-bottom: none; }
+/* Never taller than the column itself, pinned or not: a window that shrinks
+   under a pinned section must not push the sections after it out of sight. */
+.sb-section--open { flex: 0 1 auto; max-height: 100%; }
 
+/* A heading that carries its weight (#174): a step up from the caption it
+   was, one step above the settings nav's group labels, which label links. */
 .sb-section-header {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: var(--space-sm);
-  height: 26px;
+  height: 30px;
   padding: 0 var(--space-lg);
   cursor: pointer;
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-bold);
-  letter-spacing: 0.06em;
-  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
   transition: color var(--dur-fast);
 }
 .sb-section-header:hover { color: var(--text-primary-soft); }
@@ -313,7 +337,7 @@
   background: var(--surface-sunken);
   border-radius: var(--radius-lg);
   padding: var(--space-px) var(--space-sm);
-  font-size: var(--text-tiny);
+  font-size: var(--text-xs);
 }
 
 .sb-add-btn {
@@ -361,7 +385,32 @@
 }
 .sb-section-hidden:hover { color: var(--accent); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
-.sb-section-body { padding: var(--space-2xs) 0 var(--space-sm); }
+.sb-section-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-2xs) 0 var(--space-sm);
+}
+
+/* The section's bottom edge, draggable — the hairline, not a bar: the panel
+   in VS Code is often short. It thickens under the pointer and while dragged. */
+.sb-section-resizer {
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 7px;
+  cursor: row-resize;
+  z-index: var(--z-raised);
+}
+.sb-section-resizer::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 2px;
+  height: 2px;
+  background: transparent;
+  transition: background var(--dur-fast);
+}
+.sb-section-resizer:hover::after { background: var(--border-strong); }
 
 .sb-empty {
   padding: var(--space-xs) var(--space-3xl);
