@@ -134,6 +134,11 @@
 .stg-content--wide .stg-desc,
 .stg-content--wide .stg-section-title { max-width: 600px; }
 .stg-content--wide .stg-browse { max-width: 720px; }
+/* The AI page ends in a sticky save bar, and the bar IS its bottom edge: a
+   sticky `bottom: 0` is measured from the scroller's CONTENT box, so any
+   padding left here is a strip the page keeps scrolling through under the
+   bar (measured: 24px, exactly this padding). */
+.stg-content--ai { padding-bottom: 0; }
 
 .stg-section {
   display: flex;

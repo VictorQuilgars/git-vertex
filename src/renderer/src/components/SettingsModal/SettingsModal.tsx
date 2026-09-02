@@ -873,7 +873,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
               600px reading measure is right for prose and inputs and wrong for
               a grid of theme tiles — it left two thirds of the window empty
               and made the tiles smaller than they need to be. */}
-          <div className={`stg-content ${section === 'appearance' || section === 'ai' ? 'stg-content--wide' : ''}`}>
+          <div className={`stg-content ${section === 'appearance' || section === 'ai' ? 'stg-content--wide' : ''} ${section === 'ai' ? 'stg-content--ai' : ''}`}>
 
             {/* ── Git ── */}
             {section === 'git' && (
