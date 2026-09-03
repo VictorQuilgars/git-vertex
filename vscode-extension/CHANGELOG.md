@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.31.0
 
 ### Added
 - **The graph says which branch a commit is on.** A row with no ref of its own wears the name of the nearest branch that holds it — on its own line first, so the name agrees with the lane's colour; by containment otherwise, so the commits of a merged branch whose ref is gone say the branch they landed in — as a **ghost chip**: dashed, faded, shown on hover and kept on the selected row. Hover the ghost and the tip's other refs open behind it, like the tip row's own "+N" — which is a column of chips the size of the one it hangs from now, one hairline around it, opens on a rest rather than on a crossing, never on the hover a scroll makes under a still pointer, and leaves the moment the pointer moves off it or anything moves it — a scroll, a resize, a selection. A name the column cut is read whole on a rest — the chip drawn over the graph, bullet included; the compact layout reveals its hidden names the same way. A tag never names a line. (#173)

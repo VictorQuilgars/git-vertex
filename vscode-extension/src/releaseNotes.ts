@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.31.0': `## What's new in 1.31.0
 
 ### 🧭 The graph says which branch a commit is on
 - A row with no ref of its own wears the name of the nearest branch that holds it — dashed and faded — on hover, and keeps it while selected; the tip's other refs open behind it. A merged branch whose ref is gone says the branch it landed in.
