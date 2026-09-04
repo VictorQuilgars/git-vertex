@@ -589,6 +589,18 @@ const fr = {
   'ai.changelog.behind': (n: number) => `${n} commit${n > 1 ? 's' : ''} depuis — ce changelog ne les couvre pas.`,
   'ai.changelog.baseMoved': 'La base a bougé depuis : la comparaison n\'est plus la même.',
   'ai.changelog.whichFile': 'Ce dépôt suit plusieurs changelogs. Dans lequel écrire ?',
+  'ai.changelog.goneConfirm': (branch: string) =>
+    `La branche ${branch} n'existe plus : ce changelog a vraisemblablement déjà été inséré, et ces lignes iraient dans la branche courante.\n\nInsérer quand même ?`,
+  'ai.changelog.previewHead': (n: number, file: string) =>
+    `${n} ligne${n > 1 ? 's' : ''} à ajouter dans ${file} :`,
+  'ai.changelog.previewSkipped': (n: number) =>
+    `${n} ligne${n > 1 ? 's' : ''} déjà présente${n > 1 ? 's' : ''} à l'identique, ignorée${n > 1 ? 's' : ''}.`,
+  'ai.changelog.previewExisting': (n: number) =>
+    `Ces sections contiennent déjà ${n} ligne${n > 1 ? 's' : ''} :`,
+  'ai.changelog.previewSimilar': (n: number) =>
+    `⚠ ${n} ligne${n > 1 ? 's' : ''} dit${n > 1 ? 'ent' : ''} déjà la même chose autrement — rien n'est supprimé, c'est à vous de juger :`,
+  'ai.changelog.previewDirty': (file: string) =>
+    `⚠ ${file} a des modifications non commitées : une partie de tout ceci y est peut-être déjà.`,
   'ai.changelog.mergedConfirm': (branch: string, base: string) =>
     `${branch} est déjà dans ${base} : ces lignes sont vraisemblablement déjà dans le changelog, et les insérer les ajouterait une seconde fois à la branche courante.\n\nInsérer quand même ?`,
   'ai.changelog.insert': 'Insérer dans le changelog',
@@ -1105,6 +1117,7 @@ const fr = {
   'sb.ai.noExplanation': 'Aucune explication gardée pour ce dépôt.',
   'sb.ai.unknownCommit': 'Commit hors de l’historique chargé',
   'sb.ai.gone': 'ce qu’il décrivait a disparu',
+  'sb.ai.forgetGone': 'Oublier ce qui a disparu',
   'sb.ai.open': 'Ouvrir',
   'sb.ai.forget': 'Oublier',
   'sb.stash.explain': 'Expliquer ce remisage',
@@ -2316,6 +2329,18 @@ const en: typeof fr = {
   'ai.changelog.behind': (n: number) => `${n} commit${n > 1 ? 's' : ''} since — this changelog does not cover ${n > 1 ? 'them' : 'it'}.`,
   'ai.changelog.baseMoved': 'The base has moved since: this is no longer the same comparison.',
   'ai.changelog.whichFile': 'This repository tracks several changelogs. Which one?',
+  'ai.changelog.goneConfirm': (branch: string) =>
+    `The branch ${branch} no longer exists: this changelog was presumably inserted already, and these lines would go into the branch you are on.\n\nInsert anyway?`,
+  'ai.changelog.previewHead': (n: number, file: string) =>
+    `${n} line${n > 1 ? 's' : ''} to add to ${file}:`,
+  'ai.changelog.previewSkipped': (n: number) =>
+    `${n} line${n > 1 ? 's are' : ' is'} already there word for word, and will be skipped.`,
+  'ai.changelog.previewExisting': (n: number) =>
+    `Those sections already hold ${n} line${n > 1 ? 's' : ''}:`,
+  'ai.changelog.previewSimilar': (n: number) =>
+    `⚠ ${n} line${n > 1 ? 's' : ''} already say${n > 1 ? '' : 's'} the same thing in other words — nothing is dropped, the judgement is yours:`,
+  'ai.changelog.previewDirty': (file: string) =>
+    `⚠ ${file} has uncommitted changes: some of this may already be in it.`,
   'ai.changelog.mergedConfirm': (branch: string, base: string) =>
     `${branch} is already in ${base}: these lines are presumably in the changelog already, and inserting them would add them a second time to the branch you are on.\n\nInsert anyway?`,
   'ai.changelog.insert': 'Insert into changelog',
@@ -2831,6 +2856,7 @@ const en: typeof fr = {
   'sb.ai.noExplanation': 'No explanation kept for this repository yet.',
   'sb.ai.unknownCommit': 'A commit outside the loaded history',
   'sb.ai.gone': 'what it described is gone',
+  'sb.ai.forgetGone': 'Forget what is gone',
   'sb.ai.open': 'Open',
   'sb.ai.forget': 'Forget',
   'sb.stash.explain': 'Explain this Stash',

@@ -1,4 +1,4 @@
-import { mergeIntoUnreleased, findChangelog, findChangelogs, isMergedInto, CHANGELOG_CANDIDATES } from '../changelog-file'
+import { mergeIntoUnreleased, findChangelog, findChangelogs, isMergedInto, similarity, CHANGELOG_CANDIDATES } from '../changelog-file'
 import type { Raw } from '../ai-material'
 
 // This module edits a file the user did not open. The only thing that makes
@@ -213,5 +213,56 @@ describe('the two things insertion refuses to decide alone', () => {
   test('a question git cannot answer is not a yes', async () => {
     const boom = (async () => { throw new Error('unrelated histories') }) as any
     expect(await isMergedInto(boom, 'feat/x', 'origin/main')).toBe(false)
+  })
+})
+
+describe('what the reader is shown before anything is written', () => {
+  test('the merge reports the lines it would add, one by one', () => {
+    const r = mergeIntoUnreleased('# C\n\n## Unreleased\n\n### Added\n- Earlier.\n', entry)
+    expect(r.addedLines).toEqual(['- A first thing.', '- A second thing.', '- A bug.'])
+  })
+
+  test('and the ones it skipped, so "3 added" is not mistaken for "3 of 3"', () => {
+    const r = mergeIntoUnreleased('# C\n\n## Unreleased\n\n### Added\n- A first thing.\n', entry)
+    expect(r.skipped).toEqual(['- A first thing.'])
+    expect(r.addedLines).toEqual(['- A second thing.', '- A bug.'])
+  })
+
+  test('a line that says the same thing in other words is REPORTED, never dropped', () => {
+    // The case that prompted this: a changelog generated once, the file
+    // edited by hand meanwhile, and the insert quietly doubling every entry
+    // in slightly different wording. Dropping on a judgement loses work; the
+    // judgement goes to the reader instead.
+    const file = '# C\n\n## Unreleased\n\n### Added\n- Added a caching layer for parsed results.\n'
+    const r = mergeIntoUnreleased(file, '### Added\n- A caching layer that stores parsed results.')
+    expect(r.similar).toEqual([{
+      line: '- A caching layer that stores parsed results.',
+      existing: '- Added a caching layer for parsed results.',
+    }])
+    // still added — it is a warning, not a filter
+    expect(r.addedLines).toHaveLength(1)
+  })
+
+  test('two bullets about different things are not called similar', () => {
+    const file = '# C\n\n## Unreleased\n\n### Added\n- Added a retry helper for flaky requests.\n'
+    const r = mergeIntoUnreleased(file, '### Added\n- A debounce helper for noisy callers.')
+    expect(r.similar).toEqual([])
+  })
+})
+
+describe('similarity', () => {
+  test('measures what two bullets are about, not how they are punctuated', () => {
+    expect(similarity(
+      '- Added a `cache` API that stores values by key.',
+      '- A cache API to store values under a key',
+    )).toBeGreaterThan(0.6)
+  })
+
+  test('two unrelated bullets share nothing', () => {
+    expect(similarity('- Added a retry helper.', '- Fixed the splash halo on macOS.')).toBeLessThan(0.2)
+  })
+
+  test('an empty line matches nothing, rather than everything', () => {
+    expect(similarity('', '- Anything at all')).toBe(0)
   })
 })

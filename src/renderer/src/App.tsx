@@ -1962,23 +1962,63 @@ export default function App() {
    * duplicates to whatever branch happens to be checked out.
    */
   const insertChangelogGuarded = useCallback(async (text: string, branch: string) => {
-    const call = (opts: { branch?: string; file?: string; force?: boolean }) =>
+    const call = (opts: { branch?: string; file?: string; force?: boolean; preview?: boolean }) =>
       ((window.gitAPI as any).insertChangelog?.(text, opts)
         ?? Promise.resolve({ error: 'not-implemented' }))
 
-    let r = await call({ branch })
+    // Which file, whether it still makes sense, and — the one that costs the
+    // most to get wrong — what exactly would land in it.
+    let file: string | undefined
+    let force = false
+
+    let r = await call({ branch, preview: true })
 
     if (r?.needsChoice) {
-      const file = await showChoice(t('ai.changelog.whichFile'), r.candidates ?? [])
-      if (!file) return
-      r = await call({ branch, file })
+      const picked = await showChoice(t('ai.changelog.whichFile'), r.candidates ?? [])
+      if (!picked) return
+      file = picked
+      r = await call({ branch, file, preview: true })
     }
-    if (r?.alreadyMerged) {
-      const ok = await showConfirm(t('ai.changelog.mergedConfirm', r.branch, r.base), true)
+    if (r?.branchGone || r?.alreadyMerged) {
+      const ok = await showConfirm(
+        r.branchGone
+          ? t('ai.changelog.goneConfirm', r.branch)
+          : t('ai.changelog.mergedConfirm', r.branch, r.base), true)
       if (!ok) return
-      r = await call({ branch, file: r.path, force: true })
+      force = true
+      r = await call({ branch, file: file ?? r.path, force, preview: true })
     }
     if (r?.error) { showToast(r.error, 'err'); return }
+
+    // The preview. A changelog is written once and inserted later, into a file
+    // that has moved on — half of it may already be there in different words,
+    // and once the lines are in, nothing tells you which ones you just added.
+    if (r?.preview) {
+      if (!r.added && !r.created) { showToast(t('ai.changelog.insertedNothing', r.path), 'ok'); return }
+      const lines = [
+        t('ai.changelog.previewHead', r.added ?? 0, r.path),
+        '',
+        ...(r.addedLines ?? []).map(l => `  ${l}`),
+      ]
+      if (r.skipped?.length) lines.push('', t('ai.changelog.previewSkipped', r.skipped.length))
+      // What the section already says, because the useful check is a
+      // comparison and no similarity score can make it for you: two wordings
+      // of one change can share almost no words.
+      if (r.existing?.length) {
+        lines.push('', t('ai.changelog.previewExisting', r.existing.length))
+        for (const e of r.existing.slice(0, 4)) lines.push(`  ${e}`)
+        if (r.existing.length > 4) lines.push(`  …`)
+      }
+      if (r.similar?.length) {
+        lines.push('', t('ai.changelog.previewSimilar', r.similar.length))
+        for (const sim of r.similar.slice(0, 3)) lines.push(`  ${sim.line}`, `  ↳ ${sim.existing}`)
+      }
+      if (r.dirty) lines.push('', t('ai.changelog.previewDirty', r.path))
+      const ok = await showConfirm(lines.join('\n'), !!(r.similar?.length || r.dirty))
+      if (!ok) return
+      r = await call({ branch, file: file ?? r.path, force })
+      if (r?.error) { showToast(r.error, 'err'); return }
+    }
     if (r?.created) showToast(t('ai.changelog.created', r.path), 'ok')
     else if (!r?.added) showToast(t('ai.changelog.insertedNothing', r.path), 'ok')
     else showToast(t('ai.changelog.inserted', r.added, r.path), 'ok')

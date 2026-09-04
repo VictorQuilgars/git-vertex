@@ -31,7 +31,7 @@ interface ReflogEntry { hash: string; ref: string; message: string; date: string
 /** A changelog this repository has had written — the shape the host returns. */
 interface ChangelogEntry {
   branch: string; text: string; base: string
-  commits: number; at: number; newCommits: number
+  commits: number; at: number; newCommits: number; orphan: boolean
 }
 
 /** A kept reading of a branch, a stash or the working tree. */
@@ -1102,7 +1102,7 @@ function ChangelogRow({ entry, onOpen, onForget }: {
   return (
     <>
       <div
-        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}`}
+        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}${entry.orphan ? ' sb-ai-item--orphan' : ''}`}
         onClick={onOpen}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={entry.text.length > 300 ? entry.text.slice(0, 300) + '…' : entry.text}
@@ -1111,7 +1111,9 @@ function ChangelogRow({ entry, onOpen, onForget }: {
         <div className="sb-ai-info">
           <span className="sb-ai-name">{entry.branch}</span>
           <span className="sb-ai-meta">
-            {t('ai.changelog.meta', entry.commits, entry.base)} · {timeAgo(new Date(entry.at).toISOString(), t)}
+            {entry.orphan
+              ? t('sb.ai.gone')
+              : `${t('ai.changelog.meta', entry.commits, entry.base)} · ${timeAgo(new Date(entry.at).toISOString(), t)}`}
           </span>
         </div>
         {entry.newCommits > 0 && (
@@ -1849,7 +1851,17 @@ export default function Sidebar({
           {/* ── What the model has written here (#70) ── */}
           {showAI && (
             <>
-              <Section id="ai-changelogs" title="CHANGELOGS" icon="ai" count={changelogs.length} defaultOpen>
+              <Section id="ai-changelogs" title="CHANGELOGS" icon="ai" count={changelogs.length} defaultOpen
+                menuItems={changelogs.some(c => c.orphan) ? [{
+                  label: t('sb.ai.forgetGone'),
+                  action: async () => {
+                    for (const c of changelogs.filter(x => x.orphan)) {
+                      await (window.gitAPI as any).aiForgetChangelog?.(c.branch)
+                    }
+                    loadMemory()
+                  },
+                  danger: true,
+                }] : undefined}>
                 {changelogs.length === 0
                   ? <div className="sb-empty">{t('sb.ai.noChangelog')}</div>
                   : changelogs.map(c => (
@@ -1872,7 +1884,17 @@ export default function Sidebar({
                   section, because "explain" is one act whatever it is aimed
                   at — and each row can be dropped. */}
               <Section id="ai-explanations" title="EXPLANATIONS" icon="comment"
-                count={notes.length + Object.keys(explanations).length} defaultOpen>
+                count={notes.length + Object.keys(explanations).length} defaultOpen
+                menuItems={notes.some(n => n.orphan) ? [{
+                  label: t('sb.ai.forgetGone'),
+                  action: async () => {
+                    for (const n of notes.filter(x => x.orphan)) {
+                      await (window.gitAPI as any).aiForgetNote?.(n.kind, n.key)
+                    }
+                    loadMemory()
+                  },
+                  danger: true,
+                }] : undefined}>
                 {notes.length + Object.keys(explanations).length === 0
                   ? <div className="sb-empty">{t('sb.ai.noExplanation')}</div>
                   : <>

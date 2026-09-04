@@ -2128,7 +2128,7 @@ ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string
  * writes into the working tree, so the diff is right there in the staging
  * pane to be read or thrown away.
  */
-ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: string; file?: string; force?: boolean }) => {
+ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: string; file?: string; force?: boolean; preview?: boolean }) => {
   if (!gitService) return { error: 'No repository open' }
   const raw = rawGit()
 
@@ -2144,10 +2144,13 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
   }
 
   // And whether it still makes sense at all. A changelog is KEPT now, so the
-  // drawer can be reopened a fortnight after the branch was merged — at which
-  // point these bullets are already in the file, and inserting them adds a
-  // release's worth of duplicates to whatever branch is checked out.
+  // drawer can be reopened a fortnight after the branch was merged — or after
+  // it was deleted — at which point these bullets are already in the file, and
+  // inserting them adds a release's worth of duplicates to whatever branch is
+  // checked out.
   if (!opts?.force && opts?.branch) {
+    const alive = await raw(['rev-parse', '--verify', '--quiet', opts.branch]).catch(() => '')
+    if (!alive.trim()) return { branchGone: true, branch: opts.branch, path: rel }
     const base = await resolveBase(raw, opts.branch)
     if (base && await isMergedInto(raw, opts.branch, base)) {
       return { alreadyMerged: true, branch: opts.branch, base, path: rel }
@@ -2158,6 +2161,22 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
   let existing: string | null = null
   try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }
   const merged = mergeIntoUnreleased(existing, entry)
+
+  // Nothing is written until the reader has seen what would be. The file is
+  // often not what it was when the changelog was generated — half of it may
+  // already be in there in different words, and once the lines are in, no
+  // amount of reading tells you which ones you just put there.
+  if (opts?.preview) {
+    let dirty = false
+    try { dirty = !!(await raw(['status', '--porcelain', '--', rel])).trim() } catch { /* not fatal */ }
+    return {
+      preview: true, path: rel, dirty,
+      added: merged.added, addedLines: merged.addedLines,
+      skipped: merged.skipped, similar: merged.similar, existing: merged.existing,
+      created: merged.created, sectionCreated: merged.sectionCreated,
+    }
+  }
+
   if (!merged.added && !merged.created) return { path: rel, added: 0, created: false }
   try {
     fs.writeFileSync(abs, merged.content)

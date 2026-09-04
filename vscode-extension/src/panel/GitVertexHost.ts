@@ -944,7 +944,7 @@ export class GitVertexHost implements vscode.Disposable {
       case 'insertChangelog': {
         if (!svc || !this._repoPath) return { error: 'No repository open' }
         const raw = (a: string[]) => svc.raw(a)
-        const opts = (args[1] ?? {}) as { branch?: string; file?: string; force?: boolean }
+        const opts = (args[1] ?? {}) as { branch?: string; file?: string; force?: boolean; preview?: boolean }
         // The same two refusals as the desktop: which file, when there are
         // several, and whether the branch is already in what it lands on.
         const candidates = await findChangelogs(raw)
@@ -954,6 +954,8 @@ export class GitVertexHost implements vscode.Disposable {
           return { error: `${opts.file} is not a changelog this repository tracks` }
         }
         if (!opts.force && opts.branch) {
+          const alive = await raw(['rev-parse', '--verify', '--quiet', opts.branch]).catch(() => '')
+          if (!alive.trim()) return { branchGone: true, branch: opts.branch, path: rel }
           const base = await resolveBase(raw, opts.branch)
           if (base && await isMergedInto(raw, opts.branch, base)) {
             return { alreadyMerged: true, branch: opts.branch, base, path: rel }
@@ -963,6 +965,16 @@ export class GitVertexHost implements vscode.Disposable {
         let existing: string | null = null
         try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }
         const merged = mergeIntoUnreleased(existing, args[0])
+        // Nothing is written until the reader has seen what would be.
+        if (opts.preview) {
+          const dirty = !!(await raw(['status', '--porcelain', '--', rel]).catch(() => '')).trim()
+          return {
+            preview: true, path: rel, dirty,
+            added: merged.added, addedLines: merged.addedLines,
+            skipped: merged.skipped, similar: merged.similar, existing: merged.existing,
+            created: merged.created, sectionCreated: merged.sectionCreated,
+          }
+        }
         if (!merged.added && !merged.created) return { path: rel, added: 0, created: false }
         try { fs.writeFileSync(abs, merged.content) } catch (e: any) { return { error: e.message } }
         return { path: rel, added: merged.added, created: merged.created, sectionCreated: merged.sectionCreated }

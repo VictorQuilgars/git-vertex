@@ -179,6 +179,8 @@ export interface ChangelogStore {
 export interface ChangelogEntry extends ChangelogRecord {
   branch: string
   newCommits: number
+  /** The branch is gone — merged and pruned, or deleted. */
+  orphan: boolean
 }
 
 export interface ChangelogState {
@@ -226,12 +228,12 @@ export async function changelogList(raw: Raw, store: ChangelogStore): Promise<{ 
   for (const [branch, record] of Object.entries(all)) {
     const head = await sha(raw, branch)
     // A branch that no longer exists keeps its text — deleting someone's
-    // changelog because they deleted the branch would be a surprise, and the
-    // row can say so instead.
+    // changelog because they deleted the branch would be a surprise. The row
+    // says so instead, and the insert refuses without being asked twice.
     const newCommits = head && record.headSha && head !== record.headSha
       ? await countCommits(raw, record.headSha, branch)
       : 0
-    entries.push({ ...record, branch, newCommits })
+    entries.push({ ...record, branch, newCommits, orphan: !head })
   }
   return { entries: entries.sort((a, b) => b.at - a.at) }
 }

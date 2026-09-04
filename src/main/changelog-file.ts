@@ -104,11 +104,62 @@ export interface MergeResult {
   content: string
   /** Lines actually added — 0 means the file already said all of it. */
   added: number
+  /** Which ones, so the reader can see them before any of it is written. */
+  addedLines: string[]
+  /** Lines the file already had, word for word, and that were not repeated. */
+  skipped: string[]
+  /**
+   * Lines that are NOT word-for-word duplicates but say the same thing as one
+   * already there. Never dropped — a near-match is a judgement, and dropping
+   * on a judgement loses work. Reported, so the judgement is the reader's.
+   *
+   * It catches a REWORDING (the model's second attempt at its own bullet),
+   * not a paraphrase: "a caching layer that stores results" and "a cache API
+   * that stores values" are the same change and share almost no words. Which
+   * is why `existing` is reported too — the reader gets the comparison, not
+   * an opinion about it.
+   */
+  similar: { line: string; existing: string }[]
+  /** What the sections being written into already say. */
+  existing: string[]
   /** The file did not exist and this is its whole content. */
   created: boolean
   /** An Unreleased section was written because there was none. */
   sectionCreated: boolean
 }
+
+/**
+ * What a bullet says, with everything that is not saying stripped: markdown
+ * emphasis, code ticks, punctuation, and the words too common to carry
+ * meaning. Two bullets about the same change rarely match character for
+ * character — one is the model's second attempt at the first.
+ */
+function words(line: string): Set<string> {
+  const STOP = new Set(['the', 'a', 'an', 'to', 'of', 'and', 'or', 'is', 'it', 'in', 'on',
+    'for', 'with', 'that', 'this', 'now', 'when', 'from', 'by', 'as', 'its', 'you', 'your'])
+  return new Set(
+    line.toLowerCase()
+      .replace(/[`*_~\[\]()]/g, ' ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(' ')
+      .filter(w => w.length > 2 && !STOP.has(w))
+      // The crudest of stems, and it earns its place: "stores" and "store"
+      // are the same claim, and without this two wordings of one change score
+      // 0.5 where the threshold is 0.6.
+      .map(w => (w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w)))
+}
+
+/** How much two bullets overlap, 0 to 1 — Jaccard over their meaning words. */
+export function similarity(a: string, b: string): number {
+  const A = words(a), B = words(b)
+  if (!A.size || !B.size) return 0
+  let shared = 0
+  for (const w of A) if (B.has(w)) shared++
+  return shared / (A.size + B.size - shared)
+}
+
+/** Above this, two bullets are saying the same thing in different words. */
+export const SIMILAR_ENOUGH = 0.6
 
 const UNRELEASED = /^##\s+\[?unreleased\]?/i
 
@@ -126,21 +177,28 @@ const UNRELEASED = /^##\s+\[?unreleased\]?/i
  */
 export function mergeIntoUnreleased(existing: string | null, entry: string): MergeResult {
   const parts = sections(entry)
-  if (!parts.length) {
-    return { content: existing ?? '', added: 0, created: false, sectionCreated: false }
+  const nothing = {
+    added: 0, addedLines: [], skipped: [], similar: [], existing: [],
+    created: false, sectionCreated: false,
   }
+  if (!parts.length) return { content: existing ?? '', ...nothing }
   const block = parts.map(s => [s.heading, ...s.lines].join('\n')).join('\n\n')
 
   if (existing === null) {
+    const all = parts.flatMap(s => s.lines.filter(l => l.trim()).map(l => l.trim()))
     return {
       content: `# Changelog\n\n## Unreleased\n\n${block}\n`,
-      added: parts.reduce((n, s) => n + s.lines.filter(l => l.trim()).length, 0),
+      added: all.length, addedLines: all, skipped: [], similar: [], existing: [],
       created: true, sectionCreated: true,
     }
   }
 
   const lines = existing.split('\n')
   const start = lines.findIndex(l => UNRELEASED.test(l))
+  const addedLines: string[] = []
+  const skipped: string[] = []
+  const similar: { line: string; existing: string }[] = []
+  const already: string[] = []
 
   if (start === -1) {
     // Above the topmost `## ` — a release section — so the newest thing in
@@ -154,9 +212,10 @@ export function mergeIntoUnreleased(existing: string | null, entry: string): Mer
     }
     const inserted = ['## Unreleased', '', ...block.split('\n'), '']
     lines.splice(at, 0, ...inserted)
+    const all = parts.flatMap(s => s.lines.filter(l => l.trim()).map(l => l.trim()))
     return {
       content: lines.join('\n'),
-      added: parts.reduce((n, s) => n + s.lines.filter(l => l.trim()).length, 0),
+      added: all.length, addedLines: all, skipped: [], similar: [], existing: [],
       created: false, sectionCreated: true,
     }
   }
@@ -181,7 +240,7 @@ export function mergeIntoUnreleased(existing: string | null, entry: string): Mer
       while (tail > 0 && !body[tail - 1].trim()) tail--
       const chunk = tail === 0 ? [] : ['']
       body.splice(tail, 0, ...chunk, part.heading, ...part.lines)
-      added += part.lines.filter(l => l.trim()).length
+      addedLines.push(...part.lines.filter(l => l.trim()).map(l => l.trim()))
       continue
     }
     // The subsection runs to the next heading of any level.
@@ -189,17 +248,27 @@ export function mergeIntoUnreleased(existing: string | null, entry: string): Mer
     for (let i = at + 1; i < body.length; i++) {
       if (/^#{2,3}\s+\S/.test(body[i])) { stop = i; break }
     }
-    const have = new Set(body.slice(at + 1, stop).map(bullet).filter(Boolean))
-    const fresh = part.lines.filter(l => l.trim() && !have.has(bullet(l)))
+    const existing = body.slice(at + 1, stop).filter(l => l.trim())
+    already.push(...existing.map(l => l.trim()))
+    const have = new Set(existing.map(bullet).filter(Boolean))
+    const fresh: string[] = []
+    for (const l of part.lines) {
+      if (!l.trim()) continue
+      if (have.has(bullet(l))) { skipped.push(l.trim()); continue }
+      const near = existing.find(e => similarity(l, e) >= SIMILAR_ENOUGH)
+      if (near) similar.push({ line: l.trim(), existing: near.trim() })
+      fresh.push(l)
+    }
     if (!fresh.length) continue
     let tail = stop
     while (tail > at + 1 && !body[tail - 1].trim()) tail--
     body.splice(tail, 0, ...fresh)
-    added += fresh.length
+    addedLines.push(...fresh.map(l => l.trim()))
   }
 
   return {
     content: [...lines.slice(0, start + 1), ...body, ...lines.slice(end)].join('\n'),
-    added, created: false, sectionCreated: false,
+    added: addedLines.length, addedLines, skipped, similar, existing: already,
+    created: false, sectionCreated: false,
   }
 }
