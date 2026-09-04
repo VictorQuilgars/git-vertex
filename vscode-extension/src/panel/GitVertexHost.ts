@@ -525,6 +525,13 @@ export class GitVertexHost implements vscode.Disposable {
         }
         return { success: true }
       }
+      // The panel's answer to "there is no room for a drawer here".
+      case 'openAIReadingTab': {
+        openGitVertexAITab(this._extensionUri, this._state, {
+          mode: 'ai', aiKind: args[0], aiKey: args[1], aiLabel: args[2],
+        })
+        return { success: true }
+      }
       case 'openCompareWorkingTab': {
         if (this._repoPath && args[0]) {
           openGitVertexCompareWorkingTab(this._extensionUri, this._state, this._repoPath, args[0])
@@ -596,6 +603,9 @@ export class GitVertexHost implements vscode.Disposable {
         const pick = await vscode.window.showWarningMessage(args[0], { modal: true }, 'OK')
         return pick === 'OK'
       }
+      // One question, N answers, none of them typed — the desktop's
+      // ChoiceDialog, in the form VS Code already gives us.
+      case 'uiPick': return vscode.window.showQuickPick(args[1] as string[], { title: args[0], ignoreFocusOut: true })
       case 'openDesktop': {
         const cfg = vscode.workspace.getConfiguration('gitVertex')
         const appPath = (cfg.get<string>('appPath', '') || '').trim() || findAppPath()
@@ -1381,6 +1391,53 @@ export function openGitVertexWhatsNewTab(
     whatsNewHost = undefined
     whatsNewPanel = undefined
   })
+}
+
+// ── AI reading tabs (one WebviewPanel per subject) ────────────────
+// The desktop reads a model's answer in a drawer beside the graph. The panel
+// has no room for one — it is narrower than the answer's own paragraphs — so
+// the same body opens as an editor TAB, which is what this extension already
+// does for the staging editor, the rebase planner and a comparison.
+const AI_VIEW_TYPE = 'gitVertex.aiReading'
+const aiPanels = new Map<string, vscode.WebviewPanel>()
+const aiHosts = new Map<string, GitVertexHost>()
+
+export function openGitVertexAITab(
+  extensionUri: vscode.Uri,
+  state: vscode.Memento,
+  boot: { mode: string; aiKind: string; aiKey?: string; aiLabel?: string },
+): void {
+  const key = `${boot.aiKind}:${boot.aiKey ?? ''}`
+  const existing = aiPanels.get(key)
+  if (existing) { existing.reveal(existing.viewColumn); return }
+
+  const panel = vscode.window.createWebviewPanel(
+    AI_VIEW_TYPE,
+    boot.aiLabel ? `${TAB_TITLES[boot.aiKind] ?? 'AI'} — ${boot.aiLabel}` : (TAB_TITLES[boot.aiKind] ?? 'AI'),
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+    },
+  )
+  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
+  aiPanels.set(key, panel)
+  aiHosts.set(key, new GitVertexHost(panel.webview, extensionUri, state, boot))
+
+  panel.onDidDispose(() => {
+    aiHosts.get(key)?.dispose()
+    aiHosts.delete(key)
+    aiPanels.delete(key)
+  })
+}
+
+const TAB_TITLES: Record<string, string> = {
+  branch: 'Explain branch',
+  stash: 'Explain stash',
+  working: 'Explain changes',
+  changelog: 'Changelog',
+  split: 'Split into commits',
 }
 
 // ── Compare tabs (one WebviewPanel per ref pair) ──────────────────

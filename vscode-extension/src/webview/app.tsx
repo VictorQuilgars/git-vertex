@@ -11,6 +11,7 @@ import { SettingsProvider, useSettings } from '../../../src/renderer/src/context
 import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
+import AIReadingTab from './AIReadingTab'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
 import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/ThemeGallery'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
@@ -62,7 +63,7 @@ import './vertex-vscode.css'
 /** GitHub's own published cadence — `X-Poll-Interval: 60` on its events endpoint. */
 const GITHUB_POLL_MS = 60_000
 
-const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'ai', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
+const RAIL_VIEWS: SidebarView[] = ['overview', 'ai', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
 
 /** The virtual commit that stands for the working tree. One literal, not three. */
 const WIP_NODE: CommitNode = {
@@ -899,6 +900,24 @@ function VertexApp() {
   const handleOpenResolver = useCallback((file: string) => { window.gitAPI.openConflictResolver(file) }, [])
   const handleOpenFileDiff = useCallback((target: any) => { window.gitAPI.openDiff(target) }, [])
 
+  /**
+   * A model's reading, in an editor tab (#70).
+   *
+   * The desktop opens these in a drawer beside the graph; this panel is
+   * narrower than the answers themselves, so they open the way everything
+   * else here that needs room does. Bumping `memoryToken` afterwards is what
+   * puts the new entry in the AI list without reopening the view.
+   */
+  const [memoryToken, setMemoryToken] = useState(0)
+  const openAI = useCallback((
+    kind: 'branch' | 'stash' | 'working' | 'changelog' | 'split', key?: string, label?: string,
+  ) => {
+    void (window.gitAPI as any).openAIReadingTab?.(kind, key, label)
+    // The tab writes into the same store the list reads; give it a moment to
+    // have written something before asking again.
+    setTimeout(() => setMemoryToken(n => n + 1), 1500)
+  }, [])
+
   // ── Toolbar handlers (push / fetch / pull / branch / stash …) ─
   const handleFetch = useCallback(async () => {
     await runOp('Fetch', () => window.gitAPI.fetch())
@@ -1221,6 +1240,14 @@ function VertexApp() {
             showToast={showToast}
             showPrompt={showPrompt}
             showConfirm={showConfirm}
+            onExplainBranch={(name) => openAI('branch', name, name)}
+            onBranchChangelog={(name) => openAI('changelog', name, name)}
+            onExplainStash={(index, message) => openAI('stash', String(index), message)}
+            onOpenChangelog={(name) => openAI('changelog', name, name)}
+            onOpenNote={(n) => openAI(n.kind, n.key, n.title)}
+            onOpenExplanation={(hash) => { const c = commits.find(x => x.hash === hash); if (c) setSelectedCommit(c) }}
+            subjectFor={(hash) => commits.find(c => c.hash === hash)?.message}
+            memoryToken={memoryToken}
           />
           </div>
           <div className="resize-handle" onMouseDown={startResizeSide} />
@@ -1358,6 +1385,8 @@ function VertexApp() {
                 onOpenResolver={handleOpenResolver}
                 onOpenFileDiff={handleOpenFileDiff}
                 onOpenStagingEditor={(f) => window.gitAPI.openStagingEditor(f)}
+                onExplainWorking={() => openAI('working', 'working', 'Uncommitted changes')}
+                onSplitCommits={() => openAI('split')}
                 onRewordMessage={applyReword}
                 onOpenFileOnRemote={handleOpenFileOnRemote}
                 onCopyFileLink={handleCopyFileLink}
@@ -1420,6 +1449,10 @@ const boot = (window as any).__GV_BOOT__ as
     // "What's new": the note travels with the boot payload, since the host
     // already knows which version it opened the tab for.
     version?: string; notes?: string
+    // A model's reading, in its own tab: the panel has no room for the
+    // drawer the desktop reads these in.
+    aiKind?: 'branch' | 'stash' | 'working' | 'changelog' | 'split'
+    aiKey?: string; aiLabel?: string
   } | undefined
 
 // The 3-way conflict resolver in its own tab: resolving or closing disposes
@@ -1524,6 +1557,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                         ? <InteractiveRebaseTab baseHash={boot.baseHash} />
                         : boot?.mode === 'commitMsg'
                           ? <CommitMsgEditorView boot={boot} />
+                          : boot?.mode === 'ai' && boot.aiKind
+                            ? <AIReadingTab kind={boot.aiKind} aiKey={boot.aiKey} label={boot.aiLabel} />
                           : boot?.mode === 'themes'
                             ? <ThemeGallery />
                           : boot?.mode === 'whatsNew' && boot.notes

@@ -48,15 +48,30 @@ export interface AIAnswerAction {
  * is shown instantly, whole, with no call and no writing animation, because
  * it is being remembered rather than composed.
  */
-export default function AIAnswer({
-  anchor, title, subject, icon, run, recall, guide, mono, actions, onGenerated, onClose,
-}: {
+/**
+ * The drawer. In the VS Code panel there is no room for one — the panel is
+ * narrower than this text — so the same body is rendered into an editor TAB
+ * there (AIAnswerBody, below). One implementation, two shapes.
+ */
+export default function AIAnswer({ anchor, title, icon, onClose, ...body }: AIAnswerBodyProps & {
   anchor: RefObject<HTMLElement | null>
   /** The drawer's name — the action, not its object. */
   title: string
+  icon?: IconName
+  onClose: () => void
+}) {
+  const { t } = useLang()
+  return (
+    <PanelDrawer anchor={anchor} title={title} icon={icon ?? 'ai'}
+      closeLabel={t('common.close')} onClose={onClose}>
+      <AIAnswerBody {...body} />
+    </PanelDrawer>
+  )
+}
+
+export interface AIAnswerBodyProps {
   /** What the answer is about: the branch, the stash, the working tree. */
   subject: string
-  icon?: IconName
   /**
    * One run. `previous` is the text to build on when the reader asked for an
    * update rather than a fresh answer.
@@ -77,8 +92,12 @@ export default function AIAnswer({
    * is looking at is a reading nobody knows exists.
    */
   onGenerated?: () => void
-  onClose: () => void
-}) {
+}
+
+/** Everything the answer IS, with no opinion about what frames it. */
+export function AIAnswerBody({
+  subject, run, recall, guide, mono, actions, onGenerated,
+}: AIAnswerBodyProps) {
   const { t } = useLang()
   const [busy, setBusy] = useState(true)
   const [text, setText] = useState('')
@@ -173,9 +192,7 @@ export default function AIAnswer({
   }
 
   return (
-    <PanelDrawer anchor={anchor} title={title} icon={icon ?? 'ai'}
-      closeLabel={t('common.close')} onClose={onClose}>
-      <div className="aia-body">
+    <div className="aia-body">
         <div className="aia-subject" title={subject}>
           {subject}
           {meta && <span className="aia-meta">{meta}</span>}
@@ -247,8 +264,7 @@ export default function AIAnswer({
               </button>
             </div>
           </div>
-        )}
-      </div>
-    </PanelDrawer>
+      )}
+    </div>
   )
 }

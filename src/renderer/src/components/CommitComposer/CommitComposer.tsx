@@ -24,13 +24,32 @@ interface Group { message: string; files: string[] }
  * is on screen — the plan is editable, so a proposal that is 80% right is
  * worth more than one that has to be perfect or discarded.
  */
-export default function CommitComposer({ anchor, onClose, onCommitted, showToast }: {
-  anchor: RefObject<HTMLElement | null>
+export interface CommitComposerProps {
   onClose: () => void
   /** Committed something — the panel and the graph have to be reloaded. */
   onCommitted: () => void
   showToast: (msg: string, kind?: 'ok' | 'err') => void
+}
+
+/**
+ * The drawer. In the VS Code panel there is no room for one, so the same body
+ * fills an editor tab there — and PanelDrawer renders NOTHING without an
+ * anchor to measure, so handing it a null one would have produced a blank tab
+ * rather than an obvious failure.
+ */
+export default function CommitComposer({ anchor, ...props }: CommitComposerProps & {
+  anchor: RefObject<HTMLElement | null>
 }) {
+  const { t } = useLang()
+  return (
+    <PanelDrawer anchor={anchor} title={t('cc.title')} icon="ai"
+      closeLabel={t('common.close')} onClose={props.onClose}>
+      <CommitComposerBody {...props} />
+    </PanelDrawer>
+  )
+}
+
+export function CommitComposerBody({ onClose, onCommitted, showToast }: CommitComposerProps) {
   const { t } = useLang()
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -169,9 +188,7 @@ export default function CommitComposer({ anchor, onClose, onCommitted, showToast
   )
 
   return (
-    <PanelDrawer anchor={anchor} title={t('cc.title')} icon="ai"
-      closeLabel={t('common.close')} onClose={() => { if (applying === null) onClose() }}>
-      <div className="cc-body">
+    <div className="cc-body">
         {busy && (
           <div className="cc-wait" role="status">
             <span className="cc-breath" aria-hidden="true" />
@@ -237,9 +254,8 @@ export default function CommitComposer({ anchor, onClose, onCommitted, showToast
               </button>
               {!ready && applying === null && <span className="cc-hint">{t('cc.hint')}</span>}
             </div>
-          </>
-        )}
-      </div>
-    </PanelDrawer>
+        </>
+      )}
+    </div>
   )
 }

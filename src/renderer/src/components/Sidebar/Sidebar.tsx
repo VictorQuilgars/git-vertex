@@ -23,8 +23,14 @@ interface TagEntry   { name: string; hash: string }
 // these views the resizable side-panel shows. When `view` is undefined the
 // Sidebar renders its classic stacked layout (desktop app).
 export type SidebarView =
-  | 'overview' | 'agents' | 'worktrees' | 'branches' | 'remotes' | 'stash' | 'tags'
-  | 'prs' | 'issues' | 'ai'
+  | 'overview' | 'worktrees' | 'branches' | 'remotes' | 'stash' | 'tags'
+  | 'prs' | 'issues'
+  /**
+   * What the model does in this repository: what it has written, and what is
+   * running. It was two rail entries — an `agents` one and an `ai` one, both
+   * wearing a robot head — and they are one.
+   */
+  | 'ai'
 
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
 
@@ -1963,8 +1969,10 @@ export default function Sidebar({
             )
           })()}
 
-          {/* AGENTS (single-view only) */}
-          {view === 'agents' && (
+          {/* AGENTS — inside the AI view in the panel, which is where "what
+              the model is doing here" belongs. The desktop's AI stack does not
+              show them yet (#180). */}
+          {view === 'ai' && (
             <Section id="agents" title="AGENTS" icon="agent" count={agents.length} defaultOpen>
               {agents.length === 0
                 ? <div className="sb-empty">{t('sb.noAgent')}</div>
