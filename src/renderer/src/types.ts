@@ -325,6 +325,14 @@ declare global {
     aiRecomposeCommit: (hash: string) => Promise<Unnarrowed>
     aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => Promise<Unnarrowed>
     aiGetExplanations: () => Promise<Unnarrowed>
+    // The same explanation, on the three other diffs a repository has (#70).
+    // None of them is cached: a branch, a stash and a working tree all move
+    // under their answer, where a commit's diff cannot.
+    aiExplainBranch: (branch: string, guidance?: string) => Promise<{ explanation?: string; base?: string; error?: string }>
+    aiExplainStash: (index: number, guidance?: string) => Promise<{ explanation?: string; error?: string }>
+    aiExplainWorking: (guidance?: string) => Promise<{ explanation?: string; error?: string }>
+    aiGenerateChangelog: (branch: string, base?: string) => Promise<{ changelog?: string; base?: string; commits?: number; error?: string }>
+    aiProposeCommitSplit: () => Promise<{ groups?: { message: string; files: string[] }[]; unassigned?: string[]; invented?: string[]; error?: string }>
     aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
     aiSearchCommits: (query: string) => Promise<Unnarrowed>
     aiListModels: () => Promise<Unnarrowed>

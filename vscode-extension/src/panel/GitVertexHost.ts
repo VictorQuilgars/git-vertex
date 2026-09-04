@@ -27,7 +27,14 @@ import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src
 import { providerById } from '../../../src/renderer/src/utils/aiProviders'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
-import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
+import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels, runAIPrompt } from '../aiService'
+// The five capabilities of #70 P1 are not reimplemented here: the host lends
+// its git and its provider, and the shared module owns the rest — which base
+// a branch is read against, what is asked, and what a refusal says.
+import {
+  explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
+  type Run,
+} from '../../../src/main/ai-features'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
@@ -814,6 +821,30 @@ export class GitVertexHost implements vscode.Disposable {
           await this._state.update('gvAiExplanations', all)
         }
         return r
+      }
+      // ── AI beyond the commit message (#70 P1) ──
+      // One adapter, five cases: the feature comes from the shared module, so
+      // the panel cannot end up reading a different model's settings than the
+      // desktop app does for the same action.
+      case 'aiExplainBranch':
+      case 'aiExplainStash':
+      case 'aiExplainWorking':
+      case 'aiGenerateChangelog':
+      case 'aiProposeCommitSplit': {
+        if (!svc) return { error: 'No repository open' }
+        const raw = (args2: string[]) => svc.raw(args2)
+        const run: Run = async (prompt, maxTokens, feature) => {
+          const cfg = readAIConfig(this._state, feature)
+          if (!cfg) return { error: 'NO_API_KEY' }
+          return runAIPrompt(cfg, prompt, maxTokens)
+        }
+        switch (method) {
+          case 'aiExplainBranch': return explainBranch(raw, run, args[0], args[1])
+          case 'aiExplainStash': return explainStash(raw, run, args[0], args[1])
+          case 'aiExplainWorking': return explainWorking(raw, run, args[0])
+          case 'aiGenerateChangelog': return generateChangelog(raw, run, args[0], args[1])
+          default: return proposeCommitSplit(raw, run)
+        }
       }
       case 'aiResolveConflict': {
         const cfg = readAIConfig(this._state, 'conflict')

@@ -22,6 +22,10 @@ import { ThemeStore } from './theme-store'
 import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
 import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
+import {
+  explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit, type Run,
+} from './ai-features'
+import type { Raw } from './ai-material'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
@@ -1970,6 +1974,32 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guid
   if (!guidance?.trim()) saveExplanation(gitService.repoPath, hash, r.text ?? '')
   return { explanation: r.text }
 })
+
+// ── AI beyond the commit message (#70 P1) ──────────────────────
+// Four reads and one proposal. The whole of each — which base a branch is
+// read against, what is asked, on how many tokens, and what a refusal says —
+// lives in ai-features.ts, which the extension host calls with its own git
+// and its own provider. These handlers own the two things that ARE this
+// process's: the repository it has open, and how it reaches a model.
+
+/** The git this process runs, in the shape the shared module takes. */
+const rawGit = (): Raw => (args: string[]) => (gitService as any).git.raw(args)
+const runFeature: Run = (prompt, maxTokens, feature) => runAIPrompt(prompt, maxTokens, feature)
+
+ipcMain.handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
+  gitService ? explainBranch(rawGit(), runFeature, branch, guidance) : { error: 'No repository open' })
+
+ipcMain.handle('ai:explain-stash', async (_e, index: number, guidance?: string) =>
+  gitService ? explainStash(rawGit(), runFeature, index, guidance) : { error: 'No repository open' })
+
+ipcMain.handle('ai:explain-working', async (_e, guidance?: string) =>
+  gitService ? explainWorking(rawGit(), runFeature, guidance) : { error: 'No repository open' })
+
+ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string) =>
+  gitService ? generateChangelog(rawGit(), runFeature, branch, base) : { error: 'No repository open' })
+
+ipcMain.handle('ai:propose-commit-split', async () =>
+  gitService ? proposeCommitSplit(rawGit(), runFeature) : { error: 'No repository open' })
 
 // ── Settings: get/set all ──────────────────────────────────────
 ipcMain.handle('settings:get-all', () => {
