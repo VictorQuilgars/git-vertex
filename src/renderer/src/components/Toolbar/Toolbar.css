@@ -415,6 +415,8 @@
 /* The outlook badge. Muted when there is nothing to say — it is a fact you
    glance at, not a warning that wants dealing with — and it only takes a
    colour when there is actually something in the way. */
+.tb-outlook-wrap { position: relative; flex-shrink: 0; }
+
 .tb-outlook {
   display: inline-flex;
   align-items: center;
@@ -431,13 +433,91 @@
 }
 .tb-outlook:hover { color: var(--text-secondary); border-color: var(--border-default); }
 
+/* `--conflict`, not `--warning`: this badge is about a conflict, and a theme
+   is free to call "modified" blue while keeping conflicts red — the two seeds
+   exist separately for exactly that reason. */
 .tb-outlook--conflict {
-  color: var(--warning);
-  border-color: color-mix(in srgb, var(--warning) var(--alpha-strong), transparent);
-  background: color-mix(in srgb, var(--warning) var(--alpha-faint), transparent);
+  color: var(--conflict);
+  border-color: color-mix(in srgb, var(--conflict) var(--alpha-strong), transparent);
+  background: color-mix(in srgb, var(--conflict) var(--alpha-faint), transparent);
 }
-.tb-outlook--conflict:hover { color: var(--warning); }
+.tb-outlook--conflict:hover { color: var(--conflict); }
 
 .tb-outlook--checking { opacity: var(--alpha-half); }
 
 .tb-outlook-count { font-weight: var(--weight-semibold); }
+
+/* What the badge means. A coloured glyph in a toolbar explains nothing on its
+   own, so the click says what was simulated, against what, what came of it —
+   and that none of it touched anything, which is the part people ask about. */
+.tb-outlook-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 320px;
+  max-width: 420px;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--surface-hover);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  z-index: var(--z-dropdown);
+  text-align: left;
+  white-space: normal;
+}
+
+.tb-outlook-head {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.tb-outlook-what {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.tb-outlook-verdict {
+  font-size: var(--text-sm);
+  color: var(--success);
+}
+.tb-outlook-verdict--conflict { color: var(--conflict); }
+
+.tb-outlook-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-tiny);
+  color: var(--text-secondary);
+}
+.tb-outlook-files li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tb-outlook-note {
+  font-size: var(--text-tiny);
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border-muted);
+  padding-top: var(--space-sm);
+}
+
+.tb-outlook-again {
+  align-self: flex-start;
+  padding: var(--space-2xs) var(--space-md);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.tb-outlook-again:hover:not(:disabled) { border-color: var(--border-strong); color: var(--text-primary); }
+.tb-outlook-again:disabled { opacity: var(--alpha-half); cursor: default; }

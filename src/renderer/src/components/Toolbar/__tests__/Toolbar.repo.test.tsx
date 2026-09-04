@@ -101,11 +101,30 @@ describe('the toolbar’s repository and branch', () => {
       expect(screen.getByTitle('Nothing to compare this branch against')).toBeInTheDocument())
   })
 
-  test('asked again when the branch changes, and on a click', async () => {
+  test('the click explains the badge rather than only re-running it', async () => {
+    // A coloured glyph in a toolbar says nothing on its own: what was
+    // simulated, against what, what came of it, and that nothing was touched.
+    render({}, { conflictOutlook: jest.fn().mockResolvedValue({ base: 'origin/main', files: ['src/a.ts', 'src/b.ts'] }) })
+    await userEvent.click(await screen.findByTitle('2 files would conflict with origin/main'))
+    expect(screen.getByText('Merge outlook')).toBeInTheDocument()
+    expect(screen.getByText('Merging origin/main into feat/cache, simulated.')).toBeInTheDocument()
+    expect(screen.getByText('src/a.ts')).toBeInTheDocument()
+    expect(screen.getByText(/dry run/)).toBeInTheDocument()
+  })
+
+  test('a clean outlook explains itself too, and says what was read', async () => {
+    render()
+    await userEvent.click(await screen.findByTitle('No conflicts detected against origin/main'))
+    expect(screen.getByText('Merge outlook')).toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  test('asked again when the branch changes, and from the panel', async () => {
     const outlook = jest.fn().mockResolvedValue({ base: 'origin/main', files: [] })
     const { mock } = render({}, { conflictOutlook: outlook })
     await waitFor(() => expect(outlook).toHaveBeenCalledWith('feat/cache'))
     await userEvent.click(screen.getByTitle('No conflicts detected against origin/main'))
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }))
     await waitFor(() => expect(mock.conflictOutlook).toHaveBeenCalledTimes(2))
   })
 

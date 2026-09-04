@@ -15,6 +15,11 @@ const fr = {
   'toolbar.refresh.tooltip': 'Rafraîchir',
   'toolbar.branch.none': 'Aucune branche',
   'toolbar.outlook.checking': 'Recherche de conflits…',
+  'toolbar.outlook.title': 'Pronostic de fusion',
+  'toolbar.outlook.what': (base: string, branch: string) =>
+    `Fusion de ${base} dans ${branch}, simulée.`,
+  'toolbar.outlook.note': "Rien n'a été fusionné : c'est un essai à blanc, l'arbre de travail n'est pas touché.",
+  'toolbar.outlook.again': 'Revérifier',
   'toolbar.outlook.unknown': 'Rien à quoi comparer cette branche',
   'toolbar.outlook.clean': (base: string) => `Aucun conflit détecté avec ${base}`,
   'toolbar.outlook.conflicts': (n: number, base: string) =>
@@ -1734,6 +1739,11 @@ const en: typeof fr = {
   'toolbar.refresh.tooltip': 'Refresh',
   'toolbar.branch.none': 'No branch',
   'toolbar.outlook.checking': 'Looking for conflicts…',
+  'toolbar.outlook.title': 'Merge outlook',
+  'toolbar.outlook.what': (base: string, branch: string) =>
+    `Merging ${base} into ${branch}, simulated.`,
+  'toolbar.outlook.note': 'Nothing was merged: this is a dry run, and the working tree is untouched.',
+  'toolbar.outlook.again': 'Check again',
   'toolbar.outlook.unknown': 'Nothing to compare this branch against',
   'toolbar.outlook.clean': (base: string) => `No conflicts detected against ${base}`,
   'toolbar.outlook.conflicts': (n: number, base: string) =>

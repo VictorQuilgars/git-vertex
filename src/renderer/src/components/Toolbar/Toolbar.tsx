@@ -128,6 +128,8 @@ export default function Toolbar({
    */
   const [outlook, setOutlook] = useState<{ base: string | null; files: string[] } | null>(null)
   const [checking, setChecking] = useState(false)
+  const [outlookOpen, setOutlookOpen] = useState(false)
+  const outlookRef = useRef<HTMLDivElement>(null)
 
   const checkConflicts = useCallback(async () => {
     if (!repoPath || !currentBranch) { setOutlook(null); return }
@@ -149,6 +151,9 @@ export default function Toolbar({
       }
       if (branchMenuRef.current && !branchMenuRef.current.contains(e.target as Node)) {
         setBranchMenuOpen(false)
+      }
+      if (outlookRef.current && !outlookRef.current.contains(e.target as Node)) {
+        setOutlookOpen(false)
       }
     }
     document.addEventListener('mousedown', handler)
@@ -260,20 +265,57 @@ export default function Toolbar({
 
           {/* Whether this branch is heading for a fight. It never blocks
               anything and never asks to be dealt with — it is the one fact
-              you want before a merge, said before you go looking for it. */}
-          <button
-            className={`tb-outlook${outlook?.files.length ? ' tb-outlook--conflict' : ''}${checking ? ' tb-outlook--checking' : ''}`}
-            onClick={() => void checkConflicts()}
-            title={
-              checking ? t('toolbar.outlook.checking')
-                : !outlook || !outlook.base ? t('toolbar.outlook.unknown')
-                  : outlook.files.length ? t('toolbar.outlook.conflicts', outlook.files.length, outlook.base)
-                    : t('toolbar.outlook.clean', outlook.base)
-            }
-          >
-            <Icon name={outlook?.files.length ? 'conflict' : 'shield'} size={16} />
-            {!!outlook?.files.length && <span className="tb-outlook-count">{outlook.files.length}</span>}
-          </button>
+              you want before a merge, said before you go looking for it.
+              The glyph is the MERGE it simulates, and becomes the conflict
+              mark when there is one: a shield said "protected", which is not
+              what a dry run of a merge means. */}
+          <div className="tb-outlook-wrap" ref={outlookRef}>
+            <button
+              className={`tb-outlook${outlook?.files.length ? ' tb-outlook--conflict' : ''}${checking ? ' tb-outlook--checking' : ''}`}
+              onClick={() => setOutlookOpen(o => !o)}
+              aria-expanded={outlookOpen}
+              title={
+                checking ? t('toolbar.outlook.checking')
+                  : !outlook || !outlook.base ? t('toolbar.outlook.unknown')
+                    : outlook.files.length ? t('toolbar.outlook.conflicts', outlook.files.length, outlook.base)
+                      : t('toolbar.outlook.clean', outlook.base)
+              }
+            >
+              <Icon name={outlook?.files.length ? 'conflict' : 'merge'} size={16} />
+              {!!outlook?.files.length && <span className="tb-outlook-count">{outlook.files.length}</span>}
+            </button>
+
+            {/* What the badge means, because a coloured glyph in a toolbar
+                explains nothing on its own: what was simulated, against what,
+                what came of it — and that none of it touched anything. */}
+            {outlookOpen && (
+              <div className="tb-outlook-pop">
+                <div className="tb-outlook-head">{t('toolbar.outlook.title')}</div>
+                <div className="tb-outlook-what">
+                  {outlook?.base
+                    ? t('toolbar.outlook.what', outlook.base, currentBranch)
+                    : t('toolbar.outlook.unknown')}
+                </div>
+                {outlook?.base && (
+                  <div className={`tb-outlook-verdict${outlook.files.length ? ' tb-outlook-verdict--conflict' : ''}`}>
+                    {outlook.files.length
+                      ? t('toolbar.outlook.conflicts', outlook.files.length, outlook.base)
+                      : t('toolbar.outlook.clean', outlook.base)}
+                  </div>
+                )}
+                {!!outlook?.files.length && (
+                  <ul className="tb-outlook-files">
+                    {outlook.files.map(f => <li key={f} title={f}>{f}</li>)}
+                  </ul>
+                )}
+                <div className="tb-outlook-note">{t('toolbar.outlook.note')}</div>
+                <button className="tb-outlook-again" disabled={checking}
+                  onClick={() => void checkConflicts()}>
+                  {checking ? t('toolbar.outlook.checking') : t('toolbar.outlook.again')}
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
 

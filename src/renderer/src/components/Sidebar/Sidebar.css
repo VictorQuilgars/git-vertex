@@ -914,32 +914,38 @@
    surface uses, so the tab says what it holds before it is opened. */
 .sb-tabs {
   display: flex;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-md);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-muted);
 }
 
+/* Two halves of one row, edge to edge — a control that fills the width says
+   "these are the two of them" in a way two floating pills do not. */
 .sb-tab {
   flex: 1;
   display: inline-flex; align-items: center; justify-content: center;
   gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  padding: var(--space-sm) 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
   color: var(--text-tertiary);
   font-size: var(--text-xs);
   cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
 }
-.sb-tab:hover { color: var(--text-primary); }
+.sb-tab + .sb-tab { border-left: 1px solid var(--border-muted); }
+.sb-tab:hover:not(.sb-tab--on) { background: var(--surface-hover); color: var(--text-primary); }
+
 .sb-tab--on {
   background: var(--surface-active);
-  border-color: var(--border-default);
+  border-bottom-color: var(--accent);
   color: var(--text-primary);
 }
+
 /* Its mark carries the AI ink whether or not the tab is the active one — it
-   is what the tab is about, not a state. */
+   is what the tab is about, not a state — and the underline follows suit. */
 .sb-tab--ai svg { color: var(--ai-text); }
-.sb-tab--ai.sb-tab--on { border-color: var(--ai-border); }
+.sb-tab--ai.sb-tab--on { border-bottom-color: var(--ai-text); }
 
 /* ── A row of the AI stack ───────────────────────────────────── */
 .sb-ai-item {

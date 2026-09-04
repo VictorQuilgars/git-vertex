@@ -25,7 +25,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📐 The toolbar's left edge, put to work
 - The **repository selector** moved out of the left panel's header (47px of list back) and into the toolbar, where the left edge was empty.
 - Beside it, a **branch picker** — filter, local branches first, remote ones below; picking one goes there.
-- Beside that, the **conflict outlook**: *No conflicts detected against origin/main*, or the number of files that would. Measured against the same base the AI reads a branch against, never blocking anything, and a click asks again.
+- Beside that, the **merge outlook**: *No conflicts detected against origin/main*, or the number of files that would. Measured against the same base the AI reads a branch against, never blocking anything — and a click says what was simulated, which files would clash, and that nothing was merged.
 
 ### 🗂 A second stack: what the model has written here
 - A **List / AI** strip above the repository list (the panel's rail gets the same view).
