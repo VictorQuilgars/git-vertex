@@ -33,6 +33,13 @@ interface ChangelogEntry {
   branch: string; text: string; base: string
   commits: number; at: number; newCommits: number
 }
+
+/** A kept reading of a branch, a stash or the working tree. */
+interface NoteEntry {
+  kind: 'branch' | 'stash' | 'working'
+  key: string; title: string; text: string; at: number; sha: string
+  newCommits: number; orphan: boolean
+}
 /**
  * A row of the two GitHub sections — the fields the list endpoints already
  * return. Everything beyond the identity is optional: a host that still maps
@@ -97,6 +104,17 @@ interface SidebarProps {
    */
   onOpenChangelog?: (branch: string) => void
   onOpenExplanation?: (hash: string) => void
+  /** A kept reading — the drawer reopens it without asking the model again. */
+  onOpenNote?: (note: { kind: 'branch' | 'stash' | 'working'; key: string; title: string }) => void
+  /**
+   * Which of the two stacks is showing, held by the host: generating a
+   * changelog anywhere in the app brings this one into view, and it cannot do
+   * that if the state lives in here.
+   */
+  tab?: 'list' | 'ai'
+  onTab?: (tab: 'list' | 'ai') => void
+  /** Bumped when something was written — the lists re-read themselves. */
+  memoryToken?: number
   /** What a stored explanation is about — the commit's subject, if loaded. */
   subjectFor?: (hash: string) => string | undefined
   onRefreshStashes: () => void
@@ -1013,6 +1031,59 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   )
 }
 
+/** What a kept reading is about, and what it is worth now. */
+function NoteRow({ note, onOpen, onForget }: {
+  note: {
+    kind: 'branch' | 'stash' | 'working' | 'commit'
+    key: string; title: string; text: string; at: number; sha: string
+    newCommits: number; orphan: boolean
+  }
+  onOpen?: () => void
+  onForget: () => void
+}) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
+  const icon: IconName =
+    note.kind === 'branch' ? 'branch'
+      : note.kind === 'stash' ? 'stash'
+        : note.kind === 'working' ? 'staging' : 'commit'
+  // A commit's reading has no age worth showing — its diff cannot change, so
+  // "written 3 days ago" says nothing about whether it still holds.
+  const meta = note.kind === 'commit'
+    ? note.sha.slice(0, 7)
+    : timeAgo(new Date(note.at).toISOString(), t)
+  return (
+    <>
+      <div
+        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}${note.orphan ? ' sb-ai-item--orphan' : ''}`}
+        onClick={onOpen}
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={note.text.length > 300 ? note.text.slice(0, 300) + '…' : note.text}
+      >
+        <Icon name={icon} size={11} />
+        <div className="sb-ai-info">
+          <span className="sb-ai-name">{note.title}</span>
+          <span className="sb-ai-meta">
+            {note.orphan ? t('sb.ai.gone') : <code>{meta}</code>}
+          </span>
+        </div>
+        {note.newCommits > 0 && (
+          <span className="sb-ai-stale" title={t('ai.changelog.behind', note.newCommits)}>
+            +{note.newCommits}
+          </span>
+        )}
+      </div>
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={[
+          ...(onOpen ? [{ label: t('sb.ai.open'), action: onOpen, icon: 'ai' as const, tone: 'ai' as const }] : []),
+          { separator: true } as MenuItemDef,
+          { label: t('sb.ai.forget'), action: onForget, danger: true },
+        ]} />
+      )}
+    </>
+  )
+}
+
 /**
  * A changelog this repository has had written, as a row.
  *
@@ -1350,7 +1421,8 @@ export default function Sidebar({
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes,
-  onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, subjectFor,
+  onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote,
+  subjectFor, tab = 'list', onTab, memoryToken,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, visibility, onToggleSolo, onToggleHide,
@@ -1366,13 +1438,6 @@ export default function Sidebar({
 }: SidebarProps) {
   // In single-view mode a section is shown when it matches the active view.
   // Without a view (desktop) every section renders (classic stacked layout).
-  // Which of the two stacks the desktop panel shows. Kept, because it is a
-  // way of working rather than a one-off — the graph's column widths and the
-  // section heights are kept for the same reason.
-  const [tab, setTab] = useState<'list' | 'ai'>(
-    () => (localStorage.getItem('sb-tab') === 'ai' ? 'ai' : 'list'))
-  useEffect(() => { localStorage.setItem('sb-tab', tab) }, [tab])
-
   const single = view !== undefined
   /**
    * The desktop panel is stacked — every section at once — but it now has two
@@ -1417,6 +1482,7 @@ export default function Sidebar({
    */
   const [changelogs, setChangelogs] = useState<ChangelogEntry[]>([])
   const [explanations, setExplanations] = useState<Record<string, string>>({})
+  const [notes, setNotes] = useState<NoteEntry[]>([])
   const loadMemory = useCallback(() => {
     ;(window.gitAPI as any).aiChangelogList?.()
       .then((r: { entries?: ChangelogEntry[] }) => setChangelogs(r?.entries ?? []))
@@ -1424,6 +1490,9 @@ export default function Sidebar({
     ;(window.gitAPI as any).aiGetExplanations?.()
       .then((r: { explanations?: Record<string, string> }) => setExplanations(r?.explanations ?? {}))
       .catch((e: unknown) => console.warn('[sidebar] aiGetExplanations failed:', e))
+    ;(window.gitAPI as any).aiNoteList?.()
+      .then((r: { entries?: NoteEntry[] }) => setNotes(r?.entries ?? []))
+      .catch((e: unknown) => console.warn('[sidebar] aiNoteList failed:', e))
   }, [])
 
   const loadWorktrees = useCallback(() => {
@@ -1447,7 +1516,9 @@ export default function Sidebar({
     return () => clearInterval(interval)
   }, [repoPath, loadWorktrees, loadAgents, loadMemory])
 
-  useEffect(() => { if (showAI && repoPath) loadMemory() }, [showAI, repoPath, loadMemory])
+  // On opening the stack, and whenever something new has been written into it.
+  useEffect(() => { if (repoPath && (showAI || memoryToken)) loadMemory() },
+    [showAI, repoPath, loadMemory, memoryToken])
 
   const agentsFor = useCallback((wtPath: string) =>
     agents.filter(a => a.cwd === wtPath || a.cwd.startsWith(wtPath + '/')),
@@ -1750,12 +1821,12 @@ export default function Sidebar({
         <div className="sb-tabs" role="tablist">
           <button role="tab" aria-selected={!showAI}
             className={`sb-tab${!showAI ? ' sb-tab--on' : ''}`}
-            onClick={() => setTab('list')}>
+            onClick={() => onTab?.('list')}>
             <Icon name="list" size={12} /> {t('sb.tab.list')}
           </button>
           <button role="tab" aria-selected={showAI}
             className={`sb-tab sb-tab--ai${showAI ? ' sb-tab--on' : ''}`}
-            onClick={() => setTab('ai')}>
+            onClick={() => onTab?.('ai')}>
             <Icon name="ai" size={12} /> {t('sb.tab.ai')}
           </button>
         </div>
@@ -1795,27 +1866,43 @@ export default function Sidebar({
                 }
               </Section>
 
-              {/* The commit panel has been filling this store since v1.10 and
-                  nothing ever listed it: an explanation was findable only by
-                  landing on the commit that had one. */}
+              {/* Every reading kept for this repository: the commit panel has
+                  been filling its store since v1.10 and nothing ever listed
+                  it, and the branch/stash/working ones join it here. One
+                  section, because "explain" is one act whatever it is aimed
+                  at — and each row can be dropped. */}
               <Section id="ai-explanations" title="EXPLANATIONS" icon="comment"
-                count={Object.keys(explanations).length} defaultOpen>
-                {Object.keys(explanations).length === 0
+                count={notes.length + Object.keys(explanations).length} defaultOpen>
+                {notes.length + Object.keys(explanations).length === 0
                   ? <div className="sb-empty">{t('sb.ai.noExplanation')}</div>
-                  : Object.entries(explanations).reverse().map(([hash, text]) => (
-                      <div
-                        key={hash}
-                        className={`sb-ai-item${onOpenExplanation ? '' : ' sb-ai-item--flat'}`}
-                        title={text.length > 300 ? text.slice(0, 300) + '…' : text}
-                        onClick={onOpenExplanation ? () => onOpenExplanation(hash) : undefined}
-                      >
-                        <Icon name="commit" size={11} />
-                        <div className="sb-ai-info">
-                          <span className="sb-ai-name">{subjectFor?.(hash) ?? t('sb.ai.unknownCommit')}</span>
-                          <span className="sb-ai-meta"><code>{hash.slice(0, 7)}</code></span>
-                        </div>
-                      </div>
-                    ))
+                  : <>
+                      {notes.map(n => (
+                        <NoteRow
+                          key={`${n.kind}:${n.key}`}
+                          note={n}
+                          onOpen={onOpenNote ? () => onOpenNote(n) : undefined}
+                          onForget={async () => {
+                            await (window.gitAPI as any).aiForgetNote?.(n.kind, n.key)
+                            loadMemory()
+                          }}
+                        />
+                      ))}
+                      {Object.entries(explanations).reverse().map(([hash, text]) => (
+                        <NoteRow
+                          key={hash}
+                          note={{
+                            kind: 'commit', key: hash,
+                            title: subjectFor?.(hash) ?? t('sb.ai.unknownCommit'),
+                            text, at: 0, sha: hash, newCommits: 0, orphan: false,
+                          }}
+                          onOpen={onOpenExplanation ? () => onOpenExplanation(hash) : undefined}
+                          onForget={async () => {
+                            await (window.gitAPI as any).aiForgetExplanation?.(hash)
+                            loadMemory()
+                          }}
+                        />
+                      ))}
+                    </>
                 }
               </Section>
             </>

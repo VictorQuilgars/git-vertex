@@ -1,4 +1,4 @@
-import { mergeIntoUnreleased, findChangelog, CHANGELOG_CANDIDATES } from '../changelog-file'
+import { mergeIntoUnreleased, findChangelog, findChangelogs, isMergedInto, CHANGELOG_CANDIDATES } from '../changelog-file'
 import type { Raw } from '../ai-material'
 
 // This module edits a file the user did not open. The only thing that makes
@@ -176,5 +176,42 @@ describe('findChangelog', () => {
   test('the candidates are the conventional names, most specific first', () => {
     expect(CHANGELOG_CANDIDATES[0]).toBe('CHANGELOG.md')
     expect(CHANGELOG_CANDIDATES).toContain('HISTORY.md')
+  })
+})
+
+describe('the two things insertion refuses to decide alone', () => {
+  test('a repository with several changelogs hands back all of them', async () => {
+    // A monorepo has one per package, and writing into the first would put
+    // the desktop app's release notes in the CLI's changelog.
+    const raw = (async () => 'docs/CHANGELOG.md\nCHANGELOG.md\n') as any
+    expect(await findChangelogs(raw)).toEqual(['CHANGELOG.md', 'docs/CHANGELOG.md'])
+  })
+
+  test('a path git does not track is not in the list', async () => {
+    const raw = (async () => '') as any
+    expect(await findChangelogs(raw)).toEqual([])
+  })
+
+  test('a branch with nothing its base lacks is already in it', async () => {
+    const none = (async () => '0\n') as any
+    expect(await isMergedInto(none, 'feat/x', 'origin/main')).toBe(true)
+  })
+
+  test('a branch that still carries commits is not merged', async () => {
+    const three = (async () => '3\n') as any
+    expect(await isMergedInto(three, 'feat/x', 'origin/main')).toBe(false)
+  })
+
+  test('it counts, it does not read an exit code — the trap this walked into', async () => {
+    // `merge-base --is-ancestor` prints nothing and answers by exiting;
+    // simple-git resolves a silent non-zero exit, so "no" came back as "yes"
+    // and EVERY branch read as already merged. An empty answer is not a zero.
+    const silent = (async () => '') as any
+    expect(await isMergedInto(silent, 'feat/x', 'origin/main')).toBe(false)
+  })
+
+  test('a question git cannot answer is not a yes', async () => {
+    const boom = (async () => { throw new Error('unrelated histories') }) as any
+    expect(await isMergedInto(boom, 'feat/x', 'origin/main')).toBe(false)
   })
 })

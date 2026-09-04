@@ -24,10 +24,11 @@ import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, changelogList, type Run, type ChangelogRecord, type ChangelogStore,
+  changelogState, changelogList, noteList,
+  type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from './ai-features'
 import { resolveBase, type Raw } from './ai-material'
-import { findChangelog, mergeIntoUnreleased } from './changelog-file'
+import { findChangelogs, isMergedInto, mergeIntoUnreleased } from './changelog-file'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
@@ -1988,14 +1989,77 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guid
 const rawGit = (): Raw => (args: string[]) => (gitService as any).git.raw(args)
 const runFeature: Run = (prompt, maxTokens, feature) => runAIPrompt(prompt, maxTokens, feature)
 
-ipcMain.handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
-  gitService ? explainBranch(rawGit(), runFeature, branch, guidance) : { error: 'No repository open' })
+/**
+ * The readings this app has kept, per repository
+ * (`userData/ai-notes.json`, the shape the changelogs and the commit
+ * explanations use). Commit explanations keep their own older file: a
+ * commit's diff is immutable, so that store needs none of the staleness
+ * this one carries.
+ */
+const notesCachePath = () => join(app.getPath('userData'), 'ai-notes.json')
+function readNotesCache(): Record<string, NoteRecord[]> {
+  try { return JSON.parse(fs.readFileSync(notesCachePath(), 'utf-8')) } catch { return {} }
+}
+const writeNotesCache = (cache: Record<string, NoteRecord[]>): void => {
+  try { fs.writeFileSync(notesCachePath(), JSON.stringify(cache)) } catch { /* best-effort */ }
+}
+const NOTES_MAX_PER_REPO = 200
+const noteStore = (repoPath: string): NoteStore => ({
+  async all() { return readNotesCache()[repoPath] ?? [] },
+  async get(kind, key) {
+    return (readNotesCache()[repoPath] ?? []).find(n => n.kind === kind && n.key === key) ?? null
+  },
+  async set(record) {
+    const cache = readNotesCache()
+    // One note per subject: a second reading of the same branch replaces the
+    // first rather than growing a pile nobody asked for.
+    const kept = (cache[repoPath] ?? []).filter(n => !(n.kind === record.kind && n.key === record.key))
+    kept.unshift(record)
+    cache[repoPath] = kept.slice(0, NOTES_MAX_PER_REPO)
+    writeNotesCache(cache)
+  },
+  async forget(kind, key) {
+    const cache = readNotesCache()
+    if (!cache[repoPath]) return
+    cache[repoPath] = cache[repoPath].filter(n => !(n.kind === kind && n.key === key))
+    writeNotesCache(cache)
+  },
+})
 
-ipcMain.handle('ai:explain-stash', async (_e, index: number, guidance?: string) =>
-  gitService ? explainStash(rawGit(), runFeature, index, guidance) : { error: 'No repository open' })
+ipcMain.handle('ai:note-list', async () =>
+  gitService ? noteList(rawGit(), noteStore(gitService.repoPath)) : { entries: [] })
+
+ipcMain.handle('ai:forget-note', async (_e, kind: NoteRecord['kind'], key: string) => {
+  if (!gitService) return { success: false }
+  await noteStore(gitService.repoPath).forget(kind, key)
+  return { success: true }
+})
+
+/** A commit explanation can be dropped too — same gesture, older store. */
+ipcMain.handle('ai:forget-explanation', async (_e, hash: string) => {
+  if (!gitService) return { success: false }
+  const cache = readExplCache()
+  if (cache[gitService.repoPath]?.[hash]) {
+    delete cache[gitService.repoPath][hash]
+    try { fs.writeFileSync(explCachePath(), JSON.stringify(cache)) } catch { /* best-effort */ }
+  }
+  return { success: true }
+})
+
+ipcMain.handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
+  gitService
+    ? explainBranch(rawGit(), runFeature, branch, { guidance, store: noteStore(gitService.repoPath) })
+    : { error: 'No repository open' })
+
+ipcMain.handle('ai:explain-stash', async (_e, index: number | string, guidance?: string) =>
+  gitService
+    ? explainStash(rawGit(), runFeature, index, { guidance, store: noteStore(gitService.repoPath) })
+    : { error: 'No repository open' })
 
 ipcMain.handle('ai:explain-working', async (_e, guidance?: string) =>
-  gitService ? explainWorking(rawGit(), runFeature, guidance) : { error: 'No repository open' })
+  gitService
+    ? explainWorking(rawGit(), runFeature, { guidance, store: noteStore(gitService.repoPath) })
+    : { error: 'No repository open' })
 
 /**
  * The changelogs this app has written, per repository and branch
@@ -2064,9 +2128,32 @@ ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string
  * writes into the working tree, so the diff is right there in the staging
  * pane to be read or thrown away.
  */
-ipcMain.handle('changelog:insert', async (_e, entry: string) => {
+ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: string; file?: string; force?: boolean }) => {
   if (!gitService) return { error: 'No repository open' }
-  const rel = await findChangelog(rawGit()) ?? 'CHANGELOG.md'
+  const raw = rawGit()
+
+  // ── Two things it refuses to decide on its own ──
+  // Which file, when the repository tracks several: a monorepo has one per
+  // package, and writing into the first would put the desktop app's notes in
+  // the CLI's changelog.
+  const candidates = await findChangelogs(raw)
+  let rel = opts?.file ?? candidates[0] ?? 'CHANGELOG.md'
+  if (!opts?.file && candidates.length > 1) return { needsChoice: true, candidates }
+  if (opts?.file && candidates.length && !candidates.includes(opts.file)) {
+    return { error: `${opts.file} is not a changelog this repository tracks` }
+  }
+
+  // And whether it still makes sense at all. A changelog is KEPT now, so the
+  // drawer can be reopened a fortnight after the branch was merged — at which
+  // point these bullets are already in the file, and inserting them adds a
+  // release's worth of duplicates to whatever branch is checked out.
+  if (!opts?.force && opts?.branch) {
+    const base = await resolveBase(raw, opts.branch)
+    if (base && await isMergedInto(raw, opts.branch, base)) {
+      return { alreadyMerged: true, branch: opts.branch, base, path: rel }
+    }
+  }
+
   const abs = join(gitService.repoPath, rel)
   let existing: string | null = null
   try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }

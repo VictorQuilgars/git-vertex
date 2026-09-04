@@ -29,8 +29,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🗂 A second stack: what the model has written here
 - A **List / AI** strip above the repository list (the panel's rail gets the same view).
-- Every changelog written for this repository, newest first — what it covers, when, and how far its branch has moved since. A row reopens it; right-click forgets it.
-- The commit explanations kept since v1.10, listed at last: until now you could only find one by landing on the commit that had it.
+- Every changelog, **and every explanation** — a branch, a stash, the uncommitted work, and the commit explanations kept since v1.10 that nothing ever listed. Each says what it covers and when, wears a \`+3\` when its subject has moved on, and strikes through when what it described is gone.
+- Generating anything brings the stack up with the new entry already in it. A row reopens it without asking the model again; right-click forgets it.
+- Inserting a changelog now asks before deciding for you: **which file**, when the repository tracks several, and whether the branch has *already been merged* — in which case those bullets are already in there.
 
 ### 🔮 An AI row looks like one
 - Every entry that reaches a model wears the mark and the ink; the branch menu's **AI** submenu is outlined in dashes. The "(AI)" suffixes are gone, because they no longer say anything the row does not.

@@ -1,5 +1,8 @@
 import { resolveBase, workingMaterial, branchMaterial, type Raw } from '../ai-material'
-import { explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit, type Run } from '../ai-features'
+import {
+  explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
+  noteList, type Run, type NoteRecord, type NoteStore,
+} from '../ai-features'
 
 // A fake git and a fake model, so the whole of a feature — which base it
 // reads against, what it refuses, which feature's model it runs on — is
@@ -236,5 +239,100 @@ describe('the five features', () => {
     const r = await proposeCommitSplit(raw, fakeModel('I would split this into two commits.').run)
     expect(r.error).toBe('The model proposed no usable commit')
     expect(r.groups).toEqual([])
+  })
+})
+
+/** A note store in memory, the shape both hosts wrap around their own. */
+function fakeNotes(seed: NoteRecord[] = []) {
+  let kept = [...seed]
+  const store: NoteStore = {
+    async all() { return kept },
+    async get(kind, key) { return kept.find(n => n.kind === kind && n.key === key) ?? null },
+    async set(record) {
+      kept = [record, ...kept.filter(n => !(n.kind === record.kind && n.key === record.key))]
+    },
+    async forget(kind, key) { kept = kept.filter(n => !(n.kind === kind && n.key === key)) },
+  }
+  return { store, get kept() { return kept } }
+}
+
+describe('what the readings leave behind', () => {
+  const withTrunk = {
+    'remote': 'origin\n',
+    'symbolic-ref --short refs/remotes/origin/HEAD': 'origin/main\n',
+    'rev-parse --verify --quiet refs/remotes/origin/main': 'abc\n',
+  }
+
+  test('a branch reading is kept with the tip it describes', async () => {
+    const raw = fakeGit({
+      ...withTrunk,
+      'log --reverse --format=%s origin/main..feat/x': 'first\n',
+      'diff origin/main...feat/x': 'd',
+      'rev-parse feat/x': 'aaa111\n',
+    })
+    const notes = fakeNotes()
+    await explainBranch(raw, fakeModel('It adds a thing.').run, 'feat/x', { store: notes.store })
+    expect(notes.kept).toEqual([expect.objectContaining({
+      kind: 'branch', key: 'feat/x', title: 'feat/x', text: 'It adds a thing.', sha: 'aaa111',
+    })])
+  })
+
+  test('a stash reading is keyed by its COMMIT, not by stash@{0}', async () => {
+    // The index shifts under every push and pop; a note keyed by it would
+    // follow whichever stash happens to be first afterwards.
+    const raw = fakeGit({
+      'log -1 --format=%s stash@{0}': 'WIP on main: abc\n',
+      'stash show --include-untracked -p stash@{0}': 'the diff',
+      'rev-parse stash@{0}': 'bbb222\n',
+    })
+    const notes = fakeNotes()
+    await explainStash(raw, fakeModel('Parked work.').run, 0, { store: notes.store })
+    expect(notes.kept[0]).toMatchObject({ kind: 'stash', key: 'bbb222', title: 'WIP on main: abc' })
+  })
+
+  test('the working tree is kept without a sha — it is stale the moment anything is typed', async () => {
+    const raw = fakeGit({ 'diff --cached': 'A', 'diff --cached --name-only': 'a.ts\n' })
+    const notes = fakeNotes()
+    await explainWorking(raw, fakeModel('Half a logger.').run, { store: notes.store })
+    expect(notes.kept[0]).toMatchObject({ kind: 'working', key: 'working', sha: '' })
+  })
+
+  test('a second reading of the same subject replaces the first', async () => {
+    const raw = fakeGit({
+      ...withTrunk, 'log --reverse --format=%s origin/main..feat/x': 'first\n',
+      'diff origin/main...feat/x': 'd', 'rev-parse feat/x': 'aaa111\n',
+    })
+    const notes = fakeNotes()
+    await explainBranch(raw, fakeModel('one').run, 'feat/x', { store: notes.store })
+    await explainBranch(raw, fakeModel('two').run, 'feat/x', { store: notes.store })
+    expect(notes.kept).toHaveLength(1)
+    expect(notes.kept[0].text).toBe('two')
+  })
+
+  test('a refused reading leaves nothing behind', async () => {
+    const raw = fakeGit(withTrunk)   // the branch carries nothing
+    const notes = fakeNotes()
+    await explainBranch(raw, fakeModel('never asked').run, 'feat/x', { store: notes.store })
+    expect(notes.kept).toEqual([])
+  })
+
+  test('the list measures each note against what it stands for now', async () => {
+    const notes = fakeNotes([
+      { kind: 'branch', key: 'feat/x', title: 'feat/x', text: 'a', at: 2, sha: 'old111' },
+      { kind: 'stash', key: 'gone999', title: 'WIP', text: 'b', at: 3, sha: 'gone999' },
+      { kind: 'working', key: 'working', title: 'Uncommitted changes', text: 'c', at: 1, sha: '' },
+    ])
+    const raw = fakeGit({
+      'rev-parse feat/x': 'new222\n',
+      'rev-list --count old111..feat/x': '3\n',
+    })
+    const { entries } = await noteList(raw, notes.store)
+    // newest first
+    expect(entries.map(e => e.key)).toEqual(['gone999', 'feat/x', 'working'])
+    expect(entries.find(e => e.key === 'feat/x')).toMatchObject({ newCommits: 3, orphan: false })
+    // a dropped stash is orphaned, not deleted — the reading is still worth something
+    expect(entries.find(e => e.key === 'gone999')).toMatchObject({ orphan: true })
+    // the working tree is never "behind": it has nothing to be behind of
+    expect(entries.find(e => e.key === 'working')).toMatchObject({ newCommits: 0, orphan: false })
   })
 })

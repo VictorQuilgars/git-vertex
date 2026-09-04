@@ -33,9 +33,10 @@ import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenera
 // a branch is read against, what is asked, and what a refusal says.
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, changelogList, type Run, type ChangelogRecord, type ChangelogStore,
+  changelogState, changelogList, noteList,
+  type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from '../../../src/main/ai-features'
-import { findChangelog, mergeIntoUnreleased } from '../../../src/main/changelog-file'
+import { findChangelogs, isMergedInto, mergeIntoUnreleased } from '../../../src/main/changelog-file'
 import { resolveBase } from '../../../src/main/ai-material'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
@@ -796,6 +797,14 @@ export class GitVertexHost implements vscode.Disposable {
         const msg = (await svc.raw(['log', '-1', '--pretty=format:%B', args[0]]).catch(() => '')).trim()
         return aiRecomposeCommit(cfg, diff, msg)
       }
+      case 'aiForgetExplanation': {
+        const all = this._state.get<Record<string, Record<string, string>>>('gvAiExplanations', {})
+        if (this._repoPath && all[this._repoPath]?.[args[0]]) {
+          delete all[this._repoPath][args[0]]
+          await this._state.update('gvAiExplanations', all)
+        }
+        return { success: true }
+      }
       case 'aiGetExplanations': {
         const all = this._state.get<Record<string, Record<string, string>>>('gvAiExplanations', {})
         return { explanations: (this._repoPath && all[this._repoPath]) || {} }
@@ -850,6 +859,8 @@ export class GitVertexHost implements vscode.Disposable {
       case 'aiChangelogState':
       case 'aiChangelogList':
       case 'aiForgetChangelog':
+      case 'aiNoteList':
+      case 'aiForgetNote':
       case 'aiGenerateChangelog':
       case 'aiProposeCommitSplit': {
         if (!svc) return { error: 'No repository open' }
@@ -889,10 +900,37 @@ export class GitVertexHost implements vscode.Disposable {
             await state.update('gvAiChangelogs', all)
           },
         }
+        // The readings this repository has had kept, in globalState like its
+        // explanations — one note per subject, the shared module deciding
+        // when one has gone stale.
+        const notes: NoteStore = {
+          async all() {
+            const all = state.get<Record<string, NoteRecord[]>>('gvAiNotes', {})
+            return all[repo] ?? []
+          },
+          async get(kind, key) {
+            return (await notes.all()).find(n => n.kind === kind && n.key === key) ?? null
+          },
+          async set(record) {
+            const all = state.get<Record<string, NoteRecord[]>>('gvAiNotes', {})
+            const kept = (all[repo] ?? []).filter(n => !(n.kind === record.kind && n.key === record.key))
+            kept.unshift(record)
+            all[repo] = kept.slice(0, 200)
+            await state.update('gvAiNotes', all)
+          },
+          async forget(kind, key) {
+            const all = state.get<Record<string, NoteRecord[]>>('gvAiNotes', {})
+            if (!all[repo]) return
+            all[repo] = all[repo].filter(n => !(n.kind === kind && n.key === key))
+            await state.update('gvAiNotes', all)
+          },
+        }
         switch (method) {
-          case 'aiExplainBranch': return explainBranch(raw, run, args[0], args[1])
-          case 'aiExplainStash': return explainStash(raw, run, args[0], args[1])
-          case 'aiExplainWorking': return explainWorking(raw, run, args[0])
+          case 'aiExplainBranch': return explainBranch(raw, run, args[0], { guidance: args[1], store: notes })
+          case 'aiExplainStash': return explainStash(raw, run, args[0], { guidance: args[1], store: notes })
+          case 'aiExplainWorking': return explainWorking(raw, run, { guidance: args[0], store: notes })
+          case 'aiNoteList': return noteList(raw, notes)
+          case 'aiForgetNote': await notes.forget(args[0], args[1]); return { success: true }
           case 'aiChangelogState': return changelogState(raw, store, args[0])
           case 'aiChangelogList': return changelogList(raw, store)
           case 'aiForgetChangelog': await store.forget(args[0]); return { success: true }
@@ -905,7 +943,22 @@ export class GitVertexHost implements vscode.Disposable {
       // staging view a second later — nothing is committed here.
       case 'insertChangelog': {
         if (!svc || !this._repoPath) return { error: 'No repository open' }
-        const rel = await findChangelog((a: string[]) => svc.raw(a)) ?? 'CHANGELOG.md'
+        const raw = (a: string[]) => svc.raw(a)
+        const opts = (args[1] ?? {}) as { branch?: string; file?: string; force?: boolean }
+        // The same two refusals as the desktop: which file, when there are
+        // several, and whether the branch is already in what it lands on.
+        const candidates = await findChangelogs(raw)
+        const rel = opts.file ?? candidates[0] ?? 'CHANGELOG.md'
+        if (!opts.file && candidates.length > 1) return { needsChoice: true, candidates }
+        if (opts.file && candidates.length && !candidates.includes(opts.file)) {
+          return { error: `${opts.file} is not a changelog this repository tracks` }
+        }
+        if (!opts.force && opts.branch) {
+          const base = await resolveBase(raw, opts.branch)
+          if (base && await isMergedInto(raw, opts.branch, base)) {
+            return { alreadyMerged: true, branch: opts.branch, base, path: rel }
+          }
+        }
         const abs = path.join(this._repoPath, rel)
         let existing: string | null = null
         try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }

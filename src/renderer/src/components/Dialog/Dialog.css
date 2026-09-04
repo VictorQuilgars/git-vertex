@@ -119,3 +119,25 @@
   color: var(--text-on-emphasis);
 }
 .dlg-danger:hover { background: var(--danger-solid-hover); }
+
+/* The choices of a ChoiceDialog: one row each, monospace because what they
+   name is a path, and picked with one click rather than typed. */
+.dlg-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin: var(--space-md) 0;
+}
+
+.dlg-choice {
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.dlg-choice:hover { border-color: var(--accent); background: var(--surface-active); }

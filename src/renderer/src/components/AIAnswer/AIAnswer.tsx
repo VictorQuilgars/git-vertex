@@ -49,7 +49,7 @@ export interface AIAnswerAction {
  * it is being remembered rather than composed.
  */
 export default function AIAnswer({
-  anchor, title, subject, icon, run, recall, guide, mono, actions, onClose,
+  anchor, title, subject, icon, run, recall, guide, mono, actions, onGenerated, onClose,
 }: {
   anchor: RefObject<HTMLElement | null>
   /** The drawer's name — the action, not its object. */
@@ -71,6 +71,12 @@ export default function AIAnswer({
   mono?: boolean
   /** Extra things to do with the answer — inserting it into a file. */
   actions?: AIAnswerAction[]
+  /**
+   * Something was written and kept. The host puts it in the panel's AI stack
+   * and brings that stack into view — a reading that lands in a list nobody
+   * is looking at is a reading nobody knows exists.
+   */
+  onGenerated?: () => void
   onClose: () => void
 }) {
   const { t } = useLang()
@@ -117,7 +123,8 @@ export default function AIAnswer({
     setMeta(r.meta ?? null)
     setRemembered(false); setStale(false)
     show(r.text, true)
-  }, [run, t])
+    onGenerated?.()
+  }, [run, t, onGenerated])
 
   // Asked on open — unless something is already known, in which case that is
   // shown and nothing is spent. The drawer exists because the action was

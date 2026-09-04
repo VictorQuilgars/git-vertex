@@ -102,9 +102,15 @@ export async function changelogMaterial(raw: Raw, branch: string, base?: string)
   return { base: b, entries, diffstat: await quiet(raw, ['diff', '--stat', `${b}...${branch}`]) }
 }
 
-/** A stash's own label, and what it holds. Untracked files included. */
-export async function stashMaterial(raw: Raw, index: number): Promise<{ label: string; diff: string }> {
-  const ref = `stash@{${index}}`
+/**
+ * A stash's own label, and what it holds. Untracked files included.
+ *
+ * Takes an index OR a ref: `stash@{0}` moves under every push and pop, so a
+ * reading kept about a stash is keyed by its commit and asks again by that.
+ * `git stash show` accepts any stash-like commit, which a stash commit is.
+ */
+export async function stashMaterial(raw: Raw, index: number | string): Promise<{ label: string; diff: string }> {
+  const ref = typeof index === 'number' ? `stash@{${index}}` : index
   const label = (await quiet(raw, ['log', '-1', '--format=%s', ref])).trim()
   // --include-untracked needs git ≥ 2.32; without it a stash taken with `-u`
   // reads as smaller than it is, which is worth a retry rather than an error.

@@ -7,7 +7,7 @@ import Sidebar from './components/Sidebar/Sidebar'
 import StatusBar from './components/StatusBar/StatusBar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
-import { PromptDialog, ConfirmDialog } from './components/Dialog/Dialog'
+import { PromptDialog, ConfirmDialog, ChoiceDialog } from './components/Dialog/Dialog'
 import CommandPalette, { PaletteCommand } from './components/CommandPalette/CommandPalette'
 import { Mark } from './components/Mark/Mark'
 import { Brand } from './components/BrandMark/BrandMark'
@@ -111,6 +111,7 @@ function syntheticCommit(shortHash: string, message: string): CommitNode {
 type DialogState =
   | { kind: 'prompt';  message: string; defaultValue?: string; multiline?: boolean; resolve: (v: string | null) => void }
   | { kind: 'confirm'; message: string; danger?: boolean;      resolve: (v: boolean) => void }
+  | { kind: 'choice';  message: string; options: string[];     resolve: (v: string | null) => void }
 
 // ── Tabs ───────────────────────────────────────────────────────
 // Tabs are heterogeneous: the classic repo tab, the "home" welcome screen
@@ -219,6 +220,11 @@ export default function App() {
 
   const showConfirm = useCallback((message: string, danger = false): Promise<boolean> =>
     new Promise(resolve => setDlg({ kind: 'confirm', message, danger, resolve }))
+  , [])
+
+  /** One question, N answers, none of them typed. */
+  const showChoice = useCallback((message: string, options: string[]): Promise<string | null> =>
+    new Promise(resolve => setDlg({ kind: 'choice', message, options, resolve }))
   , [])
 
   const closeDlg = useCallback(() => setDlg(null), [])
@@ -859,10 +865,26 @@ export default function App() {
    */
   const [aiRead, setAiRead] = useState<
     | { kind: 'branch' | 'changelog'; ref: string; label: string }
-    | { kind: 'stash'; index: number; label: string }
+    | { kind: 'stash'; index: number | string; label: string }
     | { kind: 'working' }
     | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
+  /**
+   * Which stack the panel shows, and a token bumped whenever the model has
+   * written something. Both live here rather than in the Sidebar because a
+   * generation happens in a DRAWER: what it produces has to land in the list
+   * and the list has to come into view, and neither can happen from inside
+   * the panel that is not being looked at.
+   */
+  const [sidebarTab, setSidebarTab] = useState<'list' | 'ai'>(
+    () => (localStorage.getItem('sb-tab') === 'ai' ? 'ai' : 'list'))
+  useEffect(() => { localStorage.setItem('sb-tab', sidebarTab) }, [sidebarTab])
+  const [memoryToken, setMemoryToken] = useState(0)
+  /** Written: put it in the list, and put the list where it can be seen. */
+  const rememberedAI = useCallback(() => {
+    setMemoryToken(n => n + 1)
+    setSidebarTab('ai')
+  }, [])
   useEffect(() => {
     setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false)
     setAiRead(null); setComposerOpen(false)
@@ -1928,6 +1950,43 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branches, currentBranch, soloBranch, visibility, remoteNames, branchMeta, prIntentFor, githubOwnerRepo, t])
 
+  /**
+   * Put a generated changelog in the repository's changelog — asking about
+   * the two things the host refuses to decide on its own.
+   *
+   * Neither question is a formality. A monorepo has a changelog per package,
+   * and writing into the first would file the desktop app's notes under the
+   * CLI. And a changelog is KEPT now, so the drawer can be reopened a
+   * fortnight after the branch was merged — at which point these bullets are
+   * already in the file and inserting them adds a release's worth of
+   * duplicates to whatever branch happens to be checked out.
+   */
+  const insertChangelogGuarded = useCallback(async (text: string, branch: string) => {
+    const call = (opts: { branch?: string; file?: string; force?: boolean }) =>
+      ((window.gitAPI as any).insertChangelog?.(text, opts)
+        ?? Promise.resolve({ error: 'not-implemented' }))
+
+    let r = await call({ branch })
+
+    if (r?.needsChoice) {
+      const file = await showChoice(t('ai.changelog.whichFile'), r.candidates ?? [])
+      if (!file) return
+      r = await call({ branch, file })
+    }
+    if (r?.alreadyMerged) {
+      const ok = await showConfirm(t('ai.changelog.mergedConfirm', r.branch, r.base), true)
+      if (!ok) return
+      r = await call({ branch, file: r.path, force: true })
+    }
+    if (r?.error) { showToast(r.error, 'err'); return }
+    if (r?.created) showToast(t('ai.changelog.created', r.path), 'ok')
+    else if (!r?.added) showToast(t('ai.changelog.insertedNothing', r.path), 'ok')
+    else showToast(t('ai.changelog.inserted', r.added, r.path), 'ok')
+    // The file is a working-tree change now; the panel has to see it.
+    loadRepoData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showChoice, showConfirm, showToast, t])
+
   // Branch strip above the staging file list (v1.22.0) — same actions as the
   // toolbar and the ⋮ menu, just brought next to the files they apply to.
   const branchStripProps = {
@@ -2477,6 +2536,14 @@ export default function App() {
               onExplainBranch={(name) => setAiRead({ kind: 'branch', ref: name, label: shortName(name, new Set(remoteNames)) })}
               onBranchChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
               onOpenChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              tab={sidebarTab}
+              onTab={setSidebarTab}
+              memoryToken={memoryToken}
+              onOpenNote={(n) => {
+                if (n.kind === 'branch') setAiRead({ kind: 'branch', ref: n.key, label: n.title })
+                else if (n.kind === 'working') setAiRead({ kind: 'working' })
+                else setAiRead({ kind: 'stash', index: n.key, label: n.title })
+              }}
               onOpenExplanation={(hash) => {
                 const found = commits.find(c => c.hash === hash)
                 if (found) setSelectedCommit(found)
@@ -2912,6 +2979,7 @@ export default function App() {
           icon="branch"
           guide
           onClose={() => setAiRead(null)}
+          onGenerated={rememberedAI}
           run={async (guidance) => {
             const r = await ((window.gitAPI as any).aiExplainBranch?.(aiRead.ref, guidance)
               ?? Promise.resolve({ error: 'not-implemented' }))
@@ -2931,6 +2999,7 @@ export default function App() {
           icon="branch"
           mono
           onClose={() => setAiRead(null)}
+          onGenerated={rememberedAI}
           recall={async () => {
             const r = await ((window.gitAPI as any).aiChangelogState?.(aiRead.ref)
               ?? Promise.resolve(null))
@@ -2960,16 +3029,7 @@ export default function App() {
           actions={[{
             label: t('ai.changelog.insert'),
             title: t('ai.changelog.insertTitle'),
-            run: async (text) => {
-              const r = await ((window.gitAPI as any).insertChangelog?.(text)
-                ?? Promise.resolve({ error: 'not-implemented' }))
-              if (r?.error) { showToast(r.error, 'err'); return }
-              if (r?.created) showToast(t('ai.changelog.created', r.path), 'ok')
-              else if (!r?.added) showToast(t('ai.changelog.insertedNothing', r.path), 'ok')
-              else showToast(t('ai.changelog.inserted', r.added, r.path), 'ok')
-              // The file is a working-tree change now; the panel has to see it.
-              loadRepoData()
-            },
+            run: (text) => insertChangelogGuarded(text, aiRead.ref),
           }]}
         />
       )}
@@ -2982,6 +3042,7 @@ export default function App() {
           icon="stash"
           guide
           onClose={() => setAiRead(null)}
+          onGenerated={rememberedAI}
           run={async (guidance) => {
             const r = await ((window.gitAPI as any).aiExplainStash?.(aiRead.index, guidance)
               ?? Promise.resolve({ error: 'not-implemented' }))
@@ -2998,6 +3059,7 @@ export default function App() {
           icon="staging"
           guide
           onClose={() => setAiRead(null)}
+          onGenerated={rememberedAI}
           run={async (guidance) => {
             const r = await ((window.gitAPI as any).aiExplainWorking?.(guidance)
               ?? Promise.resolve({ error: 'not-implemented' }))
@@ -3094,6 +3156,14 @@ export default function App() {
           defaultValue={dlg.defaultValue}
           multiline={dlg.multiline}
           onConfirm={v => { dlg.resolve(v); closeDlg() }}
+          onCancel={() => { dlg.resolve(null); closeDlg() }}
+        />
+      )}
+      {dlg?.kind === 'choice' && (
+        <ChoiceDialog
+          message={dlg.message}
+          options={dlg.options}
+          onPick={v => { dlg.resolve(v); closeDlg() }}
           onCancel={() => { dlg.resolve(null); closeDlg() }}
         />
       )}

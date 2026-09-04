@@ -338,7 +338,7 @@ declare global {
     // None of them is cached: a branch, a stash and a working tree all move
     // under their answer, where a commit's diff cannot.
     aiExplainBranch: (branch: string, guidance?: string) => Promise<{ explanation?: string; base?: string; error?: string }>
-    aiExplainStash: (index: number, guidance?: string) => Promise<{ explanation?: string; error?: string }>
+    aiExplainStash: (index: number | string, guidance?: string) => Promise<{ explanation?: string; error?: string }>
     aiExplainWorking: (guidance?: string) => Promise<{ explanation?: string; error?: string }>
     // The changelog remembers: what it wrote, and what it wrote it from, so
     // reopening the drawer costs nothing and a branch that has moved says so.
@@ -352,9 +352,29 @@ declare global {
     /** Every changelog this repository has had written, newest first. */
     aiChangelogList: () => Promise<{ entries?: { branch: string; text: string; base: string; commits: number; at: number; newCommits: number }[] }>
     aiForgetChangelog: (branch: string) => Promise<R>
+    /** Every reading kept for this repository — branch, stash, working tree. */
+    aiNoteList: () => Promise<{ entries?: {
+      kind: 'branch' | 'stash' | 'working'
+      key: string; title: string; text: string; at: number; sha: string
+      newCommits: number; orphan: boolean
+    }[] }>
+    aiForgetNote: (kind: string, key: string) => Promise<R>
+    aiForgetExplanation: (hash: string) => Promise<R>
     aiGenerateChangelog: (branch: string, base?: string, previous?: string) => Promise<{ changelog?: string; base?: string; commits?: number; error?: string }>
     /** Merges an entry into the repository's own changelog. Only ever adds. */
-    insertChangelog: (entry: string) => Promise<{ path?: string; added?: number; created?: boolean; sectionCreated?: boolean; error?: string }>
+    /**
+     * Merges an entry into the repository's own changelog. Only ever adds —
+     * and refuses to choose for you: `needsChoice` when the repository tracks
+     * several changelogs, `alreadyMerged` when the branch is already in its
+     * base and the bullets are presumably already there. `force` overrides
+     * the second; `file` answers the first.
+     */
+    insertChangelog: (entry: string, opts?: { branch?: string; file?: string; force?: boolean }) => Promise<{
+      path?: string; added?: number; created?: boolean; sectionCreated?: boolean
+      needsChoice?: boolean; candidates?: string[]
+      alreadyMerged?: boolean; branch?: string; base?: string
+      error?: string
+    }>
     aiProposeCommitSplit: () => Promise<{ groups?: { message: string; files: string[] }[]; unassigned?: string[]; invented?: string[]; error?: string }>
     aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
     aiSearchCommits: (query: string) => Promise<Unnarrowed>

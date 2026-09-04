@@ -959,6 +959,9 @@
 }
 .sb-ai-item:hover { background: var(--surface-hover); color: var(--text-primary); }
 .sb-ai-item--flat { cursor: default; }
+/* What it described is gone — a dropped stash, a deleted branch. The reading
+   is still worth something, which is why the row stays. */
+.sb-ai-item--orphan .sb-ai-name { text-decoration: line-through; opacity: var(--alpha-bold); }
 .sb-ai-item--flat:hover { background: none; }
 
 .sb-ai-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }

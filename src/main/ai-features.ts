@@ -33,38 +33,118 @@ const CHANGELOG_TOKENS = 2048
 const SPLIT_TOKENS = 2048
 
 /**
- * The three explanations do not cache. A commit's diff is immutable, which is
- * what makes `ai-explanations.json` safe; a branch, a stash and a working
- * tree all move under their answer, and a stored explanation of a moving
- * target is wrong without ever looking wrong.
+ * A reading that was kept, and what it was read FROM.
  *
- * The changelog below is the exception, and it earns it by storing what it
- * was written FROM — see ChangelogRecord: it can say it is out of date
- * instead of pretending it is not.
+ * Everything the model writes here is kept now — it used to be only the
+ * changelog, on the grounds that a branch, a stash and a working tree all
+ * move under their answer. They do; the answer to that is the `sha`, not
+ * silence. A note that knows which tip it describes can say it is out of
+ * date, which is worth more than making the reader pay for it again.
  */
-export async function explainBranch(raw: Raw, run: Run, branch: string, guidance?: string):
+export interface NoteRecord {
+  kind: 'branch' | 'stash' | 'working'
+  /** The branch name, the stash ref, or 'working' — one note per subject. */
+  key: string
+  /** What it is about, as the panel should name it. */
+  title: string
+  text: string
+  at: number
+  /**
+   * The commit the reading describes. Empty for the working tree, which has
+   * no sha and is stale the moment anything is typed — its row says when it
+   * was written and leaves the judgement there.
+   */
+  sha: string
+}
+
+/** Where a host keeps them. Already scoped to one repository by the caller. */
+export interface NoteStore {
+  get(kind: NoteRecord['kind'], key: string): Promise<NoteRecord | null>
+  set(record: NoteRecord): Promise<void>
+  all(): Promise<NoteRecord[]>
+  forget(kind: NoteRecord['kind'], key: string): Promise<void>
+}
+
+/** A kept reading, measured against the repository as it stands now. */
+export interface NoteEntry extends NoteRecord {
+  /** Its subject has moved since — for a branch, by this many commits. */
+  newCommits: number
+  /** Its subject is gone: a dropped stash, a deleted branch. */
+  orphan: boolean
+}
+
+export interface ExplainOpts { guidance?: string; store?: NoteStore }
+
+export async function explainBranch(raw: Raw, run: Run, branch: string, opts: ExplainOpts = {}):
 Promise<{ explanation?: string; base?: string; error?: string }> {
   const m = await branchMaterial(raw, branch)
   if (!m) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
   if (!m.subjects.length && !m.diff.trim()) return { error: `${branch} carries nothing over ${m.base}` }
-  const r = await run(explainBranchPrompt(branch, m.base, m.subjects, m.diffstat, m.diff, guidance), PROSE_TOKENS, 'explain')
-  return r.error ? { error: r.error } : { explanation: r.text, base: m.base }
+  const r = await run(explainBranchPrompt(branch, m.base, m.subjects, m.diffstat, m.diff, opts.guidance), PROSE_TOKENS, 'explain')
+  if (r.error) return { error: r.error }
+  await keep(raw, opts.store, { kind: 'branch', key: branch, title: branch, text: r.text ?? '' }, branch)
+  return { explanation: r.text, base: m.base }
 }
 
-export async function explainStash(raw: Raw, run: Run, index: number, guidance?: string):
+export async function explainStash(raw: Raw, run: Run, index: number | string, opts: ExplainOpts = {}):
 Promise<{ explanation?: string; error?: string }> {
+  const ref = typeof index === 'number' ? `stash@{${index}}` : index
   const m = await stashMaterial(raw, index)
   if (!m.diff.trim()) return { error: 'This stash has no changes to analyze' }
-  const r = await run(explainStashPrompt(m.label, m.diff, guidance), PROSE_TOKENS, 'explain')
-  return r.error ? { error: r.error } : { explanation: r.text }
+  const r = await run(explainStashPrompt(m.label, m.diff, opts.guidance), PROSE_TOKENS, 'explain')
+  if (r.error) return { error: r.error }
+  // Keyed by the stash's COMMIT, not by `stash@{0}`: that index shifts under
+  // every push and pop, and a note keyed by it would follow the wrong stash.
+  const sha = await sha1(raw, ref)
+  await keep(raw, opts.store, { kind: 'stash', key: sha || ref, title: m.label || ref, text: r.text ?? '' }, sha || ref)
+  return { explanation: r.text }
 }
 
-export async function explainWorking(raw: Raw, run: Run, guidance?: string):
+export async function explainWorking(raw: Raw, run: Run, opts: ExplainOpts = {}):
 Promise<{ explanation?: string; error?: string }> {
   const m = await workingMaterial(raw)
   if (!m.staged.trim() && !m.unstaged.trim()) return { error: 'Nothing uncommitted to analyze' }
-  const r = await run(explainWorkingPrompt(m.staged, m.unstaged, m.diffstat, guidance), PROSE_TOKENS, 'explain')
-  return r.error ? { error: r.error } : { explanation: r.text }
+  const r = await run(explainWorkingPrompt(m.staged, m.unstaged, m.diffstat, opts.guidance), PROSE_TOKENS, 'explain')
+  if (r.error) return { error: r.error }
+  // No sha: the working tree is stale the moment anything is typed, and
+  // pretending otherwise with the tip it happened to sit on would be worse.
+  await keep(raw, opts.store, { kind: 'working', key: 'working', title: 'Uncommitted changes', text: r.text ?? '' }, '')
+  return { explanation: r.text }
+}
+
+/** Store a reading, if the host gave us somewhere to put it. */
+async function keep(
+  raw: Raw, store: NoteStore | undefined,
+  note: Omit<NoteRecord, 'at' | 'sha'>, ref: string,
+): Promise<void> {
+  if (!store || !note.text.trim()) return
+  await store.set({ ...note, at: Date.now(), sha: ref ? await sha1(raw, ref) : '' })
+}
+
+const sha1 = async (raw: Raw, ref: string): Promise<string> => {
+  try { return (await raw(['rev-parse', ref])).trim() } catch { return '' }
+}
+
+/**
+ * Everything the model has read for this repository, newest first, each
+ * measured against what it stands for now: a branch that has moved, a stash
+ * that is gone. The panel's AI stack is this list.
+ */
+export async function noteList(raw: Raw, store: NoteStore): Promise<{ entries: NoteEntry[] }> {
+  const out: NoteEntry[] = []
+  for (const note of await store.all()) {
+    let newCommits = 0
+    let orphan = false
+    if (note.sha) {
+      const now = note.kind === 'branch' ? await sha1(raw, note.key) : await sha1(raw, note.sha)
+      if (!now) orphan = true
+      else if (now !== note.sha && note.kind === 'branch') {
+        newCommits = await countCommits(raw, note.sha, note.key)
+      }
+    }
+    out.push({ ...note, newCommits, orphan })
+  }
+  return { entries: out.sort((a, b) => b.at - a.at) }
 }
 
 /**

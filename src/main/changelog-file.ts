@@ -28,15 +28,52 @@ export const CHANGELOG_CANDIDATES = [
   'HISTORY.md', 'NEWS.md', 'CHANGES.md',
 ]
 
-/** The repository's changelog, as a path relative to its root, or null. */
-export async function findChangelog(raw: Raw): Promise<string | null> {
+/**
+ * Every changelog this repository tracks, in OUR order of preference — not
+ * git's, which sorts alphabetically and would prefer `CHANGES.md` to
+ * `CHANGELOG.md` in a repository with both.
+ *
+ * Plural on purpose. A monorepo has one per package, and picking the first
+ * and writing into it is the kind of helpfulness that puts a desktop app's
+ * release notes in the CLI's changelog. The caller asks when there are
+ * several; it does not guess.
+ */
+export async function findChangelogs(raw: Raw): Promise<string[]> {
   let listed = ''
-  try { listed = await raw(['ls-files', '--', ...CHANGELOG_CANDIDATES]) } catch { return null }
+  try { listed = await raw(['ls-files', '--', ...CHANGELOG_CANDIDATES]) } catch { return [] }
   const found = listed.split('\n').map(l => l.trim()).filter(Boolean)
-  // Asked in OUR order, not git's: `git ls-files` sorts alphabetically, which
-  // would prefer `CHANGES.md` to `CHANGELOG.md` in a repository with both.
-  for (const candidate of CHANGELOG_CANDIDATES) if (found.includes(candidate)) return candidate
-  return found[0] ?? null
+  const ranked = CHANGELOG_CANDIDATES.filter(c => found.includes(c))
+  return [...ranked, ...found.filter(f => !ranked.includes(f))]
+}
+
+/** The one it would use when there is no doubt. Null when there is none. */
+export async function findChangelog(raw: Raw): Promise<string | null> {
+  return (await findChangelogs(raw))[0] ?? null
+}
+
+/**
+ * Is this branch already in the thing it would land on?
+ *
+ * The case this exists for: a changelog written for a branch, the branch
+ * merged, and the drawer reopened a fortnight later from the AI stack — where
+ * it still sits, because it was kept. Inserting it then adds a release's
+ * worth of bullets that are already in the file, into whatever branch happens
+ * to be checked out.
+ *
+ * ⚠️ NOT `merge-base --is-ancestor`, for the reason git-service.ts already
+ * writes down in getRewordPlan: it answers through its exit code and prints
+ * nothing, and simple-git only treats a non-zero exit as an error when stderr
+ * is non-empty — so "no" resolves exactly like "yes". This asked it that way
+ * first, and every branch came back merged. `rev-list --count` answers with a
+ * NUMBER: nothing on the branch that the base lacks means the base has it all.
+ */
+export async function isMergedInto(raw: Raw, branch: string, base: string): Promise<boolean> {
+  try {
+    const out = (await raw(['rev-list', '--count', `${base}..${branch}`])).trim()
+    return /^\d+$/.test(out) && Number(out) === 0
+  } catch {
+    return false   // unrelated histories, a ref that is gone: we do not know
+  }
 }
 
 /** One `### Heading` and the lines under it, as the entry was written. */
