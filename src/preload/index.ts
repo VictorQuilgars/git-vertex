@@ -160,7 +160,10 @@ const gitAPI = {
   aiExplainBranch: (branch: string, guidance?: string) => ipcRenderer.invoke('ai:explain-branch', branch, guidance),
   aiExplainStash: (index: number, guidance?: string) => ipcRenderer.invoke('ai:explain-stash', index, guidance),
   aiExplainWorking: (guidance?: string) => ipcRenderer.invoke('ai:explain-working', guidance),
-  aiGenerateChangelog: (branch: string, base?: string) => ipcRenderer.invoke('ai:generate-changelog', branch, base),
+  aiChangelogState: (branch: string) => ipcRenderer.invoke('ai:changelog-state', branch),
+  aiGenerateChangelog: (branch: string, base?: string, previous?: string) =>
+    ipcRenderer.invoke('ai:generate-changelog', branch, base, previous),
+  insertChangelog: (entry: string) => ipcRenderer.invoke('changelog:insert', entry),
   aiProposeCommitSplit: () => ipcRenderer.invoke('ai:propose-commit-split'),
   aiResolveConflict: (filepath: string, instruction?: string) => ipcRenderer.invoke('ai:resolve-conflict', filepath, instruction),
   aiSearchCommits: (query: string) => ipcRenderer.invoke('ai:search-commits', query),

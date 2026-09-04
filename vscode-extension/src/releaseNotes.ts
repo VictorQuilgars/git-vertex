@@ -30,6 +30,14 @@ export const RELEASE_NOTES: Record<string, string> = {
 - The uncommitted work cut into atomic commits, reviewed first: edit a message, move a file, reorder, drop, add. Whole files, staged or not.
 - Every path is checked against the tree — an invented one is dropped, a file placed nowhere is shown, and a failure halfway says how far it got.
 
+### 📝 The changelog remembers
+- Reopening the drawer shows what was written, and when — no second call for a text you already paid for.
+- Moved on since? It says *3 commits since — this changelog does not cover them*, and **Update** extends what is there instead of rewriting the bullets you already read.
+- **Insert into changelog** puts it in the repository's own file, under Unreleased, merged into the headings already there — never a second \`### Added\`, never the same bullet twice, never a line removed.
+
+### 🔮 An AI row looks like one
+- Every entry that reaches a model wears the mark and the ink; the branch menu's **AI** submenu is outlined in dashes. The "(AI)" suffixes are gone, because they no longer say anything the row does not.
+
 ### ⚙️ Settings
 - Changelog generation and splitting into commits get their own model and their own instructions.
 `,

@@ -161,3 +161,20 @@
 }
 .aia-again:hover:not(:disabled) { background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
 .aia-again:disabled { opacity: var(--alpha-half); cursor: default; }
+
+/* What a remembered answer does not cover yet. In the AI ink because it is
+   about the model's text, and above it because it changes how to read it. */
+.aia-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed var(--ai-border);
+  border-radius: var(--radius-md);
+  color: var(--ai-text);
+  font-size: var(--text-xs);
+}
+
+/* The re-ask sits with Copy rather than under the text: it is one of the
+   things you can do with the answer, not a second question. */
+.aia-again--inline { margin-left: auto; }

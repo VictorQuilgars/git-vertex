@@ -17,6 +17,14 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Whole files, staged or not — and the drawer says so.
 - Every path the model names is checked against the tree: an invented one is dropped and counted, a file placed nowhere is shown rather than left behind, and a failure halfway says how many commits were made and that the rest is still on disk.
 
+### 📝 The changelog remembers
+- Reopening the drawer shows what was written, and when — no second call for a text you already paid for.
+- Moved on since? It says *3 commits since — this changelog does not cover them*, and **Update** extends what is there instead of rewriting the bullets you already read.
+- **Insert into changelog** puts it in the repository's own file, under Unreleased, merged into the headings already there — never a second \`### Added\`, never the same bullet twice, never a line removed.
+
+### 🔮 An AI row looks like one
+- Every entry that reaches a model wears the mark and the ink; the branch menu's **AI** submenu is outlined in dashes. The "(AI)" suffixes are gone, because they no longer say anything the row does not.
+
 ### ⚙️ Settings › AI Assistant
 - Changelog generation and splitting into commits join the list, each with its own model and its own standing instructions.
 `,

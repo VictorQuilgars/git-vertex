@@ -236,9 +236,11 @@ export function buildBranchMenu(
   // family of variants here — and in their own, because what a model writes
   // is not what git does, and the menu should not blur the two.
   const readings: MenuItemDef[] = []
-  if (actions.onExplain) readings.push({ label: t('sb.branch.explain'), action: actions.onExplain })
-  if (actions.onChangelog) readings.push({ label: t('sb.branch.changelog'), action: actions.onChangelog })
-  if (readings.length) inspect.push({ label: t('sb.branch.aiMenu'), submenu: readings })
+  if (actions.onExplain) readings.push({ label: t('sb.branch.explain'), action: actions.onExplain, tone: 'ai' })
+  if (actions.onChangelog) readings.push({ label: t('sb.branch.changelog'), action: actions.onChangelog, tone: 'ai' })
+  // The mark and the ink, not the word: "AI" alone was one more verb in a
+  // list of twenty, and nobody found it.
+  if (readings.length) inspect.push({ label: t('sb.branch.aiMenu'), submenu: readings, icon: 'ai', tone: 'ai' })
   if (actions.onAssociateIssue) {
     inspect.push({
       label: state.issue

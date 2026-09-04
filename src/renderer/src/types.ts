@@ -331,7 +331,18 @@ declare global {
     aiExplainBranch: (branch: string, guidance?: string) => Promise<{ explanation?: string; base?: string; error?: string }>
     aiExplainStash: (index: number, guidance?: string) => Promise<{ explanation?: string; error?: string }>
     aiExplainWorking: (guidance?: string) => Promise<{ explanation?: string; error?: string }>
-    aiGenerateChangelog: (branch: string, base?: string) => Promise<{ changelog?: string; base?: string; commits?: number; error?: string }>
+    // The changelog remembers: what it wrote, and what it wrote it from, so
+    // reopening the drawer costs nothing and a branch that has moved says so.
+    aiChangelogState: (branch: string) => Promise<{
+      base?: string
+      cached?: { text: string; base: string; headSha: string; baseSha: string; commits: number; at: number }
+      newCommits?: number
+      baseMoved?: boolean
+      error?: string
+    }>
+    aiGenerateChangelog: (branch: string, base?: string, previous?: string) => Promise<{ changelog?: string; base?: string; commits?: number; error?: string }>
+    /** Merges an entry into the repository's own changelog. Only ever adds. */
+    insertChangelog: (entry: string) => Promise<{ path?: string; added?: number; created?: boolean; sectionCreated?: boolean; error?: string }>
     aiProposeCommitSplit: () => Promise<{ groups?: { message: string; files: string[] }[]; unassigned?: string[]; invented?: string[]; error?: string }>
     aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
     aiSearchCommits: (query: string) => Promise<Unnarrowed>

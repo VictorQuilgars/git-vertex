@@ -33,8 +33,9 @@ import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenera
 // a branch is read against, what is asked, and what a refusal says.
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  type Run,
+  changelogState, type Run, type ChangelogRecord, type ChangelogStore,
 } from '../../../src/main/ai-features'
+import { findChangelog, mergeIntoUnreleased } from '../../../src/main/changelog-file'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
@@ -829,6 +830,7 @@ export class GitVertexHost implements vscode.Disposable {
       case 'aiExplainBranch':
       case 'aiExplainStash':
       case 'aiExplainWorking':
+      case 'aiChangelogState':
       case 'aiGenerateChangelog':
       case 'aiProposeCommitSplit': {
         if (!svc) return { error: 'No repository open' }
@@ -838,13 +840,48 @@ export class GitVertexHost implements vscode.Disposable {
           if (!cfg) return { error: 'NO_API_KEY' }
           return runAIPrompt(cfg, prompt, maxTokens)
         }
+        // The desktop keeps these in userData/ai-changelogs.json; the panel
+        // in globalState, like its explanations. Same record, same rules —
+        // the shared module decides when one has gone stale.
+        const state = this._state
+        const repo = this._repoPath ?? ''
+        const store: ChangelogStore = {
+          async get(branch) {
+            const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+            return all[repo]?.[branch] ?? null
+          },
+          async set(branch, record) {
+            const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+            const forRepo = all[repo] ?? {}
+            forRepo[branch] = record
+            const keys = Object.keys(forRepo)
+            if (keys.length > 100) delete forRepo[keys[0]]
+            all[repo] = forRepo
+            await state.update('gvAiChangelogs', all)
+          },
+        }
         switch (method) {
           case 'aiExplainBranch': return explainBranch(raw, run, args[0], args[1])
           case 'aiExplainStash': return explainStash(raw, run, args[0], args[1])
           case 'aiExplainWorking': return explainWorking(raw, run, args[0])
-          case 'aiGenerateChangelog': return generateChangelog(raw, run, args[0], args[1])
+          case 'aiChangelogState': return changelogState(raw, store, args[0])
+          case 'aiGenerateChangelog':
+            return generateChangelog(raw, run, args[0], args[1], { previous: args[2], store })
           default: return proposeCommitSplit(raw, run)
         }
+      }
+      // Writes into the working tree, so the diff is in the panel's own
+      // staging view a second later — nothing is committed here.
+      case 'insertChangelog': {
+        if (!svc || !this._repoPath) return { error: 'No repository open' }
+        const rel = await findChangelog((a: string[]) => svc.raw(a)) ?? 'CHANGELOG.md'
+        const abs = path.join(this._repoPath, rel)
+        let existing: string | null = null
+        try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }
+        const merged = mergeIntoUnreleased(existing, args[0])
+        if (!merged.added && !merged.created) return { path: rel, added: 0, created: false }
+        try { fs.writeFileSync(abs, merged.content) } catch (e: any) { return { error: e.message } }
+        return { path: rel, added: merged.added, created: merged.created, sectionCreated: merged.sectionCreated }
       }
       case 'aiResolveConflict': {
         const cfg = readAIConfig(this._state, 'conflict')

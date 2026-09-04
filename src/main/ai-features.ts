@@ -13,7 +13,7 @@
 // suite drives the real thing with a fake git and a fake model.
 
 import type { AIFeature } from './ai-resolve'
-import { branchMaterial, changelogMaterial, stashMaterial, workingMaterial, type Raw } from './ai-material'
+import { branchMaterial, changelogMaterial, resolveBase, stashMaterial, workingMaterial, type Raw } from './ai-material'
 import {
   explainBranchPrompt, explainStashPrompt, explainWorkingPrompt, changelogPrompt,
   splitPrompt, parseSplit, type SplitProposal,
@@ -33,10 +33,14 @@ const CHANGELOG_TOKENS = 2048
 const SPLIT_TOKENS = 2048
 
 /**
- * None of these caches. A commit's diff is immutable, which is what makes
- * `ai-explanations.json` safe; a branch, a stash and a working tree all move
- * under their answer, and a stored explanation of a moving target is wrong
- * without ever looking wrong.
+ * The three explanations do not cache. A commit's diff is immutable, which is
+ * what makes `ai-explanations.json` safe; a branch, a stash and a working
+ * tree all move under their answer, and a stored explanation of a moving
+ * target is wrong without ever looking wrong.
+ *
+ * The changelog below is the exception, and it earns it by storing what it
+ * was written FROM — see ChangelogRecord: it can say it is out of date
+ * instead of pretending it is not.
  */
 export async function explainBranch(raw: Raw, run: Run, branch: string, guidance?: string):
 Promise<{ explanation?: string; base?: string; error?: string }> {
@@ -63,13 +67,96 @@ Promise<{ explanation?: string; error?: string }> {
   return r.error ? { error: r.error } : { explanation: r.text }
 }
 
-export async function generateChangelog(raw: Raw, run: Run, branch: string, base?: string):
-Promise<{ changelog?: string; base?: string; commits?: number; error?: string }> {
+/**
+ * A changelog that was generated, and what it was generated from.
+ *
+ * Kept because a changelog is the one answer here people come back to: it is
+ * written to be pasted, and closing the drawer used to mean paying for it
+ * again. The two shas are what make the memory honest rather than merely
+ * cheap — they say whether the text still describes the branch.
+ */
+export interface ChangelogRecord {
+  text: string
+  base: string
+  /** The tip the text describes, and the base it was read against. */
+  headSha: string
+  baseSha: string
+  commits: number
+  /** When it was written, epoch ms — the drawer says how long ago. */
+  at: number
+}
+
+/** Where a host keeps them. Already scoped to one repository by the caller. */
+export interface ChangelogStore {
+  get(branch: string): Promise<ChangelogRecord | null>
+  set(branch: string, record: ChangelogRecord): Promise<void>
+}
+
+export interface ChangelogState {
+  base?: string
+  cached?: ChangelogRecord
+  /** Commits the branch has gained since the cached text was written. */
+  newCommits?: number
+  /** The base moved under it — the range itself is different now. */
+  baseMoved?: boolean
+  error?: string
+}
+
+/**
+ * What the drawer knows before it asks anything. No model call, no cost: it
+ * is the difference between reopening a changelog and regenerating one.
+ */
+export async function changelogState(raw: Raw, store: ChangelogStore, branch: string):
+Promise<ChangelogState> {
+  const base = await resolveBase(raw, branch)
+  if (!base) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
+  const cached = await store.get(branch)
+  if (!cached) return { base }
+  const headSha = await sha(raw, branch)
+  const baseSha = await sha(raw, base)
+  // Counted rather than inferred from the sha: "3 commits since" is what the
+  // reader needs to decide, and a moved sha alone could be an amend.
+  const since = cached.headSha && headSha !== cached.headSha
+    ? (await countCommits(raw, cached.headSha, branch))
+    : 0
+  return { base, cached, newCommits: since, baseMoved: !!baseSha && baseSha !== cached.baseSha }
+}
+
+const sha = async (raw: Raw, ref: string): Promise<string> => {
+  try { return (await raw(['rev-parse', ref])).trim() } catch { return '' }
+}
+
+const countCommits = async (raw: Raw, from: string, to: string): Promise<number> => {
+  try {
+    const out = (await raw(['rev-list', '--count', `${from}..${to}`])).trim()
+    return Number(out) || 0
+  } catch { return 0 }
+}
+
+/**
+ * Write the changelog, and remember it.
+ *
+ * `previous` extends rather than rewrites: a branch that gained three commits
+ * should gain three bullets, not a differently-worded document its reviewer
+ * has to read again from the top.
+ */
+export async function generateChangelog(
+  raw: Raw, run: Run, branch: string, base?: string,
+  opts: { previous?: string; store?: ChangelogStore } = {},
+): Promise<{ changelog?: string; base?: string; commits?: number; error?: string }> {
   const m = await changelogMaterial(raw, branch, base)
   if (!m) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
   if (!m.entries.length) return { error: `${branch} carries no commit over ${m.base}` }
-  const r = await run(changelogPrompt(branch, m.base, m.entries, m.diffstat), CHANGELOG_TOKENS, 'changelog')
-  return r.error ? { error: r.error } : { changelog: r.text, base: m.base, commits: m.entries.length }
+  const r = await run(
+    changelogPrompt(branch, m.base, m.entries, m.diffstat, opts.previous), CHANGELOG_TOKENS, 'changelog')
+  if (r.error) return { error: r.error }
+  if (opts.store) {
+    await opts.store.set(branch, {
+      text: r.text ?? '', base: m.base, commits: m.entries.length, at: Date.now(),
+      headSha: await sha(raw, branch), baseSha: await sha(raw, m.base),
+    })
+  }
+  return { changelog: r.text, base: m.base, commits: m.entries.length }
 }
 
 /**

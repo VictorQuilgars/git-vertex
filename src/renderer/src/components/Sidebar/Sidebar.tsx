@@ -1026,7 +1026,7 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExpla
     { label: t('sb.stash.applyKeep'), action: onApply },
     { label: t('sb.stash.applyPop'), action: onPop },
     ...(onRename ? [{ label: t('sb.stash.rename'), action: onRename }] : []),
-    ...(onExplain ? [{ separator: true } as MenuItemDef, { label: t('sb.stash.explain'), action: onExplain }] : []),
+    ...(onExplain ? [{ separator: true } as MenuItemDef, { label: t('sb.stash.explain'), action: onExplain, icon: 'ai', tone: 'ai' } as MenuItemDef] : []),
     { separator: true },
     { label: t('sb.delete'), action: onDrop, danger: true },
   ]

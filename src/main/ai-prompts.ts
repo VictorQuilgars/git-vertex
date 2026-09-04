@@ -88,10 +88,20 @@ ${truncateDiff(diffstat, 2000)}${section('Staged changes', staged)}${section('Un
  * headings will fill five headings.
  */
 export function changelogPrompt(
-  branch: string, base: string, entries: string[], diffstat: string,
+  branch: string, base: string, entries: string[], diffstat: string, previous?: string,
 ): string {
   const log = entries.length ? entries.join('\n\n') : '(no commit)'
-  return `You are a release engineer. Write the changelog entry for what \`${branch}\` adds over \`${base}\`, in English, as Markdown.
+  // Extending rather than rewriting: the branch grew, and a changelog whose
+  // existing lines are reworded on every new commit is one nobody can review
+  // twice. The earlier text is the starting point, not a suggestion.
+  const carry = previous?.trim() ? `
+
+You have already written the changelog below for the EARLIER commits of this branch. Extend it to cover the whole list: keep its existing bullets word for word, edit one only where a later commit made it wrong, and add bullets for what is new — under the headings they belong to, creating a heading only if it has something under it.
+
+The changelog so far:
+${truncateDiff(previous.trim(), 4000)}` : ''
+
+  return `You are a release engineer. Write the changelog entry for what \`${branch}\` adds over \`${base}\`, in English, as Markdown.${carry}
 
 Rules:
 - Group under \`### Added\`, \`### Changed\`, \`### Fixed\`, \`### Removed\` — ONLY the headings that have something under them. Never emit an empty section.

@@ -27,7 +27,7 @@ describe('AIAnswer', () => {
     // Once — the drawer exists because the action was chosen; a Generate
     // button inside it would be furniture.
     expect(run).toHaveBeenCalledTimes(1)
-    expect(run).toHaveBeenCalledWith(undefined)
+    expect(run).toHaveBeenCalledWith(undefined, undefined)
     expect(screen.getByText('feat/x')).toBeInTheDocument()
     expect(screen.getByText('against origin/main')).toBeInTheDocument()
   })
@@ -41,7 +41,7 @@ describe('AIAnswer', () => {
     await userEvent.type(screen.getByPlaceholderText(/only the migration/i), 'the migration')
     await userEvent.click(screen.getByRole('button', { name: 'Ask again' }))
     await waitFor(() => expect(screen.getByText('Only the migration.')).toBeInTheDocument())
-    expect(run).toHaveBeenLastCalledWith('the migration')
+    expect(run).toHaveBeenLastCalledWith('the migration', undefined)
     // It REPLACES: a second reading of the same thing is not a second opinion
     // to be compared against the first.
     expect(screen.queryByText('The whole branch.')).not.toBeInTheDocument()
@@ -67,5 +67,58 @@ describe('AIAnswer', () => {
   test('an empty answer is not shown as an answer', async () => {
     open(jest.fn().mockResolvedValue({ text: '   ' }))
     await waitFor(() => expect(screen.getByText('The model answered nothing.')).toBeInTheDocument())
+  })
+
+  test('an answer already written is shown whole, and nothing is asked', async () => {
+    const run = jest.fn()
+    const recall = jest.fn().mockResolvedValue({ text: '### Added\n- A thing.', meta: '3 commits over origin/main · written 2h' })
+    open(run, { recall, mono: true })
+    await screen.findByText(/### Added/)
+    expect(run).not.toHaveBeenCalled()
+    expect(screen.getByText('3 commits over origin/main · written 2h')).toBeInTheDocument()
+    // and it can be asked for again, deliberately
+    expect(screen.getByRole('button', { name: 'Regenerate' })).toBeInTheDocument()
+  })
+
+  test('a remembered answer that has fallen behind offers an update, and builds on itself', async () => {
+    const run = jest.fn().mockResolvedValue({ text: 'the extended changelog' })
+    const recall = jest.fn().mockResolvedValue({
+      text: 'the old changelog', notice: '3 commits since — this changelog does not cover them.', stale: true,
+    })
+    open(run, { recall })
+    await screen.findByText('the old changelog')
+    expect(screen.getByText(/3 commits since/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Update' }))
+    await waitFor(() => expect(screen.getByText('the extended changelog')).toBeInTheDocument())
+    // The earlier text goes WITH the request: an update keeps its bullets,
+    // it does not reword a document its reviewer has already read.
+    expect(run).toHaveBeenCalledWith(undefined, 'the old changelog')
+  })
+
+  test('regenerating a fresh remembered answer starts over rather than extending', async () => {
+    const run = jest.fn().mockResolvedValue({ text: 'a new take' })
+    open(run, { recall: jest.fn().mockResolvedValue({ text: 'the stored one' }) })
+    await screen.findByText('the stored one')
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }))
+    await waitFor(() => expect(screen.getByText('a new take')).toBeInTheDocument())
+    expect(run).toHaveBeenCalledWith(undefined, undefined)
+    // Once written, it is the latest — nothing left to re-ask for.
+    expect(screen.queryByRole('button', { name: /Regenerate|Update/ })).not.toBeInTheDocument()
+  })
+
+  test('nothing remembered falls through to generating', async () => {
+    const run = jest.fn().mockResolvedValue({ text: 'fresh' })
+    open(run, { recall: jest.fn().mockResolvedValue(null) })
+    await screen.findByText('fresh')
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  test('an extra action is handed the whole answer', async () => {
+    const insert = jest.fn()
+    open(jest.fn().mockResolvedValue({ text: 'the changelog' }),
+      { actions: [{ label: 'Insert into changelog', run: insert }] })
+    await screen.findByText('the changelog')
+    await userEvent.click(screen.getByRole('button', { name: 'Insert into changelog' }))
+    expect(insert).toHaveBeenCalledWith('the changelog')
   })
 })

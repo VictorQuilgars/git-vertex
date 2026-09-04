@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Icon, type IconName } from '../Icon/Icon'
 import './ContextMenu.css'
 
 export interface MenuAction {
@@ -12,6 +13,20 @@ export interface MenuAction {
   checked?: boolean
   // Nested items shown to the side when the row is hovered ~0.2s.
   submenu?: MenuItemDef[]
+  /**
+   * A mark before the label, for a row whose kind matters more than its
+   * position. Today that is the AI rows, and it is why they are legible:
+   * "AI" as a bare word in a list of twenty verbs is not a section, it is
+   * another verb.
+   */
+  icon?: IconName
+  /**
+   * What the row IS, rather than what it looks like. `ai` puts it in the ink
+   * this app reserves for what a model proposes and draws the submenu it
+   * opens in the dashed outline that goes with it — the ghost chip's rule,
+   * applied to a menu.
+   */
+  tone?: 'ai'
 }
 
 export interface MenuSeparator {
@@ -88,7 +103,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
   const row = (item: MenuAction, i: number, close: () => void, inSub = false) => (
     <button
       key={i}
-      className={`ctx-item${item.danger ? ' ctx-danger' : ''}${item.disabled ? ' ctx-disabled' : ''}`}
+      className={`ctx-item${item.danger ? ' ctx-danger' : ''}${item.disabled ? ' ctx-disabled' : ''}${item.tone ? ` ctx-item--${item.tone}` : ''}`}
       disabled={item.disabled}
       // Inside the submenu, hovering only keeps it alive. In the parent menu, a
       // row without a submenu closes the open one on the same grace period as
@@ -101,6 +116,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
       onClick={() => { if (item.disabled || item.submenu?.length) return; item.action?.(); close() }}
     >
       {item.checked !== undefined && <span className="ctx-check">{item.checked ? '✓' : ''}</span>}
+      {item.icon && <Icon name={item.icon} size={12} className="ctx-icon" />}
       <span className="ctx-label">{item.label}</span>
       {!!item.submenu?.length && <span className="ctx-chevron">›</span>}
     </button>
@@ -117,7 +133,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
       {subItems && sub && (
         <div
           ref={subRef}
-          className="ctx-menu"
+          className={`ctx-menu${openItem && !('separator' in openItem) && openItem.tone ? ` ctx-menu--${openItem.tone}` : ''}`}
           style={{ position: 'fixed', left: sub.x, top: sub.y, zIndex: 10000 }}
           onMouseEnter={() => clearTimeout(timer.current)}
           onMouseLeave={closeSubSoon}

@@ -40,6 +40,7 @@ import InitModal from './components/InitModal/InitModal'
 import PRComposer from './components/PRComposer/PRComposer'
 import IssueComposer from './components/IssueComposer/IssueComposer'
 import AIAnswer from './components/AIAnswer/AIAnswer'
+import { timeAgo } from './components/GitHubPanel/GithubRow'
 import CommitComposer from './components/CommitComposer/CommitComposer'
 import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from './components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
@@ -2904,6 +2905,9 @@ export default function App() {
         />
       )}
 
+      {/* The changelog is the one answer people come back to — it is written
+          to be pasted — so it is remembered, and it says when it has fallen
+          behind the branch instead of quietly showing yesterday's text. */}
       {aiRead?.kind === 'changelog' && (
         <AIAnswer
           anchor={sidebarPanelRef}
@@ -2912,8 +2916,25 @@ export default function App() {
           icon="branch"
           mono
           onClose={() => setAiRead(null)}
-          run={async () => {
-            const r = await ((window.gitAPI as any).aiGenerateChangelog?.(aiRead.ref)
+          recall={async () => {
+            const r = await ((window.gitAPI as any).aiChangelogState?.(aiRead.ref)
+              ?? Promise.resolve(null))
+            const c = r?.cached
+            if (!c?.text?.trim()) return null
+            const behind = (r.newCommits ?? 0) > 0
+            return {
+              text: c.text,
+              meta: [
+                t('ai.changelog.meta', c.commits ?? 0, c.base),
+                t('ai.changelog.written', timeAgo(new Date(c.at).toISOString(), t)),
+              ].join(' · '),
+              notice: behind ? t('ai.changelog.behind', r.newCommits)
+                : r.baseMoved ? t('ai.changelog.baseMoved') : undefined,
+              stale: behind,
+            }
+          }}
+          run={async (_guidance, previous) => {
+            const r = await ((window.gitAPI as any).aiGenerateChangelog?.(aiRead.ref, undefined, previous)
               ?? Promise.resolve({ error: 'not-implemented' }))
             return {
               text: r?.changelog,
@@ -2921,6 +2942,20 @@ export default function App() {
               error: r?.error,
             }
           }}
+          actions={[{
+            label: t('ai.changelog.insert'),
+            title: t('ai.changelog.insertTitle'),
+            run: async (text) => {
+              const r = await ((window.gitAPI as any).insertChangelog?.(text)
+                ?? Promise.resolve({ error: 'not-implemented' }))
+              if (r?.error) { showToast(r.error, 'err'); return }
+              if (r?.created) showToast(t('ai.changelog.created', r.path), 'ok')
+              else if (!r?.added) showToast(t('ai.changelog.insertedNothing', r.path), 'ok')
+              else showToast(t('ai.changelog.inserted', r.added, r.path), 'ok')
+              // The file is a working-tree change now; the panel has to see it.
+              loadRepoData()
+            },
+          }]}
         />
       )}
 

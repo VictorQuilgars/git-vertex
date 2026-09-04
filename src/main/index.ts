@@ -23,9 +23,11 @@ import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
 import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import {
-  explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit, type Run,
+  explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
+  changelogState, type Run, type ChangelogRecord, type ChangelogStore,
 } from './ai-features'
 import type { Raw } from './ai-material'
+import { findChangelog, mergeIntoUnreleased } from './changelog-file'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
@@ -1995,8 +1997,67 @@ ipcMain.handle('ai:explain-stash', async (_e, index: number, guidance?: string) 
 ipcMain.handle('ai:explain-working', async (_e, guidance?: string) =>
   gitService ? explainWorking(rawGit(), runFeature, guidance) : { error: 'No repository open' })
 
-ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string) =>
-  gitService ? generateChangelog(rawGit(), runFeature, branch, base) : { error: 'No repository open' })
+/**
+ * The changelogs this app has written, per repository and branch
+ * (`userData/ai-changelogs.json`, the shape ai-explanations.json uses).
+ *
+ * A changelog is written to be pasted, so people come back to it — and
+ * closing the drawer used to mean paying for it again. Unlike a commit's
+ * explanation this one CAN go stale, which is why the record carries the two
+ * shas it was written from: the drawer offers an update instead of quietly
+ * showing yesterday's text.
+ */
+const changelogCachePath = () => join(app.getPath('userData'), 'ai-changelogs.json')
+function readChangelogCache(): Record<string, Record<string, ChangelogRecord>> {
+  try { return JSON.parse(fs.readFileSync(changelogCachePath(), 'utf-8')) } catch { return {} }
+}
+const changelogStore = (repoPath: string): ChangelogStore => ({
+  async get(branch) { return readChangelogCache()[repoPath]?.[branch] ?? null },
+  async set(branch, record) {
+    const cache = readChangelogCache()
+    const repo = cache[repoPath] ?? {}
+    repo[branch] = record
+    // One per branch, and branches are deleted — the same naive cap the
+    // explanations use, for the same reason.
+    const keys = Object.keys(repo)
+    if (keys.length > 100) delete repo[keys[0]]
+    cache[repoPath] = repo
+    try { fs.writeFileSync(changelogCachePath(), JSON.stringify(cache)) } catch { /* best-effort */ }
+  },
+})
+
+ipcMain.handle('ai:changelog-state', async (_e, branch: string) =>
+  gitService
+    ? changelogState(rawGit(), changelogStore(gitService.repoPath), branch)
+    : { error: 'No repository open' })
+
+ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string, previous?: string) =>
+  gitService
+    ? generateChangelog(rawGit(), runFeature, branch, base,
+        { previous, store: changelogStore(gitService.repoPath) })
+    : { error: 'No repository open' })
+
+/**
+ * Put the entry where changelogs live — the last step of the work, and the
+ * one that was still being done by hand. It only ever ADDS lines, and it
+ * writes into the working tree, so the diff is right there in the staging
+ * pane to be read or thrown away.
+ */
+ipcMain.handle('changelog:insert', async (_e, entry: string) => {
+  if (!gitService) return { error: 'No repository open' }
+  const rel = await findChangelog(rawGit()) ?? 'CHANGELOG.md'
+  const abs = join(gitService.repoPath, rel)
+  let existing: string | null = null
+  try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }
+  const merged = mergeIntoUnreleased(existing, entry)
+  if (!merged.added && !merged.created) return { path: rel, added: 0, created: false }
+  try {
+    fs.writeFileSync(abs, merged.content)
+  } catch (e: any) {
+    return { error: e.message }
+  }
+  return { path: rel, added: merged.added, created: merged.created, sectionCreated: merged.sectionCreated }
+})
 
 ipcMain.handle('ai:propose-commit-split', async () =>
   gitService ? proposeCommitSplit(rawGit(), runFeature) : { error: 'No repository open' })

@@ -564,9 +564,12 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
     }
   }, [commit.hash, showToast, t])
 
+  // Marked and inked like every other AI row in the app — this menu hangs off
+  // the AI button, so it was never ambiguous, but a row that reaches a model
+  // reads the same wherever it is.
   const aiMenuItems: MenuItemDef[] = [
-    { label: t('panel.aiRecompose'), action: runAiRecompose },
-    { label: cachedExplanation ? t('panel.aiExplainAgain') : t('panel.aiExplain'), action: () => runAiExplain(!!cachedExplanation) },
+    { label: t('panel.aiRecompose'), action: runAiRecompose, icon: 'ai', tone: 'ai' },
+    { label: cachedExplanation ? t('panel.aiExplainAgain') : t('panel.aiExplain'), action: () => runAiExplain(!!cachedExplanation), icon: 'ai', tone: 'ai' },
   ]
 
   // Parse co-authors from body (name + email)
@@ -1832,8 +1835,8 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
           )}
           {wipAiMenu && (
             <ContextMenu x={wipAiMenu.x} y={wipAiMenu.y} onClose={() => setWipAiMenu(null)} items={[
-              ...(onExplainWorking ? [{ label: t('panel.aiExplainWorking'), action: onExplainWorking }] : []),
-              ...(onSplitCommits ? [{ label: t('panel.aiSplit'), action: onSplitCommits }] : []),
+              ...(onExplainWorking ? [{ label: t('panel.aiExplainWorking'), action: onExplainWorking, icon: 'ai' as const, tone: 'ai' as const }] : []),
+              ...(onSplitCommits ? [{ label: t('panel.aiSplit'), action: onSplitCommits, icon: 'ai' as const, tone: 'ai' as const }] : []),
             ]} />
           )}
           {stackedCompact && (
