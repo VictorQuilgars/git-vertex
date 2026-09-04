@@ -177,13 +177,23 @@ Some prose about how this file works.
 describe('findChangelog', () => {
   const raw = (out: string): Raw => async () => out
 
-  test('asks in our order, not the alphabetical one git answers in', () => {
-    // `git ls-files` sorts, so a repository with both would hand back
-    // CHANGES.md first — and CHANGELOG.md is the changelog.
-    return expect(findChangelog(raw('CHANGES.md\nCHANGELOG.md\n'))).resolves.toBe('CHANGELOG.md')
+  test('the root one comes first, not the alphabetical one git answers with', () => {
+    // `git ls-files` sorts, so a repository with a changelog per package
+    // hands back `cli/CHANGELOG.md` above the root one. Depth is the order a
+    // person reads them in.
+    return expect(findChangelog(raw('cli/CHANGELOG.md\nCHANGELOG.md\nvscode-extension/CHANGELOG.md\n')))
+      .resolves.toBe('CHANGELOG.md')
   })
 
-  test('a nested one counts', async () => {
+  test('a changelog per product is found — every one of them', async () => {
+    // The bug this replaced: exact pathspecs meant `git ls-files -- CHANGELOG.md`
+    // never matched `vscode-extension/CHANGELOG.md`, so a repository shipping
+    // four products found one changelog and wrote into it without asking.
+    expect(await findChangelogs(raw('CHANGELOG.md\ncli/CHANGELOG.md\nmcp/CHANGELOG.md\nvscode-extension/CHANGELOG.md\n')))
+      .toEqual(['CHANGELOG.md', 'cli/CHANGELOG.md', 'mcp/CHANGELOG.md', 'vscode-extension/CHANGELOG.md'])
+  })
+
+  test('a nested one counts, and is the answer when it is the only one', async () => {
     expect(await findChangelog(raw('docs/CHANGELOG.md\n'))).toBe('docs/CHANGELOG.md')
   })
 
@@ -192,9 +202,11 @@ describe('findChangelog', () => {
     expect(await findChangelog(async () => { throw new Error('not a repo') })).toBeNull()
   })
 
-  test('the candidates are the conventional names, most specific first', () => {
-    expect(CHANGELOG_CANDIDATES[0]).toBe('CHANGELOG.md')
-    expect(CHANGELOG_CANDIDATES).toContain('HISTORY.md')
+  test('the candidates match at any depth — that is what the star is for', () => {
+    expect(CHANGELOG_CANDIDATES[0]).toBe('*CHANGELOG.md')
+    expect(CHANGELOG_CANDIDATES).toContain('*HISTORY.md')
+    // Every one of them, or a nested changelog under that name is invisible.
+    expect(CHANGELOG_CANDIDATES.every(c => c.startsWith('*'))).toBe(true)
   })
 })
 

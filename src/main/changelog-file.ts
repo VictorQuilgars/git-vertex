@@ -16,17 +16,28 @@
 import type { Raw } from './ai-material'
 
 /**
- * Where a changelog is kept, in the order a repository is asked. The names
- * are the conventional ones; the search is `git ls-files`, so an untracked
- * file is not a changelog — a repository's changelog is a tracked file, and
- * matching an untracked one would let a stray CHANGELOG.md in a build folder
- * win over the real one.
+ * What a changelog is called, at ANY depth.
+ *
+ * These are glob pathspecs on purpose. The first version listed exact paths —
+ * `CHANGELOG.md`, `docs/CHANGELOG.md` — and in a repository that ships four
+ * products it found exactly one of its four changelogs and wrote into it
+ * without asking, because `git ls-files -- CHANGELOG.md` does not match
+ * `vscode-extension/CHANGELOG.md`. A repository with a changelog per package
+ * is the normal case, not the exotic one.
+ *
+ * Still `git ls-files`, so an untracked file is not a changelog: a stray one
+ * in a build folder must not win over the real ones.
  */
 export const CHANGELOG_CANDIDATES = [
-  'CHANGELOG.md', 'CHANGELOG', 'CHANGELOG.rst', 'CHANGELOG.txt',
-  'docs/CHANGELOG.md', 'doc/CHANGELOG.md',
-  'HISTORY.md', 'NEWS.md', 'CHANGES.md',
+  '*CHANGELOG.md', '*CHANGELOG', '*CHANGELOG.rst', '*CHANGELOG.txt',
+  '*HISTORY.md', '*NEWS.md', '*CHANGES.md',
 ]
+
+/** Root first, then shallowest, then alphabetical — how a person would look. */
+const byDepth = (a: string, b: string): number => {
+  const da = a.split('/').length, db = b.split('/').length
+  return da !== db ? da - db : a.localeCompare(b)
+}
 
 /**
  * Every changelog this repository tracks, in OUR order of preference — not
@@ -41,9 +52,10 @@ export const CHANGELOG_CANDIDATES = [
 export async function findChangelogs(raw: Raw): Promise<string[]> {
   let listed = ''
   try { listed = await raw(['ls-files', '--', ...CHANGELOG_CANDIDATES]) } catch { return [] }
-  const found = listed.split('\n').map(l => l.trim()).filter(Boolean)
-  const ranked = CHANGELOG_CANDIDATES.filter(c => found.includes(c))
-  return [...ranked, ...found.filter(f => !ranked.includes(f))]
+  const found = [...new Set(listed.split('\n').map(l => l.trim()).filter(Boolean))]
+  // `git ls-files` sorts alphabetically, which puts `cli/CHANGELOG.md` above
+  // the root one. Depth is the order a person reads them in.
+  return found.sort(byDepth)
 }
 
 /** The one it would use when there is no doubt. Null when there is none. */

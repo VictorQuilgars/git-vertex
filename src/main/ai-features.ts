@@ -165,14 +165,38 @@ export interface ChangelogRecord {
   /** When it was written, epoch ms — the drawer says how long ago. */
   at: number
   /**
-   * What a previous insert of this changelog put in the file, and where.
+   * What previous inserts of this changelog put in which files.
    *
    * It survives regeneration, which is the point: the model rewords
    * everything, so without this a second insert leaves two differently-worded
    * copies of one release and no verbatim check catches it. With it, the
    * lines we wrote come back out and the new ones take their place.
+   *
+   * A LIST, one entry per file, because a repository that ships several
+   * products has a changelog per product and one change belongs in more than
+   * one of them. Records written before that carried a single object; read
+   * them through `insertedIn()` rather than assuming the shape.
    */
-  inserted?: { path: string; lines: string[]; at: number }
+  inserted?: { path: string; lines: string[]; at: number }[] | { path: string; lines: string[]; at: number }
+}
+
+/** What we put in one file, whichever shape the record was written in. */
+export function insertedIn(record: ChangelogRecord | null | undefined, path: string): string[] {
+  const all = !record?.inserted ? []
+    : Array.isArray(record.inserted) ? record.inserted : [record.inserted]
+  return all.find(i => i.path === path)?.lines ?? []
+}
+
+/** The record with one file's lines replaced — the others left alone. */
+export function withInserted(
+  record: ChangelogRecord, path: string, lines: string[],
+): ChangelogRecord {
+  const all = !record.inserted ? []
+    : Array.isArray(record.inserted) ? record.inserted : [record.inserted]
+  return {
+    ...record,
+    inserted: [...all.filter(i => i.path !== path), { path, lines, at: Date.now() }],
+  }
 }
 
 /** Where a host keeps them. Already scoped to one repository by the caller. */

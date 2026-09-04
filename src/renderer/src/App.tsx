@@ -1968,17 +1968,21 @@ export default function App() {
 
     // Which file, whether it still makes sense, and — the one that costs the
     // most to get wrong — what exactly would land in it.
-    let file: string | undefined
+    let files: string[] = []
     let section: string | undefined
     let force = false
 
     let r = await call({ branch, preview: true })
 
+    // Which file — and in a repository that ships several products, possibly
+    // all of them: one change that touches the app and the extension belongs
+    // in both changelogs, and that is not a case to make people repeat.
     if (r?.needsChoice) {
-      const picked = await showChoice(t('ai.changelog.whichFile'), r.candidates ?? [])
+      const ALL = t('ai.changelog.everyFile', (r.candidates ?? []).length)
+      const picked = await showChoice(t('ai.changelog.whichFile'), [...(r.candidates ?? []), ALL])
       if (!picked) return
-      file = picked
-      r = await call({ branch, file, preview: true })
+      files = picked === ALL ? [...(r.candidates ?? [])] : [picked]
+      r = await call({ branch, file: files[0], preview: true })
     }
     // This file keeps no section for unreleased work under any of the names
     // one goes by — it is not a Keep a Changelog file, and inventing a
@@ -1989,7 +1993,7 @@ export default function App() {
       const picked = await showChoice(t('ai.changelog.whichSection', r.path), [NEW, ...(r.sections ?? [])])
       if (!picked) return
       section = picked === NEW ? '::create-a-new-section::' : picked
-      r = await call({ branch, file, section, preview: true })
+      r = await call({ branch, file: files[0], section, preview: true })
     }
     if (r?.branchGone || r?.alreadyMerged) {
       const ok = await showConfirm(
@@ -1998,7 +2002,7 @@ export default function App() {
           : t('ai.changelog.mergedConfirm', r.branch, r.base), true)
       if (!ok) return
       force = true
-      r = await call({ branch, file: file ?? r.path, section, force, preview: true })
+      r = await call({ branch, file: files[0] ?? r.path, section, force, preview: true })
     }
     if (r?.error) { showToast(r.error, 'err'); return }
 
@@ -2036,10 +2040,33 @@ export default function App() {
         for (const sim of r.similar.slice(0, 3)) lines.push(`  ${sim.line}`, `  ↳ ${sim.existing}`)
       }
       if (r.dirty) lines.push('', t('ai.changelog.previewDirty', r.path))
+      // Every other file gets its own preview under the same question: the
+      // sections differ, and so does what each already says.
+      for (const extra of files.slice(1)) {
+        const p = await call({ branch, file: extra, section, force, preview: true })
+        if (p?.error || !p?.preview) continue
+        lines.push('', t('ai.changelog.previewHead', p.added ?? 0, p.path),
+          ...(p.addedLines ?? []).map((l: string) => `  ${l}`))
+      }
       const ok = await showConfirm(lines.join('\n'), !!(r.similar?.length || r.dirty))
       if (!ok) return
-      r = await call({ branch, file: file ?? r.path, section, force })
-      if (r?.error) { showToast(r.error, 'err'); return }
+      const targets = files.length ? files : [r.path as string]
+      let added = 0
+      let replaced = 0
+      for (const target of targets) {
+        const w = await call({ branch, file: target, section, force })
+        if (w?.error) { showToast(w.error, 'err'); return }
+        added += w?.added ?? 0
+        replaced += typeof w?.removed === 'number' ? w.removed : 0
+        if (w?.created) showToast(t('ai.changelog.created', w.path), 'ok')
+      }
+      if (added || replaced) {
+        showToast(replaced
+          ? t('ai.changelog.insertedReplacing', added, replaced, targets.join(', '))
+          : t('ai.changelog.inserted', added, targets.join(', ')), 'ok')
+      } else showToast(t('ai.changelog.insertedNothing', targets.join(', ')), 'ok')
+      loadRepoData()
+      return
     }
     const replaced = typeof r?.removed === 'number' ? r.removed : 0
     if (r?.created) showToast(t('ai.changelog.created', r.path), 'ok')

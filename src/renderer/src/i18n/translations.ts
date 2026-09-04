@@ -589,6 +589,7 @@ const fr = {
   'ai.changelog.behind': (n: number) => `${n} commit${n > 1 ? 's' : ''} depuis — ce changelog ne les couvre pas.`,
   'ai.changelog.baseMoved': 'La base a bougé depuis : la comparaison n\'est plus la même.',
   'ai.changelog.whichFile': 'Ce dépôt suit plusieurs changelogs. Dans lequel écrire ?',
+  'ai.changelog.everyFile': (n: number) => `Dans les ${n}`,
   'ai.changelog.whichSection': (file: string) =>
     `${file} n'a pas de section pour le travail non publié. Où mettre ces lignes ?`,
   'ai.changelog.newSection': 'Créer une section « Unreleased » en haut',
@@ -2338,6 +2339,7 @@ const en: typeof fr = {
   'ai.changelog.behind': (n: number) => `${n} commit${n > 1 ? 's' : ''} since — this changelog does not cover ${n > 1 ? 'them' : 'it'}.`,
   'ai.changelog.baseMoved': 'The base has moved since: this is no longer the same comparison.',
   'ai.changelog.whichFile': 'This repository tracks several changelogs. Which one?',
+  'ai.changelog.everyFile': (n: number) => `All ${n} of them`,
   'ai.changelog.whichSection': (file: string) =>
     `${file} has no section for unreleased work. Where should these lines go?`,
   'ai.changelog.newSection': 'Create an “Unreleased” section at the top',

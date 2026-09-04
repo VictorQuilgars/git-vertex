@@ -33,7 +33,7 @@ import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenera
 // a branch is read against, what is asked, and what a refusal says.
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, changelogList, noteList,
+  changelogState, changelogList, noteList, insertedIn, withInserted,
   type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from '../../../src/main/ai-features'
 import { findChangelogs, isMergedInto, mergeIntoChangelog } from '../../../src/main/changelog-file'
@@ -990,7 +990,7 @@ export class GitVertexHost implements vscode.Disposable {
         // answer to regenerating, which rewords everything it wrote.
         const clStore = this._changelogStore()
         const record = opts.branch ? await clStore.get(opts.branch) : null
-        const ourLines = record?.inserted?.path === rel ? record.inserted.lines : []
+        const ourLines = insertedIn(record, rel)
         const merged = mergeIntoChangelog(existing, args[0], ourLines, opts.section)
         if (merged.needsSection) {
           return {
@@ -1014,7 +1014,7 @@ export class GitVertexHost implements vscode.Disposable {
         }
         try { fs.writeFileSync(abs, merged.content) } catch (e: any) { return { error: e.message } }
         if (record && opts.branch) {
-          await clStore.set(opts.branch, { ...record, inserted: { path: rel, lines: merged.ours, at: Date.now() } })
+          await clStore.set(opts.branch, withInserted(record, rel, merged.ours))
         }
         return {
           path: rel, added: merged.added, removed: merged.removed.length,

@@ -24,7 +24,7 @@ import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, changelogList, noteList,
+  changelogState, changelogList, noteList, insertedIn, withInserted,
   type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from './ai-features'
 import { resolveBase, type Raw } from './ai-material'
@@ -2164,7 +2164,7 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
   // regenerating, which rewords everything it wrote.
   const store = changelogStore(gitService.repoPath)
   const record = opts?.branch ? await store.get(opts.branch) : null
-  const ours = record?.inserted?.path === rel ? record.inserted.lines : []
+  const ours = insertedIn(record, rel)
   const merged = mergeIntoChangelog(existing, entry, ours, opts?.section)
 
   // This file keeps no section for unreleased work under any name it goes by.
@@ -2205,7 +2205,7 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
   }
   // Remember what is ours in there, so regenerating can take it back out.
   if (record && opts?.branch) {
-    await store.set(opts.branch, { ...record, inserted: { path: rel, lines: merged.ours, at: Date.now() } })
+    await store.set(opts.branch, withInserted(record, rel, merged.ours))
   }
   return {
     path: rel, added: merged.added, removed: merged.removed.length,

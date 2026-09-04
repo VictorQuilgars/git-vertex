@@ -1,7 +1,8 @@
 import { resolveBase, workingMaterial, branchMaterial, type Raw } from '../ai-material'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  noteList, type Run, type NoteRecord, type NoteStore,
+  noteList, insertedIn, withInserted,
+  type Run, type NoteRecord, type NoteStore, type ChangelogRecord,
 } from '../ai-features'
 
 // A fake git and a fake model, so the whole of a feature — which base it
@@ -334,5 +335,43 @@ describe('what the readings leave behind', () => {
     expect(entries.find(e => e.key === 'gone999')).toMatchObject({ orphan: true })
     // the working tree is never "behind": it has nothing to be behind of
     expect(entries.find(e => e.key === 'working')).toMatchObject({ newCommits: 0, orphan: false })
+  })
+})
+
+describe('what we put in which changelog', () => {
+  // A repository that ships four products has four changelogs, and one change
+  // belongs in more than one of them — so the memory is per FILE.
+  const base: ChangelogRecord = {
+    text: 'x', base: 'origin/main', headSha: 'a', baseSha: 'b', commits: 1, at: 0,
+  }
+
+  test('a record remembers each file separately', () => {
+    let r = withInserted(base, 'CHANGELOG.md', ['- a', '- b'])
+    r = withInserted(r, 'vscode-extension/CHANGELOG.md', ['- a'])
+    expect(insertedIn(r, 'CHANGELOG.md')).toEqual(['- a', '- b'])
+    expect(insertedIn(r, 'vscode-extension/CHANGELOG.md')).toEqual(['- a'])
+    expect(insertedIn(r, 'cli/CHANGELOG.md')).toEqual([])
+  })
+
+  test('re-inserting into one file leaves the others alone', () => {
+    let r = withInserted(base, 'CHANGELOG.md', ['- old'])
+    r = withInserted(r, 'cli/CHANGELOG.md', ['- cli'])
+    r = withInserted(r, 'CHANGELOG.md', ['- new'])
+    expect(insertedIn(r, 'CHANGELOG.md')).toEqual(['- new'])
+    expect(insertedIn(r, 'cli/CHANGELOG.md')).toEqual(['- cli'])
+  })
+
+  test('a record written before the list is read, not thrown away', () => {
+    // The shape shipped as a single object first; a changelog inserted then
+    // must still be replaceable rather than doubled.
+    const legacy = { ...base, inserted: { path: 'CHANGELOG.md', lines: ['- old'], at: 1 } }
+    expect(insertedIn(legacy, 'CHANGELOG.md')).toEqual(['- old'])
+    expect(insertedIn(withInserted(legacy, 'cli/CHANGELOG.md', ['- cli']), 'CHANGELOG.md'))
+      .toEqual(['- old'])
+  })
+
+  test('a record that has never been inserted answers with nothing', () => {
+    expect(insertedIn(base, 'CHANGELOG.md')).toEqual([])
+    expect(insertedIn(null, 'CHANGELOG.md')).toEqual([])
   })
 })
