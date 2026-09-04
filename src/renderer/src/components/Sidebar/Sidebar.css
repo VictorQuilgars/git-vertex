@@ -1029,3 +1029,75 @@
   cursor: pointer;
 }
 .sb-gh-fedit-option--on { background: var(--surface-hover); color: var(--text-primary); }
+
+/* ── The two stacks (#70) ─────────────────────────────────────
+   The repository as a list, and what the model has written for it. One row
+   of two, under the repo selector — the AI half in the ink every other AI
+   surface uses, so the tab says what it holds before it is opened. */
+.sb-tabs {
+  display: flex;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-md);
+}
+
+.sb-tab {
+  flex: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.sb-tab:hover { color: var(--text-primary); }
+.sb-tab--on {
+  background: var(--surface-active);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+/* Its mark carries the AI ink whether or not the tab is the active one — it
+   is what the tab is about, not a state. */
+.sb-tab--ai svg { color: var(--ai-text); }
+.sb-tab--ai.sb-tab--on { border-color: var(--ai-border); }
+
+/* ── A row of the AI stack ───────────────────────────────────── */
+.sb-ai-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.sb-ai-item:hover { background: var(--surface-hover); color: var(--text-primary); }
+.sb-ai-item--flat { cursor: default; }
+.sb-ai-item--flat:hover { background: none; }
+
+.sb-ai-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+
+.sb-ai-name {
+  font-size: var(--text-sm);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.sb-ai-meta {
+  font-size: var(--text-tiny);
+  color: var(--text-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sb-ai-meta code { font-family: 'JetBrains Mono', monospace; }
+
+/* How far the text has fallen behind its branch — the drawer's "+N", where
+   the decision to reopen it is actually made. */
+.sb-ai-stale {
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  border: 1px dashed var(--ai-border);
+  border-radius: var(--radius-sm);
+  color: var(--ai-text);
+  font-size: var(--text-tiny);
+}

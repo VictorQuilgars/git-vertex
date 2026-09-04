@@ -62,7 +62,7 @@ import './vertex-vscode.css'
 /** GitHub's own published cadence — `X-Poll-Interval: 60` on its events endpoint. */
 const GITHUB_POLL_MS = 60_000
 
-const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
+const RAIL_VIEWS: SidebarView[] = ['overview', 'agents', 'ai', 'worktrees', 'branches', 'remotes', 'stash', 'tags', 'prs', 'issues']
 
 /** The virtual commit that stands for the working tree. One literal, not three. */
 const WIP_NODE: CommitNode = {

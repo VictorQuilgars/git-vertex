@@ -2468,6 +2468,13 @@ export default function App() {
               onExplainStash={(index, message) => setAiRead({ kind: 'stash', index, label: message })}
               onExplainBranch={(name) => setAiRead({ kind: 'branch', ref: name, label: shortName(name, new Set(remoteNames)) })}
               onBranchChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              onOpenChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              onOpenExplanation={(hash) => {
+                const found = commits.find(c => c.hash === hash)
+                if (found) setSelectedCommit(found)
+                else showToast(t('sb.ai.unknownCommit'), 'err')
+              }}
+              subjectFor={(hash) => commits.find(c => c.hash === hash)?.message}
               tags={tags}
               onOpenRepo={handleOpenRepo}
               onClone={() => setCloneOpen(true)}

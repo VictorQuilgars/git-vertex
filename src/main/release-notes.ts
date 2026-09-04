@@ -22,6 +22,11 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Moved on since? It says *3 commits since — this changelog does not cover them*, and **Update** extends what is there instead of rewriting the bullets you already read.
 - **Insert into changelog** puts it in the repository's own file, under Unreleased, merged into the headings already there — never a second \`### Added\`, never the same bullet twice, never a line removed.
 
+### 🗂 A second stack: what the model has written here
+- A **List / AI** strip above the repository list (the panel's rail gets the same view).
+- Every changelog written for this repository, newest first — what it covers, when, and how far its branch has moved since. A row reopens it; right-click forgets it.
+- The commit explanations kept since v1.10, listed at last: until now you could only find one by landing on the commit that had it.
+
 ### 🔮 An AI row looks like one
 - Every entry that reaches a model wears the mark and the ink; the branch menu's **AI** submenu is outlined in dashes. The "(AI)" suffixes are gone, because they no longer say anything the row does not.
 

@@ -28,6 +28,12 @@ const ITEMS: RailItem[] = [
     view: 'agents', labelKey: 'rail.agents', fallback: 'Agents',
     icon: <Icon name="agent" />,
   },
+  // What the model has written for this repository (#70) — the panel's twin
+  // of the desktop's List/AI strip.
+  {
+    view: 'ai', labelKey: 'rail.ai', fallback: 'AI',
+    icon: <Icon name="ai" />,
+  },
   {
     view: 'worktrees', labelKey: 'rail.worktrees', fallback: 'Worktrees',
     icon: <Icon name="worktree" />,

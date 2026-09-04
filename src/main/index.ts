@@ -24,7 +24,7 @@ import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, type Run, type ChangelogRecord, type ChangelogStore,
+  changelogState, changelogList, type Run, type ChangelogRecord, type ChangelogStore,
 } from './ai-features'
 import type { Raw } from './ai-material'
 import { findChangelog, mergeIntoUnreleased } from './changelog-file'
@@ -2011,8 +2011,18 @@ const changelogCachePath = () => join(app.getPath('userData'), 'ai-changelogs.js
 function readChangelogCache(): Record<string, Record<string, ChangelogRecord>> {
   try { return JSON.parse(fs.readFileSync(changelogCachePath(), 'utf-8')) } catch { return {} }
 }
+const writeChangelogCache = (cache: Record<string, Record<string, ChangelogRecord>>): void => {
+  try { fs.writeFileSync(changelogCachePath(), JSON.stringify(cache)) } catch { /* best-effort */ }
+}
 const changelogStore = (repoPath: string): ChangelogStore => ({
   async get(branch) { return readChangelogCache()[repoPath]?.[branch] ?? null },
+  async all() { return readChangelogCache()[repoPath] ?? {} },
+  async forget(branch) {
+    const cache = readChangelogCache()
+    if (!cache[repoPath]?.[branch]) return
+    delete cache[repoPath][branch]
+    writeChangelogCache(cache)
+  },
   async set(branch, record) {
     const cache = readChangelogCache()
     const repo = cache[repoPath] ?? {}
@@ -2022,8 +2032,19 @@ const changelogStore = (repoPath: string): ChangelogStore => ({
     const keys = Object.keys(repo)
     if (keys.length > 100) delete repo[keys[0]]
     cache[repoPath] = repo
-    try { fs.writeFileSync(changelogCachePath(), JSON.stringify(cache)) } catch { /* best-effort */ }
+    writeChangelogCache(cache)
   },
+})
+
+ipcMain.handle('ai:changelog-list', async () =>
+  gitService
+    ? changelogList(rawGit(), changelogStore(gitService.repoPath))
+    : { entries: [] })
+
+ipcMain.handle('ai:forget-changelog', async (_e, branch: string) => {
+  if (!gitService) return { success: false }
+  await changelogStore(gitService.repoPath).forget(branch)
+  return { success: true }
 })
 
 ipcMain.handle('ai:changelog-state', async (_e, branch: string) =>

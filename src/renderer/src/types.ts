@@ -340,6 +340,9 @@ declare global {
       baseMoved?: boolean
       error?: string
     }>
+    /** Every changelog this repository has had written, newest first. */
+    aiChangelogList: () => Promise<{ entries?: { branch: string; text: string; base: string; commits: number; at: number; newCommits: number }[] }>
+    aiForgetChangelog: (branch: string) => Promise<R>
     aiGenerateChangelog: (branch: string, base?: string, previous?: string) => Promise<{ changelog?: string; base?: string; commits?: number; error?: string }>
     /** Merges an entry into the repository's own changelog. Only ever adds. */
     insertChangelog: (entry: string) => Promise<{ path?: string; added?: number; created?: boolean; sectionCreated?: boolean; error?: string }>

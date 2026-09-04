@@ -90,6 +90,15 @@ export interface ChangelogRecord {
 export interface ChangelogStore {
   get(branch: string): Promise<ChangelogRecord | null>
   set(branch: string, record: ChangelogRecord): Promise<void>
+  /** Every branch that has one — what the panel's AI view lists. */
+  all(): Promise<Record<string, ChangelogRecord>>
+  forget(branch: string): Promise<void>
+}
+
+/** A stored changelog, measured against the branch as it stands now. */
+export interface ChangelogEntry extends ChangelogRecord {
+  branch: string
+  newCommits: number
 }
 
 export interface ChangelogState {
@@ -120,6 +129,31 @@ Promise<ChangelogState> {
     ? (await countCommits(raw, cached.headSha, branch))
     : 0
   return { base, cached, newCommits: since, baseMoved: !!baseSha && baseSha !== cached.baseSha }
+}
+
+/**
+ * Everything this repository has had written for it, newest first.
+ *
+ * The list is the answer to "where else does a generated changelog live" —
+ * before it, the only way back to one was to ask for it again from the menu
+ * of the branch it belonged to, which meant remembering that it existed.
+ * Each row is measured against its branch as it stands now, because a list
+ * of texts that quietly no longer apply is worse than no list.
+ */
+export async function changelogList(raw: Raw, store: ChangelogStore): Promise<{ entries: ChangelogEntry[] }> {
+  const all = await store.all()
+  const entries: ChangelogEntry[] = []
+  for (const [branch, record] of Object.entries(all)) {
+    const head = await sha(raw, branch)
+    // A branch that no longer exists keeps its text — deleting someone's
+    // changelog because they deleted the branch would be a surprise, and the
+    // row can say so instead.
+    const newCommits = head && record.headSha && head !== record.headSha
+      ? await countCommits(raw, record.headSha, branch)
+      : 0
+    entries.push({ ...record, branch, newCommits })
+  }
+  return { entries: entries.sort((a, b) => b.at - a.at) }
 }
 
 const sha = async (raw: Raw, ref: string): Promise<string> => {

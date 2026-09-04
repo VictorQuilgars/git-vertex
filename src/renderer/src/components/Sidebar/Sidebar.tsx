@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Icon, type IconName } from '../Icon/Icon'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
-import GithubRow from '../GitHubPanel/GithubRow'
+import GithubRow, { timeAgo } from '../GitHubPanel/GithubRow'
 import { loadGhFilters, saveGhFilters, validateGhQuery, composeGhQuery, ghFilterSyntax, ghFilterSuggest,
   GH_SEARCH_DOCS_URL, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
@@ -24,9 +24,15 @@ interface TagEntry   { name: string; hash: string }
 // Sidebar renders its classic stacked layout (desktop app).
 export type SidebarView =
   | 'overview' | 'agents' | 'worktrees' | 'branches' | 'remotes' | 'stash' | 'tags'
-  | 'prs' | 'issues'
+  | 'prs' | 'issues' | 'ai'
 
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
+
+/** A changelog this repository has had written — the shape the host returns. */
+interface ChangelogEntry {
+  branch: string; text: string; base: string
+  commits: number; at: number; newCommits: number
+}
 /**
  * A row of the two GitHub sections — the fields the list endpoints already
  * return. Everything beyond the identity is optional: a host that still maps
@@ -84,6 +90,15 @@ interface SidebarProps {
   /** The same, for a branch — and the changelog of what it carries (#70 P1). */
   onExplainBranch?: (name: string) => void
   onBranchChangelog?: (name: string) => void
+  /**
+   * The AI tab's two ways back in: a stored changelog, and a commit whose
+   * explanation is already written. Absent ⇒ the row is not clickable, the
+   * panel's rule — and on the desktop the tab itself does not appear.
+   */
+  onOpenChangelog?: (branch: string) => void
+  onOpenExplanation?: (hash: string) => void
+  /** What a stored explanation is about — the commit's subject, if loaded. */
+  subjectFor?: (hash: string) => string | undefined
   onRefreshStashes: () => void
   onCreateTag: () => void
   onDeleteTag: (name: string) => void
@@ -999,6 +1014,53 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   )
 }
 
+/**
+ * A changelog this repository has had written, as a row.
+ *
+ * It says what it covers and when it was written, and wears a badge when the
+ * branch has moved on since — the same "+N" the drawer opens with, because
+ * the point of the list is deciding what still applies without opening
+ * anything.
+ */
+function ChangelogRow({ entry, onOpen, onForget }: {
+  entry: ChangelogEntry
+  onOpen?: () => void
+  onForget: () => void
+}) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
+  return (
+    <>
+      <div
+        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}`}
+        onClick={onOpen}
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={entry.text.length > 300 ? entry.text.slice(0, 300) + '…' : entry.text}
+      >
+        <Icon name="branch" size={11} />
+        <div className="sb-ai-info">
+          <span className="sb-ai-name">{entry.branch}</span>
+          <span className="sb-ai-meta">
+            {t('ai.changelog.meta', entry.commits, entry.base)} · {timeAgo(new Date(entry.at).toISOString(), t)}
+          </span>
+        </div>
+        {entry.newCommits > 0 && (
+          <span className="sb-ai-stale" title={t('ai.changelog.behind', entry.newCommits)}>
+            +{entry.newCommits}
+          </span>
+        )}
+      </div>
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={[
+          ...(onOpen ? [{ label: t('sb.ai.open'), action: onOpen, icon: 'ai' as const, tone: 'ai' as const }] : []),
+          { separator: true } as MenuItemDef,
+          { label: t('sb.ai.forget'), action: onForget, danger: true },
+        ]} />
+      )}
+    </>
+  )
+}
+
 // ── Stash item ────────────────────────────────────────────────────
 function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, hidden }: {
   stash: StashEntry
@@ -1289,7 +1351,7 @@ export default function Sidebar({
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes,
-  onExplainBranch, onBranchChangelog,
+  onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, subjectFor,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, visibility, onToggleSolo, onToggleHide,
@@ -1305,8 +1367,23 @@ export default function Sidebar({
 }: SidebarProps) {
   // In single-view mode a section is shown when it matches the active view.
   // Without a view (desktop) every section renders (classic stacked layout).
+  // Which of the two stacks the desktop panel shows. Kept, because it is a
+  // way of working rather than a one-off — the graph's column widths and the
+  // section heights are kept for the same reason.
+  const [tab, setTab] = useState<'list' | 'ai'>(
+    () => (localStorage.getItem('sb-tab') === 'ai' ? 'ai' : 'list'))
+  useEffect(() => { localStorage.setItem('sb-tab', tab) }, [tab])
+
   const single = view !== undefined
-  const show = (v: SidebarView) => !single || view === v
+  /**
+   * The desktop panel is stacked — every section at once — but it now has two
+   * of those stacks: the repository as a list, and what the model has written
+   * for it. In single-view mode the rail already chooses, so the strip does
+   * not appear and `view` decides.
+   */
+  const activeTab: 'list' | 'ai' = single ? (view === 'ai' ? 'ai' : 'list') : tab
+  const showAI = activeTab === 'ai'
+  const show = (v: SidebarView) => single ? view === v : !showAI
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
   // Which remote push/pull target by default — resolved by the service, so it
@@ -1331,6 +1408,25 @@ export default function Sidebar({
       .catch((e: unknown) => console.warn('[sidebar] listAgents failed:', e))
   }, [])
 
+  /**
+   * What the model has written for this repository (#70).
+   *
+   * The desktop tab and the panel's rail view both read this: a changelog was
+   * reachable only from the menu of the branch it belonged to, which meant
+   * remembering it existed. Explanations come from the store the commit panel
+   * already fills — they were being kept and never listed.
+   */
+  const [changelogs, setChangelogs] = useState<ChangelogEntry[]>([])
+  const [explanations, setExplanations] = useState<Record<string, string>>({})
+  const loadMemory = useCallback(() => {
+    ;(window.gitAPI as any).aiChangelogList?.()
+      .then((r: { entries?: ChangelogEntry[] }) => setChangelogs(r?.entries ?? []))
+      .catch((e: unknown) => console.warn('[sidebar] aiChangelogList failed:', e))
+    ;(window.gitAPI as any).aiGetExplanations?.()
+      .then((r: { explanations?: Record<string, string> }) => setExplanations(r?.explanations ?? {}))
+      .catch((e: unknown) => console.warn('[sidebar] aiGetExplanations failed:', e))
+  }, [])
+
   const loadWorktrees = useCallback(() => {
     window.gitAPI.listWorktrees().then(r => setWorktrees(r.worktrees ?? []))
     loadAgents()
@@ -1346,10 +1442,13 @@ export default function Sidebar({
       .then(w => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length }))
       .catch(() => {})
     loadWorktrees()
+    loadMemory()
     // Light poll so agent badges stay current while the sidebar is open.
     const interval = setInterval(loadAgents, 10000)
     return () => clearInterval(interval)
-  }, [repoPath, loadWorktrees, loadAgents])
+  }, [repoPath, loadWorktrees, loadAgents, loadMemory])
+
+  useEffect(() => { if (showAI && repoPath) loadMemory() }, [showAI, repoPath, loadMemory])
 
   const agentsFor = useCallback((wtPath: string) =>
     agents.filter(a => a.cwd === wtPath || a.cwd.startsWith(wtPath + '/')),
@@ -1702,6 +1801,26 @@ export default function Sidebar({
       </div>
       )}
 
+      {/* ── The two stacks (#70) ──
+          The repository as a list, and what the model has written for it. A
+          generated changelog was reachable only from the menu of the branch it
+          belonged to, which meant remembering it existed; this is where it
+          lives now. Desktop only — the panel's rail already chooses a view. */}
+      {!single && repoPath && (
+        <div className="sb-tabs" role="tablist">
+          <button role="tab" aria-selected={!showAI}
+            className={`sb-tab${!showAI ? ' sb-tab--on' : ''}`}
+            onClick={() => setTab('list')}>
+            <Icon name="list" size={12} /> {t('sb.tab.list')}
+          </button>
+          <button role="tab" aria-selected={showAI}
+            className={`sb-tab sb-tab--ai${showAI ? ' sb-tab--on' : ''}`}
+            onClick={() => setTab('ai')}>
+            <Icon name="ai" size={12} /> {t('sb.tab.ai')}
+          </button>
+        </div>
+      )}
+
       {/* ── Branch filter ── (branches view only in single mode) */}
       {repoPath && show('branches') && (
         <div className="sb-search">
@@ -1715,6 +1834,52 @@ export default function Sidebar({
       {/* ── Sections ── */}
       {repoPath && (
         <div className="sb-sections">
+
+          {/* ── What the model has written here (#70) ── */}
+          {showAI && (
+            <>
+              <Section id="ai-changelogs" title="CHANGELOGS" icon="ai" count={changelogs.length} defaultOpen>
+                {changelogs.length === 0
+                  ? <div className="sb-empty">{t('sb.ai.noChangelog')}</div>
+                  : changelogs.map(c => (
+                      <ChangelogRow
+                        key={c.branch}
+                        entry={c}
+                        onOpen={onOpenChangelog ? () => onOpenChangelog(c.branch) : undefined}
+                        onForget={async () => {
+                          await (window.gitAPI as any).aiForgetChangelog?.(c.branch)
+                          loadMemory()
+                        }}
+                      />
+                    ))
+                }
+              </Section>
+
+              {/* The commit panel has been filling this store since v1.10 and
+                  nothing ever listed it: an explanation was findable only by
+                  landing on the commit that had one. */}
+              <Section id="ai-explanations" title="EXPLANATIONS" icon="comment"
+                count={Object.keys(explanations).length} defaultOpen>
+                {Object.keys(explanations).length === 0
+                  ? <div className="sb-empty">{t('sb.ai.noExplanation')}</div>
+                  : Object.entries(explanations).reverse().map(([hash, text]) => (
+                      <div
+                        key={hash}
+                        className={`sb-ai-item${onOpenExplanation ? '' : ' sb-ai-item--flat'}`}
+                        title={text.length > 300 ? text.slice(0, 300) + '…' : text}
+                        onClick={onOpenExplanation ? () => onOpenExplanation(hash) : undefined}
+                      >
+                        <Icon name="commit" size={11} />
+                        <div className="sb-ai-info">
+                          <span className="sb-ai-name">{subjectFor?.(hash) ?? t('sb.ai.unknownCommit')}</span>
+                          <span className="sb-ai-meta"><code>{hash.slice(0, 7)}</code></span>
+                        </div>
+                      </div>
+                    ))
+                }
+              </Section>
+            </>
+          )}
 
           {/* OVERVIEW "current work" card (single-view only) */}
           {view === 'overview' && (() => {

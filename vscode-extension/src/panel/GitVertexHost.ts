@@ -33,7 +33,7 @@ import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenera
 // a branch is read against, what is asked, and what a refusal says.
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, type Run, type ChangelogRecord, type ChangelogStore,
+  changelogState, changelogList, type Run, type ChangelogRecord, type ChangelogStore,
 } from '../../../src/main/ai-features'
 import { findChangelog, mergeIntoUnreleased } from '../../../src/main/changelog-file'
 import { ThemeStore } from '../../../src/main/theme-store'
@@ -831,6 +831,8 @@ export class GitVertexHost implements vscode.Disposable {
       case 'aiExplainStash':
       case 'aiExplainWorking':
       case 'aiChangelogState':
+      case 'aiChangelogList':
+      case 'aiForgetChangelog':
       case 'aiGenerateChangelog':
       case 'aiProposeCommitSplit': {
         if (!svc) return { error: 'No repository open' }
@@ -850,6 +852,16 @@ export class GitVertexHost implements vscode.Disposable {
             const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
             return all[repo]?.[branch] ?? null
           },
+          async all() {
+            const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+            return all[repo] ?? {}
+          },
+          async forget(branch) {
+            const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+            if (!all[repo]?.[branch]) return
+            delete all[repo][branch]
+            await state.update('gvAiChangelogs', all)
+          },
           async set(branch, record) {
             const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
             const forRepo = all[repo] ?? {}
@@ -865,6 +877,8 @@ export class GitVertexHost implements vscode.Disposable {
           case 'aiExplainStash': return explainStash(raw, run, args[0], args[1])
           case 'aiExplainWorking': return explainWorking(raw, run, args[0])
           case 'aiChangelogState': return changelogState(raw, store, args[0])
+          case 'aiChangelogList': return changelogList(raw, store)
+          case 'aiForgetChangelog': await store.forget(args[0]); return { success: true }
           case 'aiGenerateChangelog':
             return generateChangelog(raw, run, args[0], args[1], { previous: args[2], store })
           default: return proposeCommitSplit(raw, run)

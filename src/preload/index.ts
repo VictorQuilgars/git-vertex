@@ -161,6 +161,8 @@ const gitAPI = {
   aiExplainStash: (index: number, guidance?: string) => ipcRenderer.invoke('ai:explain-stash', index, guidance),
   aiExplainWorking: (guidance?: string) => ipcRenderer.invoke('ai:explain-working', guidance),
   aiChangelogState: (branch: string) => ipcRenderer.invoke('ai:changelog-state', branch),
+  aiChangelogList: () => ipcRenderer.invoke('ai:changelog-list'),
+  aiForgetChangelog: (branch: string) => ipcRenderer.invoke('ai:forget-changelog', branch),
   aiGenerateChangelog: (branch: string, base?: string, previous?: string) =>
     ipcRenderer.invoke('ai:generate-changelog', branch, base, previous),
   insertChangelog: (entry: string) => ipcRenderer.invoke('changelog:insert', entry),
