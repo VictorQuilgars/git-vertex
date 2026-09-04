@@ -25,7 +25,14 @@ export interface GraphEdge {
 }
 
 export interface BranchInfo {
-  name: string; current: boolean; remote: boolean; commit: string; label: string
+  name: string; current: boolean; remote: boolean; commit: string
+  /**
+   * ⚠️ The last commit's SUBJECT, not a name for the branch — it is what
+   * simple-git calls `label` and the field kept the word. Anything showing a
+   * branch to a user wants `name`; the toolbar's picker showed three commit
+   * messages before this comment existed.
+   */
+  label: string
   // HEAD is not on a branch (mid-rebase, or plain detached). `name` then holds
   // a human label such as `rebasing feature`, never a checkout-able ref.
   detached?: boolean
@@ -314,6 +321,8 @@ declare global {
     stashDiff: (index: number) => Promise<{ diff?: string; error?: string }>
 
     // Conflicts
+    /** Would this branch conflict with the base it will land on? Fails open. */
+    conflictOutlook: (branch?: string) => Promise<{ base?: string | null; files?: string[]; error?: string }>
     predictConflicts: (theirs: string, ours?: string, mergeBase?: string) => Promise<Unnarrowed>
     predictRebaseConflicts: (upstream: string, branch?: string) => Promise<Unnarrowed>
     getConflictSides: () => Promise<{ ours: string; theirs: string }>

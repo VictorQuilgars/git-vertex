@@ -36,6 +36,7 @@ import {
   changelogState, changelogList, type Run, type ChangelogRecord, type ChangelogStore,
 } from '../../../src/main/ai-features'
 import { findChangelog, mergeIntoUnreleased } from '../../../src/main/changelog-file'
+import { resolveBase } from '../../../src/main/ai-material'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
@@ -827,6 +828,22 @@ export class GitVertexHost implements vscode.Disposable {
       // One adapter, five cases: the feature comes from the shared module, so
       // the panel cannot end up reading a different model's settings than the
       // desktop app does for the same action.
+      // The toolbar's conflict badge. The base comes from the same resolver
+      // the AI features use, so the panel and the app cannot disagree about
+      // which branch this one is going to land on.
+      case 'conflictOutlook': {
+        if (!svc) return { error: 'No repository open' }
+        const raw = (a: string[]) => svc.raw(a)
+        let head: string | undefined = args[0]
+        if (!head) {
+          head = (await raw(['rev-parse', '--abbrev-ref', 'HEAD']).catch(() => '')).trim()
+        }
+        if (!head || head === 'HEAD') return { base: null, files: [] }
+        const base = await resolveBase(raw, head)
+        if (!base) return { base: null, files: [] }
+        const r = await svc.predictConflicts(base, head)
+        return { base, files: r.files, error: r.error }
+      }
       case 'aiExplainBranch':
       case 'aiExplainStash':
       case 'aiExplainWorking':

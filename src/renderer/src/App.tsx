@@ -2359,6 +2359,8 @@ export default function App() {
         onClone={() => setCloneOpen(true)}
         onSetRepo={handleSetRepo}
         onRemoveRecent={handleRemoveRecent}
+        branches={branches}
+        onGoTo={handleGoTo}
         topRow={tabs.length === 0}
         repoPath={repoPath}
         currentBranch={currentBranch}

@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import './Toolbar.css'
 import { useLang } from '../../i18n/LanguageContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
-import { PullMode } from '../../types'
+import { PullMode, type BranchInfo } from '../../types'
 import { Icon } from '../Icon/Icon'
 import { Brand } from '../BrandMark/BrandMark'
 
@@ -24,6 +24,13 @@ interface ToolbarProps {
   onClone?: () => void
   onSetRepo?: (path: string) => void
   onRemoveRecent?: (path: string) => void
+  /**
+   * Which branch, and how to leave it — the repository selector's neighbour.
+   * `onGoTo` takes any ref the list holds, remote ones included: the host
+   * works out whether that means a checkout or a new tracking branch.
+   */
+  branches?: BranchInfo[]
+  onGoTo?: (ref: string) => void
   searchQuery: string
   searchMatches?: number
   onSearch: (q: string) => void
@@ -59,6 +66,16 @@ interface ToolbarProps {
   topRow?: boolean
 }
 
+/**
+ * What to call a branch in the list. NOT `BranchInfo.label`, which despite the
+ * name holds the branch's last commit SUBJECT — the picker showed three
+ * commit messages where three branch names belong. A remote keeps its remote
+ * (`origin/main`), or it would be indistinguishable from the local branch of
+ * the same name sitting two rows above it.
+ */
+const branchLabel = (b: BranchInfo): string =>
+  b.remote ? b.name.replace(/^remotes\//, '') : b.name
+
 // Toolbar cell: label on top, icon below.
 function TBtn({ icon, label, onClick, disabled, title, accent }: {
   icon: React.ReactNode; label: string; onClick: () => void
@@ -80,6 +97,7 @@ function TBtn({ icon, label, onClick, disabled, title, accent }: {
 export default function Toolbar({
   repoPath, currentBranch, searchQuery, searchMatches, onSearch,
   repoName, recentRepos = [], onOpenRepo, onClone, onSetRepo, onRemoveRecent,
+  branches = [], onGoTo,
   onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
   onStash, onPop, onTerminal, stashCount = 0,
   loading,
@@ -96,11 +114,41 @@ export default function Toolbar({
   const [repoMenuOpen, setRepoMenuOpen] = useState(false)
   const repoMenuRef = useRef<HTMLDivElement>(null)
   const otherRecents = recentRepos.filter(r => r !== repoPath)
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false)
+  const [branchFilter, setBranchFilter] = useState('')
+  const branchMenuRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Whether this branch would conflict with the one it is going to land on.
+   *
+   * Asked once per branch, and again on demand — it is a `merge-tree` over
+   * two whole trees, which is cheap but not free, and the answer only changes
+   * when one of the two ends moves. `null` is "not asked yet"; a base of null
+   * is "nothing to compare against", which the badge says rather than hides.
+   */
+  const [outlook, setOutlook] = useState<{ base: string | null; files: string[] } | null>(null)
+  const [checking, setChecking] = useState(false)
+
+  const checkConflicts = useCallback(async () => {
+    if (!repoPath || !currentBranch) { setOutlook(null); return }
+    setChecking(true)
+    try {
+      const r = await ((window.gitAPI as any).conflictOutlook?.(currentBranch)
+        ?? Promise.resolve(null))
+      // It fails open: an error is "we do not know", never a warning.
+      setOutlook(r && !r.error ? { base: r.base ?? null, files: r.files ?? [] } : null)
+    } catch { setOutlook(null) } finally { setChecking(false) }
+  }, [repoPath, currentBranch])
+
+  useEffect(() => { void checkConflicts() }, [checkConflicts])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (repoMenuRef.current && !repoMenuRef.current.contains(e.target as Node)) {
         setRepoMenuOpen(false)
+      }
+      if (branchMenuRef.current && !branchMenuRef.current.contains(e.target as Node)) {
+        setBranchMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handler)
@@ -113,6 +161,13 @@ export default function Toolbar({
     { label: t('toolbar.pull.modeFfOnly'), checked: pullMode === 'ff-only', action: () => onSetPullMode('ff-only') },
     { label: t('toolbar.pull.modeRebase'), checked: pullMode === 'rebase', action: () => onSetPullMode('rebase') },
   ]
+  // Local first — leaving a branch usually means going to another of yours —
+  // then the remote ones, which `onGoTo` turns into tracking branches.
+  const visibleBranches = branches
+    .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
+    .sort((a, b) => Number(a.remote) - Number(b.remote))
+    .slice(0, 200)
+
   const runDefault = () => (pullMode === 'fetch' ? onFetch() : onPull())
   const defaultLabel = pullMode === 'fetch' ? 'Fetch' : 'Pull'
 
@@ -167,6 +222,59 @@ export default function Toolbar({
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Which branch, and what it is heading into ── */}
+      {repoPath && onGoTo && (
+        <>
+          <Icon name="chevronRight" size={12} className="tb-repo-sep" />
+          <div className="tb-repo tb-branch" ref={branchMenuRef}>
+            <button className="tb-repo-btn" onClick={() => { setBranchMenuOpen(o => !o); setBranchFilter('') }}
+              title={currentBranch}>
+              <Icon name="branch" size={14} />
+              <span className="tb-repo-name">{currentBranch || '—'}</span>
+              <Icon name="caretDown" size={10} />
+            </button>
+
+            {branchMenuOpen && (
+              <div className="tb-repo-dropdown tb-branch-dropdown">
+                <div className="tb-branch-filter">
+                  <Icon name="search" size={12} />
+                  <input autoFocus value={branchFilter} placeholder={t('sb.filterBranches')}
+                    onChange={e => setBranchFilter(e.target.value)} />
+                </div>
+                <div className="tb-branch-list">
+                  {visibleBranches.length === 0 && <div className="tb-branch-none">{t('toolbar.branch.none')}</div>}
+                  {visibleBranches.map(b => (
+                    <button key={b.name} className="tb-dropdown-item tb-branch-item"
+                      onClick={() => { onGoTo(b.name); setBranchMenuOpen(false) }} title={b.name}>
+                      <Icon name={b.remote ? 'cloud' : 'branch'} size={11} />
+                      <span className="tb-branch-label">{branchLabel(b)}</span>
+                      {b.current && <Icon name="check" size={11} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Whether this branch is heading for a fight. It never blocks
+              anything and never asks to be dealt with — it is the one fact
+              you want before a merge, said before you go looking for it. */}
+          <button
+            className={`tb-outlook${outlook?.files.length ? ' tb-outlook--conflict' : ''}${checking ? ' tb-outlook--checking' : ''}`}
+            onClick={() => void checkConflicts()}
+            title={
+              checking ? t('toolbar.outlook.checking')
+                : !outlook || !outlook.base ? t('toolbar.outlook.unknown')
+                  : outlook.files.length ? t('toolbar.outlook.conflicts', outlook.files.length, outlook.base)
+                    : t('toolbar.outlook.clean', outlook.base)
+            }
+          >
+            <Icon name={outlook?.files.length ? 'conflict' : 'shield'} size={16} />
+            {!!outlook?.files.length && <span className="tb-outlook-count">{outlook.files.length}</span>}
+          </button>
+        </>
       )}
 
       {repoPath && (

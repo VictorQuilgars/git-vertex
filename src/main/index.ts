@@ -26,7 +26,7 @@ import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
   changelogState, changelogList, type Run, type ChangelogRecord, type ChangelogStore,
 } from './ai-features'
-import type { Raw } from './ai-material'
+import { resolveBase, type Raw } from './ai-material'
 import { findChangelog, mergeIntoUnreleased } from './changelog-file'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
@@ -2082,6 +2082,31 @@ ipcMain.handle('changelog:insert', async (_e, entry: string) => {
 
 ipcMain.handle('ai:propose-commit-split', async () =>
   gitService ? proposeCommitSplit(rawGit(), runFeature) : { error: 'No repository open' })
+
+/**
+ * Would this branch conflict with the one it is going to land on? (#70)
+ *
+ * The toolbar's badge, and nothing more: a `merge-tree --write-tree` against
+ * the branch's own base, which is resolved by the SAME function the AI
+ * features use — a repository where the badge says "against origin/main" and
+ * the changelog says "over main" would be two answers to one question.
+ *
+ * It fails open. A repository with no base, a merge-tree that cannot run: the
+ * badge says it does not know, and nothing anywhere is blocked.
+ */
+ipcMain.handle('git:conflict-outlook', async (_e, branch?: string) => {
+  if (!gitService) return { error: 'No repository open' }
+  const raw = rawGit()
+  let head = branch
+  if (!head) {
+    try { head = (await raw(['rev-parse', '--abbrev-ref', 'HEAD'])).trim() } catch { return { error: 'No branch' } }
+  }
+  if (!head || head === 'HEAD') return { base: null, files: [] }   // detached
+  const base = await resolveBase(raw, head)
+  if (!base) return { base: null, files: [] }
+  const r = await gitService.predictConflicts(base, head)
+  return { base, files: r.files, error: r.error }
+})
 
 // ── Settings: get/set all ──────────────────────────────────────
 ipcMain.handle('settings:get-all', () => {

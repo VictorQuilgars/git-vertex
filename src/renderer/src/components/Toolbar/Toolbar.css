@@ -357,3 +357,87 @@
   flex-shrink: 0;
 }
 .tb-recent-remove:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); }
+
+/* ── Which branch, and what it is heading into ─────────────── */
+.tb-repo-sep { color: var(--text-disabled); flex-shrink: 0; margin: 0 var(--space-2xs); }
+
+/* Wider than the repository's: a branch name is a sentence, and truncating
+   it to a repo's width is what makes people open the menu to read it. */
+.tb-branch .tb-repo-btn { max-width: 320px; }
+
+.tb-branch-dropdown {
+  min-width: 300px;
+  max-width: 420px;
+  padding-bottom: var(--space-2xs);
+}
+
+.tb-branch-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-muted);
+  color: var(--text-tertiary);
+}
+.tb-branch-filter input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+/* Scrolls rather than grows: a repository with two hundred branches must not
+   produce a menu taller than the window. */
+.tb-branch-list {
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.tb-branch-item { padding: var(--space-xs) var(--space-md) !important; }
+.tb-branch-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tb-branch-none {
+  padding: var(--space-md);
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+/* The outlook badge. Muted when there is nothing to say — it is a fact you
+   glance at, not a warning that wants dealing with — and it only takes a
+   colour when there is actually something in the way. */
+.tb-outlook {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  flex-shrink: 0;
+  margin-left: var(--space-xs);
+  padding: var(--space-2xs) var(--space-xs);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-disabled);
+  font-size: var(--text-tiny);
+  cursor: pointer;
+}
+.tb-outlook:hover { color: var(--text-secondary); border-color: var(--border-default); }
+
+.tb-outlook--conflict {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) var(--alpha-strong), transparent);
+  background: color-mix(in srgb, var(--warning) var(--alpha-faint), transparent);
+}
+.tb-outlook--conflict:hover { color: var(--warning); }
+
+.tb-outlook--checking { opacity: var(--alpha-half); }
+
+.tb-outlook-count { font-weight: var(--weight-semibold); }

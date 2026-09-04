@@ -81,6 +81,7 @@ const gitAPI = {
   renameBranch: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-branch', oldName, newName),
   merge: (branch: string) => ipcRenderer.invoke('git:merge', branch),
   fastForwardToUpstream: () => ipcRenderer.invoke('git:fast-forward-upstream'),
+  conflictOutlook: (branch?: string) => ipcRenderer.invoke('git:conflict-outlook', branch),
   predictConflicts: (theirs: string, ours?: string, mergeBase?: string) =>
     ipcRenderer.invoke('git:predict-conflicts', theirs, ours, mergeBase),
   predictRebaseConflicts: (upstream: string, branch?: string) =>
