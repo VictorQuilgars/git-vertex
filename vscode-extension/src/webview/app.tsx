@@ -1221,7 +1221,6 @@ function VertexApp() {
             showToast={showToast}
             showPrompt={showPrompt}
             showConfirm={showConfirm}
-            embedded
           />
           </div>
           <div className="resize-handle" onMouseDown={startResizeSide} />

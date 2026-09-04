@@ -221,7 +221,6 @@ interface SidebarProps {
   onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
-  embedded?: boolean
   // Single-view mode: render only the section the activity rail selected.
   // Undefined = classic stacked layout (desktop).
   view?: SidebarView
@@ -1363,7 +1362,7 @@ export default function Sidebar({
   showAllBranches, onToggleAllBranches,
   onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick,
   onCopyBranchLink, onDeleteBranchBoth,
-  showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
+  showToast, showPrompt, showConfirm, onRefresh, view,
 }: SidebarProps) {
   // In single-view mode a section is shown when it matches the active view.
   // Without a view (desktop) every section renders (classic stacked layout).
@@ -1611,19 +1610,7 @@ export default function Sidebar({
     if (r.success) showToast(t('sb.remote.fetchOk', name))
     else showToast(t('toast.fetchErr', r.error ?? ''), 'err')
   }
-  const [repoMenuOpen, setRepoMenuOpen] = useState(false)
   const [branchFilter, setBranchFilter] = useState('')
-  const repoMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (repoMenuRef.current && !repoMenuRef.current.contains(e.target as Node)) {
-        setRepoMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   // Favorites float to the top of LOCAL — the whole point of starring a branch
   // is not to hunt for it in a long list (v1.21.0). Order is otherwise
@@ -1714,8 +1701,6 @@ export default function Sidebar({
     .filter(b => b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
 
-  const otherRecents = recentRepos.filter(r => r !== repoPath)
-
   return (
     <div className="sidebar" ref={rootRef}>
       {/* One drawer, given which section opened it — the two vocabularies are
@@ -1756,51 +1741,6 @@ export default function Sidebar({
             }} />
         </PanelDrawer>
       )}
-      {/* ── Repo selector ── (hidden when embedded in the VS Code panel: the
-          repo is always the workspace, so open/clone/recent don't apply) */}
-      {!embedded && (
-      <div className="sb-repo-area" ref={repoMenuRef}>
-        <button className="sb-repo-btn" onClick={() => setRepoMenuOpen(o => !o)}>
-          <Icon name="repo" size={14} />
-          <span className="sb-repo-name">{repoName || t('sb.openRepo')}</span>
-          <Icon name="caretDown" size={10} />
-        </button>
-
-        {repoMenuOpen && (
-          <div className="sb-repo-dropdown">
-            <button className="sb-dropdown-item sb-open-item"
-              onClick={() => { onOpenRepo(); setRepoMenuOpen(false) }}>
-              <Icon name="list" size={13} />
-              {t('sb.openRepoDots')}
-            </button>
-            <button className="sb-dropdown-item sb-open-item"
-              onClick={() => { onClone(); setRepoMenuOpen(false) }}>
-              <Brand name="github" size={13} />
-              {t('sb.cloneDots')}
-            </button>
-            {otherRecents.length > 0 && (
-              <>
-                <div className="sb-dropdown-sep" />
-                <div className="sb-dropdown-label">{t('sb.recents')}</div>
-                {otherRecents.map(path => (
-                  <div key={path} className="sb-dropdown-item sb-recent-item">
-                    <button className="sb-recent-path"
-                      onClick={() => { onSetRepo(path); setRepoMenuOpen(false) }} title={path}>
-                      <Icon name="repo" size={11} />
-                      <span>{path.split('/').pop()}</span>
-                      <span className="sb-recent-full">{path}</span>
-                    </button>
-                    <button className="sb-recent-remove" title={t('sb.removeRecent')}
-                      onClick={() => onRemoveRecent(path)}>×</button>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        )}
-      </div>
-      )}
-
       {/* ── The two stacks (#70) ──
           The repository as a list, and what the model has written for it. A
           generated changelog was reachable only from the menu of the branch it

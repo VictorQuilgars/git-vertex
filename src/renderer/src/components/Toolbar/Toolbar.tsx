@@ -1,13 +1,29 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './Toolbar.css'
 import { useLang } from '../../i18n/LanguageContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { PullMode } from '../../types'
 import { Icon } from '../Icon/Icon'
+import { Brand } from '../BrandMark/BrandMark'
 
 interface ToolbarProps {
   repoPath: string | null
   currentBranch: string
+  /**
+   * Which repository is open, and how to change that. It used to be the top
+   * 46px of the left panel — a row of chrome above every list, in the one
+   * place where height is scarce. Here it costs nothing: the toolbar's left
+   * edge was empty.
+   *
+   * Absent ⇒ no selector, which is how the VS Code panel gets none: there the
+   * repository is the workspace and nothing about it is choosable.
+   */
+  repoName?: string
+  recentRepos?: string[]
+  onOpenRepo?: () => void
+  onClone?: () => void
+  onSetRepo?: (path: string) => void
+  onRemoveRecent?: (path: string) => void
   searchQuery: string
   searchMatches?: number
   onSearch: (q: string) => void
@@ -63,6 +79,7 @@ function TBtn({ icon, label, onClick, disabled, title, accent }: {
 
 export default function Toolbar({
   repoPath, currentBranch, searchQuery, searchMatches, onSearch,
+  repoName, recentRepos = [], onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
   onStash, onPop, onTerminal, stashCount = 0,
   loading,
@@ -76,6 +93,19 @@ export default function Toolbar({
   const disabled = !repoPath || loading
   const pullChevRef = useRef<HTMLButtonElement>(null)
   const [pullMenuPos, setPullMenuPos] = useState<{ x: number; y: number } | null>(null)
+  const [repoMenuOpen, setRepoMenuOpen] = useState(false)
+  const repoMenuRef = useRef<HTMLDivElement>(null)
+  const otherRecents = recentRepos.filter(r => r !== repoPath)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (repoMenuRef.current && !repoMenuRef.current.contains(e.target as Node)) {
+        setRepoMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const pullMenuItems: MenuItemDef[] = [
     { label: t('toolbar.pull.modeFetch'), checked: pullMode === 'fetch', action: () => onSetPullMode('fetch') },
@@ -89,6 +119,55 @@ export default function Toolbar({
   return (
     <div className="toolbar">
       {isMac && topRow && <div className="tb-mac-spacer" />}
+
+      {/* ── Which repository ── */}
+      {onOpenRepo && (
+        <div className="tb-repo" ref={repoMenuRef}>
+          <button className="tb-repo-btn" onClick={() => setRepoMenuOpen(o => !o)}
+            title={t('sb.openRepo')}>
+            <Icon name="repo" size={14} />
+            <span className="tb-repo-name">{repoName || t('sb.openRepo')}</span>
+            <Icon name="caretDown" size={10} />
+          </button>
+
+          {repoMenuOpen && (
+            <div className="tb-repo-dropdown">
+              <button className="tb-dropdown-item tb-open-item"
+                onClick={() => { onOpenRepo(); setRepoMenuOpen(false) }}>
+                <Icon name="list" size={13} />
+                {t('sb.openRepoDots')}
+              </button>
+              {onClone && (
+                <button className="tb-dropdown-item tb-open-item"
+                  onClick={() => { onClone(); setRepoMenuOpen(false) }}>
+                  <Brand name="github" size={13} />
+                  {t('sb.cloneDots')}
+                </button>
+              )}
+              {otherRecents.length > 0 && onSetRepo && (
+                <>
+                  <div className="tb-dropdown-sep" />
+                  <div className="tb-dropdown-label">{t('sb.recents')}</div>
+                  {otherRecents.map(path => (
+                    <div key={path} className="tb-dropdown-item tb-recent-item">
+                      <button className="tb-recent-path"
+                        onClick={() => { onSetRepo(path); setRepoMenuOpen(false) }} title={path}>
+                        <Icon name="repo" size={11} />
+                        <span>{path.split('/').pop()}</span>
+                        <span className="tb-recent-full">{path}</span>
+                      </button>
+                      {onRemoveRecent && (
+                        <button className="tb-recent-remove" title={t('sb.removeRecent')}
+                          onClick={() => onRemoveRecent(path)}>×</button>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {repoPath && (
       <>

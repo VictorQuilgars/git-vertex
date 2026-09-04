@@ -2353,6 +2353,12 @@ export default function App() {
           the graph, and the tab it would sit above is not the graph. */}
       {!whatsNewActive && !themesActive && !viewTab && (
       <Toolbar
+        repoName={repoName}
+        recentRepos={recentRepos}
+        onOpenRepo={handleOpenRepo}
+        onClone={() => setCloneOpen(true)}
+        onSetRepo={handleSetRepo}
+        onRemoveRecent={handleRemoveRecent}
         topRow={tabs.length === 0}
         repoPath={repoPath}
         currentBranch={currentBranch}
