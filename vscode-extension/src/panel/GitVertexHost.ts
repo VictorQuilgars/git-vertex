@@ -33,7 +33,7 @@ import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenera
 // a branch is read against, what is asked, and what a refusal says.
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, changelogList, noteList, insertedIn, withInserted,
+  changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges,
   type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from '../../../src/main/ai-features'
 import { findChangelogs, isMergedInto, mergeIntoChangelog } from '../../../src/main/changelog-file'
@@ -606,6 +606,20 @@ export class GitVertexHost implements vscode.Disposable {
       // One question, N answers, none of them typed — the desktop's
       // ChoiceDialog, in the form VS Code already gives us.
       case 'uiPick': return vscode.window.showQuickPick(args[1] as string[], { title: args[0], ignoreFocusOut: true })
+      // The repository's own answer about its changelogs, beside
+      // gitvertex.defaultRemote — the desktop reads and writes the same key.
+      case 'changelogGetScopePref': {
+        if (!svc) return { pref: null }
+        const v = (await svc.raw(['config', '--local', '--get', 'gitvertex.changelogScope']).catch(() => '')).trim()
+        return { pref: v === 'package' || v === 'branch' ? v : null }
+      }
+      case 'changelogSetScopePref': {
+        if (!svc) return { success: false }
+        try {
+          await svc.raw(['config', '--local', 'gitvertex.changelogScope', args[0]])
+          return { success: true }
+        } catch (e: any) { return { success: false, error: e.message } }
+      }
       case 'openDesktop': {
         const cfg = vscode.workspace.getConfiguration('gitVertex')
         const appPath = (cfg.get<string>('appPath', '') || '').trim() || findAppPath()
@@ -953,11 +967,11 @@ export class GitVertexHost implements vscode.Disposable {
           case 'aiExplainWorking': return explainWorking(raw, run, { guidance: args[0], store: notes })
           case 'aiNoteList': return noteList(raw, notes)
           case 'aiForgetNote': await notes.forget(args[0], args[1]); return { success: true }
-          case 'aiChangelogState': return changelogState(raw, store, args[0])
+          case 'aiChangelogState': return changelogState(raw, store, args[0], args[1])
           case 'aiChangelogList': return changelogList(raw, store)
           case 'aiForgetChangelog': await store.forget(args[0]); return { success: true }
           case 'aiGenerateChangelog':
-            return generateChangelog(raw, run, args[0], args[1], { previous: args[2], store })
+            return generateChangelog(raw, run, args[0], args[1], { previous: args[2], scope: args[3], store })
           default: return proposeCommitSplit(raw, run)
         }
       }
@@ -1001,8 +1015,10 @@ export class GitVertexHost implements vscode.Disposable {
         // Nothing is written until the reader has seen what would be.
         if (opts.preview) {
           const dirty = !!(await raw(['status', '--porcelain', '--', rel]).catch(() => '')).trim()
+          const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : ''
+          const dirTouched = opts.branch ? await scopeHasChanges(raw, opts.branch, dir) : true
           return {
-            preview: true, path: rel, dirty,
+            preview: true, path: rel, dirty, dir, dirTouched,
             added: merged.added, addedLines: merged.addedLines,
             skipped: merged.skipped, similar: merged.similar, existing: merged.existing,
             removed: merged.removed, missing: merged.missing,

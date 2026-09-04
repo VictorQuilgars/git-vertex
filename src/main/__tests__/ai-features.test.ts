@@ -1,7 +1,7 @@
 import { resolveBase, workingMaterial, branchMaterial, type Raw } from '../ai-material'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  noteList, insertedIn, withInserted,
+  noteList, insertedIn, withInserted, changelogKey, readChangelogKey, scopeHasChanges,
   type Run, type NoteRecord, type NoteStore, type ChangelogRecord,
 } from '../ai-features'
 
@@ -202,7 +202,7 @@ describe('the five features', () => {
     })
     const m = fakeModel('### Added\n- a')
     const r = await generateChangelog(raw, m.run, 'feat/x')
-    expect(r).toEqual({ changelog: '### Added\n- a', base: 'origin/main', commits: 2 })
+    expect(r).toEqual({ changelog: '### Added\n- a', base: 'origin/main', commits: 2, scope: '' })
     expect(m.calls[0].feature).toBe('changelog')
   })
 
@@ -373,5 +373,76 @@ describe('what we put in which changelog', () => {
   test('a record that has never been inserted answers with nothing', () => {
     expect(insertedIn(base, 'CHANGELOG.md')).toEqual([])
     expect(insertedIn(null, 'CHANGELOG.md')).toEqual([])
+  })
+})
+
+describe('a changelog that is about one package', () => {
+  const withTrunk = {
+    'remote': 'origin\n',
+    'symbolic-ref --short refs/remotes/origin/HEAD': 'origin/main\n',
+    'rev-parse --verify --quiet refs/remotes/origin/main': 'abc\n',
+  }
+
+  test('the entry is written from that directory only', async () => {
+    const raw = fakeGit({
+      ...withTrunk,
+      'log --reverse --format=%s%n%b%x1e origin/main..feat/x -- cli': 'feat(cli): a flag\n\x1e',
+      'diff --stat origin/main...feat/x -- cli': ' cli/x.ts | 2 +-',
+    })
+    const m = fakeModel('### Added\n- A flag.')
+    const r = await generateChangelog(raw, m.run, 'feat/x', undefined, { scope: 'cli' })
+    expect(r).toMatchObject({ commits: 1, scope: 'cli' })
+    expect(m.calls[0].prompt).toContain('feat(cli): a flag')
+  })
+
+  test('a branch that changes nothing there is refused before a call is spent', async () => {
+    const raw = fakeGit(withTrunk)   // no log under cli
+    const m = fakeModel('never asked')
+    const r = await generateChangelog(raw, m.run, 'feat/x', undefined, { scope: 'cli' })
+    expect(r.error).toBe('feat/x changes nothing under cli')
+    expect(m.calls).toEqual([])
+  })
+
+  test('scopeHasChanges is the check no preference can override', async () => {
+    const touched = fakeGit({ ...withTrunk, 'diff --name-only origin/main...feat/x -- cli': 'cli/x.ts\n' })
+    const untouched = fakeGit(withTrunk)
+    expect(await scopeHasChanges(touched, 'feat/x', 'cli')).toBe(true)
+    expect(await scopeHasChanges(untouched, 'feat/x', 'cli')).toBe(false)
+    // A changelog at the root is about everything: nothing to check.
+    expect(await scopeHasChanges(untouched, 'feat/x', '')).toBe(true)
+  })
+
+  test('a repository with no base does not get blocked by the check', async () => {
+    // Failing open: we cannot measure, so we do not stand in the way.
+    expect(await scopeHasChanges(fakeGit({}), 'feat/x', 'cli')).toBe(true)
+  })
+
+  test('a scoped changelog is filed under its own name, beside the branch-wide one', () => {
+    expect(changelogKey('feat/x')).toBe('feat/x')
+    expect(changelogKey('feat/x', 'cli')).toBe('feat/x::cli')
+    expect(readChangelogKey('feat/x::cli')).toEqual({ branch: 'feat/x', scope: 'cli' })
+    expect(readChangelogKey('feat/x')).toEqual({ branch: 'feat/x', scope: '' })
+    // git refuses `:` in a ref name, so the separator cannot collide
+    expect(readChangelogKey('feat/a-b_c.d::vscode-extension'))
+      .toEqual({ branch: 'feat/a-b_c.d', scope: 'vscode-extension' })
+  })
+
+  test('the two are kept apart in the store, not overwritten', async () => {
+    const kept: Record<string, any> = {}
+    const store = {
+      async get(k: string) { return kept[k] ?? null },
+      async set(k: string, r: any) { kept[k] = r },
+      async all() { return kept },
+      async forget(k: string) { delete kept[k] },
+    }
+    const raw = fakeGit({
+      ...withTrunk,
+      'log --reverse --format=%s%n%b%x1e origin/main..feat/x': 'all of it\n\x1e',
+      'log --reverse --format=%s%n%b%x1e origin/main..feat/x -- cli': 'the cli bit\n\x1e',
+    })
+    await generateChangelog(raw, fakeModel('branch-wide').run, 'feat/x', undefined, { store })
+    await generateChangelog(raw, fakeModel('cli only').run, 'feat/x', undefined, { store, scope: 'cli' })
+    expect(kept['feat/x'].text).toBe('branch-wide')
+    expect(kept['feat/x::cli'].text).toBe('cli only')
   })
 })

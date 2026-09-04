@@ -91,15 +91,34 @@ export async function branchMaterial(raw: Raw, branch: string, base?: string): P
   }
 }
 
-/** Subject + body per commit, for a changelog that can say why. */
-export async function changelogMaterial(raw: Raw, branch: string, base?: string): Promise<{ base: string; entries: string[]; diffstat: string } | null> {
+/**
+ * Subject + body per commit, for a changelog that can say why.
+ *
+ * `scope` limits it to one directory — a repository with a changelog per
+ * package has one that describes that package, and handing it the whole
+ * branch would file the desktop app's release under the CLI. Empty means the
+ * whole branch, which is what a single root changelog wants.
+ */
+export async function changelogMaterial(
+  raw: Raw, branch: string, base?: string, scope?: string,
+): Promise<{ base: string; entries: string[]; diffstat: string } | null> {
   const b = base ?? await resolveBase(raw, branch)
   if (!b) return null
+  const within = scope ? ['--', scope] : []
   // A record separator rather than a blank line: a commit body contains blank
   // lines, and splitting on those would cut messages in half.
-  const log = await quiet(raw, ['log', '--reverse', `--format=%s%n%b%x1e`, `${b}..${branch}`])
+  const log = await quiet(raw, ['log', '--reverse', `--format=%s%n%b%x1e`, `${b}..${branch}`, ...within])
   const entries = log.split('\x1e').map(e => e.trim()).filter(Boolean)
-  return { base: b, entries, diffstat: await quiet(raw, ['diff', '--stat', `${b}...${branch}`]) }
+  return {
+    base: b, entries,
+    diffstat: await quiet(raw, ['diff', '--stat', `${b}...${branch}`, ...within]),
+  }
+}
+
+/** Did this branch touch anything under that directory? */
+export async function touches(raw: Raw, branch: string, base: string, dir: string): Promise<boolean> {
+  const out = await quiet(raw, ['diff', '--name-only', `${base}...${branch}`, '--', dir])
+  return !!out.trim()
 }
 
 /**

@@ -342,7 +342,7 @@ declare global {
     aiExplainWorking: (guidance?: string) => Promise<{ explanation?: string; error?: string }>
     // The changelog remembers: what it wrote, and what it wrote it from, so
     // reopening the drawer costs nothing and a branch that has moved says so.
-    aiChangelogState: (branch: string) => Promise<{
+    aiChangelogState: (branch: string, scope?: string) => Promise<{
       base?: string
       cached?: { text: string; base: string; headSha: string; baseSha: string; commits: number; at: number }
       newCommits?: number
@@ -364,7 +364,14 @@ declare global {
     }[] }>
     aiForgetNote: (kind: string, key: string) => Promise<R>
     aiForgetExplanation: (hash: string) => Promise<R>
-    aiGenerateChangelog: (branch: string, base?: string, previous?: string) => Promise<{ changelog?: string; base?: string; commits?: number; error?: string }>
+    aiGenerateChangelog: (branch: string, base?: string, previous?: string, scope?: string) => Promise<{ changelog?: string; base?: string; commits?: number; scope?: string; error?: string }>
+    /**
+     * How this repository keeps its changelogs — one per package, or all of
+     * them about the same work. A preference, kept in the repository's own
+     * git config, and restated in the preview rather than hidden in a page.
+     */
+    changelogGetScopePref: () => Promise<{ pref: 'package' | 'branch' | null }>
+    changelogSetScopePref: (pref: 'package' | 'branch') => Promise<R>
     /** Merges an entry into the repository's own changelog. Only ever adds. */
     /**
      * Merges an entry into the repository's own changelog. Only ever adds —
@@ -383,6 +390,8 @@ declare global {
       alreadyMerged?: boolean; branchGone?: boolean; branch?: string; base?: string
       /** `preview` ⇒ nothing was written; this is what writing would do. */
       preview?: boolean; dirty?: boolean
+      /** The package this changelog is about, and whether the branch touched it. */
+      dir?: string; dirTouched?: boolean
       addedLines?: string[]; skipped?: string[]; existing?: string[]
       similar?: { line: string; existing: string }[]
       error?: string

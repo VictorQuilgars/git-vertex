@@ -48,7 +48,8 @@ export default function AIReadingTab({ kind, aiKey, label }: {
   const insert: AIAnswerAction[] = [{
     label: t('ai.changelog.insert'),
     title: t('ai.changelog.insertTitle'),
-    run: async (text: string) => {
+    run: async (entry: string) => {
+      let text = entry
       // The panel has no dialogs of its own, so the two questions and the
       // preview go through VS Code's own prompts — the host's uiPrompt /
       // uiConfirm, which every other panel decision already uses.
@@ -71,6 +72,27 @@ export default function AIReadingTab({ kind, aiKey, label }: {
         if (!picked) return
         section = picked === NEW ? '::create-a-new-section::' : picked
         r = await call({ branch: aiKey, file, section, preview: true })
+      }
+      // What this changelog is about — the same three the desktop applies,
+      // through VS Code's own prompts.
+      if (r?.preview && r.dir) {
+        if (!r.dirTouched) { showToast(t('ai.changelog.nothingUnder', aiKey ?? '', r.dir), 'err'); return }
+        const WHOLE = t('ai.changelog.scopeBranch')
+        const ONLY = t('ai.changelog.scopePackage', r.dir)
+        const pref = (await (api.changelogGetScopePref?.() ?? Promise.resolve({})))?.pref
+        const picked = await api.uiPick?.(t('ai.changelog.whichScope', r.dir),
+          pref === 'package' ? [ONLY, WHOLE] : [WHOLE, ONLY])
+        if (!picked) return
+        const wants = picked === ONLY ? 'package' : 'branch'
+        if (wants !== pref) await api.changelogSetScopePref?.(wants)
+        if (wants === 'package') {
+          showToast(t('ai.changelog.scoping', r.dir), 'ok')
+          const g = await (api.aiGenerateChangelog?.(aiKey, undefined, undefined, r.dir)
+            ?? Promise.resolve({ error: 'not-implemented' }))
+          if (g?.error || !g?.changelog) { showToast(g?.error ?? t('ai.answer.empty'), 'err'); return }
+          text = g.changelog
+          r = await call({ branch: aiKey, file: file ?? r.path, section, force, preview: true })
+        }
       }
       if (r?.branchGone || r?.alreadyMerged) {
         const ok = await api.uiConfirm?.(r.branchGone

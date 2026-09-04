@@ -161,14 +161,16 @@ const gitAPI = {
   aiExplainBranch: (branch: string, guidance?: string) => ipcRenderer.invoke('ai:explain-branch', branch, guidance),
   aiExplainStash: (index: number | string, guidance?: string) => ipcRenderer.invoke('ai:explain-stash', index, guidance),
   aiExplainWorking: (guidance?: string) => ipcRenderer.invoke('ai:explain-working', guidance),
-  aiChangelogState: (branch: string) => ipcRenderer.invoke('ai:changelog-state', branch),
+  aiChangelogState: (branch: string, scope?: string) => ipcRenderer.invoke('ai:changelog-state', branch, scope),
   aiChangelogList: () => ipcRenderer.invoke('ai:changelog-list'),
   aiNoteList: () => ipcRenderer.invoke('ai:note-list'),
   aiForgetNote: (kind: string, key: string) => ipcRenderer.invoke('ai:forget-note', kind, key),
   aiForgetExplanation: (hash: string) => ipcRenderer.invoke('ai:forget-explanation', hash),
   aiForgetChangelog: (branch: string) => ipcRenderer.invoke('ai:forget-changelog', branch),
-  aiGenerateChangelog: (branch: string, base?: string, previous?: string) =>
-    ipcRenderer.invoke('ai:generate-changelog', branch, base, previous),
+  aiGenerateChangelog: (branch: string, base?: string, previous?: string, scope?: string) =>
+    ipcRenderer.invoke('ai:generate-changelog', branch, base, previous, scope),
+  changelogGetScopePref: () => ipcRenderer.invoke('changelog:get-scope-pref'),
+  changelogSetScopePref: (pref: 'package' | 'branch') => ipcRenderer.invoke('changelog:set-scope-pref', pref),
   insertChangelog: (entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) =>
     ipcRenderer.invoke('changelog:insert', entry, opts),
   aiProposeCommitSplit: () => ipcRenderer.invoke('ai:propose-commit-split'),

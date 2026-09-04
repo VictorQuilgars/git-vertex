@@ -24,7 +24,7 @@ import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
-  changelogState, changelogList, noteList, insertedIn, withInserted,
+  changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges,
   type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from './ai-features'
 import { resolveBase, type Raw } from './ai-material'
@@ -2111,16 +2111,41 @@ ipcMain.handle('ai:forget-changelog', async (_e, branch: string) => {
   return { success: true }
 })
 
-ipcMain.handle('ai:changelog-state', async (_e, branch: string) =>
+ipcMain.handle('ai:changelog-state', async (_e, branch: string, scope?: string) =>
   gitService
-    ? changelogState(rawGit(), changelogStore(gitService.repoPath), branch)
+    ? changelogState(rawGit(), changelogStore(gitService.repoPath), branch, scope)
     : { error: 'No repository open' })
 
-ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string, previous?: string) =>
+ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string, previous?: string, scope?: string) =>
   gitService
     ? generateChangelog(rawGit(), runFeature, branch, base,
-        { previous, store: changelogStore(gitService.repoPath) })
+        { previous, scope, store: changelogStore(gitService.repoPath) })
     : { error: 'No repository open' })
+
+/**
+ * How this repository keeps its changelogs, as this repository says it.
+ *
+ * A preference, not a setting page: it is asked once, in the preview, where
+ * it acts — and restated there every time with the alternative one click
+ * away, so changing your mind never means finding a page. It lives beside
+ * `gitvertex.defaultRemote` in the repository's own git config, which is
+ * where a per-repository answer belongs and where anyone can read it back.
+ */
+ipcMain.handle('changelog:get-scope-pref', async () => {
+  if (!gitService) return { pref: null }
+  try {
+    const v = (await rawGit()(['config', '--local', '--get', 'gitvertex.changelogScope'])).trim()
+    return { pref: v === 'package' || v === 'branch' ? v : null }
+  } catch { return { pref: null } }
+})
+
+ipcMain.handle('changelog:set-scope-pref', async (_e, pref: 'package' | 'branch') => {
+  if (!gitService) return { success: false }
+  try {
+    await rawGit()(['config', '--local', 'gitvertex.changelogScope', pref])
+    return { success: true }
+  } catch (e: any) { return { success: false, error: e.message } }
+})
 
 /**
  * Put the entry where changelogs live — the last step of the work, and the
@@ -2183,8 +2208,12 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
   if (opts?.preview) {
     let dirty = false
     try { dirty = !!(await raw(['status', '--porcelain', '--', rel])).trim() } catch { /* not fatal */ }
+    // Which package this changelog is about, and whether the branch has
+    // anything to say about it. A changelog at the root is about everything.
+    const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : ''
+    const dirTouched = opts?.branch ? await scopeHasChanges(raw, opts.branch, dir) : true
     return {
-      preview: true, path: rel, dirty,
+      preview: true, path: rel, dirty, dir, dirTouched,
       added: merged.added, addedLines: merged.addedLines,
       skipped: merged.skipped, similar: merged.similar, existing: merged.existing,
       // An ARRAY in the preview (the reader sees which lines), a COUNT after

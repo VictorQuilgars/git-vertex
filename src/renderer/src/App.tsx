@@ -1961,7 +1961,9 @@ export default function App() {
    * already in the file and inserting them adds a release's worth of
    * duplicates to whatever branch happens to be checked out.
    */
-  const insertChangelogGuarded = useCallback(async (text: string, branch: string) => {
+  const insertChangelogGuarded = useCallback(async (entry: string, branch: string) => {
+    /** What will be written. A scoped answer replaces it before anything is. */
+    let text = entry
     const call = (opts: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) =>
       ((window.gitAPI as any).insertChangelog?.(text, opts)
         ?? Promise.resolve({ error: 'not-implemented' }))
@@ -2005,6 +2007,42 @@ export default function App() {
       r = await call({ branch, file: files[0] ?? r.path, section, force, preview: true })
     }
     if (r?.error) { showToast(r.error, 'err'); return }
+
+    // ── What this changelog is about ──
+    // A changelog in `cli/` describes the CLI. The branch may have touched
+    // nothing there, in which case there is no entry to write and no
+    // preference can make one true; or it may have touched both, in which
+    // case whether the entry covers the branch or only that package is a
+    // question about this repository — asked here, where it acts, and
+    // restated every time with the alternative one click away.
+    if (r?.preview && r.dir) {
+      if (!r.dirTouched) {
+        showToast(t('ai.changelog.nothingUnder', branch, r.dir), 'err')
+        return
+      }
+      const WHOLE = t('ai.changelog.scopeBranch')
+      const ONLY = t('ai.changelog.scopePackage', r.dir)
+      const pref = (await ((window.gitAPI as any).changelogGetScopePref?.() ?? Promise.resolve({})))?.pref
+      // Remembered, never silent: the preview says which reading it is using
+      // and offers the other, so changing your mind is a click rather than a
+      // page to find.
+      const picked = await showChoice(
+        t('ai.changelog.whichScope', r.dir),
+        pref === 'package' ? [ONLY, WHOLE] : [WHOLE, ONLY])
+      if (!picked) return
+      const wants: 'package' | 'branch' = picked === ONLY ? 'package' : 'branch'
+      if (wants !== pref) await ((window.gitAPI as any).changelogSetScopePref?.(wants))
+      if (wants === 'package') {
+        // A different entry, about a different thing — so it is generated,
+        // and kept under its own name in the memory.
+        showToast(t('ai.changelog.scoping', r.dir), 'ok')
+        const g = await ((window.gitAPI as any).aiGenerateChangelog?.(branch, undefined, undefined, r.dir)
+          ?? Promise.resolve({ error: 'not-implemented' }))
+        if (g?.error || !g?.changelog) { showToast(g?.error ?? t('ai.answer.empty'), 'err'); return }
+        text = g.changelog
+        r = await call({ branch, file: files[0] ?? r.path, section, force, preview: true })
+      }
+    }
 
     // The preview. A changelog is written once and inserted later, into a file
     // that has moved on — half of it may already be there in different words,

@@ -13,7 +13,7 @@
 // suite drives the real thing with a fake git and a fake model.
 
 import type { AIFeature } from './ai-resolve'
-import { branchMaterial, changelogMaterial, resolveBase, stashMaterial, workingMaterial, type Raw } from './ai-material'
+import { branchMaterial, changelogMaterial, resolveBase, stashMaterial, touches, workingMaterial, type Raw } from './ai-material'
 import {
   explainBranchPrompt, explainStashPrompt, explainWorkingPrompt, changelogPrompt,
   splitPrompt, parseSplit, type SplitProposal,
@@ -162,6 +162,12 @@ export interface ChangelogRecord {
   headSha: string
   baseSha: string
   commits: number
+  /**
+   * The directory it describes, when it describes one — a repository with a
+   * changelog per package has one that is about that package. Empty for the
+   * whole branch, which is what a single root changelog wants.
+   */
+  scope?: string
   /** When it was written, epoch ms — the drawer says how long ago. */
   at: number
   /**
@@ -230,11 +236,11 @@ export interface ChangelogState {
  * What the drawer knows before it asks anything. No model call, no cost: it
  * is the difference between reopening a changelog and regenerating one.
  */
-export async function changelogState(raw: Raw, store: ChangelogStore, branch: string):
+export async function changelogState(raw: Raw, store: ChangelogStore, branch: string, scope?: string):
 Promise<ChangelogState> {
   const base = await resolveBase(raw, branch)
   if (!base) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
-  const cached = await store.get(branch)
+  const cached = await store.get(changelogKey(branch, scope))
   if (!cached) return { base }
   const headSha = await sha(raw, branch)
   const baseSha = await sha(raw, base)
@@ -258,7 +264,8 @@ Promise<ChangelogState> {
 export async function changelogList(raw: Raw, store: ChangelogStore): Promise<{ entries: ChangelogEntry[] }> {
   const all = await store.all()
   const entries: ChangelogEntry[] = []
-  for (const [branch, record] of Object.entries(all)) {
+  for (const [key, record] of Object.entries(all)) {
+    const { branch } = readChangelogKey(key)
     const head = await sha(raw, branch)
     // A branch that no longer exists keeps its text — deleting someone's
     // changelog because they deleted the branch would be a surprise. The row
@@ -291,25 +298,64 @@ const countCommits = async (raw: Raw, from: string, to: string): Promise<number>
  */
 export async function generateChangelog(
   raw: Raw, run: Run, branch: string, base?: string,
-  opts: { previous?: string; store?: ChangelogStore } = {},
-): Promise<{ changelog?: string; base?: string; commits?: number; error?: string }> {
-  const m = await changelogMaterial(raw, branch, base)
+  opts: { previous?: string; store?: ChangelogStore; scope?: string } = {},
+): Promise<{ changelog?: string; base?: string; commits?: number; scope?: string; error?: string }> {
+  const scope = opts.scope || ''
+  const m = await changelogMaterial(raw, branch, base, scope || undefined)
   if (!m) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
-  if (!m.entries.length) return { error: `${branch} carries no commit over ${m.base}` }
+  if (!m.entries.length) {
+    return {
+      error: scope
+        ? `${branch} changes nothing under ${scope}`
+        : `${branch} carries no commit over ${m.base}`,
+    }
+  }
   const r = await run(
     changelogPrompt(branch, m.base, m.entries, m.diffstat, opts.previous), CHANGELOG_TOKENS, 'changelog')
   if (r.error) return { error: r.error }
   if (opts.store) {
     // The insert memory outlives the text it was written from: regenerating
-    // is exactly when it is needed.
-    const before = await opts.store.get(branch)
-    await opts.store.set(branch, {
-      text: r.text ?? '', base: m.base, commits: m.entries.length, at: Date.now(),
+    // is exactly when it is needed. Keyed by scope as well, or a changelog
+    // written for one package would replace the branch's own in the store.
+    const key = changelogKey(branch, scope)
+    const before = await opts.store.get(key)
+    await opts.store.set(key, {
+      text: r.text ?? '', base: m.base, commits: m.entries.length, at: Date.now(), scope,
       headSha: await sha(raw, branch), baseSha: await sha(raw, m.base),
       inserted: before?.inserted,
     })
   }
-  return { changelog: r.text, base: m.base, commits: m.entries.length }
+  return { changelog: r.text, base: m.base, commits: m.entries.length, scope }
+}
+
+/**
+ * How a changelog is filed: by the branch, and by what it describes.
+ *
+ * A branch can have a changelog of its own AND one per package it touches,
+ * and they are different texts about the same commits. Git refuses `:` in a
+ * ref name, so `::` cannot collide with a branch.
+ */
+export const changelogKey = (branch: string, scope?: string): string =>
+  scope ? `${branch}::${scope}` : branch
+
+/** The branch and the scope a key was made from. */
+export function readChangelogKey(key: string): { branch: string; scope: string } {
+  const at = key.indexOf('::')
+  return at === -1 ? { branch: key, scope: '' } : { branch: key.slice(0, at), scope: key.slice(at + 2) }
+}
+
+/**
+ * Whether a changelog living in `dir` has anything to say about this branch.
+ *
+ * The one thing no preference can override: a branch that changed nothing
+ * under `cli/` has no entry to write in `cli/CHANGELOG.md`, whichever scope
+ * the reader prefers. Checked before anything is asked.
+ */
+export async function scopeHasChanges(raw: Raw, branch: string, dir: string): Promise<boolean> {
+  if (!dir) return true
+  const base = await resolveBase(raw, branch)
+  if (!base) return true          // nothing to measure against: do not block
+  return touches(raw, branch, base, dir)
 }
 
 /**

@@ -51,6 +51,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Inserting a changelog **shows what would go in before anything does**: the lines, the ones it will skip as already there, what the section already says, and a warning when the file has uncommitted changes.
 - **Regenerate and insert again and it replaces its own earlier lines** instead of adding a second, differently-worded copy. One you edited by hand is left alone.
 - It follows **your** changelog's shape: the unreleased section under any name it goes by, headings re-levelled to match, and — where a file keeps no such section — a question rather than an invented one.
+- It knows what each changelog is **about**: one in \`cli/\` describes the CLI, so a branch that changed nothing there is told so, and one that changed both is asked whether the entry covers the branch or only that package — the second writes a different entry. The answer is remembered per repository and **restated every time**, the alternative one click away.
 - It finds **every** tracked changelog, at any depth — four products, four changelogs — and *All N of them* is one of the answers; what it wrote is remembered per file.
 - It stops on a branch **merged or deleted** since — those bullets are presumably in there already. A changelog whose branch is gone is struck through in the list, and the section menu offers to forget the lot.
 

@@ -588,6 +588,13 @@ const fr = {
   'ai.changelog.written': (ago: string) => `écrit ${ago}`,
   'ai.changelog.behind': (n: number) => `${n} commit${n > 1 ? 's' : ''} depuis — ce changelog ne les couvre pas.`,
   'ai.changelog.baseMoved': 'La base a bougé depuis : la comparaison n\'est plus la même.',
+  'ai.changelog.nothingUnder': (branch: string, dir: string) =>
+    `${branch} ne change rien sous ${dir} : il n'y a pas d'entrée à écrire dans ce changelog.`,
+  'ai.changelog.whichScope': (dir: string) =>
+    `Ce changelog décrit ${dir}. Que doit contenir l'entrée ?`,
+  'ai.changelog.scopeBranch': 'Tout ce que porte la branche',
+  'ai.changelog.scopePackage': (dir: string) => `Seulement ce qui a changé sous ${dir}`,
+  'ai.changelog.scoping': (dir: string) => `Rédaction de l'entrée pour ${dir}…`,
   'ai.changelog.whichFile': 'Ce dépôt suit plusieurs changelogs. Dans lequel écrire ?',
   'ai.changelog.everyFile': (n: number) => `Dans les ${n}`,
   'ai.changelog.whichSection': (file: string) =>
@@ -2338,6 +2345,13 @@ const en: typeof fr = {
   'ai.changelog.written': (ago: string) => `written ${ago}`,
   'ai.changelog.behind': (n: number) => `${n} commit${n > 1 ? 's' : ''} since — this changelog does not cover ${n > 1 ? 'them' : 'it'}.`,
   'ai.changelog.baseMoved': 'The base has moved since: this is no longer the same comparison.',
+  'ai.changelog.nothingUnder': (branch: string, dir: string) =>
+    `${branch} changes nothing under ${dir}: there is no entry to write in that changelog.`,
+  'ai.changelog.whichScope': (dir: string) =>
+    `That changelog is about ${dir}. What should the entry cover?`,
+  'ai.changelog.scopeBranch': 'Everything the branch carries',
+  'ai.changelog.scopePackage': (dir: string) => `Only what changed under ${dir}`,
+  'ai.changelog.scoping': (dir: string) => `Writing the entry for ${dir}…`,
   'ai.changelog.whichFile': 'This repository tracks several changelogs. Which one?',
   'ai.changelog.everyFile': (n: number) => `All ${n} of them`,
   'ai.changelog.whichSection': (file: string) =>
