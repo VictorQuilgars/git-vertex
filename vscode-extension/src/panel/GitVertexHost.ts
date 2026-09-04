@@ -337,6 +337,42 @@ export class GitVertexHost implements vscode.Disposable {
     }
   }
 
+  /**
+   * The changelogs this repository has had written, in globalState like its
+   * explanations. A method rather than a local, because the insert needs it
+   * as much as the generation does: it is where "what we already put in that
+   * file" is remembered.
+   */
+  private _changelogStore(): ChangelogStore {
+    const state = this._state
+    const repo = this._repoPath ?? ''
+    return {
+      async get(branch) {
+        const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+        return all[repo]?.[branch] ?? null
+      },
+      async all() {
+        const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+        return all[repo] ?? {}
+      },
+      async forget(branch) {
+        const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+        if (!all[repo]?.[branch]) return
+        delete all[repo][branch]
+        await state.update('gvAiChangelogs', all)
+      },
+      async set(branch, record) {
+        const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+        const forRepo = all[repo] ?? {}
+        forRepo[branch] = record
+        const keys = Object.keys(forRepo)
+        if (keys.length > 100) delete forRepo[keys[0]]
+        all[repo] = forRepo
+        await state.update('gvAiChangelogs', all)
+      },
+    }
+  }
+
   private async _dispatch(method: string, args: any[]): Promise<any> {
     const svc = this._gitService
     // Host-level methods (no git service required)
@@ -875,31 +911,7 @@ export class GitVertexHost implements vscode.Disposable {
         // the shared module decides when one has gone stale.
         const state = this._state
         const repo = this._repoPath ?? ''
-        const store: ChangelogStore = {
-          async get(branch) {
-            const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
-            return all[repo]?.[branch] ?? null
-          },
-          async all() {
-            const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
-            return all[repo] ?? {}
-          },
-          async forget(branch) {
-            const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
-            if (!all[repo]?.[branch]) return
-            delete all[repo][branch]
-            await state.update('gvAiChangelogs', all)
-          },
-          async set(branch, record) {
-            const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
-            const forRepo = all[repo] ?? {}
-            forRepo[branch] = record
-            const keys = Object.keys(forRepo)
-            if (keys.length > 100) delete forRepo[keys[0]]
-            all[repo] = forRepo
-            await state.update('gvAiChangelogs', all)
-          },
-        }
+        const store = this._changelogStore()
         // The readings this repository has had kept, in globalState like its
         // explanations — one note per subject, the shared module deciding
         // when one has gone stale.
@@ -964,7 +976,12 @@ export class GitVertexHost implements vscode.Disposable {
         const abs = path.join(this._repoPath, rel)
         let existing: string | null = null
         try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }
-        const merged = mergeIntoUnreleased(existing, args[0])
+        // What a previous insert of THIS changelog put in THIS file — the
+        // answer to regenerating, which rewords everything it wrote.
+        const clStore = this._changelogStore()
+        const record = opts.branch ? await clStore.get(opts.branch) : null
+        const ourLines = record?.inserted?.path === rel ? record.inserted.lines : []
+        const merged = mergeIntoUnreleased(existing, args[0], ourLines)
         // Nothing is written until the reader has seen what would be.
         if (opts.preview) {
           const dirty = !!(await raw(['status', '--porcelain', '--', rel]).catch(() => '')).trim()
@@ -972,12 +989,21 @@ export class GitVertexHost implements vscode.Disposable {
             preview: true, path: rel, dirty,
             added: merged.added, addedLines: merged.addedLines,
             skipped: merged.skipped, similar: merged.similar, existing: merged.existing,
+            removed: merged.removed, missing: merged.missing,
             created: merged.created, sectionCreated: merged.sectionCreated,
           }
         }
-        if (!merged.added && !merged.created) return { path: rel, added: 0, created: false }
+        if (!merged.added && !merged.removed.length && !merged.created) {
+          return { path: rel, added: 0, created: false }
+        }
         try { fs.writeFileSync(abs, merged.content) } catch (e: any) { return { error: e.message } }
-        return { path: rel, added: merged.added, created: merged.created, sectionCreated: merged.sectionCreated }
+        if (record && opts.branch) {
+          await clStore.set(opts.branch, { ...record, inserted: { path: rel, lines: merged.ours, at: Date.now() } })
+        }
+        return {
+          path: rel, added: merged.added, removed: merged.removed.length,
+          created: merged.created, sectionCreated: merged.sectionCreated,
+        }
       }
       case 'aiResolveConflict': {
         const cfg = readAIConfig(this._state, 'conflict')

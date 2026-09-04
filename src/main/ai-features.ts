@@ -164,6 +164,15 @@ export interface ChangelogRecord {
   commits: number
   /** When it was written, epoch ms — the drawer says how long ago. */
   at: number
+  /**
+   * What a previous insert of this changelog put in the file, and where.
+   *
+   * It survives regeneration, which is the point: the model rewords
+   * everything, so without this a second insert leaves two differently-worded
+   * copies of one release and no verbatim check catches it. With it, the
+   * lines we wrote come back out and the new ones take their place.
+   */
+  inserted?: { path: string; lines: string[]; at: number }
 }
 
 /** Where a host keeps them. Already scoped to one repository by the caller. */
@@ -267,9 +276,13 @@ export async function generateChangelog(
     changelogPrompt(branch, m.base, m.entries, m.diffstat, opts.previous), CHANGELOG_TOKENS, 'changelog')
   if (r.error) return { error: r.error }
   if (opts.store) {
+    // The insert memory outlives the text it was written from: regenerating
+    // is exactly when it is needed.
+    const before = await opts.store.get(branch)
     await opts.store.set(branch, {
       text: r.text ?? '', base: m.base, commits: m.entries.length, at: Date.now(),
       headSha: await sha(raw, branch), baseSha: await sha(raw, m.base),
+      inserted: before?.inserted,
     })
   }
   return { changelog: r.text, base: m.base, commits: m.entries.length }

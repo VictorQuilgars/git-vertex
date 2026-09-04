@@ -122,6 +122,21 @@ export interface MergeResult {
   similar: { line: string; existing: string }[]
   /** What the sections being written into already say. */
   existing: string[]
+  /**
+   * Lines a previous insert of THIS changelog had written, taken back out
+   * because the regenerated entry supersedes them. This is the answer to
+   * regenerating: the model rewords everything, so a second insert would
+   * otherwise leave two differently-worded copies of one release.
+   */
+  removed: string[]
+  /**
+   * Lines it had written and can no longer find in the section: edited by
+   * hand, or moved into a released section. Left exactly where they are — we
+   * wrote them once, we do not own them for ever.
+   */
+  missing: string[]
+  /** Every line of ours in the file after this merge. Store it; pass it back. */
+  ours: string[]
   /** The file did not exist and this is its whole content. */
   created: boolean
   /** An Unreleased section was written because there was none. */
@@ -175,10 +190,13 @@ const UNRELEASED = /^##\s+\[?unreleased\]?/i
  *   - no Unreleased section ⇒ one is created above the topmost release, or
  *     under the title of a file that has none.
  */
-export function mergeIntoUnreleased(existing: string | null, entry: string): MergeResult {
+export function mergeIntoUnreleased(
+  existing: string | null, entry: string, previouslyOurs: string[] = [],
+): MergeResult {
   const parts = sections(entry)
   const nothing = {
     added: 0, addedLines: [], skipped: [], similar: [], existing: [],
+    removed: [], missing: [], ours: [],
     created: false, sectionCreated: false,
   }
   if (!parts.length) return { content: existing ?? '', ...nothing }
@@ -189,6 +207,7 @@ export function mergeIntoUnreleased(existing: string | null, entry: string): Mer
     return {
       content: `# Changelog\n\n## Unreleased\n\n${block}\n`,
       added: all.length, addedLines: all, skipped: [], similar: [], existing: [],
+      removed: [], missing: previouslyOurs, ours: all,
       created: true, sectionCreated: true,
     }
   }
@@ -199,6 +218,9 @@ export function mergeIntoUnreleased(existing: string | null, entry: string): Mer
   const skipped: string[] = []
   const similar: { line: string; existing: string }[] = []
   const already: string[] = []
+  const removed: string[] = []
+  /** Ours that survive this merge: the ones the new entry says again. */
+  const stillOurs: string[] = []
 
   if (start === -1) {
     // Above the topmost `## ` — a release section — so the newest thing in
@@ -216,6 +238,7 @@ export function mergeIntoUnreleased(existing: string | null, entry: string): Mer
     return {
       content: lines.join('\n'),
       added: all.length, addedLines: all, skipped: [], similar: [], existing: [],
+      removed: [], missing: previouslyOurs, ours: all,
       created: false, sectionCreated: true,
     }
   }
@@ -226,7 +249,24 @@ export function mergeIntoUnreleased(existing: string | null, entry: string): Mer
     if (/^##\s+\S/.test(lines[i])) { end = i; break }
   }
   const body = lines.slice(start + 1, end)
-  let added = 0
+
+  // ── What a previous insert of this changelog wrote ──
+  // Regenerating rewords everything, so the lines we put there last time say
+  // the same release in different words. They come OUT — unless the new entry
+  // repeats one word for word, in which case it stays where it is rather than
+  // moving to the bottom of its section. What we cannot find, we leave alone:
+  // it was edited by hand, or a release moved it, and either way it is no
+  // longer ours to remove.
+  const entryLines = new Set(parts.flatMap(p => p.lines.map(l => l.trim())).filter(Boolean))
+  const inBody = new Set(body.map(l => l.trim()).filter(Boolean))
+  const missing = previouslyOurs.filter(l => !inBody.has(l.trim()))
+  for (const line of previouslyOurs) {
+    const at = body.findIndex(l => l.trim() === line.trim())
+    if (at === -1) continue
+    if (entryLines.has(line.trim())) { stillOurs.push(line.trim()); continue }
+    body.splice(at, 1)
+    removed.push(line.trim())
+  }
 
   for (const part of parts) {
     // Where that heading already is, inside this section only.
@@ -269,6 +309,11 @@ export function mergeIntoUnreleased(existing: string | null, entry: string): Mer
   return {
     content: [...lines.slice(0, start + 1), ...body, ...lines.slice(end)].join('\n'),
     added: addedLines.length, addedLines, skipped, similar, existing: already,
+    removed, missing,
+    // Ours, from now on: what we just wrote, plus what we had written that the
+    // new entry repeats. NEVER a line that was already there and happens to
+    // match — removing someone else's line on the next round would be theft.
+    ours: [...stillOurs, ...addedLines],
     created: false, sectionCreated: false,
   }
 }

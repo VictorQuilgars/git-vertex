@@ -595,6 +595,10 @@ const fr = {
     `${n} ligne${n > 1 ? 's' : ''} à ajouter dans ${file} :`,
   'ai.changelog.previewSkipped': (n: number) =>
     `${n} ligne${n > 1 ? 's' : ''} déjà présente${n > 1 ? 's' : ''} à l'identique, ignorée${n > 1 ? 's' : ''}.`,
+  'ai.changelog.previewReplaced': (n: number) =>
+    `${n} ligne${n > 1 ? 's' : ''} d'une insertion précédente de ce changelog ${n > 1 ? 'seront retirées' : 'sera retirée'} — la régénération les remplace :`,
+  'ai.changelog.previewMissing': (n: number) =>
+    `${n} ligne${n > 1 ? 's' : ''} que nous avions écrite${n > 1 ? 's' : ''} ${n > 1 ? 'sont introuvables' : 'est introuvable'} (éditée${n > 1 ? 's' : ''} à la main, ou passée${n > 1 ? 's' : ''} dans une version) : laissée${n > 1 ? 's' : ''} telle${n > 1 ? 's' : ''} quelle${n > 1 ? 's' : ''}.`,
   'ai.changelog.previewExisting': (n: number) =>
     `Ces sections contiennent déjà ${n} ligne${n > 1 ? 's' : ''} :`,
   'ai.changelog.previewSimilar': (n: number) =>
@@ -606,6 +610,8 @@ const fr = {
   'ai.changelog.insert': 'Insérer dans le changelog',
   'ai.changelog.insertTitle': "Ajoute ces lignes à la section Unreleased du changelog du dépôt — rien n'est jamais supprimé",
   'ai.changelog.inserted': (n: number, file: string) => `${n} ligne${n > 1 ? 's' : ''} ajoutée${n > 1 ? 's' : ''} à ${file}`,
+  'ai.changelog.insertedReplacing': (added: number, gone: number, file: string) =>
+    `${added} ligne${added > 1 ? 's' : ''} dans ${file}, à la place de ${gone} d'une insertion précédente`,
   'ai.changelog.insertedNothing': (file: string) => `${file} disait déjà tout`,
   'ai.changelog.created': (file: string) => `${file} créé`,
   'ai.branch.title': 'Expliquer la branche',
@@ -2335,6 +2341,10 @@ const en: typeof fr = {
     `${n} line${n > 1 ? 's' : ''} to add to ${file}:`,
   'ai.changelog.previewSkipped': (n: number) =>
     `${n} line${n > 1 ? 's are' : ' is'} already there word for word, and will be skipped.`,
+  'ai.changelog.previewReplaced': (n: number) =>
+    `${n} line${n > 1 ? 's' : ''} from an earlier insert of this changelog will be taken out — the regenerated entry replaces ${n > 1 ? 'them' : 'it'}:`,
+  'ai.changelog.previewMissing': (n: number) =>
+    `${n} line${n > 1 ? 's' : ''} we had written cannot be found (edited by hand, or moved into a release): left exactly where ${n > 1 ? 'they are' : 'it is'}.`,
   'ai.changelog.previewExisting': (n: number) =>
     `Those sections already hold ${n} line${n > 1 ? 's' : ''}:`,
   'ai.changelog.previewSimilar': (n: number) =>
@@ -2346,6 +2356,8 @@ const en: typeof fr = {
   'ai.changelog.insert': 'Insert into changelog',
   'ai.changelog.insertTitle': "Adds these lines to the Unreleased section of the repository's changelog — nothing is ever removed",
   'ai.changelog.inserted': (n: number, file: string) => `${n} line${n > 1 ? 's' : ''} added to ${file}`,
+  'ai.changelog.insertedReplacing': (added: number, gone: number, file: string) =>
+    `${added} line${added > 1 ? 's' : ''} in ${file}, replacing ${gone} from an earlier insert`,
   'ai.changelog.insertedNothing': (file: string) => `${file} already said all of it`,
   'ai.changelog.created': (file: string) => `${file} created`,
   'ai.branch.title': 'Explain branch',

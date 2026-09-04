@@ -266,3 +266,77 @@ describe('similarity', () => {
     expect(similarity('', '- Anything at all')).toBe(0)
   })
 })
+
+describe('inserting the same changelog twice, regenerated', () => {
+  // The case that has no other answer: regenerating rewords everything, so a
+  // second insert would leave two differently-worded copies of one release
+  // and no verbatim check would catch it. The lines we wrote are remembered,
+  // and a later insert takes them back out.
+  const first = '### Added\n- Added a cache API.\n- Added a retry helper.'
+  const reworded = '### Added\n- A caching layer, keyed by string.\n- A retry helper that gives up after three tries.'
+
+  const fileAfterFirst = () => {
+    const r = mergeIntoUnreleased('# C\n\n## Unreleased\n', first)
+    return { content: r.content, ours: r.ours }
+  }
+
+  test('the reworded entry replaces what we wrote, it does not join it', () => {
+    const { content, ours } = fileAfterFirst()
+    const r = mergeIntoUnreleased(content, reworded, ours)
+    expect(r.removed).toEqual(['- Added a cache API.', '- Added a retry helper.'])
+    expect(r.addedLines).toEqual(['- A caching layer, keyed by string.', '- A retry helper that gives up after three tries.'])
+    expect(r.content).not.toContain('- Added a cache API.')
+    expect(r.content).toContain('- A caching layer, keyed by string.')
+    // and the section holds two lines, not four
+    expect(r.content.split('\n').filter(l => l.startsWith('- '))).toHaveLength(2)
+  })
+
+  test('a line the regeneration says again stays where it is', () => {
+    const { content, ours } = fileAfterFirst()
+    const r = mergeIntoUnreleased(content, '### Added\n- Added a cache API.\n- Something new.', ours)
+    expect(r.removed).toEqual(['- Added a retry helper.'])
+    expect(r.ours).toEqual(['- Added a cache API.', '- Something new.'])
+  })
+
+  test('a line of ours that was edited by hand is left alone, and said so', () => {
+    // We wrote it once; we do not own it for ever.
+    const { ours } = fileAfterFirst()
+    const edited = '# C\n\n## Unreleased\n\n### Added\n- Added a cache API, keyed by string (see #12).\n- Added a retry helper.\n'
+    const r = mergeIntoUnreleased(edited, reworded, ours)
+    expect(r.missing).toEqual(['- Added a cache API.'])
+    expect(r.content).toContain('- Added a cache API, keyed by string (see #12).')
+    expect(r.removed).toEqual(['- Added a retry helper.'])
+  })
+
+  test('lines a release moved out of Unreleased are not hunted down', () => {
+    const released = `# C
+
+## Unreleased
+
+## 1.0.0
+
+### Added
+- Added a cache API.
+`
+    const r = mergeIntoUnreleased(released, reworded, ['- Added a cache API.'])
+    expect(r.missing).toEqual(['- Added a cache API.'])
+    expect(r.removed).toEqual([])
+    // the released section is untouched
+    expect(r.content).toContain('## 1.0.0\n\n### Added\n- Added a cache API.')
+  })
+
+  test('a line that was already there and merely matches is never claimed as ours', () => {
+    // Claiming it would delete someone else's line on the next round.
+    const file = '# C\n\n## Unreleased\n\n### Added\n- A hand-written line.\n'
+    const r = mergeIntoUnreleased(file, '### Added\n- A hand-written line.\n- Ours.', [])
+    expect(r.ours).toEqual(['- Ours.'])
+    expect(r.skipped).toEqual(['- A hand-written line.'])
+  })
+
+  test('with no memory of a previous insert it behaves exactly as it always did', () => {
+    const { content } = fileAfterFirst()
+    const r = mergeIntoUnreleased(content, reworded)
+    expect(r.removed).toEqual([])
+    expect(r.content.split('\n').filter(l => l.startsWith('- '))).toHaveLength(4)
+  })
+})

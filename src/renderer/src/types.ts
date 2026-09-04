@@ -350,7 +350,11 @@ declare global {
       error?: string
     }>
     /** Every changelog this repository has had written, newest first. */
-    aiChangelogList: () => Promise<{ entries?: { branch: string; text: string; base: string; commits: number; at: number; newCommits: number; orphan: boolean }[] }>
+    aiChangelogList: () => Promise<{ entries?: {
+      branch: string; text: string; base: string; commits: number; at: number
+      newCommits: number; orphan: boolean
+      inserted?: { path: string; lines: string[]; at: number }
+    }[] }>
     aiForgetChangelog: (branch: string) => Promise<R>
     /** Every reading kept for this repository — branch, stash, working tree. */
     aiNoteList: () => Promise<{ entries?: {
@@ -371,6 +375,8 @@ declare global {
      */
     insertChangelog: (entry: string, opts?: { branch?: string; file?: string; force?: boolean; preview?: boolean }) => Promise<{
       path?: string; added?: number; created?: boolean; sectionCreated?: boolean
+      /** Lines a previous insert of this changelog wrote, taken back out. */
+      removed?: number | string[]; missing?: string[]
       needsChoice?: boolean; candidates?: string[]
       alreadyMerged?: boolean; branchGone?: boolean; branch?: string; base?: string
       /** `preview` ⇒ nothing was written; this is what writing would do. */

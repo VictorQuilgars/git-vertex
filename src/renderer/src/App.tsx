@@ -1994,12 +1994,22 @@ export default function App() {
     // that has moved on — half of it may already be there in different words,
     // and once the lines are in, nothing tells you which ones you just added.
     if (r?.preview) {
-      if (!r.added && !r.created) { showToast(t('ai.changelog.insertedNothing', r.path), 'ok'); return }
+      const replaces = Array.isArray(r.removed) ? r.removed.length : 0
+      if (!r.added && !replaces && !r.created) { showToast(t('ai.changelog.insertedNothing', r.path), 'ok'); return }
       const lines = [
         t('ai.changelog.previewHead', r.added ?? 0, r.path),
         '',
         ...(r.addedLines ?? []).map(l => `  ${l}`),
       ]
+      // What a previous insert of this same changelog left in there and that
+      // this one supersedes. Regenerating rewords everything, so this is the
+      // difference between updating an entry and doubling it.
+      if (Array.isArray(r.removed) && r.removed.length) {
+        lines.push('', t('ai.changelog.previewReplaced', r.removed.length))
+        for (const l of r.removed.slice(0, 4)) lines.push(`  ${l}`)
+        if (r.removed.length > 4) lines.push('  …')
+      }
+      if (r.missing?.length) lines.push('', t('ai.changelog.previewMissing', r.missing.length))
       if (r.skipped?.length) lines.push('', t('ai.changelog.previewSkipped', r.skipped.length))
       // What the section already says, because the useful check is a
       // comparison and no similarity score can make it for you: two wordings
@@ -2019,8 +2029,10 @@ export default function App() {
       r = await call({ branch, file: file ?? r.path, force })
       if (r?.error) { showToast(r.error, 'err'); return }
     }
+    const replaced = typeof r?.removed === 'number' ? r.removed : 0
     if (r?.created) showToast(t('ai.changelog.created', r.path), 'ok')
-    else if (!r?.added) showToast(t('ai.changelog.insertedNothing', r.path), 'ok')
+    else if (!r?.added && !replaced) showToast(t('ai.changelog.insertedNothing', r.path), 'ok')
+    else if (replaced) showToast(t('ai.changelog.insertedReplacing', r.added ?? 0, replaced, r.path), 'ok')
     else showToast(t('ai.changelog.inserted', r.added, r.path), 'ok')
     // The file is a working-tree change now; the panel has to see it.
     loadRepoData()

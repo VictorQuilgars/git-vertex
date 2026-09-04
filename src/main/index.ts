@@ -2160,7 +2160,12 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
   const abs = join(gitService.repoPath, rel)
   let existing: string | null = null
   try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }
-  const merged = mergeIntoUnreleased(existing, entry)
+  // What a previous insert of THIS changelog put in THIS file — the answer to
+  // regenerating, which rewords everything it wrote.
+  const store = changelogStore(gitService.repoPath)
+  const record = opts?.branch ? await store.get(opts.branch) : null
+  const ours = record?.inserted?.path === rel ? record.inserted.lines : []
+  const merged = mergeIntoUnreleased(existing, entry, ours)
 
   // Nothing is written until the reader has seen what would be. The file is
   // often not what it was when the changelog was generated — half of it may
@@ -2173,17 +2178,30 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
       preview: true, path: rel, dirty,
       added: merged.added, addedLines: merged.addedLines,
       skipped: merged.skipped, similar: merged.similar, existing: merged.existing,
+      // An ARRAY in the preview (the reader sees which lines), a COUNT after
+      // the write (the toast says how many). Same word, two shapes, and the
+      // caller checks which by asking whether it is an array.
+      removed: merged.removed, missing: merged.missing,
       created: merged.created, sectionCreated: merged.sectionCreated,
     }
   }
 
-  if (!merged.added && !merged.created) return { path: rel, added: 0, created: false }
+  if (!merged.added && !merged.removed.length && !merged.created) {
+    return { path: rel, added: 0, created: false }
+  }
   try {
     fs.writeFileSync(abs, merged.content)
   } catch (e: any) {
     return { error: e.message }
   }
-  return { path: rel, added: merged.added, created: merged.created, sectionCreated: merged.sectionCreated }
+  // Remember what is ours in there, so regenerating can take it back out.
+  if (record && opts?.branch) {
+    await store.set(opts.branch, { ...record, inserted: { path: rel, lines: merged.ours, at: Date.now() } })
+  }
+  return {
+    path: rel, added: merged.added, removed: merged.removed.length,
+    created: merged.created, sectionCreated: merged.sectionCreated,
+  }
 })
 
 ipcMain.handle('ai:propose-commit-split', async () =>

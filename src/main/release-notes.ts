@@ -32,6 +32,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Every changelog, **and every explanation** — a branch, a stash, the uncommitted work, and the commit explanations kept since v1.10 that nothing ever listed. Each says what it covers and when, wears a \`+3\` when its subject has moved on, and strikes through when what it described is gone.
 - Generating anything brings the stack up with the new entry already in it. A row reopens it without asking the model again; right-click forgets it.
 - Inserting a changelog **shows what would go in before anything does**: the lines, the ones it will skip as already there, what the section already says, and a warning when the file has uncommitted changes.
+- **Regenerate and insert again and it replaces its own earlier lines** instead of adding a second, differently-worded copy. One you edited by hand is left alone.
 - It also asks **which file** when the repository tracks several, and stops on a branch **merged or deleted** since — those bullets are presumably in there already. A changelog whose branch is gone is struck through in the list, and the section menu offers to forget the lot.
 
 ### 🔮 An AI row looks like one
