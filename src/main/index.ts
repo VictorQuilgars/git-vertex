@@ -28,7 +28,7 @@ import {
   type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from './ai-features'
 import { resolveBase, type Raw } from './ai-material'
-import { findChangelogs, isMergedInto, mergeIntoUnreleased } from './changelog-file'
+import { findChangelogs, isMergedInto, mergeIntoChangelog, NEW_SECTION } from './changelog-file'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
@@ -2128,7 +2128,7 @@ ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string
  * writes into the working tree, so the diff is right there in the staging
  * pane to be read or thrown away.
  */
-ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: string; file?: string; force?: boolean; preview?: boolean }) => {
+ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) => {
   if (!gitService) return { error: 'No repository open' }
   const raw = rawGit()
 
@@ -2165,7 +2165,16 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
   const store = changelogStore(gitService.repoPath)
   const record = opts?.branch ? await store.get(opts.branch) : null
   const ours = record?.inserted?.path === rel ? record.inserted.lines : []
-  const merged = mergeIntoUnreleased(existing, entry, ours)
+  const merged = mergeIntoChangelog(existing, entry, ours, opts?.section)
+
+  // This file keeps no section for unreleased work under any name it goes by.
+  // Where the entry belongs is the reader's call, not a template's.
+  if (merged.needsSection) {
+    return {
+      needsSection: true, path: rel,
+      sections: merged.shape?.sections.map(h => h.text) ?? [],
+    }
+  }
 
   // Nothing is written until the reader has seen what would be. The file is
   // often not what it was when the changelog was generated — half of it may

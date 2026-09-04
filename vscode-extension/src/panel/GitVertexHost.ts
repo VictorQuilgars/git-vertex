@@ -36,7 +36,7 @@ import {
   changelogState, changelogList, noteList,
   type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
 } from '../../../src/main/ai-features'
-import { findChangelogs, isMergedInto, mergeIntoUnreleased } from '../../../src/main/changelog-file'
+import { findChangelogs, isMergedInto, mergeIntoChangelog } from '../../../src/main/changelog-file'
 import { resolveBase } from '../../../src/main/ai-material'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
@@ -956,7 +956,7 @@ export class GitVertexHost implements vscode.Disposable {
       case 'insertChangelog': {
         if (!svc || !this._repoPath) return { error: 'No repository open' }
         const raw = (a: string[]) => svc.raw(a)
-        const opts = (args[1] ?? {}) as { branch?: string; file?: string; force?: boolean; preview?: boolean }
+        const opts = (args[1] ?? {}) as { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }
         // The same two refusals as the desktop: which file, when there are
         // several, and whether the branch is already in what it lands on.
         const candidates = await findChangelogs(raw)
@@ -981,7 +981,13 @@ export class GitVertexHost implements vscode.Disposable {
         const clStore = this._changelogStore()
         const record = opts.branch ? await clStore.get(opts.branch) : null
         const ourLines = record?.inserted?.path === rel ? record.inserted.lines : []
-        const merged = mergeIntoUnreleased(existing, args[0], ourLines)
+        const merged = mergeIntoChangelog(existing, args[0], ourLines, opts.section)
+        if (merged.needsSection) {
+          return {
+            needsSection: true, path: rel,
+            sections: merged.shape?.sections.map(h => h.text) ?? [],
+          }
+        }
         // Nothing is written until the reader has seen what would be.
         if (opts.preview) {
           const dirty = !!(await raw(['status', '--porcelain', '--', rel]).catch(() => '')).trim()

@@ -373,11 +373,13 @@ declare global {
      * base and the bullets are presumably already there. `force` overrides
      * the second; `file` answers the first.
      */
-    insertChangelog: (entry: string, opts?: { branch?: string; file?: string; force?: boolean; preview?: boolean }) => Promise<{
+    insertChangelog: (entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) => Promise<{
       path?: string; added?: number; created?: boolean; sectionCreated?: boolean
       /** Lines a previous insert of this changelog wrote, taken back out. */
       removed?: number | string[]; missing?: string[]
       needsChoice?: boolean; candidates?: string[]
+      /** The file keeps no section for unreleased work — these are its own. */
+      needsSection?: boolean; sections?: string[]
       alreadyMerged?: boolean; branchGone?: boolean; branch?: string; base?: string
       /** `preview` ⇒ nothing was written; this is what writing would do. */
       preview?: boolean; dirty?: boolean

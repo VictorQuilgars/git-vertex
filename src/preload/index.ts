@@ -169,7 +169,7 @@ const gitAPI = {
   aiForgetChangelog: (branch: string) => ipcRenderer.invoke('ai:forget-changelog', branch),
   aiGenerateChangelog: (branch: string, base?: string, previous?: string) =>
     ipcRenderer.invoke('ai:generate-changelog', branch, base, previous),
-  insertChangelog: (entry: string, opts?: { branch?: string; file?: string; force?: boolean; preview?: boolean }) =>
+  insertChangelog: (entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) =>
     ipcRenderer.invoke('changelog:insert', entry, opts),
   aiProposeCommitSplit: () => ipcRenderer.invoke('ai:propose-commit-split'),
   aiResolveConflict: (filepath: string, instruction?: string) => ipcRenderer.invoke('ai:resolve-conflict', filepath, instruction),

@@ -1962,13 +1962,14 @@ export default function App() {
    * duplicates to whatever branch happens to be checked out.
    */
   const insertChangelogGuarded = useCallback(async (text: string, branch: string) => {
-    const call = (opts: { branch?: string; file?: string; force?: boolean; preview?: boolean }) =>
+    const call = (opts: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) =>
       ((window.gitAPI as any).insertChangelog?.(text, opts)
         ?? Promise.resolve({ error: 'not-implemented' }))
 
     // Which file, whether it still makes sense, and — the one that costs the
     // most to get wrong — what exactly would land in it.
     let file: string | undefined
+    let section: string | undefined
     let force = false
 
     let r = await call({ branch, preview: true })
@@ -1979,6 +1980,17 @@ export default function App() {
       file = picked
       r = await call({ branch, file, preview: true })
     }
+    // This file keeps no section for unreleased work under any of the names
+    // one goes by — it is not a Keep a Changelog file, and inventing a
+    // section in it would be imposing a convention on someone who chose
+    // another. Its own headings are the options, plus making a new one.
+    if (r?.needsSection) {
+      const NEW = t('ai.changelog.newSection')
+      const picked = await showChoice(t('ai.changelog.whichSection', r.path), [NEW, ...(r.sections ?? [])])
+      if (!picked) return
+      section = picked === NEW ? '::create-a-new-section::' : picked
+      r = await call({ branch, file, section, preview: true })
+    }
     if (r?.branchGone || r?.alreadyMerged) {
       const ok = await showConfirm(
         r.branchGone
@@ -1986,7 +1998,7 @@ export default function App() {
           : t('ai.changelog.mergedConfirm', r.branch, r.base), true)
       if (!ok) return
       force = true
-      r = await call({ branch, file: file ?? r.path, force, preview: true })
+      r = await call({ branch, file: file ?? r.path, section, force, preview: true })
     }
     if (r?.error) { showToast(r.error, 'err'); return }
 
@@ -2026,7 +2038,7 @@ export default function App() {
       if (r.dirty) lines.push('', t('ai.changelog.previewDirty', r.path))
       const ok = await showConfirm(lines.join('\n'), !!(r.similar?.length || r.dirty))
       if (!ok) return
-      r = await call({ branch, file: file ?? r.path, force })
+      r = await call({ branch, file: file ?? r.path, section, force })
       if (r?.error) { showToast(r.error, 'err'); return }
     }
     const replaced = typeof r?.removed === 'number' ? r.removed : 0

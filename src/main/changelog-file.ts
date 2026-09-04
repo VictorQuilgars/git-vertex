@@ -137,6 +137,13 @@ export interface MergeResult {
   missing: string[]
   /** Every line of ours in the file after this merge. Store it; pass it back. */
   ours: string[]
+  /**
+   * Nothing was written: this file keeps no section for unreleased work under
+   * any name, and where the entry goes is not ours to decide. `shape` carries
+   * its headings so the caller can ask.
+   */
+  needsSection?: boolean
+  shape?: ChangelogShape
   /** The file did not exist and this is its whole content. */
   created: boolean
   /** An Unreleased section was written because there was none. */
@@ -176,7 +183,95 @@ export function similarity(a: string, b: string): number {
 /** Above this, two bullets are saying the same thing in different words. */
 export const SIMILAR_ENOUGH = 0.6
 
-const UNRELEASED = /^##\s+\[?unreleased\]?/i
+/**
+ * The names a section for unreleased work goes by.
+ *
+ * Keep a Changelog says "Unreleased" and this started by only knowing that
+ * one — which is a convention, not a rule, and a repository that heads its
+ * file with `## Next` or `## master` was told it had none and had one
+ * invented above its newest release. These are the spellings actually met in
+ * the wild, in two languages, and the reader is asked whenever none matches.
+ */
+const UNRELEASED_NAMES = [
+  'unreleased', 'unpublished', 'upcoming', 'next', 'next release', 'nightly',
+  'to be released', 'unreleased changes', 'tbd', 'wip', 'in progress',
+  'master', 'main', 'head', 'dev', 'develop', 'trunk',
+  'à paraître', 'a paraitre', 'non publié', 'non publie', 'prochaine version',
+  'en cours', 'à venir', 'a venir',
+]
+
+/** `target` for "make a section, I have decided" — never a heading's text. */
+export const NEW_SECTION = '::create-a-new-section::'
+
+/** A heading, as it sits in the file. */
+export interface ChangelogHeading { line: number; level: number; text: string }
+
+export interface ChangelogShape {
+  /** The level a release heading sits at — `## 1.4.0` is 2, `# 1.4.0` is 1. */
+  level: number
+  /** The level the groups inside one sit at (Added, Fixed…). */
+  groupLevel: number
+  /** The section for unreleased work, if the file has one under any name. */
+  unreleased: ChangelogHeading | null
+  /** Every section at the release level, newest first as the file has them. */
+  sections: ChangelogHeading[]
+}
+
+/** A heading's text, without its hashes, its brackets or its trailing date. */
+const headingText = (raw: string): string =>
+  raw.replace(/^#+\s*/, '')
+    .replace(/^\[([^\]]*)\]\([^)]*\)/, '$1')   // [1.4.0](https://…)
+    .replace(/^\[([^\]]*)\]/, '$1')              // [Unreleased]
+    .replace(/\s*[—–-]\s*.*$/, '')                // — 2026-01-01, - ReleaseDate
+    .trim()
+
+/** Does this heading name a section for work that is not out yet? */
+const namesUnreleased = (text: string): boolean =>
+  UNRELEASED_NAMES.includes(text.toLowerCase().replace(/[[\]()]/g, '').trim())
+
+/** A heading that names a release rather than the file. */
+const namesSection = (text: string): boolean =>
+  namesUnreleased(text)
+  || /^v?\d+\.\d+/.test(text.trim())          // 1.4.0, v2.0
+  || /^\d{4}-\d{2}-\d{2}/.test(text.trim())   // 2026-01-01
+
+/**
+ * What shape this changelog is in — read, never assumed.
+ *
+ * The release level is the shallowest one that is not the file's TITLE, and
+ * the title is a single heading, first in the file, whose text does not name
+ * a release. That last clause is what tells `# Changelog` (a title, releases
+ * one level down) from `# 1.4.0` (a release at the top level), and a file
+ * with no headings at all falls back to `##`, which is what every template
+ * on earth uses.
+ */
+export function readShape(existing: string): ChangelogShape {
+  const headings: ChangelogHeading[] = []
+  let fenced = false
+  existing.split('\n').forEach((raw, line) => {
+    if (/^\s*```/.test(raw)) { fenced = !fenced; return }
+    if (fenced) return
+    const m = raw.match(/^(#{1,6})\s+\S/)
+    if (m) headings.push({ line, level: m[1].length, text: headingText(raw) })
+  })
+
+  let level = 2
+  if (headings.length) {
+    const min = Math.min(...headings.map(h => h.level))
+    const atMin = headings.filter(h => h.level === min)
+    const isTitle = atMin.length === 1 && atMin[0] === headings[0] && !namesSection(atMin[0].text)
+    const below = headings.filter(h => h.level > min).map(h => h.level)
+    level = isTitle ? (below.length ? Math.min(...below) : min + 1) : min
+  }
+
+  const sections = headings.filter(h => h.level === level)
+  return {
+    level,
+    groupLevel: level + 1,
+    unreleased: sections.find(h => namesUnreleased(h.text)) ?? null,
+    sections,
+  }
+}
 
 /**
  * Merge an entry into the Unreleased section of a changelog.
@@ -187,13 +282,21 @@ const UNRELEASED = /^##\s+\[?unreleased\]?/i
  *     updated changelog can be inserted over one that was inserted before;
  *   - a heading already there takes the new bullets — a second `### Added`
  *     is the thing this function exists to prevent;
- *   - no Unreleased section ⇒ one is created above the topmost release, or
- *     under the title of a file that has none.
+ *   - the file's own shape is followed, not Keep a Changelog's: the section
+ *     for unreleased work is found under any of the names it goes by, and the
+ *     entry's headings are re-levelled to sit inside it. `target` names the
+ *     section to write into when the caller has asked; without one, and with
+ *     no section that names itself unreleased, nothing is written and
+ *     `needsSection` comes back with the file's own headings to choose from.
  */
-export function mergeIntoUnreleased(
-  existing: string | null, entry: string, previouslyOurs: string[] = [],
+export function mergeIntoChangelog(
+  existing: string | null, entry: string, previouslyOurs: string[] = [], target?: string,
 ): MergeResult {
-  const parts = sections(entry)
+  const shape = existing === null ? null : readShape(existing)
+  const groupLevel = shape?.groupLevel ?? 3
+  /** A group heading, at the level THIS file puts its groups at. */
+  const at = (heading: string) => '#'.repeat(groupLevel) + heading.replace(/^#+/, '')
+  const parts = sections(entry).map(p => ({ ...p, heading: at(p.heading) }))
   const nothing = {
     added: 0, addedLines: [], skipped: [], similar: [], existing: [],
     removed: [], missing: [], ours: [],
@@ -213,7 +316,13 @@ export function mergeIntoUnreleased(
   }
 
   const lines = existing.split('\n')
-  const start = lines.findIndex(l => UNRELEASED.test(l))
+  const head = shape!.level
+  // Where this goes: the section the caller named, or the one that names
+  // itself unreleased under any of the words people use for it.
+  const chosen = target
+    ? shape!.sections.find(h => h.text === target) ?? null
+    : shape!.unreleased
+  const start = chosen ? chosen.line : -1
   const addedLines: string[] = []
   const skipped: string[] = []
   const similar: { line: string; existing: string }[] = []
@@ -223,16 +332,24 @@ export function mergeIntoUnreleased(
   const stillOurs: string[] = []
 
   if (start === -1) {
-    // Above the topmost `## ` — a release section — so the newest thing in
-    // the file stays at the top, which is what every changelog convention
-    // agrees on. Failing that, after the title.
-    let at = lines.findIndex(l => /^##\s+\S/.test(l))
+    // Nothing in this file says "unreleased" under any name it goes by, and
+    // the caller has not said where to put it. Inventing a section on a file
+    // that keeps its changelog some other way is imposing a convention on
+    // someone who chose a different one — so the caller is asked instead,
+    // with the file's own headings to choose from.
+    if (target !== NEW_SECTION) {
+      return { content: existing, ...nothing, needsSection: true, shape: shape! }
+    }
+    // Above the topmost section, so the newest thing stays at the top —
+    // the one rule every changelog convention does agree on. At the file's
+    // OWN heading level, not at `##` because a template said so.
+    let at = shape!.sections[0]?.line ?? -1
     if (at === -1) {
-      const title = lines.findIndex(l => /^#\s+\S/.test(l))
+      const title = lines.findIndex(l => /^#{1,6}\s+\S/.test(l))
       at = title === -1 ? 0 : title + 1
       while (at < lines.length && !lines[at].trim()) at++
     }
-    const inserted = ['## Unreleased', '', ...block.split('\n'), '']
+    const inserted = ['#'.repeat(head) + ' Unreleased', '', ...block.split('\n'), '']
     lines.splice(at, 0, ...inserted)
     const all = parts.flatMap(s => s.lines.filter(l => l.trim()).map(l => l.trim()))
     return {
@@ -243,10 +360,11 @@ export function mergeIntoUnreleased(
     }
   }
 
-  // The section runs to the next `## ` heading, or to the end of the file.
+  // The section runs to the next heading at its own level, or to the end.
+  const atHead = new RegExp(`^#{1,${head}}\\s+\\S`)
   let end = lines.length
   for (let i = start + 1; i < lines.length; i++) {
-    if (/^##\s+\S/.test(lines[i])) { end = i; break }
+    if (atHead.test(lines[i])) { end = i; break }
   }
   const body = lines.slice(start + 1, end)
 
@@ -270,9 +388,10 @@ export function mergeIntoUnreleased(
 
   for (const part of parts) {
     // Where that heading already is, inside this section only.
+    const groupHead = new RegExp(`^#{${groupLevel}}\\s+\\S`)
     let at = -1
     for (let i = 0; i < body.length; i++) {
-      if (/^###\s+\S/.test(body[i]) && key(body[i]) === key(part.heading)) { at = i; break }
+      if (groupHead.test(body[i]) && key(body[i]) === key(part.heading)) { at = i; break }
     }
     if (at === -1) {
       // A new heading goes at the end of the section, after its last content.
@@ -285,8 +404,9 @@ export function mergeIntoUnreleased(
     }
     // The subsection runs to the next heading of any level.
     let stop = body.length
+    const anyHead = new RegExp(`^#{1,${groupLevel}}\\s+\\S`)
     for (let i = at + 1; i < body.length; i++) {
-      if (/^#{2,3}\s+\S/.test(body[i])) { stop = i; break }
+      if (anyHead.test(body[i])) { stop = i; break }
     }
     const existing = body.slice(at + 1, stop).filter(l => l.trim())
     already.push(...existing.map(l => l.trim()))
