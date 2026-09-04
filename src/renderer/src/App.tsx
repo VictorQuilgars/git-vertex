@@ -39,9 +39,11 @@ import {
 import InitModal from './components/InitModal/InitModal'
 import PRComposer from './components/PRComposer/PRComposer'
 import IssueComposer from './components/IssueComposer/IssueComposer'
+import AIAnswer from './components/AIAnswer/AIAnswer'
+import CommitComposer from './components/CommitComposer/CommitComposer'
 import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from './components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
-import { canonicalRef, publishedNameFor } from './components/ContextMenu/branchRefs'
+import { canonicalRef, publishedNameFor, shortName } from './components/ContextMenu/branchRefs'
 import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu/branchMenu'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
@@ -849,7 +851,21 @@ export default function App() {
   // drawer open when the tab was closed greeted the NEXT open of the repo —
   // with an intent computed for branches that may have moved since.
   const [issueComposerOpen, setIssueComposerOpen] = useState(false)
-  useEffect(() => { setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false) }, [repoPath])
+  /**
+   * What the AI drawer is currently reading (#70 P1). One piece of state for
+   * the four, because only one can be open: they all come out of the same
+   * edge of the same panel, and two would be one on top of the other.
+   */
+  const [aiRead, setAiRead] = useState<
+    | { kind: 'branch' | 'changelog'; ref: string; label: string }
+    | { kind: 'stash'; index: number; label: string }
+    | { kind: 'working' }
+    | null>(null)
+  const [composerOpen, setComposerOpen] = useState(false)
+  useEffect(() => {
+    setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false)
+    setAiRead(null); setComposerOpen(false)
+  }, [repoPath])
 
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
@@ -1896,6 +1912,8 @@ export default function App() {
         onToggleFavorite: () => branchMeta.toggleFavorite(ref),
         onToggleSolo: () => setSoloBranch(prev => prev === ref ? null : ref),
         onToggleHide: () => toggleHidden('branches', ref),
+        onExplain: () => setAiRead({ kind: 'branch', ref, label: target.display }),
+        onChangelog: () => setAiRead({ kind: 'changelog', ref, label: target.display }),
         onCopyName: () => navigator.clipboard.writeText(target.display),
         onCopyLink: () => handleCopyBranchLink(ref),
         onRename: () => handleRenameBranch(ref),
@@ -2446,6 +2464,9 @@ export default function App() {
               branches={branches}
               recentRepos={recentRepos}
               stashes={stashes}
+              onExplainStash={(index, message) => setAiRead({ kind: 'stash', index, label: message })}
+              onExplainBranch={(name) => setAiRead({ kind: 'branch', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              onBranchChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
               tags={tags}
               onOpenRepo={handleOpenRepo}
               onClone={() => setCloneOpen(true)}
@@ -2807,6 +2828,8 @@ export default function App() {
                 onRewordMessage={applyReword}
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}
+                onExplainWorking={() => setAiRead({ kind: 'working' })}
+                onSplitCommits={() => setComposerOpen(true)}
                 branchStrip={branchStripProps}
               />
             </div>
@@ -2859,6 +2882,85 @@ export default function App() {
           onClose={() => setIssueComposerOpen(false)}
           onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'issues') }}
           onStartBranch={handleCreateBranchFromIssue}
+          showToast={showToast}
+        />
+      )}
+
+      {/* What the model reads, in the composers' drawer (#70 P1). A branch,
+          a stash, the uncommitted work — same shape, one component. */}
+      {aiRead?.kind === 'branch' && (
+        <AIAnswer
+          anchor={sidebarPanelRef}
+          title={t('ai.branch.title')}
+          subject={aiRead.label}
+          icon="branch"
+          guide
+          onClose={() => setAiRead(null)}
+          run={async (guidance) => {
+            const r = await ((window.gitAPI as any).aiExplainBranch?.(aiRead.ref, guidance)
+              ?? Promise.resolve({ error: 'not-implemented' }))
+            return { text: r?.explanation, meta: r?.base ? t('ai.branch.meta', r.base) : undefined, error: r?.error }
+          }}
+        />
+      )}
+
+      {aiRead?.kind === 'changelog' && (
+        <AIAnswer
+          anchor={sidebarPanelRef}
+          title={t('ai.changelog.title')}
+          subject={aiRead.label}
+          icon="branch"
+          mono
+          onClose={() => setAiRead(null)}
+          run={async () => {
+            const r = await ((window.gitAPI as any).aiGenerateChangelog?.(aiRead.ref)
+              ?? Promise.resolve({ error: 'not-implemented' }))
+            return {
+              text: r?.changelog,
+              meta: r?.base ? t('ai.changelog.meta', r.commits ?? 0, r.base) : undefined,
+              error: r?.error,
+            }
+          }}
+        />
+      )}
+
+      {aiRead?.kind === 'stash' && (
+        <AIAnswer
+          anchor={sidebarPanelRef}
+          title={t('ai.stash.title')}
+          subject={aiRead.label}
+          icon="stash"
+          guide
+          onClose={() => setAiRead(null)}
+          run={async (guidance) => {
+            const r = await ((window.gitAPI as any).aiExplainStash?.(aiRead.index, guidance)
+              ?? Promise.resolve({ error: 'not-implemented' }))
+            return { text: r?.explanation, error: r?.error }
+          }}
+        />
+      )}
+
+      {aiRead?.kind === 'working' && (
+        <AIAnswer
+          anchor={sidebarPanelRef}
+          title={t('ai.working.title')}
+          subject={t('ai.working.subject')}
+          icon="staging"
+          guide
+          onClose={() => setAiRead(null)}
+          run={async (guidance) => {
+            const r = await ((window.gitAPI as any).aiExplainWorking?.(guidance)
+              ?? Promise.resolve({ error: 'not-implemented' }))
+            return { text: r?.explanation, error: r?.error }
+          }}
+        />
+      )}
+
+      {composerOpen && (
+        <CommitComposer
+          anchor={sidebarPanelRef}
+          onClose={() => setComposerOpen(false)}
+          onCommitted={loadRepoData}
           showToast={showToast}
         />
       )}

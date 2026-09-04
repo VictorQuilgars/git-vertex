@@ -2,6 +2,24 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🤖 The AI reads more than a commit
+- **Explain a branch, a stash, or the uncommitted work** — the reading the commit panel has had since v1.10, on the three diffs that had nowhere to ask for it.
+- A branch is read against a base **worked out, not assumed**: the trunk the remote declares, its remote copy over a stale local one, and its own upstream when the branch asked about *is* the trunk.
+- Every answer opens in the composers' drawer, writes itself in word by word, and takes a focus — *only the migration* — for another go.
+
+### 📝 A changelog, from the branch menu
+- What a branch adds over its base, under the usual \`### Added\` / \`### Changed\` / \`### Fixed\` headings, empty sections forbidden — ready to paste.
+
+### ✂️ A commit composer
+- The uncommitted work cut into a sequence of atomic commits, reviewed before any of it is history: edit a message, move a file between commits, reorder, drop one, add one.
+- Whole files, staged or not — and the drawer says so.
+- Every path the model names is checked against the tree: an invented one is dropped and counted, a file placed nowhere is shown rather than left behind, and a failure halfway says how many commits were made and that the rest is still on disk.
+
+### ⚙️ Settings › AI Assistant
+- Changelog generation and splitting into commits join the list, each with its own model and its own standing instructions.
+`,
   '1.33.0': `## What's new in 1.33.0
 
 ### 🧭 The graph says which branch a commit is on

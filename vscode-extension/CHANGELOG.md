@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **The AI reads more than a commit.** A branch, a stash and the uncommitted work can all be explained now — the same reading the commit panel has offered since v1.10, on the three diffs that had nowhere to ask for it. The branch is read **against a base worked out rather than assumed**: the trunk the remote declares, the remote's copy of it over a stale local one, and its own upstream when the branch asked about *is* the trunk. Every answer opens in the composers' drawer, breathes while it waits, writes itself in word by word, and takes a focus — *only the migration* — for another go. (#70)
+- **A changelog, from the branch menu.** What a branch adds over its base, grouped under `### Added` / `### Changed` / `### Fixed` — the sections this file uses — with the empty ones forbidden rather than tolerated, ready to paste. (#70)
+- **A commit composer.** The uncommitted work, cut into a sequence of atomic commits and reviewed before any of it is history: edit a message, move a file between commits, reorder them, drop one, add one. Whole files, staged or not — and the drawer says so. Every path the model names is checked against the tree: an invented one is dropped and counted, a file it placed nowhere is shown rather than quietly left behind, and a failure halfway says how many commits were made and that the rest is still on disk. (#70)
+- Two more features in **Settings › AI Assistant** — changelog generation and splitting into commits — each with its own model and its own standing instructions, like the seven before them.
+
 ## 1.31.0
 
 ### Added

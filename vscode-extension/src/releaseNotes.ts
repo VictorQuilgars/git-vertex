@@ -16,6 +16,23 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🤖 The AI reads more than a commit
+- **Explain a branch, a stash, or the uncommitted work** — the reading the commit panel has had for versions, on the three diffs that had nowhere to ask for it.
+- A branch is read against a base **worked out, not assumed**: the trunk the remote declares, its remote copy over a stale local one, its own upstream when the branch *is* the trunk.
+- Every answer opens in a drawer, writes itself in, and takes a focus — *only the migration* — for another go.
+
+### 📝 A changelog, from the branch menu
+- What a branch adds over its base, under the usual headings, empty sections forbidden — ready to paste.
+
+### ✂️ A commit composer
+- The uncommitted work cut into atomic commits, reviewed first: edit a message, move a file, reorder, drop, add. Whole files, staged or not.
+- Every path is checked against the tree — an invented one is dropped, a file placed nowhere is shown, and a failure halfway says how far it got.
+
+### ⚙️ Settings
+- Changelog generation and splitting into commits get their own model and their own instructions.
+`,
   '1.31.0': `## What's new in 1.31.0
 
 ### 🧭 The graph says which branch a commit is on

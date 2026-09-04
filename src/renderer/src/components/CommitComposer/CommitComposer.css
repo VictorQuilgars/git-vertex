@@ -1,0 +1,171 @@
+/* The commit composer (#70 P1) — a plan, laid out as the commits it will
+   make, in the order it will make them. PanelDrawer owns the chrome. */
+
+.cc-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.cc-wait {
+  display: flex; align-items: center; gap: var(--space-sm);
+  font-size: var(--text-sm); color: var(--text-tertiary);
+}
+
+.cc-breath {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ai-text);
+  animation: cc-breathe 1.2s ease-in-out infinite;
+}
+@keyframes cc-breathe { 50% { opacity: var(--alpha-half); transform: scale(0.6); } }
+@media (prefers-reduced-motion: reduce) { .cc-breath { animation: none; } }
+
+.cc-error {
+  padding: var(--space-md);
+  background: var(--danger-block-bg);
+  border: 1px solid var(--danger-block-border);
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+.cc-summary {
+  display: flex; flex-direction: column; gap: var(--space-2xs);
+  font-size: var(--text-sm); color: var(--text-secondary);
+}
+
+/* The caveat rides with the count, not in a tooltip: whole files is the
+   difference between what this does and what a hunk-level split would. */
+.cc-note, .cc-hint { font-size: var(--text-xs); color: var(--text-tertiary); }
+
+.cc-warn {
+  font-size: var(--text-xs);
+  color: var(--warning);
+}
+
+/* ── One proposed commit ─────────────────────── */
+.cc-group {
+  display: flex; flex-direction: column; gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+/* The one being made carries the AI ink; the ones already made step back —
+   the list doubles as the progress bar it would otherwise need. */
+.cc-group--applying { border-color: var(--ai-border); }
+.cc-group--done { opacity: var(--alpha-half); }
+
+.cc-group-head {
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.cc-group-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  font-size: var(--text-tiny);
+  color: var(--text-secondary);
+}
+
+.cc-group-tools { display: flex; gap: var(--space-2xs); }
+
+.cc-group-tools button {
+  background: transparent; border: none;
+  padding: 0 var(--space-2xs);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.cc-group-tools button:hover:not(:disabled) { color: var(--text-primary); }
+.cc-group-tools button:disabled { opacity: var(--alpha-half); cursor: default; }
+
+.cc-message {
+  width: 100%;
+  min-height: 48px;
+  /* Grown to its content by the component; still draggable from there. */
+  resize: vertical;
+  overflow: hidden;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  padding: var(--space-sm);
+}
+.cc-message:focus { outline: none; border-color: var(--ai-border); }
+
+/* ── The files a commit takes ─────────────────── */
+.cc-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2xs); }
+
+.cc-file {
+  display: flex; align-items: center; gap: var(--space-sm);
+  font-size: var(--text-xs);
+}
+
+.cc-file-path {
+  flex: 1; min-width: 0;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary);
+  /* The end of a path is the part that identifies it. */
+  direction: rtl; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.cc-file-move {
+  flex-shrink: 0;
+  max-width: 120px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-tiny);
+  padding: 1px var(--space-2xs);
+}
+
+.cc-add {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  background: transparent; border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-md);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.cc-add:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-strong); }
+.cc-add:disabled { opacity: var(--alpha-half); cursor: default; }
+
+/* ── What the split left out ──────────────────── */
+.cc-loose {
+  display: flex; flex-direction: column; gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.cc-loose-head { font-size: var(--text-xs); color: var(--text-tertiary); }
+
+/* ── Apply ────────────────────────────────────── */
+.cc-apply-row {
+  display: flex; align-items: center; gap: var(--space-md);
+  border-top: 1px solid var(--border-muted);
+  padding-top: var(--space-md);
+}
+
+/* The one filled button in the drawer, and it is not in the AI ink: what it
+   does is the human act — the commits are the user's, whoever drafted them. */
+.cc-apply {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--accent-strong);
+  border: 1px solid var(--accent-emphasis);
+  border-radius: var(--radius-md);
+  color: var(--text-on-emphasis);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.cc-apply:hover:not(:disabled) { background: var(--accent-emphasis); }
+.cc-apply:disabled { opacity: var(--alpha-half); cursor: default; }

@@ -356,20 +356,21 @@ describe('SettingsModal — per-feature AI overrides', () => {
 
   test('every feature is a section, in the open', async () => {
     await open()
-    for (const label of ['Commit messages', 'Explain a commit', 'Conflict resolution',
-      'Commit search', 'Filter queries', 'Pull request descriptions', 'Issue drafting']) {
+    for (const label of ['Commit messages', 'Explain a change', 'Conflict resolution',
+      'Commit search', 'Filter queries', 'Pull request descriptions', 'Issue drafting',
+      'Changelog generation', 'Splitting into commits']) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
     // and every one carries its own picker, the fallback named on its face
-    expect(document.querySelectorAll('.stg-ai-feature .stg-msel-face').length).toBe(7)
-    expect(screen.getAllByText(/^Global model \(/).length).toBe(7)
+    expect(document.querySelectorAll('.stg-ai-feature .stg-msel-face').length).toBe(9)
+    expect(screen.getAllByText(/^Global model \(/).length).toBe(9)
   })
 
   test('the ready-made fragments wait behind Templates; a pick writes, then reads taken', async () => {
     await open()
     // nothing laid out above the field — the button is the whole offer
     expect(screen.queryByRole('option', { name: 'Focus on the why' })).not.toBeInTheDocument()
-    const explain = screen.getByText('Explain a commit').closest('.stg-ai-feature') as HTMLElement
+    const explain = screen.getByText('Explain a change').closest('.stg-ai-feature') as HTMLElement
     await userEvent.click(within(explain).getByRole('button', { name: /templates/i }))
     await userEvent.click(within(explain).getByRole('option', { name: 'Focus on the why' }))
     const field = screen.getAllByPlaceholderText('Instructions for this feature only…')[1]
@@ -390,7 +391,7 @@ describe('SettingsModal — per-feature AI overrides', () => {
     const mock = await open()
     await userEvent.type(
       screen.getByPlaceholderText(/Keep answers plain/), 'No exclamation marks.')
-    await userEvent.click(screen.getByText('Explain a commit'))
+    await userEvent.click(screen.getByText('Explain a change'))
     await userEvent.type(
       screen.getAllByPlaceholderText('Instructions for this feature only…')[1], 'Focus on the why.')
     await userEvent.click(screen.getByText('Save'))
@@ -413,7 +414,7 @@ describe('SettingsModal — per-feature AI overrides', () => {
     // one line under each heading; a reasoning model's tax on one-liners is
     // said where the choice is made, not learned from an empty reply.
     expect(screen.getAllByText(/a fast, small model shines here/).length).toBe(3)
-    expect(screen.getAllByText(/earns its cost here/).length).toBe(3)
+    expect(screen.getAllByText(/earns its cost here/).length).toBe(5)
     expect(screen.getAllByText(/mid-tier model does well/).length).toBe(1)
   })
 

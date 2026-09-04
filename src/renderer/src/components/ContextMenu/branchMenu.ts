@@ -62,6 +62,10 @@ export interface BranchMenuActions {
   onToggleFavorite?: () => void
   onToggleSolo?: () => void
   onToggleHide?: () => void
+  /** Reads the branch aloud — what it carries over its base (#70 P1). */
+  onExplain?: () => void
+  /** Writes the changelog of what it carries (#70 P1). */
+  onChangelog?: () => void
   onCopyName?: () => void
   /** Copies the branch's URL on the forge, next to opening it. */
   onCopyLink?: () => void
@@ -228,6 +232,13 @@ export function buildBranchMenu(
   compares.push(...(extras.compare ?? []))
   if (compares.length) inspect.push({ label: t('sb.branch.compareMenu'), submenu: compares })
   if (extras.exports?.length) inspect.push({ label: t('graph.menu.patchMenu'), submenu: extras.exports })
+  // Two readings of the same branch, folded behind one row like every other
+  // family of variants here — and in their own, because what a model writes
+  // is not what git does, and the menu should not blur the two.
+  const readings: MenuItemDef[] = []
+  if (actions.onExplain) readings.push({ label: t('sb.branch.explain'), action: actions.onExplain })
+  if (actions.onChangelog) readings.push({ label: t('sb.branch.changelog'), action: actions.onChangelog })
+  if (readings.length) inspect.push({ label: t('sb.branch.aiMenu'), submenu: readings })
   if (actions.onAssociateIssue) {
     inspect.push({
       label: state.issue

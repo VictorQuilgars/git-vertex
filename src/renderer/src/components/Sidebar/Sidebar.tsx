@@ -79,6 +79,11 @@ interface SidebarProps {
   onPopStash: (index: number) => void
   onDropStash: (index: number) => void
   onPreviewStash?: (index: number, message: string) => void
+  /** Reads the stash aloud (#70 P1). Absent ⇒ no row, the menu's rule. */
+  onExplainStash?: (index: number, message: string) => void
+  /** The same, for a branch — and the changelog of what it carries (#70 P1). */
+  onExplainBranch?: (name: string) => void
+  onBranchChangelog?: (name: string) => void
   onRefreshStashes: () => void
   onCreateTag: () => void
   onDeleteTag: (name: string) => void
@@ -894,9 +899,12 @@ interface BranchItemProps {
    * ref, copy-name — keeps using the full name (#134).
    */
   displayAs?: string
+  /** The two AI readings of this branch (#70 P1). */
+  onExplain?: () => void
+  onChangelog?: () => void
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -920,6 +928,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
       onCreatePR: pr && onCreatePR ? () => onCreatePR(pr) : undefined,
       onMerge, onRebaseOnto, onCompare,
       onOpenOnRemote, onAssociateIssue, onToggleFavorite,
+      onExplain, onChangelog,
       onToggleSolo, onToggleHide,
       onCopyName: () => navigator.clipboard.writeText(fullDisplay),
       onCopyLink,
@@ -991,13 +1000,15 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
 }
 
 // ── Stash item ────────────────────────────────────────────────────
-function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, hidden }: {
+function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, hidden }: {
   stash: StashEntry
   onApply: () => void
   onPop: () => void
   onDrop: () => void
   onPreview?: () => void
   onRename?: () => void
+  /** Reads it aloud — what work is parked here (#70 P1). */
+  onExplain?: () => void
   /**
    * Dimmed, but with no row action to undo it: the entries of `git stash list`
    * are the reflog of a single ref, `refs/stash`, so git can take all of them
@@ -1015,6 +1026,7 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, hidden 
     { label: t('sb.stash.applyKeep'), action: onApply },
     { label: t('sb.stash.applyPop'), action: onPop },
     ...(onRename ? [{ label: t('sb.stash.rename'), action: onRename }] : []),
+    ...(onExplain ? [{ separator: true } as MenuItemDef, { label: t('sb.stash.explain'), action: onExplain }] : []),
     { separator: true },
     { label: t('sb.delete'), action: onDrop, danger: true },
   ]
@@ -1276,7 +1288,8 @@ export default function Sidebar({
   onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
-  onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
+  onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes,
+  onExplainBranch, onBranchChangelog,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, visibility, onToggleSolo, onToggleHide,
@@ -1789,6 +1802,8 @@ export default function Sidebar({
                 onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
                 onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
                 onAssociateIssue={onAssociateIssue && (() => onAssociateIssue(b.name))}
+                onExplain={onExplainBranch && (() => onExplainBranch(b.name))}
+                onChangelog={onBranchChangelog && (() => onBranchChangelog(b.name))}
                 pr={prIntentFor?.(b.name)}
                 onCreatePR={onCreatePR}
                 publishedAs={publishedNameFor(b.name, branches) ?? undefined}
@@ -1842,6 +1857,8 @@ export default function Sidebar({
                     favorite={isFavorite?.(b.name)}
                     onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
                     onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
+                    onExplain={onExplainBranch && (() => onExplainBranch(b.name))}
+                    onChangelog={onBranchChangelog && (() => onBranchChangelog(b.name))}
                     pr={prIntentFor?.(b.name)}
                     onCreatePR={onCreatePR}
                     publishedAs={b.name.replace(/^remotes\//, '')}
@@ -2103,6 +2120,7 @@ export default function Sidebar({
                     onPop={() => onPopStash(s.index)}
                     onDrop={() => onDropStash(s.index)}
                     onPreview={onPreviewStash ? () => onPreviewStash(s.index, s.message) : undefined}
+                    onExplain={onExplainStash ? () => onExplainStash(s.index, s.message) : undefined}
                     onRename={() => handleRenameStash(s.index, s.message)}
                     hidden={stashesHidden}
                   />
