@@ -25,7 +25,14 @@ export interface GraphEdge {
 }
 
 export interface BranchInfo {
-  name: string; current: boolean; remote: boolean; commit: string; label: string
+  name: string; current: boolean; remote: boolean; commit: string
+  /**
+   * ⚠️ The last commit's SUBJECT, not a name for the branch — it is what
+   * simple-git calls `label` and the field kept the word. Anything showing a
+   * branch to a user wants `name`; the toolbar's picker showed three commit
+   * messages before this comment existed.
+   */
+  label: string
   // HEAD is not on a branch (mid-rebase, or plain detached). `name` then holds
   // a human label such as `rebasing feature`, never a checkout-able ref.
   detached?: boolean
@@ -314,6 +321,8 @@ declare global {
     stashDiff: (index: number) => Promise<{ diff?: string; error?: string }>
 
     // Conflicts
+    /** Would this branch conflict with the base it will land on? Fails open. */
+    conflictOutlook: (branch?: string) => Promise<{ base?: string | null; files?: string[]; error?: string }>
     predictConflicts: (theirs: string, ours?: string, mergeBase?: string) => Promise<Unnarrowed>
     predictRebaseConflicts: (upstream: string, branch?: string) => Promise<Unnarrowed>
     getConflictSides: () => Promise<{ ours: string; theirs: string }>
@@ -325,6 +334,69 @@ declare global {
     aiRecomposeCommit: (hash: string) => Promise<Unnarrowed>
     aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => Promise<Unnarrowed>
     aiGetExplanations: () => Promise<Unnarrowed>
+    // The same explanation, on the three other diffs a repository has (#70).
+    // None of them is cached: a branch, a stash and a working tree all move
+    // under their answer, where a commit's diff cannot.
+    aiExplainBranch: (branch: string, guidance?: string) => Promise<{ explanation?: string; base?: string; error?: string }>
+    aiExplainStash: (index: number | string, guidance?: string) => Promise<{ explanation?: string; error?: string }>
+    aiExplainWorking: (guidance?: string) => Promise<{ explanation?: string; error?: string }>
+    // The changelog remembers: what it wrote, and what it wrote it from, so
+    // reopening the drawer costs nothing and a branch that has moved says so.
+    aiChangelogState: (branch: string, scope?: string) => Promise<{
+      base?: string
+      cached?: { text: string; base: string; headSha: string; baseSha: string; commits: number; at: number }
+      newCommits?: number
+      baseMoved?: boolean
+      error?: string
+    }>
+    /** Every changelog this repository has had written, newest first. */
+    aiChangelogList: () => Promise<{ entries?: {
+      branch: string; text: string; base: string; commits: number; at: number
+      newCommits: number; orphan: boolean
+      inserted?: { path: string; lines: string[]; at: number }
+    }[] }>
+    aiForgetChangelog: (branch: string) => Promise<R>
+    /** Every reading kept for this repository — branch, stash, working tree. */
+    aiNoteList: () => Promise<{ entries?: {
+      kind: 'branch' | 'stash' | 'working'
+      key: string; title: string; text: string; at: number; sha: string
+      newCommits: number; orphan: boolean
+    }[] }>
+    aiForgetNote: (kind: string, key: string) => Promise<R>
+    aiForgetExplanation: (hash: string) => Promise<R>
+    aiGenerateChangelog: (branch: string, base?: string, previous?: string, scope?: string) => Promise<{ changelog?: string; base?: string; commits?: number; scope?: string; error?: string }>
+    /**
+     * How this repository keeps its changelogs — one per package, or all of
+     * them about the same work. A preference, kept in the repository's own
+     * git config, and restated in the preview rather than hidden in a page.
+     */
+    changelogGetScopePref: () => Promise<{ pref: 'package' | 'branch' | null }>
+    changelogSetScopePref: (pref: 'package' | 'branch') => Promise<R>
+    /** Merges an entry into the repository's own changelog. Only ever adds. */
+    /**
+     * Merges an entry into the repository's own changelog. Only ever adds —
+     * and refuses to choose for you: `needsChoice` when the repository tracks
+     * several changelogs, `alreadyMerged` when the branch is already in its
+     * base and the bullets are presumably already there. `force` overrides
+     * the second; `file` answers the first.
+     */
+    insertChangelog: (entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) => Promise<{
+      path?: string; added?: number; created?: boolean; sectionCreated?: boolean
+      /** Lines a previous insert of this changelog wrote, taken back out. */
+      removed?: number | string[]; missing?: string[]
+      needsChoice?: boolean; candidates?: string[]
+      /** The file keeps no section for unreleased work — these are its own. */
+      needsSection?: boolean; sections?: string[]
+      alreadyMerged?: boolean; branchGone?: boolean; branch?: string; base?: string
+      /** `preview` ⇒ nothing was written; this is what writing would do. */
+      preview?: boolean; dirty?: boolean
+      /** The package this changelog is about, and whether the branch touched it. */
+      dir?: string; dirTouched?: boolean
+      addedLines?: string[]; skipped?: string[]; existing?: string[]
+      similar?: { line: string; existing: string }[]
+      error?: string
+    }>
+    aiProposeCommitSplit: () => Promise<{ groups?: { message: string; files: string[] }[]; unassigned?: string[]; invented?: string[]; error?: string }>
     aiResolveConflict: (filepath: string, instruction?: string) => Promise<Unnarrowed>
     aiSearchCommits: (query: string) => Promise<Unnarrowed>
     aiListModels: () => Promise<Unnarrowed>

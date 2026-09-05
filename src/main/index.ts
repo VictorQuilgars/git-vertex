@@ -22,6 +22,13 @@ import { ThemeStore } from './theme-store'
 import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
 import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
+import {
+  explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
+  changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges,
+  type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
+} from './ai-features'
+import { resolveBase, type Raw } from './ai-material'
+import { findChangelogs, isMergedInto, mergeIntoChangelog, NEW_SECTION } from './changelog-file'
 import { BUILT_IN_THEME_IDS } from './theme-validate'
 import { bypassVerdict, RULESET_PROBE_CAP } from './ruleset-bypass'
 import { startOAuthFlow, handleOAuthCallback } from './github-auth'
@@ -1969,6 +1976,298 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guid
   if (r.error) return { error: r.error }
   if (!guidance?.trim()) saveExplanation(gitService.repoPath, hash, r.text ?? '')
   return { explanation: r.text }
+})
+
+// ── AI beyond the commit message (#70 P1) ──────────────────────
+// Four reads and one proposal. The whole of each — which base a branch is
+// read against, what is asked, on how many tokens, and what a refusal says —
+// lives in ai-features.ts, which the extension host calls with its own git
+// and its own provider. These handlers own the two things that ARE this
+// process's: the repository it has open, and how it reaches a model.
+
+/** The git this process runs, in the shape the shared module takes. */
+const rawGit = (): Raw => (args: string[]) => (gitService as any).git.raw(args)
+const runFeature: Run = (prompt, maxTokens, feature) => runAIPrompt(prompt, maxTokens, feature)
+
+/**
+ * The readings this app has kept, per repository
+ * (`userData/ai-notes.json`, the shape the changelogs and the commit
+ * explanations use). Commit explanations keep their own older file: a
+ * commit's diff is immutable, so that store needs none of the staleness
+ * this one carries.
+ */
+const notesCachePath = () => join(app.getPath('userData'), 'ai-notes.json')
+function readNotesCache(): Record<string, NoteRecord[]> {
+  try { return JSON.parse(fs.readFileSync(notesCachePath(), 'utf-8')) } catch { return {} }
+}
+const writeNotesCache = (cache: Record<string, NoteRecord[]>): void => {
+  try { fs.writeFileSync(notesCachePath(), JSON.stringify(cache)) } catch { /* best-effort */ }
+}
+const NOTES_MAX_PER_REPO = 200
+const noteStore = (repoPath: string): NoteStore => ({
+  async all() { return readNotesCache()[repoPath] ?? [] },
+  async get(kind, key) {
+    return (readNotesCache()[repoPath] ?? []).find(n => n.kind === kind && n.key === key) ?? null
+  },
+  async set(record) {
+    const cache = readNotesCache()
+    // One note per subject: a second reading of the same branch replaces the
+    // first rather than growing a pile nobody asked for.
+    const kept = (cache[repoPath] ?? []).filter(n => !(n.kind === record.kind && n.key === record.key))
+    kept.unshift(record)
+    cache[repoPath] = kept.slice(0, NOTES_MAX_PER_REPO)
+    writeNotesCache(cache)
+  },
+  async forget(kind, key) {
+    const cache = readNotesCache()
+    if (!cache[repoPath]) return
+    cache[repoPath] = cache[repoPath].filter(n => !(n.kind === kind && n.key === key))
+    writeNotesCache(cache)
+  },
+})
+
+ipcMain.handle('ai:note-list', async () =>
+  gitService ? noteList(rawGit(), noteStore(gitService.repoPath)) : { entries: [] })
+
+ipcMain.handle('ai:forget-note', async (_e, kind: NoteRecord['kind'], key: string) => {
+  if (!gitService) return { success: false }
+  await noteStore(gitService.repoPath).forget(kind, key)
+  return { success: true }
+})
+
+/** A commit explanation can be dropped too — same gesture, older store. */
+ipcMain.handle('ai:forget-explanation', async (_e, hash: string) => {
+  if (!gitService) return { success: false }
+  const cache = readExplCache()
+  if (cache[gitService.repoPath]?.[hash]) {
+    delete cache[gitService.repoPath][hash]
+    try { fs.writeFileSync(explCachePath(), JSON.stringify(cache)) } catch { /* best-effort */ }
+  }
+  return { success: true }
+})
+
+ipcMain.handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
+  gitService
+    ? explainBranch(rawGit(), runFeature, branch, { guidance, store: noteStore(gitService.repoPath) })
+    : { error: 'No repository open' })
+
+ipcMain.handle('ai:explain-stash', async (_e, index: number | string, guidance?: string) =>
+  gitService
+    ? explainStash(rawGit(), runFeature, index, { guidance, store: noteStore(gitService.repoPath) })
+    : { error: 'No repository open' })
+
+ipcMain.handle('ai:explain-working', async (_e, guidance?: string) =>
+  gitService
+    ? explainWorking(rawGit(), runFeature, { guidance, store: noteStore(gitService.repoPath) })
+    : { error: 'No repository open' })
+
+/**
+ * The changelogs this app has written, per repository and branch
+ * (`userData/ai-changelogs.json`, the shape ai-explanations.json uses).
+ *
+ * A changelog is written to be pasted, so people come back to it — and
+ * closing the drawer used to mean paying for it again. Unlike a commit's
+ * explanation this one CAN go stale, which is why the record carries the two
+ * shas it was written from: the drawer offers an update instead of quietly
+ * showing yesterday's text.
+ */
+const changelogCachePath = () => join(app.getPath('userData'), 'ai-changelogs.json')
+function readChangelogCache(): Record<string, Record<string, ChangelogRecord>> {
+  try { return JSON.parse(fs.readFileSync(changelogCachePath(), 'utf-8')) } catch { return {} }
+}
+const writeChangelogCache = (cache: Record<string, Record<string, ChangelogRecord>>): void => {
+  try { fs.writeFileSync(changelogCachePath(), JSON.stringify(cache)) } catch { /* best-effort */ }
+}
+const changelogStore = (repoPath: string): ChangelogStore => ({
+  async get(branch) { return readChangelogCache()[repoPath]?.[branch] ?? null },
+  async all() { return readChangelogCache()[repoPath] ?? {} },
+  async forget(branch) {
+    const cache = readChangelogCache()
+    if (!cache[repoPath]?.[branch]) return
+    delete cache[repoPath][branch]
+    writeChangelogCache(cache)
+  },
+  async set(branch, record) {
+    const cache = readChangelogCache()
+    const repo = cache[repoPath] ?? {}
+    repo[branch] = record
+    // One per branch, and branches are deleted — the same naive cap the
+    // explanations use, for the same reason.
+    const keys = Object.keys(repo)
+    if (keys.length > 100) delete repo[keys[0]]
+    cache[repoPath] = repo
+    writeChangelogCache(cache)
+  },
+})
+
+ipcMain.handle('ai:changelog-list', async () =>
+  gitService
+    ? changelogList(rawGit(), changelogStore(gitService.repoPath))
+    : { entries: [] })
+
+ipcMain.handle('ai:forget-changelog', async (_e, branch: string) => {
+  if (!gitService) return { success: false }
+  await changelogStore(gitService.repoPath).forget(branch)
+  return { success: true }
+})
+
+ipcMain.handle('ai:changelog-state', async (_e, branch: string, scope?: string) =>
+  gitService
+    ? changelogState(rawGit(), changelogStore(gitService.repoPath), branch, scope)
+    : { error: 'No repository open' })
+
+ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string, previous?: string, scope?: string) =>
+  gitService
+    ? generateChangelog(rawGit(), runFeature, branch, base,
+        { previous, scope, store: changelogStore(gitService.repoPath) })
+    : { error: 'No repository open' })
+
+/**
+ * How this repository keeps its changelogs, as this repository says it.
+ *
+ * A preference, not a setting page: it is asked once, in the preview, where
+ * it acts — and restated there every time with the alternative one click
+ * away, so changing your mind never means finding a page. It lives beside
+ * `gitvertex.defaultRemote` in the repository's own git config, which is
+ * where a per-repository answer belongs and where anyone can read it back.
+ */
+ipcMain.handle('changelog:get-scope-pref', async () => {
+  if (!gitService) return { pref: null }
+  try {
+    const v = (await rawGit()(['config', '--local', '--get', 'gitvertex.changelogScope'])).trim()
+    return { pref: v === 'package' || v === 'branch' ? v : null }
+  } catch { return { pref: null } }
+})
+
+ipcMain.handle('changelog:set-scope-pref', async (_e, pref: 'package' | 'branch') => {
+  if (!gitService) return { success: false }
+  try {
+    await rawGit()(['config', '--local', 'gitvertex.changelogScope', pref])
+    return { success: true }
+  } catch (e: any) { return { success: false, error: e.message } }
+})
+
+/**
+ * Put the entry where changelogs live — the last step of the work, and the
+ * one that was still being done by hand. It only ever ADDS lines, and it
+ * writes into the working tree, so the diff is right there in the staging
+ * pane to be read or thrown away.
+ */
+ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) => {
+  if (!gitService) return { error: 'No repository open' }
+  const raw = rawGit()
+
+  // ── Two things it refuses to decide on its own ──
+  // Which file, when the repository tracks several: a monorepo has one per
+  // package, and writing into the first would put the desktop app's notes in
+  // the CLI's changelog.
+  const candidates = await findChangelogs(raw)
+  let rel = opts?.file ?? candidates[0] ?? 'CHANGELOG.md'
+  if (!opts?.file && candidates.length > 1) return { needsChoice: true, candidates }
+  if (opts?.file && candidates.length && !candidates.includes(opts.file)) {
+    return { error: `${opts.file} is not a changelog this repository tracks` }
+  }
+
+  // And whether it still makes sense at all. A changelog is KEPT now, so the
+  // drawer can be reopened a fortnight after the branch was merged — or after
+  // it was deleted — at which point these bullets are already in the file, and
+  // inserting them adds a release's worth of duplicates to whatever branch is
+  // checked out.
+  if (!opts?.force && opts?.branch) {
+    const alive = await raw(['rev-parse', '--verify', '--quiet', opts.branch]).catch(() => '')
+    if (!alive.trim()) return { branchGone: true, branch: opts.branch, path: rel }
+    const base = await resolveBase(raw, opts.branch)
+    if (base && await isMergedInto(raw, opts.branch, base)) {
+      return { alreadyMerged: true, branch: opts.branch, base, path: rel }
+    }
+  }
+
+  const abs = join(gitService.repoPath, rel)
+  let existing: string | null = null
+  try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }
+  // What a previous insert of THIS changelog put in THIS file — the answer to
+  // regenerating, which rewords everything it wrote.
+  const store = changelogStore(gitService.repoPath)
+  const record = opts?.branch ? await store.get(opts.branch) : null
+  const ours = insertedIn(record, rel)
+  const merged = mergeIntoChangelog(existing, entry, ours, opts?.section)
+
+  // This file keeps no section for unreleased work under any name it goes by.
+  // Where the entry belongs is the reader's call, not a template's.
+  if (merged.needsSection) {
+    return {
+      needsSection: true, path: rel,
+      sections: merged.shape?.sections.map(h => h.text) ?? [],
+    }
+  }
+
+  // Nothing is written until the reader has seen what would be. The file is
+  // often not what it was when the changelog was generated — half of it may
+  // already be in there in different words, and once the lines are in, no
+  // amount of reading tells you which ones you just put there.
+  if (opts?.preview) {
+    let dirty = false
+    try { dirty = !!(await raw(['status', '--porcelain', '--', rel])).trim() } catch { /* not fatal */ }
+    // Which package this changelog is about, and whether the branch has
+    // anything to say about it. A changelog at the root is about everything.
+    const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : ''
+    const dirTouched = opts?.branch ? await scopeHasChanges(raw, opts.branch, dir) : true
+    return {
+      preview: true, path: rel, dirty, dir, dirTouched,
+      added: merged.added, addedLines: merged.addedLines,
+      skipped: merged.skipped, similar: merged.similar, existing: merged.existing,
+      // An ARRAY in the preview (the reader sees which lines), a COUNT after
+      // the write (the toast says how many). Same word, two shapes, and the
+      // caller checks which by asking whether it is an array.
+      removed: merged.removed, missing: merged.missing,
+      created: merged.created, sectionCreated: merged.sectionCreated,
+    }
+  }
+
+  if (!merged.added && !merged.removed.length && !merged.created) {
+    return { path: rel, added: 0, created: false }
+  }
+  try {
+    fs.writeFileSync(abs, merged.content)
+  } catch (e: any) {
+    return { error: e.message }
+  }
+  // Remember what is ours in there, so regenerating can take it back out.
+  if (record && opts?.branch) {
+    await store.set(opts.branch, withInserted(record, rel, merged.ours))
+  }
+  return {
+    path: rel, added: merged.added, removed: merged.removed.length,
+    created: merged.created, sectionCreated: merged.sectionCreated,
+  }
+})
+
+ipcMain.handle('ai:propose-commit-split', async () =>
+  gitService ? proposeCommitSplit(rawGit(), runFeature) : { error: 'No repository open' })
+
+/**
+ * Would this branch conflict with the one it is going to land on? (#70)
+ *
+ * The toolbar's badge, and nothing more: a `merge-tree --write-tree` against
+ * the branch's own base, which is resolved by the SAME function the AI
+ * features use — a repository where the badge says "against origin/main" and
+ * the changelog says "over main" would be two answers to one question.
+ *
+ * It fails open. A repository with no base, a merge-tree that cannot run: the
+ * badge says it does not know, and nothing anywhere is blocked.
+ */
+ipcMain.handle('git:conflict-outlook', async (_e, branch?: string) => {
+  if (!gitService) return { error: 'No repository open' }
+  const raw = rawGit()
+  let head = branch
+  if (!head) {
+    try { head = (await raw(['rev-parse', '--abbrev-ref', 'HEAD'])).trim() } catch { return { error: 'No branch' } }
+  }
+  if (!head || head === 'HEAD') return { base: null, files: [] }   // detached
+  const base = await resolveBase(raw, head)
+  if (!base) return { base: null, files: [] }
+  const r = await gitService.predictConflicts(base, head)
+  return { base, files: r.files, error: r.error }
 })
 
 // ── Settings: get/set all ──────────────────────────────────────

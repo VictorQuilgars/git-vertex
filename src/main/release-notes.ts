@@ -2,6 +2,48 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🤖 The AI reads more than a commit
+- **Explain a branch, a stash, or the uncommitted work** — the reading the commit panel has had since v1.10, on the three diffs that had nowhere to ask for it.
+- A branch is read against a base **worked out, not assumed**: the trunk the remote declares, its remote copy over a stale local one, and its own upstream when the branch asked about *is* the trunk.
+- Every answer opens in the composers' drawer, writes itself in word by word, and takes a focus — *only the migration* — for another go.
+
+### 📝 A changelog, from the branch menu
+- What a branch adds over its base, under the usual \`### Added\` / \`### Changed\` / \`### Fixed\` headings, empty sections forbidden — ready to paste.
+
+### ✂️ A commit composer
+- The uncommitted work cut into a sequence of atomic commits, reviewed before any of it is history: edit a message, move a file between commits, reorder, drop one, add one.
+- Whole files, staged or not — and the drawer says so.
+- Every path the model names is checked against the tree: an invented one is dropped and counted, a file placed nowhere is shown rather than left behind, and a failure halfway says how many commits were made and that the rest is still on disk.
+
+### 📝 The changelog remembers
+- Reopening the drawer shows what was written, and when — no second call for a text you already paid for.
+- Moved on since? It says *3 commits since — this changelog does not cover them*, and **Update** extends what is there instead of rewriting the bullets you already read.
+- **Insert into changelog** puts it in the repository's own file, under Unreleased, merged into the headings already there — never a second \`### Added\`, never the same bullet twice, never a line removed.
+
+### 📐 The toolbar's left edge, put to work
+- The **repository selector** moved out of the left panel's header (47px of list back) and into the toolbar, where the left edge was empty.
+- Beside it, a **branch picker** — filter, local branches first, remote ones below; picking one goes there.
+- Beside that, the **merge outlook**: *No conflicts detected against origin/main*, or the number of files that would. Measured against the same base the AI reads a branch against, never blocking anything — and a click says what was simulated, which files would clash, and that nothing was merged.
+
+### 🗂 A second stack: what the model has written here
+- A **List / AI** strip above the repository list (the panel's rail gets the same view).
+- Every changelog, **and every explanation** — a branch, a stash, the uncommitted work, and the commit explanations kept since v1.10 that nothing ever listed. Each says what it covers and when, wears a \`+3\` when its subject has moved on, and strikes through when what it described is gone.
+- Generating anything brings the stack up with the new entry already in it. A row reopens it without asking the model again; right-click forgets it.
+- Inserting a changelog **shows what would go in before anything does**: the lines, the ones it will skip as already there, what the section already says, and a warning when the file has uncommitted changes.
+- **Regenerate and insert again and it replaces its own earlier lines** instead of adding a second, differently-worded copy. One you edited by hand is left alone.
+- It follows **your** changelog's shape: the unreleased section under any name it goes by, headings re-levelled to match, and — where a file keeps no such section — a question rather than an invented one.
+- It knows what each changelog is **about**: one in \`cli/\` describes the CLI, so a branch that changed nothing there is told so, and one that changed both is asked whether the entry covers the branch or only that package — the second writes a different entry. The answer is remembered per repository and **restated every time**, the alternative one click away.
+- It finds **every** tracked changelog, at any depth — four products, four changelogs — and *All N of them* is one of the answers; what it wrote is remembered per file.
+- It stops on a branch **merged or deleted** since — those bullets are presumably in there already. A changelog whose branch is gone is struck through in the list, and the section menu offers to forget the lot.
+
+### 🔮 An AI row looks like one
+- Every entry that reaches a model wears the mark and the ink; the branch menu's **AI** submenu is outlined in dashes. The "(AI)" suffixes are gone, because they no longer say anything the row does not.
+
+### ⚙️ Settings › AI Assistant
+- Changelog generation and splitting into commits join the list, each with its own model and its own standing instructions.
+`,
   '1.33.0': `## What's new in 1.33.0
 
 ### 🧭 The graph says which branch a commit is on

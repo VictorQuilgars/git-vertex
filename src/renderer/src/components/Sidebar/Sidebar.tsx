@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Icon, type IconName } from '../Icon/Icon'
 import { BranchInfo, StashScope } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
-import GithubRow from '../GitHubPanel/GithubRow'
+import GithubRow, { timeAgo } from '../GitHubPanel/GithubRow'
 import { loadGhFilters, saveGhFilters, validateGhQuery, composeGhQuery, ghFilterSyntax, ghFilterSuggest,
   GH_SEARCH_DOCS_URL, type GhSavedFilter, type GhFilterStore } from './ghFilters'
 import { buildBranchMenu } from '../ContextMenu/branchMenu'
@@ -23,10 +23,29 @@ interface TagEntry   { name: string; hash: string }
 // these views the resizable side-panel shows. When `view` is undefined the
 // Sidebar renders its classic stacked layout (desktop app).
 export type SidebarView =
-  | 'overview' | 'agents' | 'worktrees' | 'branches' | 'remotes' | 'stash' | 'tags'
+  | 'overview' | 'worktrees' | 'branches' | 'remotes' | 'stash' | 'tags'
   | 'prs' | 'issues'
+  /**
+   * What the model does in this repository: what it has written, and what is
+   * running. It was two rail entries — an `agents` one and an `ai` one, both
+   * wearing a robot head — and they are one.
+   */
+  | 'ai'
 
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
+
+/** A changelog this repository has had written — the shape the host returns. */
+interface ChangelogEntry {
+  branch: string; text: string; base: string
+  commits: number; at: number; newCommits: number; orphan: boolean
+}
+
+/** A kept reading of a branch, a stash or the working tree. */
+interface NoteEntry {
+  kind: 'branch' | 'stash' | 'working'
+  key: string; title: string; text: string; at: number; sha: string
+  newCommits: number; orphan: boolean
+}
 /**
  * A row of the two GitHub sections — the fields the list endpoints already
  * return. Everything beyond the identity is optional: a host that still maps
@@ -79,6 +98,31 @@ interface SidebarProps {
   onPopStash: (index: number) => void
   onDropStash: (index: number) => void
   onPreviewStash?: (index: number, message: string) => void
+  /** Reads the stash aloud (#70 P1). Absent ⇒ no row, the menu's rule. */
+  onExplainStash?: (index: number, message: string) => void
+  /** The same, for a branch — and the changelog of what it carries (#70 P1). */
+  onExplainBranch?: (name: string) => void
+  onBranchChangelog?: (name: string) => void
+  /**
+   * The AI tab's two ways back in: a stored changelog, and a commit whose
+   * explanation is already written. Absent ⇒ the row is not clickable, the
+   * panel's rule — and on the desktop the tab itself does not appear.
+   */
+  onOpenChangelog?: (branch: string) => void
+  onOpenExplanation?: (hash: string) => void
+  /** A kept reading — the drawer reopens it without asking the model again. */
+  onOpenNote?: (note: { kind: 'branch' | 'stash' | 'working'; key: string; title: string }) => void
+  /**
+   * Which of the two stacks is showing, held by the host: generating a
+   * changelog anywhere in the app brings this one into view, and it cannot do
+   * that if the state lives in here.
+   */
+  tab?: 'list' | 'ai'
+  onTab?: (tab: 'list' | 'ai') => void
+  /** Bumped when something was written — the lists re-read themselves. */
+  memoryToken?: number
+  /** What a stored explanation is about — the commit's subject, if loaded. */
+  subjectFor?: (hash: string) => string | undefined
   onRefreshStashes: () => void
   onCreateTag: () => void
   onDeleteTag: (name: string) => void
@@ -201,7 +245,6 @@ interface SidebarProps {
   onOpenGithubItem?: (url: string) => void
   // Embedded host (VS Code panel): the repo is the workspace, so the
   // open/clone/recent repo picker doesn't apply and is hidden.
-  embedded?: boolean
   // Single-view mode: render only the section the activity rail selected.
   // Undefined = classic stacked layout (desktop).
   view?: SidebarView
@@ -894,9 +937,12 @@ interface BranchItemProps {
    * ref, copy-name — keeps using the full name (#134).
    */
   displayAs?: string
+  /** The two AI readings of this branch (#70 P1). */
+  onExplain?: () => void
+  onChangelog?: () => void
 }
 
-function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
+function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete, onMerge, onRename, onCompare, onRebaseOnto, onPush, onDeleteRemote, onSetUpstream, soloed, hidden, favorite, issue, onPull, onToggleSolo, onToggleHide, onToggleFavorite, onOpenOnRemote, onAssociateIssue, onExplain, onChangelog, pr, onCreatePR, publishedAs, onCopyLink, onDeleteBoth, ahead = 0, behind = 0, gone = false, showRemotePrefix = false, displayAs }: BranchItemProps) {
   const [hover, setHover] = useState(false)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const lastClickTime = useRef(0)
@@ -920,6 +966,7 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
       onCreatePR: pr && onCreatePR ? () => onCreatePR(pr) : undefined,
       onMerge, onRebaseOnto, onCompare,
       onOpenOnRemote, onAssociateIssue, onToggleFavorite,
+      onExplain, onChangelog,
       onToggleSolo, onToggleHide,
       onCopyName: () => navigator.clipboard.writeText(fullDisplay),
       onCopyLink,
@@ -990,14 +1037,118 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   )
 }
 
+/** What a kept reading is about, and what it is worth now. */
+function NoteRow({ note, onOpen, onForget }: {
+  note: {
+    kind: 'branch' | 'stash' | 'working' | 'commit'
+    key: string; title: string; text: string; at: number; sha: string
+    newCommits: number; orphan: boolean
+  }
+  onOpen?: () => void
+  onForget: () => void
+}) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
+  const icon: IconName =
+    note.kind === 'branch' ? 'branch'
+      : note.kind === 'stash' ? 'stash'
+        : note.kind === 'working' ? 'staging' : 'commit'
+  // A commit's reading has no age worth showing — its diff cannot change, so
+  // "written 3 days ago" says nothing about whether it still holds.
+  const meta = note.kind === 'commit'
+    ? note.sha.slice(0, 7)
+    : timeAgo(new Date(note.at).toISOString(), t)
+  return (
+    <>
+      <div
+        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}${note.orphan ? ' sb-ai-item--orphan' : ''}`}
+        onClick={onOpen}
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={note.text.length > 300 ? note.text.slice(0, 300) + '…' : note.text}
+      >
+        <Icon name={icon} size={11} />
+        <div className="sb-ai-info">
+          <span className="sb-ai-name">{note.title}</span>
+          <span className="sb-ai-meta">
+            {note.orphan ? t('sb.ai.gone') : <code>{meta}</code>}
+          </span>
+        </div>
+        {note.newCommits > 0 && (
+          <span className="sb-ai-stale" title={t('ai.changelog.behind', note.newCommits)}>
+            +{note.newCommits}
+          </span>
+        )}
+      </div>
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={[
+          ...(onOpen ? [{ label: t('sb.ai.open'), action: onOpen, icon: 'ai' as const, tone: 'ai' as const }] : []),
+          { separator: true } as MenuItemDef,
+          { label: t('sb.ai.forget'), action: onForget, danger: true },
+        ]} />
+      )}
+    </>
+  )
+}
+
+/**
+ * A changelog this repository has had written, as a row.
+ *
+ * It says what it covers and when it was written, and wears a badge when the
+ * branch has moved on since — the same "+N" the drawer opens with, because
+ * the point of the list is deciding what still applies without opening
+ * anything.
+ */
+function ChangelogRow({ entry, onOpen, onForget }: {
+  entry: ChangelogEntry
+  onOpen?: () => void
+  onForget: () => void
+}) {
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  const { t } = useLang()
+  return (
+    <>
+      <div
+        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}${entry.orphan ? ' sb-ai-item--orphan' : ''}`}
+        onClick={onOpen}
+        onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+        title={entry.text.length > 300 ? entry.text.slice(0, 300) + '…' : entry.text}
+      >
+        <Icon name="branch" size={11} />
+        <div className="sb-ai-info">
+          <span className="sb-ai-name">{entry.branch}</span>
+          <span className="sb-ai-meta">
+            {entry.orphan
+              ? t('sb.ai.gone')
+              : `${t('ai.changelog.meta', entry.commits, entry.base)} · ${timeAgo(new Date(entry.at).toISOString(), t)}`}
+          </span>
+        </div>
+        {entry.newCommits > 0 && (
+          <span className="sb-ai-stale" title={t('ai.changelog.behind', entry.newCommits)}>
+            +{entry.newCommits}
+          </span>
+        )}
+      </div>
+      {ctx && (
+        <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={[
+          ...(onOpen ? [{ label: t('sb.ai.open'), action: onOpen, icon: 'ai' as const, tone: 'ai' as const }] : []),
+          { separator: true } as MenuItemDef,
+          { label: t('sb.ai.forget'), action: onForget, danger: true },
+        ]} />
+      )}
+    </>
+  )
+}
+
 // ── Stash item ────────────────────────────────────────────────────
-function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, hidden }: {
+function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, onExplain, hidden }: {
   stash: StashEntry
   onApply: () => void
   onPop: () => void
   onDrop: () => void
   onPreview?: () => void
   onRename?: () => void
+  /** Reads it aloud — what work is parked here (#70 P1). */
+  onExplain?: () => void
   /**
    * Dimmed, but with no row action to undo it: the entries of `git stash list`
    * are the reflog of a single ref, `refs/stash`, so git can take all of them
@@ -1015,6 +1166,7 @@ function StashItem({ stash, onApply, onPop, onDrop, onPreview, onRename, hidden 
     { label: t('sb.stash.applyKeep'), action: onApply },
     { label: t('sb.stash.applyPop'), action: onPop },
     ...(onRename ? [{ label: t('sb.stash.rename'), action: onRename }] : []),
+    ...(onExplain ? [{ separator: true } as MenuItemDef, { label: t('sb.stash.explain'), action: onExplain, icon: 'ai', tone: 'ai' } as MenuItemDef] : []),
     { separator: true },
     { label: t('sb.delete'), action: onDrop, danger: true },
   ]
@@ -1276,7 +1428,9 @@ export default function Sidebar({
   onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
-  onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onRefreshStashes,
+  onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes,
+  onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote,
+  subjectFor, tab = 'list', onTab, memoryToken,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
   soloBranch, visibility, onToggleSolo, onToggleHide,
@@ -1288,12 +1442,20 @@ export default function Sidebar({
   showAllBranches, onToggleAllBranches,
   onRefreshGithub, onStartPR, onNewIssue, githubRefreshing, githubRefreshTick, githubPollTick,
   onCopyBranchLink, onDeleteBranchBoth,
-  showToast, showPrompt, showConfirm, onRefresh, embedded = false, view,
+  showToast, showPrompt, showConfirm, onRefresh, view,
 }: SidebarProps) {
   // In single-view mode a section is shown when it matches the active view.
   // Without a view (desktop) every section renders (classic stacked layout).
   const single = view !== undefined
-  const show = (v: SidebarView) => !single || view === v
+  /**
+   * The desktop panel is stacked — every section at once — but it now has two
+   * of those stacks: the repository as a list, and what the model has written
+   * for it. In single-view mode the rail already chooses, so the strip does
+   * not appear and `view` decides.
+   */
+  const activeTab: 'list' | 'ai' = single ? (view === 'ai' ? 'ai' : 'list') : tab
+  const showAI = activeTab === 'ai'
+  const show = (v: SidebarView) => single ? view === v : !showAI
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
   const [remotes, setRemotes] = useState<RemoteEntry[]>([])
   // Which remote push/pull target by default — resolved by the service, so it
@@ -1318,6 +1480,29 @@ export default function Sidebar({
       .catch((e: unknown) => console.warn('[sidebar] listAgents failed:', e))
   }, [])
 
+  /**
+   * What the model has written for this repository (#70).
+   *
+   * The desktop tab and the panel's rail view both read this: a changelog was
+   * reachable only from the menu of the branch it belonged to, which meant
+   * remembering it existed. Explanations come from the store the commit panel
+   * already fills — they were being kept and never listed.
+   */
+  const [changelogs, setChangelogs] = useState<ChangelogEntry[]>([])
+  const [explanations, setExplanations] = useState<Record<string, string>>({})
+  const [notes, setNotes] = useState<NoteEntry[]>([])
+  const loadMemory = useCallback(() => {
+    ;(window.gitAPI as any).aiChangelogList?.()
+      .then((r: { entries?: ChangelogEntry[] }) => setChangelogs(r?.entries ?? []))
+      .catch((e: unknown) => console.warn('[sidebar] aiChangelogList failed:', e))
+    ;(window.gitAPI as any).aiGetExplanations?.()
+      .then((r: { explanations?: Record<string, string> }) => setExplanations(r?.explanations ?? {}))
+      .catch((e: unknown) => console.warn('[sidebar] aiGetExplanations failed:', e))
+    ;(window.gitAPI as any).aiNoteList?.()
+      .then((r: { entries?: NoteEntry[] }) => setNotes(r?.entries ?? []))
+      .catch((e: unknown) => console.warn('[sidebar] aiNoteList failed:', e))
+  }, [])
+
   const loadWorktrees = useCallback(() => {
     window.gitAPI.listWorktrees().then(r => setWorktrees(r.worktrees ?? []))
     loadAgents()
@@ -1333,10 +1518,15 @@ export default function Sidebar({
       .then(w => setWork({ staged: w.staged.length, changed: w.unstaged.length + w.untracked.length }))
       .catch(() => {})
     loadWorktrees()
+    loadMemory()
     // Light poll so agent badges stay current while the sidebar is open.
     const interval = setInterval(loadAgents, 10000)
     return () => clearInterval(interval)
-  }, [repoPath, loadWorktrees, loadAgents])
+  }, [repoPath, loadWorktrees, loadAgents, loadMemory])
+
+  // On opening the stack, and whenever something new has been written into it.
+  useEffect(() => { if (repoPath && (showAI || memoryToken)) loadMemory() },
+    [showAI, repoPath, loadMemory, memoryToken])
 
   const agentsFor = useCallback((wtPath: string) =>
     agents.filter(a => a.cwd === wtPath || a.cwd.startsWith(wtPath + '/')),
@@ -1499,19 +1689,7 @@ export default function Sidebar({
     if (r.success) showToast(t('sb.remote.fetchOk', name))
     else showToast(t('toast.fetchErr', r.error ?? ''), 'err')
   }
-  const [repoMenuOpen, setRepoMenuOpen] = useState(false)
   const [branchFilter, setBranchFilter] = useState('')
-  const repoMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (repoMenuRef.current && !repoMenuRef.current.contains(e.target as Node)) {
-        setRepoMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   // Favorites float to the top of LOCAL — the whole point of starring a branch
   // is not to hunt for it in a long list (v1.21.0). Order is otherwise
@@ -1602,8 +1780,6 @@ export default function Sidebar({
     .filter(b => b.remote)
     .filter(b => !branchFilter || b.name.toLowerCase().includes(branchFilter.toLowerCase()))
 
-  const otherRecents = recentRepos.filter(r => r !== repoPath)
-
   return (
     <div className="sidebar" ref={rootRef}>
       {/* One drawer, given which section opened it — the two vocabularies are
@@ -1644,49 +1820,24 @@ export default function Sidebar({
             }} />
         </PanelDrawer>
       )}
-      {/* ── Repo selector ── (hidden when embedded in the VS Code panel: the
-          repo is always the workspace, so open/clone/recent don't apply) */}
-      {!embedded && (
-      <div className="sb-repo-area" ref={repoMenuRef}>
-        <button className="sb-repo-btn" onClick={() => setRepoMenuOpen(o => !o)}>
-          <Icon name="repo" size={14} />
-          <span className="sb-repo-name">{repoName || t('sb.openRepo')}</span>
-          <Icon name="caretDown" size={10} />
-        </button>
-
-        {repoMenuOpen && (
-          <div className="sb-repo-dropdown">
-            <button className="sb-dropdown-item sb-open-item"
-              onClick={() => { onOpenRepo(); setRepoMenuOpen(false) }}>
-              <Icon name="list" size={13} />
-              {t('sb.openRepoDots')}
-            </button>
-            <button className="sb-dropdown-item sb-open-item"
-              onClick={() => { onClone(); setRepoMenuOpen(false) }}>
-              <Brand name="github" size={13} />
-              {t('sb.cloneDots')}
-            </button>
-            {otherRecents.length > 0 && (
-              <>
-                <div className="sb-dropdown-sep" />
-                <div className="sb-dropdown-label">{t('sb.recents')}</div>
-                {otherRecents.map(path => (
-                  <div key={path} className="sb-dropdown-item sb-recent-item">
-                    <button className="sb-recent-path"
-                      onClick={() => { onSetRepo(path); setRepoMenuOpen(false) }} title={path}>
-                      <Icon name="repo" size={11} />
-                      <span>{path.split('/').pop()}</span>
-                      <span className="sb-recent-full">{path}</span>
-                    </button>
-                    <button className="sb-recent-remove" title={t('sb.removeRecent')}
-                      onClick={() => onRemoveRecent(path)}>×</button>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      {/* ── The two stacks (#70) ──
+          The repository as a list, and what the model has written for it. A
+          generated changelog was reachable only from the menu of the branch it
+          belonged to, which meant remembering it existed; this is where it
+          lives now. Desktop only — the panel's rail already chooses a view. */}
+      {!single && repoPath && (
+        <div className="sb-tabs" role="tablist">
+          <button role="tab" aria-selected={!showAI}
+            className={`sb-tab${!showAI ? ' sb-tab--on' : ''}`}
+            onClick={() => onTab?.('list')}>
+            <Icon name="list" size={12} /> {t('sb.tab.list')}
+          </button>
+          <button role="tab" aria-selected={showAI}
+            className={`sb-tab sb-tab--ai${showAI ? ' sb-tab--on' : ''}`}
+            onClick={() => onTab?.('ai')}>
+            <Icon name="ai" size={12} /> {t('sb.tab.ai')}
+          </button>
+        </div>
       )}
 
       {/* ── Branch filter ── (branches view only in single mode) */}
@@ -1702,6 +1853,88 @@ export default function Sidebar({
       {/* ── Sections ── */}
       {repoPath && (
         <div className="sb-sections">
+
+          {/* ── What the model has written here (#70) ── */}
+          {showAI && (
+            <>
+              <Section id="ai-changelogs" title="CHANGELOGS" icon="ai" count={changelogs.length} defaultOpen
+                menuItems={changelogs.some(c => c.orphan) ? [{
+                  label: t('sb.ai.forgetGone'),
+                  action: async () => {
+                    for (const c of changelogs.filter(x => x.orphan)) {
+                      await (window.gitAPI as any).aiForgetChangelog?.(c.branch)
+                    }
+                    loadMemory()
+                  },
+                  danger: true,
+                }] : undefined}>
+                {changelogs.length === 0
+                  ? <div className="sb-empty">{t('sb.ai.noChangelog')}</div>
+                  : changelogs.map(c => (
+                      <ChangelogRow
+                        key={c.branch}
+                        entry={c}
+                        onOpen={onOpenChangelog ? () => onOpenChangelog(c.branch) : undefined}
+                        onForget={async () => {
+                          await (window.gitAPI as any).aiForgetChangelog?.(c.branch)
+                          loadMemory()
+                        }}
+                      />
+                    ))
+                }
+              </Section>
+
+              {/* Every reading kept for this repository: the commit panel has
+                  been filling its store since v1.10 and nothing ever listed
+                  it, and the branch/stash/working ones join it here. One
+                  section, because "explain" is one act whatever it is aimed
+                  at — and each row can be dropped. */}
+              <Section id="ai-explanations" title="EXPLANATIONS" icon="comment"
+                count={notes.length + Object.keys(explanations).length} defaultOpen
+                menuItems={notes.some(n => n.orphan) ? [{
+                  label: t('sb.ai.forgetGone'),
+                  action: async () => {
+                    for (const n of notes.filter(x => x.orphan)) {
+                      await (window.gitAPI as any).aiForgetNote?.(n.kind, n.key)
+                    }
+                    loadMemory()
+                  },
+                  danger: true,
+                }] : undefined}>
+                {notes.length + Object.keys(explanations).length === 0
+                  ? <div className="sb-empty">{t('sb.ai.noExplanation')}</div>
+                  : <>
+                      {notes.map(n => (
+                        <NoteRow
+                          key={`${n.kind}:${n.key}`}
+                          note={n}
+                          onOpen={onOpenNote ? () => onOpenNote(n) : undefined}
+                          onForget={async () => {
+                            await (window.gitAPI as any).aiForgetNote?.(n.kind, n.key)
+                            loadMemory()
+                          }}
+                        />
+                      ))}
+                      {Object.entries(explanations).reverse().map(([hash, text]) => (
+                        <NoteRow
+                          key={hash}
+                          note={{
+                            kind: 'commit', key: hash,
+                            title: subjectFor?.(hash) ?? t('sb.ai.unknownCommit'),
+                            text, at: 0, sha: hash, newCommits: 0, orphan: false,
+                          }}
+                          onOpen={onOpenExplanation ? () => onOpenExplanation(hash) : undefined}
+                          onForget={async () => {
+                            await (window.gitAPI as any).aiForgetExplanation?.(hash)
+                            loadMemory()
+                          }}
+                        />
+                      ))}
+                    </>
+                }
+              </Section>
+            </>
+          )}
 
           {/* OVERVIEW "current work" card (single-view only) */}
           {view === 'overview' && (() => {
@@ -1736,8 +1969,10 @@ export default function Sidebar({
             )
           })()}
 
-          {/* AGENTS (single-view only) */}
-          {view === 'agents' && (
+          {/* AGENTS — inside the AI view in the panel, which is where "what
+              the model is doing here" belongs. The desktop's AI stack does not
+              show them yet (#180). */}
+          {view === 'ai' && (
             <Section id="agents" title="AGENTS" icon="agent" count={agents.length} defaultOpen>
               {agents.length === 0
                 ? <div className="sb-empty">{t('sb.noAgent')}</div>
@@ -1789,6 +2024,8 @@ export default function Sidebar({
                 onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
                 onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
                 onAssociateIssue={onAssociateIssue && (() => onAssociateIssue(b.name))}
+                onExplain={onExplainBranch && (() => onExplainBranch(b.name))}
+                onChangelog={onBranchChangelog && (() => onBranchChangelog(b.name))}
                 pr={prIntentFor?.(b.name)}
                 onCreatePR={onCreatePR}
                 publishedAs={publishedNameFor(b.name, branches) ?? undefined}
@@ -1842,6 +2079,8 @@ export default function Sidebar({
                     favorite={isFavorite?.(b.name)}
                     onToggleFavorite={onToggleFavorite && (() => onToggleFavorite(b.name))}
                     onOpenOnRemote={onOpenBranchOnRemote && (() => onOpenBranchOnRemote(b.name))}
+                    onExplain={onExplainBranch && (() => onExplainBranch(b.name))}
+                    onChangelog={onBranchChangelog && (() => onBranchChangelog(b.name))}
                     pr={prIntentFor?.(b.name)}
                     onCreatePR={onCreatePR}
                     publishedAs={b.name.replace(/^remotes\//, '')}
@@ -2103,6 +2342,7 @@ export default function Sidebar({
                     onPop={() => onPopStash(s.index)}
                     onDrop={() => onDropStash(s.index)}
                     onPreview={onPreviewStash ? () => onPreviewStash(s.index, s.message) : undefined}
+                    onExplain={onExplainStash ? () => onExplainStash(s.index, s.message) : undefined}
                     onRename={() => handleRenameStash(s.index, s.message)}
                     hidden={stashesHidden}
                   />

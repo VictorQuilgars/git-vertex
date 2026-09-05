@@ -7,7 +7,7 @@ import Sidebar from './components/Sidebar/Sidebar'
 import StatusBar from './components/StatusBar/StatusBar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
-import { PromptDialog, ConfirmDialog } from './components/Dialog/Dialog'
+import { PromptDialog, ConfirmDialog, ChoiceDialog } from './components/Dialog/Dialog'
 import CommandPalette, { PaletteCommand } from './components/CommandPalette/CommandPalette'
 import { Mark } from './components/Mark/Mark'
 import { Brand } from './components/BrandMark/BrandMark'
@@ -39,9 +39,12 @@ import {
 import InitModal from './components/InitModal/InitModal'
 import PRComposer from './components/PRComposer/PRComposer'
 import IssueComposer from './components/IssueComposer/IssueComposer'
+import AIAnswer from './components/AIAnswer/AIAnswer'
+import { timeAgo } from './components/GitHubPanel/GithubRow'
+import CommitComposer from './components/CommitComposer/CommitComposer'
 import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from './components/ContextMenu/prIntent'
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
-import { canonicalRef, publishedNameFor } from './components/ContextMenu/branchRefs'
+import { canonicalRef, publishedNameFor, shortName } from './components/ContextMenu/branchRefs'
 import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu/branchMenu'
 import GitflowModal from './components/GitflowModal/GitflowModal'
 import DiffViewer from './components/DiffViewer/DiffViewer'
@@ -108,6 +111,7 @@ function syntheticCommit(shortHash: string, message: string): CommitNode {
 type DialogState =
   | { kind: 'prompt';  message: string; defaultValue?: string; multiline?: boolean; resolve: (v: string | null) => void }
   | { kind: 'confirm'; message: string; danger?: boolean;      resolve: (v: boolean) => void }
+  | { kind: 'choice';  message: string; options: string[];     resolve: (v: string | null) => void }
 
 // ── Tabs ───────────────────────────────────────────────────────
 // Tabs are heterogeneous: the classic repo tab, the "home" welcome screen
@@ -216,6 +220,11 @@ export default function App() {
 
   const showConfirm = useCallback((message: string, danger = false): Promise<boolean> =>
     new Promise(resolve => setDlg({ kind: 'confirm', message, danger, resolve }))
+  , [])
+
+  /** One question, N answers, none of them typed. */
+  const showChoice = useCallback((message: string, options: string[]): Promise<string | null> =>
+    new Promise(resolve => setDlg({ kind: 'choice', message, options, resolve }))
   , [])
 
   const closeDlg = useCallback(() => setDlg(null), [])
@@ -849,7 +858,37 @@ export default function App() {
   // drawer open when the tab was closed greeted the NEXT open of the repo —
   // with an intent computed for branches that may have moved since.
   const [issueComposerOpen, setIssueComposerOpen] = useState(false)
-  useEffect(() => { setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false) }, [repoPath])
+  /**
+   * What the AI drawer is currently reading (#70 P1). One piece of state for
+   * the four, because only one can be open: they all come out of the same
+   * edge of the same panel, and two would be one on top of the other.
+   */
+  const [aiRead, setAiRead] = useState<
+    | { kind: 'branch' | 'changelog'; ref: string; label: string }
+    | { kind: 'stash'; index: number | string; label: string }
+    | { kind: 'working' }
+    | null>(null)
+  const [composerOpen, setComposerOpen] = useState(false)
+  /**
+   * Which stack the panel shows, and a token bumped whenever the model has
+   * written something. Both live here rather than in the Sidebar because a
+   * generation happens in a DRAWER: what it produces has to land in the list
+   * and the list has to come into view, and neither can happen from inside
+   * the panel that is not being looked at.
+   */
+  const [sidebarTab, setSidebarTab] = useState<'list' | 'ai'>(
+    () => (localStorage.getItem('sb-tab') === 'ai' ? 'ai' : 'list'))
+  useEffect(() => { localStorage.setItem('sb-tab', sidebarTab) }, [sidebarTab])
+  const [memoryToken, setMemoryToken] = useState(0)
+  /** Written: put it in the list, and put the list where it can be seen. */
+  const rememberedAI = useCallback(() => {
+    setMemoryToken(n => n + 1)
+    setSidebarTab('ai')
+  }, [])
+  useEffect(() => {
+    setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false)
+    setAiRead(null); setComposerOpen(false)
+  }, [repoPath])
 
   const detectGithub = useCallback(async () => {
     const detected = await (window.gitAPI as any).githubDetectRepo()
@@ -1896,6 +1935,8 @@ export default function App() {
         onToggleFavorite: () => branchMeta.toggleFavorite(ref),
         onToggleSolo: () => setSoloBranch(prev => prev === ref ? null : ref),
         onToggleHide: () => toggleHidden('branches', ref),
+        onExplain: () => setAiRead({ kind: 'branch', ref, label: target.display }),
+        onChangelog: () => setAiRead({ kind: 'changelog', ref, label: target.display }),
         onCopyName: () => navigator.clipboard.writeText(target.display),
         onCopyLink: () => handleCopyBranchLink(ref),
         onRename: () => handleRenameBranch(ref),
@@ -1908,6 +1949,172 @@ export default function App() {
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branches, currentBranch, soloBranch, visibility, remoteNames, branchMeta, prIntentFor, githubOwnerRepo, t])
+
+  /**
+   * Put a generated changelog in the repository's changelog — asking about
+   * the two things the host refuses to decide on its own.
+   *
+   * Neither question is a formality. A monorepo has a changelog per package,
+   * and writing into the first would file the desktop app's notes under the
+   * CLI. And a changelog is KEPT now, so the drawer can be reopened a
+   * fortnight after the branch was merged — at which point these bullets are
+   * already in the file and inserting them adds a release's worth of
+   * duplicates to whatever branch happens to be checked out.
+   */
+  const insertChangelogGuarded = useCallback(async (entry: string, branch: string) => {
+    /** What will be written. A scoped answer replaces it before anything is. */
+    let text = entry
+    const call = (opts: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) =>
+      ((window.gitAPI as any).insertChangelog?.(text, opts)
+        ?? Promise.resolve({ error: 'not-implemented' }))
+
+    // Which file, whether it still makes sense, and — the one that costs the
+    // most to get wrong — what exactly would land in it.
+    let files: string[] = []
+    let section: string | undefined
+    let force = false
+
+    let r = await call({ branch, preview: true })
+
+    // Which file — and in a repository that ships several products, possibly
+    // all of them: one change that touches the app and the extension belongs
+    // in both changelogs, and that is not a case to make people repeat.
+    if (r?.needsChoice) {
+      const ALL = t('ai.changelog.everyFile', (r.candidates ?? []).length)
+      const picked = await showChoice(t('ai.changelog.whichFile'), [...(r.candidates ?? []), ALL])
+      if (!picked) return
+      files = picked === ALL ? [...(r.candidates ?? [])] : [picked]
+      r = await call({ branch, file: files[0], preview: true })
+    }
+    // This file keeps no section for unreleased work under any of the names
+    // one goes by — it is not a Keep a Changelog file, and inventing a
+    // section in it would be imposing a convention on someone who chose
+    // another. Its own headings are the options, plus making a new one.
+    if (r?.needsSection) {
+      const NEW = t('ai.changelog.newSection')
+      const picked = await showChoice(t('ai.changelog.whichSection', r.path), [NEW, ...(r.sections ?? [])])
+      if (!picked) return
+      section = picked === NEW ? '::create-a-new-section::' : picked
+      r = await call({ branch, file: files[0], section, preview: true })
+    }
+    if (r?.branchGone || r?.alreadyMerged) {
+      const ok = await showConfirm(
+        r.branchGone
+          ? t('ai.changelog.goneConfirm', r.branch)
+          : t('ai.changelog.mergedConfirm', r.branch, r.base), true)
+      if (!ok) return
+      force = true
+      r = await call({ branch, file: files[0] ?? r.path, section, force, preview: true })
+    }
+    if (r?.error) { showToast(r.error, 'err'); return }
+
+    // ── What this changelog is about ──
+    // A changelog in `cli/` describes the CLI. The branch may have touched
+    // nothing there, in which case there is no entry to write and no
+    // preference can make one true; or it may have touched both, in which
+    // case whether the entry covers the branch or only that package is a
+    // question about this repository — asked here, where it acts, and
+    // restated every time with the alternative one click away.
+    if (r?.preview && r.dir) {
+      if (!r.dirTouched) {
+        showToast(t('ai.changelog.nothingUnder', branch, r.dir), 'err')
+        return
+      }
+      const WHOLE = t('ai.changelog.scopeBranch')
+      const ONLY = t('ai.changelog.scopePackage', r.dir)
+      const pref = (await ((window.gitAPI as any).changelogGetScopePref?.() ?? Promise.resolve({})))?.pref
+      // Remembered, never silent: the preview says which reading it is using
+      // and offers the other, so changing your mind is a click rather than a
+      // page to find.
+      const picked = await showChoice(
+        t('ai.changelog.whichScope', r.dir),
+        pref === 'package' ? [ONLY, WHOLE] : [WHOLE, ONLY])
+      if (!picked) return
+      const wants: 'package' | 'branch' = picked === ONLY ? 'package' : 'branch'
+      if (wants !== pref) await ((window.gitAPI as any).changelogSetScopePref?.(wants))
+      if (wants === 'package') {
+        // A different entry, about a different thing — so it is generated,
+        // and kept under its own name in the memory.
+        showToast(t('ai.changelog.scoping', r.dir), 'ok')
+        const g = await ((window.gitAPI as any).aiGenerateChangelog?.(branch, undefined, undefined, r.dir)
+          ?? Promise.resolve({ error: 'not-implemented' }))
+        if (g?.error || !g?.changelog) { showToast(g?.error ?? t('ai.answer.empty'), 'err'); return }
+        text = g.changelog
+        r = await call({ branch, file: files[0] ?? r.path, section, force, preview: true })
+      }
+    }
+
+    // The preview. A changelog is written once and inserted later, into a file
+    // that has moved on — half of it may already be there in different words,
+    // and once the lines are in, nothing tells you which ones you just added.
+    if (r?.preview) {
+      const replaces = Array.isArray(r.removed) ? r.removed.length : 0
+      if (!r.added && !replaces && !r.created) { showToast(t('ai.changelog.insertedNothing', r.path), 'ok'); return }
+      const lines = [
+        t('ai.changelog.previewHead', r.added ?? 0, r.path),
+        '',
+        ...(r.addedLines ?? []).map(l => `  ${l}`),
+      ]
+      // What a previous insert of this same changelog left in there and that
+      // this one supersedes. Regenerating rewords everything, so this is the
+      // difference between updating an entry and doubling it.
+      if (Array.isArray(r.removed) && r.removed.length) {
+        lines.push('', t('ai.changelog.previewReplaced', r.removed.length))
+        for (const l of r.removed.slice(0, 4)) lines.push(`  ${l}`)
+        if (r.removed.length > 4) lines.push('  …')
+      }
+      if (r.missing?.length) lines.push('', t('ai.changelog.previewMissing', r.missing.length))
+      if (r.skipped?.length) lines.push('', t('ai.changelog.previewSkipped', r.skipped.length))
+      // What the section already says, because the useful check is a
+      // comparison and no similarity score can make it for you: two wordings
+      // of one change can share almost no words.
+      if (r.existing?.length) {
+        lines.push('', t('ai.changelog.previewExisting', r.existing.length))
+        for (const e of r.existing.slice(0, 4)) lines.push(`  ${e}`)
+        if (r.existing.length > 4) lines.push(`  …`)
+      }
+      if (r.similar?.length) {
+        lines.push('', t('ai.changelog.previewSimilar', r.similar.length))
+        for (const sim of r.similar.slice(0, 3)) lines.push(`  ${sim.line}`, `  ↳ ${sim.existing}`)
+      }
+      if (r.dirty) lines.push('', t('ai.changelog.previewDirty', r.path))
+      // Every other file gets its own preview under the same question: the
+      // sections differ, and so does what each already says.
+      for (const extra of files.slice(1)) {
+        const p = await call({ branch, file: extra, section, force, preview: true })
+        if (p?.error || !p?.preview) continue
+        lines.push('', t('ai.changelog.previewHead', p.added ?? 0, p.path),
+          ...(p.addedLines ?? []).map((l: string) => `  ${l}`))
+      }
+      const ok = await showConfirm(lines.join('\n'), !!(r.similar?.length || r.dirty))
+      if (!ok) return
+      const targets = files.length ? files : [r.path as string]
+      let added = 0
+      let replaced = 0
+      for (const target of targets) {
+        const w = await call({ branch, file: target, section, force })
+        if (w?.error) { showToast(w.error, 'err'); return }
+        added += w?.added ?? 0
+        replaced += typeof w?.removed === 'number' ? w.removed : 0
+        if (w?.created) showToast(t('ai.changelog.created', w.path), 'ok')
+      }
+      if (added || replaced) {
+        showToast(replaced
+          ? t('ai.changelog.insertedReplacing', added, replaced, targets.join(', '))
+          : t('ai.changelog.inserted', added, targets.join(', ')), 'ok')
+      } else showToast(t('ai.changelog.insertedNothing', targets.join(', ')), 'ok')
+      loadRepoData()
+      return
+    }
+    const replaced = typeof r?.removed === 'number' ? r.removed : 0
+    if (r?.created) showToast(t('ai.changelog.created', r.path), 'ok')
+    else if (!r?.added && !replaced) showToast(t('ai.changelog.insertedNothing', r.path), 'ok')
+    else if (replaced) showToast(t('ai.changelog.insertedReplacing', r.added ?? 0, replaced, r.path), 'ok')
+    else showToast(t('ai.changelog.inserted', r.added, r.path), 'ok')
+    // The file is a working-tree change now; the panel has to see it.
+    loadRepoData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showChoice, showConfirm, showToast, t])
 
   // Branch strip above the staging file list (v1.22.0) — same actions as the
   // toolbar and the ⋮ menu, just brought next to the files they apply to.
@@ -2334,6 +2541,14 @@ export default function App() {
           the graph, and the tab it would sit above is not the graph. */}
       {!whatsNewActive && !themesActive && !viewTab && (
       <Toolbar
+        repoName={repoName}
+        recentRepos={recentRepos}
+        onOpenRepo={handleOpenRepo}
+        onClone={() => setCloneOpen(true)}
+        onSetRepo={handleSetRepo}
+        onRemoveRecent={handleRemoveRecent}
+        branches={branches}
+        onGoTo={handleGoTo}
         topRow={tabs.length === 0}
         repoPath={repoPath}
         currentBranch={currentBranch}
@@ -2446,6 +2661,24 @@ export default function App() {
               branches={branches}
               recentRepos={recentRepos}
               stashes={stashes}
+              onExplainStash={(index, message) => setAiRead({ kind: 'stash', index, label: message })}
+              onExplainBranch={(name) => setAiRead({ kind: 'branch', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              onBranchChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              onOpenChangelog={(name) => setAiRead({ kind: 'changelog', ref: name, label: shortName(name, new Set(remoteNames)) })}
+              tab={sidebarTab}
+              onTab={setSidebarTab}
+              memoryToken={memoryToken}
+              onOpenNote={(n) => {
+                if (n.kind === 'branch') setAiRead({ kind: 'branch', ref: n.key, label: n.title })
+                else if (n.kind === 'working') setAiRead({ kind: 'working' })
+                else setAiRead({ kind: 'stash', index: n.key, label: n.title })
+              }}
+              onOpenExplanation={(hash) => {
+                const found = commits.find(c => c.hash === hash)
+                if (found) setSelectedCommit(found)
+                else showToast(t('sb.ai.unknownCommit'), 'err')
+              }}
+              subjectFor={(hash) => commits.find(c => c.hash === hash)?.message}
               tags={tags}
               onOpenRepo={handleOpenRepo}
               onClone={() => setCloneOpen(true)}
@@ -2807,6 +3040,8 @@ export default function App() {
                 onRewordMessage={applyReword}
                 commitProposal={commitProposal}
                 onCommitProposalConsumed={() => setCommitProposal(null)}
+                onExplainWorking={() => setAiRead({ kind: 'working' })}
+                onSplitCommits={() => setComposerOpen(true)}
                 branchStrip={branchStripProps}
               />
             </div>
@@ -2859,6 +3094,114 @@ export default function App() {
           onClose={() => setIssueComposerOpen(false)}
           onCreated={() => { if (githubOwnerRepo) void loadGithubLists(githubOwnerRepo, 'issues') }}
           onStartBranch={handleCreateBranchFromIssue}
+          showToast={showToast}
+        />
+      )}
+
+      {/* What the model reads, in the composers' drawer (#70 P1). A branch,
+          a stash, the uncommitted work — same shape, one component. */}
+      {aiRead?.kind === 'branch' && (
+        <AIAnswer
+          anchor={sidebarPanelRef}
+          title={t('ai.branch.title')}
+          subject={aiRead.label}
+          icon="branch"
+          guide
+          onClose={() => setAiRead(null)}
+          onGenerated={rememberedAI}
+          run={async (guidance) => {
+            const r = await ((window.gitAPI as any).aiExplainBranch?.(aiRead.ref, guidance)
+              ?? Promise.resolve({ error: 'not-implemented' }))
+            return { text: r?.explanation, meta: r?.base ? t('ai.branch.meta', r.base) : undefined, error: r?.error }
+          }}
+        />
+      )}
+
+      {/* The changelog is the one answer people come back to — it is written
+          to be pasted — so it is remembered, and it says when it has fallen
+          behind the branch instead of quietly showing yesterday's text. */}
+      {aiRead?.kind === 'changelog' && (
+        <AIAnswer
+          anchor={sidebarPanelRef}
+          title={t('ai.changelog.title')}
+          subject={aiRead.label}
+          icon="branch"
+          mono
+          onClose={() => setAiRead(null)}
+          onGenerated={rememberedAI}
+          recall={async () => {
+            const r = await ((window.gitAPI as any).aiChangelogState?.(aiRead.ref)
+              ?? Promise.resolve(null))
+            const c = r?.cached
+            if (!c?.text?.trim()) return null
+            const behind = (r.newCommits ?? 0) > 0
+            return {
+              text: c.text,
+              meta: [
+                t('ai.changelog.meta', c.commits ?? 0, c.base),
+                t('ai.changelog.written', timeAgo(new Date(c.at).toISOString(), t)),
+              ].join(' · '),
+              notice: behind ? t('ai.changelog.behind', r.newCommits)
+                : r.baseMoved ? t('ai.changelog.baseMoved') : undefined,
+              stale: behind,
+            }
+          }}
+          run={async (_guidance, previous) => {
+            const r = await ((window.gitAPI as any).aiGenerateChangelog?.(aiRead.ref, undefined, previous)
+              ?? Promise.resolve({ error: 'not-implemented' }))
+            return {
+              text: r?.changelog,
+              meta: r?.base ? t('ai.changelog.meta', r.commits ?? 0, r.base) : undefined,
+              error: r?.error,
+            }
+          }}
+          actions={[{
+            label: t('ai.changelog.insert'),
+            title: t('ai.changelog.insertTitle'),
+            run: (text) => insertChangelogGuarded(text, aiRead.ref),
+          }]}
+        />
+      )}
+
+      {aiRead?.kind === 'stash' && (
+        <AIAnswer
+          anchor={sidebarPanelRef}
+          title={t('ai.stash.title')}
+          subject={aiRead.label}
+          icon="stash"
+          guide
+          onClose={() => setAiRead(null)}
+          onGenerated={rememberedAI}
+          run={async (guidance) => {
+            const r = await ((window.gitAPI as any).aiExplainStash?.(aiRead.index, guidance)
+              ?? Promise.resolve({ error: 'not-implemented' }))
+            return { text: r?.explanation, error: r?.error }
+          }}
+        />
+      )}
+
+      {aiRead?.kind === 'working' && (
+        <AIAnswer
+          anchor={sidebarPanelRef}
+          title={t('ai.working.title')}
+          subject={t('ai.working.subject')}
+          icon="staging"
+          guide
+          onClose={() => setAiRead(null)}
+          onGenerated={rememberedAI}
+          run={async (guidance) => {
+            const r = await ((window.gitAPI as any).aiExplainWorking?.(guidance)
+              ?? Promise.resolve({ error: 'not-implemented' }))
+            return { text: r?.explanation, error: r?.error }
+          }}
+        />
+      )}
+
+      {composerOpen && (
+        <CommitComposer
+          anchor={sidebarPanelRef}
+          onClose={() => setComposerOpen(false)}
+          onCommitted={loadRepoData}
           showToast={showToast}
         />
       )}
@@ -2942,6 +3285,14 @@ export default function App() {
           defaultValue={dlg.defaultValue}
           multiline={dlg.multiline}
           onConfirm={v => { dlg.resolve(v); closeDlg() }}
+          onCancel={() => { dlg.resolve(null); closeDlg() }}
+        />
+      )}
+      {dlg?.kind === 'choice' && (
+        <ChoiceDialog
+          message={dlg.message}
+          options={dlg.options}
+          onPick={v => { dlg.resolve(v); closeDlg() }}
           onCancel={() => { dlg.resolve(null); closeDlg() }}
         />
       )}

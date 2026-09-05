@@ -2,6 +2,38 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useLang } from '../../i18n/LanguageContext'
 import './Dialog.css'
 
+/**
+ * ── Choice dialog ────────────────────────────────────────────────
+ * One question, N answers, none of them typed.
+ *
+ * Written for "which changelog?" in a repository that tracks several: the
+ * app must not pick, and asking someone to type a path they can see in front
+ * of them is asking them to make a typo.
+ */
+export function ChoiceDialog({ message, options, onPick, onCancel }: {
+  message: string
+  options: string[]
+  onPick: (value: string) => void
+  onCancel: () => void
+}) {
+  const { t } = useLang()
+  return (
+    <div className="dlg-overlay" onMouseDown={onCancel}>
+      <div className="dlg-box" onMouseDown={e => e.stopPropagation()}>
+        <div className="dlg-message">{message}</div>
+        <div className="dlg-choices">
+          {options.map(o => (
+            <button key={o} className="dlg-choice" onClick={() => onPick(o)}>{o}</button>
+          ))}
+        </div>
+        <div className="dlg-actions">
+          <button className="dlg-btn" onClick={onCancel}>{t('dlg.cancel')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Prompt dialog ─────────────────────────────────────────────────
 interface PromptDialogProps {
   message: string

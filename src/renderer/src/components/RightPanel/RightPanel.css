@@ -1220,6 +1220,23 @@
 .st2-ai-btn:disabled { opacity: 0.5; cursor: wait; }
 .st2-ai-btn.loading { animation: ai-pulse var(--dur-loop) ease-in-out infinite; }
 
+/* The caret beside it: the same ink, half the width, no label — it is the
+   generate button's second half, not a control of its own. */
+.st2-ai-more {
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-heavy), transparent);
+  border-left: none;
+  margin-left: calc(var(--space-xs) * -1);
+  background: color-mix(in srgb, var(--purple) var(--alpha-subtle), transparent);
+  color: var(--ai-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.st2-ai-more:hover:not(:disabled) { background: color-mix(in srgb, var(--purple) var(--alpha-muted), transparent); color: var(--purple-text); }
+.st2-ai-more:disabled { opacity: 0.5; cursor: wait; }
+
 /* ── Agent proposal banner (MCP propose_commit) ── */
 .st2-proposal {
   border: 1px solid color-mix(in srgb, var(--accent) var(--alpha-strong), transparent);

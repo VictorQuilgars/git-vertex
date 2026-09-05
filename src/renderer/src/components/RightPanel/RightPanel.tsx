@@ -564,9 +564,12 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
     }
   }, [commit.hash, showToast, t])
 
+  // Marked and inked like every other AI row in the app — this menu hangs off
+  // the AI button, so it was never ambiguous, but a row that reaches a model
+  // reads the same wherever it is.
   const aiMenuItems: MenuItemDef[] = [
-    { label: t('panel.aiRecompose'), action: runAiRecompose },
-    { label: cachedExplanation ? t('panel.aiExplainAgain') : t('panel.aiExplain'), action: () => runAiExplain(!!cachedExplanation) },
+    { label: t('panel.aiRecompose'), action: runAiRecompose, icon: 'ai', tone: 'ai' },
+    { label: cachedExplanation ? t('panel.aiExplainAgain') : t('panel.aiExplain'), action: () => runAiExplain(!!cachedExplanation), icon: 'ai', tone: 'ai' },
   ]
 
   // Parse co-authors from body (name + email)
@@ -1068,7 +1071,7 @@ function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx
   )
 }
 
-function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, embedded, branchStrip, emptyState }: {
+function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState }: {
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   currentBranch?: string
@@ -1080,6 +1083,13 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   onOpenStagingEditor?: (file: string) => void
   commitProposal?: { message: string; files: string[] } | null
   onProposalConsumed?: () => void
+  /**
+   * The two AI actions about the working tree (#70 P1) — read it, or cut it
+   * into commits. Absent ⇒ the caret beside the generate button does not
+   * appear at all, so a host that cannot answer offers nothing.
+   */
+  onExplainWorking?: () => void
+  onSplitCommits?: () => void
   embedded?: boolean
   branchStrip?: BranchStripProps
   /**
@@ -1116,6 +1126,8 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const [authors, setAuthors] = useState<{ name: string; email: string }[]>([])
   const [committing, setCommitting] = useState(false)
   const [generating, setGenerating] = useState(false)
+  /** Where the caret's menu opens — the commit detail's AI menu, on the WIP. */
+  const [wipAiMenu, setWipAiMenu] = useState<{ x: number; y: number } | null>(null)
   const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
   const filterRef = useRef<HTMLInputElement>(null)
   const [formHeight, setFormHeight] = useState(() => parseInt(localStorage.getItem('st-form-h') || '300'))
@@ -1809,6 +1821,24 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
             onClick={generateMessage} disabled={generating}>
             <IcoSpark size={13} /> <span>{t('panel.generate.short')}</span>
           </button>
+          {/* Writing the message is the daily act and stays one click. What
+              else the model can do with the same changes — read them, cut
+              them into commits — hangs off a caret rather than taking two
+              more buttons on a row that is already full. */}
+          {(onExplainWorking || onSplitCommits) && (
+            <button className="st2-ai-more" title={t('panel.aiMenuTitle')} aria-label={t('panel.aiMenuTitle')}
+              disabled={generating}
+              onClick={e => {
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                setWipAiMenu({ x: r.right, y: r.bottom + 4 })
+              }}>▾</button>
+          )}
+          {wipAiMenu && (
+            <ContextMenu x={wipAiMenu.x} y={wipAiMenu.y} onClose={() => setWipAiMenu(null)} items={[
+              ...(onExplainWorking ? [{ label: t('panel.aiExplainWorking'), action: onExplainWorking, icon: 'ai' as const, tone: 'ai' as const }] : []),
+              ...(onSplitCommits ? [{ label: t('panel.aiSplit'), action: onSplitCommits, icon: 'ai' as const, tone: 'ai' as const }] : []),
+            ]} />
+          )}
           {stackedCompact && (
             <button
               className={`st2-commit-btn st2-commit-btn--inline ${commitReady ? 'ready' : ''}`}
@@ -2171,6 +2201,9 @@ interface RightPanelProps {
   // nothing is staged or committed until the user acts.
   commitProposal?: { message: string; files: string[] } | null
   onCommitProposalConsumed?: () => void
+  /** The working tree's two AI actions (#70 P1), passed to the staging pane. */
+  onExplainWorking?: () => void
+  onSplitCommits?: () => void
   // VS Code panel: use the compact single-list (checkbox) staging layout
   // instead of the desktop's Unstaged/Staged two-section view.
   embedded?: boolean
@@ -2185,7 +2218,8 @@ export default function RightPanel({
   selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
   onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory, onCompareWorking,
-  onRewordMessage, commitProposal, onCommitProposalConsumed, embedded, branchStrip, emptyState
+  onRewordMessage, commitProposal, onCommitProposalConsumed, onExplainWorking, onSplitCommits,
+  embedded, branchStrip, emptyState
 }: RightPanelProps) {
   const isWip = selectedCommit?.hash === '__WIP__'
   const hasCommit = !!selectedCommit && !isWip
@@ -2220,6 +2254,8 @@ export default function RightPanel({
           onOpenStagingEditor={onOpenStagingEditor}
           commitProposal={commitProposal}
           onProposalConsumed={onCommitProposalConsumed}
+          onExplainWorking={onExplainWorking}
+          onSplitCommits={onSplitCommits}
           embedded={embedded}
           branchStrip={branchStrip}
           emptyState={emptyState}

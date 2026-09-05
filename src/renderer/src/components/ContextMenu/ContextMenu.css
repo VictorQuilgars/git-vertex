@@ -89,3 +89,25 @@
   background: var(--surface-active);
   margin: var(--space-2xs) 0;
 }
+
+/* ── The AI rows ───────────────────────────────────────────────
+   A row that reaches a model is not another verb in the list: it wears the
+   mark, it is written in the ink this app reserves for what a model
+   proposes, and the submenu it opens is outlined in the dashes that go with
+   it — the graph's ghost chip, applied to a menu. "AI" as a bare word was
+   invisible among twenty other entries, which is what this fixes. */
+.ctx-icon {
+  flex-shrink: 0;
+  margin-right: var(--space-sm);
+  color: var(--ai-text);
+}
+
+.ctx-item--ai { color: var(--ai-text); }
+.ctx-item--ai:hover:not(.ctx-disabled) {
+  background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent);
+  color: var(--ai-text);
+}
+
+.ctx-menu--ai {
+  border: 1px dashed var(--ai-border);
+}

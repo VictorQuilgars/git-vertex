@@ -27,7 +27,17 @@ import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src
 import { providerById } from '../../../src/renderer/src/utils/aiProviders'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
-import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels } from '../aiService'
+import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels, runAIPrompt } from '../aiService'
+// The five capabilities of #70 P1 are not reimplemented here: the host lends
+// its git and its provider, and the shared module owns the rest — which base
+// a branch is read against, what is asked, and what a refusal says.
+import {
+  explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
+  changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges,
+  type Run, type ChangelogRecord, type ChangelogStore, type NoteRecord, type NoteStore,
+} from '../../../src/main/ai-features'
+import { findChangelogs, isMergedInto, mergeIntoChangelog } from '../../../src/main/changelog-file'
+import { resolveBase } from '../../../src/main/ai-material'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 
@@ -327,6 +337,42 @@ export class GitVertexHost implements vscode.Disposable {
     }
   }
 
+  /**
+   * The changelogs this repository has had written, in globalState like its
+   * explanations. A method rather than a local, because the insert needs it
+   * as much as the generation does: it is where "what we already put in that
+   * file" is remembered.
+   */
+  private _changelogStore(): ChangelogStore {
+    const state = this._state
+    const repo = this._repoPath ?? ''
+    return {
+      async get(branch) {
+        const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+        return all[repo]?.[branch] ?? null
+      },
+      async all() {
+        const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+        return all[repo] ?? {}
+      },
+      async forget(branch) {
+        const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+        if (!all[repo]?.[branch]) return
+        delete all[repo][branch]
+        await state.update('gvAiChangelogs', all)
+      },
+      async set(branch, record) {
+        const all = state.get<Record<string, Record<string, ChangelogRecord>>>('gvAiChangelogs', {})
+        const forRepo = all[repo] ?? {}
+        forRepo[branch] = record
+        const keys = Object.keys(forRepo)
+        if (keys.length > 100) delete forRepo[keys[0]]
+        all[repo] = forRepo
+        await state.update('gvAiChangelogs', all)
+      },
+    }
+  }
+
   private async _dispatch(method: string, args: any[]): Promise<any> {
     const svc = this._gitService
     // Host-level methods (no git service required)
@@ -479,6 +525,13 @@ export class GitVertexHost implements vscode.Disposable {
         }
         return { success: true }
       }
+      // The panel's answer to "there is no room for a drawer here".
+      case 'openAIReadingTab': {
+        openGitVertexAITab(this._extensionUri, this._state, {
+          mode: 'ai', aiKind: args[0], aiKey: args[1], aiLabel: args[2],
+        })
+        return { success: true }
+      }
       case 'openCompareWorkingTab': {
         if (this._repoPath && args[0]) {
           openGitVertexCompareWorkingTab(this._extensionUri, this._state, this._repoPath, args[0])
@@ -549,6 +602,23 @@ export class GitVertexHost implements vscode.Disposable {
       case 'uiConfirm': {
         const pick = await vscode.window.showWarningMessage(args[0], { modal: true }, 'OK')
         return pick === 'OK'
+      }
+      // One question, N answers, none of them typed — the desktop's
+      // ChoiceDialog, in the form VS Code already gives us.
+      case 'uiPick': return vscode.window.showQuickPick(args[1] as string[], { title: args[0], ignoreFocusOut: true })
+      // The repository's own answer about its changelogs, beside
+      // gitvertex.defaultRemote — the desktop reads and writes the same key.
+      case 'changelogGetScopePref': {
+        if (!svc) return { pref: null }
+        const v = (await svc.raw(['config', '--local', '--get', 'gitvertex.changelogScope']).catch(() => '')).trim()
+        return { pref: v === 'package' || v === 'branch' ? v : null }
+      }
+      case 'changelogSetScopePref': {
+        if (!svc) return { success: false }
+        try {
+          await svc.raw(['config', '--local', 'gitvertex.changelogScope', args[0]])
+          return { success: true }
+        } catch (e: any) { return { success: false, error: e.message } }
       }
       case 'openDesktop': {
         const cfg = vscode.workspace.getConfiguration('gitVertex')
@@ -787,6 +857,14 @@ export class GitVertexHost implements vscode.Disposable {
         const msg = (await svc.raw(['log', '-1', '--pretty=format:%B', args[0]]).catch(() => '')).trim()
         return aiRecomposeCommit(cfg, diff, msg)
       }
+      case 'aiForgetExplanation': {
+        const all = this._state.get<Record<string, Record<string, string>>>('gvAiExplanations', {})
+        if (this._repoPath && all[this._repoPath]?.[args[0]]) {
+          delete all[this._repoPath][args[0]]
+          await this._state.update('gvAiExplanations', all)
+        }
+        return { success: true }
+      }
       case 'aiGetExplanations': {
         const all = this._state.get<Record<string, Record<string, string>>>('gvAiExplanations', {})
         return { explanations: (this._repoPath && all[this._repoPath]) || {} }
@@ -814,6 +892,150 @@ export class GitVertexHost implements vscode.Disposable {
           await this._state.update('gvAiExplanations', all)
         }
         return r
+      }
+      // ── AI beyond the commit message (#70 P1) ──
+      // One adapter, five cases: the feature comes from the shared module, so
+      // the panel cannot end up reading a different model's settings than the
+      // desktop app does for the same action.
+      // The toolbar's conflict badge. The base comes from the same resolver
+      // the AI features use, so the panel and the app cannot disagree about
+      // which branch this one is going to land on.
+      case 'conflictOutlook': {
+        if (!svc) return { error: 'No repository open' }
+        const raw = (a: string[]) => svc.raw(a)
+        let head: string | undefined = args[0]
+        if (!head) {
+          head = (await raw(['rev-parse', '--abbrev-ref', 'HEAD']).catch(() => '')).trim()
+        }
+        if (!head || head === 'HEAD') return { base: null, files: [] }
+        const base = await resolveBase(raw, head)
+        if (!base) return { base: null, files: [] }
+        const r = await svc.predictConflicts(base, head)
+        return { base, files: r.files, error: r.error }
+      }
+      case 'aiExplainBranch':
+      case 'aiExplainStash':
+      case 'aiExplainWorking':
+      case 'aiChangelogState':
+      case 'aiChangelogList':
+      case 'aiForgetChangelog':
+      case 'aiNoteList':
+      case 'aiForgetNote':
+      case 'aiGenerateChangelog':
+      case 'aiProposeCommitSplit': {
+        if (!svc) return { error: 'No repository open' }
+        const raw = (args2: string[]) => svc.raw(args2)
+        const run: Run = async (prompt, maxTokens, feature) => {
+          const cfg = readAIConfig(this._state, feature)
+          if (!cfg) return { error: 'NO_API_KEY' }
+          return runAIPrompt(cfg, prompt, maxTokens)
+        }
+        // The desktop keeps these in userData/ai-changelogs.json; the panel
+        // in globalState, like its explanations. Same record, same rules —
+        // the shared module decides when one has gone stale.
+        const state = this._state
+        const repo = this._repoPath ?? ''
+        const store = this._changelogStore()
+        // The readings this repository has had kept, in globalState like its
+        // explanations — one note per subject, the shared module deciding
+        // when one has gone stale.
+        const notes: NoteStore = {
+          async all() {
+            const all = state.get<Record<string, NoteRecord[]>>('gvAiNotes', {})
+            return all[repo] ?? []
+          },
+          async get(kind, key) {
+            return (await notes.all()).find(n => n.kind === kind && n.key === key) ?? null
+          },
+          async set(record) {
+            const all = state.get<Record<string, NoteRecord[]>>('gvAiNotes', {})
+            const kept = (all[repo] ?? []).filter(n => !(n.kind === record.kind && n.key === record.key))
+            kept.unshift(record)
+            all[repo] = kept.slice(0, 200)
+            await state.update('gvAiNotes', all)
+          },
+          async forget(kind, key) {
+            const all = state.get<Record<string, NoteRecord[]>>('gvAiNotes', {})
+            if (!all[repo]) return
+            all[repo] = all[repo].filter(n => !(n.kind === kind && n.key === key))
+            await state.update('gvAiNotes', all)
+          },
+        }
+        switch (method) {
+          case 'aiExplainBranch': return explainBranch(raw, run, args[0], { guidance: args[1], store: notes })
+          case 'aiExplainStash': return explainStash(raw, run, args[0], { guidance: args[1], store: notes })
+          case 'aiExplainWorking': return explainWorking(raw, run, { guidance: args[0], store: notes })
+          case 'aiNoteList': return noteList(raw, notes)
+          case 'aiForgetNote': await notes.forget(args[0], args[1]); return { success: true }
+          case 'aiChangelogState': return changelogState(raw, store, args[0], args[1])
+          case 'aiChangelogList': return changelogList(raw, store)
+          case 'aiForgetChangelog': await store.forget(args[0]); return { success: true }
+          case 'aiGenerateChangelog':
+            return generateChangelog(raw, run, args[0], args[1], { previous: args[2], scope: args[3], store })
+          default: return proposeCommitSplit(raw, run)
+        }
+      }
+      // Writes into the working tree, so the diff is in the panel's own
+      // staging view a second later — nothing is committed here.
+      case 'insertChangelog': {
+        if (!svc || !this._repoPath) return { error: 'No repository open' }
+        const raw = (a: string[]) => svc.raw(a)
+        const opts = (args[1] ?? {}) as { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }
+        // The same two refusals as the desktop: which file, when there are
+        // several, and whether the branch is already in what it lands on.
+        const candidates = await findChangelogs(raw)
+        const rel = opts.file ?? candidates[0] ?? 'CHANGELOG.md'
+        if (!opts.file && candidates.length > 1) return { needsChoice: true, candidates }
+        if (opts.file && candidates.length && !candidates.includes(opts.file)) {
+          return { error: `${opts.file} is not a changelog this repository tracks` }
+        }
+        if (!opts.force && opts.branch) {
+          const alive = await raw(['rev-parse', '--verify', '--quiet', opts.branch]).catch(() => '')
+          if (!alive.trim()) return { branchGone: true, branch: opts.branch, path: rel }
+          const base = await resolveBase(raw, opts.branch)
+          if (base && await isMergedInto(raw, opts.branch, base)) {
+            return { alreadyMerged: true, branch: opts.branch, base, path: rel }
+          }
+        }
+        const abs = path.join(this._repoPath, rel)
+        let existing: string | null = null
+        try { existing = fs.readFileSync(abs, 'utf-8') } catch { /* the file is new */ }
+        // What a previous insert of THIS changelog put in THIS file — the
+        // answer to regenerating, which rewords everything it wrote.
+        const clStore = this._changelogStore()
+        const record = opts.branch ? await clStore.get(opts.branch) : null
+        const ourLines = insertedIn(record, rel)
+        const merged = mergeIntoChangelog(existing, args[0], ourLines, opts.section)
+        if (merged.needsSection) {
+          return {
+            needsSection: true, path: rel,
+            sections: merged.shape?.sections.map(h => h.text) ?? [],
+          }
+        }
+        // Nothing is written until the reader has seen what would be.
+        if (opts.preview) {
+          const dirty = !!(await raw(['status', '--porcelain', '--', rel]).catch(() => '')).trim()
+          const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : ''
+          const dirTouched = opts.branch ? await scopeHasChanges(raw, opts.branch, dir) : true
+          return {
+            preview: true, path: rel, dirty, dir, dirTouched,
+            added: merged.added, addedLines: merged.addedLines,
+            skipped: merged.skipped, similar: merged.similar, existing: merged.existing,
+            removed: merged.removed, missing: merged.missing,
+            created: merged.created, sectionCreated: merged.sectionCreated,
+          }
+        }
+        if (!merged.added && !merged.removed.length && !merged.created) {
+          return { path: rel, added: 0, created: false }
+        }
+        try { fs.writeFileSync(abs, merged.content) } catch (e: any) { return { error: e.message } }
+        if (record && opts.branch) {
+          await clStore.set(opts.branch, withInserted(record, rel, merged.ours))
+        }
+        return {
+          path: rel, added: merged.added, removed: merged.removed.length,
+          created: merged.created, sectionCreated: merged.sectionCreated,
+        }
       }
       case 'aiResolveConflict': {
         const cfg = readAIConfig(this._state, 'conflict')
@@ -1185,6 +1407,53 @@ export function openGitVertexWhatsNewTab(
     whatsNewHost = undefined
     whatsNewPanel = undefined
   })
+}
+
+// ── AI reading tabs (one WebviewPanel per subject) ────────────────
+// The desktop reads a model's answer in a drawer beside the graph. The panel
+// has no room for one — it is narrower than the answer's own paragraphs — so
+// the same body opens as an editor TAB, which is what this extension already
+// does for the staging editor, the rebase planner and a comparison.
+const AI_VIEW_TYPE = 'gitVertex.aiReading'
+const aiPanels = new Map<string, vscode.WebviewPanel>()
+const aiHosts = new Map<string, GitVertexHost>()
+
+export function openGitVertexAITab(
+  extensionUri: vscode.Uri,
+  state: vscode.Memento,
+  boot: { mode: string; aiKind: string; aiKey?: string; aiLabel?: string },
+): void {
+  const key = `${boot.aiKind}:${boot.aiKey ?? ''}`
+  const existing = aiPanels.get(key)
+  if (existing) { existing.reveal(existing.viewColumn); return }
+
+  const panel = vscode.window.createWebviewPanel(
+    AI_VIEW_TYPE,
+    boot.aiLabel ? `${TAB_TITLES[boot.aiKind] ?? 'AI'} — ${boot.aiLabel}` : (TAB_TITLES[boot.aiKind] ?? 'AI'),
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+    },
+  )
+  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
+  aiPanels.set(key, panel)
+  aiHosts.set(key, new GitVertexHost(panel.webview, extensionUri, state, boot))
+
+  panel.onDidDispose(() => {
+    aiHosts.get(key)?.dispose()
+    aiHosts.delete(key)
+    aiPanels.delete(key)
+  })
+}
+
+const TAB_TITLES: Record<string, string> = {
+  branch: 'Explain branch',
+  stash: 'Explain stash',
+  working: 'Explain changes',
+  changelog: 'Changelog',
+  split: 'Split into commits',
 }
 
 // ── Compare tabs (one WebviewPanel per ref pair) ──────────────────

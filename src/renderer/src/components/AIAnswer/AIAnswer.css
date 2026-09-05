@@ -1,0 +1,180 @@
+/* One model answer, read in a drawer (#70 P1) — PanelDrawer owns the chrome,
+   this file owns what is inside it. Everything the model produced is in the
+   AI ink and never on a filled button: a reading is a proposal, and that is
+   what the colour means across this app. */
+
+.aia-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* What the answer is about, above the answer — a branch name is long, and
+   losing which branch was explained makes the paragraph unreadable. */
+.aia-subject {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.aia-meta {
+  font-family: inherit;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* The wait has a place — where the answer will land, breathing in the AI
+   ink, the composers' gesture. */
+.aia-wait {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.aia-breath {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ai-text);
+  animation: aia-breathe 1.2s ease-in-out infinite;
+}
+
+@keyframes aia-breathe {
+  50% { opacity: var(--alpha-half); transform: scale(0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aia-breath { animation: none; }
+}
+
+.aia-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--danger-block-bg);
+  border: 1px solid var(--danger-block-border);
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+.aia-error button {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--danger);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.aia-error button:hover { text-decoration: underline; }
+
+/* The answer itself. `pre-wrap` because the model writes paragraphs and, for
+   a changelog, Markdown whose line breaks ARE the document. */
+.aia-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text-primary);
+  border-left: 2px solid var(--ai-border);
+  padding-left: var(--space-md);
+}
+
+.aia-text--mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+/* While the words arrive, the rule they hang from carries the AI ink at full
+   strength; it settles back when the writing stops. */
+.aia-text--writing { border-left-color: var(--ai-text); }
+
+.aia-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.aia-copy {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-2xs) var(--space-md);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.aia-copy:hover:not(:disabled) { border-color: var(--border-strong); color: var(--text-primary); }
+.aia-copy:disabled { opacity: var(--alpha-half); cursor: default; }
+
+/* Another go, with a focus. Bordered in the AI ink like every other place
+   where the model is asked for something. */
+.aia-guide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  border-top: 1px solid var(--border-muted);
+  padding-top: var(--space-lg);
+}
+
+.aia-guide label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.aia-guide-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.aia-guide-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+.aia-guide-input:focus { outline: none; border-color: var(--ai-border); }
+
+.aia-again {
+  flex-shrink: 0;
+  padding: var(--space-2xs) var(--space-md);
+  background: transparent;
+  border: 1px solid var(--ai-border);
+  border-radius: var(--radius-sm);
+  color: var(--ai-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.aia-again:hover:not(:disabled) { background: color-mix(in srgb, var(--ai-text) var(--alpha-faint), transparent); }
+.aia-again:disabled { opacity: var(--alpha-half); cursor: default; }
+
+/* What a remembered answer does not cover yet. In the AI ink because it is
+   about the model's text, and above it because it changes how to read it. */
+.aia-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed var(--ai-border);
+  border-radius: var(--radius-md);
+  color: var(--ai-text);
+  font-size: var(--text-xs);
+}
+
+/* The re-ask sits with Copy rather than under the text: it is one of the
+   things you can do with the answer, not a second question. */
+.aia-again--inline { margin-left: auto; }

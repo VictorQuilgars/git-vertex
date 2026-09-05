@@ -68,128 +68,6 @@
 .sb-ov-changed { color: var(--warning); }
 .sb-ov-clean { font-size: var(--text-xs); color: var(--text-tertiary); }
 
-/* ── Repo selector ────────────────────────────────────────── */
-.sb-repo-area {
-  position: relative;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border-muted);
-}
-
-.sb-repo-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  width: 100%;
-  height: 46px;
-  padding: 0 var(--space-xl);
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--dur-fast);
-  font-size: var(--text-base);
-  font-weight: var(--weight-bold);
-}
-.sb-repo-btn:hover { background: var(--surface-hover); }
-
-.sb-repo-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sb-repo-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--surface-hover);
-  border: 1px solid var(--border-default);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  z-index: var(--z-dropdown);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
-  overflow: hidden;
-}
-
-.sb-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  width: 100%;
-  padding: var(--space-md) var(--space-xl);
-  background: none;
-  border: none;
-  color: var(--text-primary-soft);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--dur-fast);
-}
-.sb-dropdown-item:hover { background: var(--surface-sunken); color: var(--text-primary); }
-
-.sb-open-item { font-weight: var(--weight-semibold); color: var(--accent); }
-.sb-open-item:hover { color: var(--info-text); background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-faint), transparent); }
-
-.sb-dropdown-sep {
-  height: 1px;
-  background: var(--surface-sunken);
-  margin: var(--space-xs) 0;
-}
-
-.sb-dropdown-label {
-  padding: var(--space-xs) var(--space-xl);
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-bold);
-  color: var(--text-disabled);
-  letter-spacing: 0.06em;
-}
-
-.sb-recent-item {
-  padding: var(--space-xs) var(--space-md) !important;
-  gap: 0 !important;
-}
-
-.sb-recent-path {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  flex: 1;
-  background: none;
-  border: none;
-  color: var(--text-primary-soft);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  text-align: left;
-  padding: var(--space-xs) var(--space-xs);
-  border-radius: var(--radius-sm);
-  min-width: 0;
-  overflow: hidden;
-}
-.sb-recent-path:hover { color: var(--text-primary); }
-.sb-recent-path > span:first-of-type { font-weight: var(--weight-semibold); white-space: nowrap; }
-.sb-recent-full {
-  color: var(--text-disabled);
-  font-size: var(--text-tiny);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-left: var(--space-xs);
-}
-
-.sb-recent-remove {
-  background: none;
-  border: none;
-  color: var(--text-disabled);
-  cursor: pointer;
-  font-size: var(--text-md);
-  padding: var(--space-2xs) var(--space-sm);
-  border-radius: var(--radius-xs);
-  flex-shrink: 0;
-}
-.sb-recent-remove:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); }
-
 /* ── Branch filter ────────────────────────────────────────── */
 .sb-search {
   display: flex;
@@ -1029,3 +907,84 @@
   cursor: pointer;
 }
 .sb-gh-fedit-option--on { background: var(--surface-hover); color: var(--text-primary); }
+
+/* ── The two stacks (#70) ─────────────────────────────────────
+   The repository as a list, and what the model has written for it. One row
+   of two, under the repo selector — the AI half in the ink every other AI
+   surface uses, so the tab says what it holds before it is opened. */
+.sb-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-muted);
+}
+
+/* Two halves of one row, edge to edge — a control that fills the width says
+   "these are the two of them" in a way two floating pills do not. */
+.sb-tab {
+  flex: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.sb-tab + .sb-tab { border-left: 1px solid var(--border-muted); }
+.sb-tab:hover:not(.sb-tab--on) { background: var(--surface-hover); color: var(--text-primary); }
+
+.sb-tab--on {
+  background: var(--surface-active);
+  border-bottom-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* Its mark carries the AI ink whether or not the tab is the active one — it
+   is what the tab is about, not a state — and the underline follows suit. */
+.sb-tab--ai svg { color: var(--ai-text); }
+.sb-tab--ai.sb-tab--on { border-bottom-color: var(--ai-text); }
+
+/* ── A row of the AI stack ───────────────────────────────────── */
+.sb-ai-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.sb-ai-item:hover { background: var(--surface-hover); color: var(--text-primary); }
+.sb-ai-item--flat { cursor: default; }
+/* What it described is gone — a dropped stash, a deleted branch. The reading
+   is still worth something, which is why the row stays. */
+.sb-ai-item--orphan .sb-ai-name { text-decoration: line-through; opacity: var(--alpha-bold); }
+.sb-ai-item--flat:hover { background: none; }
+
+.sb-ai-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+
+.sb-ai-name {
+  font-size: var(--text-sm);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.sb-ai-meta {
+  font-size: var(--text-tiny);
+  color: var(--text-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sb-ai-meta code { font-family: 'JetBrains Mono', monospace; }
+
+/* How far the text has fallen behind its branch — the drawer's "+N", where
+   the decision to reopen it is actually made. */
+.sb-ai-stale {
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  border: 1px dashed var(--ai-border);
+  border-radius: var(--radius-sm);
+  color: var(--ai-text);
+  font-size: var(--text-tiny);
+}

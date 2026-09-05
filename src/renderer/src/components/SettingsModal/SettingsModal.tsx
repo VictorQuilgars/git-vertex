@@ -153,6 +153,10 @@ type AITemperament = 'fast' | 'balanced' | 'thorough'
 const AI_FEATURES: { id: string; labelKey: string; kind: AITemperament; chips: string[] }[] = [
   { id: 'commit', kind: 'fast', labelKey: 'settings.ai.feat.commit', chips: [
     'Subject under 50 characters', 'Reference the issue number', 'No body — subject only', 'Explain the why in the body'] },
+  // One feature, four diffs: a commit, a branch, a stash, the working tree
+  // (#70 P1). They ask the same question and reward the same model, so
+  // splitting them into four settings blocks would be four places to keep
+  // saying the same thing.
   { id: 'explain', kind: 'thorough', labelKey: 'settings.ai.feat.explain', chips: [
     'Focus on the why', 'Call out risky changes', 'Three sentences at most'] },
   { id: 'conflict', kind: 'thorough', labelKey: 'settings.ai.feat.conflict', chips: [
@@ -165,6 +169,10 @@ const AI_FEATURES: { id: string; labelKey: string; kind: AITemperament; chips: s
     'Start with a one-line summary', 'Bullet the notable changes', 'Mention breaking changes first'] },
   { id: 'issue', kind: 'balanced', labelKey: 'settings.ai.feat.issue', chips: [
     'Add acceptance criteria', 'Title under 60 characters', 'No invented reproduction steps'] },
+  { id: 'changelog', kind: 'thorough', labelKey: 'settings.ai.feat.changelog', chips: [
+    'One bullet per change, no more', 'Name the affected area first', 'Keep internal refactors out'] },
+  { id: 'compose', kind: 'thorough', labelKey: 'settings.ai.feat.compose', chips: [
+    'Prefer fewer, larger commits', 'Tests with the code they cover', 'Keep documentation in its own commit'] },
 ]
 
 /** A model choice that knows which credential it runs on. */

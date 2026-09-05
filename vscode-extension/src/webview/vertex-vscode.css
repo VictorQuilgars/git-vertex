@@ -306,3 +306,14 @@
   flex-direction: column;
 }
 .gv-settings-overlay .stg-page { flex: 1; min-height: 0; }
+
+/* ── A model's reading, filling an editor tab (#70) ──
+   The drawer gave it its padding and its width; a tab gives neither, so the
+   text is held to a readable measure rather than run to the window's edge. */
+.ai-tab {
+  padding: var(--space-xl);
+  max-width: 900px;
+  margin: 0 auto;
+}
+/* The composer brings its own scrolling list; it wants the width. */
+.ai-tab--full { max-width: none; padding: var(--space-lg); }

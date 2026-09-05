@@ -13,7 +13,9 @@ import { providerById, providerCredential, providerUsable, type AIDialect } from
  * own instructions — so this id set IS the settings vocabulary:
  * `aiFeatureProvider:<id>`, `aiFeatureModel:<id>`, `aiFeatureInstructions:<id>`.
  */
-export type AIFeature = 'commit' | 'explain' | 'conflict' | 'search' | 'filter' | 'pr' | 'issue'
+export type AIFeature =
+  | 'commit' | 'explain' | 'conflict' | 'search' | 'filter' | 'pr' | 'issue'
+  | 'changelog' | 'compose'
 
 export interface ResolvedAI {
   provider: string

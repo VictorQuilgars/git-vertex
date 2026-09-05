@@ -24,8 +24,11 @@ const ITEMS: RailItem[] = [
     view: 'overview', labelKey: 'rail.overview', fallback: 'Overview',
     icon: <Icon name="home" />,
   },
+  // One entry for everything the model does here: what it has written (#70)
+  // and what is running (the agents list, which lived on its own icon and was
+  // the same robot head twice over).
   {
-    view: 'agents', labelKey: 'rail.agents', fallback: 'Agents',
+    view: 'ai', labelKey: 'rail.ai', fallback: 'AI',
     icon: <Icon name="agent" />,
   },
   {

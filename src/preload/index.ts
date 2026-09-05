@@ -81,6 +81,7 @@ const gitAPI = {
   renameBranch: (oldName: string, newName: string) => ipcRenderer.invoke('git:rename-branch', oldName, newName),
   merge: (branch: string) => ipcRenderer.invoke('git:merge', branch),
   fastForwardToUpstream: () => ipcRenderer.invoke('git:fast-forward-upstream'),
+  conflictOutlook: (branch?: string) => ipcRenderer.invoke('git:conflict-outlook', branch),
   predictConflicts: (theirs: string, ours?: string, mergeBase?: string) =>
     ipcRenderer.invoke('git:predict-conflicts', theirs, ours, mergeBase),
   predictRebaseConflicts: (upstream: string, branch?: string) =>
@@ -157,6 +158,22 @@ const gitAPI = {
   aiRecomposeCommit: (hash: string) => ipcRenderer.invoke('ai:recompose-commit', hash),
   aiExplainCommit: (hash: string, force?: boolean, guidance?: string) => ipcRenderer.invoke('ai:explain-commit', hash, force, guidance),
   aiGetExplanations: () => ipcRenderer.invoke('ai:get-explanations'),
+  aiExplainBranch: (branch: string, guidance?: string) => ipcRenderer.invoke('ai:explain-branch', branch, guidance),
+  aiExplainStash: (index: number | string, guidance?: string) => ipcRenderer.invoke('ai:explain-stash', index, guidance),
+  aiExplainWorking: (guidance?: string) => ipcRenderer.invoke('ai:explain-working', guidance),
+  aiChangelogState: (branch: string, scope?: string) => ipcRenderer.invoke('ai:changelog-state', branch, scope),
+  aiChangelogList: () => ipcRenderer.invoke('ai:changelog-list'),
+  aiNoteList: () => ipcRenderer.invoke('ai:note-list'),
+  aiForgetNote: (kind: string, key: string) => ipcRenderer.invoke('ai:forget-note', kind, key),
+  aiForgetExplanation: (hash: string) => ipcRenderer.invoke('ai:forget-explanation', hash),
+  aiForgetChangelog: (branch: string) => ipcRenderer.invoke('ai:forget-changelog', branch),
+  aiGenerateChangelog: (branch: string, base?: string, previous?: string, scope?: string) =>
+    ipcRenderer.invoke('ai:generate-changelog', branch, base, previous, scope),
+  changelogGetScopePref: () => ipcRenderer.invoke('changelog:get-scope-pref'),
+  changelogSetScopePref: (pref: 'package' | 'branch') => ipcRenderer.invoke('changelog:set-scope-pref', pref),
+  insertChangelog: (entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) =>
+    ipcRenderer.invoke('changelog:insert', entry, opts),
+  aiProposeCommitSplit: () => ipcRenderer.invoke('ai:propose-commit-split'),
   aiResolveConflict: (filepath: string, instruction?: string) => ipcRenderer.invoke('ai:resolve-conflict', filepath, instruction),
   aiSearchCommits: (query: string) => ipcRenderer.invoke('ai:search-commits', query),
   aiListModels: () => ipcRenderer.invoke('ai:list-models'),

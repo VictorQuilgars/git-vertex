@@ -25,12 +25,19 @@ declare global {
     uiPrompt: (message: string, value?: string) => Promise<string | undefined>
     /** A modal warning with an OK. False when dismissed. */
     uiConfirm: (message: string) => Promise<boolean>
+    uiPick: (title: string, options: string[]) => Promise<string | undefined>
 
     // ── Tabs the panel opens in the editor, where the desktop opens a view ──
     openCompare: (base: string, target: string) => Promise<unknown>
     openCompareWorkingTab: (hash: string) => Promise<unknown>
     openInteractiveRebaseTab: (hash: string) => Promise<unknown>
     openStagingEditor: (path?: string) => Promise<unknown>
+    /**
+     * A model's reading, in its own editor tab. The desktop shows these in a
+     * drawer beside the graph; the panel is narrower than the answer, so here
+     * they open the way this extension opens everything else that needs room.
+     */
+    openAIReadingTab: (kind: 'branch' | 'stash' | 'working' | 'changelog' | 'split', key?: string, label?: string) => Promise<unknown>
     openConflictResolver: (path: string) => Promise<unknown>
     openDiff: (target: unknown) => Promise<unknown>
     /** Hands the repository over to the desktop app, if it is installed. */

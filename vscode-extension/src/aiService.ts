@@ -22,8 +22,11 @@ export interface AIConfig {
   instructions?: string
 }
 
-/** The desktop's AIFeature vocabulary — see src/main/index.ts (#70). */
-export type AIFeature = 'commit' | 'explain' | 'conflict' | 'search' | 'filter' | 'pr' | 'issue'
+// The vocabulary is IMPORTED, not restated: it was declared here as well, and
+// a settings key the two products spell differently is a feature whose
+// instructions silently stop being read in one of them (#70).
+export type { AIFeature } from '../../src/main/ai-resolve'
+import type { AIFeature } from '../../src/main/ai-resolve'
 
 const MODEL_DEFAULTS: Record<string, string> = {
   anthropic: 'claude-haiku-4-5-20251001',
