@@ -98,3 +98,35 @@ test('forgetting a repository drops its snapshot and closes its session in the m
   expect(view.result.current.hasSnapshot('/a')).toBe(false)
   await waitFor(() => expect(api.closeRepo).toHaveBeenCalledWith('/a'))
 })
+
+describe('a toast says which repository it is about, when that is not the one shown', () => {
+  test('an operation started on one tab reports after a switch with that repository\'s name', () => {
+    const chromeToast = jest.fn()
+    installMockGitAPI({ session: jest.fn(() => repoApi('x')), setCurrentRepo: jest.fn(), onRepoChangedAny: jest.fn(() => () => {}) })
+    const view = renderHook(() => useRepoSession({ showToast: chromeToast } as any))
+    act(() => view.result.current.setRepoPath('/work/alpha'))
+    // The handler that started the push holds the showToast of this render.
+    const toastFromAlpha = view.result.current.showToast
+    act(() => view.result.current.setRepoPath('/work/beta'))
+    toastFromAlpha('Pushed', 'ok')
+    expect(chromeToast).toHaveBeenLastCalledWith('alpha · Pushed', 'ok', undefined, undefined)
+    // The one made for the repository shown now says nothing more.
+    view.result.current.showToast('Hello', 'ok')
+    expect(chromeToast).toHaveBeenLastCalledWith('Hello', 'ok', undefined, undefined)
+  })
+
+  test('what arrives from the main process names its repository explicitly', () => {
+    const chromeToast = jest.fn()
+    installMockGitAPI({ session: jest.fn(() => repoApi('x')), setCurrentRepo: jest.fn(), onRepoChangedAny: jest.fn(() => () => {}) })
+    const view = renderHook(() => useRepoSession({ showToast: chromeToast } as any))
+    act(() => view.result.current.setRepoPath('/work/beta'))
+    view.result.current.showToast('Auto-fetch failed: offline', 'err', undefined, undefined, '/work/alpha')
+    expect(chromeToast).toHaveBeenLastCalledWith('alpha · Auto-fetch failed: offline', 'err', undefined, undefined)
+    view.result.current.showToast('Auto-fetch failed: offline', 'err', undefined, undefined, '/work/beta')
+    expect(chromeToast).toHaveBeenLastCalledWith('Auto-fetch failed: offline', 'err', undefined, undefined)
+    // No repository shown at all: nothing to compare against, nothing added.
+    act(() => view.result.current.setRepoPath(null))
+    view.result.current.showToast('Saved', 'ok')
+    expect(chromeToast).toHaveBeenLastCalledWith('Saved', 'ok', undefined, undefined)
+  })
+})

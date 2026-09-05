@@ -18,7 +18,7 @@ import { useBranchMeta } from '../hooks/useBranchMeta'
 import { emptyVisibility, logOptionsFor, type GraphVisibility, type RefFamily } from '../utils/graphVisibility'
 import { type RemoteRepo } from '../utils/remoteUrl'
 import { type StashEntry, type TagEntry, kindsByPath, LOG_PAGE } from './shared'
-import type { AppChrome } from './useAppChrome'
+import type { AppChrome, ToastAction } from './useAppChrome'
 
 /** What a hidden tab keeps of its repository, and what a load produces. */
 interface RepoSnapshot {
@@ -180,6 +180,21 @@ export function useRepoSession(app: AppChrome) {
     return true
   }, [])
   const hasSnapshot = useCallback((path: string) => snapshots.current.has(path), [])
+  // A toast about a repository that is not the one shown says which one it
+  // is about; one about the shown repository says nothing more. An operation
+  // starts on the repository shown at the time and reports when it is done,
+  // which can be after a switch: this callback is created per render with the
+  // repository of that render, a handler made in the same render carries it,
+  // and at the moment of the toast it is compared with what is shown then.
+  // `about` names the repository explicitly, for what arrives from the main
+  // process with its repository attached. This shadows the chrome's showToast
+  // for every hook after this one.
+  const chromeToast = app.showToast
+  const showToast = useCallback((msg: string, type?: 'ok' | 'err', action?: ToastAction | ToastAction[], sticky?: boolean, about?: string | null) => {
+    const origin = about === undefined ? repoPath : about
+    const elsewhere = !!origin && origin !== activePathRef.current
+    chromeToast(elsewhere ? `${origin.split('/').pop()} · ${msg}` : msg, type, action, sticky)
+  }, [chromeToast, repoPath])
   /** The last tab showing this repository closed: drop what was kept, and the main process's session. */
   const forgetRepo = useCallback((path: string) => {
     snapshots.current.delete(path)
@@ -333,7 +348,7 @@ export function useRepoSession(app: AppChrome) {
   }, [loadRepoData])
 
   return {
-    repoPath, setRepoPath, activePathRef, saveSnapshot, restoreSnapshot, hasSnapshot, forgetRepo, repoName, setRepoName, commits, setCommits, logLimit, setLogLimit, logLimitRef, branches, setBranches, currentBranch, setCurrentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, setVisibility, remoteNames, setRemoteNames, toggleHidden, setFamilyHidden, branchMeta, notedHashes, setNotedHashes, loading, setLoading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, setStashes, tags, setTags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, setTracking, githubRepoUrl, setGithubRepoUrl, githubOwnerRepo, setGithubOwnerRepo, remoteRepo, setRemoteRepo, defaultBranch, setDefaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, setConflictMode, wipCount, setWipCount, loadStashes, loadTags, isLoadingRef, reloadQueued, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, clearRepoView, loadMoreHistory,
+    repoPath, setRepoPath, activePathRef, saveSnapshot, restoreSnapshot, hasSnapshot, forgetRepo, showToast, repoName, setRepoName, commits, setCommits, logLimit, setLogLimit, logLimitRef, branches, setBranches, currentBranch, setCurrentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, setVisibility, remoteNames, setRemoteNames, toggleHidden, setFamilyHidden, branchMeta, notedHashes, setNotedHashes, loading, setLoading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, setStashes, tags, setTags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, setTracking, githubRepoUrl, setGithubRepoUrl, githubOwnerRepo, setGithubOwnerRepo, remoteRepo, setRemoteRepo, defaultBranch, setDefaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, setConflictMode, wipCount, setWipCount, loadStashes, loadTags, isLoadingRef, reloadQueued, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, clearRepoView, loadMoreHistory,
   }
 }
 

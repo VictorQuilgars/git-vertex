@@ -245,7 +245,8 @@ export default function App() {
     const message = r.error ?? ''
     if (message === lastAutoFetchError.current) return
     lastAutoFetchError.current = message
-    showToast(t('toast.autoFetchFailed', message), 'err')
+    // Named after its repository when that is not the one shown.
+    showToast(t('toast.autoFetchFailed', message), 'err', undefined, undefined, r.repo ?? null)
   }), [loadRepoData, showToast, t, repoPath, hasSnapshot])
   // ── The GitHub lists poll themselves (#141) ────────────────
   //
