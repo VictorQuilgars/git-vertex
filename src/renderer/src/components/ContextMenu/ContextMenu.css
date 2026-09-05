@@ -52,13 +52,17 @@
   white-space: nowrap;
 }
 
-.ctx-item:hover:not(.ctx-disabled) {
+.ctx-item:hover:not(.ctx-disabled),
+.ctx-item:focus-visible {
   background: var(--surface-active);
   color: var(--text-primary);
+  outline: none;
 }
+.ctx-menu:focus { outline: none; }
 
 .ctx-item.ctx-danger { color: var(--danger); }
-.ctx-item.ctx-danger:hover:not(.ctx-disabled) { background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); color: var(--danger-hover); }
+.ctx-item.ctx-danger:hover:not(.ctx-disabled),
+.ctx-item.ctx-danger:focus-visible { background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); color: var(--danger-hover); }
 
 .ctx-item.ctx-disabled {
   opacity: 0.4;

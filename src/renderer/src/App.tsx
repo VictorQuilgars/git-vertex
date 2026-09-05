@@ -212,6 +212,9 @@ const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
  */
 const GITHUB_POLL_MS = 60_000
 
+/** How much history one load of the graph holds, and how much a "more" adds. */
+const LOG_PAGE = 500
+
 export default function App() {
   // ── Dialog state ───────────────────────────────────────────
   const [dlg, setDlg] = useState<DialogState | null>(null)
@@ -235,6 +238,11 @@ export default function App() {
   const [repoPath, setRepoPath] = useState<string | null>(null)
   const [repoName, setRepoName] = useState<string>('')
   const [commits, setCommits] = useState<CommitNode[]>([])
+  // The graph holds a page of history, not the repository: LOG_PAGE commits,
+  // then LOG_PAGE more per click. The status bar says how many, because a
+  // search over the graph is a search over what was loaded and nothing else.
+  const [logLimit, setLogLimit] = useState(LOG_PAGE)
+  const logLimitRef = useRef(LOG_PAGE); logLimitRef.current = logLimit
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [currentBranch, setCurrentBranch] = useState<string>('')
   const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
@@ -498,7 +506,7 @@ export default function App() {
       // query is built from the visibility state rather than from them.
       const branchRes = await window.gitAPI.getBranches()
       const logRes = await window.gitAPI.getLog(logOptionsFor({
-        maxCount: 500,
+        maxCount: logLimitRef.current,
         all: showAllRef.current,
         solo: soloRef.current,
         visibility: visibilityRef.current,
@@ -2437,6 +2445,35 @@ export default function App() {
   // beside the two side panes — computed from the panes the user actually has
   // (see utils/layout.ts), so a wide right pane counts as much as a narrow window.
   const windowWidth = useWindowWidth()
+
+  const loadMoreHistory = useCallback(() => {
+    logLimitRef.current += LOG_PAGE
+    setLogLimit(logLimitRef.current)
+    void loadRepoData(true)
+  }, [loadRepoData])
+
+  // The tab strip's keyboard: arrows move between tabs and open the one they
+  // land on, Home and End go to the ends, Delete closes. Only the active tab
+  // is in the Tab order, so the strip is one stop for Tab, not one per tab.
+  const onTabKeyDown = (e: React.KeyboardEvent, tab: AppTab) => {
+    const i = tabs.findIndex(tb => tb.id === tab.id)
+    if (i < 0) return
+    let target: AppTab | undefined
+    switch (e.key) {
+      case 'ArrowRight': target = tabs[(i + 1) % tabs.length]; break
+      case 'ArrowLeft': target = tabs[(i - 1 + tabs.length) % tabs.length]; break
+      case 'Home': target = tabs[0]; break
+      case 'End': target = tabs[tabs.length - 1]; break
+      case 'Enter': case ' ': e.preventDefault(); switchTab(tab); return
+      case 'Delete': case 'Backspace': e.preventDefault(); closeTab(tab.id); return
+      default: return
+    }
+    e.preventDefault()
+    if (!target || target.id === tab.id) return
+    switchTab(target)
+    const id = target.id
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`.app-tab[data-tab-id="${id}"]`)?.focus())
+  }
   const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
 
@@ -2449,7 +2486,7 @@ export default function App() {
       {/* Always render the top bar so Settings/profile stay reachable from the
           welcome screen too (not only once a repo/tab is open). */}
       {(
-        <div className="app-tabs">
+        <div className="app-tabs" role="tablist">
           {isMac && !isFullscreen && <div className="app-tabs-mac-spacer" />}
           {/* 📁 Repository Management — a fixed button opening a full-page
               overlay (like Settings), never a tab. */}
@@ -2461,6 +2498,11 @@ export default function App() {
           {tabs.map(tab => (
             <div
               key={tab.id}
+              role="tab"
+              aria-selected={tab.id === activeTabId && !whatsNewActive}
+              tabIndex={tab.id === activeTabId ? 0 : -1}
+              data-tab-id={tab.id}
+              onKeyDown={e => onTabKeyDown(e, tab)}
               className={`app-tab ${tab.id === activeTabId && !whatsNewActive ? 'active' : ''}`}
               onClick={() => switchTab(tab)}
               onAuxClick={e => { if (e.button === 1) { e.preventDefault(); closeTab(tab.id) } }}
@@ -2801,6 +2843,7 @@ export default function App() {
             />
           ) : viewTab && activeTab?.path && activeTab.path !== repoPath ? (
             <div role="status">{t('common.loading')}</div>
+              unpushedCount={branches.find(b => b.current && !b.remote)?.ahead}
           ) : viewTab ? (
             viewTab.view === 'compare' ? (
               <CompareView
@@ -3089,6 +3132,9 @@ export default function App() {
       {/* Command Palette */}
       {paletteOpen && (
         <CommandPalette
+          commitCount={commits.length}
+          historyTruncated={commits.length >= logLimit}
+          onLoadMore={loadMoreHistory}
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
         />

@@ -10,6 +10,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Two comparison tabs no longer show the same comparison**, and a commit hash is a real choice in the picker.
 - **A window too narrow for three panes gives the details the whole of it**, with *Back to the graph* above them; the toolbar folds its secondary actions into one menu.
 - **Full context in a working-tree diff reaches git** — it used to be dropped on the way.
+- **The keyboard reaches the menus, the tabs and the rebase**: arrows over a context menu's rows, Right into a submenu, Left back; arrows across the tab strip; two arrows per rebase row. The rebase editor says what the plan comes to, and whether a force push follows.
+- **The graph says how much history it holds** — *500 commits loaded*, and *Load 500 more* in the status bar. A **Working changes** row above the sidebar's lists is always there, and counts them.
+- **A diff git could not read is no longer "No differences"**: the reason is shown, with a Retry. And the auto-fetch has one owner, which reports.
 
 ### 🎚 Reply length, per feature
 - Every AI call carried a ceiling nobody could see or change — 512 tokens for a commit message, 8192 for a conflict resolution. One control each in **Settings › AI Assistant** now: *Standard*, *Generous*, *Maximum*.

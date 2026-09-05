@@ -202,6 +202,9 @@ const fr = {
   'statusbar.ahead': (n: number) => `${n} commit(s) en avance sur le remote`,
   'statusbar.behind': (n: number) => `${n} commit(s) en retard sur le remote`,
   'statusbar.zoomReset': 'Réinitialiser le zoom (100%)',
+  'statusbar.commitsLoaded': (n: number) => `${n} commits chargés`,
+  'statusbar.loadMore': (n: number) => `Charger ${n} de plus`,
+  'statusbar.historyScope': 'Le graphe et sa recherche portent sur les commits chargés, du plus récent au plus ancien.',
   'toolbar.autoFetch.tooltip': 'Auto-fetch actif (toutes les 5 min)',
   'toolbar.update.tooltip': 'Une mise à jour est prête à être installée',
   'toolbar.update.label': 'Mise à jour',
@@ -1422,11 +1425,16 @@ const fr = {
 
   // InteractiveRebase (extras)
   'ir.firstKept': 'Le premier commit conservé ne peut pas être « squash »/« fixup » — choisissez « pick » ou incluez un commit plus ancien.',
-  'ir.hint': 'Glissez pour réordonner · Changez l\'action avec le menu déroulant · Choisissez le message final pour un squash/reword',
+  'ir.hint': 'Glissez ou utilisez les flèches pour réordonner · Changez l\'action avec le menu déroulant · Choisissez le message final pour un squash/reword',
   'ir.planBanner': 'Plan proposé par un agent — vérifiez chaque action et message avant de lancer le rebase.',
   'ir.noCommits': 'Aucun commit à rebaser',
   'ir.dragHandle': 'Glisser pour réordonner',
 
+  'ir.moveUp': 'Monter',
+  'ir.moveDown': 'Descendre',
+  'ir.summary': (total: number, resulting: number, folded: number, dropped: number, reworded: number) =>
+    `Réécrit ${total} commit${total === 1 ? '' : 's'} en ${resulting} : ${folded} fusionné${folded === 1 ? '' : 's'} dans un autre, ${dropped} supprimé${dropped === 1 ? '' : 's'}, ${reworded} reformulé${reworded === 1 ? '' : 's'}.`,
+  'ir.published': (n: number) => `${n} d'entre eux ${n === 1 ? 'est déjà' : 'sont déjà'} sur l'upstream : la branche devra ensuite être poussée en force.`,
   // Toasts
   'toast.fetchOk': 'Fetch réussi',
   'toast.fetchErr': (e: string) => `Fetch échoué : ${e}`,
@@ -1981,6 +1989,9 @@ const en: typeof fr = {
   'statusbar.behind': (n: number) => `${n} commit(s) behind remote`,
   'statusbar.zoomReset': 'Reset zoom (100%)',
   'toolbar.autoFetch.tooltip': 'Auto-fetch active (every 5 min)',
+  'statusbar.commitsLoaded': (n: number) => `${n} commits loaded`,
+  'statusbar.loadMore': (n: number) => `Load ${n} more`,
+  'statusbar.historyScope': 'The graph and its search cover the commits loaded so far, newest first.',
   'toolbar.update.tooltip': 'An update is ready to be installed',
   'toolbar.update.label': 'Update',
   'toolbar.settings.tooltip': 'Settings',
@@ -3199,12 +3210,17 @@ const en: typeof fr = {
 
   // InteractiveRebase (extras)
   'ir.firstKept': 'The first kept commit cannot be "squash"/"fixup" — choose "pick" or include an older commit.',
-  'ir.hint': 'Drag to reorder · Change the action with the dropdown · Choose the final message for a squash/reword',
+  'ir.hint': 'Drag or use the arrows to reorder · Change the action with the dropdown · Choose the final message for a squash/reword',
   'ir.planBanner': 'Plan proposed by an agent — review each action and message before running the rebase.',
   'ir.noCommits': 'No commit to rebase',
   'ir.dragHandle': 'Drag to reorder',
 
   // Toasts
+  'ir.moveUp': 'Move up',
+  'ir.moveDown': 'Move down',
+  'ir.summary': (total: number, resulting: number, folded: number, dropped: number, reworded: number) =>
+    `Rewrites ${total} commit${total === 1 ? '' : 's'} into ${resulting}: ${folded} folded into another, ${dropped} dropped, ${reworded} reworded.`,
+  'ir.published': (n: number) => `${n} of them ${n === 1 ? 'is' : 'are'} already on the upstream: the branch will need a force push afterwards.`,
   'toast.fetchOk': 'Fetch successful',
   'toast.fetchErr': (e: string) => `Fetch failed: ${e}`,
   'toast.pushOk': (upstream: string) => `Push successful → ${upstream}`,

@@ -121,6 +121,7 @@ body {
   flex-shrink: 0;
 }
 .app-tab:hover { color: var(--text-primary); background: var(--surface-sunken); }
+.app-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .app-tab.active {
   color: var(--text-primary);
   background: var(--bg-canvas);

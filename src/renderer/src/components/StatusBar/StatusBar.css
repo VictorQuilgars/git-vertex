@@ -92,3 +92,13 @@
   border-right: 1px solid var(--border-muted);
 }
 .sb-zoom-btn:hover, .sb-zoom-val:hover { background: var(--surface-hover); color: var(--text-primary-soft); }
+
+/* How much history the graph holds, and the way to more. */
+.sb-history { display: inline-flex; align-items: center; gap: var(--space-sm); color: var(--text-secondary); white-space: nowrap; }
+.sb-history-more {
+  background: none; border: 1px solid var(--border-muted); border-radius: var(--radius-sm);
+  color: var(--accent); font-size: var(--text-xs); line-height: 1.4;
+  padding: 0 var(--space-sm); cursor: pointer;
+}
+.sb-history-more:hover:not(:disabled) { background: var(--surface-hover); }
+.sb-history-more:disabled { opacity: .6; cursor: default; }
