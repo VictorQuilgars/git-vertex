@@ -333,6 +333,8 @@ interface AIDraft {
   global: string
   featSel: Record<string, AIPair | null>
   featInstr: Record<string, string>
+  /** How much room each feature's answers get — 1, 2 or 4 times its own. */
+  featRoom: Record<string, number>
 }
 const serializeAI = (d: AIDraft): string => JSON.stringify(d)
 
@@ -555,6 +557,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const [aiGlobalInstr, setAiGlobalInstr] = useState('')
   const [aiFeatSel, setAiFeatSel] = useState<Record<string, AIPair | null>>({})
   const [aiFeatInstr, setAiFeatInstr] = useState<Record<string, string>>({})
+  const [aiFeatRoom, setAiFeatRoom] = useState<Record<string, number>>({})
   const [aiKeys, setAiKeys] = useState<Record<string, string>>({})
   // User-defined endpoints (#169) — Ollama and kin. Kept whole (key inline)
   // in the aiCustomProviders JSON; a custom with models fetched counts as
@@ -645,7 +648,15 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       }))
       setAiFeatSel(featSel)
       const featInstr: Record<string, string> = Object.fromEntries(AI_FEATURES.map(f => [f.id, s[`aiFeatureInstructions:${f.id}`] ?? '']))
+      // How much room an answer gets here — 1, 2 or 4 times the feature's own
+      // budget. Written by hand, or by a truncation that grew it on its own
+      // (#183); either way it is visible, and undoable, in the same control.
+      const featRoom: Record<string, number> = Object.fromEntries(AI_FEATURES.map(f => {
+        const n = Number((s[`aiHeadroom:${f.id}`] ?? '').trim())
+        return [f.id, [1, 2, 4].includes(n) ? n : 1]
+      }))
       setAiFeatInstr(featInstr)
+      setAiFeatRoom(featRoom)
       const keys: Record<string, string> = Object.fromEntries(
         AI_PROVIDER_CATALOG.map(p => [p.id, s[p.keySetting!] ?? (p.id === 'groq' ? s.groqApiKey ?? '' : '') ?? ''])
       )
@@ -695,7 +706,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       setAiDefault(def)
       // The page compares itself against this to know it has something to
       // save — taken before the probes below, so a default they move counts.
-      setAiSnapshot(serializeAI({ keys, customs, def, global: globalInstr, featSel, featInstr }))
+      setAiSnapshot(serializeAI({ keys, customs, def, global: globalInstr, featSel, featInstr, featRoom }))
       // Every usable provider fetches its list — the pickers are grouped
       // across all of them. Keyless customs fetch too: reaching /models is
       // exactly what CONNECTED means for a local runtime.
@@ -852,7 +863,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
 
   const aiDraft = (): AIDraft => ({
     keys: aiKeys, customs: aiCustoms, def: aiDefault,
-    global: aiGlobalInstr, featSel: aiFeatSel, featInstr: aiFeatInstr,
+    global: aiGlobalInstr, featSel: aiFeatSel, featInstr: aiFeatInstr, featRoom: aiFeatRoom,
   })
   const aiDirty = aiSnapshot !== null && serializeAI(aiDraft()) !== aiSnapshot
 
@@ -883,6 +894,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       await window.gitAPI.settingsSet(`aiFeatureProvider:${f.id}`, sel?.provider ?? '')
       await window.gitAPI.settingsSet(`aiFeatureModel:${f.id}`, sel?.model ?? '')
       await window.gitAPI.settingsSet(`aiFeatureInstructions:${f.id}`, aiFeatInstr[f.id] ?? '')
+      await window.gitAPI.settingsSet(`aiHeadroom:${f.id}`, String(aiFeatRoom[f.id] ?? 1))
     }
     setAiSnapshot(serializeAI(aiDraft()))
     showToast(t('toast.aiSaved'))
@@ -1587,6 +1599,25 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         onChange={v => setAiFeatInstr(m => ({ ...m, [f.id]: v }))}
                         placeholder={t('settings.ai.instructionsHint')}
                       />
+                      {/* How much room the answer gets. Three steps, not a
+                          number: nobody can calibrate a token count, and the
+                          only thing worth deciding is whether this model
+                          needs more room than the feature assumed. A
+                          truncation raises it on its own — and lands here,
+                          where it can be seen and put back. */}
+                      <div className="stg-ai-room">
+                        <span className="stg-ai-room-label">{t('settings.ai.replyLength')}</span>
+                        {[1, 2, 4].map(step => (
+                          <button
+                            key={step}
+                            type="button"
+                            className={`stg-room-step${(aiFeatRoom[f.id] ?? 1) === step ? ' stg-room-step--on' : ''}`}
+                            onClick={() => setAiFeatRoom(m => ({ ...m, [f.id]: step }))}
+                          >
+                            {t(`settings.ai.replyLength.${step}` as any)}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

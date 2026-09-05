@@ -22,11 +22,16 @@ function fakeGit(table: Record<string, string>, missing: string[] = []): Raw {
   }
 }
 
-/** A model that always answers `text`, and records what it was asked. */
+/**
+ * A model that always answers `text`, and records what it was asked.
+ *
+ * No token budget here any more: the ceiling belongs to the feature and lives
+ * in ai-budgets.ts, so a caller cannot hand one in and cannot get it wrong.
+ */
 function fakeModel(text: string) {
-  const calls: { prompt: string; maxTokens: number; feature: string }[] = []
-  const run: Run = async (prompt, maxTokens, feature) => {
-    calls.push({ prompt, maxTokens, feature })
+  const calls: { prompt: string; feature: string }[] = []
+  const run: Run = async (prompt, feature) => {
+    calls.push({ prompt, feature })
     return { text }
   }
   return { run, calls }

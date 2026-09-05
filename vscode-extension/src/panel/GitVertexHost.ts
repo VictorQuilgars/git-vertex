@@ -27,7 +27,8 @@ import { githubRepo, githubApiBase, GITHUB_COM } from '../../../src/renderer/src
 import { providerById } from '../../../src/renderer/src/utils/aiProviders'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
-import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels, runAIPrompt } from '../aiService'
+import { headroomKey } from '../../../src/main/ai-budgets'
+import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels, runAIPrompt, type HeadroomStore } from '../aiService'
 // The five capabilities of #70 P1 are not reimplemented here: the host lends
 // its git and its provider, and the shared module owns the rest — which base
 // a branch is read against, what is asked, and what a refusal says.
@@ -343,6 +344,28 @@ export class GitVertexHost implements vscode.Disposable {
    * as much as the generation does: it is where "what we already put in that
    * file" is remembered.
    */
+  /**
+   * What this host has learned about a model needing more room (#183).
+   *
+   * The panel's settings store, under the SAME keys the desktop writes — the
+   * user sees one control per feature in Settings › AI Assistant, whichever
+   * product wrote the number into it.
+   */
+  private _headroom(): HeadroomStore {
+    const state = this._state
+    return {
+      get: (feature) => {
+        const gv = state.get<Record<string, string>>('gvSettings', {})
+        const n = Number((gv[headroomKey(feature)] ?? '').trim())
+        return [1, 2, 4].includes(n) ? n : 1
+      },
+      set: async (feature, headroom) => {
+        const gv = state.get<Record<string, string>>('gvSettings', {})
+        await state.update('gvSettings', { ...gv, [headroomKey(feature)]: String(headroom) })
+      },
+    }
+  }
+
   private _changelogStore(): ChangelogStore {
     const state = this._state
     const repo = this._repoPath ?? ''
@@ -813,12 +836,12 @@ export class GitVertexHost implements vscode.Disposable {
       case 'aiFilterQuery': {
         const cfg = readAIConfig(this._state, 'filter')
         if (!cfg) return { error: 'NO_API_KEY' }
-        return aiFilterQuery(cfg, args[0], args[1], args[2])
+        return aiFilterQuery(cfg, args[0], args[1], args[2], this._headroom())
       }
       case 'aiGenerateIssue': {
         const cfg = readAIConfig(this._state, 'issue')
         if (!cfg) return { error: 'NO_API_KEY' }
-        return aiGenerateIssue(cfg, args[0])
+        return aiGenerateIssue(cfg, args[0], this._headroom())
       }
       // The material is assembled here — aiService has no repository to ask.
       // Same ref resolution as the desktop handler: the base as the remote
@@ -842,20 +865,20 @@ export class GitVertexHost implements vscode.Disposable {
           .split('\n').map(s => s.trim()).filter(Boolean)
         const diffstat = await svc.raw(['diff', '--stat', `${base}...${head}`]).catch(() => '')
         const diff = await svc.raw(['diff', `${base}...${head}`]).catch(() => '')
-        return aiPrDescription(cfg, args[0], args[1], subjects, diffstat, diff)
+        return aiPrDescription(cfg, args[0], args[1], subjects, diffstat, diff, this._headroom())
       }
       case 'aiGenerateCommitMessage': {
         const cfg = readAIConfig(this._state, 'commit')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const staged = await svc.raw(['diff', '--cached']).catch(() => '')
-        return aiGenerateCommitMessage(cfg, staged)
+        return aiGenerateCommitMessage(cfg, staged, this._headroom())
       }
       case 'aiRecomposeCommit': {
         const cfg = readAIConfig(this._state, 'commit')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const msg = (await svc.raw(['log', '-1', '--pretty=format:%B', args[0]]).catch(() => '')).trim()
-        return aiRecomposeCommit(cfg, diff, msg)
+        return aiRecomposeCommit(cfg, diff, msg, this._headroom())
       }
       case 'aiForgetExplanation': {
         const all = this._state.get<Record<string, Record<string, string>>>('gvAiExplanations', {})
@@ -882,7 +905,7 @@ export class GitVertexHost implements vscode.Disposable {
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const subject = (await svc.raw(['log', '-1', '--pretty=format:%s', args[0]]).catch(() => '')).trim()
-        const r = await aiExplainCommit(cfg, diff, subject, args[2])
+        const r = await aiExplainCommit(cfg, diff, subject, args[2], this._headroom())
         if (!(r as any).error && this._repoPath && !String(args[2] ?? '').trim()) {
           const repo = all[this._repoPath] ?? {}
           repo[args[0]] = (r as any).explanation ?? ''
@@ -925,10 +948,10 @@ export class GitVertexHost implements vscode.Disposable {
       case 'aiProposeCommitSplit': {
         if (!svc) return { error: 'No repository open' }
         const raw = (args2: string[]) => svc.raw(args2)
-        const run: Run = async (prompt, maxTokens, feature) => {
+        const run: Run = async (prompt, feature) => {
           const cfg = readAIConfig(this._state, feature)
           if (!cfg) return { error: 'NO_API_KEY' }
-          return runAIPrompt(cfg, prompt, maxTokens)
+          return runAIPrompt(cfg, prompt, feature, this._headroom())
         }
         // The desktop keeps these in userData/ai-changelogs.json; the panel
         // in globalState, like its explanations. Same record, same rules —
@@ -1042,14 +1065,14 @@ export class GitVertexHost implements vscode.Disposable {
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const fileRes = await (svc as any).getFileContent(args[0])
         if (fileRes?.error) return { error: fileRes.error }
-        return aiResolveConflict(cfg, args[0], fileRes?.content ?? '', args[1])
+        return aiResolveConflict(cfg, args[0], fileRes?.content ?? '', args[1], this._headroom())
       }
       case 'aiSearchCommits': {
         const cfg = readAIConfig(this._state, 'search')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         let index = await svc.raw(['log', '--all', '--max-count=200', '--date=short', '--pretty=format:%h|%an|%ad|%s']).catch(() => '')
         index = index.split('\n').map(l => l.length > 90 ? l.slice(0, 90) : l).join('\n')
-        const r = await aiSearchCommits(cfg, index, args[0])
+        const r = await aiSearchCommits(cfg, index, args[0], this._headroom())
         if (r.error) return { error: r.error }
         // Expand short hashes; drop hallucinated ones.
         const hashes: string[] = []
