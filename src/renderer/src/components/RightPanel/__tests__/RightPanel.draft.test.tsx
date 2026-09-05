@@ -32,6 +32,27 @@ test('leaving WIP, changing repository and returning restores the right message'
   expect(screen.getByPlaceholderText(/commit message/i)).toHaveValue('My draft')
 })
 
+test('an amend armed for a commit that is no longer HEAD is disarmed on return', async () => {
+  ;(window.gitAPI.getLastCommitMessage as jest.Mock).mockResolvedValue({ message: 'Previous commit', hash: 'a'.repeat(40) })
+  const view = renderWithProviders(panel())
+  await screen.findByTitle('a.ts')
+  await userEvent.click(screen.getByLabelText(/amend previous commit/i))
+  await waitFor(() => expect(screen.getByPlaceholderText(/commit message/i)).toHaveValue('Previous commit'))
+  await userEvent.type(screen.getByPlaceholderText(/commit message/i), ' reworded')
+  view.unmount()
+  // Same HEAD: the box stays checked and the edit is kept.
+  const same = renderWithProviders(panel())
+  await screen.findByTitle('a.ts')
+  expect(screen.getByLabelText(/amend previous commit/i)).toBeChecked()
+  await waitFor(() => expect(screen.getByPlaceholderText(/commit message/i)).toHaveValue('Previous commit reworded'))
+  same.unmount()
+  // HEAD moved on (a commit from a terminal, say): the amend is disarmed and its text dropped.
+  ;(window.gitAPI.getLastCommitMessage as jest.Mock).mockResolvedValue({ message: 'Newer commit', hash: 'b'.repeat(40) })
+  renderWithProviders(panel())
+  await waitFor(() => expect(screen.getByLabelText(/amend previous commit/i)).not.toBeChecked())
+  expect(screen.getByPlaceholderText(/commit message/i)).toHaveValue('')
+})
+
 test('failed commits keep their message; successful commits clear the persisted draft', async () => {
   const view = renderWithProviders(panel())
   await screen.findByTitle('a.ts')

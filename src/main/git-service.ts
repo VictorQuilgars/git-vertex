@@ -952,11 +952,16 @@ export class GitService {
   // `ref` lets a caller ask about a branch it is not standing on — the PR
   // composer prefills its title from the branch being proposed, which is not
   // always HEAD.
-  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string }> {
+  // The message and WHICH commit carried it: an amend armed for one HEAD must
+  // notice when HEAD has become another commit in the meantime.
+  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string; hash?: string }> {
     const bad = this.assertRef(ref, 'ref'); if (bad) return { message: '' }
     try {
-      const msg = await this.git.raw(['log', '-1', '--pretty=format:%B', ref])
-      return { message: msg.trim() }
+      const out = await this.git.raw(['log', '-1', '--pretty=format:%H%n%B', ref])
+      const nl = out.indexOf('\n')
+      const hash = (nl === -1 ? out : out.slice(0, nl)).trim()
+      const message = nl === -1 ? '' : out.slice(nl + 1).trim()
+      return { message, hash }
     } catch {
       return { message: '' }
     }

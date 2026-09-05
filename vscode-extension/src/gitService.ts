@@ -858,11 +858,16 @@ export class GitService {
   // branch was right-clicked. Ignoring the argument (which this did) answered
   // with the wrong commit's message without failing — the silent-drift case the
   // host-parity test exists to catch.
-  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string }> {
+  // The message and WHICH commit carried it: an amend armed for one HEAD must
+  // notice when HEAD has become another commit in the meantime.
+  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string; hash?: string }> {
     const bad = this.assertRef(ref, 'ref'); if (bad) return { message: '' }
     try {
-      const message = await this.git.raw(['log', '-n', '1', '--pretty=format:%B', ref])
-      return { message: message.replace(/\n+$/, '') }
+      const out = await this.git.raw(['log', '-n', '1', '--pretty=format:%H%n%B', ref])
+      const nl = out.indexOf('\n')
+      const hash = (nl === -1 ? out : out.slice(0, nl)).trim()
+      const message = nl === -1 ? '' : out.slice(nl + 1).replace(/\n+$/, '')
+      return { message, hash }
     } catch {
       return { message: '' }
     }

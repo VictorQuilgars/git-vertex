@@ -105,7 +105,11 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({ message, onConfirm, onCancel, danger }: ConfirmDialogProps) {
   const { t } = useLang()
   const messageId = useId()
-  const boxRef = useDialogFocus(onCancel, '.dlg-cancel')
+  // Enter activates whatever has the focus, so where the focus starts is the
+  // whole decision: a destructive question opens on Cancel, so the reflex
+  // keystroke does nothing; an ordinary one opens on Confirm, so it still
+  // answers "yes" the way it always has.
+  const boxRef = useDialogFocus(onCancel, danger ? '.dlg-cancel' : '.dlg-ok')
 
   return (
     <div className="dlg-overlay" onMouseDown={onCancel}>

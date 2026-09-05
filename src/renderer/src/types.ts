@@ -188,7 +188,7 @@ declare global {
     diffBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ diff: string; error?: string }>
     filesBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ files: FileChange[]; error?: string }>
     getMergeBase: (a: string, b: string) => Promise<{ base: string | null; error?: string }>
-    getLastCommitMessage: (ref?: string) => Promise<{ message: string }>
+    getLastCommitMessage: (ref?: string) => Promise<{ message: string; hash?: string }>
     // The preload has had this since the AI commit message shipped; the
     // declaration never followed, so the one caller was typed as a mistake.
     aiGenerateCommitMessage: () => Promise<{ message?: string; error?: string }>

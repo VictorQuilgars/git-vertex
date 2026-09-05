@@ -62,6 +62,17 @@ describe('GitService', () => {
     test('should throw for non-git directory', async () => {
       const invalidDir = `/tmp/not-a-repo-${Date.now()}`
       fs.mkdirSync(invalidDir, { recursive: true })
+  describe('getLastCommitMessage', () => {
+    test('returns the message and the hash of the commit that carries it', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync('git add a.txt && git commit -m "First line" -m "Body text"', { cwd: tempDir })
+      const head = execSync('git rev-parse HEAD', { cwd: tempDir }).toString().trim()
+      const r = await git.getLastCommitMessage()
+      expect(r.hash).toBe(head)
+      expect(r.message).toBe('First line\n\nBody text')
+    })
+  })
+
       const invalidGit = new GitService(invalidDir)
       await expect(invalidGit.checkRepo()).rejects.toThrow()
       fs.rmSync(invalidDir, { recursive: true })

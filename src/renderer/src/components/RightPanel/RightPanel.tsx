@@ -1192,21 +1192,30 @@ function StagingView({ repoPath, onCommitSuccess, showToast, currentBranch, conf
   const splitLists = trimTop && panelSize.w >= 360
 
   const toggleAmend = useCallback(async (checked: boolean) => {
-    if (checked) {
-      const msgRes = await window.gitAPI.getLastCommitMessage()
-      updateDraft(prev => ({ ...prev, amend: true, amendMessage: prev.amendMessage || msgRes.message || '' }))
-    } else {
-      updateDraft(prev => ({ ...prev, amend: false }))
-    }
+    if (!checked) { updateDraft(prev => ({ ...prev, amend: false })); return }
+    const head = await window.gitAPI.getLastCommitMessage()
+    updateDraft(prev => ({
+      ...prev,
+      amend: true,
+      amendHead: head.hash,
+      // An edit kept from an earlier amend is only worth restoring when it was
+      // written for this very commit; once HEAD has moved it is the wrong text.
+      amendMessage: prev.amendHead === head.hash && prev.amendMessage ? prev.amendMessage : (head.message ?? ''),
+    }))
   }, [updateDraft])
 
   useEffect(() => {
     let active = true
-    if (amend) {
-      window.gitAPI.getCommitFiles('HEAD').then(r => { if (active) setAmendFiles(r.files ?? []) })
-    } else setAmendFiles([])
+    Promise.all([window.gitAPI.getLastCommitMessage(), window.gitAPI.getCommitFiles('HEAD')]).then(([head, r]) => {
+      if (!active) return
+      if (head.hash && amendHead && head.hash !== amendHead) {
+        updateDraft(prev => ({ ...prev, amend: false, amendMessage: '', amendHead: undefined }))
+        return
+      }
+      setAmendFiles(r.files ?? [])
+    })
     return () => { active = false }
-  }, [amend])
+  }, [amend, amendHead, headTick, updateDraft])
 
   const load = useCallback(async () => {
     const r = await window.gitAPI.getWorkingChanges()
@@ -1216,9 +1225,16 @@ function StagingView({ repoPath, onCommitSuccess, showToast, currentBranch, conf
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    const handler = () => load()
+    const handler = () => { load(); setHeadTick(n => n + 1) }
     const offRepo = window.gitAPI.onRepoChanged(handler)
+  // An amend armed for a commit that is no longer HEAD — after a restart, or a
+  // commit made from a terminal while the box was checked — is disarmed rather
+  // than allowed to rewrite whatever HEAD has become with a message meant for
+  // another commit. Re-checked whenever the repository reports a change.
+  const amendHead = draft.amendHead
+  const [headTick, setHeadTick] = useState(0)
     const offWorking = window.gitAPI.onWorkingChanged(handler)
+    if (!amend) { setAmendFiles([]); return }
     return () => { offRepo(); offWorking() }
   }, [load])
 

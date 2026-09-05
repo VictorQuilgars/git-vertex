@@ -1,9 +1,15 @@
 import { useCallback, useRef, useState, type SetStateAction } from 'react'
 
-interface CommitDraft {
+export interface CommitDraft {
   message: string
   amend: boolean
   amendMessage: string
+  /**
+   * The commit the amend was armed for. A draft outlives the session, HEAD
+   * does not stay put: the form checks this against HEAD before it lets an
+   * old message rewrite whatever HEAD has become.
+   */
+  amendHead?: string
 }
 const emptyDraft = (): CommitDraft => ({ message: '', amend: false, amendMessage: '' })
 
@@ -13,7 +19,8 @@ export function useCommitDraft(repoPath?: string) {
   const [draft, setState] = useState<CommitDraft>(() => {
     try {
       const value = key && JSON.parse(localStorage.getItem(key) ?? 'null')
-      if (value && typeof value.message === 'string' && typeof value.amendMessage === 'string' && typeof value.amend === 'boolean') return value
+      if (value && typeof value.message === 'string' && typeof value.amendMessage === 'string' && typeof value.amend === 'boolean'
+        && (value.amendHead === undefined || typeof value.amendHead === 'string')) return value
     } catch { /* A corrupt or unavailable cache must not prevent committing. */ }
     return emptyDraft()
   })

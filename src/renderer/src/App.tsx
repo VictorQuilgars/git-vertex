@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useMediaQuery } from './hooks/useMediaQuery'
+import { useWindowWidth } from './hooks/useWindowWidth'
+import { detailsTakeCenter } from './utils/layout'
 import { Icon } from './components/Icon/Icon'
 import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope, type CompareAxis } from './types'
 import { useLang } from './i18n/LanguageContext'
@@ -2443,8 +2444,12 @@ export default function App() {
   const launchpadActive = activeTab?.kind === 'launchpad'
   const themesActive = activeTab?.kind === 'themes'
   const viewTab = activeTab?.kind === 'view' ? activeTab.body : undefined
-  const narrowWindow = useMediaQuery('(max-width: 1100px)')
-  const compactDetails = narrowWindow && !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
+  // The details take the centre when the graph would have no usable width left
+  // beside the two side panes — computed from the panes the user actually has
+  // (see utils/layout.ts), so a wide right pane counts as much as a narrow window.
+  const windowWidth = useWindowWidth()
+  const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
+    && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
 
   return (
     <div className="app">

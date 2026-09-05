@@ -15,9 +15,18 @@ test('Enter on Cancel never confirms a destructive action', async () => {
   expect(confirm).not.toHaveBeenCalled()
 })
 
-test('Tab stays inside the dialog and Enter activates the focused confirmation', async () => {
+test('an ordinary confirmation opens on Confirm, so Enter still answers yes', async () => {
+  const confirm = jest.fn(), cancel = jest.fn()
+  renderWithProviders(<ConfirmDialog message="Proceed?" onConfirm={confirm} onCancel={cancel} />)
+  expect(screen.getByRole('button', { name: 'Confirm' })).toHaveFocus()
+  await userEvent.keyboard('{Enter}')
+  expect(confirm).toHaveBeenCalledTimes(1)
+  expect(cancel).not.toHaveBeenCalled()
+})
+
+test('Tab stays inside the dialog and Enter activates the focused button', async () => {
   const confirm = jest.fn()
-  renderWithProviders(<ConfirmDialog message="Proceed?" onConfirm={confirm} onCancel={jest.fn()} />)
+  renderWithProviders(<ConfirmDialog message="Delete?" danger onConfirm={confirm} onCancel={jest.fn()} />)
   await userEvent.tab({ shift: true })
   expect(screen.getByRole('button', { name: 'Confirm' })).toHaveFocus()
   await userEvent.tab()
