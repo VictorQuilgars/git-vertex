@@ -62,12 +62,36 @@ let gitService: GitService | null = null
 // Re-armed whenever the active repo changes (openRepoAt) or the interval
 // setting changes (settings:set). 0/unset = disabled, the usual
 // "Auto-Fetch Interval" (0 disables auto-fetch).
+//
+// This is the ONE owner of the periodic fetch. The renderer used to arm a
+// second timer on the same setting, so every interval fetched twice, and only
+// that copy told anyone: this one swallowed its result. It reports each run to
+// the window now — the status bar's "fetched N min ago" and the graph follow
+// it, and a failure is a message rather than a silence.
 let autoFetchTimer: ReturnType<typeof setInterval> | null = null
+let autoFetchRunning = false
 function scheduleAutoFetch(): void {
   if (autoFetchTimer) { clearInterval(autoFetchTimer); autoFetchTimer = null }
   const minutes = parseAutoFetchMinutes(readSettings().autoFetchInterval)
   if (!gitService || !minutes) return
-  autoFetchTimer = setInterval(() => { gitService?.fetch().catch(() => {}) }, minutes * 60 * 1000)
+  autoFetchTimer = setInterval(() => { void autoFetchTick() }, minutes * 60 * 1000)
+}
+async function autoFetchTick(): Promise<void> {
+  const svc = gitService
+  // A slow remote must not stack a second fetch on the first.
+  if (!svc || autoFetchRunning) return
+  autoFetchRunning = true
+  try {
+    const r = await svc.fetch()
+    sendToWindow('git:auto-fetched', { success: r.success, error: r.error })
+  } catch (e: any) {
+    sendToWindow('git:auto-fetched', { success: false, error: e?.message ?? String(e) })
+  } finally {
+    autoFetchRunning = false
+  }
+}
+function sendToWindow(channel: string, payload?: unknown): void {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
 }
 
 // ── Auto-update submodules ──────────────────────────────────────

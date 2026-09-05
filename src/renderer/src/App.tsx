@@ -420,14 +420,6 @@ export default function App() {
   // the resolver's manual editor — review-only until the user saves it.
   const [conflictResolverProposal, setConflictResolverProposal] = useState<string | null>(null)
   const [wipCount, setWipCount] = useState(0)
-  /**
-   * The auto-fetch interval, in minutes — 0 disables it. Read as STATE, not
-   * once into a ref: it used to be `localStorage('autoFetch')`, a key nothing
-   * in the app ever wrote, so the loop could not be turned off and the setting
-   * the user can actually change — `autoFetchInterval`, in Settings — drove
-   * only the main process's own timer and never this loop (#141).
-   */
-  const [autoFetchMinutes, setAutoFetchMinutes] = useState(0)
 
   // ── Toast (via ToastProvider) ──────────────────────────────
   const toastApi = useToast()
@@ -719,28 +711,25 @@ export default function App() {
   }, [])
 
   // ── Auto-fetch ─────────────────────────────────────────────
-  useEffect(() => {
-    let alive = true
-    void window.gitAPI.settingsGetAll().then((s: any) => {
-      if (alive) setAutoFetchMinutes(parseInt(s?.autoFetchInterval ?? '0', 10) || 0)
-    }).catch(() => {})
-    return () => { alive = false }
-    // Settings is a tab, not a modal, so there is no close to hook: re-reading
-    // on every tab change is what makes editing the interval and coming back
-    // take effect without a reload.
-  }, [activeTabId])
-
-  useEffect(() => {
-    if (!repoPath || !autoFetchMinutes) return
-    const id = setInterval(async () => {
-      const r = await window.gitAPI.fetch()
-      if (r.success) {
-        setLastFetchTime(new Date())
-        await loadRepoData()
-      }
-    }, autoFetchMinutes * 60 * 1000)
-    return () => clearInterval(id)
-  }, [repoPath, autoFetchMinutes, loadRepoData])
+  // The main process owns the timer — one per setting, re-armed when the
+  // setting or the repository changes — and this only listens to what it did.
+  // There used to be a second timer here on the same setting, so every
+  // interval fetched twice, and a run that failed said nothing anywhere. A
+  // failure is shown once per distinct message: a remote that is down is one
+  // fact, not one toast per interval.
+  const lastAutoFetchError = useRef<string | null>(null)
+  useEffect(() => window.gitAPI.onAutoFetched?.(r => {
+    if (r.success) {
+      lastAutoFetchError.current = null
+      setLastFetchTime(new Date())
+      void loadRepoData(true)
+      return
+    }
+    const message = r.error ?? ''
+    if (message === lastAutoFetchError.current) return
+    lastAutoFetchError.current = message
+    showToast(t('toast.autoFetchFailed', message), 'err')
+  }), [loadRepoData, showToast, t])
 
   // ── Open repo helpers ──────────────────────────────────────
   // Which section a manual refresh is reading, and a tick per section that

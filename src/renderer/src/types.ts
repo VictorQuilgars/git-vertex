@@ -477,6 +477,8 @@ declare global {
     // registered, so an `off(cb)` pair could never match it.
     onRepoChanged: (cb: () => void) => () => void
     onWorkingChanged: (cb: () => void) => () => void
+    /** The main process's periodic fetch ran — the one timer there is. */
+    onAutoFetched: (cb: (r: { success: boolean; error?: string }) => void) => () => void
 
     // Updater
     onUpdateAvailable: (cb: (version: string) => void) => () => void
