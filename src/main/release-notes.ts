@@ -4,6 +4,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🗂 A session per repository
+- **Switching tabs is instant**: the tab comes back as it was, and what changed while it was hidden arrives with a silent refresh.
+- **A repository in a background tab stays current** — a commit from a terminal, an auto-fetch — so its tab shows the present when reopened.
+- Every call names its repository and is answered by that one: an answer that comes back after a switch lands where it belongs, never in the repository shown by then.
+
 ### 🧭 Nothing lost on the way
 - **Enter on Cancel no longer confirms.** A destructive question opens on **Cancel**, an ordinary one on **Confirm**; Enter activates the button that has the focus and nothing else. Tab stays in the box, Escape closes it, the focus goes back where it came from.
 - **A commit message survives a look at the history** — kept per repository as you type, restored after a restart, cleared only by a commit that succeeded. An amend armed for a commit that is no longer HEAD disarms itself.

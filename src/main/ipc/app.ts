@@ -1,4 +1,6 @@
 // app:*, dialog:* and agents:* — the application itself: repositories, editors, terminals, dialogs.
+import { handle } from './handle'
+import { closeRepo } from '../repo-session'
 import { app, shell, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
@@ -32,7 +34,7 @@ export const AGENT_COMMANDS: Record<string, string> = {
 
 export function registerAppHandlers(): void {
   // ── IPC: Repo management ──────────────────────────────────────
-  ipcMain.handle('app:is-fullscreen', () => state.mainWindow?.isFullScreen() ?? false)
+  handle('app:is-fullscreen', () => state.mainWindow?.isFullScreen() ?? false)
 
   // What the installed git can do. Drives the startup notice — a git older than
   // MIN_GIT_FOR_CONFLICT_PREDICTION makes the pre-merge/rebase warning a no-op,
@@ -43,7 +45,7 @@ export function registerAppHandlers(): void {
   // git and Homebrew's, a version number alone sends you looking for a git you do
   // not have. Probing failures answer "capable" so a missing or unusual git never
   // produces a nag.
-  ipcMain.handle('app:git-capabilities', async () => {
+  handle('app:git-capabilities', async () => {
     // Resolution may still be in flight at first paint (it spawns a login shell),
     // and answering with the fallback would report the confusion we just fixed.
     const { version, path, source, searchPath } = await gitBinaryReady()
@@ -64,23 +66,26 @@ export function registerAppHandlers(): void {
   // Re-resolve after the gitBinaryPath setting changes, so Settings can show the
   // new version and path without a restart. Returns the same shape as
   // app:git-capabilities' probe for the caller to display.
-  ipcMain.handle('app:resolve-git-binary', async (_e, explicitPath?: string) => {
+  handle('app:resolve-git-binary', async (_e, explicitPath?: string) => {
     const info = await initGitBinary(
       explicitPath !== undefined ? explicitPath : readSettings().gitBinaryPath
     )
     return { version: info.version, path: info.path, source: info.source }
   })
 
-  ipcMain.handle('app:get-recent-repos', () => getRecentRepos())
+  handle('app:get-recent-repos', () => getRecentRepos())
 
-  ipcMain.handle('app:remove-recent-repo', (_event, path: string) => removeRecentRepo(path))
+  handle('app:remove-recent-repo', (_event, path: string) => removeRecentRepo(path))
+  // The tab that showed a repository closed: its session — watchers, timer,
+  // service — goes with it. The recent list is not touched.
+  handle('app:close-repo', (_event, path: string) => { closeRepo(path); return { success: true } })
 
-  ipcMain.handle('app:get-workspaces', () => getWorkspaces())
+  handle('app:get-workspaces', () => getWorkspaces())
 
-  ipcMain.handle('app:set-repo-workspace', (_event, path: string, workspace: string) =>
+  handle('app:set-repo-workspace', (_event, path: string, workspace: string) =>
     setRepoWorkspace(path, workspace))
 
-  ipcMain.handle('app:select-directory', async (_event, title?: string) => {
+  handle('app:select-directory', async (_event, title?: string) => {
     const result = await dialog.showOpenDialog(state.mainWindow, {
       properties: ['openDirectory', 'createDirectory'],
       title: title ?? 'Choose a folder'
@@ -91,7 +96,7 @@ export function registerAppHandlers(): void {
 
   // Saves patch text to a file the user picks (native save dialog) — used by
   // "Create Patch..." in the commit context menu.
-  ipcMain.handle('dialog:save-patch', async (_event, content: string, suggestedName: string) => {
+  handle('dialog:save-patch', async (_event, content: string, suggestedName: string) => {
     if (!state.mainWindow) return { success: false, error: 'No window' }
     const result = await dialog.showSaveDialog(state.mainWindow, {
       title: 'Save the patch',
@@ -107,7 +112,7 @@ export function registerAppHandlers(): void {
     }
   })
 
-  ipcMain.handle('agents:list', async () => {
+  handle('agents:list', async () => {
     if (process.platform !== 'darwin' && process.platform !== 'linux') return { agents: [] }
     try {
       const { execFile } = await import('child_process')
@@ -150,7 +155,7 @@ export function registerAppHandlers(): void {
   })
 
   // ── SSH keys ─────────────────────────────────────────────────────
-  ipcMain.handle('app:ssh-browse-key', async (_e, kind: 'private' | 'public') => {
+  handle('app:ssh-browse-key', async (_e, kind: 'private' | 'public') => {
     const result = await dialog.showOpenDialog(state.mainWindow, {
       properties: ['openFile'],
       title: kind === 'private' ? 'Choose the SSH private key' : 'Choose the SSH public key',
@@ -160,7 +165,7 @@ export function registerAppHandlers(): void {
     return { path: result.filePaths[0] }
   })
 
-  ipcMain.handle('app:ssh-generate-key', async (_e, passphrase?: string) => {
+  handle('app:ssh-generate-key', async (_e, passphrase?: string) => {
     try {
       const sshDir = join(os.homedir(), '.ssh')
       mkdirSync(sshDir, { recursive: true })
@@ -178,7 +183,7 @@ export function registerAppHandlers(): void {
   // Generic content-in/spawn-out handler: the renderer already has both
   // revisions' content (via getFileAtCommit/getFileContent), so this stays
   // reusable across any diff surface (commit detail, file history, compare).
-  ipcMain.handle('app:open-external-diff', async (_e, leftContent: string, rightContent: string, filename: string) => {
+  handle('app:open-external-diff', async (_e, leftContent: string, rightContent: string, filename: string) => {
     const tool = (readSettings().externalDiffTool ?? '').trim()
     if (!tool) return { success: false, error: 'No external diff tool configured' }
     try {
@@ -204,7 +209,7 @@ export function registerAppHandlers(): void {
   // External merge tool: writes ours/theirs + a merged file seeded with the
   // conflicted working copy, spawns the tool, and hands back the merged file's
   // path so the renderer can reload it once the user has resolved & saved.
-  ipcMain.handle('app:open-external-merge', async (_e, filepath: string) => {
+  handle('app:open-external-merge', async (_e, filepath: string) => {
     const tool = (readSettings().externalMergeTool ?? '').trim()
     if (!tool) return { success: false, error: 'No external merge tool configured' }
     if (!state.gitService) return { success: false, error: 'No repo open' }
@@ -234,11 +239,11 @@ export function registerAppHandlers(): void {
 
   // Reads back a temp file written by app:open-external-merge, once the user
   // closes/saves from the external tool.
-  ipcMain.handle('app:read-temp-file', async (_e, absPath: string) => {
+  handle('app:read-temp-file', async (_e, absPath: string) => {
     try { return { content: readFileSync(absPath, 'utf-8') } } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('app:open-external', async (_e, url: string) => {
+  handle('app:open-external', async (_e, url: string) => {
     // A remote URL, an issue body, a README: none of it is ours. Only the web
     // schemes and mail reach the OS; a `file:` or a custom scheme would open a
     // file or launch a program on a click that only promised a browser.
@@ -250,7 +255,7 @@ export function registerAppHandlers(): void {
   // Open a repo file in an external editor. Uses the configured `externalEditor`
   // command (e.g. "code", "code --wait", "subl", "meld") if set, otherwise falls
   // back to the OS default application for the file.
-  ipcMain.handle('app:open-in-editor', async (_e, filepath: string) => {
+  handle('app:open-in-editor', async (_e, filepath: string) => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     const path = await import('path')
     const abs = path.isAbsolute(filepath) ? filepath : path.join(state.gitService.repoPath, filepath)
@@ -275,7 +280,7 @@ export function registerAppHandlers(): void {
 
   // Open an arbitrary repo folder in the external editor (Repository Management —
   // not tied to the currently-open repo, unlike app:open-in-editor).
-  ipcMain.handle('app:open-path-in-editor', async (_e, dir: string) => {
+  handle('app:open-path-in-editor', async (_e, dir: string) => {
     const editor = (readSettings().externalEditor ?? '').trim()
     if (!editor) {
       const err = await shell.openPath(dir)
@@ -294,7 +299,7 @@ export function registerAppHandlers(): void {
   // Open the system terminal at the repository root. Uses the configured
   // `externalTerminal` app (e.g. "iTerm", "Warp") if set, otherwise falls back
   // to the OS default terminal.
-  ipcMain.handle('app:open-terminal', async () => {
+  handle('app:open-terminal', async () => {
     if (!state.gitService) return { success: false, error: 'No repo open' }
     const cwd = state.gitService.repoPath
     try {
@@ -310,7 +315,7 @@ export function registerAppHandlers(): void {
     }
   })
 
-  ipcMain.handle('app:get-info', () => {
+  handle('app:get-info', () => {
     return {
       version:  app.getVersion(),
       electron: process.versions.electron,
@@ -322,7 +327,7 @@ export function registerAppHandlers(): void {
   // "What's new": the first time the app runs after an update, hand the renderer
   // the release notes for the current version so it can open a tab (like VS Code).
   // A fresh install just records the version silently — no notes on first run.
-  ipcMain.handle('app:get-whats-new', () => {
+  handle('app:get-whats-new', () => {
     const current = app.getVersion()
     const s = readSettings()
     const last = s.lastSeenVersion
@@ -336,7 +341,7 @@ export function registerAppHandlers(): void {
   // On-demand release notes (the welcome screen's "Notes de version" link):
   // the current version's notes, or the newest entry we ship if this exact
   // version has none (e.g. a patch release without its own note).
-  ipcMain.handle('app:get-release-notes', () => {
+  handle('app:get-release-notes', () => {
     const current = app.getVersion()
     if (RELEASE_NOTES[current]) return { version: current, notes: RELEASE_NOTES[current] }
     const cmp = (a: string, b: string) => {
@@ -348,7 +353,7 @@ export function registerAppHandlers(): void {
     return newest ? { version: newest, notes: RELEASE_NOTES[newest] } : null
   })
 
-  ipcMain.handle('app:mark-whats-new-seen', () => {
+  handle('app:mark-whats-new-seen', () => {
     const s = readSettings(); s.lastSeenVersion = app.getVersion(); writeSettings(s)
     return { success: true }
   })

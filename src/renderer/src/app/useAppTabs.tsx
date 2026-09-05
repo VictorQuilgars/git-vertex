@@ -9,7 +9,7 @@ import type { AppConflicts } from './useAppConflicts'
 import type { AppAi } from './useAppAi'
 
 export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflicts & AppAi) {
-  const { t, showToast, repoPath, setRepoPath, repoName, setRepoName, setCommits, selectedCommit, setSelectedCommit, setRecentRepos, clearRepoView, detectGithub, rebaseHash, setRebaseHash, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, setConflictResolverProposal, setCommitProposal } = app
+  const { t, showToast, repoPath, setRepoPath, saveSnapshot, restoreSnapshot, forgetRepo, repoName, setRepoName, setCommits, selectedCommit, setSelectedCommit, setRecentRepos, clearRepoView, detectGithub, rebaseHash, setRebaseHash, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, setConflictResolverProposal, setCommitProposal } = app
 
   // ── Tabs (home / repo / launchpad) ──
   const [tabs, setTabs] = useState<AppTab[]>(() => [{ id: 'home-initial', kind: 'home' }])
@@ -28,10 +28,13 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
     if (res.path) {
       setWhatsNewActive(false)   // opening a repo leaves the what's-new view
       const name = res.name ?? res.path.split('/').pop()!
+      // The repository shown until now keeps its state behind its tab.
+      saveSnapshot()
+      const restored = restoreSnapshot(res.path)
       setRepoPath(res.path)
       setRepoName(name)
       setSelectedCommit(null)
-      setCommits([])
+      if (!restored) setCommits([])
       const updated = await window.gitAPI.getRecentRepos()
       setRecentRepos(updated ?? [])
       await detectGithub()
@@ -225,22 +228,33 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
     // behind it so leaving the tab returns to it.
     if (tab.kind === 'view' && !tab.path) return
     if (tab.kind === 'view' && tab.path === repoPath) return
+    // The repository shown until now keeps its state behind its tab; the one
+    // this tab shows comes back as it was, at once, if it was open before —
+    // the main process still has its session, or reopens it here — and the
+    // silent refresh the App runs on the path change brings what changed
+    // while it was hidden.
+    saveSnapshot()
     const r = await window.gitAPI.setRepo(tab.path!)
     if (r.path) {
+      const restored = restoreSnapshot(r.path)
       setRepoPath(r.path)
       setRepoName(r.name ?? tab.name!)
-      setCommits([])
+      if (!restored) setCommits([])
       setSelectedCommit(selectedByTab.current.get(tab.id) ?? null)
       await detectGithub()
     } else if (r.error) {
       showToast(t('toast.err', r.error), 'err')
     }
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, repoPath, detectGithub, showToast, clearRepoView])
+  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, repoPath, detectGithub, showToast, clearRepoView, saveSnapshot, restoreSnapshot])
   const closeTab = useCallback((id: string) => {
     selectedByTab.current.delete(id)
     setTabs(prev => {
       const idx = prev.findIndex(tb => tb.id === id)
       const next = prev.filter(tb => tb.id !== id)
+      // The last tab about a repository closed: its session and its snapshot
+      // go with it. A view tab of the same repository keeps them alive.
+      const closed = prev[idx]
+      if (closed?.path && !next.some(tb => tb.path === closed.path)) forgetRepo(closed.path)
       if (id === activeTabId) {
         // Never leave the window tab-less: fall back to a neighbour, or seed a
         // fresh home if this was the last tab.
@@ -255,9 +269,10 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
         if (fallback.path) {
           window.gitAPI.setRepo(fallback.path!).then(r => {
             if (r.path) {
+              const restored = restoreSnapshot(r.path)
               setRepoPath(r.path)
               setRepoName(r.name ?? fallback.name!)
-              setCommits([])
+              if (!restored) setCommits([])
               setSelectedCommit(selectedByTab.current.get(fallback.id) ?? null)
               detectGithub()
             }
@@ -268,9 +283,10 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
       }
       return next
     })
-  }, [activeTabId, detectGithub, clearRepoView])
+  }, [activeTabId, detectGithub, clearRepoView, forgetRepo, restoreSnapshot])
   const closeOtherTabs = useCallback((id: string) => {
     const kept = tabs.find(tb => tb.id === id)
+    for (const tb of tabs) if (tb.id !== id && tb.path && tb.path !== kept?.path) forgetRepo(tb.path)
     setTabs(prev => prev.filter(tb => tb.id === id))
     for (const key of Array.from(selectedByTab.current.keys())) {
       if (key !== id) selectedByTab.current.delete(key)
@@ -281,12 +297,14 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
     else if (kept?.path && kept.path !== repoPath) {
       window.gitAPI.setRepo(kept.path!).then(r => {
         if (r.path) {
+          const restored = restoreSnapshot(r.path)
           setRepoPath(r.path); setRepoName(r.name ?? kept.name!)
-          setCommits([]); setSelectedCommit(selectedByTab.current.get(kept.id) ?? null); detectGithub()
+          if (!restored) setCommits([])
+          setSelectedCommit(selectedByTab.current.get(kept.id) ?? null); detectGithub()
         }
       })
     }
-  }, [tabs, repoPath, clearRepoView, detectGithub])
+  }, [tabs, repoPath, clearRepoView, detectGithub, forgetRepo, restoreSnapshot])
   const activeTab = tabs.find(tb => tb.id === activeTabId)
   const launchpadActive = activeTab?.kind === 'launchpad'
   const themesActive = activeTab?.kind === 'themes'

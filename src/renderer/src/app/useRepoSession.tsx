@@ -1,5 +1,18 @@
-// The repository that is open: its path, commits, branches, stashes, tags, tracking, visibility — and loadRepoData, which reads them all. The seed of a session per repository: everything here is about one repository, keyed by nothing yet.
-import React, { useState, useCallback, useRef } from 'react'
+// The repository that is shown, and the ones open behind it.
+//
+// What the window shows is one repository's state: path, commits, branches,
+// stashes, tags, tracking, conflicts. Every other open tab's repository keeps
+// a SNAPSHOT of the same state here, so that coming back to it is a restore
+// rather than a reload, and a change that happens to it while it is hidden —
+// a commit from a terminal, an auto-fetch — refreshes the snapshot quietly.
+//
+// Every load is about one path, bound at its start: it asks through
+// gitAPI.session(path), so the main process answers with that repository's
+// service, and it writes its result to that path's snapshot — and to the
+// shown state only if that path is still the one shown when the answer comes.
+// A response that arrives after a switch lands in the right place instead of
+// in whatever repository is open by then.
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { CommitNode, BranchInfo, ConflictKind, PullMode } from '../types'
 import { useBranchMeta } from '../hooks/useBranchMeta'
 import { emptyVisibility, logOptionsFor, type GraphVisibility, type RefFamily } from '../utils/graphVisibility'
@@ -7,9 +20,37 @@ import { type RemoteRepo } from '../utils/remoteUrl'
 import { type StashEntry, type TagEntry, kindsByPath, LOG_PAGE } from './shared'
 import type { AppChrome } from './useAppChrome'
 
+/** What a hidden tab keeps of its repository, and what a load produces. */
+interface RepoSnapshot {
+  commits: CommitNode[]
+  branches: BranchInfo[]
+  currentBranch: string
+  stashes: StashEntry[]
+  tags: TagEntry[]
+  tracking: { ahead: number; behind: number }
+  conflictFiles: string[]
+  conflictKinds: Record<string, ConflictKind>
+  conflictMode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
+  wipCount: number
+  logLimit: number
+}
+const emptySnapshot = (): RepoSnapshot => ({
+  commits: [], branches: [], currentBranch: '', stashes: [], tags: [], tracking: { ahead: 0, behind: 0 },
+  conflictFiles: [], conflictKinds: {}, conflictMode: null, wipCount: 0, logLimit: LOG_PAGE,
+})
+
 export function useRepoSession(app: AppChrome) {
   // ── App state ──────────────────────────────────────────────
-  const [repoPath, setRepoPath] = useState<string | null>(null)
+  const [repoPath, setRepoPathState] = useState<string | null>(null)
+  // The path the loaders check their answers against — set together with the
+  // state, synchronously, so a load that started before a switch can tell it
+  // is late — and what the preload binds every plain call to from now on.
+  const activePathRef = useRef<string | null>(null)
+  const setRepoPath = useCallback((path: string | null) => {
+    activePathRef.current = path
+    window.gitAPI.setCurrentRepo?.(path)
+    setRepoPathState(path)
+  }, [])
   const [repoName, setRepoName] = useState<string>('')
   const [commits, setCommits] = useState<CommitNode[]>([])
   // The graph holds a page of history, not the repository: LOG_PAGE commits,
@@ -97,24 +138,78 @@ export function useRepoSession(app: AppChrome) {
   const [conflictKinds, setConflictKinds] = useState<Record<string, ConflictKind>>({})
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [wipCount, setWipCount] = useState(0)
+
+  // ── Snapshots: one per open repository ──────────────────────
+  const snapshots = useRef(new Map<string, RepoSnapshot>())
+  /** The API bound to `path`: the same calls, answered by that repository. */
+  const apiFor = (path: string) => window.gitAPI.session?.(path) ?? window.gitAPI
+  /**
+   * A load's result: kept in the path's snapshot always, shown only if that
+   * path is still the one shown. This is the whole guard against a late answer
+   * landing in another repository.
+   */
+  const applyLoaded = useCallback((path: string, loaded: Partial<RepoSnapshot>) => {
+    snapshots.current.set(path, { ...(snapshots.current.get(path) ?? emptySnapshot()), ...loaded })
+    if (activePathRef.current !== path) return
+    if (loaded.commits) setCommits(loaded.commits)
+    if (loaded.branches) setBranches(loaded.branches)
+    if (loaded.currentBranch !== undefined) setCurrentBranch(loaded.currentBranch)
+    if (loaded.stashes) setStashes(loaded.stashes)
+    if (loaded.tags) setTags(loaded.tags)
+    if (loaded.tracking) setTracking(loaded.tracking)
+    if (loaded.conflictFiles) setConflictFiles(loaded.conflictFiles)
+    if (loaded.conflictKinds) setConflictKinds(loaded.conflictKinds)
+    if (loaded.conflictMode !== undefined) setConflictMode(loaded.conflictMode)
+    if (loaded.wipCount !== undefined) setWipCount(loaded.wipCount)
+  }, [])
+  /** What the shown repository has right now, kept for when it is hidden. Reads the live values: no useCallback. */
+  const saveSnapshot = () => {
+    const path = activePathRef.current
+    if (!path) return
+    snapshots.current.set(path, { commits, branches, currentBranch, stashes, tags, tracking, conflictFiles, conflictKinds, conflictMode, wipCount, logLimit })
+  }
+  /** Show a hidden repository as it was. True if there was a snapshot to show. */
+  const restoreSnapshot = useCallback((path: string): boolean => {
+    const snap = snapshots.current.get(path)
+    if (!snap) { logLimitRef.current = LOG_PAGE; setLogLimit(LOG_PAGE); return false }
+    setCommits(snap.commits); setBranches(snap.branches); setCurrentBranch(snap.currentBranch)
+    setStashes(snap.stashes); setTags(snap.tags); setTracking(snap.tracking)
+    setConflictFiles(snap.conflictFiles); setConflictKinds(snap.conflictKinds); setConflictMode(snap.conflictMode)
+    setWipCount(snap.wipCount)
+    logLimitRef.current = snap.logLimit; setLogLimit(snap.logLimit)
+    return true
+  }, [])
+  const hasSnapshot = useCallback((path: string) => snapshots.current.has(path), [])
+  /** The last tab showing this repository closed: drop what was kept, and the main process's session. */
+  const forgetRepo = useCallback((path: string) => {
+    snapshots.current.delete(path)
+    void window.gitAPI.closeRepo?.(path)
+  }, [])
+
   // ── Load stashes ───────────────────────────────────────────
   const loadStashes = useCallback(async () => {
-    if (!repoPath) return
-    const r = await window.gitAPI.getStashes()
-    setStashes(r.stashes ?? [])
-  }, [repoPath])
+    const path = activePathRef.current
+    if (!path) return
+    const r = await apiFor(path).getStashes()
+    applyLoaded(path, { stashes: r.stashes ?? [] })
+  }, [applyLoaded])
   // ── Load tags ──────────────────────────────────────────────
   const loadTags = useCallback(async () => {
-    if (!repoPath) return
-    const r = await window.gitAPI.getTags()
-    setTags((r as any).tags ?? [])
-  }, [repoPath])
+    const path = activePathRef.current
+    if (!path) return
+    const r = await apiFor(path).getTags()
+    applyLoaded(path, { tags: (r as any).tags ?? [] })
+  }, [applyLoaded])
   // ── Load repo data ─────────────────────────────────────────
+  // One load at a time per repository. A load that arrives while another is
+  // running used to be dropped and never retried. That is invisible for a
+  // refresh — the next file-watcher event covers it — but not for a filter:
+  // hiding a ref would leave the graph showing it until something else
+  // happened to trigger a reload. So it is queued, per path.
+  const loadingPaths = React.useRef(new Set<string>())
+  const queuedPaths = React.useRef(new Set<string>())
+  /** Kept for the callers that read them; a load is per path now. */
   const isLoadingRef = React.useRef(false)
-  // A load that arrives while another is running used to be dropped and never
-  // retried. That is invisible for a refresh — the next file-watcher event
-  // covers it — but not for a filter: hiding a ref would leave the graph
-  // showing it until something else happened to trigger a reload.
   const reloadQueued = React.useRef(false)
   // The filter is read through refs rather than from the closure, so a load
   // always queries with the filter the user can see, whichever callback started
@@ -128,54 +223,73 @@ export function useRepoSession(app: AppChrome) {
   const visibilityRef = React.useRef(visibility);
   const soloRef = React.useRef(soloBranch);
   const showAllRef = React.useRef(showAllBranches);
-  const loadRepoData = useCallback(async (silent = false) => {
-    if (!repoPath) return
-    if (isLoadingRef.current) { reloadQueued.current = true; return }
-    isLoadingRef.current = true
-    if (!silent) setLoading(true)
+  /**
+   * Read everything the graph and the panels show, for `forPath` or the
+   * repository shown. Bound to that path from the first call to the last:
+   * the answers go to its snapshot, and to the screen only while it is shown.
+   */
+  const loadRepoData = useCallback(async (silent = false, forPath?: string) => {
+    const path = forPath ?? activePathRef.current
+    if (!path) return
+    if (loadingPaths.current.has(path)) { queuedPaths.current.add(path); return }
+    loadingPaths.current.add(path)
+    const shown = () => activePathRef.current === path
+    if (!silent && shown()) setLoading(true)
+    const api = apiFor(path)
     try {
       // Branches are still read first: the sidebar needs them, and the log
       // query is built from the visibility state rather than from them.
-      const branchRes = await window.gitAPI.getBranches()
-      const logRes = await window.gitAPI.getLog(logOptionsFor({
-        maxCount: logLimitRef.current,
+      const branchRes = await api.getBranches()
+      const logRes = await api.getLog(logOptionsFor({
+        maxCount: path === activePathRef.current ? logLimitRef.current : (snapshots.current.get(path)?.logLimit ?? LOG_PAGE),
         all: showAllRef.current,
         solo: soloRef.current,
         visibility: visibilityRef.current,
       }))
-      if (logRes.commits) setCommits(logRes.commits)
+      const first: Partial<RepoSnapshot> = {}
+      if (logRes.commits) first.commits = logRes.commits
       if (branchRes.branches) {
-        setBranches(branchRes.branches)
+        first.branches = branchRes.branches
         const cur = branchRes.branches.find((b: BranchInfo) => b.current)
-        if (cur) setCurrentBranch(cur.name)
+        if (cur) first.currentBranch = cur.name
       }
-      await Promise.all([loadStashes(), loadTags()])
+      applyLoaded(path, first)
+      const rest: Partial<RepoSnapshot> = {}
+      const [stashRes, tagRes] = await Promise.all([api.getStashes(), api.getTags()])
+      rest.stashes = stashRes.stashes ?? []
+      rest.tags = (tagRes as any).tags ?? []
       const [conflictRes, modeRes] = await Promise.all([
-        window.gitAPI.getConflictedFiles(),
-        window.gitAPI.getConflictMode(),
+        api.getConflictedFiles(),
+        api.getConflictMode(),
       ])
-      setConflictFiles(conflictRes.files ?? [])
-      setConflictKinds(kindsByPath(conflictRes.entries))
-      setConflictMode(modeRes.mode)
-      const changesRes = await window.gitAPI.getWorkingChanges()
-      setWipCount(
+      rest.conflictFiles = conflictRes.files ?? []
+      rest.conflictKinds = kindsByPath(conflictRes.entries)
+      rest.conflictMode = modeRes.mode
+      const changesRes = await api.getWorkingChanges()
+      rest.wipCount =
         (changesRes.staged?.length ?? 0) +
         (changesRes.unstaged?.length ?? 0) +
         (changesRes.untracked?.length ?? 0)
-      )
       try {
-        const tr = await (window.gitAPI as any).getTracking()
-        setTracking({ ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0 })
+        const tr = await (api as any).getTracking()
+        rest.tracking = { ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0 }
       } catch { /* no upstream */ }
+      applyLoaded(path, rest)
     } finally {
-      if (!silent) setLoading(false)
-      isLoadingRef.current = false
-      if (reloadQueued.current) {
-        reloadQueued.current = false
-        void loadRepoDataRef.current?.(true)
-      }
+      if (!silent && shown()) setLoading(false)
+      loadingPaths.current.delete(path)
+      if (queuedPaths.current.delete(path)) void loadRepoDataRef.current?.(true, path)
     }
-  }, [repoPath, loadStashes, loadTags])
+  }, [applyLoaded])
+  // A repository in a hidden tab changed — a commit from a terminal, a fetch:
+  // its snapshot follows, quietly, so coming back to it shows the present.
+  // The shown repository's changes are the App's own subscription.
+  useEffect(() => {
+    const off = window.gitAPI.onRepoChangedAny?.((repo) => {
+      if (repo && repo !== activePathRef.current && snapshots.current.has(repo)) void loadRepoDataRef.current?.(true, repo)
+    })
+    return () => off?.()
+  }, [])
   // Re-entry after a queued load, without making loadRepoData depend on itself.
   const loadRepoDataRef = React.useRef(loadRepoData);
   // The filter changed — reload with it. Separate from the effect above so
@@ -209,15 +323,17 @@ export function useRepoSession(app: AppChrome) {
     setGithubRepoUrl(null)
     setGithubOwnerRepo(null)
     setDefaultBranch(null)
-  }, [])
+  }, [setRepoPath])
   const loadMoreHistory = useCallback(() => {
     logLimitRef.current += LOG_PAGE
     setLogLimit(logLimitRef.current)
+    const path = activePathRef.current
+    if (path) snapshots.current.set(path, { ...(snapshots.current.get(path) ?? emptySnapshot()), logLimit: logLimitRef.current })
     void loadRepoData(true)
   }, [loadRepoData])
 
   return {
-    repoPath, setRepoPath, repoName, setRepoName, commits, setCommits, logLimit, setLogLimit, logLimitRef, branches, setBranches, currentBranch, setCurrentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, setVisibility, remoteNames, setRemoteNames, toggleHidden, setFamilyHidden, branchMeta, notedHashes, setNotedHashes, loading, setLoading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, setStashes, tags, setTags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, setTracking, githubRepoUrl, setGithubRepoUrl, githubOwnerRepo, setGithubOwnerRepo, remoteRepo, setRemoteRepo, defaultBranch, setDefaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, setConflictMode, wipCount, setWipCount, loadStashes, loadTags, isLoadingRef, reloadQueued, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, clearRepoView, loadMoreHistory,
+    repoPath, setRepoPath, activePathRef, saveSnapshot, restoreSnapshot, hasSnapshot, forgetRepo, repoName, setRepoName, commits, setCommits, logLimit, setLogLimit, logLimitRef, branches, setBranches, currentBranch, setCurrentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, setVisibility, remoteNames, setRemoteNames, toggleHidden, setFamilyHidden, branchMeta, notedHashes, setNotedHashes, loading, setLoading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, setStashes, tags, setTags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, setTracking, githubRepoUrl, setGithubRepoUrl, githubOwnerRepo, setGithubOwnerRepo, remoteRepo, setRemoteRepo, defaultBranch, setDefaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, setConflictMode, wipCount, setWipCount, loadStashes, loadTags, isLoadingRef, reloadQueued, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, clearRepoView, loadMoreHistory,
   }
 }
 

@@ -20,8 +20,11 @@ function tsFilesUnder(dir: string): string[] {
 }
 
 const preload = fs.readFileSync(path.join(ROOT, 'src', 'preload', 'index.ts'), 'utf8')
-const invoked = [...preload.matchAll(/ipcRenderer\.invoke\('([a-zA-Z:-]+)'/g)].map(m => m[1])
-const handled = tsFilesUnder(MAIN).flatMap(f => [...fs.readFileSync(f, 'utf8').matchAll(/ipcMain\.handle\('([a-zA-Z:-]+)'/g)].map(m => m[1]))
+// The preload calls through invoke() (which adds the repository envelope) and
+// the main process registers through handle() (which takes it off) — both
+// forms, and the bare Electron ones, count.
+const invoked = [...preload.matchAll(/\binvoke\('([a-zA-Z:-]+)'/g)].map(m => m[1])
+const handled = tsFilesUnder(MAIN).flatMap(f => [...fs.readFileSync(f, 'utf8').matchAll(/\bhandle\('([a-zA-Z:-]+)'/g)].map(m => m[1]))
 
 describe('the bridge: the preload and the main process agree on the channels', () => {
   test('both sides were found', () => {

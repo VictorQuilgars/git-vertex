@@ -1,4 +1,5 @@
 // settings:* and themes:* — what the settings page reads and writes.
+import { handle } from './handle'
 import { app, ipcMain } from 'electron'
 import { ThemeStore } from '../theme-store'
 import { maskSecrets, resolveSecretWrite, isSecretSetting } from '../settings-secrets'
@@ -23,12 +24,12 @@ export function getThemeStore(): ThemeStore {
 }
 
 export function registerSettingsHandlers(): void {
-  ipcMain.handle('themes:catalogue', async (_event, opts?: { refresh?: boolean }) => {
+  handle('themes:catalogue', async (_event, opts?: { refresh?: boolean }) => {
     // Deliberately never rejects — the settings page must open with no network.
     return getThemeStore().catalogue(opts ?? {})
   })
 
-  ipcMain.handle('themes:install', async (_event, id: string) => {
+  handle('themes:install', async (_event, id: string) => {
     try {
       return { success: true, theme: await getThemeStore().install(id) }
     } catch (err) {
@@ -36,7 +37,7 @@ export function registerSettingsHandlers(): void {
     }
   })
 
-  ipcMain.handle('themes:remove', (_event, id: string) => {
+  handle('themes:remove', (_event, id: string) => {
     try {
       getThemeStore().remove(id)
       return { success: true }
@@ -45,7 +46,7 @@ export function registerSettingsHandlers(): void {
     }
   })
 
-  ipcMain.handle('themes:installed', () => {
+  handle('themes:installed', () => {
     const store = getThemeStore()
     const themes = store.installed()
     // Anything validation threw away is reported rather than silently missing —
@@ -57,11 +58,11 @@ export function registerSettingsHandlers(): void {
   // The window gets a mask where a secret is set: nothing there needs a token's
   // value, every call that uses one is made here. A mask sent back means "keep
   // what is stored" — see settings-secrets.ts.
-  ipcMain.handle('settings:get-all', () => {
+  handle('settings:get-all', () => {
     return maskSecrets(readSettings())
   })
 
-  ipcMain.handle('settings:set', (_e, key: string, value: string) => {
+  handle('settings:set', (_e, key: string, value: string) => {
     const s = readSettings()
     const resolved = isSecretSetting(key) ? resolveSecretWrite(s, key, value) : value
     if (resolved === null) return { success: true }

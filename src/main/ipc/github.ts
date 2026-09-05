@@ -1,4 +1,5 @@
 // github:* and avatar:* — the GitHub integration.
+import { handle } from './handle'
 import { ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { gitBinary, makeSimpleGit } from '../git-service'
@@ -13,7 +14,7 @@ import { ghApi, detectGithubRepo, avatarCache, githubIdenticonUrl, loadAuthedUse
 
 
 export function registerGithubHandlers(): void {
-  ipcMain.handle('github:list-gitignore-templates', async () => {
+  handle('github:list-gitignore-templates', async () => {
     try {
       const api = await ghApi()
       const token = api.token
@@ -22,7 +23,7 @@ export function registerGithubHandlers(): void {
     } catch { return { templates: [] } }
   })
 
-  ipcMain.handle('github:list-licenses', async () => {
+  handle('github:list-licenses', async () => {
     try {
       const api = await ghApi()
       const token = api.token
@@ -35,7 +36,7 @@ export function registerGithubHandlers(): void {
 
   // Init on GitHub.com: create the remote repo, optionally clone
   // it to a chosen local folder.
-  ipcMain.handle('github:create-repo', async (_e, opts: { name: string; description?: string; private?: boolean; gitignore?: string; license?: string; cloneTo?: string }) => {
+  handle('github:create-repo', async (_e, opts: { name: string; description?: string; private?: boolean; gitignore?: string; license?: string; cloneTo?: string }) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -71,22 +72,22 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:start-auth', () => {
+  handle('github:start-auth', () => {
     startOAuthFlow()
   })
 
-  ipcMain.handle('github:disconnect', () => {
+  handle('github:disconnect', () => {
     const s = readSettings()
     delete s.githubToken
     writeSettings(s)
     return { success: true }
   })
 
-  ipcMain.handle('github:get-token', () => {
+  handle('github:get-token', () => {
     return { token: readSettings().githubToken ?? null }
   })
 
-  ipcMain.handle('avatar:resolve', async (_e, email: string, sha?: string) => {
+  handle('avatar:resolve', async (_e, email: string, sha?: string) => {
     const key = email.trim().toLowerCase()
     if (avatarCache.has(key)) return avatarCache.get(key)!
 
@@ -169,7 +170,7 @@ export function registerGithubHandlers(): void {
     return url
   })
 
-  ipcMain.handle('github:detect-repo', async () => {
+  handle('github:detect-repo', async () => {
     if (!state.gitService) return { owner: null, repo: null }
     try {
       const remotes = await (state.gitService as any).git.getRemotes(true)
@@ -184,7 +185,7 @@ export function registerGithubHandlers(): void {
 
   // Same GitHub-remote detection, but for an arbitrary local path (cross-repo
   // Launchpad: recent repos other than the currently-open one).
-  ipcMain.handle('github:detect-repo-at', async (_e, repoPath: string) => {
+  handle('github:detect-repo-at', async (_e, repoPath: string) => {
     try {
       const { execFile } = await import('child_process')
       const { promisify } = await import('util')
@@ -194,7 +195,7 @@ export function registerGithubHandlers(): void {
     } catch { return { owner: null, repo: null } }
   })
 
-  ipcMain.handle('github:list-prs', async (_e, owner: string, repo: string) => {
+  handle('github:list-prs', async (_e, owner: string, repo: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -230,7 +231,7 @@ export function registerGithubHandlers(): void {
   // gist under the user's own account and the shareable URL comes back.
   // Secret gists are unlisted (anyone with the link can read) — good enough
   // for "feedback before the PR", and revocable by deleting the gist.
-  ipcMain.handle('github:share-patch', async (_e, hash: string) => {
+  handle('github:share-patch', async (_e, hash: string) => {
     if (!state.gitService) return { error: 'No repo open' }
     const api = await ghApi()
     const token = api.token
@@ -266,7 +267,7 @@ export function registerGithubHandlers(): void {
   // knows mergeability; the checks are a second call because GitHub keys them
   // by ref, not by request. No write here — merging from the panel is #73's.
 
-  ipcMain.handle('github:get-pr', async (_e, owner: string, repo: string, number: number) => {
+  handle('github:get-pr', async (_e, owner: string, repo: string, number: number) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -322,7 +323,7 @@ export function registerGithubHandlers(): void {
   // mutation applies the bypass — it is what `gh pr merge --admin` calls,
   // and what the ruleset's own semantics promise a bypass actor. The node id
   // the mutation needs rides the same lookup that confirms the request.
-  ipcMain.handle('github:merge-pr', async (_e, owner: string, repo: string, number: number,
+  handle('github:merge-pr', async (_e, owner: string, repo: string, number: number,
     method: 'merge' | 'squash' | 'rebase' = 'merge') => {
     const api = await ghApi()
     const token = api.token
@@ -354,7 +355,7 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:get-checks', async (_e, owner: string, repo: string, ref: string) => {
+  handle('github:get-checks', async (_e, owner: string, repo: string, ref: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -385,7 +386,7 @@ export function registerGithubHandlers(): void {
   // can reach but a host cannot answer is the dead-button class the parity
   // test exists to catch.
 
-  ipcMain.handle('github:issue-comments', async (_e, owner: string, repo: string, number: number) => {
+  handle('github:issue-comments', async (_e, owner: string, repo: string, number: number) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -405,7 +406,7 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:add-issue-comment', async (_e, owner: string, repo: string, number: number, body: string) => {
+  handle('github:add-issue-comment', async (_e, owner: string, repo: string, number: number, body: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -423,7 +424,7 @@ export function registerGithubHandlers(): void {
   // One PATCH for every field the detail edits — title, body, state (which is
   // how reopen exists without a second verb), assignees, labels. Only the keys
   // present are sent, so a title edit does not rewrite the labels.
-  ipcMain.handle('github:update-issue', async (_e, owner: string, repo: string, number: number,
+  handle('github:update-issue', async (_e, owner: string, repo: string, number: number,
     patch: { title?: string; body?: string; state?: 'open' | 'closed'; assignees?: string[]; labels?: string[] }) => {
     const api = await ghApi()
     const token = api.token
@@ -444,7 +445,7 @@ export function registerGithubHandlers(): void {
   // reviewers, so the composer makes two calls and says so when the second
   // fails (#130): a request that exists with nobody asked is not a rollback
   // case, it is a fact to report.
-  ipcMain.handle('github:request-reviewers', async (_e, owner: string, repo: string, number: number, reviewers: string[]) => {
+  handle('github:request-reviewers', async (_e, owner: string, repo: string, number: number, reviewers: string[]) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -466,7 +467,7 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:list-assignees', async (_e, owner: string, repo: string) => {
+  handle('github:list-assignees', async (_e, owner: string, repo: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -484,7 +485,7 @@ export function registerGithubHandlers(): void {
   // labels and assignees together — unlike a pull request, an issue's create
   // endpoint takes its staffing. Without push access GitHub silently ignores
   // the labels and assignees rather than refusing, which is the right degrade.
-  ipcMain.handle('github:create-issue', async (_e, owner: string, repo: string, title: string, body: string, labels: string[], assignees: string[]) => {
+  handle('github:create-issue', async (_e, owner: string, repo: string, title: string, body: string, labels: string[], assignees: string[]) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -517,7 +518,7 @@ export function registerGithubHandlers(): void {
   // (#130). Explicit — a POST with a colour we chose — rather than leaning on
   // any endpoint's implicit auto-creation, so the write is announced, the
   // colour is deterministic, and a refusal has one place to surface.
-  ipcMain.handle('github:create-label', async (_e, owner: string, repo: string, name: string, color: string) => {
+  handle('github:create-label', async (_e, owner: string, repo: string, name: string, color: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -543,7 +544,7 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:list-repo-labels', async (_e, owner: string, repo: string) => {
+  handle('github:list-repo-labels', async (_e, owner: string, repo: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -559,7 +560,7 @@ export function registerGithubHandlers(): void {
 
   // Launchpad "Mark as closed": close an issue or PR. GitHub's issues endpoint
   // closes both. Invalidates the search cache so the next refresh drops it.
-  ipcMain.handle('github:close-issue', async (_e, owner: string, repo: string, number: number) => {
+  handle('github:close-issue', async (_e, owner: string, repo: string, number: number) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -578,7 +579,7 @@ export function registerGithubHandlers(): void {
   // Launchpad WIP "Create cloud patch": the working-tree diff of a local repo
   // (uncommitted, tracked changes vs HEAD) goes to a secret gist; the link comes
   // back. Zero-server, revocable by deleting the gist.
-  ipcMain.handle('github:share-wip-patch', async (_e, repoPath: string) => {
+  handle('github:share-wip-patch', async (_e, repoPath: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -608,7 +609,7 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:list-issues', async (_e, owner: string, repo: string) => {
+  handle('github:list-issues', async (_e, owner: string, repo: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -636,7 +637,7 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:search-issues', async (_e, q: string, force?: boolean) => {
+  handle('github:search-issues', async (_e, q: string, force?: boolean) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -682,7 +683,7 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:get-issue', async (_e, owner: string, repo: string, number: number) => {
+  handle('github:get-issue', async (_e, owner: string, repo: string, number: number) => {
     const api = await ghApi()
     const token = api.token
     const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
@@ -715,7 +716,7 @@ export function registerGithubHandlers(): void {
   // `head` crosses repositories as `owner:branch` — the fork case (#130). GitHub
   // reads the bare form as "this repository's branch", so same-repo callers
   // change nothing.
-  ipcMain.handle('github:create-pr', async (_e, owner: string, repo: string, title: string, body: string, head: string, base: string, draft?: boolean) => {
+  handle('github:create-pr', async (_e, owner: string, repo: string, title: string, body: string, head: string, base: string, draft?: boolean) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -753,7 +754,7 @@ export function registerGithubHandlers(): void {
   // /user/repos listing has no reason to hold. One lookup so the composer can
   // offer it as a target (#130); every failure reads as "not a fork", because
   // a composer that cannot ask this question still composes.
-  ipcMain.handle('github:repo-parent', async (_e, owner: string, repo: string) => {
+  handle('github:repo-parent', async (_e, owner: string, repo: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { parent: null }
@@ -775,7 +776,7 @@ export function registerGithubHandlers(): void {
     } catch { return { parent: null } }
   })
 
-  ipcMain.handle('github:list-branches', async (_e, owner: string, repo: string) => {
+  handle('github:list-branches', async (_e, owner: string, repo: string) => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { branches: [] }
@@ -789,7 +790,7 @@ export function registerGithubHandlers(): void {
     } catch { return { branches: [] } }
   })
 
-  ipcMain.handle('github:list-repos', async () => {
+  handle('github:list-repos', async () => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { error: 'not_authenticated' }
@@ -826,7 +827,7 @@ export function registerGithubHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('github:clone', async (_e, cloneUrl: string, repoName: string) => {
+  handle('github:clone', async (_e, cloneUrl: string, repoName: string) => {
     const result = await dialog.showOpenDialog(state.mainWindow, {
       properties: ['openDirectory', 'createDirectory'],
       title: `Choose where to clone "${repoName}"`
@@ -843,7 +844,7 @@ export function registerGithubHandlers(): void {
     }
   })
 
-  ipcMain.handle('github:get-user', async () => {
+  handle('github:get-user', async () => {
     const api = await ghApi()
     const token = api.token
     if (!token) return { user: null }

@@ -1,4 +1,5 @@
 // ai:* and changelog:* — the AI features.
+import { handle } from './handle'
 import { ipcMain } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
@@ -18,18 +19,18 @@ import { runAIPrompt, diffOptsFor, AI_CONFLICT_MAX_CHARS, explCachePath, readExp
 
 
 export function registerAiHandlers(): void {
-  ipcMain.handle('ai:get-api-key', () => {
+  handle('ai:get-api-key', () => {
     return { key: maskSecrets(readSettings()).groqApiKey ?? '' }
   })
 
-  ipcMain.handle('ai:set-api-key', (_event, key: string) => {
+  handle('ai:set-api-key', (_event, key: string) => {
     const s = readSettings()
     const resolved = resolveSecretWrite(s, 'groqApiKey', key)
     if (resolved !== null) { s.groqApiKey = resolved; writeSettings(s) }
     return { success: true }
   })
 
-  ipcMain.handle('ai:list-models', async () => {
+  handle('ai:list-models', async () => {
     const apiKey = readSettings().geminiApiKey
     if (!apiKey) return { error: 'NO_API_KEY' }
     try {
@@ -39,7 +40,7 @@ export function registerAiHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKey: string, baseUrl?: string) => {
+  handle('ai:list-provider-models', async (_event, provider: string, apiKey: string, baseUrl?: string) => {
     // The settings page holds a mask for a key it never saw; the stored one
     // answers for it here.
     if (apiKey === SECRET_MASK) {
@@ -127,7 +128,7 @@ export function registerAiHandlers(): void {
     } catch (e: any) { return { error: e.message } }
   })
 
-  ipcMain.handle('ai:generate-commit-message', async () => {
+  handle('ai:generate-commit-message', async () => {
     if (!state.gitService) { console.log('[ai] no state.gitService'); return { error: 'No repository open' } }
     let stagedDiff = ''
     try {
@@ -159,7 +160,7 @@ export function registerAiHandlers(): void {
    * it, and not checking it would be a decision.
    */
 
-  ipcMain.handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: string, vocabulary: string) => {
+  handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: string, vocabulary: string) => {
     if (!described.trim()) return { error: 'nothing to describe' }
     const what = kind === 'prs' ? 'pull requests' : 'issues'
     const prompt = [
@@ -204,7 +205,7 @@ export function registerAiHandlers(): void {
    * One call for both fields: they are one answer about one branch, and two
    * calls would let them disagree.
    */
-  ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headName: string) => {
+  handle('ai:generate-pr-description', async (_e, baseName: string, headName: string) => {
     if (!state.gitService) return { error: 'No repository open' }
     const git = (state.gitService as any).git
     // The caller speaks in short branch names. The base is compared as the
@@ -245,7 +246,7 @@ export function registerAiHandlers(): void {
    * One call for both fields, like the PR description: they are one answer.
    */
 
-  ipcMain.handle('ai:generate-issue', async (_e, described: string) => {
+  handle('ai:generate-issue', async (_e, described: string) => {
     if (!described.trim()) return { error: 'nothing to describe' }
     const prompt = [
       `You write GitHub issues from a maintainer's note — anything from a few words to a full draft. Keep what is right, tighten what is not, and structure it.`,
@@ -268,7 +269,7 @@ export function registerAiHandlers(): void {
   // Recompose: regenerate an EXISTING commit's message from its actual diff.
   // The renderer applies the result through the normal amend/reword flow, so
   // the user always reviews the proposal before anything is rewritten.
-  ipcMain.handle('ai:recompose-commit', async (_e, hash: string) => {
+  handle('ai:recompose-commit', async (_e, hash: string) => {
     if (!state.gitService) return { error: 'No repository open' }
     let diff = ''
     let currentMsg = ''
@@ -284,7 +285,7 @@ export function registerAiHandlers(): void {
     return r.error ? { error: r.error } : { message: r.text }
   })
 
-  ipcMain.handle('ai:resolve-conflict', async (_e, filepath: string, instruction?: string) => {
+  handle('ai:resolve-conflict', async (_e, filepath: string, instruction?: string) => {
     if (!state.gitService) return { error: 'No repository open' }
     const fileRes = await state.gitService.getFileContent(filepath)
     if (fileRes.error) return { error: fileRes.error }
@@ -332,7 +333,7 @@ export function registerAiHandlers(): void {
   // Natural-language commit search: sends a compact one-line-per-commit index
   // (hash, author, date, subject) and asks the model which commits match the
   // user's free-form query. Returns { hashes } of full hashes.
-  ipcMain.handle('ai:search-commits', async (_e, query: string) => {
+  handle('ai:search-commits', async (_e, query: string) => {
     if (!state.gitService) return { error: 'No repository open' }
     if (!query?.trim()) return { hashes: [] }
     let index = ''
@@ -374,12 +375,12 @@ export function registerAiHandlers(): void {
     }
   })
 
-  ipcMain.handle('ai:get-explanations', () => {
+  handle('ai:get-explanations', () => {
     if (!state.gitService) return { explanations: {} }
     return { explanations: readExplCache()[state.gitService.repoPath] ?? {} }
   })
 
-  ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guidance?: string) => {
+  handle('ai:explain-commit', async (_e, hash: string, force = false, guidance?: string) => {
     if (!state.gitService) return { error: 'No repository open' }
     // A guided explanation is an answer to a different question: it neither
     // reads nor writes the cache, or an unguided request would later be served
@@ -404,17 +405,17 @@ export function registerAiHandlers(): void {
     return { explanation: r.text }
   })
 
-  ipcMain.handle('ai:note-list', async () =>
+  handle('ai:note-list', async () =>
     state.gitService ? noteList(rawGit(), noteStore(state.gitService.repoPath)) : { entries: [] })
 
-  ipcMain.handle('ai:forget-note', async (_e, kind: NoteRecord['kind'], key: string) => {
+  handle('ai:forget-note', async (_e, kind: NoteRecord['kind'], key: string) => {
     if (!state.gitService) return { success: false }
     await noteStore(state.gitService.repoPath).forget(kind, key)
     return { success: true }
   })
 
   /** A commit explanation can be dropped too — same gesture, older store. */
-  ipcMain.handle('ai:forget-explanation', async (_e, hash: string) => {
+  handle('ai:forget-explanation', async (_e, hash: string) => {
     if (!state.gitService) return { success: false }
     const cache = readExplCache()
     if (cache[state.gitService.repoPath]?.[hash]) {
@@ -426,41 +427,41 @@ export function registerAiHandlers(): void {
 
   /** How much of a diff a feature shows, as this user has set it (#185). */
 
-  ipcMain.handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
+  handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
     state.gitService
       ? explainBranch(rawGit(), runFeature, branch,
           { guidance, store: noteStore(state.gitService.repoPath), diff: diffOptsFor('explain') })
       : { error: 'No repository open' })
 
-  ipcMain.handle('ai:explain-stash', async (_e, index: number | string, guidance?: string) =>
+  handle('ai:explain-stash', async (_e, index: number | string, guidance?: string) =>
     state.gitService
       ? explainStash(rawGit(), runFeature, index,
           { guidance, store: noteStore(state.gitService.repoPath), diff: diffOptsFor('explain') })
       : { error: 'No repository open' })
 
-  ipcMain.handle('ai:explain-working', async (_e, guidance?: string) =>
+  handle('ai:explain-working', async (_e, guidance?: string) =>
     state.gitService
       ? explainWorking(rawGit(), runFeature,
           { guidance, store: noteStore(state.gitService.repoPath), diff: diffOptsFor('explain') })
       : { error: 'No repository open' })
 
-  ipcMain.handle('ai:changelog-list', async () =>
+  handle('ai:changelog-list', async () =>
     state.gitService
       ? changelogList(rawGit(), changelogStore(state.gitService.repoPath))
       : { entries: [] })
 
-  ipcMain.handle('ai:forget-changelog', async (_e, branch: string) => {
+  handle('ai:forget-changelog', async (_e, branch: string) => {
     if (!state.gitService) return { success: false }
     await changelogStore(state.gitService.repoPath).forget(branch)
     return { success: true }
   })
 
-  ipcMain.handle('ai:changelog-state', async (_e, branch: string, scope?: string) =>
+  handle('ai:changelog-state', async (_e, branch: string, scope?: string) =>
     state.gitService
       ? changelogState(rawGit(), changelogStore(state.gitService.repoPath), branch, scope)
       : { error: 'No repository open' })
 
-  ipcMain.handle('ai:generate-changelog', async (_e, branch: string, base?: string, previous?: string, scope?: string) =>
+  handle('ai:generate-changelog', async (_e, branch: string, base?: string, previous?: string, scope?: string) =>
     state.gitService
       ? generateChangelog(rawGit(), runFeature, branch, base,
           { previous, scope, store: changelogStore(state.gitService.repoPath) })
@@ -475,7 +476,7 @@ export function registerAiHandlers(): void {
    * `gitvertex.defaultRemote` in the repository's own git config, which is
    * where a per-repository answer belongs and where anyone can read it back.
    */
-  ipcMain.handle('changelog:get-scope-pref', async () => {
+  handle('changelog:get-scope-pref', async () => {
     if (!state.gitService) return { pref: null }
     try {
       const v = (await rawGit()(['config', '--local', '--get', 'gitvertex.changelogScope'])).trim()
@@ -483,7 +484,7 @@ export function registerAiHandlers(): void {
     } catch { return { pref: null } }
   })
 
-  ipcMain.handle('changelog:set-scope-pref', async (_e, pref: 'package' | 'branch') => {
+  handle('changelog:set-scope-pref', async (_e, pref: 'package' | 'branch') => {
     if (!state.gitService) return { success: false }
     try {
       await rawGit()(['config', '--local', 'gitvertex.changelogScope', pref])
@@ -497,7 +498,7 @@ export function registerAiHandlers(): void {
    * writes into the working tree, so the diff is right there in the staging
    * pane to be read or thrown away.
    */
-  ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) => {
+  handle('changelog:insert', async (_e, entry: string, opts?: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) => {
     if (!state.gitService) return { error: 'No repository open' }
     const raw = rawGit()
 
@@ -586,6 +587,6 @@ export function registerAiHandlers(): void {
     }
   })
 
-  ipcMain.handle('ai:propose-commit-split', async () =>
+  handle('ai:propose-commit-split', async () =>
     state.gitService ? proposeCommitSplit(rawGit(), runFeature, diffOptsFor('compose')) : { error: 'No repository open' })
 }

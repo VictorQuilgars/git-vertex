@@ -1,4 +1,5 @@
 // gitgui:// links: parsed, held until the window can take them, dispatched.
+import { handle } from './ipc/handle'
 import { app, ipcMain } from 'electron'
 import { join } from 'path'
 import { handleOAuthCallback } from './github-auth'
@@ -105,7 +106,7 @@ export async function handleProtocolUrl(url: string): Promise<void> {
 }
 
 export function registerDeepLinkHandlers(): void {
-  ipcMain.handle('app:get-pending-deeplink', () => {
+  handle('app:get-pending-deeplink', () => {
     const link = pendingDeepLink
     pendingDeepLink = null
     return link

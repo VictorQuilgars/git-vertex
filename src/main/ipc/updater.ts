@@ -1,4 +1,5 @@
 // updater:* — the auto-update, and the state of a download in progress.
+import { handle } from './handle'
 import { app, shell, ipcMain } from 'electron'
 import { join } from 'path'
 import { readdirSync } from 'fs'
@@ -76,7 +77,7 @@ export function watchAutoUpdater(): void {
 }
 
 export function registerUpdaterHandlers(): void {
-  ipcMain.handle('updater:download', async () => {
+  handle('updater:download', async () => {
     if (is.dev) return { dev: true }
     try {
       await autoUpdater.downloadUpdate()
@@ -86,21 +87,21 @@ export function registerUpdaterHandlers(): void {
     }
   })
 
-  ipcMain.handle('updater:install', () => {
+  handle('updater:install', () => {
     installDownloadedUpdate()
   })
 
-  ipcMain.handle('updater:get-state', () => {
+  handle('updater:get-state', () => {
     return { downloadedVersion: downloadedUpdateVersion, downloadedFile: downloadedUpdateFile }
   })
 
-  ipcMain.handle('updater:open-downloaded', () => {
+  handle('updater:open-downloaded', () => {
     if (downloadedUpdateFile) {
       shell.showItemInFolder(downloadedUpdateFile)
     }
   })
 
-  ipcMain.handle('updater:install-manual', async () => {
+  handle('updater:install-manual', async () => {
     // Windows & Linux: quitAndInstall() works natively (no Gatekeeper).
     // Windows runs silently so the NSIS setup wizard doesn't reappear.
     if (process.platform !== 'darwin') {
@@ -155,7 +156,7 @@ export function registerUpdaterHandlers(): void {
     }
   })
 
-  ipcMain.handle('updater:check', async () => {
+  handle('updater:check', async () => {
     if (is.dev) return { dev: true }
     try {
       const result = await autoUpdater.checkForUpdates()

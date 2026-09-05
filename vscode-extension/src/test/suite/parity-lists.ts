@@ -16,6 +16,9 @@
  * already provides one. Nothing here is a bug; it is a decision.
  */
 export const DESKTOP_ONLY = new Set([
+  // One repository per panel: the desktop's sessions — a repository per tab,
+  // each call bound to one — have nothing to bind here.
+  'setCurrentRepo', 'closeRepo', 'session',
   // App shell: the extension lives inside VS Code's window and updater.
   'zoomGet', 'zoomSet', 'isFullscreen',
   'checkForUpdates', 'downloadUpdate', 'installUpdate', 'installManual',

@@ -477,8 +477,17 @@ declare global {
     // registered, so an `off(cb)` pair could never match it.
     onRepoChanged: (cb: () => void) => () => void
     onWorkingChanged: (cb: () => void) => () => void
+    /** Every repository's changes, with its path — for the tabs that are not shown. Desktop only. */
+    onRepoChangedAny?: (cb: (repo: string) => void) => () => void
+    // ── Sessions (desktop only: the panel has one repository) ──
+    /** The repository the window shows: what every plain call is about from now on. */
+    setCurrentRepo?: (path: string | null) => void
+    /** The tab that showed this repository closed: the main process drops its session. */
+    closeRepo?: (path: string) => Promise<{ success: boolean }>
+    /** Every method of this API, bound to one repository whether or not it is the one shown. */
+    session?: (path: string) => GitAPI
     /** The main process's periodic fetch ran — the one timer there is. */
-    onAutoFetched: (cb: (r: { success: boolean; error?: string }) => void) => () => void
+    onAutoFetched: (cb: (r: { repo?: string; success: boolean; error?: string }) => void) => () => void
 
     // Updater
     onUpdateAvailable: (cb: (version: string) => void) => () => void
