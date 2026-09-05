@@ -1,3 +1,4 @@
+import { useCommitDraft } from '../../hooks/useCommitDraft'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
 import hljs from 'highlight.js'
@@ -1071,13 +1072,14 @@ function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx
   )
 }
 
-function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState }: {
+function StagingView({ repoPath, onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState }: {
+  repoPath?: string
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   currentBranch?: string
   conflictMode?: string | null
   conflictFiles?: string[]
-  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
+  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void | boolean | Promise<void | boolean>
   onConflictAbort?: () => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
   onOpenStagingEditor?: (file: string) => void
@@ -1105,8 +1107,8 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   // Single free-form commit message: the user controls their own line breaks
   // (first line reads as the subject by git convention, but nothing forces
   // that split — no separate summary/description fields).
-  const [message, setMessage] = useState('')
-  const [amend, setAmend] = useState(false)
+  const { draft, update: updateDraft, message, setMessage, clear: clearDraft } = useCommitDraft(repoPath)
+  const amend = draft.amend
   const [amendFiles, setAmendFiles] = useState<FileChange[]>([])
   const [treeMode, setTreeMode] = useState(() => localStorage.getItem('st-tree-mode') === 'true')
   const [sortAsc, setSortAsc] = useState(true)
@@ -1190,19 +1192,21 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const splitLists = trimTop && panelSize.w >= 360
 
   const toggleAmend = useCallback(async (checked: boolean) => {
-    setAmend(checked)
     if (checked) {
-      const [msgRes, filesRes] = await Promise.all([
-        window.gitAPI.getLastCommitMessage(),
-        window.gitAPI.getCommitFiles('HEAD'),
-      ])
-      setMessage(msgRes.message ?? '')
-      setAmendFiles(filesRes.files ?? [])
+      const msgRes = await window.gitAPI.getLastCommitMessage()
+      updateDraft(prev => ({ ...prev, amend: true, amendMessage: prev.amendMessage || msgRes.message || '' }))
     } else {
-      setMessage('')
-      setAmendFiles([])
+      updateDraft(prev => ({ ...prev, amend: false }))
     }
-  }, [])
+  }, [updateDraft])
+
+  useEffect(() => {
+    let active = true
+    if (amend) {
+      window.gitAPI.getCommitFiles('HEAD').then(r => { if (active) setAmendFiles(r.files ?? []) })
+    } else setAmendFiles([])
+    return () => { active = false }
+  }, [amend])
 
   const load = useCallback(async () => {
     const r = await window.gitAPI.getWorkingChanges()
@@ -1220,7 +1224,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 
   useEffect(() => {
     if (isConflict) {
-      window.gitAPI.getMergeMessage().then(r => { if (r.message) setMessage(r.message) })
+      window.gitAPI.getMergeMessage().then(r => { if (r.message) setMessage(prev => prev || r.message) })
     }
   }, [isConflict])
 
@@ -1983,21 +1987,26 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     if (!message.trim()) return
     const full = message.trim()
     setCommitting(true)
-    if (isConflict && onConflictFinish) {
-      const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
-      onConflictFinish(action, full)
-      setMessage('')
-    } else {
-      const finalMessage = signoff ? `${full}\n\nSigned-off-by: ` : full
-      const r = await window.gitAPI.commit(finalMessage, amend)
-      if (r.success) {
-        showToast(t('toast.commitOk'))
-        setMessage(''); setAmend(false); setSelectedDiff(null)
-        onProposalConsumed?.()
-        await load(); onCommitSuccess()
-      } else showToast(t('toast.commitErr', r.error ?? ''), 'err')
+    try {
+      if (isConflict && onConflictFinish) {
+        const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
+        const success = await onConflictFinish(action, full)
+        if (success === true) clearDraft()
+      } else {
+        const finalMessage = signoff ? `${full}\n\nSigned-off-by: ` : full
+        const r = await window.gitAPI.commit(finalMessage, amend)
+        if (r.success) {
+          showToast(t('toast.commitOk'))
+          clearDraft(); setSelectedDiff(null)
+          onProposalConsumed?.()
+          await load(); onCommitSuccess()
+        } else showToast(t('toast.commitErr', r.error ?? ''), 'err')
+      }
+    } catch (error) {
+      showToast(t('toast.commitErr', error instanceof Error ? error.message : String(error)), 'err')
+    } finally {
+      setCommitting(false)
     }
-    setCommitting(false)
   }
 }
 
@@ -2163,6 +2172,7 @@ function ConflictPanel({
 
 // ── Right Panel root ──────────────────────────────────────────
 interface RightPanelProps {
+  repoPath?: string
   selectedCommit: CommitNode | null
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
@@ -2175,7 +2185,7 @@ interface RightPanelProps {
   // kind is shown, rather than every file being labelled "both modified".
   conflictKinds?: Record<string, ConflictKind>
   conflictMode?: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
-  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
+  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void | boolean | Promise<void | boolean>
   onConflictAbort?: () => void
   onOpenResolver?: (file: string) => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
@@ -2215,7 +2225,7 @@ interface RightPanelProps {
 }
 
 export default function RightPanel({
-  selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
+  repoPath, selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
   onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory, onCompareWorking,
   onRewordMessage, commitProposal, onCommitProposalConsumed, onExplainWorking, onSplitCommits,
@@ -2243,6 +2253,8 @@ export default function RightPanel({
         />
       ) : (isWip || allConflictsResolved) && !hasCommit ? (
         <StagingView
+          key={repoPath}
+          repoPath={repoPath}
           onCommitSuccess={onCommitSuccess}
           showToast={showToast}
           currentBranch={currentBranch}

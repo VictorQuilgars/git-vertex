@@ -867,9 +867,9 @@ ipcMain.handle('git:get-last-commit-message', async (_event, ref?: string) => {
   return gitService.getLastCommitMessage(ref)
 })
 
-ipcMain.handle('git:get-working-file-diff', async (_event, filepath: string, staged: boolean) => {
+ipcMain.handle('git:get-working-file-diff', async (_event, filepath: string, staged: boolean, context?: number) => {
   if (!gitService) return { diff: '' }
-  return gitService.getWorkingFileDiff(filepath, staged)
+  return gitService.getWorkingFileDiff(filepath, staged, context)
 })
 
 ipcMain.handle('git:discard-file', async (_event, file: string) => {

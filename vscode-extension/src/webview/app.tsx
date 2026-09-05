@@ -112,6 +112,7 @@ function VertexApp() {
   const [currentBranch, setCurrentBranch] = useState('')
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
   const [repoName, setRepoName] = useState('')
+  const [repoPath, setRepoPath] = useState<string>()
   // Working Changes is selected on open, so the panel always has two panes:
   // the graph and whatever the selection is. Nothing selected used to mean no
   // right pane at all — which read as a broken panel, and for a clean tree it
@@ -288,6 +289,7 @@ function VertexApp() {
       try {
         const info = await window.gitAPI.appGetInfo()
         if (info?.repoName) setRepoName(info.repoName)
+        setRepoPath(info?.repoPath)
       } catch { /* ignore */ }
       // Both feed the "start a Pull Request" row: no GitHub remote or no known
       // default branch means prIntentFor returns null and no row is offered.
@@ -884,6 +886,7 @@ function VertexApp() {
     if (r && r.success === false) showToast(r.error ?? t('ext.app.failed'), 'err')
     else showToast(mode === 'rebase' ? t('ext.app.rebaseContinued') : t('ext.app.conflictsResolved'))
     await loadRepoData()
+    return r?.success === true
   }, [conflictMode, showToast, loadRepoData])
 
   const handleConflictAbort = useCallback(async () => {
@@ -1365,6 +1368,7 @@ function VertexApp() {
                 </div>
               )}
               <RightPanel
+                repoPath={repoPath}
                 onCompareWorking={(hash) => window.gitAPI.openCompareWorkingTab(hash)}
                 embedded
                 selectedCommit={selectedCommit}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useMediaQuery } from './hooks/useMediaQuery'
 import { Icon } from './components/Icon/Icon'
 import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope, type CompareAxis } from './types'
 import { useLang } from './i18n/LanguageContext'
@@ -1188,7 +1189,7 @@ export default function App() {
         }
         const fallback = next[Math.max(0, idx - 1)]
         setActiveTabId(fallback.id)
-        if (fallback.kind === 'repo') {
+        if (fallback.path) {
           window.gitAPI.setRepo(fallback.path!).then(r => {
             if (r.path) {
               setRepoPath(r.path)
@@ -1214,8 +1215,8 @@ export default function App() {
     }
     setActiveTabId(id)
     // Reconcile the body if the survivor isn't the repo currently loaded.
-    if (kept && kept.kind !== 'repo') clearRepoView()
-    else if (kept && kept.kind === 'repo' && kept.path !== repoPath) {
+    if (kept && !kept.path && kept.kind !== 'view') clearRepoView()
+    else if (kept?.path && kept.path !== repoPath) {
       window.gitAPI.setRepo(kept.path!).then(r => {
         if (r.path) {
           setRepoPath(r.path); setRepoName(r.name ?? kept.name!)
@@ -2329,6 +2330,7 @@ export default function App() {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
     setLoading(false)
+    return r.success
   }
 
   const handleConflictAbort = async () => {
@@ -2441,6 +2443,8 @@ export default function App() {
   const launchpadActive = activeTab?.kind === 'launchpad'
   const themesActive = activeTab?.kind === 'themes'
   const viewTab = activeTab?.kind === 'view' ? activeTab.body : undefined
+  const narrowWindow = useMediaQuery('(max-width: 1100px)')
+  const compactDetails = narrowWindow && !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
 
   return (
     <div className="app">
@@ -2646,7 +2650,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="app-body" style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
+      <div className={`app-body${compactDetails ? ' app-body--detail' : ''}`} style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
         {repoPath && !viewTab && (
         <div className="app-sidebar" style={{ width: sidebarW }} ref={sidebarPanelRef}>
@@ -2801,12 +2805,19 @@ export default function App() {
               onSuccess={loadRepoData}
               showToast={showToast}
             />
+          ) : viewTab && activeTab?.path && activeTab.path !== repoPath ? (
+            <div role="status">{t('common.loading')}</div>
           ) : viewTab ? (
             viewTab.view === 'compare' ? (
               <CompareView
+                key={activeTabId}
                 initialA={viewTab.a}
                 initialB={viewTab.b}
                 initialAxis={viewTab.axis}
+                onComparisonChange={(a, b, axis) => setTabs(prev => prev.map(tb =>
+                  tb.id === activeTabId && tb.body?.view === 'compare'
+                    ? { ...tb, body: { ...tb.body, a, b, axis } }
+                    : tb))}
                 repoKey={repoPath}
                 onTitleChange={(title) => setTabs(prev => prev.map(tb =>
                   tb.id === activeTabId && tb.body?.view === 'compare'
@@ -2814,9 +2825,10 @@ export default function App() {
                     : tb))}
               />
             ) : viewTab.view === 'fileHistory' ? (
-              <FileHistory file={viewTab.file} />
+              <FileHistory key={activeTabId} file={viewTab.file} />
             ) : viewTab.view === 'fileDiff' ? (
               <CenterFileDiff
+                key={activeTabId}
                 target={viewTab.target}
                 onClose={() => closeTab(activeTabId!)}
                 onStaged={() => loadRepoData(true)}
@@ -3020,7 +3032,13 @@ export default function App() {
           <>
             <div className="resize-handle" onMouseDown={startResizeRight} />
             <div className="app-right" style={{ width: rightW }}>
+              {compactDetails && !conflictMode && (
+                <button className="app-detail-back" onClick={() => setSelectedCommit(null)}>
+                  <Icon name="chevronLeft" size={14} /> {t('cfd.backToGraph')}
+                </button>
+              )}
               <RightPanel
+                repoPath={repoPath}
                 onCompareWorking={(hash) => openViewTab({ view: 'compare', a: hash, b: null, label: `${hash.slice(0, 7)} → ${t('cv.workingTree')}` })}
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}

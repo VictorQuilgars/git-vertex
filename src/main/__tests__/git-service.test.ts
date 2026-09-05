@@ -34,6 +34,26 @@ describe('GitService', () => {
   // Basic operations
   // ─────────────────────────────────────────────────────────────────────
 
+  describe('working diff context', () => {
+    test.each([false, true])('returns requested context for staged=%s', async (staged) => {
+      const lines = Array.from({ length: 80 }, (_, i) => `line ${i + 1}`)
+      fs.writeFileSync(path.join(tempDir, 'context.txt'), lines.join('\n') + '\n')
+      execSync('git add context.txt && git commit -m initial', { cwd: tempDir })
+      lines[39] = 'changed line'
+      fs.writeFileSync(path.join(tempDir, 'context.txt'), lines.join('\n') + '\n')
+      if (staged) execSync('git add context.txt', { cwd: tempDir })
+      const normal = await git.getWorkingFileDiff('context.txt', staged)
+      expect(normal.diff).toContain('-line 40')
+      expect(normal.diff).not.toContain('\n line 1\n')
+      const full = await git.getWorkingFileDiff('context.txt', staged, 100000)
+      expect(full.diff).toContain('\n line 1\n')
+      expect(full.diff).toContain('\n line 80\n')
+      const zero = await git.getWorkingFileDiff('context.txt', staged, 0)
+      expect(zero.diff).not.toContain('\n line 39\n')
+      expect((await git.getWorkingFileDiff('context.txt', staged, NaN)).diff).toBe(normal.diff)
+    })
+  })
+
   describe('checkRepo', () => {
     test('should succeed for a valid git repo', async () => {
       await expect(git.checkRepo()).resolves.not.toThrow()

@@ -100,3 +100,26 @@ describe('CompareView — the comparisons it remembers', () => {
     expect(screen.queryByRole('button', { name: /main … feature/ })).not.toBeInTheDocument()
   })
 })
+
+test('a commit hash remains visible in the selector and the host receives comparison edits', async () => {
+  const hash = 'abcdef0123456789abcdef0123456789abcdef01'
+  installMockGitAPI({
+    getBranches: jest.fn().mockResolvedValue(BRANCHES),
+    getTags: jest.fn().mockResolvedValue({ tags: [] }),
+    getRemotes: jest.fn().mockResolvedValue({ remotes: [] }),
+    compareBranches: jest.fn().mockResolvedValue({ ahead: [], behind: [] }),
+    diffBetweenCommits: jest.fn().mockResolvedValue({ diff: '' }),
+    filesBetweenCommits: jest.fn().mockResolvedValue({ files: [] }),
+    getMergeBase: jest.fn().mockResolvedValue({ base: null }),
+  })
+  const change = jest.fn(), title = jest.fn()
+  renderWithProviders(<CompareView initialA={hash} initialB={null} onComparisonChange={change} onTitleChange={title} />)
+  expect(screen.getAllByRole('combobox')[0]).toHaveValue(hash)
+  expect(screen.getByRole('option', { name: 'abcdef0' })).toBeInTheDocument()
+  await waitFor(() => expect(change).toHaveBeenLastCalledWith(hash, null, 'diverged'))
+  expect(title).toHaveBeenLastCalledWith('abcdef0 … Working tree')
+  await screen.findAllByRole('option', { name: 'feature' })
+  await userEvent.selectOptions(screen.getAllByRole('combobox')[1], 'feature')
+  await userEvent.click(screen.getByRole('button', { name: /end to end/i }))
+  await waitFor(() => expect(change).toHaveBeenLastCalledWith(hash, 'feature', 'endpoints'))
+})

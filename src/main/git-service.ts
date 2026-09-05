@@ -900,11 +900,12 @@ export class GitService {
     }
   }
 
-  async getWorkingFileDiff(filepath: string, staged: boolean): Promise<{ diff: string }> {
+  async getWorkingFileDiff(filepath: string, staged: boolean, context?: number): Promise<{ diff: string }> {
     try {
+      const ctx = typeof context === 'number' && Number.isFinite(context) ? [`-U${Math.max(0, Math.floor(context))}`] : []
       const args = staged
-        ? ['diff', '--cached', '--', filepath]
-        : ['diff', '--', filepath]
+        ? ['diff', '--cached', ...ctx, '--', filepath]
+        : ['diff', ...ctx, '--', filepath]
       const diff = await this.git.raw(args)
       return { diff }
     } catch (e) {

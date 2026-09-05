@@ -52,7 +52,7 @@ const gitAPI = {
   // Staging & commit
   getWorkingChanges: () => ipcRenderer.invoke('git:get-working-changes'),
   getLastCommitMessage: (ref?: string) => ipcRenderer.invoke('git:get-last-commit-message', ref),
-  getWorkingFileDiff: (filepath: string, staged: boolean) => ipcRenderer.invoke('git:get-working-file-diff', filepath, staged),
+  getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => ipcRenderer.invoke('git:get-working-file-diff', filepath, staged, context),
   stage: (files: string[]) => ipcRenderer.invoke('git:stage', files),
   stageAll: () => ipcRenderer.invoke('git:stage-all'),
   unstage: (files: string[]) => ipcRenderer.invoke('git:unstage', files),

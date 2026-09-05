@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useId } from 'react'
+import { useDialogFocus } from './useDialogFocus'
 import { useLang } from '../../i18n/LanguageContext'
 import './Dialog.css'
 
@@ -17,10 +18,12 @@ export function ChoiceDialog({ message, options, onPick, onCancel }: {
   onCancel: () => void
 }) {
   const { t } = useLang()
+  const messageId = useId()
+  const boxRef = useDialogFocus(onCancel)
   return (
     <div className="dlg-overlay" onMouseDown={onCancel}>
-      <div className="dlg-box" onMouseDown={e => e.stopPropagation()}>
-        <div className="dlg-message">{message}</div>
+      <div ref={boxRef} role="dialog" aria-modal="true" aria-labelledby={messageId} tabIndex={-1} className="dlg-box" onMouseDown={e => e.stopPropagation()}>
+        <div id={messageId} className="dlg-message">{message}</div>
         <div className="dlg-choices">
           {options.map(o => (
             <button key={o} className="dlg-choice" onClick={() => onPick(o)}>{o}</button>
@@ -47,32 +50,25 @@ interface PromptDialogProps {
 
 export function PromptDialog({ message, defaultValue = '', multiline = false, onConfirm, onCancel }: PromptDialogProps) {
   const { t } = useLang()
+  const messageId = useId()
   const [value, setValue] = useState(defaultValue)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const taRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    const el = multiline ? taRef.current : inputRef.current
-    el?.focus()
-    el?.select()
-  }, [multiline])
+  const boxRef = useDialogFocus(onCancel, multiline ? 'textarea' : 'input')
 
   const submit = () => { if (value.trim() !== '' || defaultValue === '') onConfirm(value) }
 
   return (
     <div className="dlg-overlay" onMouseDown={onCancel}>
-      <div className={`dlg-box${multiline ? ' dlg-box--wide' : ''}`} onMouseDown={e => e.stopPropagation()}>
-        <div className="dlg-message">{message}</div>
+      <div ref={boxRef} role="dialog" aria-modal="true" aria-labelledby={messageId} tabIndex={-1} className={`dlg-box${multiline ? ' dlg-box--wide' : ''}`} onMouseDown={e => e.stopPropagation()}>
+        <div id={messageId} className="dlg-message">{message}</div>
         {multiline ? (
           <>
             <textarea
-              ref={taRef}
+              aria-labelledby={messageId}
               className="dlg-textarea"
               value={value}
               onChange={e => setValue(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit()
-                if (e.key === 'Escape') onCancel()
               }}
               spellCheck={false}
             />
@@ -80,13 +76,12 @@ export function PromptDialog({ message, defaultValue = '', multiline = false, on
           </>
         ) : (
           <input
-            ref={inputRef}
+            aria-labelledby={messageId}
             className="dlg-input"
             value={value}
             onChange={e => setValue(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') submit()
-              if (e.key === 'Escape') onCancel()
             }}
           />
         )}
@@ -109,19 +104,13 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({ message, onConfirm, onCancel, danger }: ConfirmDialogProps) {
   const { t } = useLang()
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') onConfirm()
-      if (e.key === 'Escape') onCancel()
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onConfirm, onCancel])
+  const messageId = useId()
+  const boxRef = useDialogFocus(onCancel, '.dlg-cancel')
 
   return (
     <div className="dlg-overlay" onMouseDown={onCancel}>
-      <div className="dlg-box" onMouseDown={e => e.stopPropagation()}>
-        <div className="dlg-message" style={{ whiteSpace: 'pre-line' }}>{message}</div>
+      <div ref={boxRef} role="dialog" aria-modal="true" aria-labelledby={messageId} tabIndex={-1} className="dlg-box" onMouseDown={e => e.stopPropagation()}>
+        <div id={messageId} className="dlg-message" style={{ whiteSpace: 'pre-line' }}>{message}</div>
         <div className="dlg-actions">
           <button className="dlg-btn dlg-cancel" onClick={onCancel}>{t('dlg.cancel')}</button>
           <button className={`dlg-btn ${danger ? 'dlg-danger' : 'dlg-ok'}`} onClick={onConfirm}>

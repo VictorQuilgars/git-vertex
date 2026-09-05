@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import './Toolbar.css'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useLang } from '../../i18n/LanguageContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { PullMode, type BranchInfo } from '../../types'
@@ -107,6 +108,15 @@ export default function Toolbar({
   topRow = true
 }: ToolbarProps) {
   const { t } = useLang()
+  const compact = useMediaQuery('(max-width: 1250px)')
+  const moreRef = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    const close = (event: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(event.target as Node)) moreRef.current.open = false
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
   const isMac = (window as any).appInfo?.platform === 'darwin'
   const disabled = !repoPath || loading
   const pullChevRef = useRef<HTMLButtonElement>(null)
@@ -177,7 +187,7 @@ export default function Toolbar({
   const defaultLabel = pullMode === 'fetch' ? 'Fetch' : 'Pull'
 
   return (
-    <div className="toolbar">
+    <div className={`toolbar${compact ? ' toolbar--compact' : ''}`}>
       {isMac && topRow && <div className="tb-mac-spacer" />}
 
       {/* ── Which repository ── */}
@@ -325,6 +335,7 @@ export default function Toolbar({
 
       {/* Centered main action group */}
       <div className="tb-group">
+        {!compact && <>
         <TBtn label="Undo" title={t('toolbar.undo.tooltip')} disabled={disabled} onClick={onUndo}
           icon={<Icon name="undo" size={18} />}
         />
@@ -333,6 +344,8 @@ export default function Toolbar({
         />
 
         <div className="tb-group-sep" />
+
+        </>}
 
         {/* Pull — split: main button runs the selected default (fetch or one
             of the pull strategies), chevron opens the mode picker. */}
@@ -361,6 +374,7 @@ export default function Toolbar({
 
         <div className="tb-group-sep" />
 
+        {!compact && <>
         <TBtn label="Branch" title={t('toolbar.newBranch.tooltip')} disabled={disabled} onClick={onCreateBranch}
           icon={<Icon name="newBranch" size={18} />}
         />
@@ -382,6 +396,35 @@ export default function Toolbar({
         <TBtn label="Terminal" title={t('toolbar.terminal.tooltip')} disabled={!repoPath} onClick={() => onTerminal?.()}
           icon={<Icon name="terminal" size={18} />}
         />
+        </>}
+        {compact && (
+          <details className="tb-more" ref={moreRef} onKeyDown={e => {
+            if (e.key === 'Escape') {
+              e.preventDefault()
+              e.currentTarget.open = false
+              e.currentTarget.querySelector('summary')?.focus()
+            }
+          }}>
+            <summary title={t('common.moreActions')} aria-label={t('common.moreActions')}>•••</summary>
+            <div className="tb-more-menu">
+              {[
+                { label: 'Undo', title: t('toolbar.undo.tooltip'), action: onUndo, disabled },
+                { label: 'Redo', title: t('toolbar.redo.tooltip'), action: onRedo, disabled },
+                { label: 'Branch', title: t('toolbar.newBranch.tooltip'), action: onCreateBranch, disabled },
+                { label: 'Stash', title: t('toolbar.stash.tooltip'), action: onStash, disabled },
+                { label: 'Pop', title: t('toolbar.pop.tooltip'), action: onPop, disabled: disabled || stashCount === 0 },
+                { label: 'Gitflow', title: t('toolbar.gitflow.tooltip'), action: onGitflow, disabled },
+                { label: 'Terminal', title: t('toolbar.terminal.tooltip'), action: onTerminal, disabled: !repoPath },
+              ].filter(item => item.action).map(item => (
+                <button key={item.label} title={item.title} disabled={item.disabled} onClick={() => {
+                  if (moreRef.current) moreRef.current.open = false
+                  moreRef.current?.querySelector('summary')?.focus()
+                  item.action?.()
+                }}>{item.label}</button>
+              ))}
+            </div>
+          </details>
+        )}
       </div>
 
       <div className="tb-spring" />
