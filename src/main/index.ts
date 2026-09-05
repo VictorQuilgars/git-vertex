@@ -23,6 +23,7 @@ import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
 import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import { BASE_BUDGET, headroomFor, headroomKey, nextHeadroom } from './ai-budgets'
+import { detailFor, renderDiff } from './ai-diff'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
   changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges,
@@ -1675,7 +1676,7 @@ ipcMain.handle('ai:generate-commit-message', async () => {
   } catch { return { error: 'Failed to get the diff' } }
   if (!stagedDiff.trim()) { console.log('[ai] no staged diff'); return { error: 'No staged changes to analyze' } }
 
-  const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${truncateDiff(stagedDiff)}\n\`\`\``
+  const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${renderDiff(stagedDiff, { detail: detailFor(readSettings(), 'commit') })}\n\`\`\``
   const r = await runAIPrompt(prompt, 'commit')
   return r.error ? { error: r.error } : { message: r.text }
 })
@@ -1793,7 +1794,7 @@ ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headNa
         ? `The full diff is too large to include; what follows is its beginning. Weigh the diffstat and the subjects for the rest.`
         : `Full diff:`,
       '```diff',
-      truncateDiff(diff, PR_DIFF_BUDGET),
+      renderDiff(diff, { detail: detailFor(readSettings(), 'pr'), budget: PR_DIFF_BUDGET }),
       '```',
     ].join('\n')
 
@@ -1849,7 +1850,8 @@ ipcMain.handle('ai:recompose-commit', async (_e, hash: string) => {
   } catch { return { error: 'Failed to get the commit diff' } }
   if (!diff.trim()) return { error: 'This commit has no changes to analyze (merge commit?)' }
 
-  const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
+  const shown = renderDiff(diff, { detail: detailFor(readSettings(), 'commit') })
+  const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${shown}\n\`\`\``
   const r = await runAIPrompt(prompt, 'commit')
   return r.error ? { error: r.error } : { message: r.text }
 })
@@ -1997,7 +1999,7 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guid
   const guided = guidance?.trim()
     ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
     : ''
-  const prompt = `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files/behaviors change and why it was probably done. 3 to 6 sentences maximum, no bullet lists, no preamble.${guided}\n\nCommit message: ${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
+  const prompt = `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files/behaviors change and why it was probably done. 3 to 6 sentences maximum, no bullet lists, no preamble.${guided}\n\nCommit message: ${currentMsg}\n\nDiff:\n\`\`\`diff\n${renderDiff(diff, { detail: detailFor(readSettings(), 'explain') })}\n\`\`\``
   const r = await runAIPrompt(prompt, 'explain')
   if (r.error) return { error: r.error }
   if (!guidance?.trim()) saveExplanation(gitService.repoPath, hash, r.text ?? '')
@@ -2072,19 +2074,25 @@ ipcMain.handle('ai:forget-explanation', async (_e, hash: string) => {
   return { success: true }
 })
 
+/** How much of a diff a feature shows, as this user has set it (#185). */
+const diffOptsFor = (feature: string) => ({ detail: detailFor(readSettings(), feature) })
+
 ipcMain.handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
   gitService
-    ? explainBranch(rawGit(), runFeature, branch, { guidance, store: noteStore(gitService.repoPath) })
+    ? explainBranch(rawGit(), runFeature, branch,
+        { guidance, store: noteStore(gitService.repoPath), diff: diffOptsFor('explain') })
     : { error: 'No repository open' })
 
 ipcMain.handle('ai:explain-stash', async (_e, index: number | string, guidance?: string) =>
   gitService
-    ? explainStash(rawGit(), runFeature, index, { guidance, store: noteStore(gitService.repoPath) })
+    ? explainStash(rawGit(), runFeature, index,
+        { guidance, store: noteStore(gitService.repoPath), diff: diffOptsFor('explain') })
     : { error: 'No repository open' })
 
 ipcMain.handle('ai:explain-working', async (_e, guidance?: string) =>
   gitService
-    ? explainWorking(rawGit(), runFeature, { guidance, store: noteStore(gitService.repoPath) })
+    ? explainWorking(rawGit(), runFeature,
+        { guidance, store: noteStore(gitService.repoPath), diff: diffOptsFor('explain') })
     : { error: 'No repository open' })
 
 /**
@@ -2269,7 +2277,7 @@ ipcMain.handle('changelog:insert', async (_e, entry: string, opts?: { branch?: s
 })
 
 ipcMain.handle('ai:propose-commit-split', async () =>
-  gitService ? proposeCommitSplit(rawGit(), runFeature) : { error: 'No repository open' })
+  gitService ? proposeCommitSplit(rawGit(), runFeature, diffOptsFor('compose')) : { error: 'No repository open' })
 
 /**
  * Would this branch conflict with the one it is going to land on? (#70)
