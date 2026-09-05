@@ -175,6 +175,13 @@ const AI_FEATURES: { id: string; labelKey: string; kind: AITemperament; chips: s
     'Prefer fewer, larger commits', 'Tests with the code they cover', 'Keep documentation in its own commit'] },
 ]
 
+/**
+ * The features whose prompt carries a diff — the only ones a detail level
+ * means anything for. A commit search reads an index of subjects; a filter
+ * query reads a vocabulary. Offering them the choice would be furniture.
+ */
+const DIFF_FEATURES = ['commit', 'explain', 'pr', 'compose']
+
 /** A model choice that knows which credential it runs on. */
 interface AIPair { provider: AIProvider; model: string }
 
@@ -335,6 +342,8 @@ interface AIDraft {
   featInstr: Record<string, string>
   /** How much room each feature's answers get — 1, 2 or 4 times its own. */
   featRoom: Record<string, number>
+  /** How much of a diff each feature shows the model. */
+  featDetail: Record<string, string>
 }
 const serializeAI = (d: AIDraft): string => JSON.stringify(d)
 
@@ -558,6 +567,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const [aiFeatSel, setAiFeatSel] = useState<Record<string, AIPair | null>>({})
   const [aiFeatInstr, setAiFeatInstr] = useState<Record<string, string>>({})
   const [aiFeatRoom, setAiFeatRoom] = useState<Record<string, number>>({})
+  const [aiFeatDetail, setAiFeatDetail] = useState<Record<string, string>>({})
   const [aiKeys, setAiKeys] = useState<Record<string, string>>({})
   // User-defined endpoints (#169) — Ollama and kin. Kept whole (key inline)
   // in the aiCustomProviders JSON; a custom with models fetched counts as
@@ -655,8 +665,16 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
         const n = Number((s[`aiHeadroom:${f.id}`] ?? '').trim())
         return [f.id, [1, 2, 4].includes(n) ? n : 1]
       }))
+      // How much of a diff the model is shown (#185). A level of detail, not
+      // a character count: the old cut kept the first 6000 characters, which
+      // is a different change rather than a shorter view of the same one.
+      const featDetail: Record<string, string> = Object.fromEntries(AI_FEATURES.map(f => {
+        const v = (s[`aiDetail:${f.id}`] ?? '').trim()
+        return [f.id, ['summary', 'standard', 'full'].includes(v) ? v : 'standard']
+      }))
       setAiFeatInstr(featInstr)
       setAiFeatRoom(featRoom)
+      setAiFeatDetail(featDetail)
       const keys: Record<string, string> = Object.fromEntries(
         AI_PROVIDER_CATALOG.map(p => [p.id, s[p.keySetting!] ?? (p.id === 'groq' ? s.groqApiKey ?? '' : '') ?? ''])
       )
@@ -706,7 +724,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       setAiDefault(def)
       // The page compares itself against this to know it has something to
       // save — taken before the probes below, so a default they move counts.
-      setAiSnapshot(serializeAI({ keys, customs, def, global: globalInstr, featSel, featInstr, featRoom }))
+      setAiSnapshot(serializeAI({ keys, customs, def, global: globalInstr, featSel, featInstr, featRoom, featDetail }))
       // Every usable provider fetches its list — the pickers are grouped
       // across all of them. Keyless customs fetch too: reaching /models is
       // exactly what CONNECTED means for a local runtime.
@@ -864,6 +882,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const aiDraft = (): AIDraft => ({
     keys: aiKeys, customs: aiCustoms, def: aiDefault,
     global: aiGlobalInstr, featSel: aiFeatSel, featInstr: aiFeatInstr, featRoom: aiFeatRoom,
+    featDetail: aiFeatDetail,
   })
   const aiDirty = aiSnapshot !== null && serializeAI(aiDraft()) !== aiSnapshot
 
@@ -895,6 +914,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       await window.gitAPI.settingsSet(`aiFeatureModel:${f.id}`, sel?.model ?? '')
       await window.gitAPI.settingsSet(`aiFeatureInstructions:${f.id}`, aiFeatInstr[f.id] ?? '')
       await window.gitAPI.settingsSet(`aiHeadroom:${f.id}`, String(aiFeatRoom[f.id] ?? 1))
+      await window.gitAPI.settingsSet(`aiDetail:${f.id}`, aiFeatDetail[f.id] ?? 'standard')
     }
     setAiSnapshot(serializeAI(aiDraft()))
     showToast(t('toast.aiSaved'))
@@ -1605,6 +1625,26 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                           needs more room than the feature assumed. A
                           truncation raises it on its own — and lands here,
                           where it can be seen and put back. */}
+                      {/* What the model is shown. Above the reply length
+                          because it comes first in the exchange — and because
+                          it is the half that costs, on a paid model. Only for
+                          the features that actually carry a diff. */}
+                      {DIFF_FEATURES.includes(f.id) && (
+                        <div className="stg-ai-room">
+                          <span className="stg-ai-room-label">{t('settings.ai.diffDetail')}</span>
+                          {['summary', 'standard', 'full'].map(level => (
+                            <button
+                              key={level}
+                              type="button"
+                              className={`stg-room-step${(aiFeatDetail[f.id] ?? 'standard') === level ? ' stg-room-step--on' : ''}`}
+                              title={t(`settings.ai.diffDetail.${level}.hint` as any)}
+                              onClick={() => setAiFeatDetail(m => ({ ...m, [f.id]: level }))}
+                            >
+                              {t(`settings.ai.diffDetail.${level}` as any)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <div className="stg-ai-room">
                         <span className="stg-ai-room-label">{t('settings.ai.replyLength')}</span>
                         {[1, 2, 4].map(step => (

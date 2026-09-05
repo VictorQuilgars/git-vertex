@@ -16,7 +16,7 @@ import type { AIFeature } from './ai-resolve'
 import { branchMaterial, changelogMaterial, resolveBase, stashMaterial, touches, workingMaterial, type Raw } from './ai-material'
 import {
   explainBranchPrompt, explainStashPrompt, explainWorkingPrompt, changelogPrompt,
-  splitPrompt, parseSplit, type SplitProposal,
+  splitPrompt, parseSplit, type SplitProposal, type DiffOpts,
 } from './ai-prompts'
 
 /**
@@ -68,14 +68,19 @@ export interface NoteEntry extends NoteRecord {
   orphan: boolean
 }
 
-export interface ExplainOpts { guidance?: string; store?: NoteStore }
+export interface ExplainOpts {
+  guidance?: string
+  store?: NoteStore
+  /** How much of the diff to show — the feature's own choice (#185). */
+  diff?: DiffOpts
+}
 
 export async function explainBranch(raw: Raw, run: Run, branch: string, opts: ExplainOpts = {}):
 Promise<{ explanation?: string; base?: string; error?: string }> {
   const m = await branchMaterial(raw, branch)
   if (!m) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
   if (!m.subjects.length && !m.diff.trim()) return { error: `${branch} carries nothing over ${m.base}` }
-  const r = await run(explainBranchPrompt(branch, m.base, m.subjects, m.diffstat, m.diff, opts.guidance), 'explain')
+  const r = await run(explainBranchPrompt(branch, m.base, m.subjects, m.diffstat, m.diff, opts.guidance, opts.diff), 'explain')
   if (r.error) return { error: r.error }
   await keep(raw, opts.store, { kind: 'branch', key: branch, title: branch, text: r.text ?? '' }, branch)
   return { explanation: r.text, base: m.base }
@@ -86,7 +91,7 @@ Promise<{ explanation?: string; error?: string }> {
   const ref = typeof index === 'number' ? `stash@{${index}}` : index
   const m = await stashMaterial(raw, index)
   if (!m.diff.trim()) return { error: 'This stash has no changes to analyze' }
-  const r = await run(explainStashPrompt(m.label, m.diff, opts.guidance), 'explain')
+  const r = await run(explainStashPrompt(m.label, m.diff, opts.guidance, opts.diff), 'explain')
   if (r.error) return { error: r.error }
   // Keyed by the stash's COMMIT, not by `stash@{0}`: that index shifts under
   // every push and pop, and a note keyed by it would follow the wrong stash.
@@ -99,7 +104,7 @@ export async function explainWorking(raw: Raw, run: Run, opts: ExplainOpts = {})
 Promise<{ explanation?: string; error?: string }> {
   const m = await workingMaterial(raw)
   if (!m.staged.trim() && !m.unstaged.trim()) return { error: 'Nothing uncommitted to analyze' }
-  const r = await run(explainWorkingPrompt(m.staged, m.unstaged, m.diffstat, opts.guidance), 'explain')
+  const r = await run(explainWorkingPrompt(m.staged, m.unstaged, m.diffstat, opts.guidance, opts.diff), 'explain')
   if (r.error) return { error: r.error }
   // No sha: the working tree is stale the moment anything is typed, and
   // pretending otherwise with the tip it happened to sit on would be worse.
@@ -358,14 +363,14 @@ export async function scopeHasChanges(raw: Raw, branch: string, dir: string): Pr
  * one group at a time through the calls it already has, so the plan is
  * reviewed — and editable — before any of it becomes history.
  */
-export async function proposeCommitSplit(raw: Raw, run: Run):
+export async function proposeCommitSplit(raw: Raw, run: Run, diffOpts: DiffOpts = {}):
 Promise<SplitProposal & { error?: string }> {
   const empty = { groups: [], unassigned: [], invented: [] }
   const m = await workingMaterial(raw)
   if (!m.files.length) return { ...empty, error: 'Nothing uncommitted to split' }
   if (m.files.length === 1) return { ...empty, error: 'One file is already one commit' }
   const diff = [m.staged, m.unstaged].filter(d => d.trim()).join('\n')
-  const r = await run(splitPrompt(m.files, m.diffstat, diff), 'compose')
+  const r = await run(splitPrompt(m.files, m.diffstat, diff, diffOpts), 'compose')
   if (r.error) return { ...empty, error: r.error }
   const proposal = parseSplit(r.text ?? '', m.files)
   if (!proposal.groups.length) return { ...proposal, error: 'The model proposed no usable commit' }

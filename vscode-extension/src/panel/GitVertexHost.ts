@@ -28,6 +28,7 @@ import { providerById } from '../../../src/renderer/src/utils/aiProviders'
 import { listAgents } from '../agents'
 import { resolveIdentity, signIn } from '../githubAuth'
 import { headroomKey } from '../../../src/main/ai-budgets'
+import { detailFor, type DiffDetail } from '../../../src/main/ai-diff'
 import { readAIConfig, aiFilterQuery, aiPrDescription, aiGenerateIssue, aiGenerateCommitMessage, aiRecomposeCommit, aiExplainCommit, aiResolveConflict, aiSearchCommits, listProviderModels, runAIPrompt, type HeadroomStore } from '../aiService'
 // The five capabilities of #70 P1 are not reimplemented here: the host lends
 // its git and its provider, and the shared module owns the rest — which base
@@ -344,6 +345,11 @@ export class GitVertexHost implements vscode.Disposable {
    * as much as the generation does: it is where "what we already put in that
    * file" is remembered.
    */
+  /** How much of a diff a feature shows here — the same keys the desktop uses. */
+  private _detail(feature: string): DiffDetail {
+    return detailFor(this._state.get<Record<string, string>>('gvSettings', {}), feature)
+  }
+
   /**
    * What this host has learned about a model needing more room (#183).
    *
@@ -865,20 +871,20 @@ export class GitVertexHost implements vscode.Disposable {
           .split('\n').map(s => s.trim()).filter(Boolean)
         const diffstat = await svc.raw(['diff', '--stat', `${base}...${head}`]).catch(() => '')
         const diff = await svc.raw(['diff', `${base}...${head}`]).catch(() => '')
-        return aiPrDescription(cfg, args[0], args[1], subjects, diffstat, diff, this._headroom())
+        return aiPrDescription(cfg, args[0], args[1], subjects, diffstat, diff, this._headroom(), this._detail('pr'))
       }
       case 'aiGenerateCommitMessage': {
         const cfg = readAIConfig(this._state, 'commit')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const staged = await svc.raw(['diff', '--cached']).catch(() => '')
-        return aiGenerateCommitMessage(cfg, staged, this._headroom())
+        return aiGenerateCommitMessage(cfg, staged, this._headroom(), this._detail('commit'))
       }
       case 'aiRecomposeCommit': {
         const cfg = readAIConfig(this._state, 'commit')
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const msg = (await svc.raw(['log', '-1', '--pretty=format:%B', args[0]]).catch(() => '')).trim()
-        return aiRecomposeCommit(cfg, diff, msg, this._headroom())
+        return aiRecomposeCommit(cfg, diff, msg, this._headroom(), this._detail('commit'))
       }
       case 'aiForgetExplanation': {
         const all = this._state.get<Record<string, Record<string, string>>>('gvAiExplanations', {})
@@ -905,7 +911,7 @@ export class GitVertexHost implements vscode.Disposable {
         if (!cfg || !svc) return { error: 'NO_API_KEY' }
         const diff = await svc.raw(['diff-tree', '--no-commit-id', '-p', '--root', args[0]]).catch(() => '')
         const subject = (await svc.raw(['log', '-1', '--pretty=format:%s', args[0]]).catch(() => '')).trim()
-        const r = await aiExplainCommit(cfg, diff, subject, args[2], this._headroom())
+        const r = await aiExplainCommit(cfg, diff, subject, args[2], this._headroom(), this._detail('explain'))
         if (!(r as any).error && this._repoPath && !String(args[2] ?? '').trim()) {
           const repo = all[this._repoPath] ?? {}
           repo[args[0]] = (r as any).explanation ?? ''
@@ -985,9 +991,9 @@ export class GitVertexHost implements vscode.Disposable {
           },
         }
         switch (method) {
-          case 'aiExplainBranch': return explainBranch(raw, run, args[0], { guidance: args[1], store: notes })
-          case 'aiExplainStash': return explainStash(raw, run, args[0], { guidance: args[1], store: notes })
-          case 'aiExplainWorking': return explainWorking(raw, run, { guidance: args[0], store: notes })
+          case 'aiExplainBranch': return explainBranch(raw, run, args[0], { guidance: args[1], store: notes, diff: { detail: this._detail('explain') } })
+          case 'aiExplainStash': return explainStash(raw, run, args[0], { guidance: args[1], store: notes, diff: { detail: this._detail('explain') } })
+          case 'aiExplainWorking': return explainWorking(raw, run, { guidance: args[0], store: notes, diff: { detail: this._detail('explain') } })
           case 'aiNoteList': return noteList(raw, notes)
           case 'aiForgetNote': await notes.forget(args[0], args[1]); return { success: true }
           case 'aiChangelogState': return changelogState(raw, store, args[0], args[1])
@@ -995,7 +1001,7 @@ export class GitVertexHost implements vscode.Disposable {
           case 'aiForgetChangelog': await store.forget(args[0]); return { success: true }
           case 'aiGenerateChangelog':
             return generateChangelog(raw, run, args[0], args[1], { previous: args[2], scope: args[3], store })
-          default: return proposeCommitSplit(raw, run)
+          default: return proposeCommitSplit(raw, run, { detail: this._detail('compose') })
         }
       }
       // Writes into the working tree, so the diff is in the panel's own

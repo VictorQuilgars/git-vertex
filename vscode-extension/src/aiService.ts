@@ -30,6 +30,9 @@ import type { AIFeature } from '../../src/main/ai-resolve'
 // The ceilings live in ONE place now: they were a copy here and a copy in the
 // desktop main, free to drift exactly as the prompts once did (#183).
 import { BASE_BUDGET, nextHeadroom } from '../../src/main/ai-budgets'
+// A diff is cut by FILE, with its map kept whole — the same rendering the
+// desktop uses, or the two products describe different changes (#185).
+import { renderDiff, type DiffDetail } from '../../src/main/ai-diff'
 
 const MODEL_DEFAULTS: Record<string, string> = {
   anthropic: 'claude-haiku-4-5-20251001',
@@ -287,9 +290,9 @@ export async function listProviderModels(provider: string, apiKey: string, baseU
 
 // ── Feature prompts (kept in sync with the desktop app's src/main/index.ts) ──
 
-export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string, headroom?: HeadroomStore) {
+export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string, headroom?: HeadroomStore, detail?: DiffDetail) {
   if (!stagedDiff.trim()) return { error: 'No staged change to analyse' }
-  const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${truncateDiff(stagedDiff)}\n\`\`\``
+  const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${renderDiff(stagedDiff, { detail })}\n\`\`\``
   const r = await runAIPrompt(cfg, prompt, 'commit', headroom)
   return r.error ? { error: r.error } : { message: r.text }
 }
@@ -355,7 +358,7 @@ const PR_DIFF_BUDGET = 12000
 
 export async function aiPrDescription(
   cfg: AIConfig, baseName: string, headName: string,
-  subjects: string[], diffstat: string, diff: string, headroom?: HeadroomStore,
+  subjects: string[], diffstat: string, diff: string, headroom?: HeadroomStore, detail?: DiffDetail,
 ): Promise<{ title?: string; body?: string; error?: string }> {
   if (subjects.length === 0) return { error: `No commits between ${baseName} and ${headName}` }
   const listed = subjects.slice(0, PR_SUBJECTS_MAX)
@@ -378,7 +381,7 @@ export async function aiPrDescription(
       ? `The full diff is too large to include; what follows is its beginning. Weigh the diffstat and the subjects for the rest.`
       : `Full diff:`,
     '```diff',
-    truncateDiff(diff, PR_DIFF_BUDGET),
+    renderDiff(diff, { detail, budget: PR_DIFF_BUDGET }),
     '```',
   ].join('\n')
   const r = await runAIPrompt(cfg, prompt, 'pr', headroom)
@@ -418,20 +421,20 @@ export async function aiGenerateIssue(
   return { title, body }
 }
 
-export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string, headroom?: HeadroomStore) {
+export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string, headroom?: HeadroomStore, detail?: DiffDetail) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
-  const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
+  const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${renderDiff(diff, { detail })}\n\`\`\``
   const r = await runAIPrompt(cfg, prompt, 'commit', headroom)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
-export async function aiExplainCommit(cfg: AIConfig, diff: string, subject: string, guidance?: string, headroom?: HeadroomStore) {
+export async function aiExplainCommit(cfg: AIConfig, diff: string, subject: string, guidance?: string, headroom?: HeadroomStore, detail?: DiffDetail) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
   // Same shape as aiResolveConflict's instruction: the user's focus, appended.
   const guided = guidance?.trim()
     ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
     : ''
-  const prompt = `You are a Git expert. Explain simply and concretely, in English, what this commit does: which files and behaviours change, and why it was probably done. 3 to 6 sentences maximum, no bullet list, no preamble.${guided}\n\nCommit message: ${subject}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
+  const prompt = `You are a Git expert. Explain simply and concretely, in English, what this commit does: which files and behaviours change, and why it was probably done. 3 to 6 sentences maximum, no bullet list, no preamble.${guided}\n\nCommit message: ${subject}\n\nDiff:\n\`\`\`diff\n${renderDiff(diff, { detail })}\n\`\`\``
   const r = await runAIPrompt(cfg, prompt, 'explain', headroom)
   return r.error ? { error: r.error } : { explanation: r.text }
 }

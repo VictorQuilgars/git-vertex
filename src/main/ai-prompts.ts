@@ -10,9 +10,18 @@
 // Nothing here talks to a provider or reads a repository: prompts in,
 // text out, answers parsed. Material comes from ai-material.ts.
 
-/** The cut every prompt applies to a diff before it goes on the wire. */
+import { renderDiff, type DiffDetail } from './ai-diff'
+
+/**
+ * The cut for text that is NOT a diff — a commit log, a search index, a
+ * changelog. A diff goes through renderDiff instead, which cuts by file and
+ * keeps the map whole (#185).
+ */
 export const truncateDiff = (diff: string, max = 6000): string =>
   diff.length > max ? diff.slice(0, max) + '\n... [diff truncated]' : diff
+
+/** How much of a diff a prompt shows, and within what budget. */
+export interface DiffOpts { detail?: DiffDetail; budget?: number }
 
 /** The user's focus, appended in the shape aiExplainCommit established. */
 const guided = (guidance?: string): string =>
@@ -27,7 +36,8 @@ const guided = (guidance?: string): string =>
  * not: it is how the answer can say "and 40 more files" honestly.
  */
 export function explainBranchPrompt(
-  branch: string, base: string, subjects: string[], diffstat: string, diff: string, guidance?: string,
+  branch: string, base: string, subjects: string[], diffstat: string, diff: string,
+  guidance?: string, diffOpts: DiffOpts = {},
 ): string {
   const log = subjects.length
     ? subjects.map(s => `- ${s}`).join('\n')
@@ -42,7 +52,7 @@ ${truncateDiff(diffstat, 2000)}
 
 Combined diff:
 \`\`\`diff
-${truncateDiff(diff)}
+${renderDiff(diff, diffOpts)}
 \`\`\``
 }
 
@@ -51,14 +61,16 @@ ${truncateDiff(diff)}
  * main"), so it is handed over as a hint and explicitly not trusted — the
  * whole point of the feature is the stash whose label says nothing.
  */
-export function explainStashPrompt(label: string, diff: string, guidance?: string): string {
+export function explainStashPrompt(
+  label: string, diff: string, guidance?: string, diffOpts: DiffOpts = {},
+): string {
   return `You are a Git expert. Explain in English, simply and concretely, what work is parked in this stash: which files and behaviours it changes, and what it was evidently in the middle of. 3 to 6 sentences maximum, no bullet list, no preamble.${guided(guidance)}
 
 The stash's own label (written in passing — treat it as a hint, not as truth): ${label || '(none)'}
 
 Diff:
 \`\`\`diff
-${truncateDiff(diff)}
+${renderDiff(diff, diffOpts)}
 \`\`\``
 }
 
@@ -68,10 +80,13 @@ ${truncateDiff(diff)}
  * already decided belongs to the next commit.
  */
 export function explainWorkingPrompt(
-  staged: string, unstaged: string, diffstat: string, guidance?: string,
+  staged: string, unstaged: string, diffstat: string, guidance?: string, diffOpts: DiffOpts = {},
 ): string {
+  // Half the budget each: the two halves are one change, and giving the whole
+  // budget to whichever comes first is the prefix cut wearing another hat.
+  const half = { ...diffOpts, budget: Math.floor((diffOpts.budget ?? 8000) / 2) }
   const section = (title: string, diff: string): string =>
-    diff.trim() ? `\n\n${title}:\n\`\`\`diff\n${truncateDiff(diff, 4000)}\n\`\`\`` : ''
+    diff.trim() ? `\n\n${title}:\n\`\`\`diff\n${renderDiff(diff, half)}\n\`\`\`` : ''
   return `You are a Git expert. Explain in English, simply and concretely, what the uncommitted work in this repository does: which files and behaviours change, and what it is evidently in the middle of. Where staged and unstaged changes tell different stories, say so. 3 to 6 sentences maximum, no bullet list, no preamble.${guided(guidance)}
 
 Files touched:
@@ -140,7 +155,9 @@ export interface SplitProposal {
  * braces around code it also has to escape gets it wrong often enough to
  * matter, and this answer is parsed, not eval'd.
  */
-export function splitPrompt(files: string[], diffstat: string, diff: string): string {
+export function splitPrompt(
+  files: string[], diffstat: string, diff: string, diffOpts: DiffOpts = {},
+): string {
   return `You are a Git expert. Below is the uncommitted work in a repository. Cut it into a sequence of small, atomic commits — each one a single self-contained change that would build and read on its own.
 
 Rules:
@@ -169,7 +186,7 @@ ${truncateDiff(diffstat, 2000)}
 
 Diff:
 \`\`\`diff
-${truncateDiff(diff, 12000)}
+${renderDiff(diff, { budget: 12000, ...diffOpts })}
 \`\`\``
 }
 
