@@ -1145,6 +1145,10 @@ const fr = {
   'sb.ai.noExplanation': 'Aucune explication gardée pour ce dépôt.',
   'sb.ai.unknownCommit': 'Commit hors de l’historique chargé',
   'sb.ai.gone': 'ce qu’il décrivait a disparu',
+  'sb.ai.landed': (ref: string) => `dans ${ref}`,
+  'sb.ai.showCommits': 'Montrer ses commits dans le graphe',
+  'sb.ai.showCommits.hint': (n: number) =>
+    `Montrer ${n === 1 ? 'ce commit' : `ces ${n} commits`} dans le graphe`,
   'sb.ai.forgetGone': 'Oublier ce qui a disparu',
   'sb.ai.open': 'Ouvrir',
   'sb.ai.forget': 'Oublier',
@@ -2912,6 +2916,10 @@ const en: typeof fr = {
   'sb.ai.noExplanation': 'No explanation kept for this repository yet.',
   'sb.ai.unknownCommit': 'A commit outside the loaded history',
   'sb.ai.gone': 'what it described is gone',
+  'sb.ai.landed': (ref: string) => `in ${ref}`,
+  'sb.ai.showCommits': 'Show its commits in the graph',
+  'sb.ai.showCommits.hint': (n: number) =>
+    `Show ${n === 1 ? 'this commit' : `these ${n} commits`} in the graph`,
   'sb.ai.forgetGone': 'Forget what is gone',
   'sb.ai.open': 'Open',
   'sb.ai.forget': 'Forget',

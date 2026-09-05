@@ -352,7 +352,9 @@ declare global {
     /** Every changelog this repository has had written, newest first. */
     aiChangelogList: () => Promise<{ entries?: {
       branch: string; text: string; base: string; commits: number; at: number
-      newCommits: number; orphan: boolean
+      newCommits: number
+      /** 'live' its branch resolves · 'landed' merged elsewhere · 'lost' gone. */
+      subject?: 'live' | 'landed' | 'lost'; landedIn?: string; hashes?: string[]
       inserted?: { path: string; lines: string[]; at: number }
     }[] }>
     aiForgetChangelog: (branch: string) => Promise<R>
@@ -360,7 +362,8 @@ declare global {
     aiNoteList: () => Promise<{ entries?: {
       kind: 'branch' | 'stash' | 'working'
       key: string; title: string; text: string; at: number; sha: string
-      newCommits: number; orphan: boolean
+      newCommits: number
+      subject?: 'live' | 'landed' | 'lost'; landedIn?: string; hashes?: string[]
     }[] }>
     aiForgetNote: (kind: string, key: string) => Promise<R>
     aiForgetExplanation: (hash: string) => Promise<R>

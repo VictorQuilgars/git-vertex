@@ -289,6 +289,10 @@ export default function App() {
   const [aiSearch, setAiSearch] = useState(false)
   const [aiSearchHashes, setAiSearchHashes] = useState<Set<string> | null>(null)
   const [aiSearchLoading, setAiSearchLoading] = useState(false)
+  // The commits one kept reading covered, pointed at from the AI stack (#70).
+  // A separate set from the search's: it is not a query, it survives the
+  // search box being cleared, and it is dismissed by pointing at another row.
+  const [notedHashes, setNotedHashes] = useState<Set<string> | null>(null)
   // Comparisons and previews are tabs now, not overlays — see ViewTab.
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
   const [gitflowOpen, setGitflowOpen] = useState(false)
@@ -659,12 +663,13 @@ export default function App() {
   // diff extended-search hits + AI natural-language hits.
   const graphSearchHashes = useMemo(() => {
     const extActive = extendedSearch && searchQuery.trim() !== ''
-    if (!extActive && aiSearchHashes == null) return null
+    if (!extActive && aiSearchHashes == null && notedHashes == null) return null
     const s = new Set<string>()
     if (extActive) extendedSearchHashes.forEach(h => s.add(h))
     if (aiSearchHashes) aiSearchHashes.forEach(h => s.add(h))
+    if (notedHashes) notedHashes.forEach(h => s.add(h))
     return s
-  }, [extendedSearch, searchQuery, extendedSearchHashes, aiSearchHashes])
+  }, [extendedSearch, searchQuery, extendedSearchHashes, aiSearchHashes, notedHashes])
 
   // ── Auto-updater (available → downloading → installing) ─────
   // autoDownload is off in main, so a download only ever starts from the
@@ -2668,6 +2673,13 @@ export default function App() {
               tab={sidebarTab}
               onTab={setSidebarTab}
               memoryToken={memoryToken}
+              onShowCommits={(hashes) => {
+                // Pointing at a second reading replaces the first: two
+                // highlighted branches at once is a graph nobody can read.
+                setNotedHashes(new Set(hashes))
+                const first = commits.find(c => hashes.includes(c.hash))
+                if (first) setSelectedCommit(first)
+              }}
               onOpenNote={(n) => {
                 if (n.kind === 'branch') setAiRead({ kind: 'branch', ref: n.key, label: n.title })
                 else if (n.kind === 'working') setAiRead({ kind: 'working' })
