@@ -130,6 +130,113 @@ Files touched:
 ${truncateDiff(diffstat, 2000)}`
 }
 
+// ── The four that shipped before this module existed ────────────────────────
+//
+// They lived in a copy per product — `src/main/index.ts` and
+// `vscode-extension/src/aiService.ts` — and the copies had already drifted:
+// the desktop asked about "files/behaviors" with "no bullet lists", the
+// extension about "files and behaviours" with "no bullet list", and their
+// refusals spelled analyse both ways. Two products, two answers to the same
+// question, for no reason anybody chose. #185 P2.
+
+/** A commit message for what is staged. */
+export function commitMessagePrompt(diff: string, diffOpts: DiffOpts = {}): string {
+  return `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.
+
+Diff:
+\`\`\`diff
+${renderDiff(diff, diffOpts)}
+\`\`\``
+}
+
+/**
+ * A commit's message, rewritten from what it actually changed.
+ *
+ * The current message is handed over labelled as unreliable — the whole point
+ * of the feature is the commit whose message is "wip" or is about the change
+ * the author meant to make.
+ */
+export function rewordCommitPrompt(
+  diff: string, currentMsg: string, diffOpts: DiffOpts = {},
+): string {
+  return `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.
+
+Current message (may be inaccurate or vague):
+${currentMsg}
+
+Diff:
+\`\`\`diff
+${renderDiff(diff, diffOpts)}
+\`\`\``
+}
+
+/** Explain one commit. The sibling of explainBranchPrompt, older by a year. */
+export function explainCommitPrompt(
+  diff: string, subject: string, guidance?: string, diffOpts: DiffOpts = {},
+): string {
+  return `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files and behaviours change, and why it was probably done. 3 to 6 sentences maximum, no bullet list, no preamble.${guided(guidance)}
+
+Commit message: ${subject}
+
+Diff:
+\`\`\`diff
+${renderDiff(diff, diffOpts)}
+\`\`\``
+}
+
+/** How many subjects a pull request description is given before they are cut. */
+export const PR_SUBJECTS_MAX = 50
+/** A description reads a whole branch, so it gets twice a commit's budget. */
+export const PR_DIFF_BUDGET = 12000
+
+/** A pull request's title and description, from the branch's own evidence. */
+export function pullRequestPrompt(
+  baseName: string, headName: string, subjects: string[], diffstat: string, diff: string,
+  diffOpts: DiffOpts = {},
+): string {
+  const listed = subjects.slice(0, PR_SUBJECTS_MAX)
+  const omitted = subjects.length - listed.length
+  return [
+    `You write pull request titles and descriptions for a Git branch.`,
+    `First line of your reply: the title — imperative, specific, at most 72 characters.`,
+    `Then a blank line, then the description in Markdown: one short paragraph saying what the branch does and why, then a bullet list of the notable changes. No heading that restates the title, no preamble, no code fences around the reply.`,
+    `Write in English. Reply with nothing but the title and the description.`,
+    ``,
+    `Branch: ${headName} into ${baseName}`,
+    `Commit subjects (${subjects.length}):`,
+    listed.map(s => `- ${s}`).join('\n') + (omitted > 0 ? `\n- … and ${omitted} more` : ''),
+    ``,
+    `Diffstat:`,
+    truncateDiff(diffstat, 3000),
+    ``,
+    // What used to stand here — "the full diff is too large to include; what
+    // follows is its beginning" — became false the day the cut stopped being
+    // a prefix (#185). renderDiff says what it withheld, per file, inside the
+    // fence; a second claim about it from out here can only contradict that.
+    `Diff:`,
+    '```diff',
+    renderDiff(diff, { budget: PR_DIFF_BUDGET, ...diffOpts }),
+    '```',
+  ].join('\n')
+}
+
+/**
+ * A pull request answer, read back as a title and a body.
+ *
+ * The first non-empty line is the title, stripped of the decoration a model
+ * adds when asked for one (quotes, a `#`, bold stars); the rest is the body.
+ * Both products parsed this identically, in the same fifteen lines, twice.
+ */
+export function parsePullRequest(text: string): { title: string; body: string } | null {
+  const lines = (text ?? '').replace(/```[a-z]*/gi, '').split('\n')
+  const at = lines.findIndex(l => l.trim())
+  if (at < 0) return null
+  return {
+    title: lines[at].trim().replace(/^["'#*\s]+|["'*\s]+$/g, ''),
+    body: lines.slice(at + 1).join('\n').trim(),
+  }
+}
+
 /** One commit a split proposes: a message and the files it takes. */
 export interface SplitGroup { message: string; files: string[] }
 

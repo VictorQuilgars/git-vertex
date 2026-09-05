@@ -1,4 +1,10 @@
-import { parseSplit, splitPrompt, explainBranchPrompt, changelogPrompt, truncateDiff } from '../ai-prompts'
+import * as fs from 'fs'
+import * as path from 'path'
+import {
+  parseSplit, splitPrompt, explainBranchPrompt, changelogPrompt, truncateDiff,
+  commitMessagePrompt, rewordCommitPrompt, explainCommitPrompt, pullRequestPrompt,
+  parsePullRequest,
+} from '../ai-prompts'
 
 // The split is the one AI answer in the app whose every claim can be checked
 // before anyone sees it — the paths it names either exist or they do not. So
@@ -103,5 +109,71 @@ describe('truncateDiff', () => {
   test('says it cut, so the answer can be honest about what it did not see', () => {
     expect(truncateDiff('x'.repeat(50), 10)).toBe('x'.repeat(10) + '\n... [diff truncated]')
     expect(truncateDiff('short', 10)).toBe('short')
+  })
+})
+
+describe('the four that used to live in two copies', () => {
+  const diff = 'diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1 @@\n+one\n'
+
+  test('each one still carries the diff, rendered at the level asked for', () => {
+    for (const prompt of [
+      commitMessagePrompt(diff, { detail: 'summary' }),
+      rewordCommitPrompt(diff, 'wip', { detail: 'summary' }),
+      explainCommitPrompt(diff, 'wip', undefined, { detail: 'summary' }),
+      pullRequestPrompt('main', 'feat/x', ['one'], ' a | 1 +', diff, { detail: 'summary' }),
+    ]) {
+      expect(prompt).toContain('Files changed (1)')
+      expect(prompt).toContain('do not name a behaviour')
+    }
+  })
+
+  test('the reword hands over the old message labelled as unreliable', () => {
+    // The feature exists for the commit whose message is "wip" or is about
+    // the change its author meant to make — believing it defeats the point.
+    expect(rewordCommitPrompt(diff, 'wip', {})).toContain('may be inaccurate or vague')
+  })
+
+  test('a focus reaches the commit explanation, as it does the branch one', () => {
+    expect(explainCommitPrompt(diff, 'x', 'only the migration', {}))
+      .toContain('User guidance (what to focus the explanation on): only the migration')
+    expect(explainCommitPrompt(diff, 'x', '   ', {})).not.toContain('User guidance')
+  })
+
+  test('a pull request over fifty commits says how many it did not list', () => {
+    const many = Array.from({ length: 60 }, (_, i) => `commit ${i}`)
+    const p = pullRequestPrompt('main', 'feat/x', many, '', diff, {})
+    expect(p).toContain('Commit subjects (60):')
+    expect(p).toContain('- … and 10 more')
+    expect(p).not.toContain('commit 55')
+  })
+
+  test('the pull request no longer claims the diff is its own beginning', () => {
+    // It said "what follows is its beginning" whenever the diff was long —
+    // true of a prefix cut, false since #185, and contradicted by what
+    // renderDiff writes inside the same fence.
+    const p = pullRequestPrompt('main', 'feat/x', ['one'], '', 'x'.repeat(30000), {})
+    expect(p).not.toContain('its beginning')
+  })
+
+  test('the answer is read back as a title and a body, decoration stripped', () => {
+    expect(parsePullRequest('\n## **Add the thing**\n\nWhat it does.\n- one'))
+      .toEqual({ title: 'Add the thing', body: 'What it does.\n- one' })
+    expect(parsePullRequest('   ')).toBeNull()
+  })
+
+  test('neither product keeps a copy of them any more', () => {
+    // The drift these replace was real: the desktop asked about
+    // "files/behaviors" with "no bullet lists", the extension about "files and
+    // behaviours" with "no bullet list". Two products, two answers.
+    const files = [
+      path.join(__dirname, '../index.ts'),
+      path.join(__dirname, '../../../vscode-extension/src/aiService.ts'),
+    ]
+    for (const file of files) {
+      const src = fs.readFileSync(file, 'utf8')
+      expect({ file, has: src.includes('Conventional Commits') }).toEqual({ file, has: false })
+      expect({ file, has: src.includes('You write pull request titles') })
+        .toEqual({ file, has: false })
+    }
   })
 })

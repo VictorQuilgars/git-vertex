@@ -23,7 +23,12 @@ import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
 import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
 import { BASE_BUDGET, headroomFor, headroomKey, nextHeadroom } from './ai-budgets'
-import { detailFor, renderDiff } from './ai-diff'
+import { detailFor, DIFF_FEATURES } from './ai-diff'
+import { readOversize, oversizeMessage } from './ai-oversize'
+import {
+  commitMessagePrompt, rewordCommitPrompt, explainCommitPrompt, pullRequestPrompt,
+  parsePullRequest, truncateDiff,
+} from './ai-prompts'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
   changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges,
@@ -1657,6 +1662,20 @@ async function runAIPrompt(prompt: string, feature?: AIFeature): Promise<{ text?
       if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt))
     } catch (e: any) {
       console.error(`[ai] attempt=${attempt} error:`, e.message)
+      // A prompt that does not fit will not fit half a second later either.
+      // Retrying it twice more is three certain failures where one was
+      // already certain — and the raw provider string names an organization
+      // id and a service tier rather than the control that fixes it (#185).
+      const big = readOversize(e.message ?? '')
+      if (big) {
+        return { error: oversizeMessage(big, {
+          model: target.model,
+          detail: feature && (DIFF_FEATURES as readonly string[]).includes(feature)
+            ? detailFor(s, feature) : undefined,
+          headroom,
+          raw: e.message,
+        }) }
+      }
       if (attempt === 3) return { error: e.message ?? 'API error' }
       await new Promise(r => setTimeout(r, 500 * attempt))
     }
@@ -1664,8 +1683,9 @@ async function runAIPrompt(prompt: string, feature?: AIFeature): Promise<{ text?
   return { error: 'The model returned an empty response after 3 attempts' }
 }
 
-const truncateDiff = (diff: string, max = 6000) =>
-  diff.length > max ? diff.slice(0, max) + '\n... [diff truncated]' : diff
+/** Which level this feature is set to — read fresh, so a change in Settings
+ *  applies to the next call rather than the next launch. */
+const diffOptsFor = (feature: string) => ({ detail: detailFor(readSettings(), feature) })
 
 ipcMain.handle('ai:generate-commit-message', async () => {
   if (!gitService) { console.log('[ai] no gitService'); return { error: 'No repository open' } }
@@ -1676,8 +1696,7 @@ ipcMain.handle('ai:generate-commit-message', async () => {
   } catch { return { error: 'Failed to get the diff' } }
   if (!stagedDiff.trim()) { console.log('[ai] no staged diff'); return { error: 'No staged changes to analyze' } }
 
-  const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${renderDiff(stagedDiff, { detail: detailFor(readSettings(), 'commit') })}\n\`\`\``
-  const r = await runAIPrompt(prompt, 'commit')
+  const r = await runAIPrompt(commitMessagePrompt(stagedDiff, diffOptsFor('commit')), 'commit')
   return r.error ? { error: r.error } : { message: r.text }
 })
 
@@ -1745,9 +1764,6 @@ ipcMain.handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: 
  * One call for both fields: they are one answer about one branch, and two
  * calls would let them disagree.
  */
-const PR_SUBJECTS_MAX = 50
-const PR_DIFF_BUDGET = 12000
-
 ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headName: string) => {
   if (!gitService) return { error: 'No repository open' }
   const git = (gitService as any).git
@@ -1774,38 +1790,11 @@ ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headNa
     const diffstat = await git.raw(['diff', '--stat', `${base}...${head}`]) as string
     const diff = await git.raw(['diff', `${base}...${head}`]) as string
 
-    const listed = subjects.slice(0, PR_SUBJECTS_MAX)
-    const omitted = subjects.length - listed.length
-    const cut = diff.length > PR_DIFF_BUDGET
-    const prompt = [
-      `You write pull request titles and descriptions for a Git branch.`,
-      `First line of your reply: the title — imperative, specific, at most 72 characters.`,
-      `Then a blank line, then the description in Markdown: one short paragraph saying what the branch does and why, then a bullet list of the notable changes. No heading that restates the title, no preamble, no code fences around the reply.`,
-      `Write in English. Reply with nothing but the title and the description.`,
-      ``,
-      `Branch: ${headName} into ${baseName}`,
-      `Commit subjects (${subjects.length}):`,
-      listed.map(s => `- ${s}`).join('\n') + (omitted > 0 ? `\n- … and ${omitted} more` : ''),
-      ``,
-      `Diffstat:`,
-      truncateDiff(diffstat, 3000),
-      ``,
-      cut
-        ? `The full diff is too large to include; what follows is its beginning. Weigh the diffstat and the subjects for the rest.`
-        : `Full diff:`,
-      '```diff',
-      renderDiff(diff, { detail: detailFor(readSettings(), 'pr'), budget: PR_DIFF_BUDGET }),
-      '```',
-    ].join('\n')
-
+    const prompt = pullRequestPrompt(baseName, headName, subjects, diffstat, diff, diffOptsFor('pr'))
     const r = await runAIPrompt(prompt, 'pr')
     if (r.error) return { error: r.error }
-    const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
-    const at = lines.findIndex(l => l.trim())
-    if (at < 0) return { error: 'empty answer' }
-    const title = lines[at].trim().replace(/^["'#*\s]+|["'*\s]+$/g, '')
-    const body = lines.slice(at + 1).join('\n').trim()
-    return { title, body }
+    const parsed = parsePullRequest(r.text ?? '')
+    return parsed ?? { error: 'empty answer' }
   } catch (e: any) { return { error: e.message } }
 })
 
@@ -1850,8 +1839,7 @@ ipcMain.handle('ai:recompose-commit', async (_e, hash: string) => {
   } catch { return { error: 'Failed to get the commit diff' } }
   if (!diff.trim()) return { error: 'This commit has no changes to analyze (merge commit?)' }
 
-  const shown = renderDiff(diff, { detail: detailFor(readSettings(), 'commit') })
-  const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${shown}\n\`\`\``
+  const prompt = rewordCommitPrompt(diff, currentMsg, diffOptsFor('commit'))
   const r = await runAIPrompt(prompt, 'commit')
   return r.error ? { error: r.error } : { message: r.text }
 })
@@ -1996,10 +1984,7 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guid
   } catch { return { error: 'Failed to get the commit diff' } }
   if (!diff.trim()) return { error: 'This commit has no changes to analyze (merge commit?)' }
 
-  const guided = guidance?.trim()
-    ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
-    : ''
-  const prompt = `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files/behaviors change and why it was probably done. 3 to 6 sentences maximum, no bullet lists, no preamble.${guided}\n\nCommit message: ${currentMsg}\n\nDiff:\n\`\`\`diff\n${renderDiff(diff, { detail: detailFor(readSettings(), 'explain') })}\n\`\`\``
+  const prompt = explainCommitPrompt(diff, currentMsg, guidance, diffOptsFor('explain'))
   const r = await runAIPrompt(prompt, 'explain')
   if (r.error) return { error: r.error }
   if (!guidance?.trim()) saveExplanation(gitService.repoPath, hash, r.text ?? '')
@@ -2075,7 +2060,6 @@ ipcMain.handle('ai:forget-explanation', async (_e, hash: string) => {
 })
 
 /** How much of a diff a feature shows, as this user has set it (#185). */
-const diffOptsFor = (feature: string) => ({ detail: detailFor(readSettings(), feature) })
 
 ipcMain.handle('ai:explain-branch', async (_e, branch: string, guidance?: string) =>
   gitService
