@@ -233,7 +233,7 @@ describe('token discipline', () => {
     // .stg-theme-chip in SettingsModal.css.
     it('keeps the theme picker off a second copy of the palette', () => {
       const modal = fs.readFileSync(
-        path.join(SRC, 'components', 'SettingsModal', 'SettingsModal.tsx'), 'utf8')
+        path.join(SRC, 'components', 'SettingsModal', 'shared.tsx'), 'utf8')
       const presets = modal.match(/const THEME_PRESETS[^=]*=\s*\[([\s\S]*?)\]/)
       expect(presets).not.toBeNull()
       expect(presets![1]).not.toMatch(/#[0-9A-Fa-f]{3,8}/)
