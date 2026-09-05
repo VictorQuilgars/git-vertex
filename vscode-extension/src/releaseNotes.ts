@@ -18,6 +18,10 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🎚 Reply length, per feature
+- Every AI call carried a ceiling nobody could see or change — 512 tokens for a commit message, 8192 for a conflict resolution. One control each in **Settings › AI Assistant** now: *Standard*, *Generous*, *Maximum*.
+- **A model that thinks before it writes no longer fails silently.** A reasoning model spends its budget reasoning, so a ceiling that suits one model can cut another off before it writes a character — which the app used to call "the model returned an empty response". A truncated answer is retried with **more** room, what worked is kept in that feature's control, and an answer that still will not fit says so and names the model.
+
 ### 🤖 The AI reads more than a commit
 - **Explain a branch, a stash, or the uncommitted work** — the reading the commit panel has had for versions, on the three diffs that had nowhere to ask for it.
 - A branch is read against a base **worked out, not assumed**: the trunk the remote declares, its remote copy over a stale local one, its own upstream when the branch *is* the trunk.

@@ -27,6 +27,9 @@ export interface AIConfig {
 // instructions silently stop being read in one of them (#70).
 export type { AIFeature } from '../../src/main/ai-resolve'
 import type { AIFeature } from '../../src/main/ai-resolve'
+// The ceilings live in ONE place now: they were a copy here and a copy in the
+// desktop main, free to drift exactly as the prompts once did (#183).
+import { BASE_BUDGET, nextHeadroom } from '../../src/main/ai-budgets'
 
 const MODEL_DEFAULTS: Record<string, string> = {
   anthropic: 'claude-haiku-4-5-20251001',
@@ -127,7 +130,10 @@ async function throwHttpError(provider: string, res: Response): Promise<never> {
   throw new AIHttpError(msg, res.status, retryAfterMs)
 }
 
-async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promise<string> {
+/** What came back, and whether it was cut off mid-answer (#183). */
+interface Answer { text: string; truncated: boolean }
+
+async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promise<Answer> {
   const { provider, apiKey, model } = cfg
   if (cfg.dialect === 'anthropic') {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -137,7 +143,7 @@ async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promi
     })
     if (!res.ok) await throwHttpError(provider, res)
     const data = await res.json() as any
-    return (data.content?.[0]?.text ?? '').trim()
+    return { text: (data.content?.[0]?.text ?? '').trim(), truncated: data.stop_reason === 'max_tokens' }
   }
   if (cfg.dialect === 'google') {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
@@ -147,7 +153,10 @@ async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promi
     })
     if (!res.ok) await throwHttpError(provider, res)
     const data = await res.json() as any
-    return (data.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
+    return {
+      text: (data.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim(),
+      truncated: data.candidates?.[0]?.finishReason === 'MAX_TOKENS',
+    }
   }
   // openai-compat — the base URL is the whole point: a catalog cloud, a
   // custom gateway, an Ollama on localhost (#169). Keyless stays keyless.
@@ -160,19 +169,50 @@ async function callOnce(cfg: AIConfig, prompt: string, maxTokens: number): Promi
   })
   if (!res.ok) await throwHttpError(provider, res)
   const data = await res.json() as any
-  return (data.choices?.[0]?.message?.content ?? '').trim()
+  const choice = data.choices?.[0]
+  return {
+    text: (choice?.message?.content ?? '').trim(),
+    truncated: choice?.finish_reason === 'length' || choice?.finish_reason === 'max_tokens',
+  }
 }
 
-export async function runAIPrompt(cfg: AIConfig, prompt: string, maxTokens = 512): Promise<{ text?: string; error?: string }> {
+/**
+ * Where this host keeps what it has learned about a model needing more room
+ * (#183). The panel's settings store, the same keys the desktop writes.
+ */
+export interface HeadroomStore {
+  get(feature: AIFeature): number
+  set(feature: AIFeature, headroom: number): Promise<void>
+}
+
+export async function runAIPrompt(
+  cfg: AIConfig, prompt: string, feature?: AIFeature, headroom?: HeadroomStore,
+): Promise<{ text?: string; error?: string }> {
   // The user's standing instructions ride every prompt, AFTER the format
   // rules — a wish cannot unsay a contract, and checked outputs stay checked.
   if (cfg.instructions) {
     prompt += `\n\nAdditional instructions from the user — follow them where they do not conflict with the rules above:\n${cfg.instructions}`
   }
+  const base = feature ? BASE_BUDGET[feature] : 512
+  let room = headroom?.get(feature!) ?? 1
+  let grew = false
+
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const text = await callOnce(cfg, prompt, maxTokens)
-      if (text) return { text }
+      const answer = await callOnce(cfg, prompt, base * room)
+      // Cut off mid-answer: retrying with the SAME room repeats it exactly.
+      if (answer.truncated) {
+        const more = nextHeadroom(room)
+        if (more) { room = more; grew = true; continue }
+        return {
+          error: `The answer did not fit — ${cfg.model} is still being cut off at ${base * room} tokens. `
+            + 'Raise the reply length for this feature in Settings › AI Assistant, or choose a less verbose model.',
+        }
+      }
+      if (answer.text) {
+        if (grew && feature && headroom) await headroom.set(feature, room)
+        return { text: answer.text }
+      }
       if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt))
     } catch (e: any) {
       const status = e instanceof AIHttpError ? e.status : 0
@@ -247,10 +287,10 @@ export async function listProviderModels(provider: string, apiKey: string, baseU
 
 // ── Feature prompts (kept in sync with the desktop app's src/main/index.ts) ──
 
-export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string) {
+export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string, headroom?: HeadroomStore) {
   if (!stagedDiff.trim()) return { error: 'No staged change to analyse' }
   const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${truncateDiff(stagedDiff)}\n\`\`\``
-  const r = await runAIPrompt(cfg, prompt)
+  const r = await runAIPrompt(cfg, prompt, 'commit', headroom)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
@@ -270,10 +310,10 @@ export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string)
  * after 3 attempts" was. Measured: 128 fails, 512 barely clears, 1024 leaves
  * room. A ceiling only costs what is used.
  */
-const AI_QUERY_TOKENS = 1024
 
 export async function aiFilterQuery(
   cfg: AIConfig, kind: 'prs' | 'issues', described: string, vocabulary: string,
+  headroom?: HeadroomStore,
 ): Promise<{ query?: string; error?: string }> {
   if (!described.trim()) return { error: 'nothing to describe' }
   const what = kind === 'prs' ? 'pull requests' : 'issues'
@@ -294,7 +334,7 @@ export async function aiFilterQuery(
     ``,
     `Request: ${described.trim()}`,
   ].join('\n')
-  const r = await runAIPrompt(cfg, prompt, AI_QUERY_TOKENS)
+  const r = await runAIPrompt(cfg, prompt, 'filter', headroom)
   if (r.error) return { error: r.error }
   const query = (r.text ?? '')
     .replace(/```[a-z]*/gi, '')
@@ -312,11 +352,10 @@ export async function aiFilterQuery(
  */
 const PR_SUBJECTS_MAX = 50
 const PR_DIFF_BUDGET = 12000
-const PR_DESCRIPTION_TOKENS = 1024
 
 export async function aiPrDescription(
   cfg: AIConfig, baseName: string, headName: string,
-  subjects: string[], diffstat: string, diff: string,
+  subjects: string[], diffstat: string, diff: string, headroom?: HeadroomStore,
 ): Promise<{ title?: string; body?: string; error?: string }> {
   if (subjects.length === 0) return { error: `No commits between ${baseName} and ${headName}` }
   const listed = subjects.slice(0, PR_SUBJECTS_MAX)
@@ -342,7 +381,7 @@ export async function aiPrDescription(
     truncateDiff(diff, PR_DIFF_BUDGET),
     '```',
   ].join('\n')
-  const r = await runAIPrompt(cfg, prompt, PR_DESCRIPTION_TOKENS)
+  const r = await runAIPrompt(cfg, prompt, 'pr', headroom)
   if (r.error) return { error: r.error }
   const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
   const at = lines.findIndex(l => l.trim())
@@ -356,10 +395,9 @@ export async function aiPrDescription(
  * An issue from a sentence — the desktop's twin. The brief is the only
  * material; prompt and parse stay identical to src/main/index.ts.
  */
-const AI_ISSUE_TOKENS = 1024
 
 export async function aiGenerateIssue(
-  cfg: AIConfig, described: string,
+  cfg: AIConfig, described: string, headroom?: HeadroomStore,
 ): Promise<{ title?: string; body?: string; error?: string }> {
   if (!described.trim()) return { error: 'nothing to describe' }
   const prompt = [
@@ -370,7 +408,7 @@ export async function aiGenerateIssue(
     ``,
     `Note: ${described.trim()}`,
   ].join('\n')
-  const r = await runAIPrompt(cfg, prompt, AI_ISSUE_TOKENS)
+  const r = await runAIPrompt(cfg, prompt, 'issue', headroom)
   if (r.error) return { error: r.error }
   const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
   const at = lines.findIndex(l => l.trim())
@@ -380,26 +418,26 @@ export async function aiGenerateIssue(
   return { title, body }
 }
 
-export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string) {
+export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string, headroom?: HeadroomStore) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
-  const r = await runAIPrompt(cfg, prompt)
+  const r = await runAIPrompt(cfg, prompt, 'commit', headroom)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
-export async function aiExplainCommit(cfg: AIConfig, diff: string, subject: string, guidance?: string) {
+export async function aiExplainCommit(cfg: AIConfig, diff: string, subject: string, guidance?: string, headroom?: HeadroomStore) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
   // Same shape as aiResolveConflict's instruction: the user's focus, appended.
   const guided = guidance?.trim()
     ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
     : ''
   const prompt = `You are a Git expert. Explain simply and concretely, in English, what this commit does: which files and behaviours change, and why it was probably done. 3 to 6 sentences maximum, no bullet list, no preamble.${guided}\n\nCommit message: ${subject}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
-  const r = await runAIPrompt(cfg, prompt, 768)
+  const r = await runAIPrompt(cfg, prompt, 'explain', headroom)
   return r.error ? { error: r.error } : { explanation: r.text }
 }
 
 const AI_CONFLICT_MAX_CHARS = 24000
-export async function aiResolveConflict(cfg: AIConfig, filepath: string, content: string, instruction?: string) {
+export async function aiResolveConflict(cfg: AIConfig, filepath: string, content: string, instruction?: string, headroom?: HeadroomStore) {
   if (!/^<{7}/m.test(content)) return { error: 'No conflict marker found in this file' }
   if (content.length > AI_CONFLICT_MAX_CHARS) {
     return { error: `File too long for AI resolution (${content.length} characters, max ${AI_CONFLICT_MAX_CHARS})` }
@@ -420,7 +458,7 @@ EXPLANATION: <1 to 3 sentences in English explaining which sides you kept and wh
 
 File (${filepath}):
 ${content}`
-  const r = await runAIPrompt(cfg, prompt, 8192)
+  const r = await runAIPrompt(cfg, prompt, 'conflict', headroom)
   if (r.error) return { error: r.error }
   const raw = r.text ?? ''
   let explanation = ''
@@ -438,12 +476,12 @@ ${content}`
 
 // Returns the SHORT hashes the model matched; the caller expands/validates
 // them against the actual repo (rev-parse) before handing them to the graph.
-export async function aiSearchCommits(cfg: AIConfig, index: string, query: string): Promise<{ shortHashes?: string[]; error?: string }> {
+export async function aiSearchCommits(cfg: AIConfig, index: string, query: string, headroom?: HeadroomStore): Promise<{ shortHashes?: string[]; error?: string }> {
   if (!query.trim()) return { shortHashes: [] }
   if (!index.trim()) return { shortHashes: [] }
   const today = new Date().toISOString().slice(0, 10)
   const prompt = `You are a Git history search engine. Today is ${today}. Below is a commit index, one commit per line: hash|author|date|subject.\n\nUser query (may be French or English, may reference dates, authors, file kinds, change intent): "${query.trim()}"\n\nReply with ONLY the hashes of matching commits, one per line, best matches first, at most 50. If nothing matches, reply with exactly NONE.\n\nIndex:\n${truncateDiff(index, 12000)}`
-  const r = await runAIPrompt(cfg, prompt, 1024)
+  const r = await runAIPrompt(cfg, prompt, 'search', headroom)
   if (r.error) return { error: r.error }
   const text = (r.text ?? '').trim()
   if (!text || text === 'NONE') return { shortHashes: [] }

@@ -25,12 +25,7 @@ import {
  * that picked it itself would be free to pick a different one from the other
  * host — which is exactly the drift this module exists to remove.
  */
-export type Run = (prompt: string, maxTokens: number, feature: AIFeature) => Promise<{ text?: string; error?: string }>
-
-/** Prose answers in paragraphs; a changelog and a split answer in lists. */
-const PROSE_TOKENS = 768
-const CHANGELOG_TOKENS = 2048
-const SPLIT_TOKENS = 2048
+export type Run = (prompt: string, feature: AIFeature) => Promise<{ text?: string; error?: string }>
 
 /**
  * A reading that was kept, and what it was read FROM.
@@ -80,7 +75,7 @@ Promise<{ explanation?: string; base?: string; error?: string }> {
   const m = await branchMaterial(raw, branch)
   if (!m) return { error: `No base to read ${branch} against — it has no upstream and the repository has no trunk` }
   if (!m.subjects.length && !m.diff.trim()) return { error: `${branch} carries nothing over ${m.base}` }
-  const r = await run(explainBranchPrompt(branch, m.base, m.subjects, m.diffstat, m.diff, opts.guidance), PROSE_TOKENS, 'explain')
+  const r = await run(explainBranchPrompt(branch, m.base, m.subjects, m.diffstat, m.diff, opts.guidance), 'explain')
   if (r.error) return { error: r.error }
   await keep(raw, opts.store, { kind: 'branch', key: branch, title: branch, text: r.text ?? '' }, branch)
   return { explanation: r.text, base: m.base }
@@ -91,7 +86,7 @@ Promise<{ explanation?: string; error?: string }> {
   const ref = typeof index === 'number' ? `stash@{${index}}` : index
   const m = await stashMaterial(raw, index)
   if (!m.diff.trim()) return { error: 'This stash has no changes to analyze' }
-  const r = await run(explainStashPrompt(m.label, m.diff, opts.guidance), PROSE_TOKENS, 'explain')
+  const r = await run(explainStashPrompt(m.label, m.diff, opts.guidance), 'explain')
   if (r.error) return { error: r.error }
   // Keyed by the stash's COMMIT, not by `stash@{0}`: that index shifts under
   // every push and pop, and a note keyed by it would follow the wrong stash.
@@ -104,7 +99,7 @@ export async function explainWorking(raw: Raw, run: Run, opts: ExplainOpts = {})
 Promise<{ explanation?: string; error?: string }> {
   const m = await workingMaterial(raw)
   if (!m.staged.trim() && !m.unstaged.trim()) return { error: 'Nothing uncommitted to analyze' }
-  const r = await run(explainWorkingPrompt(m.staged, m.unstaged, m.diffstat, opts.guidance), PROSE_TOKENS, 'explain')
+  const r = await run(explainWorkingPrompt(m.staged, m.unstaged, m.diffstat, opts.guidance), 'explain')
   if (r.error) return { error: r.error }
   // No sha: the working tree is stale the moment anything is typed, and
   // pretending otherwise with the tip it happened to sit on would be worse.
@@ -311,7 +306,7 @@ export async function generateChangelog(
     }
   }
   const r = await run(
-    changelogPrompt(branch, m.base, m.entries, m.diffstat, opts.previous), CHANGELOG_TOKENS, 'changelog')
+    changelogPrompt(branch, m.base, m.entries, m.diffstat, opts.previous), 'changelog')
   if (r.error) return { error: r.error }
   if (opts.store) {
     // The insert memory outlives the text it was written from: regenerating
@@ -370,7 +365,7 @@ Promise<SplitProposal & { error?: string }> {
   if (!m.files.length) return { ...empty, error: 'Nothing uncommitted to split' }
   if (m.files.length === 1) return { ...empty, error: 'One file is already one commit' }
   const diff = [m.staged, m.unstaged].filter(d => d.trim()).join('\n')
-  const r = await run(splitPrompt(m.files, m.diffstat, diff), SPLIT_TOKENS, 'compose')
+  const r = await run(splitPrompt(m.files, m.diffstat, diff), 'compose')
   if (r.error) return { ...empty, error: r.error }
   const proposal = parseSplit(r.text ?? '', m.files)
   if (!proposal.groups.length) return { ...proposal, error: 'The model proposed no usable commit' }

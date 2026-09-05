@@ -22,6 +22,7 @@ import { ThemeStore } from './theme-store'
 import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
 import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
+import { BASE_BUDGET, headroomFor, headroomKey, nextHeadroom } from './ai-budgets'
 import {
   explainBranch, explainStash, explainWorking, generateChangelog, proposeCommitSplit,
   changelogState, changelogList, noteList, insertedIn, withInserted, changelogKey, scopeHasChanges,
@@ -1602,7 +1603,7 @@ ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKe
 // exercises the real resolution and the manual live suite (tests-live/, run
 // by hand: it spends API money) drives the exact production path. This
 // function owns only the policy: reading settings, retrying, logging.
-async function runAIPrompt(prompt: string, maxTokens = 512, feature?: AIFeature): Promise<{ text?: string; error?: string }> {
+async function runAIPrompt(prompt: string, feature?: AIFeature): Promise<{ text?: string; error?: string }> {
   const s = readSettings()
   const target = resolveAICall(s, feature)
   prompt = appendInstructions(prompt, s, feature)
@@ -1610,11 +1611,47 @@ async function runAIPrompt(prompt: string, maxTokens = 512, feature?: AIFeature)
   // A custom endpoint may run keyless — local runtimes do (#169).
   if (!target.apiKey && !target.keyless) return { error: 'NO_API_KEY' }
 
+  // The room this feature gets, times what it has learned about needing more.
+  let headroom = headroomFor(s, feature)
+  const base = feature ? BASE_BUDGET[feature] : 512
+  let grew = false
+
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const text = await callProvider(target, prompt, maxTokens)
-      console.log(`[ai] attempt=${attempt} length=${text.length} preview="${text.slice(0, 60)}"`)
-      if (text) return { text }
+      const answer = await callProvider(target, prompt, base * headroom)
+      console.log(`[ai] attempt=${attempt} budget=${base * headroom} length=${answer.text.length} truncated=${answer.truncated}`)
+
+      // Cut off mid-answer. Retrying with the SAME room is how this used to
+      // fail three times and report an empty response: a reasoning model
+      // spends its budget thinking, and thinks exactly as long each time.
+      if (answer.truncated) {
+        const more = nextHeadroom(headroom)
+        if (more) {
+          headroom = more
+          grew = true
+          console.log(`[ai] truncated — retrying with ${headroom}× the room`)
+          continue
+        }
+        // At the top step and still cut off: say so, rather than hand back
+        // half an answer or call it empty.
+        return {
+          error: `The answer did not fit — ${target.model} is still being cut off at ${base * headroom} tokens. `
+            + 'Raise the reply length for this feature in Settings › AI Assistant, or choose a less verbose model.',
+        }
+      }
+
+      if (answer.text) {
+        // What it took to get an answer is remembered, and is remembered in
+        // the control the user can see — a correction made on their behalf
+        // must be one they can find and undo.
+        if (grew && feature) {
+          const now = readSettings()
+          now[headroomKey(feature)] = String(headroom)
+          writeSettings(now)
+          console.log(`[ai] kept ${headroom}× for ${feature}`)
+        }
+        return { text: answer.text }
+      }
       console.log(`[ai] empty response on attempt ${attempt}, retrying…`)
       if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt))
     } catch (e: any) {
@@ -1639,7 +1676,7 @@ ipcMain.handle('ai:generate-commit-message', async () => {
   if (!stagedDiff.trim()) { console.log('[ai] no staged diff'); return { error: 'No staged changes to analyze' } }
 
   const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${truncateDiff(stagedDiff)}\n\`\`\``
-  const r = await runAIPrompt(prompt, 512, 'commit')
+  const r = await runAIPrompt(prompt, 'commit')
   return r.error ? { error: r.error } : { message: r.text }
 })
 
@@ -1661,15 +1698,6 @@ ipcMain.handle('ai:generate-commit-message', async () => {
  * This is the rare AI action whose output can be checked before anyone sees
  * it, and not checking it would be a decision.
  */
-/**
- * The budget for a filter query. NOT small, however short the answer is: a
- * reasoning model spends this before it emits anything, and at 128 the
- * configured one was cut off mid-thought — `finish_reason: length`, empty
- * content, three times, which is what "the model returned an empty response
- * after 3 attempts" was. Measured: 128 fails, 512 barely clears, 1024 leaves
- * room. A ceiling only costs what is used.
- */
-const AI_QUERY_TOKENS = 1024
 
 ipcMain.handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: string, vocabulary: string) => {
   if (!described.trim()) return { error: 'nothing to describe' }
@@ -1691,7 +1719,7 @@ ipcMain.handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: 
     ``,
     `Request: ${described.trim()}`,
   ].join('\n')
-  const r = await runAIPrompt(prompt, AI_QUERY_TOKENS, 'filter')
+  const r = await runAIPrompt(prompt, 'filter')
   if (r.error) return { error: r.error }
   // Models like to wrap an answer in prose or fences however firmly they are
   // told not to. The first non-empty line, stripped of them, is the query.
@@ -1718,7 +1746,6 @@ ipcMain.handle('ai:filter-query', async (_e, kind: 'prs' | 'issues', described: 
  */
 const PR_SUBJECTS_MAX = 50
 const PR_DIFF_BUDGET = 12000
-const PR_DESCRIPTION_TOKENS = 1024
 
 ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headName: string) => {
   if (!gitService) return { error: 'No repository open' }
@@ -1770,7 +1797,7 @@ ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headNa
       '```',
     ].join('\n')
 
-    const r = await runAIPrompt(prompt, PR_DESCRIPTION_TOKENS, 'pr')
+    const r = await runAIPrompt(prompt, 'pr')
     if (r.error) return { error: r.error }
     const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
     const at = lines.findIndex(l => l.trim())
@@ -1787,7 +1814,6 @@ ipcMain.handle('ai:generate-pr-description', async (_e, baseName: string, headNa
  * selection after a rebase" into a title and a body someone else can act on.
  * One call for both fields, like the PR description: they are one answer.
  */
-const AI_ISSUE_TOKENS = 1024
 
 ipcMain.handle('ai:generate-issue', async (_e, described: string) => {
   if (!described.trim()) return { error: 'nothing to describe' }
@@ -1799,7 +1825,7 @@ ipcMain.handle('ai:generate-issue', async (_e, described: string) => {
     ``,
     `Note: ${described.trim()}`,
   ].join('\n')
-  const r = await runAIPrompt(prompt, AI_ISSUE_TOKENS, 'issue')
+  const r = await runAIPrompt(prompt, 'issue')
   if (r.error) return { error: r.error }
   const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
   const at = lines.findIndex(l => l.trim())
@@ -1824,7 +1850,7 @@ ipcMain.handle('ai:recompose-commit', async (_e, hash: string) => {
   if (!diff.trim()) return { error: 'This commit has no changes to analyze (merge commit?)' }
 
   const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
-  const r = await runAIPrompt(prompt, 512, 'commit')
+  const r = await runAIPrompt(prompt, 'commit')
   return r.error ? { error: r.error } : { message: r.text }
 })
 
@@ -1859,7 +1885,7 @@ EXPLANATION: <1 to 3 sentences in English explaining which sides you chose and w
 
 File (${filepath}):
 ${content}`
-  const r = await runAIPrompt(prompt, 8192, 'conflict')
+  const r = await runAIPrompt(prompt, 'conflict')
   if (r.error) return { error: r.error }
   const raw = r.text ?? ''
   // Split explanation from file on the ===FILE=== marker; if the model
@@ -1897,7 +1923,7 @@ ipcMain.handle('ai:search-commits', async (_e, query: string) => {
 
   const today = new Date().toISOString().slice(0, 10)
   const prompt = `You are a Git history search engine. Today is ${today}. Below is a commit index, one commit per line: hash|author|date|subject.\n\nUser query (may be French or English, may reference dates, authors, file kinds, change intent): "${query.trim()}"\n\nReply with ONLY the hashes of matching commits, one per line, best matches first, at most 50. If nothing matches, reply with exactly NONE.\n\nIndex:\n${truncateDiff(index, 12000)}`
-  const r = await runAIPrompt(prompt, 1024, 'search')
+  const r = await runAIPrompt(prompt, 'search')
   if (r.error) return { error: r.error }
   const text = (r.text ?? '').trim()
   if (!text || text === 'NONE') return { hashes: [] }
@@ -1972,7 +1998,7 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guid
     ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
     : ''
   const prompt = `You are a Git expert. Explain in English, simply and concretely, what this commit does: which files/behaviors change and why it was probably done. 3 to 6 sentences maximum, no bullet lists, no preamble.${guided}\n\nCommit message: ${currentMsg}\n\nDiff:\n\`\`\`diff\n${truncateDiff(diff)}\n\`\`\``
-  const r = await runAIPrompt(prompt, 768, 'explain')
+  const r = await runAIPrompt(prompt, 'explain')
   if (r.error) return { error: r.error }
   if (!guidance?.trim()) saveExplanation(gitService.repoPath, hash, r.text ?? '')
   return { explanation: r.text }
@@ -1987,7 +2013,7 @@ ipcMain.handle('ai:explain-commit', async (_e, hash: string, force = false, guid
 
 /** The git this process runs, in the shape the shared module takes. */
 const rawGit = (): Raw => (args: string[]) => (gitService as any).git.raw(args)
-const runFeature: Run = (prompt, maxTokens, feature) => runAIPrompt(prompt, maxTokens, feature)
+const runFeature: Run = (prompt, feature) => runAIPrompt(prompt, feature)
 
 /**
  * The readings this app has kept, per repository
