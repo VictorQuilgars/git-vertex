@@ -34,17 +34,30 @@ export type SidebarView =
 
 interface ReflogEntry { hash: string; ref: string; message: string; date: string }
 
+/**
+ * Where a row's subject went.
+ *
+ * `live` its ref still resolves · `landed` the ref is gone but the commits are
+ * in another one · `lost` the commits themselves are unreachable. Only the
+ * third is a strike-through: a branch that merged and was pruned reached the
+ * ordinary, successful end of a branch, and striking it out on that day said
+ * the opposite of what happened.
+ */
+type SubjectState = 'live' | 'landed' | 'lost'
+
 /** A changelog this repository has had written — the shape the host returns. */
 interface ChangelogEntry {
   branch: string; text: string; base: string
-  commits: number; at: number; newCommits: number; orphan: boolean
+  commits: number; at: number; newCommits: number
+  subject?: SubjectState; landedIn?: string; hashes?: string[]
 }
 
 /** A kept reading of a branch, a stash or the working tree. */
 interface NoteEntry {
   kind: 'branch' | 'stash' | 'working'
   key: string; title: string; text: string; at: number; sha: string
-  newCommits: number; orphan: boolean
+  newCommits: number
+  subject?: SubjectState; landedIn?: string; hashes?: string[]
 }
 /**
  * A row of the two GitHub sections — the fields the list endpoints already
@@ -112,6 +125,8 @@ interface SidebarProps {
   onOpenExplanation?: (hash: string) => void
   /** A kept reading — the drawer reopens it without asking the model again. */
   onOpenNote?: (note: { kind: 'branch' | 'stash' | 'working'; key: string; title: string }) => void
+  /** Point the graph at a set of commits — what a reading covered (#70). */
+  onShowCommits?: (hashes: string[]) => void
   /**
    * Which of the two stacks is showing, held by the host: generating a
    * changelog anywhere in the app brings this one into view, and it cannot do
@@ -1037,15 +1052,45 @@ function BranchItem({ name, current, remote, currentBranch, onCheckout, onDelete
   )
 }
 
+/**
+ * The commits a reading covered, as a chip that shows them in the graph.
+ *
+ * On the row rather than only in a context menu: this is the answer to "the
+ * branch is gone, so what did it say about?" and an answer nobody can find is
+ * not one. Present whatever the subject's state — a live branch's commits are
+ * as worth pointing at as a merged one's.
+ */
+function ShowCommits({ hashes, onShow }: {
+  hashes?: string[]
+  onShow?: (hashes: string[]) => void
+}) {
+  const { t } = useLang()
+  if (!onShow || !hashes?.length) return null
+  return (
+    <button
+      type="button"
+      className="sb-ai-show"
+      title={t('sb.ai.showCommits.hint', hashes.length)}
+      aria-label={t('sb.ai.showCommits.hint', hashes.length)}
+      onClick={e => { e.stopPropagation(); onShow(hashes) }}
+    >
+      <Icon name="commit" size={9} />
+      {hashes.length}
+    </button>
+  )
+}
+
 /** What a kept reading is about, and what it is worth now. */
-function NoteRow({ note, onOpen, onForget }: {
+function NoteRow({ note, onOpen, onForget, onShowCommits }: {
   note: {
     kind: 'branch' | 'stash' | 'working' | 'commit'
     key: string; title: string; text: string; at: number; sha: string
-    newCommits: number; orphan: boolean
+    newCommits: number
+    subject?: SubjectState; landedIn?: string; hashes?: string[]
   }
   onOpen?: () => void
   onForget: () => void
+  onShowCommits?: (hashes: string[]) => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -1058,10 +1103,11 @@ function NoteRow({ note, onOpen, onForget }: {
   const meta = note.kind === 'commit'
     ? note.sha.slice(0, 7)
     : timeAgo(new Date(note.at).toISOString(), t)
+  const state = note.subject ?? 'live'
   return (
     <>
       <div
-        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}${note.orphan ? ' sb-ai-item--orphan' : ''}`}
+        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}${state === 'lost' ? ' sb-ai-item--orphan' : ''}`}
         onClick={onOpen}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={note.text.length > 300 ? note.text.slice(0, 300) + '…' : note.text}
@@ -1070,9 +1116,14 @@ function NoteRow({ note, onOpen, onForget }: {
         <div className="sb-ai-info">
           <span className="sb-ai-name">{note.title}</span>
           <span className="sb-ai-meta">
-            {note.orphan ? t('sb.ai.gone') : <code>{meta}</code>}
+            {state === 'lost'
+              ? t('sb.ai.gone')
+              : state === 'landed'
+                ? <>{t('sb.ai.landed', note.landedIn ?? '')} · <code>{meta}</code></>
+                : <code>{meta}</code>}
           </span>
         </div>
+        <ShowCommits hashes={note.hashes} onShow={onShowCommits} />
         {note.newCommits > 0 && (
           <span className="sb-ai-stale" title={t('ai.changelog.behind', note.newCommits)}>
             +{note.newCommits}
@@ -1082,6 +1133,9 @@ function NoteRow({ note, onOpen, onForget }: {
       {ctx && (
         <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={[
           ...(onOpen ? [{ label: t('sb.ai.open'), action: onOpen, icon: 'ai' as const, tone: 'ai' as const }] : []),
+          ...(onShowCommits && note.hashes?.length
+            ? [{ label: t('sb.ai.showCommits'), action: () => onShowCommits(note.hashes!), icon: 'commit' as const }]
+            : []),
           { separator: true } as MenuItemDef,
           { label: t('sb.ai.forget'), action: onForget, danger: true },
         ]} />
@@ -1098,17 +1152,19 @@ function NoteRow({ note, onOpen, onForget }: {
  * the point of the list is deciding what still applies without opening
  * anything.
  */
-function ChangelogRow({ entry, onOpen, onForget }: {
+function ChangelogRow({ entry, onOpen, onForget, onShowCommits }: {
   entry: ChangelogEntry
   onOpen?: () => void
   onForget: () => void
+  onShowCommits?: (hashes: string[]) => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
+  const state = entry.subject ?? 'live'
   return (
     <>
       <div
-        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}${entry.orphan ? ' sb-ai-item--orphan' : ''}`}
+        className={`sb-ai-item${onOpen ? '' : ' sb-ai-item--flat'}${state === 'lost' ? ' sb-ai-item--orphan' : ''}`}
         onClick={onOpen}
         onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
         title={entry.text.length > 300 ? entry.text.slice(0, 300) + '…' : entry.text}
@@ -1117,11 +1173,14 @@ function ChangelogRow({ entry, onOpen, onForget }: {
         <div className="sb-ai-info">
           <span className="sb-ai-name">{entry.branch}</span>
           <span className="sb-ai-meta">
-            {entry.orphan
+            {state === 'lost'
               ? t('sb.ai.gone')
-              : `${t('ai.changelog.meta', entry.commits, entry.base)} · ${timeAgo(new Date(entry.at).toISOString(), t)}`}
+              : state === 'landed'
+                ? `${t('sb.ai.landed', entry.landedIn ?? '')} · ${timeAgo(new Date(entry.at).toISOString(), t)}`
+                : `${t('ai.changelog.meta', entry.commits, entry.base)} · ${timeAgo(new Date(entry.at).toISOString(), t)}`}
           </span>
         </div>
+        <ShowCommits hashes={entry.hashes} onShow={onShowCommits} />
         {entry.newCommits > 0 && (
           <span className="sb-ai-stale" title={t('ai.changelog.behind', entry.newCommits)}>
             +{entry.newCommits}
@@ -1131,6 +1190,9 @@ function ChangelogRow({ entry, onOpen, onForget }: {
       {ctx && (
         <ContextMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} items={[
           ...(onOpen ? [{ label: t('sb.ai.open'), action: onOpen, icon: 'ai' as const, tone: 'ai' as const }] : []),
+          ...(onShowCommits && entry.hashes?.length
+            ? [{ label: t('sb.ai.showCommits'), action: () => onShowCommits(entry.hashes!), icon: 'commit' as const }]
+            : []),
           { separator: true } as MenuItemDef,
           { label: t('sb.ai.forget'), action: onForget, danger: true },
         ]} />
@@ -1430,6 +1492,7 @@ export default function Sidebar({
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
   onCreateStash, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onRefreshStashes,
   onExplainBranch, onBranchChangelog, onOpenChangelog, onOpenExplanation, onOpenNote,
+  onShowCommits,
   subjectFor, tab = 'list', onTab, memoryToken,
   onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag,
   onSelectCommit, onCompareBranch,
@@ -1858,10 +1921,10 @@ export default function Sidebar({
           {showAI && (
             <>
               <Section id="ai-changelogs" title="CHANGELOGS" icon="ai" count={changelogs.length} defaultOpen
-                menuItems={changelogs.some(c => c.orphan) ? [{
+                menuItems={changelogs.some(c => c.subject === 'lost') ? [{
                   label: t('sb.ai.forgetGone'),
                   action: async () => {
-                    for (const c of changelogs.filter(x => x.orphan)) {
+                    for (const c of changelogs.filter(x => x.subject === 'lost')) {
                       await (window.gitAPI as any).aiForgetChangelog?.(c.branch)
                     }
                     loadMemory()
@@ -1874,6 +1937,7 @@ export default function Sidebar({
                       <ChangelogRow
                         key={c.branch}
                         entry={c}
+                        onShowCommits={onShowCommits}
                         onOpen={onOpenChangelog ? () => onOpenChangelog(c.branch) : undefined}
                         onForget={async () => {
                           await (window.gitAPI as any).aiForgetChangelog?.(c.branch)
@@ -1891,10 +1955,10 @@ export default function Sidebar({
                   at — and each row can be dropped. */}
               <Section id="ai-explanations" title="EXPLANATIONS" icon="comment"
                 count={notes.length + Object.keys(explanations).length} defaultOpen
-                menuItems={notes.some(n => n.orphan) ? [{
+                menuItems={notes.some(n => n.subject === 'lost') ? [{
                   label: t('sb.ai.forgetGone'),
                   action: async () => {
-                    for (const n of notes.filter(x => x.orphan)) {
+                    for (const n of notes.filter(x => x.subject === 'lost')) {
                       await (window.gitAPI as any).aiForgetNote?.(n.kind, n.key)
                     }
                     loadMemory()
@@ -1908,6 +1972,7 @@ export default function Sidebar({
                         <NoteRow
                           key={`${n.kind}:${n.key}`}
                           note={n}
+                          onShowCommits={onShowCommits}
                           onOpen={onOpenNote ? () => onOpenNote(n) : undefined}
                           onForget={async () => {
                             await (window.gitAPI as any).aiForgetNote?.(n.kind, n.key)
@@ -1921,8 +1986,9 @@ export default function Sidebar({
                           note={{
                             kind: 'commit', key: hash,
                             title: subjectFor?.(hash) ?? t('sb.ai.unknownCommit'),
-                            text, at: 0, sha: hash, newCommits: 0, orphan: false,
+                            text, at: 0, sha: hash, newCommits: 0, hashes: [hash],
                           }}
+                          onShowCommits={onShowCommits}
                           onOpen={onOpenExplanation ? () => onOpenExplanation(hash) : undefined}
                           onForget={async () => {
                             await (window.gitAPI as any).aiForgetExplanation?.(hash)

@@ -179,6 +179,10 @@ const AI_FEATURES: { id: string; labelKey: string; kind: AITemperament; chips: s
  * The features whose prompt carries a diff — the only ones a detail level
  * means anything for. A commit search reads an index of subjects; a filter
  * query reads a vocabulary. Offering them the choice would be furniture.
+ *
+ * ⚠️ The main process keeps the same list (`DIFF_FEATURES` in
+ * `src/main/ai-diff.ts`), because the two are built separately and this side
+ * imports nothing from `src/main`. `ai-diff.test.ts` fails if they disagree.
  */
 const DIFF_FEATURES = ['commit', 'explain', 'pr', 'compose']
 

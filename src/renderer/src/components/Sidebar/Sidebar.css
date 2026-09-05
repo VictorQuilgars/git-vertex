@@ -988,3 +988,22 @@
   color: var(--ai-text);
   font-size: var(--text-tiny);
 }
+
+/* The commits a reading covered. A graph action, not a model act, so it wears
+   the panel's own ink rather than the iris reserved for what a model
+   proposes — and a solid hairline rather than the stale badge's dashes. */
+.sb-ai-show {
+  display: flex; align-items: center; gap: 2px;
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-tertiary);
+  font-size: var(--text-tiny);
+  font-family: inherit;
+  cursor: pointer;
+  opacity: 0;
+}
+.sb-ai-item:hover .sb-ai-show, .sb-ai-show:focus-visible { opacity: 1; }
+.sb-ai-show:hover { color: var(--text-primary); border-color: var(--border-strong); }

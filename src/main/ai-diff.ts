@@ -21,6 +21,31 @@ export type DiffDetail = 'summary' | 'standard' | 'full'
 
 export const DIFF_DETAILS: DiffDetail[] = ['summary', 'standard', 'full']
 
+/**
+ * The features whose prompt carries a diff — the only ones a level means
+ * anything for, and the only ones an oversized request can be sent down a
+ * level. A commit search reads an index of subjects; a filter query reads a
+ * vocabulary; a conflict resolution sends a whole file and no diff at all.
+ *
+ * ⚠️ Duplicated in `SettingsModal.tsx`, which draws the control, because the
+ * renderer and the main process are built separately and the renderer imports
+ * nothing from `src/main`. Same arrangement as `BUILT_IN_THEMES` /
+ * `BUILT_IN_THEME_IDS`, and made safe the same way: `ai-diff.test.ts` reads
+ * the other list out of its source and fails if the two disagree.
+ */
+export const DIFF_FEATURES = ['commit', 'explain', 'pr', 'compose'] as const
+
+/**
+ * One level down, or null at the bottom.
+ *
+ * What an oversized request is offered (#185 P2): a refusal that names a
+ * setting has to name the value to move it to.
+ */
+export function lessDetail(detail: DiffDetail): DiffDetail | null {
+  const at = DIFF_DETAILS.indexOf(detail)
+  return at > 0 ? DIFF_DETAILS[at - 1] : null
+}
+
 /** Where a feature's choice is kept — the settings vocabulary of #70. */
 export const detailKey = (feature: string): string => `aiDetail:${feature}`
 

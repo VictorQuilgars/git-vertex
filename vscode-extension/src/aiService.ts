@@ -32,7 +32,14 @@ import type { AIFeature } from '../../src/main/ai-resolve'
 import { BASE_BUDGET, nextHeadroom } from '../../src/main/ai-budgets'
 // A diff is cut by FILE, with its map kept whole — the same rendering the
 // desktop uses, or the two products describe different changes (#185).
-import { renderDiff, type DiffDetail } from '../../src/main/ai-diff'
+import { type DiffDetail } from '../../src/main/ai-diff'
+// The four prompts below used to live here in full, drifting word by word
+// against the desktop's copies. They are the shared module's now (#185 P2).
+import {
+  commitMessagePrompt, rewordCommitPrompt, explainCommitPrompt, pullRequestPrompt,
+  parsePullRequest, truncateDiff,
+} from '../../src/main/ai-prompts'
+import { readOversize, oversizeMessage } from '../../src/main/ai-oversize'
 
 const MODEL_DEFAULTS: Record<string, string> = {
   anthropic: 'claude-haiku-4-5-20251001',
@@ -190,6 +197,9 @@ export interface HeadroomStore {
 
 export async function runAIPrompt(
   cfg: AIConfig, prompt: string, feature?: AIFeature, headroom?: HeadroomStore,
+  /** The level this feature's diff was sent at — what an oversized request is
+   *  told to move (#185 P2). Absent when the prompt carries no diff. */
+  detail?: DiffDetail,
 ): Promise<{ text?: string; error?: string }> {
   // The user's standing instructions ride every prompt, AFTER the format
   // rules — a wish cannot unsay a contract, and checked outputs stay checked.
@@ -221,6 +231,13 @@ export async function runAIPrompt(
       const status = e instanceof AIHttpError ? e.status : 0
       // Auth/key problems won't fix themselves — fail fast.
       if (status === 401 || status === 403) return { error: e.message }
+      // Neither will a prompt that does not fit: backing off and sending the
+      // same oversized request is three certain failures instead of one, and
+      // the provider's own words name an org id rather than the fix (#185).
+      const big = readOversize(e?.message ?? '')
+      if (big) {
+        return { error: oversizeMessage(big, { model: cfg.model, detail, headroom: room, raw: e.message }) }
+      }
       if (attempt === 3) return { error: e?.message ?? 'AI API error' }
       // Overload/rate-limit: honor Retry-After when given, else back off
       // exponentially (2s, 4s) — hammering a 429 every 500ms makes it worse.
@@ -233,8 +250,7 @@ export async function runAIPrompt(
   return { error: 'The model returned an empty response after 3 attempts' }
 }
 
-export const truncateDiff = (diff: string, max = 6000) =>
-  diff.length > max ? diff.slice(0, max) + '\n... [diff truncated]' : diff
+
 
 // Live model list per provider — mirrors the desktop's ai:list-provider-models
 // (Groq's audio-only whisper models filtered out, OpenAI trimmed to chat models).
@@ -292,8 +308,7 @@ export async function listProviderModels(provider: string, apiKey: string, baseU
 
 export async function aiGenerateCommitMessage(cfg: AIConfig, stagedDiff: string, headroom?: HeadroomStore, detail?: DiffDetail) {
   if (!stagedDiff.trim()) return { error: 'No staged change to analyse' }
-  const prompt = `You are a Git expert. Analyze this diff and generate a concise commit message following Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). Reply ONLY with the commit message in English.\n\nDiff:\n\`\`\`diff\n${renderDiff(stagedDiff, { detail })}\n\`\`\``
-  const r = await runAIPrompt(cfg, prompt, 'commit', headroom)
+  const r = await runAIPrompt(cfg, commitMessagePrompt(stagedDiff, { detail }), 'commit', headroom, detail)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
@@ -353,45 +368,16 @@ export async function aiFilterQuery(
  * both fields: they are one answer about one branch, and two calls would let
  * them disagree.
  */
-const PR_SUBJECTS_MAX = 50
-const PR_DIFF_BUDGET = 12000
 
 export async function aiPrDescription(
   cfg: AIConfig, baseName: string, headName: string,
   subjects: string[], diffstat: string, diff: string, headroom?: HeadroomStore, detail?: DiffDetail,
 ): Promise<{ title?: string; body?: string; error?: string }> {
   if (subjects.length === 0) return { error: `No commits between ${baseName} and ${headName}` }
-  const listed = subjects.slice(0, PR_SUBJECTS_MAX)
-  const omitted = subjects.length - listed.length
-  const cut = diff.length > PR_DIFF_BUDGET
-  const prompt = [
-    `You write pull request titles and descriptions for a Git branch.`,
-    `First line of your reply: the title — imperative, specific, at most 72 characters.`,
-    `Then a blank line, then the description in Markdown: one short paragraph saying what the branch does and why, then a bullet list of the notable changes. No heading that restates the title, no preamble, no code fences around the reply.`,
-    `Write in English. Reply with nothing but the title and the description.`,
-    ``,
-    `Branch: ${headName} into ${baseName}`,
-    `Commit subjects (${subjects.length}):`,
-    listed.map(s => `- ${s}`).join('\n') + (omitted > 0 ? `\n- … and ${omitted} more` : ''),
-    ``,
-    `Diffstat:`,
-    truncateDiff(diffstat, 3000),
-    ``,
-    cut
-      ? `The full diff is too large to include; what follows is its beginning. Weigh the diffstat and the subjects for the rest.`
-      : `Full diff:`,
-    '```diff',
-    renderDiff(diff, { detail, budget: PR_DIFF_BUDGET }),
-    '```',
-  ].join('\n')
-  const r = await runAIPrompt(cfg, prompt, 'pr', headroom)
+  const prompt = pullRequestPrompt(baseName, headName, subjects, diffstat, diff, { detail })
+  const r = await runAIPrompt(cfg, prompt, 'pr', headroom, detail)
   if (r.error) return { error: r.error }
-  const lines = (r.text ?? '').replace(/```[a-z]*/gi, '').split('\n')
-  const at = lines.findIndex(l => l.trim())
-  if (at < 0) return { error: 'empty answer' }
-  const title = lines[at].trim().replace(/^["'#*\s]+|["'*\s]+$/g, '')
-  const body = lines.slice(at + 1).join('\n').trim()
-  return { title, body }
+  return parsePullRequest(r.text ?? '') ?? { error: 'empty answer' }
 }
 
 /**
@@ -423,19 +409,15 @@ export async function aiGenerateIssue(
 
 export async function aiRecomposeCommit(cfg: AIConfig, diff: string, currentMsg: string, headroom?: HeadroomStore, detail?: DiffDetail) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
-  const prompt = `You are a Git expert. Rewrite this commit's message based on what the diff ACTUALLY changes. Follow Conventional Commits (feat/fix/docs/chore/refactor/style/test/perf). First line: type(scope): description (max 72 chars). If the change warrants it, add a short body (1-3 lines) after a blank line explaining the why. Reply ONLY with the commit message in English — no preamble, no code fences.\n\nCurrent message (may be inaccurate or vague):\n${currentMsg}\n\nDiff:\n\`\`\`diff\n${renderDiff(diff, { detail })}\n\`\`\``
-  const r = await runAIPrompt(cfg, prompt, 'commit', headroom)
+  const prompt = rewordCommitPrompt(diff, currentMsg, { detail })
+  const r = await runAIPrompt(cfg, prompt, 'commit', headroom, detail)
   return r.error ? { error: r.error } : { message: r.text }
 }
 
 export async function aiExplainCommit(cfg: AIConfig, diff: string, subject: string, guidance?: string, headroom?: HeadroomStore, detail?: DiffDetail) {
   if (!diff.trim()) return { error: 'This commit has no change to analyse (a merge commit?)' }
-  // Same shape as aiResolveConflict's instruction: the user's focus, appended.
-  const guided = guidance?.trim()
-    ? `\n\nUser guidance (what to focus the explanation on): ${guidance.trim()}`
-    : ''
-  const prompt = `You are a Git expert. Explain simply and concretely, in English, what this commit does: which files and behaviours change, and why it was probably done. 3 to 6 sentences maximum, no bullet list, no preamble.${guided}\n\nCommit message: ${subject}\n\nDiff:\n\`\`\`diff\n${renderDiff(diff, { detail })}\n\`\`\``
-  const r = await runAIPrompt(cfg, prompt, 'explain', headroom)
+  const prompt = explainCommitPrompt(diff, subject, guidance, { detail })
+  const r = await runAIPrompt(cfg, prompt, 'explain', headroom, detail)
   return r.error ? { error: r.error } : { explanation: r.text }
 }
 

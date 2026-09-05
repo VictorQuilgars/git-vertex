@@ -1,5 +1,8 @@
+import * as fs from 'fs'
+import * as path from 'path'
 import {
   splitDiff, shareBudget, renderDiff, fileMap, detailFor, detailKey, SUMMARY_CAVEAT,
+  lessDetail, DIFF_FEATURES,
 } from '../ai-diff'
 
 // The failure this replaces: `diff.slice(0, 6000)`. On a branch touching forty
@@ -185,5 +188,32 @@ describe('fileMap', () => {
   test('one line per file, with what it did', () => {
     expect(fileMap(splitDiff([file('a.ts', 2, 1), file('b.ts', 0, 3)].join('\n'))))
       .toBe('  a.ts  +2 −1\n  b.ts  +0 −3')
+  })
+})
+
+describe('the two lists that must not drift', () => {
+  test('the settings page offers the level for exactly these features', () => {
+    // Same arrangement as BUILT_IN_THEMES / BUILT_IN_THEME_IDS: the renderer
+    // and the main process are built separately and the renderer imports
+    // nothing from src/main, so the list exists twice. A feature added here
+    // and not there is a level nobody can set; added there and not here is a
+    // control that does nothing, and an oversized request that offers it.
+    const src = fs.readFileSync(path.join(
+      __dirname, '../../renderer/src/components/SettingsModal/SettingsModal.tsx'), 'utf8')
+    const m = src.match(/const DIFF_FEATURES = \[([^\]]+)\]/)
+    expect(m).not.toBeNull()
+    const theirs = m![1].split(',').map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean)
+    expect(theirs).toEqual([...DIFF_FEATURES])
+  })
+})
+
+describe('lessDetail', () => {
+  test('each level knows the one below it', () => {
+    expect(lessDetail('full')).toBe('standard')
+    expect(lessDetail('standard')).toBe('summary')
+  })
+
+  test('the bottom has nothing below — an oversized request must not offer one', () => {
+    expect(lessDetail('summary')).toBeNull()
   })
 })

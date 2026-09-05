@@ -43,6 +43,7 @@ function renderAI(overrides: Record<string, any> = {}, api: Record<string, any> 
     onOpenChangelog: jest.fn(),
     onOpenExplanation: jest.fn(),
     onOpenNote: jest.fn(),
+    onShowCommits: jest.fn(),
     subjectFor: (h: string) => h.startsWith('a') ? 'refactor: rename the thing' : undefined,
   }
   for (const k of [
@@ -194,9 +195,10 @@ describe('the sidebar AI stack', () => {
 
 describe('the readings kept beside the changelogs', () => {
   const NOTES = [
-    { kind: 'branch', key: 'feat/x', title: 'feat/x', text: 'It adds a cache.', at: Date.now() - 60_000, sha: 'aaa', newCommits: 2, orphan: false },
-    { kind: 'stash', key: 'bbb222', title: 'WIP on main: half a logger', text: 'Parked work.', at: Date.now() - 120_000, sha: 'bbb222', newCommits: 0, orphan: true },
-    { kind: 'working', key: 'working', title: 'Uncommitted changes', text: 'Two things at once.', at: Date.now() - 30_000, sha: '', newCommits: 0, orphan: false },
+    { kind: 'branch', key: 'feat/x', title: 'feat/x', text: 'It adds a cache.', at: Date.now() - 60_000, sha: 'aaa', newCommits: 2, subject: 'live', hashes: ['aaa', 'aab'] },
+    { kind: 'stash', key: 'bbb222', title: 'WIP on main: half a logger', text: 'Parked work.', at: Date.now() - 120_000, sha: 'bbb222', newCommits: 0, subject: 'lost' },
+    { kind: 'working', key: 'working', title: 'Uncommitted changes', text: 'Two things at once.', at: Date.now() - 30_000, sha: '', newCommits: 0, subject: 'live' },
+    { kind: 'branch', key: 'feat/merged', title: 'feat/merged', text: 'It landed.', at: Date.now() - 90_000, sha: 'ccc', newCommits: 0, subject: 'landed', landedIn: 'main', hashes: ['ccc', 'ccd', 'cce'] },
   ]
 
   test('a branch, a stash and the working tree sit in one list with the commits', async () => {
@@ -216,6 +218,35 @@ describe('the readings kept beside the changelogs', () => {
     const gone = screen.getByText('WIP on main: half a logger').closest('.sb-ai-item') as HTMLElement
     expect(gone.className).toContain('sb-ai-item--orphan')
     expect(within(gone).getByText(/gone/)).toBeInTheDocument()
+  })
+
+  test('a branch that MERGED is not struck through — it says where its work is', async () => {
+    // The reason the boolean became three states: "merged and pruned" and
+    // "force-pushed away" were one row, and they are opposites.
+    renderAI({}, { aiNoteList: jest.fn().mockResolvedValue({ entries: NOTES }) })
+    await openAI()
+    const row = (await screen.findByText('feat/merged')).closest('.sb-ai-item') as HTMLElement
+    expect(row.className).not.toContain('sb-ai-item--orphan')
+    expect(within(row).getByText(/in main/)).toBeInTheDocument()
+    expect(within(row).queryByText(/gone/)).not.toBeInTheDocument()
+  })
+
+  test('its commits can be pointed at, however its branch ended', async () => {
+    const { props } = renderAI({}, { aiNoteList: jest.fn().mockResolvedValue({ entries: NOTES }) })
+    await openAI()
+    const row = (await screen.findByText('feat/merged')).closest('.sb-ai-item') as HTMLElement
+    await userEvent.click(within(row).getByRole('button', { name: /these 3 commits/i }))
+    expect(props.onShowCommits).toHaveBeenCalledWith(['ccc', 'ccd', 'cce'])
+    // and it does NOT open the reading — the chip is its own action
+    expect(props.onOpenNote).not.toHaveBeenCalled()
+  })
+
+  test('a reading whose commits are unreachable offers nothing to point at', async () => {
+    renderAI({}, { aiNoteList: jest.fn().mockResolvedValue({ entries: NOTES }) })
+    await openAI()
+    const gone = (await screen.findByText('WIP on main: half a logger'))
+      .closest('.sb-ai-item') as HTMLElement
+    expect(within(gone).queryByRole('button')).not.toBeInTheDocument()
   })
 
   test('a kept reading reopens by what it was keyed on, not by a position', async () => {

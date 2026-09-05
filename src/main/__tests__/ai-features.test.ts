@@ -335,11 +335,82 @@ describe('what the readings leave behind', () => {
     const { entries } = await noteList(raw, notes.store)
     // newest first
     expect(entries.map(e => e.key)).toEqual(['gone999', 'feat/x', 'working'])
-    expect(entries.find(e => e.key === 'feat/x')).toMatchObject({ newCommits: 3, orphan: false })
-    // a dropped stash is orphaned, not deleted — the reading is still worth something
-    expect(entries.find(e => e.key === 'gone999')).toMatchObject({ orphan: true })
+    expect(entries.find(e => e.key === 'feat/x')).toMatchObject({ newCommits: 3, subject: 'live' })
+    // a dropped stash: the stash list is what knows, and it is not in it
+    expect(entries.find(e => e.key === 'gone999')).toMatchObject({ subject: 'lost' })
     // the working tree is never "behind": it has nothing to be behind of
-    expect(entries.find(e => e.key === 'working')).toMatchObject({ newCommits: 0, orphan: false })
+    expect(entries.find(e => e.key === 'working')).toMatchObject({ newCommits: 0, subject: 'live' })
+  })
+
+  test('a merged branch has not disappeared — its commits are in the trunk', async () => {
+    // The reason this exists. `orphan` asked whether the NAME still resolved,
+    // so the ordinary, successful end of a branch — merge, then delete — was
+    // struck through as gone on the day its work landed.
+    const notes = fakeNotes([
+      { kind: 'branch', key: 'feat/done', title: 'feat/done', text: 'a', at: 1,
+        sha: 'tip111', baseSha: 'base000' },
+    ])
+    const raw = fakeGit({
+      'for-each-ref --contains tip111 --format=%(refname) refs/heads refs/remotes':
+        'refs/remotes/origin/HEAD\nrefs/remotes/origin/main\nrefs/heads/main\n'
+        + 'refs/heads/feat/other/very/long\n',
+      'rev-list --max-count=500 base000..tip111': 'tip111\nmid222\nfirst333\n',
+    }, ['rev-parse feat/done'])
+    const [e] = (await noteList(raw, notes.store)).entries
+    expect(e.subject).toBe('landed')
+    // the shortest local name — never `origin`, which is what
+    // refs/remotes/origin/HEAD shortens to and names a remote, not a branch
+    expect(e.landedIn).toBe('main')
+    // and the row can point at what it covered
+    expect(e.hashes).toEqual(['tip111', 'mid222', 'first333'])
+  })
+
+  test('a remote-only branch still counts as somewhere the work is', async () => {
+    const notes = fakeNotes([
+      { kind: 'branch', key: 'feat/pushed', title: 'feat/pushed', text: 'a', at: 1, sha: 'tip111' },
+    ])
+    const raw = fakeGit({
+      'for-each-ref --contains tip111 --format=%(refname) refs/heads refs/remotes':
+        'refs/remotes/origin/HEAD\nrefs/remotes/origin/feat/pushed\n',
+    }, ['rev-parse feat/pushed'])
+    const [e] = (await noteList(raw, notes.store)).entries
+    expect(e).toMatchObject({ subject: 'landed', landedIn: 'origin/feat/pushed' })
+  })
+
+  test('a branch force-pushed away is lost, and only that deserves a strike', async () => {
+    const notes = fakeNotes([
+      { kind: 'branch', key: 'feat/gone', title: 'feat/gone', text: 'a', at: 1, sha: 'orphan1' },
+    ])
+    // no ref resolves it, and nothing contains it
+    const raw = fakeGit({}, ['rev-parse feat/gone'])
+    const [e] = (await noteList(raw, notes.store)).entries
+    expect(e.subject).toBe('lost')
+    expect(e.hashes).toBeUndefined()
+  })
+
+  test('a reading kept before bases were stored still points at its tip', async () => {
+    const notes = fakeNotes([
+      { kind: 'branch', key: 'feat/old', title: 'feat/old', text: 'a', at: 1, sha: 'tip111' },
+    ])
+    const raw = fakeGit({ 'rev-parse feat/old': 'tip111\n' })
+    const [e] = (await noteList(raw, notes.store)).entries
+    expect(e.hashes).toEqual(['tip111'])
+  })
+
+  test('a branch reading remembers the base it was read against', async () => {
+    // Without it the commits it covered cannot be named once the branch is
+    // deleted — which is exactly when someone wants to see them.
+    const raw = fakeGit({
+      ...withTrunk,
+      'log --format=%s origin/main..feat/x': 'one\n',
+      'diff --stat origin/main...feat/x': ' a | 1 +\n',
+      'diff origin/main...feat/x': 'diff --git a/a b/a\n+one\n',
+      'rev-parse feat/x': 'tip111\n',
+      'rev-parse origin/main': 'base000\n',
+    })
+    const notes = fakeNotes()
+    await explainBranch(raw, fakeModel('a reading').run, 'feat/x', { store: notes.store })
+    expect(notes.kept[0]).toMatchObject({ sha: 'tip111', baseSha: 'base000' })
   })
 })
 

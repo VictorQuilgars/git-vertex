@@ -50,6 +50,14 @@ export interface NoteRecord {
    * was written and leaves the judgement there.
    */
   sha: string
+  /**
+   * The base the branch was read AGAINST, as a sha — so the commits the
+   * reading covered can still be pointed at once the branch itself is gone.
+   *
+   * Optional because readings kept before this existed have none; those fall
+   * back to their tip, which is one commit and still somewhere to look.
+   */
+  baseSha?: string
 }
 
 /** Where a host keeps them. Already scoped to one repository by the caller. */
@@ -60,12 +68,30 @@ export interface NoteStore {
   forget(kind: NoteRecord['kind'], key: string): Promise<void>
 }
 
+/**
+ * Where a reading's subject is now.
+ *
+ * This used to be one boolean, `orphan`, and it answered the wrong question:
+ * it asked whether the REF still existed. So a branch that was merged and then
+ * deleted — the ordinary, successful end of a branch — was struck through as
+ * gone on the very day its work landed. Nothing was lost; a name was. The
+ * commits are in the trunk, and the reading that describes them is still true.
+ *
+ * `lost` is the only one that deserves a strike: the commits themselves are
+ * unreachable — a branch force-pushed away, a stash dropped.
+ */
+export type SubjectState = 'live' | 'landed' | 'lost'
+
 /** A kept reading, measured against the repository as it stands now. */
 export interface NoteEntry extends NoteRecord {
   /** Its subject has moved since — for a branch, by this many commits. */
   newCommits: number
-  /** Its subject is gone: a dropped stash, a deleted branch. */
-  orphan: boolean
+  /** Where its subject went. */
+  subject: SubjectState
+  /** For `landed`: a ref that holds those commits now — `main`, `origin/main`. */
+  landedIn?: string
+  /** The commits it covered, newest first, so the graph can show them. */
+  hashes?: string[]
 }
 
 export interface ExplainOpts {
@@ -82,7 +108,8 @@ Promise<{ explanation?: string; base?: string; error?: string }> {
   if (!m.subjects.length && !m.diff.trim()) return { error: `${branch} carries nothing over ${m.base}` }
   const r = await run(explainBranchPrompt(branch, m.base, m.subjects, m.diffstat, m.diff, opts.guidance, opts.diff), 'explain')
   if (r.error) return { error: r.error }
-  await keep(raw, opts.store, { kind: 'branch', key: branch, title: branch, text: r.text ?? '' }, branch)
+  await keep(raw, opts.store,
+    { kind: 'branch', key: branch, title: branch, text: r.text ?? '' }, branch, m.base)
   return { explanation: r.text, base: m.base }
 }
 
@@ -115,10 +142,15 @@ Promise<{ explanation?: string; error?: string }> {
 /** Store a reading, if the host gave us somewhere to put it. */
 async function keep(
   raw: Raw, store: NoteStore | undefined,
-  note: Omit<NoteRecord, 'at' | 'sha'>, ref: string,
+  note: Omit<NoteRecord, 'at' | 'sha'>, ref: string, base?: string,
 ): Promise<void> {
   if (!store || !note.text.trim()) return
-  await store.set({ ...note, at: Date.now(), sha: ref ? await sha1(raw, ref) : '' })
+  await store.set({
+    ...note,
+    at: Date.now(),
+    sha: ref ? await sha1(raw, ref) : '',
+    ...(base ? { baseSha: await sha1(raw, base) } : {}),
+  })
 }
 
 const sha1 = async (raw: Raw, ref: string): Promise<string> => {
@@ -133,18 +165,98 @@ const sha1 = async (raw: Raw, ref: string): Promise<string> => {
 export async function noteList(raw: Raw, store: NoteStore): Promise<{ entries: NoteEntry[] }> {
   const out: NoteEntry[] = []
   for (const note of await store.all()) {
-    let newCommits = 0
-    let orphan = false
-    if (note.sha) {
-      const now = note.kind === 'branch' ? await sha1(raw, note.key) : await sha1(raw, note.sha)
-      if (!now) orphan = true
-      else if (now !== note.sha && note.kind === 'branch') {
-        newCommits = await countCommits(raw, note.sha, note.key)
-      }
-    }
-    out.push({ ...note, newCommits, orphan })
+    const where = await locate(raw, note.kind, note.key, note.sha)
+    const newCommits = where.state === 'live' && note.kind === 'branch' && note.sha
+      ? await countCommits(raw, note.sha, note.key)
+      : 0
+    out.push({
+      ...note,
+      newCommits,
+      subject: where.state,
+      ...(where.in ? { landedIn: where.in } : {}),
+      ...(where.state === 'lost' ? {} : { hashes: await covered(raw, note.baseSha, note.sha) }),
+    })
   }
   return { entries: out.sort((a, b) => b.at - a.at) }
+}
+
+/**
+ * Where a reading's subject is, asked of the COMMITS rather than of the name.
+ *
+ * A branch is `live` while its name resolves. Once it does not, the question
+ * is whether the work survived it — which is what `--contains` answers, and
+ * what tells a merge apart from a force-push.
+ */
+async function locate(
+  raw: Raw, kind: NoteRecord['kind'], key: string, sha: string,
+): Promise<{ state: SubjectState; in?: string }> {
+  // The working tree has no sha: it is stale the moment anything is typed,
+  // and it is never gone.
+  if (!sha) return { state: 'live' }
+  if (kind === 'stash') {
+    // `rev-parse` is not the test here: a dropped stash's commit still
+    // resolves until gc runs, so asking it says "alive" for hours. The stash
+    // list is the only thing that knows.
+    const list = await raw(['stash', 'list', '--format=%H']).catch(() => '')
+    return list.split('\n').some(l => l.trim() === sha)
+      ? { state: 'live' } : { state: 'lost' }
+  }
+  if (await sha1(raw, key)) return { state: 'live' }
+  const holder = await containedIn(raw, sha)
+  return holder ? { state: 'landed', in: holder } : { state: 'lost' }
+}
+
+/**
+ * A ref that holds this commit now, or ''.
+ *
+ * The shortest name wins, local before remote — `main` over `origin/main` over
+ * `feat/some/long/name`. It is a label on a row, not a claim about topology:
+ * "the work is in main" is what the reader needs, and the longest of five
+ * branch names that all contain it says nothing.
+ */
+async function containedIn(raw: Raw, sha: string): Promise<string> {
+  try {
+    const out = await raw([
+      'for-each-ref', '--contains', sha, '--format=%(refname)',
+      'refs/heads', 'refs/remotes',
+    ])
+    const named: Array<{ name: string; local: boolean }> = []
+    for (const line of out.split('\n')) {
+      const ref = line.trim()
+      if (ref.startsWith('refs/heads/')) {
+        named.push({ name: ref.slice('refs/heads/'.length), local: true })
+      } else if (ref.startsWith('refs/remotes/')) {
+        const short = ref.slice('refs/remotes/'.length)
+        // `refs/remotes/origin/HEAD` shortens to `origin`, which names a
+        // remote and not a branch — a row saying "in origin" says nothing.
+        if (short.includes('/') && !short.endsWith('/HEAD')) named.push({ name: short, local: false })
+      }
+    }
+    if (!named.length) return ''
+    named.sort((a, b) =>
+      Number(b.local) - Number(a.local) || a.name.length - b.name.length || a.name.localeCompare(b.name))
+    return named[0].name
+  } catch { return '' }
+}
+
+/** How many commits a row may hand the graph. A branch is not a history. */
+const COVERED_MAX = 500
+
+/**
+ * The commits a reading covered, so the graph can show them.
+ *
+ * `base..tip` still answers after the branch is deleted — both ends are
+ * ordinary commits, and a merge keeps them. Without a base (a reading kept
+ * before one was stored, or a stash) the tip alone is still somewhere to look.
+ */
+async function covered(raw: Raw, baseSha?: string, sha?: string): Promise<string[]> {
+  if (!sha) return []
+  if (!baseSha) return [sha]
+  try {
+    const out = await raw(['rev-list', `--max-count=${COVERED_MAX}`, `${baseSha}..${sha}`])
+    const list = out.split('\n').map(s => s.trim()).filter(Boolean)
+    return list.length ? list : [sha]
+  } catch { return [sha] }
 }
 
 /**
@@ -218,8 +330,13 @@ export interface ChangelogStore {
 export interface ChangelogEntry extends ChangelogRecord {
   branch: string
   newCommits: number
-  /** The branch is gone — merged and pruned, or deleted. */
-  orphan: boolean
+  /** Where the branch went — see SubjectState. "Merged and pruned" and
+   *  "force-pushed away" were one state here, and they are opposites. */
+  subject: SubjectState
+  /** For `landed`: a ref that holds those commits now. */
+  landedIn?: string
+  /** The commits this changelog was written from, newest first. */
+  hashes?: string[]
 }
 
 export interface ChangelogState {
@@ -268,12 +385,21 @@ export async function changelogList(raw: Raw, store: ChangelogStore): Promise<{ 
     const { branch } = readChangelogKey(key)
     const head = await sha(raw, branch)
     // A branch that no longer exists keeps its text — deleting someone's
-    // changelog because they deleted the branch would be a surprise. The row
-    // says so instead, and the insert refuses without being asked twice.
+    // changelog because they deleted the branch would be a surprise. And a
+    // branch that is gone because it MERGED is not gone at all: its commits
+    // are in the trunk, which is where this row now points.
     const newCommits = head && record.headSha && head !== record.headSha
       ? await countCommits(raw, record.headSha, branch)
       : 0
-    entries.push({ ...record, branch, newCommits, orphan: !head })
+    const where = head
+      ? { state: 'live' as SubjectState, in: undefined }
+      : await locate(raw, 'branch', branch, record.headSha)
+    entries.push({
+      ...record, branch, newCommits,
+      subject: where.state,
+      ...(where.in ? { landedIn: where.in } : {}),
+      ...(where.state === 'lost' ? {} : { hashes: await covered(raw, record.baseSha, record.headSha) }),
+    })
   }
   return { entries: entries.sort((a, b) => b.at - a.at) }
 }
