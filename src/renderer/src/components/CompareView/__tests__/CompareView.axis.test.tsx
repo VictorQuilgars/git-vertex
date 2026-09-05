@@ -123,3 +123,15 @@ test('a commit hash remains visible in the selector and the host receives compar
   await userEvent.click(screen.getByRole('button', { name: /end to end/i }))
   await waitFor(() => expect(change).toHaveBeenLastCalledWith(hash, 'feature', 'endpoints'))
 })
+
+test('a comparison git refuses says so, and Retry asks again', async () => {
+  const api = render({
+    diffBetweenCommits: jest.fn()
+      .mockResolvedValueOnce({ diff: '', error: 'fatal: bad revision' })
+      .mockResolvedValue({ diff: '' }),
+  })
+  expect(await screen.findByRole('alert')).toHaveTextContent('fatal: bad revision')
+  await userEvent.click(screen.getByRole('button', { name: /retry/i }))
+  await waitFor(() => expect(api.diffBetweenCommits).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+})

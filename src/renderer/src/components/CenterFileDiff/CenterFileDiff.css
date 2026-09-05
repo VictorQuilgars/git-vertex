@@ -113,6 +113,16 @@
   text-align: center;
 }
 
+.cfd-error--load {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+}
+.cfd-retry {
+  flex-shrink: 0;
+  background: transparent; border: 1px solid var(--danger); border-radius: var(--radius-sm);
+  color: var(--danger); font-size: var(--text-xs);
+  padding: var(--space-2xs) var(--space-md); cursor: pointer;
+}
+.cfd-retry:hover { background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); }
 .cfd-error {
   padding: var(--space-sm) var(--space-xl);
   background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent);

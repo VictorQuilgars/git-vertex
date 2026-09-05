@@ -76,6 +76,10 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
   const [pickedDiff, setPickedDiff] = useState<{ diff: string; files: FileChange[]; loading: boolean }>(
     { diff: '', files: [], loading: false })
   const [loading, setLoading] = useState(false)
+  // A comparison git refused, kept apart from one with nothing in it: the
+  // catch below used to swallow the refusal and leave the empty lists up.
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   // This view is its own tab with no host around it, so it resolves the remote
   // itself rather than being handed one.
   const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
@@ -112,6 +116,7 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
     if (!refA || !refB) { setAhead([]); setBehind([]); setDiff(''); setFiles([]); setMergeBase(null); return }
     let stale = false
     setLoading(true)
+    setLoadError(null)
     Promise.all([
       // The working tree has no commits of its own, so there is no ahead/behind
       // to draw against it — only a diff.
@@ -121,14 +126,22 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
       against === null ? Promise.resolve({ base: null }) : api.getMergeBase(refA, against).catch(() => ({ base: null })),
     ]).then(([cmp, d, f, mb]: any[]) => {
       if (stale) return
+      const refused = cmp?.error || d?.error || f?.error
+      if (refused) {
+        setLoadError(String(refused))
+        setAhead([]); setBehind([]); setDiff(''); setFiles([]); setMergeBase(null)
+        return
+      }
       setAhead(cmp?.ahead ?? [])
       setBehind(cmp?.behind ?? [])
       setDiff(d?.diff ?? '')
       setFiles(f?.files ?? [])
       setMergeBase(mb?.base ?? null)
-    }).catch(() => { /* invalid ref */ }).finally(() => { if (!stale) setLoading(false) })
+    }).catch((e: unknown) => {
+      if (!stale) setLoadError(e instanceof Error ? e.message : String(e))
+    }).finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
-  }, [refA, refB, against, axis])
+  }, [refA, refB, against, axis, loadAttempt])
 
   useEffect(() => {
     if (!refA || !refB) return
@@ -283,6 +296,11 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
 
       {!ready ? (
         <div className="cv-empty">{t('cv.chooseTwo')}</div>
+      ) : loadError ? (
+        <div className="cv-error" role="alert">
+          <span>{t('cv.loadFailed', loadError)}</span>
+          <button className="cv-retry" onClick={() => setLoadAttempt(n => n + 1)}>{t('common.retry')}</button>
+        </div>
       ) : (
         <div className="cv-body">
           <div className="cv-left" style={{ width: leftW }}>

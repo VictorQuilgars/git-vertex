@@ -62,6 +62,24 @@ describe('GitService', () => {
     })
   })
 
+  describe('a failed read is not an empty diff', () => {
+    test('getDiff on a commit that does not exist says why', async () => {
+      const r = await git.getDiff('0123456789abcdef0123456789abcdef01234567')
+      expect(r.diff).toBe('')
+      expect(r.error).toBeTruthy()
+    })
+
+    test('getWorkingFileDiff with a pathspec git refuses says why', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync('git add a.txt && git commit -m a', { cwd: tempDir })
+      const ok = await git.getWorkingFileDiff('a.txt', false)
+      expect(ok.error).toBeUndefined()
+      const bad = await git.getWorkingFileDiff(':(bogus)a.txt', false)
+      expect(bad.diff).toBe('')
+      expect(bad.error).toMatch(/pathspec/i)
+    })
+  })
+
   describe('getLastCommitMessage', () => {
     test('returns the message and the hash of the commit that carries it', async () => {
       fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
