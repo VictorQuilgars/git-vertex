@@ -1,4 +1,6 @@
-import { splitDiff, shareBudget, renderDiff, fileMap, detailFor, detailKey } from '../ai-diff'
+import {
+  splitDiff, shareBudget, renderDiff, fileMap, detailFor, detailKey, SUMMARY_CAVEAT,
+} from '../ai-diff'
 
 // The failure this replaces: `diff.slice(0, 6000)`. On a branch touching forty
 // files that is the first two IN FULL and nothing at all of the rest — a
@@ -100,7 +102,17 @@ describe('renderDiff', () => {
     const out = renderDiff(big, { detail: 'summary' })
     expect(out).toContain('+400')
     expect(out).not.toContain('+line 3 of src/huge.ts')
-    expect(out).toContain('not a sample')
+    expect(out).toContain(SUMMARY_CAVEAT)
+  })
+
+  test('summary forbids the claim it cannot support, rather than describing itself', () => {
+    // Measured: over a map alone, asked "which behaviours change", a model
+    // answers anyway — it called a retry that had stopped propagating its
+    // error "safely managing execution failures", having seen `+3 −6`. A note
+    // saying the bodies are missing does not stop that; an instruction does.
+    expect(SUMMARY_CAVEAT).toMatch(/Do not say what any\s+code now does/)
+    expect(SUMMARY_CAVEAT).toContain('do not name a behaviour')
+    expect(renderDiff(big, { detail: 'summary' })).toContain('do not name a behaviour')
   })
 
   test('full is everything, budget or no budget', () => {

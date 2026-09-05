@@ -120,6 +120,32 @@ export function shareBudget(sizes: number[], budget: number): number[] {
 }
 
 /**
+ * What the model is told when it gets the map and no bodies.
+ *
+ * Measured, not assumed: asked "which behaviours change" over a map alone, a
+ * model answers the question rather than declining it — on a branch whose
+ * `retry()` had just stopped propagating its error, the summary reading called
+ * it "safely managing execution failures". It had seen `src/retry.js +3 −6`
+ * and nothing else. The material said the bodies were absent; the prompt still
+ * asked for behaviour, and the model resolved the contradiction by inventing.
+ *
+ * So the caveat is an instruction rather than a note, and it lives here rather
+ * than in each prompt: this is the one place that knows the bodies were
+ * withheld, and it covers all ten call sites, both products, including the
+ * four prompts that still live in a copy per product.
+ */
+export const SUMMARY_CAVEAT = [
+  '[bodies not shown. You have the list of files and how many lines each gained',
+  'and lost — nothing of their contents. Describe the SHAPE of the change: what',
+  'it touches, where its weight is, what its messages claim. Do not say what any',
+  'code now does and do not name a behaviour, changed or preserved: you have not',
+  'read a line of it. Where the commit messages are your only evidence, say so.]',
+].join('\n')
+
+/** A share smaller than this cannot carry a line of the change itself. */
+const MIN_BODY = 160
+
+/**
  * A diff, rendered at the detail asked for.
  *
  * The map is always there. What changes is how much of each file's body goes
@@ -127,9 +153,6 @@ export function shareBudget(sizes: number[], budget: number): number[] {
  * says how many lines it dropped, so the model can say what it did not read
  * instead of guessing past it.
  */
-/** A share smaller than this cannot carry a line of the change itself. */
-const MIN_BODY = 160
-
 export function renderDiff(
   diff: string, opts: { detail?: DiffDetail; budget?: number } = {},
 ): string {
@@ -146,9 +169,7 @@ export function renderDiff(
   }
 
   const head = `Files changed (${files.length}):\n${fileMap(files)}`
-  if (detail === 'summary') {
-    return `${head}\n\n[bodies not shown — this is the summary of the change, not a sample of it]`
-  }
+  if (detail === 'summary') return `${head}\n\n${SUMMARY_CAVEAT}`
   if (detail === 'full') {
     return `${head}\n\n${files.map(f => f.body).join('\n')}`
   }
