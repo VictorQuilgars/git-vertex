@@ -1424,6 +1424,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         {t('settings.save')}
                       </button>
                     </div>
+                    {isSecretMask(githubToken) && <p className="stg-secret-hint">{t('settings.secretHeld')}</p>}
                     <p className="stg-desc" style={{ marginTop: 6 }}>{t('settings.github.patHint')}</p>
                   </div>
                 )}
@@ -1516,6 +1517,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                               aria-label={t('settings.ai.apiKey', p.label)}
                               onChange={e => setAiKeys(k => ({ ...k, [p.id]: e.target.value }))}
                               onBlur={e => { if (e.target.value) fetchModels(p.id, e.target.value) }}
+                              title={isSecretMask(key) ? t('settings.secretHeld') : undefined}
                               placeholder={p.keyPlaceholder}
                             />
                             <button type="button" className="stg-eye" onClick={() => setShowKeyFor(v => v === p.id ? null : p.id)}

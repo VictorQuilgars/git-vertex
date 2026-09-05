@@ -1049,6 +1049,7 @@ const fr = {
   // Compare / stash modals
   'common.loading': 'Chargement…',
   'common.retry': 'Réessayer',
+  'view.failed': 'Cette vue a rencontré une erreur. Le reste de l\'application fonctionne.',
   'compare.titlePre': 'Comparaison : ',
   'compare.vsWorking': 'répertoire de travail',
   'compare.workingTree': 'Répertoire de travail',
@@ -2519,12 +2520,12 @@ const en: typeof fr = {
   // Settings
   'settings.title': 'Settings',
   'settings.back': 'Back',
-  'settings.notifications': 'Notifications',
   'settings.search': 'Search settings…',
   'settings.searchNone': 'No setting matches',
   'settings.secretHeld': 'Held by the app, encrypted. Enter a new value to replace it, clear the field to remove it.',
   'settings.themes.showAll': (n: number) => `Show all ${n} built-in themes`,
   'settings.themes.showFewer': 'Show fewer',
+  'settings.notifications': 'Notifications',
   'settings.profile': 'Profile',
   'settings.defaultProfile': 'Default Profile',
   'settings.save': 'Save',
@@ -2839,6 +2840,7 @@ const en: typeof fr = {
   // Compare / stash modals
   'common.loading': 'Loading…',
   'common.retry': 'Retry',
+  'view.failed': 'This view ran into an error. The rest of the app keeps working.',
   'compare.titlePre': 'Comparison: ',
   'compare.vsWorking': 'working tree',
   'compare.workingTree': 'Working tree',

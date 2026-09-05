@@ -13,6 +13,8 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **The keyboard reaches the menus, the tabs and the rebase**: arrows over a context menu's rows, Right into a submenu, Left back; arrows across the tab strip; two arrows per rebase row. The rebase editor says what the plan comes to, and whether a force push follows.
 - **The graph says how much history it holds** — *500 commits loaded*, and *Load 500 more* in the status bar. A **Working changes** row above the sidebar's lists is always there, and counts them.
 - **A diff git could not read is no longer "No differences"**: the reason is shown, with a Retry. And the auto-fetch has one owner, which reports.
+- **Tokens and API keys are held in the system's protected storage**, and the window never receives them — the settings page shows *configured*, not the value. The window runs in Chromium's sandbox, and the built page does not allow \`eval\`.
+- **A search box above the settings**, and a view that fails says so in its own pane rather than taking the window with it.
 
 ### 🎚 Reply length, per feature
 - Every AI call carried a ceiling nobody could see or change — 512 tokens for a commit message, 8192 for a conflict resolution. One control each in **Settings › AI Assistant** now: *Standard*, *Generous*, *Maximum*.

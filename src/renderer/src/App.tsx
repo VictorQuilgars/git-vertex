@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useWindowWidth } from './hooks/useWindowWidth'
 import { detailsTakeCenter } from './utils/layout'
 import { Icon } from './components/Icon/Icon'
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope, type CompareAxis } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
@@ -2816,6 +2817,9 @@ export default function App() {
         {repoPath && !viewTab && <div className="resize-handle" onMouseDown={startResizeSidebar} />}
 
         <div className="app-center">
+          {/* Fenced: a view that throws says so in its own pane, and the tabs,
+              the sidebar and the toolbar stay up. */}
+          <ErrorBoundary>
           {conflictResolverFile ? (
             <ConflictResolver
               file={conflictResolverFile}
@@ -3069,6 +3073,7 @@ export default function App() {
               onSearchMatches={setSearchMatches}
             />
           )}
+          </ErrorBoundary>
         </div>
 
         {repoPath && !rebaseHash && !viewTab && !issueDetail && (selectedCommit || conflictMode) && (
@@ -3080,6 +3085,7 @@ export default function App() {
                   <Icon name="chevronLeft" size={14} /> {t('cfd.backToGraph')}
                 </button>
               )}
+              <ErrorBoundary>
               <RightPanel
                 repoPath={repoPath}
                 onCompareWorking={(hash) => openViewTab({ view: 'compare', a: hash, b: null, label: `${hash.slice(0, 7)} → ${t('cv.workingTree')}` })}
@@ -3117,6 +3123,7 @@ export default function App() {
                 onSplitCommits={() => setComposerOpen(true)}
                 branchStrip={branchStripProps}
               />
+              </ErrorBoundary>
             </div>
           </>
         )}
