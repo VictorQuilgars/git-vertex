@@ -103,6 +103,9 @@ describe('the guided explanation', () => {
     const aiExplainCommit = jest.fn().mockResolvedValue({ explanation: 'because' })
     const { api } = render({}, { aiExplainCommit })
     await screen.findByText('tailwind.config.ts')
+    // The field is asked for, not offered: the caret beside Explain reveals it.
+    expect(document.querySelector('.cd-explain-input')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Add guidance to the explanation' }))
     const field = document.querySelector('.cd-explain-input') as HTMLInputElement
     await userEvent.type(field, 'focus on the config{Enter}')
     await waitFor(() =>
@@ -122,11 +125,17 @@ describe('the message zone', () => {
     expect(write.mock.calls[0][0]).toContain('See #12.')
   })
 
-  test('a message with no reference says No Autolinks Found', async () => {
-    render({}, { getCommitBody: jest.fn().mockResolvedValue({ body: '' }) })
+  test('a message with no reference says No Autolinks Found, where one could have been', async () => {
+    const plain = { ...COMMIT, message: 'feat: something' }
+    render({ selectedCommit: plain, githubRepo: { owner: 'o', repo: 'r' } }, { getCommitBody: jest.fn().mockResolvedValue({ body: '' }) })
+    expect(await screen.findAllByText(/No autolinks found|Aucune référence/i)).toBeTruthy()
+  })
+
+  test('with no GitHub remote and no autolink rule there is nothing to find, and it says nothing', async () => {
     const plain = { ...COMMIT, message: 'feat: something' }
     render({ selectedCommit: plain }, { getCommitBody: jest.fn().mockResolvedValue({ body: '' }) })
-    expect(await screen.findAllByText(/No autolinks found|Aucune référence/i)).toBeTruthy()
+    await screen.findByText('tailwind.config.ts')
+    expect(screen.queryByText(/No autolinks found|Aucune référence/i)).not.toBeInTheDocument()
   })
 
   test('a message that references an issue does not say it', async () => {

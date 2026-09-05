@@ -107,7 +107,48 @@ suite('host parity — desktop preload vs extension host', () => {
   // The signature half of the problem: a method can exist on both sides and
   // still do the wrong thing quietly, which is worse than not-implemented.
   // pull() ignoring its strategy and createStash() ignoring its scope both
-  // shipped that way. These are the arities the shared renderer relies on.
+  // shipped that way. A method the host forwards reflectively to gitService
+  // receives every argument the preload sends, so a service method with FEWER
+  // parameters than the preload declares is ignoring one — and doing something
+  // else than what was asked, successfully.
+  test('a forwarded method accepts every parameter the preload sends', function () {
+    if (!preload) { this.skip(); return }
+    const service = fs.readFileSync(EXT_SERVICE, 'utf8')
+    const explicit = hostCases(fs.readFileSync(EXT_HOST, 'utf8'))
+    const paramCount = (list: string): number => {
+      let depth = 0, commas = 0
+      for (const ch of list) {
+        if ('([{<'.includes(ch)) depth++
+        else if (')]}>'.includes(ch)) depth--
+        else if (ch === ',' && depth === 0) commas++
+      }
+      return list.trim() ? commas + 1 : 0
+    }
+    const parenBody = (src: string, open: number): string => {
+      let depth = 0
+      for (let i = open; i < src.length; i++) {
+        if (src[i] === '(') depth++
+        else if (src[i] === ')' && --depth === 0) return src.slice(open + 1, i)
+      }
+      return ''
+    }
+    const members = (src: string, re: RegExp): Map<string, number> => {
+      const out = new Map<string, number>()
+      let m: RegExpExecArray | null
+      while ((m = re.exec(src))) out.set(m[1], paramCount(parenBody(src, m.index + m[0].length - 1)))
+      return out
+    }
+    const sent = members(preload.slice(preload.indexOf('const gitAPI = {')), /^\s{2}([a-zA-Z][A-Za-z0-9_]*)\s*:\s*\(/gm)
+    const accepted = members(service, /^\s{2}(?:async\s+)?([a-zA-Z][A-Za-z0-9_]*)\s*\(/gm)
+    const short = [...sent]
+      .filter(([name]) => accepted.has(name) && !explicit.has(name))
+      .filter(([name, n]) => accepted.get(name)! < n)
+      .map(([name, n]) => `${name}: the preload sends ${n} argument(s), gitService accepts ${accepted.get(name)}`)
+    assert.deepStrictEqual(short, [])
+  })
+
+  // The two that shipped wrong, by name — the count above cannot tell a
+  // parameter that is there from one that is read.
   test('ported methods keep the signature the shared renderer calls', () => {
     const service = fs.readFileSync(EXT_SERVICE, 'utf8')
     const arityOf = (name: string): string | null =>

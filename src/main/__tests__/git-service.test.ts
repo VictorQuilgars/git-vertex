@@ -1,7 +1,15 @@
 import { GitService } from '../git-service'
+import { MIN_GIT_FOR_CONFLICT_PREDICTION, isGitVersionAtLeast, parseGitVersion } from '../git-version'
 import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
+
+// `merge-tree --merge-base` landed in git 2.40, and macOS ships 2.39: on a
+// machine whose PATH resolves to Apple's git the prediction tests cannot pass,
+// and used to fail as if the code were wrong. They are skipped there, by name,
+// so the run says what it did not check rather than what it found broken.
+const gitVersion = parseGitVersion(execSync('git --version').toString()) ?? '0'
+const describeWithMergeTree = isGitVersionAtLeast(gitVersion, MIN_GIT_FOR_CONFLICT_PREDICTION) ? describe : describe.skip
 
 describe('GitService', () => {
   let tempDir: string
@@ -54,14 +62,6 @@ describe('GitService', () => {
     })
   })
 
-  describe('checkRepo', () => {
-    test('should succeed for a valid git repo', async () => {
-      await expect(git.checkRepo()).resolves.not.toThrow()
-    })
-
-    test('should throw for non-git directory', async () => {
-      const invalidDir = `/tmp/not-a-repo-${Date.now()}`
-      fs.mkdirSync(invalidDir, { recursive: true })
   describe('getLastCommitMessage', () => {
     test('returns the message and the hash of the commit that carries it', async () => {
       fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
@@ -73,6 +73,14 @@ describe('GitService', () => {
     })
   })
 
+  describe('checkRepo', () => {
+    test('should succeed for a valid git repo', async () => {
+      await expect(git.checkRepo()).resolves.not.toThrow()
+    })
+
+    test('should throw for non-git directory', async () => {
+      const invalidDir = `/tmp/not-a-repo-${Date.now()}`
+      fs.mkdirSync(invalidDir, { recursive: true })
       const invalidGit = new GitService(invalidDir)
       await expect(invalidGit.checkRepo()).rejects.toThrow()
       fs.rmSync(invalidDir, { recursive: true })
@@ -416,7 +424,7 @@ describe('GitService', () => {
   // Conflict prediction (dry-run, never touches the working tree)
   // ─────────────────────────────────────────────────────────────────────
 
-  describe('conflict prediction', () => {
+  describeWithMergeTree(`conflict prediction (git ≥ ${MIN_GIT_FOR_CONFLICT_PREDICTION}, have ${gitVersion})`, () => {
     test('predictConflicts: clean merge predicts no files', async () => {
       fs.writeFileSync(path.join(tempDir, 'file.txt'), 'base')
       execSync(`cd ${tempDir} && git add . && git commit -m base`)

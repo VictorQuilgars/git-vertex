@@ -19,6 +19,7 @@ import {
 } from './git-service'
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { ThemeStore } from './theme-store'
+import { isSafeExternalUrl } from './external-url'
 import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
 import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
 import { callProvider } from './ai-call'
@@ -309,7 +310,7 @@ function createWindow(): void {
   mainWindow.on('leave-full-screen', sendFullscreen)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    if (isSafeExternalUrl(details.url)) shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
@@ -2414,8 +2415,13 @@ ipcMain.handle('git:set-global-config', async (_e, userName: string, userEmail: 
   } catch (e: any) { return { success: false, error: e.message } }
 })
 
-ipcMain.handle('app:open-external', (_e, url: string) => {
-  shell.openExternal(url)
+ipcMain.handle('app:open-external', async (_e, url: string) => {
+  // A remote URL, an issue body, a README: none of it is ours. Only the web
+  // schemes and mail reach the OS; a `file:` or a custom scheme would open a
+  // file or launch a program on a click that only promised a browser.
+  if (!isSafeExternalUrl(url)) return { success: false, error: `Refusing to open ${String(url).slice(0, 80)}` }
+  await shell.openExternal(url)
+  return { success: true }
 })
 
 // Open a repo file in an external editor. Uses the configured `externalEditor`

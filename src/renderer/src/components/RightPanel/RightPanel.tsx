@@ -441,6 +441,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   // by git's own identity, which is the one the commits carry.
   const [isSelf, setIsSelf] = useState(false)
   const [explainGuidance, setExplainGuidance] = useState('')
+  const [guidanceOpen, setGuidanceOpen] = useState(false)
   const [cdFileFilter, setCdFileFilter] = useState('')
   useEffect(() => {
     let alive = true
@@ -665,8 +666,11 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
               <p className="cd-title">{linkifyIssues(commit.message, githubRepo, autolinks)}</p>
               {cleanBody && <pre className="cd-body">{linkifyIssues(cleanBody, githubRepo, autolinks)}</pre>}
               {/* The honest empty state: the references line says when there is
-                  nothing on it, instead of silently being absent. */}
-              {!hasIssueReferences(commit.message + '\n' + cleanBody, githubRepo, autolinks) && (
+                  nothing on it, instead of silently being absent — but only
+                  where a reference could have been: with no GitHub remote and
+                  no autolink rule there is nothing to find, and saying so on
+                  every commit is noise in the one place height is scarce. */}
+              {(githubRepo || autolinks.length > 0) && !hasIssueReferences(commit.message + '\n' + cleanBody, githubRepo, autolinks) && (
                 <div className="cd-no-autolinks">
                   <Icon name="info" size={12} />{t('panel.noAutolinks')}
                 </div>
@@ -802,22 +806,36 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           )}
 
           {/* Explain, inline. The guidance is real — it reaches the prompt —
-              which is the only reason the field exists. Outlined in the
-              model's colour, never filled: it is a proposal, not the pane. */}
+              which is the only reason the field exists; it is asked for, not
+              offered, because most explanations need none and the empty field
+              took a full row from every commit. Outlined in the model's
+              colour, never filled: it is a proposal, not the pane. */}
           <div className="cd-explain-row">
-            <input
-              className="cd-explain-input"
-              placeholder={t('panel.explainGuidance')}
-              value={explainGuidance}
-              onChange={e => setExplainGuidance(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !aiBusy) runAiExplain(true, explainGuidance)
-              }}
-            />
+            {guidanceOpen && (
+              <input
+                className="cd-explain-input"
+                placeholder={t('panel.explainGuidance')}
+                value={explainGuidance}
+                autoFocus
+                onChange={e => setExplainGuidance(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !aiBusy) runAiExplain(true, explainGuidance)
+                }}
+              />
+            )}
             <button className="cd-explain-btn" disabled={aiBusy}
               onClick={() => runAiExplain(true, explainGuidance)}>
               <Icon name="ai" size={12} />
               <span>{aiBusy ? '…' : t('panel.explainBtn')}</span>
+            </button>
+            <button
+              className={`cd-explain-more${guidanceOpen ? ' cd-explain-more--open' : ''}`}
+              title={t('panel.explainGuidanceToggle')}
+              aria-label={t('panel.explainGuidanceToggle')}
+              aria-pressed={guidanceOpen}
+              onClick={() => setGuidanceOpen(o => !o)}
+            >
+              <Icon name="chevronDown" size={11} />
             </button>
           </div>
 
@@ -1204,7 +1222,14 @@ function StagingView({ repoPath, onCommitSuccess, showToast, currentBranch, conf
     }))
   }, [updateDraft])
 
+  // An amend armed for a commit that is no longer HEAD — after a restart, or a
+  // commit made from a terminal while the box was checked — is disarmed rather
+  // than allowed to rewrite whatever HEAD has become with a message meant for
+  // another commit. Re-checked whenever the repository reports a change.
+  const amendHead = draft.amendHead
+  const [headTick, setHeadTick] = useState(0)
   useEffect(() => {
+    if (!amend) { setAmendFiles([]); return }
     let active = true
     Promise.all([window.gitAPI.getLastCommitMessage(), window.gitAPI.getCommitFiles('HEAD')]).then(([head, r]) => {
       if (!active) return
@@ -1227,14 +1252,7 @@ function StagingView({ repoPath, onCommitSuccess, showToast, currentBranch, conf
   useEffect(() => {
     const handler = () => { load(); setHeadTick(n => n + 1) }
     const offRepo = window.gitAPI.onRepoChanged(handler)
-  // An amend armed for a commit that is no longer HEAD — after a restart, or a
-  // commit made from a terminal while the box was checked — is disarmed rather
-  // than allowed to rewrite whatever HEAD has become with a message meant for
-  // another commit. Re-checked whenever the repository reports a change.
-  const amendHead = draft.amendHead
-  const [headTick, setHeadTick] = useState(0)
     const offWorking = window.gitAPI.onWorkingChanged(handler)
-    if (!amend) { setAmendFiles([]); return }
     return () => { offRepo(); offWorking() }
   }, [load])
 
