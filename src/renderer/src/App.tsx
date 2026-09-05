@@ -2700,6 +2700,12 @@ export default function App() {
               githubLogin={githubLogin}
               githubRepo={githubOwnerRepo}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
+              wipCount={wipCount}
+              wipSelected={selectedCommit?.hash === '__WIP__'}
+              onViewWip={() => setSelectedCommit({
+                hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
+                author: '', authorEmail: '', date: '', parents: [], refs: []
+              })}
               repoPath={repoPath}
               repoName={repoName}
               currentBranch={currentBranch}
@@ -2837,13 +2843,13 @@ export default function App() {
               embedded
               baseHash={rebaseHash}
               initialPlan={rebasePlanProposal ?? undefined}
+              unpushedCount={branches.find(b => b.current && !b.remote)?.ahead}
               onClose={() => { setRebaseHash(null); setRebasePlanProposal(null) }}
               onSuccess={loadRepoData}
               showToast={showToast}
             />
           ) : viewTab && activeTab?.path && activeTab.path !== repoPath ? (
             <div role="status">{t('common.loading')}</div>
-              unpushedCount={branches.find(b => b.current && !b.remote)?.ahead}
           ) : viewTab ? (
             viewTab.view === 'compare' ? (
               <CompareView
@@ -3126,15 +3132,15 @@ export default function App() {
           lastFetchTime={lastFetchTime}
           loading={loading}
           onFetch={handleFetch}
+          commitCount={commits.length}
+          historyTruncated={commits.length >= logLimit}
+          onLoadMore={loadMoreHistory}
         />
       )}
 
       {/* Command Palette */}
       {paletteOpen && (
         <CommandPalette
-          commitCount={commits.length}
-          historyTruncated={commits.length >= logLimit}
-          onLoadMore={loadMoreHistory}
           commands={buildPaletteCommands()}
           onClose={() => setPaletteOpen(false)}
         />

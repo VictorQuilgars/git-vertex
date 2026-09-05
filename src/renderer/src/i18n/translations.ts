@@ -1250,6 +1250,7 @@ const fr = {
   'sb.recents': 'RÉCENTS',
   'sb.removeRecent': 'Retirer',
   'sb.filterBranches': 'Filtrer les branches…',
+  'sb.workingChanges': 'Modifications en cours',
   'sb.newBranch': 'Nouvelle branche',
   'sb.noLocalBranch': 'Aucune branche locale',
   'sb.reflogEmpty': 'Reflog vide',
@@ -1429,12 +1430,12 @@ const fr = {
   'ir.planBanner': 'Plan proposé par un agent — vérifiez chaque action et message avant de lancer le rebase.',
   'ir.noCommits': 'Aucun commit à rebaser',
   'ir.dragHandle': 'Glisser pour réordonner',
-
   'ir.moveUp': 'Monter',
   'ir.moveDown': 'Descendre',
   'ir.summary': (total: number, resulting: number, folded: number, dropped: number, reworded: number) =>
     `Réécrit ${total} commit${total === 1 ? '' : 's'} en ${resulting} : ${folded} fusionné${folded === 1 ? '' : 's'} dans un autre, ${dropped} supprimé${dropped === 1 ? '' : 's'}, ${reworded} reformulé${reworded === 1 ? '' : 's'}.`,
   'ir.published': (n: number) => `${n} d'entre eux ${n === 1 ? 'est déjà' : 'sont déjà'} sur l'upstream : la branche devra ensuite être poussée en force.`,
+
   // Toasts
   'toast.fetchOk': 'Fetch réussi',
   'toast.fetchErr': (e: string) => `Fetch échoué : ${e}`,
@@ -1988,10 +1989,10 @@ const en: typeof fr = {
   'statusbar.ahead': (n: number) => `${n} commit(s) ahead of remote`,
   'statusbar.behind': (n: number) => `${n} commit(s) behind remote`,
   'statusbar.zoomReset': 'Reset zoom (100%)',
-  'toolbar.autoFetch.tooltip': 'Auto-fetch active (every 5 min)',
   'statusbar.commitsLoaded': (n: number) => `${n} commits loaded`,
   'statusbar.loadMore': (n: number) => `Load ${n} more`,
   'statusbar.historyScope': 'The graph and its search cover the commits loaded so far, newest first.',
+  'toolbar.autoFetch.tooltip': 'Auto-fetch active (every 5 min)',
   'toolbar.update.tooltip': 'An update is ready to be installed',
   'toolbar.update.label': 'Update',
   'toolbar.settings.tooltip': 'Settings',
@@ -3035,6 +3036,7 @@ const en: typeof fr = {
   'sb.recents': 'RECENT',
   'sb.removeRecent': 'Remove',
   'sb.filterBranches': 'Filter branches…',
+  'sb.workingChanges': 'Working changes',
   'sb.newBranch': 'New branch',
   'sb.noLocalBranch': 'No local branch',
   'sb.reflogEmpty': 'Empty reflog',
@@ -3214,13 +3216,13 @@ const en: typeof fr = {
   'ir.planBanner': 'Plan proposed by an agent — review each action and message before running the rebase.',
   'ir.noCommits': 'No commit to rebase',
   'ir.dragHandle': 'Drag to reorder',
-
-  // Toasts
   'ir.moveUp': 'Move up',
   'ir.moveDown': 'Move down',
   'ir.summary': (total: number, resulting: number, folded: number, dropped: number, reworded: number) =>
     `Rewrites ${total} commit${total === 1 ? '' : 's'} into ${resulting}: ${folded} folded into another, ${dropped} dropped, ${reworded} reworded.`,
   'ir.published': (n: number) => `${n} of them ${n === 1 ? 'is' : 'are'} already on the upstream: the branch will need a force push afterwards.`,
+
+  // Toasts
   'toast.fetchOk': 'Fetch successful',
   'toast.fetchErr': (e: string) => `Fetch failed: ${e}`,
   'toast.pushOk': (upstream: string) => `Push successful → ${upstream}`,

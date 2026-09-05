@@ -88,6 +88,15 @@ interface AgentEntry { pid: number; name: string; cwd: string }
 interface SidebarProps {
   repoPath: string | null
   repoName: string
+  /**
+   * The working changes as a destination. The graph's //WIP row is the way to
+   * them, and it is there only while the tree is dirty, under a name nobody
+   * new would look for: this row is always there and says what it is. Absent
+   * onViewWip ⇒ no row — the panel's rail already has one.
+   */
+  wipCount?: number
+  wipSelected?: boolean
+  onViewWip?: () => void
   currentBranch: string
   branches: BranchInfo[]
   recentRepos: string[]
@@ -1487,6 +1496,7 @@ function WorktreeItem({ wt, agents = [], onOpen, onRemove }: {
 // ── Main Sidebar ──────────────────────────────────────────────────
 export default function Sidebar({
   repoPath, repoName, currentBranch, branches, recentRepos, stashes, tags,
+  wipCount, wipSelected, onViewWip,
   onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   onCheckout, onCreateBranch, onDeleteBranch, onMergeBranch, onRenameBranch,
   onRebaseOnto, onPushBranch, onDeleteRemoteBranch, onSetUpstream,
@@ -1911,6 +1921,15 @@ export default function Sidebar({
             value={branchFilter} onChange={e => setBranchFilter(e.target.value)} />
           {branchFilter && <button className="sb-filter-clear" title={t('common.clearFilter')} onClick={() => setBranchFilter('')}>×</button>}
         </div>
+      )}
+
+      {/* ── Working changes: a destination, not a row that comes and goes ── */}
+      {repoPath && onViewWip && !showAI && (
+        <button className={`sb-wip${wipSelected ? ' sb-wip--on' : ''}`} onClick={onViewWip} aria-pressed={!!wipSelected}>
+          <Icon name="pencil" size={12} />
+          <span className="sb-wip-label">{t('sb.workingChanges')}</span>
+          <span className="sb-wip-count">{wipCount ?? 0}</span>
+        </button>
       )}
 
       {/* ── Sections ── */}
