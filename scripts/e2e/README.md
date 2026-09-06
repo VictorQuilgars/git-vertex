@@ -25,6 +25,7 @@ open is neither reused nor touched.
 | `04-confirm-enter` | a destructive confirmation opens on Cancel; Enter deletes nothing |
 | `05-window-sizes` | 900×600 and 1300×800: the search, Pull, the Working changes row within the window; the details across the centre; screenshots |
 | `06-sessions` | two repositories: a call bound to the hidden one, a commit made while hidden shown at once on return, a closed tab's repository answering nothing |
+| `07-stage-commit` | the dirty file staged, the button greyed until a message; a commit refused by a hook keeps the message and the draft; the same click accepted counts one more commit, empties the form and the tree |
 
 A journey is `{ name, run({ page, expect, fixture, snapshot }) }`. They run in
 order, in one window; a failure is reported and the next still runs. Screenshots
