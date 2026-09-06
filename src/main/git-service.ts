@@ -2481,6 +2481,41 @@ exit 0
     }
   }
 
+  /**
+   * Where the graph would show each of `hashes`: its 1-based position in the
+   * log the graph loads — the same order and the same refs as getLog — or no
+   * entry when no ref the graph shows reaches it. One rev-list over the whole
+   * history, on purpose: the point is to know how far a hit is, and a page's
+   * --max-count would only say that it is further than the page.
+   */
+  async locateInHistory(hashes: string[], options: { all?: boolean; refs?: string[]; excludes?: string[] } = {}): Promise<{ positions: Record<string, number> }> {
+    const positions: Record<string, number> = {}
+    const wanted = new Set(hashes)
+    if (!wanted.size || !(await this.hasHead())) return { positions }
+    const args = ['rev-list', '--date-order']
+    if (options.refs && options.refs.length) args.push(...options.refs)
+    else if (options.all) {
+      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
+      args.push('--all')
+    } else args.push('HEAD')
+    try {
+      const out = await this.git.raw(args)
+      let position = 0, found = 0
+      for (const line of out.split('\n')) {
+        const hash = line.trim()
+        if (!hash) continue
+        position++
+        if (wanted.has(hash)) {
+          positions[hash] = position
+          if (++found === wanted.size) break
+        }
+      }
+    } catch {
+      // An unreadable history locates nothing; the caller says so.
+    }
+    return { positions }
+  }
+
   // ── Branch comparison ───────────────────────────────────────
 
   async compareBranches(current: string, other: string): Promise<{

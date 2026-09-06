@@ -2267,6 +2267,38 @@ exit 0
     } catch { return { hashes: [] } }
   }
 
+  /**
+   * Where the graph would show each of `hashes`: its 1-based position in the
+   * log the graph loads — the same order and refs as getLog — or no entry when
+   * no shown ref reaches it. The whole history on purpose: the point is how
+   * far a hit is. Identical to the desktop service, and must stay so.
+   */
+  async locateInHistory(hashes: string[], options: { all?: boolean; refs?: string[]; excludes?: string[] } = {}): Promise<{ positions: Record<string, number> }> {
+    const positions: Record<string, number> = {}
+    const wanted = new Set(hashes)
+    if (!wanted.size || !(await this.hasHead())) return { positions }
+    const args = ['rev-list', '--date-order']
+    if (options.refs && options.refs.length) args.push(...options.refs)
+    else if (options.all) {
+      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
+      args.push('--all')
+    } else args.push('HEAD')
+    try {
+      const out = await this.git.raw(args)
+      let position = 0, found = 0
+      for (const line of out.split('\n')) {
+        const hash = line.trim()
+        if (!hash) continue
+        position++
+        if (wanted.has(hash)) {
+          positions[hash] = position
+          if (++found === wanted.size) break
+        }
+      }
+    } catch { /* an unreadable history locates nothing */ }
+    return { positions }
+  }
+
   // ── Submodules (ported from desktop GitService) ───────────────
 
   async getSubmodules(): Promise<{ submodules: { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[] }> {

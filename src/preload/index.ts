@@ -129,6 +129,7 @@ const gitAPI = {
   updateSubmodule: (path: string) => invoke('git:update-submodule', path),
   // Extended search & branch comparison
   searchInDiffs: (query: string) => invoke('git:search-in-diffs', query),
+  locateInHistory: (hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => invoke('git:locate-in-history', hashes, options),
   compareBranches: (current: string, other: string) => invoke('git:compare-branches', current, other),
   // Interactive Rebase
   getRebaseSequence: (baseHash: string) => invoke('git:get-rebase-sequence', baseHash),

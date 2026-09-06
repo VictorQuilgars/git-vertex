@@ -2217,4 +2217,55 @@ describe('GitService', () => {
     })
   })
 
+  // #188: the extended search finds hits over the whole history; the graph
+  // holds a page. Where a hit would sit in the graph's own log — same refs,
+  // same order — is what decides whether the page can grow to it.
+  describe('locateInHistory', () => {
+    const commit = (msg: string, file = 'f.txt') => {
+      fs.appendFileSync(path.join(tempDir, file), msg + '\n')
+      execSync(`git add -A && git commit -q -m "${msg}"`, { cwd: tempDir })
+      return execSync('git rev-parse HEAD', { cwd: tempDir }).toString().trim()
+    }
+    test('positions are 1-based rows of the log, newest first', async () => {
+      const a = commit('a'); const b = commit('b'); const c = commit('c')
+      const { positions } = await git.locateInHistory([a, c])
+      expect(positions).toEqual({ [c]: 1, [a]: 3 })
+      expect(positions[b]).toBeUndefined()
+    })
+    test('a hash the history does not have gets no position', async () => {
+      commit('a')
+      const { positions } = await git.locateInHistory(['0'.repeat(40)])
+      expect(positions).toEqual({})
+    })
+    test('nothing asked, or no commit yet, locates nothing', async () => {
+      expect((await git.locateInHistory([])).positions).toEqual({})
+      expect((await git.locateInHistory(['0'.repeat(40)])).positions).toEqual({})
+    })
+    test('a hit on another branch is reached with --all and not from HEAD alone', async () => {
+      commit('a')
+      execSync('git checkout -q -b side', { cwd: tempDir })
+      const s = commit('side')
+      execSync('git checkout -q main', { cwd: tempDir })
+      expect((await git.locateInHistory([s])).positions).toEqual({})
+      expect((await git.locateInHistory([s], { all: true })).positions[s]).toBe(1)
+    })
+    test('a hidden branch is excluded the way the graph excludes it', async () => {
+      commit('a')
+      execSync('git checkout -q -b side', { cwd: tempDir })
+      const s = commit('side')
+      execSync('git checkout -q main', { cwd: tempDir })
+      const { positions } = await git.locateInHistory([s], { all: true, excludes: ['refs/heads/side'] })
+      expect(positions).toEqual({})
+    })
+    test('a solo branch is the only log there is', async () => {
+      const a = commit('a')
+      execSync('git checkout -q -b side', { cwd: tempDir })
+      const s = commit('side')
+      execSync('git checkout -q main', { cwd: tempDir })
+      commit('b')
+      const { positions } = await git.locateInHistory([a, s], { refs: ['side'] })
+      expect(positions).toEqual({ [s]: 1, [a]: 2 })
+    })
+  })
+
 })
