@@ -128,11 +128,24 @@ async function main() {
   if (page.exceptions.length) { failures.push({ journey: 'the window', error: new Error('uncaught exceptions: ' + page.exceptions.join(' | ')) }); console.log(`✗ uncaught exceptions in the window:\n    ${page.exceptions.join('\n    ')}`) }
   if (page.consoleErrors.length) console.log(`  · console errors (not failures):\n    ${page.consoleErrors.join('\n    ')}`)
   page.close()
-  stop(child)
-  fs.rmSync(fixture.root, { recursive: true, force: true })
-  fs.rmSync(profile, { recursive: true, force: true })
+  // Wait for the process, then remove: the app writes its profile as it exits
+  // — Local Storage, preferences — and a removal racing that write ended in
+  // ENOTEMPTY on the Linux runner, an exit 1 under thirteen green journeys.
+  // Cleanup never turns a green run red: it is retried, then noted and left.
+  await stopAndWait(child)
+  await removeTree(fixture.root)
+  await removeTree(profile)
   console.log(failures.length ? `\n${failures.length} of ${files.length} journeys failed` : `\n${files.length} journeys passed`)
   process.exit(failures.length ? 1 : 0)
+}
+
+async function removeTree(dir) {
+  for (let attempt = 1; ; attempt++) {
+    try { fs.rmSync(dir, { recursive: true, force: true }); return } catch (e) {
+      if (attempt === 5) { console.log(`  · ${dir} could not be removed (${e.code ?? e.message}); left for the OS`); return }
+      await new Promise(r => setTimeout(r, 300))
+    }
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
