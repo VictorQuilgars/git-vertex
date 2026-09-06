@@ -2,6 +2,14 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🧭 A clean working tree says what comes next
+- The staging pane's next steps — **publish this branch**, push the commits waiting, pull what arrived, review what the branch would bring — were shown in the VS Code panel only. The desktop had two empty lists and a commit button that could not be pressed; it shows the same card now.
+- **Only what is true is offered**: no *Publish* on a published branch, no *Push 3* on a branch level with its upstream, nothing to publish at all without a remote.
+- A row that leads to a list — apply a stash, switch branch, start from an issue — **opens that section of the sidebar** and scrolls to it.
+- It never replaces an amend, nor **a message you have already typed**: a draft outlives the changes it was written for.
+`,
   '1.34.0': `## What's new in 1.34.0
 
 ### ↔️ Resizable columns in the VS Code panel
