@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.34.0
 
 ### Added
 - **A session per repository.** The main process kept one git service and replaced it whenever a tab was switched; every request was answered by "the repository of the moment", so an answer that came back after a switch — a log of five hundred commits, a diff of a large file, a comparison — was written into whatever repository was open by then. Each open tab has its own session now: its service, its watchers, its auto-fetch timer, kept for as long as the tab is. Every call names the repository it is about, and is answered by that one or by none — never by another's service standing in. What follows from that, for anyone with more than one repository open: **switching tabs is instant** — the tab comes back as it was, and what changed while it was hidden arrives with a silent refresh instead of a spinner over an empty graph; **a repository in a background tab stays current** — a commit made from a terminal, or an auto-fetch, refreshes it where it waits, so its tab shows the present when reopened; and an operation started on one tab finishes on that repository whatever tab is shown when it does. Eight repositories stay open behind the one shown; beyond that, the least recently used lets go of its watchers. And a message about a repository that is not the one shown says which one it is about — *alpha · Pushed* — while one about the shown repository says nothing more.
