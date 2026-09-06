@@ -331,9 +331,12 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
     }
     e.preventDefault()
     if (!target || target.id === tab.id) return
+    // The focus follows the selection from an effect on the active tab, not
+    // from a frame scheduled here: switching to a repository tab awaits its
+    // session first, and the frame could land before the render that moves
+    // the tab stop — leaving the focus on the tab we had just left, so the
+    // next arrow walked from the wrong place.
     switchTab(target)
-    const id = target.id
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(`.app-tab[data-tab-id="${id}"]`)?.focus())
   }
 
   return {
