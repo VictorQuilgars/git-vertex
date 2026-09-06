@@ -25,8 +25,9 @@ export function useAppChrome() {
   const toastApi = useToast()
   const { t } = useLang()
   const { get: getSetting } = useSettings()
-  const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok', action?: ToastAction | ToastAction[], sticky?: boolean) => {
+  const showToast = useCallback((msg: string, type: 'ok' | 'err' | 'info' = 'ok', action?: ToastAction | ToastAction[], sticky?: boolean) => {
     if (type === 'ok') toastApi.success(msg, action, sticky)
+    else if (type === 'info') toastApi.info(msg, action, sticky)
     else toastApi.error(msg, action, sticky)
   }, [toastApi])
 

@@ -1,6 +1,6 @@
 // Three scratch repositories, made for each run: enough history for a graph, a
 // branch to delete, a dirty file to stage, a second repository to switch to,
-// and a third deeper than a page of the graph.
+// and a third deeper than two pages of the graph.
 'use strict'
 const { execFileSync } = require('child_process')
 const fs = require('fs')
@@ -36,8 +36,10 @@ function makeRepo(root, name, { commits, branch, dirty }) {
 }
 
 // A deep history, written by fast-import in one process rather than one
-// `git commit` at a time: six hundred commits take well under a second. The
-// dates are the fixture's fixed ones, so the hashes are stable here too.
+// `git commit` at a time: a thousand commits take well under a second. The
+// dates are the fixture's fixed ones, so the hashes are stable here too. Each
+// commit replaces the file's one line, so `line N` is added by commit N and
+// removed by commit N+1 — two hits for a search inside the diffs.
 function makeDeepRepo(root, name, commits) {
   const dir = path.join(root, name)
   fs.mkdirSync(dir, { recursive: true })
@@ -61,7 +63,8 @@ function makeFixture() {
   // hashes the screenshot references show are the same.
   const repo1 = makeRepo(root, 'alpha', { commits: 3, branch: 'feature', dirty: true })
   const repo2 = makeRepo(root, 'beta', { commits: 1, branch: 'topic', dirty: false })
-  const repo3 = makeDeepRepo(root, 'gamma', 600)
+  // Twelve hundred: more than two pages, so a search hit can sit 800 commits back.
+  const repo3 = makeDeepRepo(root, 'gamma', 1200)
   return { root, repo1, repo2, repo3, git }
 }
 

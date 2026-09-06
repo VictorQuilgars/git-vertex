@@ -212,6 +212,12 @@ const fr = {
   'toolbar.openPR.tooltip': 'Ouvrir une Pull Request sur GitHub',
   'toolbar.search.placeholder': 'Rechercher commits…',
   'toolbar.extSearch.tooltip': 'Recherche étendue : cherche aussi dans le contenu des diffs (pas seulement les messages)',
+  'search.reach.beyond': (n: number, position: string) => n === 1
+    ? `Un résultat est au-delà de ce que le graphe charge, en position ${position}.`
+    : `${n} résultats sont au-delà de ce que le graphe charge, le plus proche en position ${position}.`,
+  'search.reach.unreached': (n: number) => n === 1
+    ? `Un résultat est sur une branche que le graphe n'affiche pas.`
+    : `${n} résultats sont sur des branches que le graphe n'affiche pas.`,
   'toolbar.aiSearch.placeholder': 'Rechercher en langage naturel, Entrée pour lancer…',
   'toolbar.aiSearch.tooltip': "Recherche IA en langage naturel (ex : « les commits qui touchent le CSS du graphe »)",
   'toolbar.undo.tooltip': 'Annuler la dernière action (reset --soft)',
@@ -2005,6 +2011,12 @@ const en: typeof fr = {
   'toolbar.openPR.tooltip': 'Open a Pull Request on GitHub',
   'toolbar.search.placeholder': 'Search commits…',
   'toolbar.extSearch.tooltip': 'Extended search: also looks inside diff contents (not just messages)',
+  'search.reach.beyond': (n: number, position: string) => n === 1
+    ? `One hit is beyond what the graph loads, at position ${position}.`
+    : `${n} hits are beyond what the graph loads, the nearest at position ${position}.`,
+  'search.reach.unreached': (n: number) => n === 1
+    ? `One hit is on a branch the graph does not show.`
+    : `${n} hits are on branches the graph does not show.`,
   'toolbar.aiSearch.placeholder': 'Search in natural language, Enter to run…',
   'toolbar.aiSearch.tooltip': 'AI natural-language search (e.g. "commits touching the graph CSS")',
   'toolbar.undo.tooltip': 'Undo last action (reset --soft)',

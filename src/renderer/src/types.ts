@@ -218,6 +218,8 @@ declare global {
     updateSubmodule: (path: string) => Promise<R>
     // Extended search & branch comparison
     searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
+    /** The 1-based row of each hash in the log the graph loads (same refs, same order); absent when no shown ref reaches it. */
+    locateInHistory: (hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => Promise<{ positions: Record<string, number> }>
     compareBranches: (current: string, other: string) => Promise<{ ahead: { hash: string; shortHash: string; message: string }[]; behind: { hash: string; shortHash: string; message: string }[] }>
     // Interactive Rebase
     getRebaseSequence: (baseHash: string) => Promise<{ commits: { hash: string; shortHash: string; message: string }[] }>

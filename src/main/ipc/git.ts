@@ -502,6 +502,10 @@ export function registerGitHandlers(): void {
     if (!state.gitService) return { hashes: [] }
     return state.gitService.searchInDiffs(query)
   })
+  handle('git:locate-in-history', async (_event, hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => {
+    if (!state.gitService) return { positions: {} }
+    return state.gitService.locateInHistory(hashes, options)
+  })
 
   handle('git:compare-branches', async (_event, current: string, other: string) => {
     if (!state.gitService) return { ahead: [], behind: [] }

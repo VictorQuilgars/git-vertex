@@ -190,7 +190,7 @@ export function useRepoSession(app: AppChrome) {
   // process with its repository attached. This shadows the chrome's showToast
   // for every hook after this one.
   const chromeToast = app.showToast
-  const showToast = useCallback((msg: string, type?: 'ok' | 'err', action?: ToastAction | ToastAction[], sticky?: boolean, about?: string | null) => {
+  const showToast = useCallback((msg: string, type?: 'ok' | 'err' | 'info', action?: ToastAction | ToastAction[], sticky?: boolean, about?: string | null) => {
     const origin = about === undefined ? repoPath : about
     const elsewhere = !!origin && origin !== activePathRef.current
     chromeToast(elsewhere ? `${origin.split('/').pop()} · ${msg}` : msg, type, action, sticky)
@@ -339,16 +339,21 @@ export function useRepoSession(app: AppChrome) {
     setGithubOwnerRepo(null)
     setDefaultBranch(null)
   }, [setRepoPath])
-  const loadMoreHistory = useCallback(() => {
-    logLimitRef.current += LOG_PAGE
-    setLogLimit(logLimitRef.current)
+  // The page grown to `limit` commits and reloaded: Load more asks for one
+  // page further, the extended search for whatever shows the hit it found
+  // beyond the page. A limit not above the current one is nothing to do.
+  const growHistory = useCallback((limit: number) => {
+    if (limit <= logLimitRef.current) return
+    logLimitRef.current = limit
+    setLogLimit(limit)
     const path = activePathRef.current
-    if (path) snapshots.current.set(path, { ...(snapshots.current.get(path) ?? emptySnapshot()), logLimit: logLimitRef.current })
+    if (path) snapshots.current.set(path, { ...(snapshots.current.get(path) ?? emptySnapshot()), logLimit: limit })
     void loadRepoData(true)
   }, [loadRepoData])
+  const loadMoreHistory = useCallback(() => growHistory(logLimitRef.current + LOG_PAGE), [growHistory])
 
   return {
-    repoPath, setRepoPath, activePathRef, saveSnapshot, restoreSnapshot, hasSnapshot, forgetRepo, showToast, repoName, setRepoName, commits, setCommits, logLimit, setLogLimit, logLimitRef, branches, setBranches, currentBranch, setCurrentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, setVisibility, remoteNames, setRemoteNames, toggleHidden, setFamilyHidden, branchMeta, notedHashes, setNotedHashes, loading, setLoading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, setStashes, tags, setTags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, setTracking, githubRepoUrl, setGithubRepoUrl, githubOwnerRepo, setGithubOwnerRepo, remoteRepo, setRemoteRepo, defaultBranch, setDefaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, setConflictMode, wipCount, setWipCount, loadStashes, loadTags, isLoadingRef, reloadQueued, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, clearRepoView, loadMoreHistory,
+    repoPath, setRepoPath, activePathRef, saveSnapshot, restoreSnapshot, hasSnapshot, forgetRepo, showToast, repoName, setRepoName, commits, setCommits, logLimit, setLogLimit, logLimitRef, branches, setBranches, currentBranch, setCurrentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, setVisibility, remoteNames, setRemoteNames, toggleHidden, setFamilyHidden, branchMeta, notedHashes, setNotedHashes, loading, setLoading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, setStashes, tags, setTags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, setTracking, githubRepoUrl, setGithubRepoUrl, githubOwnerRepo, setGithubOwnerRepo, remoteRepo, setRemoteRepo, defaultBranch, setDefaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, setConflictMode, wipCount, setWipCount, loadStashes, loadTags, isLoadingRef, reloadQueued, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, clearRepoView, loadMoreHistory, growHistory,
   }
 }
 
