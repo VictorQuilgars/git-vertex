@@ -2,6 +2,13 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🚪 Every argument is looked at before it reaches git
+- One table of rules at the boundary, read before any handler runs: a call with a malformed ref, path, remote or URL is **answered with a sentence saying which argument and why**, rather than reaching git.
+- **A file path that leaves the repository is refused** — a request for \`../../.ssh/id_rsa\` is not a file of this repository, whichever pane asked for it.
+- Nothing that worked stops working: an argument nobody sent, or sent empty, reaches the handler exactly as before.
+`,
   '1.34.0': `## What's new in 1.34.0
 
 ### ↔️ Resizable columns in the VS Code panel

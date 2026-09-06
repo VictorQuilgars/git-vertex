@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Changed
+- **Every argument is looked at before it reaches git.** The window runs sandboxed, the secrets never reach it and every request names the repository it is about — and then each handler took the arguments as they came. A ref, a file path inside the repository, a remote name, a clone URL: what checking existed was inside individual methods and by memory, not at the door. There is a door now. One table says what each `git:*` handler's arguments may be, and a call that breaks it is answered with a sentence saying which argument and why — never a rejected promise the window has to guess at. What it refuses: anything git would read as an option (`--upload-pack=…` as a branch name), control characters and newlines, a name for a new branch or tag that `git check-ref-format` would reject, a remote name with a slash in it, a clone URL whose scheme is neither http(s), ssh, git nor file — and **a file path that leaves the repository**, so a request for `../../.ssh/id_rsa` is not a file of this repository whichever pane asked for it. What it does not do is invent opinions about missing values: an argument nobody sent, or sent empty, reaches the handler exactly as before. A test reads the handlers as they are written and fails when one grows an argument that looks like a path or a ref and the table says nothing about it — it found five the first time it ran. (#190)
+
 ## 1.34.0
 
 ### Added
