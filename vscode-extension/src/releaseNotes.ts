@@ -18,6 +18,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### ↔️ Resizable columns in the VS Code panel
+- Keep more code visible: when the bottom panel is short and wide enough, **graph, files and commit message sit side by side**, in the extension's existing style.
+- **Drag either divider** to adjust the columns — shorter filenames can leave more room for the message or graph. The dividers also work with the keyboard, and compact widths are remembered separately from the taller layout.
+- Files scroll independently and **Commit stays below the message**. Secondary actions live in menus; **Hide graph** gives the files and message the remaining width.
+
 ### 🧭 Nothing lost on the way
 - **Enter on Cancel no longer confirms.** A destructive question opens on **Cancel**, an ordinary one on **Confirm**; Enter activates the button that has the focus and nothing else. Tab stays in the box, Escape closes it, the focus goes back where it came from.
 - **A commit message survives a look at the history** — kept per repository as you type, restored after the panel reloads, cleared only by a commit that succeeded. An amend armed for a commit that is no longer HEAD disarms itself.

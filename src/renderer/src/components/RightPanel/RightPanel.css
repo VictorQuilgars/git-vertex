@@ -1803,3 +1803,56 @@
   color: var(--text-tertiary); cursor: pointer;
 }
 .cd-tool-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+/* Short VS Code panels: files and composer share height, not vertical space.
+   All surfaces and controls retain the extension's theme tokens. */
+.st2--embedded-row {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+.st2--embedded-row > .st2-topbar--panel { grid-column: 1; grid-row: 1; min-width: 0; }
+.st2--embedded-row .st2-pane-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st2--embedded-row .st2-pane-btn { padding-inline: var(--space-xs); }
+.st2--embedded-row .st2-pane-btn span { display: none; }
+.st2--embedded-row > .stx { grid-column: 1; grid-row: 2; min-width: 0; }
+.st2--embedded-row > .column-resize-handle { grid-column: 2; grid-row: 1 / -1; }
+.st2--embedded-row > .st2-commit {
+  grid-column: 3;
+  grid-row: 1 / -1;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  overflow: hidden;
+}
+.st2--embedded-row .stx-head { gap: var(--space-xs); padding: var(--space-xs) var(--space-sm); flex-wrap: nowrap; }
+.st2--embedded-row .st-filter--always { margin-block: var(--space-2xs); }
+.st2--embedded-row .stx-row { min-height: 26px; padding-inline: var(--space-sm); }
+.st2--embedded-row .st-path-name { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; }
+.st2--embedded-row .stx-count { font-size: var(--text-xs); letter-spacing: normal; }
+.st2--embedded-row .st2-commit-scroll {
+  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-sm);
+  overflow-y: auto;
+}
+.st2--embedded-row .st2-msgbox { flex-shrink: 0; min-height: 52px; }
+.st2--embedded-row .st2-message { padding: var(--space-sm) var(--space-md); }
+.st2--embedded-row.st2--row .st2-commit-actions {
+  position: static;
+  padding: var(--space-xs) var(--space-md) var(--space-sm);
+  background: var(--bg-canvas);
+}
+.st2--embedded-row .st2-commit-btn {
+  flex: 1;
+  min-width: 0;
+  min-height: 28px;
+  padding: var(--space-xs) var(--space-md);
+  box-shadow: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st2--embedded-row .stx-file-menu { opacity: 1; flex-shrink: 0; }
+.st2--embedded-row .stx-staged-badge { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

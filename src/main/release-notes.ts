@@ -4,6 +4,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### ↔️ Resizable columns in the VS Code panel
+- Keep more code visible: when the bottom panel is short and wide enough, **graph, files and commit message sit side by side**, in the extension's existing style.
+- **Drag either divider** to adjust the columns — shorter filenames can leave more room for the message or graph. The dividers also work with the keyboard, and compact widths are remembered separately from the taller layout.
+- Files scroll independently and **Commit stays below the message**. Secondary actions live in menus; **Hide graph** gives the files and message the remaining width.
+
 ### 🗂 A session per repository
 - **Switching tabs is instant**: the tab comes back as it was, and what changed while it was hidden arrives with a silent refresh.
 - **A repository in a background tab stays current** — a commit from a terminal, an auto-fetch — so its tab shows the present when reopened.
