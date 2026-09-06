@@ -1,23 +1,23 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+// The root: the hooks that hold the app's state and handlers (src/renderer/src/app/),
+// the layout of the window, the effects that tie them together, and the render.
+import React, { useState, useEffect, useRef } from 'react'
 import { useWindowWidth } from './hooks/useWindowWidth'
 import { detailsTakeCenter } from './utils/layout'
 import { Icon } from './components/Icon/Icon'
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
-import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope, type CompareAxis } from './types'
-import { useLang } from './i18n/LanguageContext'
+import { PullMode } from './types'
 import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
 import StatusBar from './components/StatusBar/StatusBar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
 import { PromptDialog, ConfirmDialog, ChoiceDialog } from './components/Dialog/Dialog'
-import CommandPalette, { PaletteCommand } from './components/CommandPalette/CommandPalette'
+import CommandPalette from './components/CommandPalette/CommandPalette'
 import { Mark } from './components/Mark/Mark'
 import { Brand } from './components/BrandMark/BrandMark'
-import { ToastProvider, useToast } from './components/Toast/Toast'
 import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import UpdateOverlay from './components/UpdateOverlay/UpdateOverlay'
-import NotificationCenter, { AppNotification } from './components/NotificationCenter/NotificationCenter'
+import NotificationCenter from './components/NotificationCenter/NotificationCenter'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
@@ -29,420 +29,72 @@ import CompareView from './components/CompareView/CompareView'
 import FileHistory from './components/FileHistory/FileHistory'
 import RepoManager from './components/RepoManager/RepoManager'
 import AssociateIssueModal from './components/IssueLink/AssociateIssueModal'
-import { useBranchMeta, type LinkedIssue } from './hooks/useBranchMeta'
-import { issueBranchName } from './utils/issueBranch'
-import type { GithubListItem } from './components/Sidebar/Sidebar'
-import { issueRefLabel, issueRefUrl } from './utils/issueRef'
-import { parseAutolinks } from './utils/autolinks'
-import { useSettings } from './contexts/SettingsContext'
-import {
-  emptyVisibility, isRefHidden, logOptionsFor,
-  type GraphVisibility, type RefFamily,
-} from './utils/graphVisibility'
+import { type LinkedIssue } from './hooks/useBranchMeta'
 import InitModal from './components/InitModal/InitModal'
 import PRComposer from './components/PRComposer/PRComposer'
 import IssueComposer from './components/IssueComposer/IssueComposer'
 import AIAnswer from './components/AIAnswer/AIAnswer'
 import { timeAgo } from './components/GitHubPanel/GithubRow'
 import CommitComposer from './components/CommitComposer/CommitComposer'
-import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from './components/ContextMenu/prIntent'
-import { repoFromRemotes, remoteUrl, type RemoteRepo } from './utils/remoteUrl'
-import { canonicalRef, publishedNameFor, shortName } from './components/ContextMenu/branchRefs'
-import { buildBranchMenu, type BranchMenuExtras } from './components/ContextMenu/branchMenu'
+import { branchNeedsPush } from './components/ContextMenu/prIntent'
+import { shortName } from './components/ContextMenu/branchRefs'
 import GitflowModal from './components/GitflowModal/GitflowModal'
-import DiffViewer from './components/DiffViewer/DiffViewer'
-import CenterFileDiff, { CenterDiffTarget } from './components/CenterFileDiff/CenterFileDiff'
+import CenterFileDiff from './components/CenterFileDiff/CenterFileDiff'
 import IssueDetail, { detailKey } from './components/IssueDetail/IssueDetail'
 import PRDetail from './components/IssueDetail/PRDetail'
 import ContextMenu, { MenuItemDef } from './components/ContextMenu/ContextMenu'
+import { kindsByPath, StashPreview, viewTabName, viewTabIcon, GITHUB_POLL_MS } from './app/shared'
+import { useAppChrome } from './app/useAppChrome'
+import { useRepoSession } from './app/useRepoSession'
+import { useAppGithub } from './app/useAppGithub'
+import { useAppConflicts } from './app/useAppConflicts'
+import { useAppAi } from './app/useAppAi'
+import { useAppTabs } from './app/useAppTabs'
+import { useAppUpdates } from './app/useAppUpdates'
+import { useAppActions } from './app/useAppActions'
+import { useAppSearch } from './app/useAppSearch'
 import './App.css'
 
-interface StashEntry { index: number; message: string }
-interface TagEntry   { name: string; hash: string }
-
-// Absent `entries` means the host does not report unmerged states (an older
-// extension build). Return an empty map so the UI stays silent about the kind
-// instead of defaulting every file to "both modified".
-function kindsByPath(entries?: { path: string; kind: ConflictKind }[]): Record<string, ConflictKind> {
-  if (!entries) return {}
-  return Object.fromEntries(entries.map(e => [e.path, e.kind]))
-}
-
-
-
-// ── Stash content preview ───────────────────────────────────────
-// A view, so it opens in a tab: you read a stash while looking at the graph
-// that made it, and it stays put when you click elsewhere.
-function StashPreview({ index, message }: { index: number; message: string }) {
-  const [diff, setDiff] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const { t } = useLang()
-
-  React.useEffect(() => {
-    ;(window.gitAPI as any).stashDiff(index).then((r: any) => {
-      setDiff(r?.diff ?? '')
-      setLoading(false)
-    })
-  }, [index])
-
-  return (
-    <div className="view-page">
-      <div className="view-page-header">
-        <span className="view-page-title">Stash <code>#{index}</code> — {message}</span>
-      </div>
-      <div className="view-page-body">
-        {loading
-          ? <div className="bc-loading">{t('common.loading')}</div>
-          : diff.trim() === ''
-            ? <div className="bc-empty" style={{ padding: 24 }}>{t('stash.empty')}</div>
-            : <DiffViewer commit={syntheticCommit(`stash@{${index}}`, message)} diff={diff} files={[]} loading={false} />}
-      </div>
-    </div>
-  )
-}
-
-// Minimal CommitNode so DiffViewer renders its body (it early-returns on null commit).
-function syntheticCommit(shortHash: string, message: string): CommitNode {
-  return {
-    hash: shortHash, shortHash, message,
-    author: '', authorEmail: '', date: '', parents: [], refs: []
-  }
-}
-
-
-// ── Imperative dialog helpers ──────────────────────────────────
-type DialogState =
-  | { kind: 'prompt';  message: string; defaultValue?: string; multiline?: boolean; resolve: (v: string | null) => void }
-  | { kind: 'confirm'; message: string; danger?: boolean;      resolve: (v: boolean) => void }
-  | { kind: 'choice';  message: string; options: string[];     resolve: (v: string | null) => void }
-
-// ── Tabs ───────────────────────────────────────────────────────
-// Tabs are heterogeneous: the classic repo tab, the "home" welcome screen
-// (multiple allowed — every "+" opens a fresh one) and the full-page
-// Launchpad (opened by the 🚀 button). `path`/`name` are only set on repo tabs.
-type TabKind = 'home' | 'repo' | 'launchpad' | 'themes' | 'view'
-
-/**
- * A view that used to be a window drawn over the graph.
- *
- * The rule, and the reason this exists: a surface that HOLDS something — a
- * comparison, a file's history, a stash's contents — is a tab. It has a title,
- * it survives clicking elsewhere, you can have two, and you close it when you
- * are done. A surface that ASKS something — confirm, name this, pick a remote
- * before pushing — stays a modal: transient, blocking, nothing to come back to.
- *
- * The VS Code panel has worked this way from the start (openGitVertexCompareTab
- * and its siblings); the app drew modals over the graph instead, which is what
- * made it dense.
- */
-type ViewTab =
-  | { view: 'compare'; a: string; b: string | null; axis?: CompareAxis; label: string }
-  | { view: 'fileHistory'; file: string }
-  | { view: 'stash'; index: number; message: string }
-  | { view: 'fileDiff'; target: CenterDiffTarget }
-  | { view: 'settings' }
-
-interface AppTab { id: string; kind: TabKind; path?: string; name?: string; body?: ViewTab }
-
-/** What the tab bar calls a view, and draws for it. */
-function viewTabName(body: ViewTab, t: (k: any, ...a: any[]) => string): string {
-  switch (body.view) {
-    case 'compare': return body.label
-    case 'fileHistory': return t('tabs.history', body.file.split('/').pop() ?? body.file)
-    case 'stash': return t('tabs.stash', body.index)
-    case 'settings': return t('tabs.settings')
-    case 'fileDiff': {
-      const name = body.target.filePath.split('/').pop() ?? body.target.filePath
-      return body.target.type === 'commit'
-        ? `${name} (${body.target.commitHash.slice(0, 7)})`
-        : `${name} (${t(body.target.area === 'staged' ? 'tabs.staged' : 'tabs.unstaged')})`
-    }
-  }
-}
-
-function viewTabIcon(body: ViewTab): 'compare' | 'history' | 'stash' | 'diff' | 'gear' {
-  switch (body.view) {
-    case 'compare': return 'compare'
-    case 'fileHistory': return 'history'
-    case 'stash': return 'stash'
-    case 'fileDiff': return 'diff'
-    case 'settings': return 'gear'
-  }
-}
-
-/**
- * Whether a view is about a repository at all.
- *
- * Every one of them is, except the settings: a comparison, a file's history, a
- * stash and a diff are all *of* something checked out, and the main process
- * serves one repository at a time — which is why those tabs carry their path.
- * The settings are the application's own screen, and tying them to a repository
- * meant the gear did nothing at all until one was open.
- */
-export function viewNeedsRepo(body: ViewTab): boolean {
-  return body.view !== 'settings'
-}
-
-/** Two view tabs are the same tab when they show the same thing. */
-export function sameView(a: ViewTab, b: ViewTab): boolean {
-  if (a.view !== b.view) return false
-  if (a.view === 'compare' && b.view === 'compare') return a.a === b.a && a.b === b.b
-  if (a.view === 'fileHistory' && b.view === 'fileHistory') return a.file === b.file
-  if (a.view === 'stash' && b.view === 'stash') return a.index === b.index
-  if (a.view === 'fileDiff' && b.view === 'fileDiff') return sameDiffTarget(a.target, b.target)
-  // One settings tab: it shows the whole of a thing, so a second one would
-  // be the same tab twice.
-  return a.view === 'settings'
-}
-
-/** The same file, of the same version — a staged diff is not the unstaged one. */
-function sameDiffTarget(a: CenterDiffTarget, b: CenterDiffTarget): boolean {
-  if (a.type !== b.type) return false
-  if (a.type === 'commit' && b.type === 'commit') return a.commitHash === b.commitHash && a.filePath === b.filePath
-  if (a.type === 'working' && b.type === 'working') return a.filePath === b.filePath && a.area === b.area
-  return false
-}
-let tabSeq = 0
-const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
-
-/**
- * How often the GitHub lists are asked. GitHub publishes this number itself —
- * `X-Poll-Interval: 60` on its events endpoint — so it is its contract, not
- * our guess. The requests are conditional, so a minute costs nothing while
- * nothing changes.
- */
-const GITHUB_POLL_MS = 60_000
-
-/** How much history one load of the graph holds, and how much a "more" adds. */
-const LOG_PAGE = 500
+// Kept on this module for the tests and hosts that import them from here.
+export { viewNeedsRepo, sameView } from './app/shared'
 
 export default function App() {
-  // ── Dialog state ───────────────────────────────────────────
-  const [dlg, setDlg] = useState<DialogState | null>(null)
+  // The app's state and handlers, one hook per concern, each reading the ones before it.
+  // See src/renderer/src/app/.
+  const chromeHook = useAppChrome()
+  const sessionHook = useRepoSession({ ...chromeHook })
+  const githubHook = useAppGithub({ ...chromeHook, ...sessionHook })
+  const conflictsHook = useAppConflicts({ ...chromeHook, ...sessionHook, ...githubHook })
+  const aiHook = useAppAi({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook })
+  const tabsHook = useAppTabs({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook })
+  const updatesHook = useAppUpdates({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook })
+  const actionsHook = useAppActions({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook })
+  const searchHook = useAppSearch({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook })
+  const app = { ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook, ...searchHook }
+  const {
+    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, notifsOpen, setNotifsOpen, unreadCount, addUpdateNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, setExtendedSearchHashes, extendedSearchLoading, setExtendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands,
+  } = app
 
-  const showPrompt = useCallback((message: string, defaultValue = '', multiline = false): Promise<string | null> =>
-    new Promise(resolve => setDlg({ kind: 'prompt', message, defaultValue, multiline, resolve }))
-  , [])
-
-  const showConfirm = useCallback((message: string, danger = false): Promise<boolean> =>
-    new Promise(resolve => setDlg({ kind: 'confirm', message, danger, resolve }))
-  , [])
-
-  /** One question, N answers, none of them typed. */
-  const showChoice = useCallback((message: string, options: string[]): Promise<string | null> =>
-    new Promise(resolve => setDlg({ kind: 'choice', message, options, resolve }))
-  , [])
-
-  const closeDlg = useCallback(() => setDlg(null), [])
-
-  // ── App state ──────────────────────────────────────────────
-  const [repoPath, setRepoPath] = useState<string | null>(null)
-  const [repoName, setRepoName] = useState<string>('')
-  const [commits, setCommits] = useState<CommitNode[]>([])
-  // The graph holds a page of history, not the repository: LOG_PAGE commits,
-  // then LOG_PAGE more per click. The status bar says how many, because a
-  // search over the graph is a search over what was loaded and nothing else.
-  const [logLimit, setLogLimit] = useState(LOG_PAGE)
-  const logLimitRef = useRef(LOG_PAGE); logLimitRef.current = logLimit
-  const [branches, setBranches] = useState<BranchInfo[]>([])
-  const [currentBranch, setCurrentBranch] = useState<string>('')
-  const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
-  const [searchQuery, setSearchQuery] = useState<string>('')
-  const [searchMatches, setSearchMatches] = useState(-1)
-  const [showAllBranches, setShowAllBranches] = useState<boolean>(true)
-  // Solo/hide filtering for the graph. Solo shows only one branch; everything
-  // else hidden — branches, tags, remotes, the stash — is taken away from the
-  // --all view by name. In memory only: it is a view of this session, and a
-  // hidden ref that survived a restart would be a graph lying to you on
-  // opening, with the thing that explains it three clicks away.
-  const [soloBranch, setSoloBranch] = useState<string | null>(null)
-  const [visibility, setVisibility] = useState<GraphVisibility>(emptyVisibility())
-  // The remotes, so `origin/x` can be told from a local `feature/x` when the
-  // graph decides which chips a hidden remote takes with it.
-  const [remoteNames, setRemoteNames] = useState<string[]>([])
-
-  /** Toggle one entry of one set, leaving the rest of the visibility alone. */
-  const toggleHidden = useCallback((kind: 'branches' | 'tags' | 'remotes', name: string) => {
-    setVisibility(prev => {
-      const next = new Set(prev[kind])
-      next.has(name) ? next.delete(name) : next.add(name)
-      return { ...prev, [kind]: next }
-    })
-  }, [])
-
-  // "Hide all" is one flag, not N marked rows: a branch pushed afterwards is
-  // hidden too. "Show all" clears the flag *and* the rows hidden one by one,
-  // which is what the section chip promises when it says how many are gone.
-  const setFamilyHidden = useCallback((family: RefFamily, hidden: boolean) => {
-    setVisibility(prev => {
-      const families = new Set(prev.families)
-      hidden ? families.add(family) : families.delete(family)
-      if (hidden) return { ...prev, families }
-      const cleared: Partial<GraphVisibility> = { families }
-      if (family === 'tags') cleared.tags = new Set()
-      if (family === 'remotes') {
-        cleared.remotes = new Set()
-        cleared.branches = new Set([...prev.branches].filter(b => !b.startsWith('remotes/')))
-      }
-      if (family === 'branches') {
-        cleared.branches = new Set([...prev.branches].filter(b => b.startsWith('remotes/')))
-      }
-      return { ...prev, ...cleared }
-    })
-  }, [])
-  // Favorites / graph pins / linked issues, per repo (v1.21.0).
-  const branchMeta = useBranchMeta(repoPath)
-  const [issueModalBranch, setIssueModalBranch] = useState<string | null>(null)
-  const [extendedSearch, setExtendedSearch] = useState(false)
-  const [extendedSearchHashes, setExtendedSearchHashes] = useState<Set<string>>(new Set())
-  const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
-  // AI natural-language search: explicit trigger (Enter / ✨), not per-keystroke.
-  const [aiSearch, setAiSearch] = useState(false)
-  const [aiSearchHashes, setAiSearchHashes] = useState<Set<string> | null>(null)
-  const [aiSearchLoading, setAiSearchLoading] = useState(false)
-  // The commits one kept reading covered, pointed at from the AI stack (#70).
-  // A separate set from the search's: it is not a query, it survives the
-  // search box being cleared, and it is dismissed by pointing at another row.
-  const [notedHashes, setNotedHashes] = useState<Set<string> | null>(null)
-  // Comparisons and previews are tabs now, not overlays — see ViewTab.
-  const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
-  const [gitflowOpen, setGitflowOpen] = useState(false)
-  // ── Tabs (home / repo / launchpad) ──
-  const [tabs, setTabs] = useState<AppTab[]>(() => [{ id: 'home-initial', kind: 'home' }])
-  const [activeTabId, setActiveTabId] = useState<string | null>('home-initial')
-  const [tabMenu, setTabMenu] = useState<{ x: number; y: number; id: string } | null>(null)
-  const selectedByTab = useRef<Map<string, CommitNode | null>>(new Map())
-  const [loading, setLoading] = useState<boolean>(false)
-  const [recentRepos, setRecentRepos] = useState<string[]>([])
-  const [repoSearch, setRepoSearch] = useState('')   // welcome-screen recents filter
-  // Named workspaces over the recent repos: { repoPath: workspaceName }
-  const [workspaces, setWorkspaces] = useState<Record<string, string>>({})
-  const [stashes, setStashes] = useState<StashEntry[]>([])
-  const [tags, setTags] = useState<TagEntry[]>([])
+ logLimitRef.current = logLimit
   const [sidebarW, setSidebarW] = useState<number>(230)
   const [rightW, setRightW] = useState<number>(() => {
     const saved = parseInt(localStorage.getItem('app-right-w') ?? '', 10)
     return Number.isFinite(saved) && saved >= 280 ? saved : 360
   })
   useEffect(() => { localStorage.setItem('app-right-w', String(rightW)) }, [rightW])
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
-  // Default action bound to the toolbar's split Pull button, set from its
-  // dropdown menu and persisted so it survives restarts.
-  const [pullMode, setPullModeState] = useState<PullMode>('ff')
   useEffect(() => {
     window.gitAPI.settingsGetAll().then(s => {
       const saved = s?.pullMode as PullMode | undefined
       if (saved === 'fetch' || saved === 'ff' || saved === 'ff-only' || saved === 'rebase') setPullModeState(saved)
     }).catch(() => {})
   }, [])
-  const handleSetPullMode = (mode: PullMode) => {
-    setPullModeState(mode)
-    window.gitAPI.settingsSet('pullMode', mode)
-  }
-  const [tracking, setTracking] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
-  const [githubUser, setGithubUser] = useState<{ login: string; avatar: string } | null>(null)
-  const [rebaseHash, setRebaseHash] = useState<string | null>(null)
-  // Agent proposals arriving via deep link (MCP propose_commit / propose_rebase_plan):
-  // preloaded into the staging form / rebase editor for the user to review —
-  // nothing is staged, committed or rewritten until the user acts.
-  const [commitProposal, setCommitProposal] = useState<{ message: string; files: string[] } | null>(null)
-  const [rebasePlanProposal, setRebasePlanProposal] = useState<{ hash: string; action: string; message?: string }[] | null>(null)
-  const [pushModalOpen, setPushModalOpen] = useState(false)
-  // Repository Management is a full-page overlay (like Settings), reached from
-  // the fixed 📁 button — it is NOT a tab.
-  const [repoMgmtOpen, setRepoMgmtOpen] = useState(false)
-  // Release notes shown once after an update (like VS Code's "what's new" tab).
-  const [whatsNew, setWhatsNew] = useState<{ version: string; notes: string } | null>(null)
-  // The "what's new" tab is a normal tab: it can stay open in the background
-  // while you work in a repo. `whatsNewActive` is whether it's the current view.
-  const [whatsNewActive, setWhatsNewActive] = useState(false)
-  const [cloneOpen, setCloneOpen] = useState(false)
-  const [initModalOpen, setInitModalOpen] = useState(false)
-  const [githubConnected, setGithubConnected] = useState(false)
-  const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null)
-  const [githubOwnerRepo, setGithubOwnerRepo] = useState<{ owner: string; repo: string } | null>(null)
-  // The repository behind the remote, for building links. Separate from
-  // githubOwnerRepo on purpose: that one gates GitHub API calls and is only
-  // ever GitHub, while a link can be built for whatever host the remote names.
-  const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
-  // The two GitHub lists the sidebar shows as sections. `undefined` while there
-  // is no GitHub here or no answer yet — the sections then do not render at
-  // all, which is not the same as rendering an empty one.
-  const [githubPRs, setGithubPRs] = useState<GithubListItem[] | undefined>()
-  /** Read inside loadGithubLists without making it depend on the lists. */
-  const githubPRsRef = React.useRef(githubPRs); githubPRsRef.current = githubPRs
-  const [githubIssues, setGithubIssues] = useState<GithubListItem[] | undefined>()
-  const githubIssuesRef = React.useRef(githubIssues); githubIssuesRef.current = githubIssues
-  // The signed-in login — what the account groups of PULL REQUESTS filter on.
-  const [githubLogin, setGithubLogin] = useState<string | null>(null)
-  // The issue being read in the centre (§3 bis) — the third layout: toolbar
-  // and left panel kept, graph replaced, commit panel not shown. Belongs to
-  // the repository, so a repo switch closes it.
-  const [issueDetail, setIssueDetail] = useState<{ kind: 'pr' | 'issue'; item: GithubListItem } | null>(null)
-  const [prModalOpen, setPrModalOpen] = useState(false)
-  // Which pull request the composer is opening — head, base and whether the
-  // head still has to be pushed. Decided by prIntentFor, never by the composer.
-  const [prIntent, setPrIntent] = useState<PRIntent | null>(null)
+ githubPRsRef.current = githubPRs
+ githubIssuesRef.current = githubIssues
   // The left panel's box — what the composer's drawer measures itself against.
   const sidebarPanelRef = useRef<HTMLDivElement | null>(null)
-  // Branch everything merges into (origin/HEAD). Drives which pull requests
-  // make sense at all, so it is loaded with the repo rather than on demand.
-  const [defaultBranch, setDefaultBranch] = useState<string | null>(null)
-  // Update overlay state machine: available → downloading → installing.
-  const [updatePhase, setUpdatePhase] = useState<'idle' | 'available' | 'downloading' | 'installing'>('idle')
-  const [updateVersion, setUpdateVersion] = useState<string | null>(null)
-  const [updatePct, setUpdatePct] = useState(0)
-  const [updateOverlayOpen, setUpdateOverlayOpen] = useState(false)
-
-  // Notification center (bell in the top bar). Persisted in localStorage so
-  // notifications survive restarts.
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    try { return JSON.parse(localStorage.getItem('notifications') ?? '[]') } catch { return [] }
-  })
-  const [notifsOpen, setNotifsOpen] = useState(false)
   useEffect(() => {
     localStorage.setItem('notifications', JSON.stringify(notifications.slice(0, 50)))
   }, [notifications])
-  const unreadCount = notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0)
-
-  // Add a notification, de-duplicated by kind+version so re-checks don't stack.
-  const addUpdateNotification = useCallback((version: string) => {
-    setNotifications(prev => {
-      if (prev.some(n => n.kind === 'update' && n.data?.version === version)) return prev
-      const next: AppNotification = {
-        id: `update-${version}-${Date.now()}`,
-        kind: 'update', data: { version }, ts: Date.now(), read: false,
-      }
-      return [next, ...prev]
-    })
-  }, [])
-
-  const [conflictFiles, setConflictFiles] = useState<string[]>([])
-  // path → unmerged state, kept beside conflictFiles rather than folded into it
-  // so every existing consumer of the plain path list is untouched. Empty when
-  // the host does not report kinds — the UI then shows no badge at all.
-  const [conflictKinds, setConflictKinds] = useState<Record<string, ConflictKind>>({})
-  const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
-  const [conflictResolverFile, setConflictResolverFile] = useState<string | null>(null)
-  // Agent-proposed resolution (from a gitgui://open deep link) to preload into
-  // the resolver's manual editor — review-only until the user saves it.
-  const [conflictResolverProposal, setConflictResolverProposal] = useState<string | null>(null)
-  const [wipCount, setWipCount] = useState(0)
-
-  // ── Toast (via ToastProvider) ──────────────────────────────
-  const toastApi = useToast()
-  const { t } = useLang()
-  const { get: getSetting } = useSettings()
-  // The reference patterns from Settings › GitHub — what lets a linked
-  // reference open even when no tracker API is wired for it.
-  const autolinks = useMemo(() => parseAutolinks(getSetting('autolinks', '')), [getSetting])
-  type ToastAction = { label: string; onClick: () => void }
-  const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok', action?: ToastAction | ToastAction[], sticky?: boolean) => {
-    if (type === 'ok') toastApi.success(msg, action, sticky)
-    else toastApi.error(msg, action, sticky)
-  }, [toastApi])
-
   // Tell the user once when their git is too old for the conflict prediction.
   // It fails open — predictConflicts returns nothing and the operation proceeds —
   // so the warning it is supposed to raise before a merge or rebase simply never
@@ -462,105 +114,19 @@ export default function App() {
     })()
     return () => { cancelled = true }
   }, [showToast, t])
-
-  // ── Load stashes ───────────────────────────────────────────
-  const loadStashes = useCallback(async () => {
-    if (!repoPath) return
-    const r = await window.gitAPI.getStashes()
-    setStashes(r.stashes ?? [])
-  }, [repoPath])
-
-  // ── Load tags ──────────────────────────────────────────────
-  const loadTags = useCallback(async () => {
-    if (!repoPath) return
-    const r = await window.gitAPI.getTags()
-    setTags((r as any).tags ?? [])
-  }, [repoPath])
-
-  // ── Load repo data ─────────────────────────────────────────
-  const isLoadingRef = React.useRef(false)
-  // A load that arrives while another is running used to be dropped and never
-  // retried. That is invisible for a refresh — the next file-watcher event
-  // covers it — but not for a filter: hiding a ref would leave the graph
-  // showing it until something else happened to trigger a reload.
-  const reloadQueued = React.useRef(false)
-  // The filter is read through refs rather than from the closure, so a load
-  // always queries with the filter the user can see, whichever callback started
-  // it. This mattered urgently while the watcher's subscriptions leaked — what
-  // fired was an accumulation of stale handlers, which is how this was found —
-  // and that leak is fixed (v1.30.2, the preload hands back its unsubscribe).
-  // It stays because it also keeps loadRepoData's identity stable across a hide
-  // or a solo: the effect below re-registers on every change of it, and a
-  // subscription that is torn down and rebuilt four times a second is worth
-  // avoiding whether or not the teardown works.
-  const visibilityRef = React.useRef(visibility); visibilityRef.current = visibility
-  const soloRef = React.useRef(soloBranch); soloRef.current = soloBranch
-  const showAllRef = React.useRef(showAllBranches); showAllRef.current = showAllBranches
-
-  const loadRepoData = useCallback(async (silent = false) => {
-    if (!repoPath) return
-    if (isLoadingRef.current) { reloadQueued.current = true; return }
-    isLoadingRef.current = true
-    if (!silent) setLoading(true)
-    try {
-      // Branches are still read first: the sidebar needs them, and the log
-      // query is built from the visibility state rather than from them.
-      const branchRes = await window.gitAPI.getBranches()
-      const logRes = await window.gitAPI.getLog(logOptionsFor({
-        maxCount: logLimitRef.current,
-        all: showAllRef.current,
-        solo: soloRef.current,
-        visibility: visibilityRef.current,
-      }))
-      if (logRes.commits) setCommits(logRes.commits)
-      if (branchRes.branches) {
-        setBranches(branchRes.branches)
-        const cur = branchRes.branches.find((b: BranchInfo) => b.current)
-        if (cur) setCurrentBranch(cur.name)
-      }
-      await Promise.all([loadStashes(), loadTags()])
-      const [conflictRes, modeRes] = await Promise.all([
-        window.gitAPI.getConflictedFiles(),
-        window.gitAPI.getConflictMode(),
-      ])
-      setConflictFiles(conflictRes.files ?? [])
-      setConflictKinds(kindsByPath(conflictRes.entries))
-      setConflictMode(modeRes.mode)
-      const changesRes = await window.gitAPI.getWorkingChanges()
-      setWipCount(
-        (changesRes.staged?.length ?? 0) +
-        (changesRes.unstaged?.length ?? 0) +
-        (changesRes.untracked?.length ?? 0)
-      )
-      try {
-        const tr = await (window.gitAPI as any).getTracking()
-        setTracking({ ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0 })
-      } catch { /* no upstream */ }
-    } finally {
-      if (!silent) setLoading(false)
-      isLoadingRef.current = false
-      if (reloadQueued.current) {
-        reloadQueued.current = false
-        void loadRepoDataRef.current?.(true)
-      }
-    }
-  }, [repoPath, loadStashes, loadTags])
-  // Re-entry after a queued load, without making loadRepoData depend on itself.
-  const loadRepoDataRef = React.useRef(loadRepoData); loadRepoDataRef.current = loadRepoData
-
-  useEffect(() => { loadRepoData() }, [loadRepoData])
-
-  // The filter changed — reload with it. Separate from the effect above so
-  // that loadRepoData keeps a stable identity across a hide or a solo: every
-  // change of its identity re-registers the file watcher, and those
-  // registrations accumulate.
-  const filterFirstRun = React.useRef(true)
+ visibilityRef.current = visibility
+ soloRef.current = soloBranch
+ showAllRef.current = showAllBranches
+ loadRepoDataRef.current = loadRepoData
+  // The shown repository changed: read it. Silently when it comes back from
+  // behind a tab with its snapshot already on screen — the refresh brings what
+  // changed while it was hidden, with no spinner over a graph that is right.
+  useEffect(() => { if (repoPath) void loadRepoData(hasSnapshot(repoPath)) }, [repoPath, loadRepoData, hasSnapshot])
   useEffect(() => {
     if (filterFirstRun.current) { filterFirstRun.current = false; return }
     loadRepoData(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibility, soloBranch, showAllBranches])
-
   // GitHub profile (for the top-bar profile chip). Refresh after OAuth too.
   useEffect(() => {
     const load = async () => {
@@ -573,7 +139,6 @@ export default function App() {
     const off = (window.gitAPI as any).onGithubAuthComplete?.(() => load())
     return off
   }, [])
-
   // ── Auto-refresh via file watcher events from main process ────
   useEffect(() => {
     const handler = () => loadRepoData(true)
@@ -581,15 +146,6 @@ export default function App() {
     const offWorking = window.gitAPI.onWorkingChanged(handler)
     return () => { offRepo(); offWorking() }
   }, [loadRepoData])
-
-  // Auto-close the resolver if its file gets resolved+staged OUTSIDE the app
-  // (e.g. an AI agent calling the MCP server's resolve_conflict directly) —
-  // otherwise it's left open showing an already-resolved conflict as if
-  // nothing happened. resolverFileSeenRef guards a race right after opening
-  // (e.g. via a gitgui://open deep link): conflictFiles may still hold the
-  // previous repo's stale/empty snapshot for a tick before the fetch catches
-  // up, which would otherwise look identical to "resolved externally".
-  const resolverFileSeenRef = useRef<string | null>(null)
   useEffect(() => {
     if (!conflictResolverFile) { resolverFileSeenRef.current = null; return }
     if (conflictFiles.includes(conflictResolverFile)) {
@@ -607,13 +163,11 @@ export default function App() {
       showToast(t('toast.conflictResolvedExternal'))
     }
   }, [conflictFiles, conflictResolverFile, showToast])
-
   // ── Load recent repos on mount ─────────────────────────────
   useEffect(() => {
     window.gitAPI.getRecentRepos().then(r => setRecentRepos(r ?? []))
     ;(window.gitAPI as any).getWorkspaces?.().then((w: Record<string, string>) => setWorkspaces(w ?? {})).catch(() => {})
   }, [])
-
   // ── "What's new" after an update ───────────────────────────
   // On first launch after a version bump, show the release notes in a tab and
   // mark this version seen so it doesn't reappear.
@@ -622,8 +176,6 @@ export default function App() {
       if (w) { setWhatsNew(w); setWhatsNewActive(true); (window.gitAPI as any).markWhatsNewSeen?.() }
     }).catch(() => {})
   }, [])
-
-
   // ── Extended search ────────────────────────────────────────
   useEffect(() => {
     if (!extendedSearch || !searchQuery.trim() || !repoPath) {
@@ -638,42 +190,10 @@ export default function App() {
     }, 500)
     return () => clearTimeout(timeout)
   }, [extendedSearch, searchQuery, repoPath])
-
-  // ── AI natural-language search ─────────────────────────────
-  const runAiSearch = useCallback(async () => {
-    if (!searchQuery.trim() || !repoPath) return
-    setAiSearchLoading(true)
-    try {
-      const r = await (window.gitAPI as any).aiSearchCommits(searchQuery.trim())
-      if (r.error) {
-        showToast(r.error === 'NO_API_KEY' ? t('toast.noAiKey') : r.error, 'err')
-        return
-      }
-      setAiSearchHashes(new Set(r.hashes ?? []))
-    } catch (e: any) {
-      showToast(e?.message ?? t('toast.aiError'), 'err')
-    } finally {
-      setAiSearchLoading(false)
-    }
-  }, [searchQuery, repoPath, showToast])
-
   // Leaving AI mode or clearing the query drops the AI result set.
   useEffect(() => {
     if (!aiSearch || !searchQuery.trim()) setAiSearchHashes(null)
   }, [aiSearch, searchQuery])
-
-  // Host-side matches handed to the graph (OR-ed with its local text filter):
-  // diff extended-search hits + AI natural-language hits.
-  const graphSearchHashes = useMemo(() => {
-    const extActive = extendedSearch && searchQuery.trim() !== ''
-    if (!extActive && aiSearchHashes == null && notedHashes == null) return null
-    const s = new Set<string>()
-    if (extActive) extendedSearchHashes.forEach(h => s.add(h))
-    if (aiSearchHashes) aiSearchHashes.forEach(h => s.add(h))
-    if (notedHashes) notedHashes.forEach(h => s.add(h))
-    return s
-  }, [extendedSearch, searchQuery, extendedSearchHashes, aiSearchHashes, notedHashes])
-
   // ── Auto-updater (available → downloading → installing) ─────
   // autoDownload is off in main, so a download only ever starts from the
   // overlay's "Télécharger et installer" — which is why reaching "downloaded"
@@ -701,13 +221,6 @@ export default function App() {
     })
     return () => { offAvail?.(); offProg?.(); offDone?.() }
   }, [addUpdateNotification])
-
-  const startUpdateDownload = useCallback(() => {
-    setUpdatePct(0)
-    setUpdatePhase('downloading')
-    ;(window.gitAPI as any).downloadUpdate?.()
-  }, [])
-
   // ── GitHub connection state ────────────────────────────────
   useEffect(() => {
     window.gitAPI.githubGetToken().then((r: any) => {
@@ -718,17 +231,12 @@ export default function App() {
       setGithubConnected(!!result?.token)
     })
   }, [])
-
-  // ── Auto-fetch ─────────────────────────────────────────────
-  // The main process owns the timer — one per setting, re-armed when the
-  // setting or the repository changes — and this only listens to what it did.
-  // There used to be a second timer here on the same setting, so every
-  // interval fetched twice, and a run that failed said nothing anywhere. A
-  // failure is shown once per distinct message: a remote that is down is one
-  // fact, not one toast per interval.
-  const lastAutoFetchError = useRef<string | null>(null)
   useEffect(() => window.gitAPI.onAutoFetched?.(r => {
+    // A fetch names its repository now: the shown one follows on screen, a
+    // hidden one in its snapshot, so its tab shows the present when reopened.
+    const shown = !r.repo || r.repo === repoPath
     if (r.success) {
+      if (!shown) { if (hasSnapshot(r.repo!)) void loadRepoData(true, r.repo); return }
       lastAutoFetchError.current = null
       setLastFetchTime(new Date())
       void loadRepoData(true)
@@ -737,69 +245,9 @@ export default function App() {
     const message = r.error ?? ''
     if (message === lastAutoFetchError.current) return
     lastAutoFetchError.current = message
-    showToast(t('toast.autoFetchFailed', message), 'err')
-  }), [loadRepoData, showToast, t])
-
-  // ── Open repo helpers ──────────────────────────────────────
-  // Which section a manual refresh is reading, and a tick per section that
-  // tells the saved-filter groups to bypass the search cache (#133).
-  const [githubRefreshing, setGithubRefreshing] = useState<'prs' | 'issues' | null>(null)
-  const [githubRefreshTick, setGithubRefreshTick] = useState({ prs: 0, issues: 0 })
-  /** Bumped by each background poll, so the saved filters re-query with it. */
-  const [githubPollTick, setGithubPollTick] = useState(0)
-
-  /**
-   * `silent` is a poll rather than something the user asked for (#141). Two
-   * things change: a refused read leaves the lists exactly as they are instead
-   * of taking the sections away, and nothing is written when the answer came
-   * back `notModified` — a list that reorders under an open hover card is
-   * worse than a list that is a minute old.
-   */
-  const loadGithubLists = useCallback(async (base: { owner: string; repo: string }, only?: 'prs' | 'issues', silent = false) => {
-    void (window.gitAPI as any).githubGetUser?.()
-      .then((r: any) => setGithubLogin(r?.user?.login ?? null))
-      .catch(() => setGithubLogin(null))
-    const rows = (list: any[] | undefined, kind: 'pr' | 'issue'): GithubListItem[] =>
-      (list ?? []).map((x: any) => ({
-        number: x.number, title: x.title, author: x.author,
-        draft: kind === 'pr' ? !!x.draft : undefined, url: x.url,
-        createdAt: x.createdAt, comments: x.comments, labels: x.labels,
-        headRef: x.headRef, baseRef: x.baseRef,
-        body: x.body, assignees: x.assignees, reviewers: x.reviewers,
-      }))
-    try {
-      // `only` narrows it to the section whose button was pressed: the two are
-      // two calls, and refreshing both because one looks stale spends two
-      // requests to answer one question.
-      const [prs, issues] = await Promise.all([
-        only === 'issues' ? null : (window.gitAPI as any).githubListPRs(base.owner, base.repo).catch(() => null),
-        only === 'prs' ? null : (window.gitAPI as any).githubListIssues(base.owner, base.repo).catch(() => null),
-      ])
-      // A refused read costs that section's list, never the section itself —
-      // the rule the saved filters already follow. Except on a poll, where it
-      // costs nothing at all: the user did not ask, so a blip must not empty
-      // what they are looking at.
-      // ⚠️ `notModified` means "the same as the last body I handed out" — and
-      // the ETag cache lives in the MAIN process, which outlives this renderer.
-      // After a window reload the renderer holds nothing while that cache is
-      // still warm, so the first load comes back 304. Skipping it there left
-      // the sections undefined, which is how they disappear entirely rather
-      // than showing as empty. It is only safe to skip when there is already
-      // something to keep — and the answer carries the body either way.
-      const put = (r: any, current: any, apply: (v: any) => void, shape: () => any) => {
-        if (r?.notModified && current !== undefined) return
-        if (r?.error) { if (!silent) apply(undefined); return }
-        apply(shape())
-      }
-      if (only !== 'issues') put(prs, githubPRsRef.current, setGithubPRs, () => rows(prs?.prs, 'pr'))
-      if (only !== 'prs') put(issues, githubIssuesRef.current, setGithubIssues, () => rows(issues?.issues, 'issue'))
-    } catch {
-      if (silent) return
-      if (only !== 'issues') setGithubPRs(undefined)
-      if (only !== 'prs') setGithubIssues(undefined)
-    }
-  }, [])
-
+    // Named after its repository when that is not the one shown.
+    showToast(t('toast.autoFetchFailed', message), 'err', undefined, undefined, r.repo ?? null)
+  }), [loadRepoData, showToast, t, repoPath, hasSnapshot])
   // ── The GitHub lists poll themselves (#141) ────────────────
   //
   // There is no push channel a desktop client can subscribe to — webhooks are
@@ -841,410 +289,24 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [githubOwnerRepo, loadGithubLists])
-
-
-  /** The section headers' refresh button — one section, and never two at once. */
-  const refreshGithubSection = useCallback(async (section: 'prs' | 'issues') => {
-    if (!githubOwnerRepo || githubRefreshing) return
-    setGithubRefreshing(section)
-    try {
-      await loadGithubLists(githubOwnerRepo, section)
-      // Only after the list is back: the tick is what makes each saved filter
-      // re-query with `force`, and they should not race the list they sit under.
-      setGithubRefreshTick(t => ({ ...t, [section]: t[section] + 1 }))
-    } finally {
-      setGithubRefreshing(null)
-    }
-  }, [githubOwnerRepo, githubRefreshing, loadGithubLists])
-
-
   useEffect(() => { setIssueDetail(null) }, [repoPath])
-  // The composer belongs to the repository it opened on. Left in state, a
-  // drawer open when the tab was closed greeted the NEXT open of the repo —
-  // with an intent computed for branches that may have moved since.
-  const [issueComposerOpen, setIssueComposerOpen] = useState(false)
-  /**
-   * What the AI drawer is currently reading (#70 P1). One piece of state for
-   * the four, because only one can be open: they all come out of the same
-   * edge of the same panel, and two would be one on top of the other.
-   */
-  const [aiRead, setAiRead] = useState<
-    | { kind: 'branch' | 'changelog'; ref: string; label: string }
-    | { kind: 'stash'; index: number | string; label: string }
-    | { kind: 'working' }
-    | null>(null)
-  const [composerOpen, setComposerOpen] = useState(false)
-  /**
-   * Which stack the panel shows, and a token bumped whenever the model has
-   * written something. Both live here rather than in the Sidebar because a
-   * generation happens in a DRAWER: what it produces has to land in the list
-   * and the list has to come into view, and neither can happen from inside
-   * the panel that is not being looked at.
-   */
-  const [sidebarTab, setSidebarTab] = useState<'list' | 'ai'>(
-    () => (localStorage.getItem('sb-tab') === 'ai' ? 'ai' : 'list'))
   useEffect(() => { localStorage.setItem('sb-tab', sidebarTab) }, [sidebarTab])
-  const [memoryToken, setMemoryToken] = useState(0)
-  /** Written: put it in the list, and put the list where it can be seen. */
-  const rememberedAI = useCallback(() => {
-    setMemoryToken(n => n + 1)
-    setSidebarTab('ai')
-  }, [])
   useEffect(() => {
     setPrModalOpen(false); setPrIntent(null); setIssueComposerOpen(false)
     setAiRead(null); setComposerOpen(false)
   }, [repoPath])
-
-  const detectGithub = useCallback(async () => {
-    const detected = await (window.gitAPI as any).githubDetectRepo()
-    setGithubOwnerRepo(detected?.owner && detected?.repo
-      ? { owner: detected.owner, repo: detected.repo } : null)
-    // The lists follow the repository, and a repository with no GitHub — or no
-    // token — simply has no sections rather than two empty ones.
-    if (detected?.owner && detected?.repo) {
-      void loadGithubLists({ owner: detected.owner, repo: detected.repo })
-    } else {
-      setGithubPRs(undefined); setGithubIssues(undefined)
-    }
-    // Read the remote itself rather than assuming github.com: this is what
-    // every link below is built from, and the only thing that knows the host.
-    const rem = await window.gitAPI.getRemotes().catch(() => ({ remotes: [] }))
-    const def = await (window.gitAPI as any).getDefaultRemote?.().catch(() => null)
-    setRemoteNames((rem?.remotes ?? []).map((r: { name: string }) => r.name))
-    const parsed = repoFromRemotes(rem?.remotes ?? [], def?.remote)
-    setRemoteRepo(parsed)
-    setGithubRepoUrl(parsed ? remoteUrl.repo(parsed) : null)
-    const d = await (window.gitAPI as any).getDefaultBranch?.()
-    setDefaultBranch(d?.branch ?? null)
-  }, [])
-
-  const applyRepo = useCallback(async (res: { path?: string; name?: string; error?: string }) => {
-    if (res.path) {
-      setWhatsNewActive(false)   // opening a repo leaves the what's-new view
-      const name = res.name ?? res.path.split('/').pop()!
-      setRepoPath(res.path)
-      setRepoName(name)
-      setSelectedCommit(null)
-      setCommits([])
-      const updated = await window.gitAPI.getRecentRepos()
-      setRecentRepos(updated ?? [])
-      await detectGithub()
-      // Register or activate a tab for this repo
-      setTabs(prev => {
-        // Paths are NFC-normalized in the main process, but a tab registered
-        // before that (or from a differently-normalized source) must still
-        // match rather than open a second tab on the same repo.
-        const existing = prev.find(tb => tb.kind === 'repo' && tb.path!.normalize('NFC') === res.path!.normalize('NFC'))
-        if (existing) { setActiveTabId(existing.id); return prev }
-        // Opening a repo from a home tab converts that tab in place (the
-        // "New Tab" becomes the repo) rather than leaving an empty home behind.
-        const active = prev.find(tb => tb.id === activeTabId)
-        if (active && active.kind === 'home') {
-          return prev.map(tb => tb.id === active.id ? { id: tb.id, kind: 'repo', path: res.path!, name } : tb)
-        }
-        const id = newTabId('repo')
-        setActiveTabId(id)
-        return [...prev, { id, kind: 'repo', path: res.path!, name }]
-      })
-    } else if (res.error && res.error !== 'cancelled') {
-      showToast(t('toast.err', res.error), 'err')
-    }
-  }, [showToast, detectGithub, activeTabId])
-
-  // #127, decided per case against the rule in Toast.tsx: opening a
-  // repository is NAVIGATION — the whole window becomes that repository,
-  // which is its own confirmation — so these two stay silent on success and
-  // let applyRepo report a refusal.
-  const handleOpenRepo = async () => applyRepo(await window.gitAPI.openRepo())
-  const handleSetRepo = async (path: string) => applyRepo(await window.gitAPI.setRepo(path))
-  const handleCreateRepo = async () => {
-    const dir = await window.gitAPI.selectDirectory(t('welcome.createHint'))
-    if (!dir.path) return
-    const res = await (window.gitAPI as any).initRepo(dir.path)
-    applyRepo(res)
-    // Creating one, though, is a MUTATION: a repository now exists on disk
-    // where none did, and nothing else on screen says so.
-    if (res?.path) showToast(t('toast.repoCreated'))
-  }
-  // Open the current release notes on demand (welcome "Notes de version" link).
-  const openReleaseNotes = async () => {
-    const w = await (window.gitAPI as any).getReleaseNotes?.().catch(() => null)
-    if (w) { setWhatsNew(w); setWhatsNewActive(true) }
-    else showToast(t('toast.noReleaseNotes'), 'err')
-  }
-  // A mutation, but a SELF-EVIDENT one — the row leaves the list you removed
-  // it from, in front of you. #127's rule sends those to silence.
-  const handleRemoveRecent = async (path: string) => {
-    const updated = await window.gitAPI.removeRecentRepo(path)
-    setRecentRepos(updated ?? [])
-  }
-
-  // ── Deep links (gitgui://open — MCP open_in_git_vertex, etc.) ──
-  // Open the repo, then route to the requested surface. Commit selection
-  // waits for the log to load (deepLinkHash consumed by the effect below).
-  const [deepLinkHash, setDeepLinkHash] = useState<string | null>(null)
-  const applyDeepLink = useCallback(async (link: { repo: string; view: string; file?: string; hash?: string; proposalContent?: string } | null) => {
-    if (!link?.repo) return
-    await handleSetRepo(link.repo)
-    // A deep link that carries a proposal but arrives without it, or with one
-    // we can't parse, used to do nothing at all: the repo opened, no view
-    // switched, no error anywhere. The agent meanwhile reported success, so
-    // the user was told the message/plan was waiting in the app when it was
-    // not. Every failure below is surfaced instead of swallowed.
-    const proposalMissing = (what: string) => {
-      console.error('[deeplink] missing proposal payload', link)
-      showToast(t('deeplink.missing', what), 'err')
-    }
-    const proposalUnreadable = (what: string, e: unknown) => {
-      console.error('[deeplink] malformed proposal payload', link, e)
-      showToast(t('deeplink.unreadable', what), 'err')
-    }
-
-    if (link.view === 'resolve' && link.file) {
-      setConflictResolverFile(link.file)
-      // Preload an agent-proposed resolution into the manual editor for
-      // review — never applied until the user clicks "Enregistrer & Résoudre".
-      setConflictResolverProposal(link.proposalContent ?? null)
-    } else if (link.view === 'commit' && link.hash) {
-      setDeepLinkHash(link.hash)
-    } else if (link.view === 'propose-commit') {
-      // MCP propose_commit: preload the message (and proposed file list) into
-      // the staging form — the user stages and commits themselves.
-      if (!link.proposalContent) { proposalMissing(t('deeplink.what.commitMsg')); return }
-      try {
-        const p = JSON.parse(link.proposalContent)
-        setCommitProposal({
-          message: String(p.message ?? ''),
-          files: Array.isArray(p.files) ? p.files.map(String) : [],
-        })
-        setSelectedCommit({
-          hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
-          author: '', authorEmail: '', date: '', parents: [], refs: []
-        })
-      } catch (e) { proposalUnreadable(t('deeplink.what.commitMsgCap'), e) }
-    } else if (link.view === 'propose-rebase') {
-      // MCP propose_rebase_plan: open the visual rebase editor with the
-      // agent's plan preloaded — the user reviews and launches it themselves.
-      if (!link.hash) { proposalUnreadable(t('deeplink.what.rebasePlanCap'), 'missing base hash'); return }
-      if (!link.proposalContent) { proposalMissing(t('deeplink.what.rebasePlan')); return }
-      try {
-        const p = JSON.parse(link.proposalContent)
-        if (!Array.isArray(p.steps)) throw new Error('proposal has no steps array')
-        setRebasePlanProposal(p.steps)
-        setRebaseHash(link.hash)
-      } catch (e) { proposalUnreadable(t('deeplink.what.rebasePlanCap'), e) }
-    } else if (link.view !== 'graph') {
-      // "graph" is just "open this repo" and needs nothing more; anything else
-      // reaching here is a view we know but whose required parameter is absent.
-      console.error('[deeplink] nothing to do for this link', link)
-      showToast(t('deeplink.incomplete', link.view), 'err')
-    }
-  }, [showToast])  // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     ;(window.gitAPI as any).getPendingDeepLink?.().then(applyDeepLink).catch(() => {})
     const off = (window.gitAPI as any).onDeepLink?.(applyDeepLink)
     return off
   }, [applyDeepLink])
-
   useEffect(() => {
     if (!deepLinkHash || commits.length === 0) return
     const found = commits.find(c => c.hash === deepLinkHash || c.hash.startsWith(deepLinkHash))
     if (found) { setSelectedCommit(found); setDeepLinkHash(null) }
   }, [deepLinkHash, commits])
-
-  // ── Tab switching ──────────────────────────────────────────
-  // Tear down the repo view (home & launchpad tabs have no repo).
-  const clearRepoView = useCallback(() => {
-    setRepoPath(null)
-    setRepoName('')
-    setSelectedCommit(null)
-    setCommits([])
-    setGithubRepoUrl(null)
-    setGithubOwnerRepo(null)
-    setDefaultBranch(null)
-  }, [])
-
-  // "+" → a fresh home ("New Tab") every time.
-  const openHomeTab = useCallback(() => {
-    if (conflictResolverFile || rebaseHash) return
-    setWhatsNewActive(false)
-    setRepoMgmtOpen(false)
-    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
-    const id = newTabId('home')
-    setTabs(prev => [...prev, { id, kind: 'home' }])
-    setActiveTabId(id)
-    clearRepoView()
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
-
-  // 🚀 → focus the Launchpad if one is open, otherwise open one.
-  const openLaunchpadTab = useCallback(() => {
-    if (conflictResolverFile || rebaseHash) return
-    setWhatsNewActive(false)
-    setRepoMgmtOpen(false)
-    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
-    setTabs(prev => {
-      const existing = prev.find(tb => tb.kind === 'launchpad')
-      if (existing) { setActiveTabId(existing.id); return prev }
-      const id = newTabId('launchpad')
-      setActiveTabId(id)
-      return [...prev, { id, kind: 'launchpad' }]
-    })
-    clearRepoView()
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
-
-  // Appearance → "Browse N more themes". A tab rather than a pane: 4,000 rows
-  // want the width, and the choice survives going to a repo and back. One at a
-  // time, like the Launchpad.
-  const openThemesTab = useCallback(() => {
-    if (conflictResolverFile || rebaseHash) return
-    setWhatsNewActive(false)
-    setRepoMgmtOpen(false)
-    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
-    setTabs(prev => {
-      const existing = prev.find(tb => tb.kind === 'themes')
-      if (existing) { setActiveTabId(existing.id); return prev }
-      const id = newTabId('themes')
-      setActiveTabId(id)
-      return [...prev, { id, kind: 'themes' }]
-    })
-    clearRepoView()
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, clearRepoView])
-
-  /**
-   * Open a view in a tab — or reveal the one already showing it.
-   *
-   * The tab carries the repository it belongs to, because the main process
-   * holds one repo at a time: a comparison tab left over from another
-   * repository would quietly answer with this one's history.
-   */
-  const openViewTab = useCallback((body: ViewTab) => {
-    // An operation in progress is a different matter from a missing repository:
-    // switchTab already refuses to move while one runs, so opening a tab under
-    // it would strand the user.
-    if (conflictResolverFile || rebaseHash) return
-    const needsRepo = viewNeedsRepo(body)
-    if (needsRepo && !repoPath) return
-    setWhatsNewActive(false)
-    setRepoMgmtOpen(false)
-    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
-    setTabs(prev => {
-      // A repository's view is the same tab only within that repository; an
-      // application view is the same tab everywhere, so it does not match on a
-      // path it does not have.
-      const existing = prev.find(tb => tb.kind === 'view' && tb.body && sameView(tb.body, body)
-        && (!needsRepo || tb.path === repoPath))
-      if (existing) { setActiveTabId(existing.id); return prev }
-      const id = newTabId('view')
-      setActiveTabId(id)
-      return needsRepo
-        ? [...prev, { id, kind: 'view' as const, path: repoPath!, name: repoName, body }]
-        : [...prev, { id, kind: 'view' as const, body }]
-    })
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, repoPath, repoName])
-
-  const openSettingsTab = useCallback(() => openViewTab({ view: 'settings' }), [openViewTab])
-
-  const switchTab = useCallback(async (tab: AppTab) => {
-    setWhatsNewActive(false)   // clicking a tab leaves the what's-new view (tab stays open)
-    setRepoMgmtOpen(false)
-    if (tab.id === activeTabId) return
-    if (conflictResolverFile || rebaseHash) return
-    if (activeTabId) selectedByTab.current.set(activeTabId, selectedCommit)
-    setActiveTabId(tab.id)
-    // A view tab is bound to a repository too: its queries go through the main
-    // process, which serves whichever repo was last set.
-    if (tab.kind !== 'repo' && tab.kind !== 'view') { clearRepoView(); return }
-    // A view with no path is about the application, not about a repository:
-    // there is nothing to set, and whatever repository is open stays open
-    // behind it so leaving the tab returns to it.
-    if (tab.kind === 'view' && !tab.path) return
-    if (tab.kind === 'view' && tab.path === repoPath) return
-    const r = await window.gitAPI.setRepo(tab.path!)
-    if (r.path) {
-      setRepoPath(r.path)
-      setRepoName(r.name ?? tab.name!)
-      setCommits([])
-      setSelectedCommit(selectedByTab.current.get(tab.id) ?? null)
-      await detectGithub()
-    } else if (r.error) {
-      showToast(t('toast.err', r.error), 'err')
-    }
-  }, [activeTabId, selectedCommit, conflictResolverFile, rebaseHash, repoPath, detectGithub, showToast, clearRepoView])
-
-  const closeTab = useCallback((id: string) => {
-    selectedByTab.current.delete(id)
-    setTabs(prev => {
-      const idx = prev.findIndex(tb => tb.id === id)
-      const next = prev.filter(tb => tb.id !== id)
-      if (id === activeTabId) {
-        // Never leave the window tab-less: fall back to a neighbour, or seed a
-        // fresh home if this was the last tab.
-        if (next.length === 0) {
-          const home: AppTab = { id: newTabId('home'), kind: 'home' }
-          setActiveTabId(home.id)
-          clearRepoView()
-          return [home]
-        }
-        const fallback = next[Math.max(0, idx - 1)]
-        setActiveTabId(fallback.id)
-        if (fallback.path) {
-          window.gitAPI.setRepo(fallback.path!).then(r => {
-            if (r.path) {
-              setRepoPath(r.path)
-              setRepoName(r.name ?? fallback.name!)
-              setCommits([])
-              setSelectedCommit(selectedByTab.current.get(fallback.id) ?? null)
-              detectGithub()
-            }
-          })
-        } else {
-          clearRepoView()
-        }
-      }
-      return next
-    })
-  }, [activeTabId, detectGithub, clearRepoView])
-
-  const closeOtherTabs = useCallback((id: string) => {
-    const kept = tabs.find(tb => tb.id === id)
-    setTabs(prev => prev.filter(tb => tb.id === id))
-    for (const key of Array.from(selectedByTab.current.keys())) {
-      if (key !== id) selectedByTab.current.delete(key)
-    }
-    setActiveTabId(id)
-    // Reconcile the body if the survivor isn't the repo currently loaded.
-    if (kept && !kept.path && kept.kind !== 'view') clearRepoView()
-    else if (kept?.path && kept.path !== repoPath) {
-      window.gitAPI.setRepo(kept.path!).then(r => {
-        if (r.path) {
-          setRepoPath(r.path); setRepoName(r.name ?? kept.name!)
-          setCommits([]); setSelectedCommit(selectedByTab.current.get(kept.id) ?? null); detectGithub()
-        }
-      })
-    }
-  }, [tabs, repoPath, clearRepoView, detectGithub])
-
-  // ── Git operations ─────────────────────────────────────────
-  const handleUndo = async () => {
-    setLoading(true)
-    const r = await window.gitAPI.undoLastAction()
-    if (r.success) { showToast(`↩ ${r.action ?? t('toast.undoFallback')}`); await loadRepoData() }
-    else showToast(r.error ?? t('toast.cannotUndo'), 'err')
-    setLoading(false)
-  }
-
-  const handleRedo = async () => {
-    setLoading(true)
-    const r = await window.gitAPI.redoLastAction()
-    if (r.success) { showToast(`↪ ${r.action ?? t('toast.redoFallback')}`); await loadRepoData() }
-    else showToast(r.error ?? t('toast.nothingToRedo'), 'err')
-    setLoading(false)
-  }
-
-  // "Annuler" button offered on toasts after history-rewriting operations
-  const undoAction = () => ({ label: t('toast.undo'), onClick: () => { void handleUndo() } })
-
   // ── Keyboard shortcuts ─────────────────────────────────────
   // Declared after handleUndo so the dependency array doesn't hit a temporal
   // dead zone (referencing a `const` before its initialization throws at render).
@@ -1278,1132 +340,6 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [loadRepoData, handleUndo, handleRedo, conflictResolverFile])
-
-  const handleFetch = async () => {
-    setLoading(true)
-    const r = await window.gitAPI.fetch()
-    if (r.success) { showToast(t('toast.fetchOk')); await loadRepoData() }
-    else showToast(t('toast.fetchErr', r.error ?? ''), 'err')
-    setLoading(false)
-  }
-
-  const handlePush = async () => {
-    if (!repoPath) return
-    setLoading(true)
-    const { upstream } = await window.gitAPI.getUpstream()
-    setLoading(false)
-    if (upstream) {
-      // upstream configured → push direct
-      const r = await window.gitAPI.push()
-      if (r.success) { showToast(t('toast.pushOk', upstream)); await loadRepoData() }
-      else showToast(t('toast.pushErr', r.error ?? ''), 'err')
-    } else {
-      // no upstream → open modal to configure
-      setPushModalOpen(true)
-    }
-  }
-
-  // Navigation: it opens the push modal, which is the confirmation.
-  const handlePushModal = () => {
-    if (repoPath) setPushModalOpen(true)
-  }
-
-  const handleStash = async () => {
-    if (!repoPath) return
-    const r = await window.gitAPI.createStash()
-    if ((r as any)?.success === false) showToast(t('toast.stashErr', (r as any).error ?? ''), 'err')
-    else { showToast(t('toast.stashCreated')); await loadRepoData() }
-  }
-
-  const handlePop = async () => {
-    if (!repoPath || stashes.length === 0) return
-    const r = await window.gitAPI.popStash(0)
-    if ((r as any)?.success === false) showToast(t('toast.stashErr', (r as any).error ?? ''), 'err')
-    else { showToast(t('toast.stashPopped', 0)); await loadRepoData() }
-  }
-
-  // Navigation: a terminal window opens, which is the confirmation.
-  const handleTerminal = async () => {
-    if (!repoPath) return
-    const r = await (window.gitAPI as any).openTerminal?.()
-    if (r?.success === false) showToast(r.error ?? t('toast.terminalError'), 'err')
-  }
-
-  const handlePull = async () => {
-    await guardConflict(
-      // Predicts the merge of the already-known upstream tip; pull will fetch
-      // first, so brand-new upstream commits aren't seen here (advisory).
-      () => window.gitAPI.predictConflicts('@{u}'),
-      async () => {
-        setLoading(true)
-        const r = await window.gitAPI.pull(pullMode === 'fetch' ? undefined : pullMode)
-        if (r.success) { showToast(t('toast.pullOk')); await loadRepoData() }
-        else showToast(t('toast.pullErr', r.error ?? ''), 'err')
-        setLoading(false)
-      },
-    )
-  }
-
-  /**
-   * Run something that moves HEAD, stashing the working tree around it when the
-   * Auto-stash setting is on. Every way of arriving on a branch goes through
-   * here — plain checkout, creating a tracking branch, creating a branch at a
-   * commit — so none of them can lose local changes the others protect.
-   */
-  const withAutoStash = async (
-    label: string,
-    run: () => Promise<{ success: boolean; error?: string }>,
-  ) => {
-    const settings = await window.gitAPI.settingsGetAll().catch(() => ({} as any))
-    let stashed = false
-    if (settings?.autoStash === 'true') {
-      const changes = await window.gitAPI.getWorkingChanges()
-      const hasChanges = (changes.staged?.length ?? 0) + (changes.unstaged?.length ?? 0) + (changes.untracked?.length ?? 0) > 0
-      if (hasChanges) {
-        const sr = await window.gitAPI.createStash('Auto-stash before checkout')
-        if (sr.success) { stashed = true; showToast(t('toast.autoStashed')) }
-      }
-    }
-    const r = await run()
-    if (r.success) {
-      if (stashed) {
-        const pr = await window.gitAPI.popStash(0)
-        if (pr.success) showToast(`${t('toast.checkoutOk', label)}${t('toast.stashRestoredSuffix')}`)
-        else showToast(`${t('toast.checkoutOk', label)}${t('toast.stashRestoreFailSuffix')}`, 'err')
-      } else {
-        showToast(t('toast.checkoutOk', label))
-      }
-      await loadRepoData()
-    } else {
-      if (stashed) await window.gitAPI.popStash(0)
-      showToast(t('toast.checkoutErr', r.error ?? ''), 'err')
-    }
-    return r
-  }
-
-  /**
-   * "Take me here" — the double-click on a branch row, a ref chip or a commit.
-   * It always lands on a LOCAL BRANCH: git decides which case applies
-   * (getCheckoutPlan) and this only carries it out. Detaching HEAD is reserved
-   * for the context menu's explicit "check out this commit".
-   */
-  const handleGoTo = async (ref: string) => {
-    const plan = await (window.gitAPI as any).getCheckoutPlan(ref)
-    if (!plan || plan.error) { showToast(t('toast.checkoutErr', plan?.error ?? ''), 'err'); return }
-    switch (plan.action) {
-      case 'already-here':
-        showToast(t('toast.alreadyOnBranch', plan.branch))
-        return
-      case 'checkout-local':
-        await handleCheckout(plan.branch)
-        return
-      case 'create-tracking':
-        // A remote branch with no local counterpart: the local branch that
-        // tracks it is unambiguous, so it is created without asking.
-        await withAutoStash(plan.branch, () =>
-          (window.gitAPI as any).checkoutTracking(plan.remoteRef, plan.branch))
-        return
-      case 'create-branch': {
-        // Nothing to land on. Ask for a name — deliberately empty: any
-        // suggestion here would be a guess about what this branch is for.
-        const name = await showPrompt(t('prompt.branchHere', plan.shortHash), '')
-        if (!name || !name.trim()) return
-        await withAutoStash(name.trim(), () =>
-          window.gitAPI.createBranchAt(name.trim(), plan.hash, true))
-        return
-      }
-    }
-  }
-
-  const handleCheckout = async (name: string) => {
-    // Auto-stash: if enabled and there are local changes, stash before checkout and pop after
-    const settings = await window.gitAPI.settingsGetAll().catch(() => ({} as any))
-    const autoStash = settings?.autoStash === 'true'
-    let stashed = false
-    if (autoStash) {
-      const changes = await window.gitAPI.getWorkingChanges()
-      const hasChanges = (changes.staged?.length ?? 0) + (changes.unstaged?.length ?? 0) + (changes.untracked?.length ?? 0) > 0
-      if (hasChanges) {
-        const sr = await window.gitAPI.createStash('Auto-stash before checkout')
-        if (sr.success) { stashed = true; showToast(t('toast.autoStashed')) }
-      }
-    }
-    const r = await window.gitAPI.checkout(name)
-    if (r.success) {
-      if (stashed) {
-        const pr = await window.gitAPI.popStash(0)
-        if (pr.success) showToast(`${t('toast.checkoutOk', name)}${t('toast.stashRestoredSuffix')}`)
-        else showToast(`${t('toast.checkoutOk', name)}${t('toast.stashRestoreFailSuffix')}`, 'err')
-      } else {
-        showToast(t('toast.checkoutOk', name))
-      }
-      await loadRepoData()
-    } else {
-      if (stashed) await window.gitAPI.popStash(0)
-      showToast(t('toast.checkoutErr', r.error ?? ''), 'err')
-    }
-  }
-
-  // Checking out a tag detaches HEAD — git's own behaviour, but silent enough
-  // that the toast says so explicitly rather than leaving the user wondering
-  // why the branch indicator changed (v1.23.0).
-  const handleCheckoutTag = async (name: string) => {
-    const r = await window.gitAPI.checkout(name)
-    if (r.success) { showToast(t('toast.tagCheckedOut', name)); await loadRepoData() }
-    else showToast(t('toast.checkoutErr', r.error ?? ''), 'err')
-  }
-
-  const handleCreateBranch = useCallback(async () => {
-    const name = await showPrompt(t('prompt.newBranch'))
-    if (!name) return
-    try {
-      const r = await window.gitAPI.createBranch(name)
-      if (r.success) { showToast(t('toast.branchCreated', name)); await loadRepoData() }
-      else showToast(t('toast.err', r.error ?? ''), 'err')
-    } catch (e: any) {
-      showToast(t('toast.unexpected', e?.message ?? e), 'err')
-    }
-  }, [showPrompt, showToast, loadRepoData])
-
-  const handleDeleteBranch = async (name: string) => {
-    const ok = await showConfirm(t('prompt.deleteBranch', name), true)
-    if (!ok) return
-    const r = await window.gitAPI.deleteBranch(name)
-    if (r.success) { showToast(t('toast.branchDeleted', name)); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  // Abandoning a branch means both ends of it. One confirmation, and the local
-  // side goes first so a remote that refuses (protected branch) leaves the pair
-  // visibly half-done rather than silently dropping the local work.
-  const handleDeleteBranchBoth = async (name: string, remoteName: string) => {
-    const ok = await showConfirm(t('prompt.deleteBoth', name, remoteName), true)
-    if (!ok) return
-    const local = await window.gitAPI.deleteBranch(name)
-    if (!local.success) { showToast(t('toast.err', local.error ?? ''), 'err'); return }
-    const remote = await window.gitAPI.deleteRemoteBranch(`remotes/${remoteName}`)
-    if (remote.success) showToast(t('toast.branchesDeleted', name, remoteName))
-    else showToast(t('toast.err', remote.error ?? ''), 'err')
-    await loadRepoData()
-  }
-
-  // Warn (per the user's `warnBeforeConflict` setting) before an operation that
-  // is predicted to conflict. `predict` returns the files that would clash —
-  // empty means clean OR the prediction couldn't run, and either way we don't
-  // block. On a predicted conflict a sticky toast offers Continue, "don't ask
-  // again" (flips the setting off, then continues), or dismiss (×) to cancel.
-  const guardConflict = useCallback(async (
-    predict: () => Promise<{ files: string[]; error?: string }>,
-    op: () => void | Promise<void>,
-  ) => {
-    const settings = await window.gitAPI.settingsGetAll().catch(() => ({} as Record<string, string>))
-    if ((settings as any)?.warnBeforeConflict === 'false') { await op(); return }
-    const { files } = await predict().catch(() => ({ files: [] as string[] }))
-    if (files.length === 0) { await op(); return }   // clean, or prediction unavailable
-    showToast(
-      t('toast.conflictPredicted', String(files.length)),
-      'err',
-      [
-        { label: t('toast.conflictContinue'), onClick: () => { void op() } },
-        { label: t('toast.conflictDontAsk'), onClick: () => {
-          void window.gitAPI.settingsSet('warnBeforeConflict', 'false')
-          void op()
-        } },
-      ],
-      true,   // sticky — a go/no-go decision must not silently time out
-    )
-  }, [showToast, t])
-
-  const handleMergeBranch = async (name: string) => {
-    const ok = await showConfirm(t('prompt.mergeBranch', name, currentBranch))
-    if (!ok) return
-    await guardConflict(
-      () => window.gitAPI.predictConflicts(name),
-      async () => {
-        setLoading(true)
-        const r = await window.gitAPI.merge(name)
-        if (r.success) { showToast(t('toast.mergeOk', name)); await loadRepoData() }
-        else showToast(t('toast.mergeErr', r.error ?? ''), 'err')
-        setLoading(false)
-      },
-    )
-  }
-
-  const handleRebaseOnto = async (name: string) => {
-    const ok = await showConfirm(t('prompt.rebaseOnto', currentBranch, name))
-    if (!ok) return
-    await guardConflict(
-      // Accurate rebase prediction: simulates the per-commit replay.
-      () => window.gitAPI.predictRebaseConflicts(name),
-      async () => {
-        setLoading(true)
-        const r = await window.gitAPI.rebaseOnto(name)
-        if (r.success) showToast(t('toast.rebaseOntoOk', name))
-        else showToast(t('toast.err', r.error ?? ''), 'err')
-        // Refresh even on a conflict — the rebase is left paused (not aborted),
-        // so the conflict banner/resolver needs the reloaded state to show up.
-        await loadRepoData()
-        setLoading(false)
-      },
-    )
-  }
-
-  const handlePushBranch = async (name: string) => {
-    setLoading(true)
-    const r = await window.gitAPI.pushBranch(name)
-    if (r.success) { showToast(t('toast.pushOk', name)); await loadRepoData() }
-    else showToast(t('toast.pushErr', r.error ?? ''), 'err')
-    setLoading(false)
-  }
-
-  const handleDeleteRemoteBranch = async (name: string) => {
-    const ok = await showConfirm(t('prompt.deleteRemoteBranch', name), true)
-    if (!ok) return
-    setLoading(true)
-    const r = await window.gitAPI.deleteRemoteBranch(name)
-    if (r.success) { showToast(t('toast.branchDeleted', name)); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-    setLoading(false)
-  }
-
-  const handleSetUpstream = async (name: string) => {
-    const r = await window.gitAPI.setUpstream(name)
-    if (r.success) { showToast(t('toast.upstreamSet', name)); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  const handleRenameBranch = async (name: string) => {
-    const newName = await showPrompt(t('prompt.renameBranch', name), name)
-    if (!newName || newName === name) return
-    const r = await window.gitAPI.renameBranch(name, newName)
-    if (r.success) { showToast(t('toast.branchRenamed', newName)); await loadRepoData() }
-    else showToast(t('toast.renameErr', r.error ?? ''), 'err')
-  }
-
-  // ── Commit context menu operations ─────────────────────────
-  const handleCreateBranchAt = async (hash: string) => {
-    const name = await showPrompt(t('prompt.newBranch'))
-    if (!name) return
-    const checkout = await showConfirm(t('prompt.checkoutNow', name))
-    try {
-      const r = await window.gitAPI.createBranchAt(name, hash, checkout)
-      if (r.success) {
-        showToast(checkout ? t('toast.branchCreatedCheckout', name) : t('toast.branchCreated', name))
-        await loadRepoData()
-      } else {
-        showToast(t('toast.err', r.error ?? ''), 'err')
-      }
-    } catch (e: any) {
-      showToast(t('toast.unexpected', e?.message ?? e), 'err')
-    }
-  }
-
-  const handleCherryPick = async (hash: string) => {
-    await guardConflict(
-      // Cherry-pick = 3-way merge with the commit's parent as base.
-      () => window.gitAPI.predictConflicts(hash, 'HEAD', `${hash}^`),
-      async () => {
-        setLoading(true)
-        const r = await window.gitAPI.cherryPick(hash)
-        if (r.success) { showToast(t('toast.cherryPickOk', hash.slice(0, 7))); await loadRepoData() }
-        else showToast(t('toast.cherryPickErr', r.error ?? ''), 'err')
-        setLoading(false)
-      },
-    )
-  }
-
-  const handleRevert = async (hash: string) => {
-    await guardConflict(
-      // Revert = apply the inverse: base is the commit, "theirs" its parent.
-      () => window.gitAPI.predictConflicts(`${hash}^`, 'HEAD', hash),
-      async () => {
-        setLoading(true)
-        const r = await window.gitAPI.revert(hash)
-        if (r.success) { showToast(t('toast.revertOk', hash.slice(0, 7))); await loadRepoData() }
-        else showToast(t('toast.revertErr', r.error ?? ''), 'err')
-        setLoading(false)
-      },
-    )
-  }
-
-  const handleReset = async (hash: string, mode: 'soft' | 'mixed' | 'hard') => {
-    if (mode === 'hard') {
-      const ok = await showConfirm(t('prompt.resetHard', hash.slice(0, 7)), true)
-      if (!ok) return
-    }
-    setLoading(true)
-    const r = await window.gitAPI.reset(hash, mode)
-    if (r.success) {
-      showToast(t('toast.resetOk', mode, hash.slice(0, 7)), 'ok', undoAction())
-      setSelectedCommit(null)
-      await loadRepoData()
-    } else {
-      showToast(t('toast.resetErr', r.error ?? ''), 'err')
-    }
-    setLoading(false)
-  }
-
-  // Reword works on any commit: HEAD is a plain amend; any other commit goes
-  // through a targeted mini-rebase (pick everything, reword just that one),
-  // reusing the same interactiveRebase(sequence, messages) infra the
-  // interactive-rebase planner uses for squash/reword messages.
-  // `presetMsg` (AI recompose) prefills the review prompt with a proposed
-  // message instead of the current one — the user still reviews and confirms.
-  /**
-   * Put `message` on a commit that is not the tip, by replaying the range from
-   * its parent with a `reword` step. Every commit after it gets a new sha.
-   *
-   * Split out of handleRewordCommit so the commit panel's inline editor can
-   * apply what the user already typed, instead of opening a second prompt on
-   * top of the text they just wrote.
-   */
-  const applyReword = async (hash: string, message: string) => {
-    const current = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
-    if (!current || current.parents.length === 0) {
-      showToast(t('toast.err', t('toast.cannotRewordFirst')), 'err')
-      return
-    }
-    setLoading(true)
-    const seq = await window.gitAPI.getRebaseSequence(current.parents[0])
-    const sequence = seq.commits.map(c => ({ action: c.hash === current.hash ? 'reword' : 'pick', hash: c.hash }))
-    const r = await window.gitAPI.interactiveRebase(sequence, [message])
-    setLoading(false)
-    if (r.success) { showToast(t('toast.messageEdited')); await loadRepoData() }
-    else if ((r as { conflict?: boolean }).conflict) { showToast(r.error ?? t('toast.rebaseConflict'), 'err'); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  const handleRewordCommit = async (hash: string, presetMsg?: string) => {
-    const current = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
-    if (!current) return
-    const isHead = current.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
-
-    if (isHead) {
-      const fullMsg = (await window.gitAPI.getLastCommitMessage()).message || current.message
-      const newMsg = await showPrompt(t('prompt.editMessage'), presetMsg ?? fullMsg, true)
-      if (newMsg === null || newMsg.trim() === '' || newMsg === fullMsg) return
-      const r = await window.gitAPI.amendMessage(newMsg)
-      if (r.success) { showToast(t('toast.messageEdited')); await loadRepoData() }
-      else showToast(t('toast.err', r.error ?? ''), 'err')
-      return
-    }
-
-    if (current.parents.length === 0) {
-      showToast(t('toast.err', t('toast.cannotRewordFirst')), 'err')
-      return
-    }
-    const newMsg = await showPrompt(t('prompt.editMessage'), presetMsg ?? current.message, true)
-    if (newMsg === null || newMsg.trim() === '' || newMsg === current.message) return
-    await applyReword(hash, newMsg)
-  }
-
-  const handleDropCommit = async (hash: string) => {
-    const ok = await showConfirm(t('prompt.dropCommit', hash.slice(0, 7)), true)
-    if (!ok) return
-    setLoading(true)
-    const r = await window.gitAPI.dropCommit(hash)
-    if (r.success) { showToast(t('toast.commitDropped', hash.slice(0, 7)), 'ok', undoAction()); setSelectedCommit(null); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-    setLoading(false)
-  }
-
-  // Batch over the multi-selection (#69). Cherry-pick loops the existing
-  // single call, OLDEST first, and stops where git stops — the first
-  // conflict leaves the repo mid-pick and the conflict UI takes over, which
-  // is the honest outcome, reported as far-it-got. Drop is ONE call: a loop
-  // of drops would chase hashes its own first step rewrote.
-  const handleCherryPickMany = async (hashes: string[]) => {
-    setLoading(true)
-    let done = 0
-    for (const h of hashes) {
-      const r = await window.gitAPI.cherryPick(h)
-      if (!r.success) {
-        setLoading(false)
-        showToast(t('toast.cherryPickManyErr', done, hashes.length, r.error ?? ''), 'err')
-        await loadRepoData()
-        return
-      }
-      done++
-    }
-    setLoading(false)
-    showToast(t('toast.cherryPickManyOk', done))
-    await loadRepoData()
-  }
-
-  const handleDropCommits = async (hashes: string[]) => {
-    const ok = await showConfirm(t('prompt.dropCommits', hashes.length), true)
-    if (!ok) return
-    setLoading(true)
-    const r = await (window.gitAPI as any).dropCommits(hashes)
-    if (r?.success) { showToast(t('toast.commitsDropped', hashes.length), 'ok', undoAction()); setSelectedCommit(null); await loadRepoData() }
-    else showToast(t('toast.err', r?.error ?? ''), 'err')
-    setLoading(false)
-  }
-
-  const handleRebaseCurrentOntoCommit = async (hash: string) => {
-    await guardConflict(
-      () => window.gitAPI.predictRebaseConflicts(hash),   // accurate per-commit replay
-      async () => {
-        setLoading(true)
-        const r = await window.gitAPI.rebaseOnto(hash)
-        if (r.success) showToast(t('toast.rebasedOn', hash.slice(0, 7)))
-        else showToast(t('toast.err', r.error ?? ''), 'err')
-        // Refresh even on a conflict — the rebase is left paused (not aborted),
-        // so the conflict banner/resolver needs the reloaded state to show up.
-        await loadRepoData()
-        setLoading(false)
-      },
-    )
-  }
-
-  const handlePushToCommit = async (hash: string) => {
-    setLoading(true)
-    const r = await window.gitAPI.pushToCommit(hash)
-    if (r.success) showToast(t('toast.pushedTo', hash.slice(0, 7)))
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-    setLoading(false)
-  }
-
-  const handleCreatePatch = async (hash: string) => {
-    const res = await window.gitAPI.createPatch(hash)
-    if (res.error) { showToast(t('toast.err', res.error), 'err'); return }
-    const r = await window.gitAPI.savePatchFile(res.patch, `${hash.slice(0, 7)}.patch`)
-    if (r.success) showToast(t('toast.patchSaved', r.path?.split('/').pop() ?? ''))
-    else if (!r.canceled) showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  const handleCopyPatch = async (hash: string) => {
-    const res = await window.gitAPI.createPatch(hash)
-    if (res.error) { showToast(t('toast.err', res.error), 'err'); return }
-    navigator.clipboard.writeText(res.patch)
-    showToast(t('toast.patchCopied'))
-  }
-
-  // Cloud Patches without a server: the patch goes to a secret gist and the
-  // shareable link lands in the clipboard.
-  const handleSharePatch = async (hash: string) => {
-    const res = await (window.gitAPI as any).githubSharePatch(hash)
-    if (res.error === 'not_authenticated') { showToast(t('toast.sharePatch.needAuth'), 'err'); return }
-    if (res.error === 'gist_scope') { showToast(t('toast.sharePatch.gistScope'), 'err'); return }
-    if (res.error) { showToast(t('toast.err', res.error), 'err'); return }
-    navigator.clipboard.writeText(res.url)
-    showToast(t('toast.sharePatch.copied'), 'ok', { label: t('toast.open'), onClick: () => (window.gitAPI as any).openExternal(res.url) })
-  }
-
-  const handleCreateWorktreeAt = async (hash: string) => {
-    const dir = await window.gitAPI.selectDirectory(t('worktree.selectDir'))
-    if (!dir.path) return
-    const branch = await showPrompt(t('worktree.branchPrompt'), '')
-    if (branch === null) return
-    const r = await window.gitAPI.addWorktree(dir.path, hash, branch || undefined)
-    if (r.success) showToast(t('toast.worktreeCreated', dir.path.split('/').pop() ?? ''))
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  // Which pull request a branch row offers — see prIntent.ts for the rules.
-  // Handed to every surface that shows branch actions so they all agree.
-  const prIntentFor = useCallback(
-    (branchRef: string) =>
-      githubOwnerRepo
-        ? computePRIntent(branchRef, {
-            currentBranch, defaultBranch, branches,
-            // The list the panel already holds — the same one that puts the
-            // #N chip on a branch. A row must not offer to start what that
-            // chip says is already open (rule 6).
-            openPRs: githubPRs,
-          })
-        : null,
-    [githubOwnerRepo, currentBranch, defaultBranch, branches, githubPRs]
-  )
-
-  // The push itself happens in the composer, right before the GitHub call.
-  // Navigation: this opens the composer, and the composer reports its own
-  // outcome — nothing has changed yet at this point.
-  const handleStartPR = (intent: PRIntent) => {
-    if (!githubOwnerRepo) { showToast(t('pr.noRemote'), 'err'); return }
-    setPrIntent(intent)
-    setPrModalOpen(true)
-  }
-
-  // The four openers below are NAVIGATION — a browser comes to the front with
-  // the page in it. They speak only to say they cannot go (#127, decided per
-  // case): a chip confirming a window you are already looking at is the noise
-  // that pushes a real one off the stack.
-  const handleOpenCommitOnRemote = (hash: string) => {
-    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    window.gitAPI.openExternal(remoteUrl.commit(remoteRepo, hash))
-  }
-
-  // The pull request the checked-out branch offers — null on the default
-  // branch, which is where requests land rather than start. The toolbar
-  // button, the branch strip and the PULL REQUESTS header's `+` all follow it.
-  const currentBranchPR = prIntentFor(currentBranch)
-
-  const handleCopyBranchLink = (name: string) => {
-    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    navigator.clipboard.writeText(remoteUrl.branch(remoteRepo, name))
-    showToast(t('toast.linkCopied'))
-  }
-
-  // A file inside a commit: the one place we know both a path and the exact ref
-  // it existed at. Linking at the commit rather than at a branch is the whole
-  // point — the line numbers stay true.
-  const handleOpenFileOnRemote = (hash: string, filePath: string) => {
-    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    window.gitAPI.openExternal(remoteUrl.file(remoteRepo, hash, filePath))
-  }
-
-  const handleCopyFileLink = (hash: string, filePath: string) => {
-    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    navigator.clipboard.writeText(remoteUrl.file(remoteRepo, hash, filePath))
-    showToast(t('toast.linkCopied'))
-  }
-
-  // The other direction of the v1.21.0 issue link, and the one people reach
-  // for: you pick up an issue and you need a branch for it. The suggested name
-  // is only a suggestion — what is typed wins — and the link is written for
-  // the branch that was actually created, not for the one we proposed.
-  const handleCreateBranchFromIssue = async (issue: { number: number; title: string; url: string }) => {
-    // The GitHub panel is the only list we can enumerate, so what arrives here
-    // is always a GitHub issue. It becomes a reference at this boundary rather
-    // than deeper down, so the shape stored is the same one a typed reference
-    // produces.
-    const ref: LinkedIssue = {
-      provider: 'github', key: String(issue.number), title: issue.title, url: issue.url,
-    }
-    const label = issueRefLabel(ref)
-    const name = await showPrompt(t('gh.issue.branchPrompt', label), issueBranchName(ref.key, ref.title))
-    if (!name) return
-    const r = await window.gitAPI.createBranch(name)
-    if (!r.success) { showToast(r.error ?? t('toast.branchFailed'), 'err'); return }
-    branchMeta.setIssue(name, ref)
-    showToast(t('toast.branchFromIssue', name, label))
-    loadRepoData()
-  }
-
-  // Restoring writes over the working copy, so it asks first — and it lands as
-  // a pending change rather than a staged one, which is what makes "I did not
-  // mean that" a diff you can read instead of an unstage.
-  const handleRestoreFile = async (hash: string, filePath: string) => {
-    const ok = await showConfirm(t('confirm.restoreFile', filePath, hash.slice(0, 7)), true)
-    if (!ok) return
-    const r = await window.gitAPI.restoreFileFromCommit(hash, [filePath])
-    if (r.success) { showToast(t('toast.fileRestored', filePath)); loadRepoData(true) }
-    else showToast(r.error ?? t('toast.restoreFailed'), 'err')
-  }
-
-  const handleOpenBranchesOnRemote = () => {
-    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    window.gitAPI.openExternal(remoteUrl.branches(remoteRepo))
-  }
-
-  const handleCopyCommitLink = (hash: string) => {
-    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    navigator.clipboard.writeText(remoteUrl.commit(remoteRepo, hash))
-    showToast(t('toast.linkCopied'))
-  }
-
-  // Every branch action, wired to the state that only lives here, for any
-  // surface that cannot assemble the menu itself. The graph used to build its
-  // own thin version and so quietly lacked Push, Rename, Delete and the rest;
-  // it now asks for this one instead.
-  const branchMenuItems = useCallback((
-    target: { name: string; display: string; current: boolean; remote: boolean },
-    extras?: BranchMenuExtras,
-  ): MenuItemDef[] => {
-    // A chip carries git's decoration (`origin/x`); handlers and branch
-    // metadata are keyed by the branch-list form (`remotes/origin/x`).
-    const ref = canonicalRef(target.name, branches)
-    const short = ref.replace(/^remotes\/[^/]+\//, '')
-    const publishedAs = publishedNameFor(ref, branches) ?? undefined
-    const pr = prIntentFor(ref)
-    return buildBranchMenu(
-      { ...target, name: ref, pr: pr ?? undefined, publishedAs },
-      {
-        currentBranch,
-        soloed: soloBranch === ref,
-        hidden: isRefHidden(ref, visibility, remoteNames),
-        favorite: branchMeta.isFavorite(ref),
-        issue: branchMeta.issueFor(ref),
-      },
-      {
-        onCheckout: () => handleCheckout(target.remote ? short : ref),
-        onPull: handlePull,
-        onPush: () => handlePushBranch(ref),
-        onSetUpstream: () => handleSetUpstream(ref),
-        onCreatePR: pr ? () => handleStartPR(pr) : undefined,
-        onMerge: () => handleMergeBranch(ref),
-        onRebaseOnto: () => handleRebaseOnto(ref),
-        onCompare: () => openViewTab({ view: 'compare', a: currentBranch, b: ref, axis: 'diverged', label: `${currentBranch} … ${ref}` }),
-        onOpenOnRemote: () => handleOpenBranchOnRemote(ref),
-        onAssociateIssue: () => setIssueModalBranch(ref),
-        onToggleFavorite: () => branchMeta.toggleFavorite(ref),
-        onToggleSolo: () => setSoloBranch(prev => prev === ref ? null : ref),
-        onToggleHide: () => toggleHidden('branches', ref),
-        onExplain: () => setAiRead({ kind: 'branch', ref, label: target.display }),
-        onChangelog: () => setAiRead({ kind: 'changelog', ref, label: target.display }),
-        onCopyName: () => navigator.clipboard.writeText(target.display),
-        onCopyLink: () => handleCopyBranchLink(ref),
-        onRename: () => handleRenameBranch(ref),
-        onDelete: () => handleDeleteBranch(ref),
-        onDeleteRemote: () => handleDeleteRemoteBranch(target.remote ? ref : `remotes/${publishedAs}`),
-        onDeleteBoth: publishedAs ? () => handleDeleteBranchBoth(ref, publishedAs) : undefined,
-      },
-      t,
-      extras
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branches, currentBranch, soloBranch, visibility, remoteNames, branchMeta, prIntentFor, githubOwnerRepo, t])
-
-  /**
-   * Put a generated changelog in the repository's changelog — asking about
-   * the two things the host refuses to decide on its own.
-   *
-   * Neither question is a formality. A monorepo has a changelog per package,
-   * and writing into the first would file the desktop app's notes under the
-   * CLI. And a changelog is KEPT now, so the drawer can be reopened a
-   * fortnight after the branch was merged — at which point these bullets are
-   * already in the file and inserting them adds a release's worth of
-   * duplicates to whatever branch happens to be checked out.
-   */
-  const insertChangelogGuarded = useCallback(async (entry: string, branch: string) => {
-    /** What will be written. A scoped answer replaces it before anything is. */
-    let text = entry
-    const call = (opts: { branch?: string; file?: string; section?: string; force?: boolean; preview?: boolean }) =>
-      ((window.gitAPI as any).insertChangelog?.(text, opts)
-        ?? Promise.resolve({ error: 'not-implemented' }))
-
-    // Which file, whether it still makes sense, and — the one that costs the
-    // most to get wrong — what exactly would land in it.
-    let files: string[] = []
-    let section: string | undefined
-    let force = false
-
-    let r = await call({ branch, preview: true })
-
-    // Which file — and in a repository that ships several products, possibly
-    // all of them: one change that touches the app and the extension belongs
-    // in both changelogs, and that is not a case to make people repeat.
-    if (r?.needsChoice) {
-      const ALL = t('ai.changelog.everyFile', (r.candidates ?? []).length)
-      const picked = await showChoice(t('ai.changelog.whichFile'), [...(r.candidates ?? []), ALL])
-      if (!picked) return
-      files = picked === ALL ? [...(r.candidates ?? [])] : [picked]
-      r = await call({ branch, file: files[0], preview: true })
-    }
-    // This file keeps no section for unreleased work under any of the names
-    // one goes by — it is not a Keep a Changelog file, and inventing a
-    // section in it would be imposing a convention on someone who chose
-    // another. Its own headings are the options, plus making a new one.
-    if (r?.needsSection) {
-      const NEW = t('ai.changelog.newSection')
-      const picked = await showChoice(t('ai.changelog.whichSection', r.path), [NEW, ...(r.sections ?? [])])
-      if (!picked) return
-      section = picked === NEW ? '::create-a-new-section::' : picked
-      r = await call({ branch, file: files[0], section, preview: true })
-    }
-    if (r?.branchGone || r?.alreadyMerged) {
-      const ok = await showConfirm(
-        r.branchGone
-          ? t('ai.changelog.goneConfirm', r.branch)
-          : t('ai.changelog.mergedConfirm', r.branch, r.base), true)
-      if (!ok) return
-      force = true
-      r = await call({ branch, file: files[0] ?? r.path, section, force, preview: true })
-    }
-    if (r?.error) { showToast(r.error, 'err'); return }
-
-    // ── What this changelog is about ──
-    // A changelog in `cli/` describes the CLI. The branch may have touched
-    // nothing there, in which case there is no entry to write and no
-    // preference can make one true; or it may have touched both, in which
-    // case whether the entry covers the branch or only that package is a
-    // question about this repository — asked here, where it acts, and
-    // restated every time with the alternative one click away.
-    if (r?.preview && r.dir) {
-      if (!r.dirTouched) {
-        showToast(t('ai.changelog.nothingUnder', branch, r.dir), 'err')
-        return
-      }
-      const WHOLE = t('ai.changelog.scopeBranch')
-      const ONLY = t('ai.changelog.scopePackage', r.dir)
-      const pref = (await ((window.gitAPI as any).changelogGetScopePref?.() ?? Promise.resolve({})))?.pref
-      // Remembered, never silent: the preview says which reading it is using
-      // and offers the other, so changing your mind is a click rather than a
-      // page to find.
-      const picked = await showChoice(
-        t('ai.changelog.whichScope', r.dir),
-        pref === 'package' ? [ONLY, WHOLE] : [WHOLE, ONLY])
-      if (!picked) return
-      const wants: 'package' | 'branch' = picked === ONLY ? 'package' : 'branch'
-      if (wants !== pref) await ((window.gitAPI as any).changelogSetScopePref?.(wants))
-      if (wants === 'package') {
-        // A different entry, about a different thing — so it is generated,
-        // and kept under its own name in the memory.
-        showToast(t('ai.changelog.scoping', r.dir), 'ok')
-        const g = await ((window.gitAPI as any).aiGenerateChangelog?.(branch, undefined, undefined, r.dir)
-          ?? Promise.resolve({ error: 'not-implemented' }))
-        if (g?.error || !g?.changelog) { showToast(g?.error ?? t('ai.answer.empty'), 'err'); return }
-        text = g.changelog
-        r = await call({ branch, file: files[0] ?? r.path, section, force, preview: true })
-      }
-    }
-
-    // The preview. A changelog is written once and inserted later, into a file
-    // that has moved on — half of it may already be there in different words,
-    // and once the lines are in, nothing tells you which ones you just added.
-    if (r?.preview) {
-      const replaces = Array.isArray(r.removed) ? r.removed.length : 0
-      if (!r.added && !replaces && !r.created) { showToast(t('ai.changelog.insertedNothing', r.path), 'ok'); return }
-      const lines = [
-        t('ai.changelog.previewHead', r.added ?? 0, r.path),
-        '',
-        ...(r.addedLines ?? []).map(l => `  ${l}`),
-      ]
-      // What a previous insert of this same changelog left in there and that
-      // this one supersedes. Regenerating rewords everything, so this is the
-      // difference between updating an entry and doubling it.
-      if (Array.isArray(r.removed) && r.removed.length) {
-        lines.push('', t('ai.changelog.previewReplaced', r.removed.length))
-        for (const l of r.removed.slice(0, 4)) lines.push(`  ${l}`)
-        if (r.removed.length > 4) lines.push('  …')
-      }
-      if (r.missing?.length) lines.push('', t('ai.changelog.previewMissing', r.missing.length))
-      if (r.skipped?.length) lines.push('', t('ai.changelog.previewSkipped', r.skipped.length))
-      // What the section already says, because the useful check is a
-      // comparison and no similarity score can make it for you: two wordings
-      // of one change can share almost no words.
-      if (r.existing?.length) {
-        lines.push('', t('ai.changelog.previewExisting', r.existing.length))
-        for (const e of r.existing.slice(0, 4)) lines.push(`  ${e}`)
-        if (r.existing.length > 4) lines.push(`  …`)
-      }
-      if (r.similar?.length) {
-        lines.push('', t('ai.changelog.previewSimilar', r.similar.length))
-        for (const sim of r.similar.slice(0, 3)) lines.push(`  ${sim.line}`, `  ↳ ${sim.existing}`)
-      }
-      if (r.dirty) lines.push('', t('ai.changelog.previewDirty', r.path))
-      // Every other file gets its own preview under the same question: the
-      // sections differ, and so does what each already says.
-      for (const extra of files.slice(1)) {
-        const p = await call({ branch, file: extra, section, force, preview: true })
-        if (p?.error || !p?.preview) continue
-        lines.push('', t('ai.changelog.previewHead', p.added ?? 0, p.path),
-          ...(p.addedLines ?? []).map((l: string) => `  ${l}`))
-      }
-      const ok = await showConfirm(lines.join('\n'), !!(r.similar?.length || r.dirty))
-      if (!ok) return
-      const targets = files.length ? files : [r.path as string]
-      let added = 0
-      let replaced = 0
-      for (const target of targets) {
-        const w = await call({ branch, file: target, section, force })
-        if (w?.error) { showToast(w.error, 'err'); return }
-        added += w?.added ?? 0
-        replaced += typeof w?.removed === 'number' ? w.removed : 0
-        if (w?.created) showToast(t('ai.changelog.created', w.path), 'ok')
-      }
-      if (added || replaced) {
-        showToast(replaced
-          ? t('ai.changelog.insertedReplacing', added, replaced, targets.join(', '))
-          : t('ai.changelog.inserted', added, targets.join(', ')), 'ok')
-      } else showToast(t('ai.changelog.insertedNothing', targets.join(', ')), 'ok')
-      loadRepoData()
-      return
-    }
-    const replaced = typeof r?.removed === 'number' ? r.removed : 0
-    if (r?.created) showToast(t('ai.changelog.created', r.path), 'ok')
-    else if (!r?.added && !replaced) showToast(t('ai.changelog.insertedNothing', r.path), 'ok')
-    else if (replaced) showToast(t('ai.changelog.insertedReplacing', r.added ?? 0, replaced, r.path), 'ok')
-    else showToast(t('ai.changelog.inserted', r.added, r.path), 'ok')
-    // The file is a working-tree change now; the panel has to see it.
-    loadRepoData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showChoice, showConfirm, showToast, t])
-
-  // Branch strip above the staging file list (v1.22.0) — same actions as the
-  // toolbar and the ⋮ menu, just brought next to the files they apply to.
-  const branchStripProps = {
-    branch: currentBranch,
-    ahead: tracking.ahead,
-    behind: tracking.behind,
-    onPush: handlePush,
-    onPull: handlePull,
-    onFetch: handleFetch,
-    issue: branchMeta.issueFor(currentBranch),
-    pr: currentBranchPR,
-    onAssociateIssue: () => setIssueModalBranch(currentBranch),
-    // Where a linked reference points. The tracker's own URL first, then the
-    // configured patterns; a GitHub number falls back to the repository's own
-    // issue URL, which is the one thing issueRefUrl cannot build for itself.
-    onOpenIssue: (ref: LinkedIssue) => {
-      const url = issueRefUrl(ref, autolinks)
-        ?? (ref.provider === 'github' && remoteRepo && /^\d+$/.test(ref.key)
-          ? remoteUrl.issue(remoteRepo, Number(ref.key))
-          : null)
-      if (url) window.gitAPI.openExternal(url)
-    },
-    menuState: {
-      soloed: soloBranch === currentBranch,
-      hidden: isRefHidden(currentBranch, visibility, remoteNames),
-      favorite: branchMeta.isFavorite(currentBranch),
-    },
-    menuActions: {
-      onPull: handlePull,
-      onPush: handlePush,
-      onSetUpstream: () => handleSetUpstream(currentBranch),
-      onCreatePR: currentBranchPR ? () => handleStartPR(currentBranchPR) : undefined,
-      onOpenOnRemote: () => handleOpenBranchOnRemote(currentBranch),
-      onOpenBranchesOnRemote: handleOpenBranchesOnRemote,
-      onAssociateIssue: () => setIssueModalBranch(currentBranch),
-      onToggleFavorite: () => branchMeta.toggleFavorite(currentBranch),
-      onToggleSolo: () => setSoloBranch(prev => prev === currentBranch ? null : currentBranch),
-      onCopyName: () => navigator.clipboard.writeText(currentBranch),
-      onRename: () => handleRenameBranch(currentBranch),
-    },
-  }
-
-  // Same as above one level up: /tree/<branch>. Existed for commits only until
-  // v1.21.0, which is why "Open Branch on Remote" was nowhere to be found.
-  const handleOpenBranchOnRemote = (name: string) => {
-    if (!remoteRepo) { showToast(t('toast.noGithubRepo'), 'err'); return }
-    window.gitAPI.openExternal(remoteUrl.branch(remoteRepo, name))
-  }
-
-  // Drag branch A onto a target. `targetBranch` (B) is set when the drop landed
-  // on a branch tip, which is the only case that offers "merge". Direction
-  // follows the gesture: merge A INTO B, rebase A ONTO B, reset A to the target.
-  const handleBranchDrop = async (branch: string, hash: string, action: 'reset' | 'rebase' | 'merge', targetBranch?: string) => {
-    if (action === 'merge' && !targetBranch) return   // merge needs a branch to merge into
-    const short = hash.slice(0, 7)
-    if (action === 'reset') {
-      const ok = await showConfirm(t('prompt.dropReset', branch, targetBranch ?? short), true)
-      if (!ok) return
-    }
-    // merge updates the TARGET branch (and checks it out); rebase/reset update A.
-    const updated = action === 'merge' ? targetBranch! : branch
-    const run = async () => {
-      setLoading(true)
-      const r = action === 'reset'
-        ? await window.gitAPI.moveBranchTo(branch, hash)
-        : action === 'rebase'
-          ? await window.gitAPI.rebaseBranchOnto(branch, hash)             // rebase A onto B's tip
-          : await window.gitAPI.mergeCommitInto(targetBranch!, branch)     // checkout B, merge A (merge A into B)
-      if (r.success) {
-        showToast(t('toast.branchDropOk', updated), 'ok', undoAction())
-      } else {
-        showToast(t('toast.err', r.error ?? ''), 'err')
-      }
-      // Always load repo data to catch conflicts that prevent success
-      await loadRepoData()
-      setLoading(false)
-    }
-    // Reset just moves a ref — it can't conflict. Merge/rebase can.
-    if (action === 'reset') { await run(); return }
-    await guardConflict(
-      action === 'merge'
-        ? () => window.gitAPI.predictConflicts(branch, targetBranch)       // merge A into B
-        : () => window.gitAPI.predictRebaseConflicts(hash, branch),        // rebase A onto B's tip
-      run,
-    )
-  }
-
-  const handleMoveCommit = async (hash: string, direction: 'up' | 'down') => {
-    setLoading(true)
-    const r = await window.gitAPI.moveCommit(hash, direction)
-    if (r.success) { showToast(t('toast.commitMoved'), 'ok', undoAction()); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-    setLoading(false)
-  }
-
-  // ── Tag operations ─────────────────────────────────────────
-  const handleCreateTagAtCommit = async (hash: string) => {
-    const name = await showPrompt(t('prompt.tagName'))
-    if (!name) return
-    const message = await showPrompt(t('prompt.tagMessage'))
-    const r = await window.gitAPI.createTag(name, hash, message || undefined)
-    if (r.success) { showToast(t('toast.tagCreated', name)); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  // An annotated tag is its own git object — it carries an author, a date and a
-  // message, which is what release tooling reads. The message is therefore
-  // required here, unlike the lightweight tag above where it is optional.
-  const handleCreateAnnotatedTagAtCommit = async (hash: string) => {
-    const name = await showPrompt(t('prompt.tagName'))
-    if (!name) return
-    const message = await showPrompt(t('prompt.annotatedTagMessage'))
-    if (!message) return
-    const r = await window.gitAPI.createTag(name, hash, message)
-    if (r.success) { showToast(t('toast.tagCreated', name)); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  const handleCreateTag = async () => {
-    const name = await showPrompt(t('prompt.tagName'))
-    if (!name) return
-    const message = await showPrompt(t('prompt.tagMessage'))
-    const r = await window.gitAPI.createTag(name, undefined, message || undefined)
-    if (r.success) { showToast(t('toast.tagCreated', name)); await loadRepoData() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  const handleDeleteTag = async (name: string) => {
-    const ok = await showConfirm(t('prompt.deleteTag', name), true)
-    if (!ok) return
-    const r = await window.gitAPI.deleteTag(name)
-    if (r.success) { showToast(t('toast.tagDeleted', name)); await loadTags() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  const handlePushTag = async (name: string) => {
-    const r = await window.gitAPI.pushTag(name)
-    if (r.success) showToast(t('toast.tagPushed', name))
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  const handleDeleteRemoteTag = async (name: string) => {
-    const ok = await showConfirm(t('prompt.deleteRemoteTag', name), true)
-    if (!ok) return
-    const r = await window.gitAPI.deleteRemoteTag(name)
-    if (r.success) { showToast(t('toast.tagDeletedRemote', name)); await loadTags() }
-    else showToast(t('toast.err', r.error ?? ''), 'err')
-  }
-
-  // ── Stash operations ───────────────────────────────────────
-  const handleCreateStash = async (scope: StashScope = 'all') => {
-    const message = await showPrompt(t('prompt.stashMessage'))
-    if (message === null) return
-    const r = await window.gitAPI.createStash(message || undefined, scope === 'all' ? undefined : { scope })
-    if (r.success) { showToast(t('toast.stashCreated')); await Promise.all([loadStashes(), loadRepoData()]) }
-    else showToast(t('toast.stashErr', r.error ?? ''), 'err')
-  }
-
-  const handleApplyStash = async (index: number) => {
-    const r = await window.gitAPI.applyStash(index)
-    if (r.success) { showToast(t('toast.stashApplied', index)); await loadRepoData() }
-    else showToast(t('toast.applyErr', r.error ?? ''), 'err')
-  }
-
-  const handlePopStash = async (index: number) => {
-    const r = await window.gitAPI.popStash(index)
-    if (r.success) {
-      showToast(t('toast.stashPopped', index))
-      await Promise.all([loadStashes(), loadRepoData()])
-    } else {
-      showToast(t('toast.popErr', r.error ?? ''), 'err')
-    }
-  }
-
-  const handleDropStash = async (index: number) => {
-    const ok = await showConfirm(t('prompt.deleteStash', index), true)
-    if (!ok) return
-    const r = await window.gitAPI.dropStash(index)
-    if (r.success) { showToast(t('toast.stashDropped', index)); await loadStashes() }
-    else showToast(t('toast.dropErr', r.error ?? ''), 'err')
-  }
-
-  // ── Conflict resolution handlers ───────────────────────────
-  const handleConflictFinish = async (action: 'rebase' | 'merge', message?: string) => {
-    setLoading(true)
-    // The operation that produced the conflict dictates which --continue to run.
-    // conflictMode is authoritative; `action` is only the resolver's coarse hint.
-    const mode = conflictMode ?? action
-    let r: { success: boolean; error?: string }
-    if (mode === 'rebase') {
-      r = await window.gitAPI.continueRebase()
-    } else if (mode === 'cherry-pick') {
-      r = await window.gitAPI.continueCherryPick()
-    } else if (mode === 'revert') {
-      r = await window.gitAPI.continueRevert()
-    } else {
-      r = await window.gitAPI.continueMerge(message)
-    }
-
-    if (r.success) {
-      showToast(mode === 'rebase' ? t('toast.rebaseContinued') : t('toast.mergeContinued'))
-      setConflictFiles([])
-      setConflictMode(null)
-      await loadRepoData()
-    } else {
-      showToast(t('toast.err', r.error ?? ''), 'err')
-    }
-    setLoading(false)
-    return r.success
-  }
-
-  const handleConflictAbort = async () => {
-    setLoading(true)
-    // Each operation has its own --abort; using the wrong one fails silently.
-    if (conflictMode === 'merge') {
-      await window.gitAPI.abortMerge()
-      showToast(t('toast.mergeAborted'))
-    } else if (conflictMode === 'cherry-pick') {
-      await window.gitAPI.abortCherryPick()
-      showToast(t('toast.rebaseAborted'))
-    } else if (conflictMode === 'revert') {
-      await window.gitAPI.abortRevert()
-      showToast(t('toast.rebaseAborted'))
-    } else {
-      await window.gitAPI.abortRebase()
-      showToast(t('toast.rebaseAborted'))
-    }
-    setConflictFiles([])
-    setConflictMode(null)
-    await loadRepoData()
-    setLoading(false)
-  }
-
-  // ── Command palette commands ───────────────────────────────
-  const buildPaletteCommands = (): PaletteCommand[] => {
-    const cmds: PaletteCommand[] = [
-      { id: 'fetch', label: 'Fetch', icon: '⬇', action: handleFetch },
-      { id: 'pull', label: 'Pull', icon: '⇩', action: handlePull },
-      { id: 'push', label: 'Push', icon: '⬆', action: handlePush },
-      { id: 'new-branch', label: t('palette.newBranch'), icon: '⎇', action: handleCreateBranch },
-      { id: 'open-repo', label: t('palette.openRepo'), icon: '📂', action: handleOpenRepo },
-      { id: 'refresh', label: t('palette.refresh'), icon: '↺', action: loadRepoData },
-    ]
-    if (repoPath) {
-      branches.filter(b => !b.remote && !b.current).forEach(b => {
-        cmds.push({
-          id: `checkout-${b.name}`,
-          label: t('palette.checkout', b.name),
-          icon: '✓',
-          action: () => handleCheckout(b.name),
-        })
-      })
-      branches.filter(b => !b.remote && !b.current).forEach(b => {
-        cmds.push({
-          id: `merge-${b.name}`,
-          label: t('palette.merge', b.name),
-          icon: '⇒',
-          action: () => handleMergeBranch(b.name),
-        })
-      })
-      tags.forEach(t => {
-        cmds.push({
-          id: `tag-${t.name}`,
-          label: `Tag: ${t.name}`,
-          icon: '🏷',
-          action: () => {
-            const found = commits.find(c => c.hash.startsWith(t.hash))
-            if (found) setSelectedCommit(found)
-          },
-        })
-      })
-      stashes.forEach(s => {
-        cmds.push({
-          id: `stash-${s.index}`,
-          label: t('palette.applyStash', s.message.replace(/^stash@\{\d+\}: /, '')),
-          icon: '📦',
-          action: () => handleApplyStash(s.index),
-        })
-      })
-    }
-    return cmds
-  }
-
   // ── Resize handlers ────────────────────────────────────────
   const startResizeSidebar = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -2412,17 +348,14 @@ export default function App() {
     const up = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', up) }
     addEventListener('mousemove', move); addEventListener('mouseup', up)
   }
-
   // The graph must keep at least ~45% of the window, whatever the panel width
   const clampRightW = (w: number) =>
     Math.max(Math.min(360, Math.floor(window.innerWidth * 0.3)), Math.min(w, 600, Math.floor(window.innerWidth * 0.45)))
-
   useEffect(() => {
     const onResize = () => setRightW(w => clampRightW(w))
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-
   const startResizeRight = (e: React.MouseEvent) => {
     e.preventDefault()
     const sx = e.clientX, rw = rightW
@@ -2430,7 +363,6 @@ export default function App() {
     const up = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', up) }
     addEventListener('mousemove', move); addEventListener('mouseup', up)
   }
-
   const isMac = (window as any).appInfo?.platform === 'darwin'
   // macOS fullscreen hides the traffic lights, so the 72px spacer must go.
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -2438,43 +370,10 @@ export default function App() {
     ;(window.gitAPI as any).isFullscreen?.().then((fs: boolean) => setIsFullscreen(!!fs)).catch(() => {})
     return (window.gitAPI as any).onFullscreenChanged?.((fs: boolean) => setIsFullscreen(!!fs))
   }, [])
-  const activeTab = tabs.find(tb => tb.id === activeTabId)
-  const launchpadActive = activeTab?.kind === 'launchpad'
-  const themesActive = activeTab?.kind === 'themes'
-  const viewTab = activeTab?.kind === 'view' ? activeTab.body : undefined
   // The details take the centre when the graph would have no usable width left
   // beside the two side panes — computed from the panes the user actually has
   // (see utils/layout.ts), so a wide right pane counts as much as a narrow window.
   const windowWidth = useWindowWidth()
-
-  const loadMoreHistory = useCallback(() => {
-    logLimitRef.current += LOG_PAGE
-    setLogLimit(logLimitRef.current)
-    void loadRepoData(true)
-  }, [loadRepoData])
-
-  // The tab strip's keyboard: arrows move between tabs and open the one they
-  // land on, Home and End go to the ends, Delete closes. Only the active tab
-  // is in the Tab order, so the strip is one stop for Tab, not one per tab.
-  const onTabKeyDown = (e: React.KeyboardEvent, tab: AppTab) => {
-    const i = tabs.findIndex(tb => tb.id === tab.id)
-    if (i < 0) return
-    let target: AppTab | undefined
-    switch (e.key) {
-      case 'ArrowRight': target = tabs[(i + 1) % tabs.length]; break
-      case 'ArrowLeft': target = tabs[(i - 1 + tabs.length) % tabs.length]; break
-      case 'Home': target = tabs[0]; break
-      case 'End': target = tabs[tabs.length - 1]; break
-      case 'Enter': case ' ': e.preventDefault(); switchTab(tab); return
-      case 'Delete': case 'Backspace': e.preventDefault(); closeTab(tab.id); return
-      default: return
-    }
-    e.preventDefault()
-    if (!target || target.id === tab.id) return
-    switchTab(target)
-    const id = target.id
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(`.app-tab[data-tab-id="${id}"]`)?.focus())
-  }
   const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
 

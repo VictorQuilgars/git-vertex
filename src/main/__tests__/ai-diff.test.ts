@@ -199,7 +199,7 @@ describe('the two lists that must not drift', () => {
     // and not there is a level nobody can set; added there and not here is a
     // control that does nothing, and an oversized request that offers it.
     const src = fs.readFileSync(path.join(
-      __dirname, '../../renderer/src/components/SettingsModal/SettingsModal.tsx'), 'utf8')
+      __dirname, '../../renderer/src/components/SettingsModal/shared.tsx'), 'utf8')
     const m = src.match(/const DIFF_FEATURES = \[([^\]]+)\]/)
     expect(m).not.toBeNull()
     const theirs = m![1].split(',').map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean)

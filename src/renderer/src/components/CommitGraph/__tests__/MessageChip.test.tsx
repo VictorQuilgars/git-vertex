@@ -223,7 +223,10 @@ describe('the stacked row, after the screenshots', () => {
   // the one place a 3px line cannot be seen.
   test('the stripe steps in from the edge, and the SVG steps with it', () => {
     expect(css).toMatch(/\.cg-row--stacked \.cg-color-bar \{[^}]*margin-left: 4px/)
-    expect(src).toContain('const STRIPE_INSET = 4')
+    // The geometry constants live with the row parts, not the graph itself.
+    const parts = require('fs').readFileSync(
+      'src/renderer/src/components/CommitGraph/graph-parts.tsx', 'utf8')
+    expect(parts).toContain('const STRIPE_INSET = 4')
   })
 
   // The band's right-edge bar and the chip connector both pointed at things the

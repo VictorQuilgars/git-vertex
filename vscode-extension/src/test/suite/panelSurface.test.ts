@@ -59,6 +59,11 @@ interface Unreachable {
    * guarded JSX further down. Those need a token unique to the whole file.
    */
   within?: number
+  /**
+   * The file that holds the guard, when it is not the file of the call: a
+   * section component rendered only by a nav that another file filters.
+   */
+  guardFile?: string
 }
 
 /**
@@ -70,21 +75,21 @@ interface Unreachable {
 const PANEL_UNREACHABLE: Unreachable[] = [
   {
     method: 'getGitCapabilities',
-    file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
+    file: 'src/renderer/src/components/SettingsModal/useSettingsPage.tsx',
     why: 'Fetched on mount for the desktop-only "which git we run" block, behind an explicit embedded check.',
     guard: 'if (!embedded) {',
     within: 3,
   },
   {
     method: 'getUpdaterState',
-    file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
+    file: 'src/renderer/src/components/SettingsModal/useSettingsPage.tsx',
     why: 'Mount-time too: VS Code updates the extension itself, so the panel has no updater state to ask for.',
     guard: 'if (!embedded) {',
     within: 3,
   },
   {
     method: 'resolveGitBinary',
-    file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
+    file: 'src/renderer/src/components/SettingsModal/sections/GitSection.tsx',
     why: 'Button inside the "which git we run" block, which the panel does not render — the extension inherits VS Code\'s PATH.',
     guard: '{!embedded && (',
     within: 45,
@@ -95,23 +100,28 @@ const PANEL_UNREACHABLE: Unreachable[] = [
   // GitHub provider — so the button is shown on both products and there is
   // nothing left to declare unreachable. This is the list shrinking in the
   // direction it is supposed to.
+  // The About section is its own file now, and the guard that keeps it off
+  // the panel is the nav's list of desktop-only sections, in shared.tsx.
   {
     method: 'checkForUpdates',
-    file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
+    file: 'src/renderer/src/components/SettingsModal/sections/AboutSection.tsx',
     why: 'Lives in the About section, which the embedded nav drops entirely.',
     guard: "const DESKTOP_ONLY_SECTIONS: Section[] = ['externalTools', 'ssh', 'about']",
+    guardFile: 'src/renderer/src/components/SettingsModal/shared.tsx',
   },
   {
     method: 'installManual',
-    file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
+    file: 'src/renderer/src/components/SettingsModal/sections/AboutSection.tsx',
     why: 'About section again — installing a desktop build from the panel is meaningless.',
     guard: "const DESKTOP_ONLY_SECTIONS: Section[] = ['externalTools', 'ssh', 'about']",
+    guardFile: 'src/renderer/src/components/SettingsModal/shared.tsx',
   },
   {
     method: 'installUpdate',
-    file: 'src/renderer/src/components/SettingsModal/SettingsModal.tsx',
+    file: 'src/renderer/src/components/SettingsModal/sections/AboutSection.tsx',
     why: 'About section again — electron-updater fallback for the manual install above.',
     guard: "const DESKTOP_ONLY_SECTIONS: Section[] = ['externalTools', 'ssh', 'about']",
+    guardFile: 'src/renderer/src/components/SettingsModal/shared.tsx',
   },
 ]
 
@@ -234,12 +244,19 @@ suite('panel surface — nothing the VS Code panel reaches is unimplemented', ()
         problems.push(`${entry.method} — no longer called in ${entry.file}; drop this entry`)
         continue
       }
+      const guardAbs = entry.guardFile ? relative.get(entry.guardFile) : undefined
+      if (entry.guardFile && !guardAbs) {
+        problems.push(`${entry.method} — ${entry.guardFile} is no longer in the panel bundle; the guard has moved`)
+        continue
+      }
+      const guardLines = guardAbs ? fs.readFileSync(guardAbs, 'utf8').split('\n') : lines
       for (const site of sites) {
         // `within` set: the guard has to sit just above THIS call, not merely
         // somewhere in a 1000-line component. Unset: use-site guard, so the
-        // token has to be unique enough to stand on its own file-wide.
+        // token has to be unique enough to stand on its own file-wide — in
+        // the file of the call, or in the one `guardFile` names.
         const window = entry.within === undefined
-          ? lines
+          ? guardLines
           : lines.slice(Math.max(0, site.line - 1 - entry.within), site.line)
         if (!window.join('\n').includes(entry.guard)) {
           problems.push(

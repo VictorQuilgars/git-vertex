@@ -233,7 +233,7 @@ describe('token discipline', () => {
     // .stg-theme-chip in SettingsModal.css.
     it('keeps the theme picker off a second copy of the palette', () => {
       const modal = fs.readFileSync(
-        path.join(SRC, 'components', 'SettingsModal', 'SettingsModal.tsx'), 'utf8')
+        path.join(SRC, 'components', 'SettingsModal', 'shared.tsx'), 'utf8')
       const presets = modal.match(/const THEME_PRESETS[^=]*=\s*\[([\s\S]*?)\]/)
       expect(presets).not.toBeNull()
       expect(presets![1]).not.toMatch(/#[0-9A-Fa-f]{3,8}/)
@@ -585,7 +585,11 @@ describe('the icon size floors', () => {
 describe('the sidebar indent scale', () => {
   const DIR = path.resolve(__dirname, '../components/Sidebar')
   const CSS = fs.readFileSync(path.join(DIR, 'Sidebar.css'), 'utf8')
-  const TSX = fs.readFileSync(path.join(DIR, 'Sidebar.tsx'), 'utf8')
+  // The sidebar is several files now — the rows, the tree, the sections — and
+  // an indent can be built in any of them.
+  const tsxUnder = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e =>
+    e.isDirectory() ? (e.name === '__tests__' ? [] : tsxUnder(path.join(dir, e.name))) : e.name.endsWith('.tsx') ? [path.join(dir, e.name)] : [])
+  const TSX = tsxUnder(DIR).map(f => fs.readFileSync(f, 'utf8')).join('\n')
 
   test('the stylesheet declares it, once', () => {
     for (const prop of ['--sb-indent', '--sb-indent-step', '--sb-branch-inset']) {

@@ -139,8 +139,8 @@ describe('every reader of the installed list injects its rules', () => {
 describe('the installed-list response is unwrapped, not assumed to be an array', () => {
   it('the handler answers an object with `themes`', () => {
     const main = fs.readFileSync(
-      path.resolve(__dirname, '../../../main/index.ts'), 'utf8')
-    const handler = main.slice(main.indexOf("ipcMain.handle('themes:installed'"))
+      path.resolve(__dirname, '../../../main/ipc/settings.ts'), 'utf8')
+    const handler = main.slice(main.indexOf("handle('themes:installed'"))
     expect(handler.slice(0, 400)).toMatch(/return\s*\{[^}]*themes/)
   })
 
