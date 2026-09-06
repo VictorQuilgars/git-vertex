@@ -25,6 +25,23 @@ const svgAsText = {
   },
 }
 
+/**
+ * The production page does not allow `eval`.
+ *
+ * index.html carries `'unsafe-eval'` because Vite's dev server needs it for
+ * HMR; nothing in the built renderer does — and a page that allows eval is a
+ * page where one injected string runs as code. It is stripped from the built
+ * page only, so the dev server keeps working and the app that ships does not
+ * carry a permission it never uses.
+ */
+const strictCspInProduction = {
+  name: 'strict-csp-in-production',
+  apply: 'build' as const,
+  transformIndexHtml(html: string) {
+    return html.replace(" 'unsafe-eval'", '')
+  },
+}
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()]
@@ -38,6 +55,6 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [svgAsText, react()]
+    plugins: [svgAsText, strictCspInProduction, react()]
   }
 })

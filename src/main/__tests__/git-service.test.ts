@@ -1,7 +1,15 @@
 import { GitService } from '../git-service'
+import { MIN_GIT_FOR_CONFLICT_PREDICTION, isGitVersionAtLeast, parseGitVersion } from '../git-version'
 import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
+
+// `merge-tree --merge-base` landed in git 2.40, and macOS ships 2.39: on a
+// machine whose PATH resolves to Apple's git the prediction tests cannot pass,
+// and used to fail as if the code were wrong. They are skipped there, by name,
+// so the run says what it did not check rather than what it found broken.
+const gitVersion = parseGitVersion(execSync('git --version').toString()) ?? '0'
+const describeWithMergeTree = isGitVersionAtLeast(gitVersion, MIN_GIT_FOR_CONFLICT_PREDICTION) ? describe : describe.skip
 
 describe('GitService', () => {
   let tempDir: string
@@ -33,6 +41,55 @@ describe('GitService', () => {
   // ─────────────────────────────────────────────────────────────────────
   // Basic operations
   // ─────────────────────────────────────────────────────────────────────
+
+  describe('working diff context', () => {
+    test.each([false, true])('returns requested context for staged=%s', async (staged) => {
+      const lines = Array.from({ length: 80 }, (_, i) => `line ${i + 1}`)
+      fs.writeFileSync(path.join(tempDir, 'context.txt'), lines.join('\n') + '\n')
+      execSync('git add context.txt && git commit -m initial', { cwd: tempDir })
+      lines[39] = 'changed line'
+      fs.writeFileSync(path.join(tempDir, 'context.txt'), lines.join('\n') + '\n')
+      if (staged) execSync('git add context.txt', { cwd: tempDir })
+      const normal = await git.getWorkingFileDiff('context.txt', staged)
+      expect(normal.diff).toContain('-line 40')
+      expect(normal.diff).not.toContain('\n line 1\n')
+      const full = await git.getWorkingFileDiff('context.txt', staged, 100000)
+      expect(full.diff).toContain('\n line 1\n')
+      expect(full.diff).toContain('\n line 80\n')
+      const zero = await git.getWorkingFileDiff('context.txt', staged, 0)
+      expect(zero.diff).not.toContain('\n line 39\n')
+      expect((await git.getWorkingFileDiff('context.txt', staged, NaN)).diff).toBe(normal.diff)
+    })
+  })
+
+  describe('a failed read is not an empty diff', () => {
+    test('getDiff on a commit that does not exist says why', async () => {
+      const r = await git.getDiff('0123456789abcdef0123456789abcdef01234567')
+      expect(r.diff).toBe('')
+      expect(r.error).toBeTruthy()
+    })
+
+    test('getWorkingFileDiff with a pathspec git refuses says why', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync('git add a.txt && git commit -m a', { cwd: tempDir })
+      const ok = await git.getWorkingFileDiff('a.txt', false)
+      expect(ok.error).toBeUndefined()
+      const bad = await git.getWorkingFileDiff(':(bogus)a.txt', false)
+      expect(bad.diff).toBe('')
+      expect(bad.error).toMatch(/pathspec/i)
+    })
+  })
+
+  describe('getLastCommitMessage', () => {
+    test('returns the message and the hash of the commit that carries it', async () => {
+      fs.writeFileSync(path.join(tempDir, 'a.txt'), 'a')
+      execSync('git add a.txt && git commit -m "First line" -m "Body text"', { cwd: tempDir })
+      const head = execSync('git rev-parse HEAD', { cwd: tempDir }).toString().trim()
+      const r = await git.getLastCommitMessage()
+      expect(r.hash).toBe(head)
+      expect(r.message).toBe('First line\n\nBody text')
+    })
+  })
 
   describe('checkRepo', () => {
     test('should succeed for a valid git repo', async () => {
@@ -385,7 +442,7 @@ describe('GitService', () => {
   // Conflict prediction (dry-run, never touches the working tree)
   // ─────────────────────────────────────────────────────────────────────
 
-  describe('conflict prediction', () => {
+  describeWithMergeTree(`conflict prediction (git ≥ ${MIN_GIT_FOR_CONFLICT_PREDICTION}, have ${gitVersion})`, () => {
     test('predictConflicts: clean merge predicts no files', async () => {
       fs.writeFileSync(path.join(tempDir, 'file.txt'), 'base')
       execSync(`cd ${tempDir} && git add . && git commit -m base`)

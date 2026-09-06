@@ -134,3 +134,19 @@ describe('the toolbar’s repository and branch', () => {
     expect(document.querySelector('.tb-outlook')).toBeNull()
   })
 })
+
+test('compact toolbar keeps secondary actions operable and closes the menu after selection', async () => {
+  const original = window.matchMedia
+  window.matchMedia = jest.fn().mockReturnValue({ matches: true, addEventListener: jest.fn(), removeEventListener: jest.fn() })
+  try {
+    const { props } = render({ onPop: jest.fn(), stashCount: 0 })
+    const trigger = screen.getByLabelText('More actions')
+    await userEvent.click(trigger)
+    expect(screen.getByRole('button', { name: 'Pop' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(props.onUndo).toHaveBeenCalledTimes(1)
+    expect(trigger.closest('details')).not.toHaveAttribute('open')
+    expect(trigger).toHaveFocus()
+    expect(screen.getByPlaceholderText(/Search commits/i)).toBeInTheDocument()
+  } finally { window.matchMedia = original }
+})

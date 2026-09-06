@@ -166,7 +166,7 @@ declare global {
     pruneGoneBranches: (names: string[]) => Promise<R & { deleted: string[] }>
     // Staging & commit
     getWorkingChanges: () => Promise<WorkingChanges>
-    getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => Promise<{ diff: string }>
+    getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => Promise<{ diff: string; error?: string }>
     getFileAtCommit: (commitHash: string, filepath: string) => Promise<{ content: string; error?: string }>
     restoreFileFromCommit: (commitHash: string, paths: string[]) => Promise<{ success: boolean; error?: string }>
     applyPatch: (patch: string, reverse: boolean) => Promise<R>
@@ -184,11 +184,11 @@ declare global {
     /** N commits, ONE rebase — a loop of drops would chase stale hashes (#69). */
     dropCommits: (hashes: string[]) => Promise<Unnarrowed>
     moveCommit: (hash: string, direction: 'up' | 'down') => Promise<R>
-    diffCommitToWorking: (hash: string) => Promise<{ diff: string }>
+    diffCommitToWorking: (hash: string) => Promise<{ diff: string; error?: string }>
     diffBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ diff: string; error?: string }>
     filesBetweenCommits: (fromHash: string, toHash: string | null, axis?: CompareAxis) => Promise<{ files: FileChange[]; error?: string }>
     getMergeBase: (a: string, b: string) => Promise<{ base: string | null; error?: string }>
-    getLastCommitMessage: (ref?: string) => Promise<{ message: string }>
+    getLastCommitMessage: (ref?: string) => Promise<{ message: string; hash?: string }>
     // The preload has had this since the AI commit message shipped; the
     // declaration never followed, so the one caller was typed as a mistake.
     aiGenerateCommitMessage: () => Promise<{ message?: string; error?: string }>
@@ -477,6 +477,8 @@ declare global {
     // registered, so an `off(cb)` pair could never match it.
     onRepoChanged: (cb: () => void) => () => void
     onWorkingChanged: (cb: () => void) => () => void
+    /** The main process's periodic fetch ran — the one timer there is. */
+    onAutoFetched: (cb: (r: { success: boolean; error?: string }) => void) => () => void
 
     // Updater
     onUpdateAvailable: (cb: (version: string) => void) => () => void

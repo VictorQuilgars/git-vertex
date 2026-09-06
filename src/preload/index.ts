@@ -52,7 +52,7 @@ const gitAPI = {
   // Staging & commit
   getWorkingChanges: () => ipcRenderer.invoke('git:get-working-changes'),
   getLastCommitMessage: (ref?: string) => ipcRenderer.invoke('git:get-last-commit-message', ref),
-  getWorkingFileDiff: (filepath: string, staged: boolean) => ipcRenderer.invoke('git:get-working-file-diff', filepath, staged),
+  getWorkingFileDiff: (filepath: string, staged: boolean, context?: number) => ipcRenderer.invoke('git:get-working-file-diff', filepath, staged, context),
   stage: (files: string[]) => ipcRenderer.invoke('git:stage', files),
   stageAll: () => ipcRenderer.invoke('git:stage-all'),
   unstage: (files: string[]) => ipcRenderer.invoke('git:unstage', files),
@@ -277,6 +277,8 @@ const gitAPI = {
   // file, and used by every other event — closes over the listener it made.
   onRepoChanged: (cb: () => void) => subscribe('git:repo-changed', cb),
   onWorkingChanged: (cb: () => void) => subscribe('git:working-changed', cb),
+  /** The main process's periodic fetch ran — the one timer there is. */
+  onAutoFetched: (cb: (r: { success: boolean; error?: string }) => void) => subscribe('git:auto-fetched', cb),
   onUpdateAvailable: (cb: (version: string) => void) => subscribe('updater:update-available', (v) => cb(v)),
   onUpdateDownloaded: (cb: (version: string) => void) => subscribe('updater:update-downloaded', (v) => cb(v)),
   onUpdateError: (cb: (err: string) => void) => subscribe('updater:error', (err) => cb(err)),

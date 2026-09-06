@@ -27,6 +27,13 @@ interface InteractiveRebaseProps {
   // only launched when the user clicks the button, like any manual plan.
   // Hashes may be short prefixes; commits not listed keep "pick".
   initialPlan?: { hash: string; action: string; message?: string }[]
+  /**
+   * How many commits of the branch its upstream does not have. When the plan
+   * rewrites more than that, some of what it rewrites is already published
+   * and the branch will need a force push — said before the rebase, not
+   * discovered at the push. Undefined = no upstream, or the host cannot tell.
+   */
+  unpushedCount?: number
 }
 
 const ACTIONS: RebaseAction[] = ['pick', 'reword', 'squash', 'fixup', 'drop']
@@ -44,7 +51,7 @@ const ACTION_COLORS: Record<RebaseAction, string> = {
 // naturally falls back to the fresh default instead of needing a sync effect.
 const groupKey = (g: MessageGroup): string => `${g.leaderIndex}:${g.memberIndexes.join(',')}`
 
-export default function InteractiveRebase({ baseHash, onClose, onSuccess, showToast, embedded, initialPlan }: InteractiveRebaseProps) {
+export default function InteractiveRebase({ baseHash, onClose, onSuccess, showToast, embedded, initialPlan, unpushedCount }: InteractiveRebaseProps) {
   const { t } = useLang()
   const [entries, setEntries] = useState<RebaseEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -101,6 +108,18 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
     setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, action } : e))
   }
 
+  // The one reorder, for the mouse and the keyboard alike: the drop handler
+  // and the arrow buttons both come here.
+  const moveEntry = (from: number, to: number) => {
+    setEntries(prev => {
+      if (from === to || from < 0 || to < 0 || from >= prev.length || to >= prev.length) return prev
+      const arr = [...prev]
+      const [item] = arr.splice(from, 1)
+      arr.splice(to, 0, item)
+      return arr
+    })
+  }
+
   const handleDragStart = (i: number) => { dragIndex.current = i }
 
   const handleDragOver = (e: React.DragEvent, i: number) => {
@@ -110,16 +129,20 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
 
   const handleDrop = (targetIndex: number) => {
     const from = dragIndex.current
-    if (from === null || from === targetIndex) { setDragOver(null); return }
-    setEntries(prev => {
-      const arr = [...prev]
-      const [item] = arr.splice(from, 1)
-      arr.splice(targetIndex, 0, item)
-      return arr
-    })
+    if (from !== null && from !== targetIndex) moveEntry(from, targetIndex)
     dragIndex.current = null
     setDragOver(null)
   }
+
+  // What the plan comes to, before it is launched: how many commits go in,
+  // how many come out, and whether any of them is already on the upstream.
+  const summary = useMemo(() => {
+    const kept = entries.filter(e => e.action !== 'drop').length
+    const folded = entries.filter(e => e.action === 'squash' || e.action === 'fixup').length
+    const reworded = entries.filter(e => e.action === 'reword').length
+    const published = unpushedCount === undefined ? 0 : Math.max(0, entries.length - unpushedCount)
+    return { total: entries.length, resulting: kept - folded, folded, dropped: entries.length - kept, reworded, published }
+  }, [entries, unpushedCount])
 
   const handleLaunch = async () => {
     // The first kept (non-drop) commit can't be squash/fixup — there's no
@@ -193,12 +216,30 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
               <div
                 className={`ir-row ${dragOver === i ? 'drag-over' : ''}`}
                 draggable
+                tabIndex={0}
                 onDragStart={() => handleDragStart(i)}
                 onDragOver={e => handleDragOver(e, i)}
                 onDrop={() => handleDrop(i)}
                 onDragEnd={() => setDragOver(null)}
+                // Alt+arrows move the row itself; only when the row has the
+                // focus, so the select inside keeps its own Alt+Down.
+                onKeyDown={e => {
+                  if (e.target !== e.currentTarget || !e.altKey) return
+                  if (e.key === 'ArrowUp') { e.preventDefault(); moveEntry(i, i - 1) }
+                  if (e.key === 'ArrowDown') { e.preventDefault(); moveEntry(i, i + 1) }
+                }}
               >
                 <span className="ir-drag-handle" title={t('ir.dragHandle')}>⠿</span>
+                <span className="ir-move">
+                  <button className="ir-move-btn ir-move-btn--up" title={t('ir.moveUp')} aria-label={t('ir.moveUp')}
+                    disabled={i === 0} onClick={() => moveEntry(i, i - 1)}>
+                    <Icon name="chevronDown" size={10} />
+                  </button>
+                  <button className="ir-move-btn" title={t('ir.moveDown')} aria-label={t('ir.moveDown')}
+                    disabled={i === entries.length - 1} onClick={() => moveEntry(i, i + 1)}>
+                    <Icon name="chevronDown" size={10} />
+                  </button>
+                </span>
                 <select
                   className="ir-action-select"
                   value={entry.action}
@@ -235,6 +276,15 @@ export default function InteractiveRebase({ baseHash, onClose, onSuccess, showTo
             )
           }) })()}
         </div>
+
+        {!loading && entries.length > 0 && (
+          <div className="ir-summary" role="status">
+            <span>{t('ir.summary', summary.total, summary.resulting, summary.folded, summary.dropped, summary.reworded)}</span>
+            {summary.published > 0 && (
+              <span className="ir-summary-warn">{t('ir.published', summary.published)}</span>
+            )}
+          </div>
+        )}
 
         <div className="ir-footer">
           <button className="ir-cancel" onClick={onClose}>{t('ir.cancel')}</button>

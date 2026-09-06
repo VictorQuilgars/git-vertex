@@ -118,6 +118,10 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
   const [fullLoading, setFullLoading] = useState(false)
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set())
   const [applyError, setApplyError] = useState<string | null>(null)
+  // A read that failed, kept apart from an empty diff: `{ diff: '' }` used to
+  // mean both, and a file git could not show read as "No differences".
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   // Working files: show only the changes (3 lines of context) or the whole file
   // with the changes highlighted. Same renderer — just a wider `git diff -U`.
   const [wholeFile, setWholeFile] = useState(false)
@@ -131,22 +135,30 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
     : `${target.area}::${target.filePath}`
 
   useEffect(() => {
+    let stale = false
     setLoading(true)
     setHunks([])
+    setLoadError(null)
     setSelectedLines(new Set())
     setApplyError(null)
     const fetch =
       target.type === 'commit'
         ? window.gitAPI.getDiff(target.commitHash).then(r => {
+            if (r.error) throw new Error(r.error)
             const all = parseDiff(r.diff ?? '')
             return all.find(f => f.to === target.filePath)?.hunks ?? []
           })
         : window.gitAPI.getWorkingFileDiff(target.filePath, target.area === 'staged', wholeFile ? 100000 : 3).then(r => {
+            if (r.error) throw new Error(r.error)
             const all = parseDiff(r.diff ?? '')
             return all.flatMap(f => f.hunks)
           })
-    fetch.then(h => { setHunks(h); setLoading(false) })
-  }, [key, wholeFile])
+    fetch
+      .then(h => { if (!stale) setHunks(h) })
+      .catch((e: unknown) => { if (!stale) setLoadError(e instanceof Error ? e.message : String(e)) })
+      .finally(() => { if (!stale) setLoading(false) })
+    return () => { stale = true }
+  }, [key, wholeFile, loadAttempt])
 
   useEffect(() => {
     if (showFullFile && target.type === 'commit' && !fullContent) {
@@ -334,7 +346,13 @@ export default function CenterFileDiff({ target, onClose, onStaged, onChangeArea
         ) : (
           <>
             {loading && <div className="cfd-loading">{t('common.loading')}</div>}
-            {!loading && hunks.length === 0 && (
+            {!loading && loadError && (
+              <div className="cfd-error cfd-error--load" role="alert">
+                <span>{t('cfd.loadFailed', loadError)}</span>
+                <button className="cfd-retry" onClick={() => setLoadAttempt(n => n + 1)}>{t('common.retry')}</button>
+              </div>
+            )}
+            {!loading && !loadError && hunks.length === 0 && (
               <div className="cfd-loading">{t('compare.noDiff')}</div>
             )}
             {!loading && hunks.map((hunk, hi) => {

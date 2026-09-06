@@ -4,6 +4,18 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧭 Nothing lost on the way
+- **Enter on Cancel no longer confirms.** A destructive question opens on **Cancel**, an ordinary one on **Confirm**; Enter activates the button that has the focus and nothing else. Tab stays in the box, Escape closes it, the focus goes back where it came from.
+- **A commit message survives a look at the history** — kept per repository as you type, restored after a restart, cleared only by a commit that succeeded. An amend armed for a commit that is no longer HEAD disarms itself.
+- **Two comparison tabs no longer show the same comparison**, and a commit hash is a real choice in the picker.
+- **A window too narrow for three panes gives the details the whole of it**, with *Back to the graph* above them; the toolbar folds its secondary actions into one menu.
+- **Full context in a working-tree diff reaches git** — it used to be dropped on the way.
+- **The keyboard reaches the menus, the tabs and the rebase**: arrows over a context menu's rows, Right into a submenu, Left back; arrows across the tab strip; two arrows per rebase row. The rebase editor says what the plan comes to, and whether a force push follows.
+- **The graph says how much history it holds** — *500 commits loaded*, and *Load 500 more* in the status bar. A **Working changes** row above the sidebar's lists is always there, and counts them.
+- **A diff git could not read is no longer "No differences"**: the reason is shown, with a Retry. And the auto-fetch has one owner, which reports.
+- **Tokens and API keys are held in the system's protected storage**, and the window never receives them — the settings page shows *configured*, not the value. The window runs in Chromium's sandbox, and the built page does not allow \`eval\`.
+- **A search box above the settings**, and a view that fails says so in its own pane rather than taking the window with it.
+
 ### 🎚 Reply length, per feature
 - Every AI call carried a ceiling nobody could see or change — 512 tokens for a commit message, 8192 for a conflict resolution. One control each in **Settings › AI Assistant** now: *Standard*, *Generous*, *Maximum*.
 - **A model that thinks before it writes no longer fails silently.** A reasoning model spends its budget reasoning, so a ceiling that suits one model can cut another off before it writes a character — which the app used to call "the model returned an empty response". A truncated answer is retried with **more** room, what worked is kept in that feature's control, and an answer that still will not fit says so and names the model.

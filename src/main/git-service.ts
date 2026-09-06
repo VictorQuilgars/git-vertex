@@ -371,21 +371,21 @@ export class GitService {
     return { branches }
   }
 
-  async getDiff(commitHash: string): Promise<{ diff: string }> {
-    let diff = ''
+  // A diff that could not be read is not an empty diff. Every method here
+  // used to answer `{ diff: '' }` to both, and the views said "No changes"
+  // over a commit git had refused to show. The error travels; the view says it.
+  async getDiff(commitHash: string): Promise<{ diff: string; error?: string }> {
     try {
       const parents = await this.git.raw(['log', '--pretty=format:%P', '-n', '1', commitHash])
       const parentList = parents.trim().split(' ').filter(Boolean)
-      if (parentList.length > 0) {
-        diff = await this.git.raw(['diff', `${parentList[0]}..${commitHash}`])
-      } else {
+      const diff = parentList.length > 0
+        ? await this.git.raw(['diff', `${parentList[0]}..${commitHash}`])
         // Root commit
-        diff = await this.git.raw(['show', commitHash, '--pretty=format:', '--no-color'])
-      }
-    } catch (e) {
-      diff = ''
+        : await this.git.raw(['show', commitHash, '--pretty=format:', '--no-color'])
+      return { diff }
+    } catch (e: any) {
+      return { diff: '', error: e.message }
     }
-    return { diff }
   }
 
   async getCommitFiles(commitHash: string): Promise<{ files: FileChange[] }> {
@@ -900,15 +900,16 @@ export class GitService {
     }
   }
 
-  async getWorkingFileDiff(filepath: string, staged: boolean): Promise<{ diff: string }> {
+  async getWorkingFileDiff(filepath: string, staged: boolean, context?: number): Promise<{ diff: string; error?: string }> {
     try {
+      const ctx = typeof context === 'number' && Number.isFinite(context) ? [`-U${Math.max(0, Math.floor(context))}`] : []
       const args = staged
-        ? ['diff', '--cached', '--', filepath]
-        : ['diff', '--', filepath]
+        ? ['diff', '--cached', ...ctx, '--', filepath]
+        : ['diff', ...ctx, '--', filepath]
       const diff = await this.git.raw(args)
       return { diff }
-    } catch (e) {
-      return { diff: '' }
+    } catch (e: any) {
+      return { diff: '', error: e.message }
     }
   }
 
@@ -951,11 +952,16 @@ export class GitService {
   // `ref` lets a caller ask about a branch it is not standing on — the PR
   // composer prefills its title from the branch being proposed, which is not
   // always HEAD.
-  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string }> {
+  // The message and WHICH commit carried it: an amend armed for one HEAD must
+  // notice when HEAD has become another commit in the meantime.
+  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string; hash?: string }> {
     const bad = this.assertRef(ref, 'ref'); if (bad) return { message: '' }
     try {
-      const msg = await this.git.raw(['log', '-1', '--pretty=format:%B', ref])
-      return { message: msg.trim() }
+      const out = await this.git.raw(['log', '-1', '--pretty=format:%H%n%B', ref])
+      const nl = out.indexOf('\n')
+      const hash = (nl === -1 ? out : out.slice(0, nl)).trim()
+      const message = nl === -1 ? '' : out.slice(nl + 1).trim()
+      return { message, hash }
     } catch {
       return { message: '' }
     }
@@ -1156,12 +1162,12 @@ export class GitService {
   }
 
   // Diff between a commit and the current working directory
-  async diffCommitToWorking(hash: string): Promise<{ diff: string }> {
+  async diffCommitToWorking(hash: string): Promise<{ diff: string; error?: string }> {
     try {
       const diff = await this.git.raw(['diff', hash])
       return { diff }
-    } catch (e) {
-      return { diff: '' }
+    } catch (e: any) {
+      return { diff: '', error: e.message }
     }
   }
 
@@ -1832,7 +1838,7 @@ export class GitService {
   }
 
   // Full patch of a stash, untracked files included when supported.
-  async getStashDiff(index: number): Promise<{ diff: string }> {
+  async getStashDiff(index: number): Promise<{ diff: string; error?: string }> {
     const ref = `stash@{${index}}`
     try {
       return { diff: await this.git.raw(['stash', 'show', '-p', '--include-untracked', ref]) }
@@ -1840,8 +1846,8 @@ export class GitService {
       // --include-untracked on `stash show` needs git ≥ 2.32 — retry without
       try {
         return { diff: await this.git.raw(['stash', 'show', '-p', ref]) }
-      } catch {
-        return { diff: '' }
+      } catch (e: any) {
+        return { diff: '', error: e.message }
       }
     }
   }

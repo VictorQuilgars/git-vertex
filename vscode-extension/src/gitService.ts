@@ -353,7 +353,9 @@ export class GitService {
     }
   }
 
-  async getDiff(commitHash: string): Promise<{ diff: string }> {
+  // A diff that could not be read is not an empty diff: the error travels, the
+  // shared views say it rather than "No changes". Same contract as the desktop.
+  async getDiff(commitHash: string): Promise<{ diff: string; error?: string }> {
     try {
       const parents = await this.git.raw(['log', '--pretty=format:%P', '-n', '1', commitHash])
       const parentList = parents.trim().split(' ').filter(Boolean)
@@ -364,8 +366,8 @@ export class GitService {
         diff = await this.git.raw(['show', commitHash, '--pretty=format:', '--no-color'])
       }
       return { diff }
-    } catch {
-      return { diff: '' }
+    } catch (e: any) {
+      return { diff: '', error: e.message }
     }
   }
 
@@ -442,7 +444,7 @@ export class GitService {
     }
   }
 
-  async getWorkingFileDiff(filepath: string, staged: boolean, context?: number): Promise<{ diff: string }> {
+  async getWorkingFileDiff(filepath: string, staged: boolean, context?: number): Promise<{ diff: string; error?: string }> {
     try {
       const ctx = Number.isFinite(context as number) ? [`-U${Math.max(0, Math.floor(context as number))}`] : []
       const args = staged
@@ -450,8 +452,8 @@ export class GitService {
         : ['diff', ...ctx, '--', filepath]
       const diff = await this.git.raw(args)
       return { diff }
-    } catch {
-      return { diff: '' }
+    } catch (e: any) {
+      return { diff: '', error: e.message }
     }
   }
 
@@ -858,11 +860,16 @@ export class GitService {
   // branch was right-clicked. Ignoring the argument (which this did) answered
   // with the wrong commit's message without failing — the silent-drift case the
   // host-parity test exists to catch.
-  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string }> {
+  // The message and WHICH commit carried it: an amend armed for one HEAD must
+  // notice when HEAD has become another commit in the meantime.
+  async getLastCommitMessage(ref = 'HEAD'): Promise<{ message: string; hash?: string }> {
     const bad = this.assertRef(ref, 'ref'); if (bad) return { message: '' }
     try {
-      const message = await this.git.raw(['log', '-n', '1', '--pretty=format:%B', ref])
-      return { message: message.replace(/\n+$/, '') }
+      const out = await this.git.raw(['log', '-n', '1', '--pretty=format:%H%n%B', ref])
+      const nl = out.indexOf('\n')
+      const hash = (nl === -1 ? out : out.slice(0, nl)).trim()
+      const message = nl === -1 ? '' : out.slice(nl + 1).replace(/\n+$/, '')
+      return { message, hash }
     } catch {
       return { message: '' }
     }
@@ -1083,13 +1090,13 @@ export class GitService {
     catch (e: any) { return { success: false, error: e.message } }
   }
 
-  async getStashDiff(index: number): Promise<{ diff: string }> {
+  async getStashDiff(index: number): Promise<{ diff: string; error?: string }> {
     const ref = `stash@{${index}}`
     try {
       return { diff: await this.git.raw(['stash', 'show', '-p', '--include-untracked', ref]) }
     } catch {
       try { return { diff: await this.git.raw(['stash', 'show', '-p', ref]) } }
-      catch { return { diff: '' } }
+      catch (e: any) { return { diff: '', error: e.message } }
     }
   }
 
@@ -2248,9 +2255,9 @@ exit 0
     }
   }
 
-  async diffCommitToWorking(hash: string): Promise<{ diff: string }> {
+  async diffCommitToWorking(hash: string): Promise<{ diff: string; error?: string }> {
     try { return { diff: await this.git.raw(['diff', hash]) } }
-    catch { return { diff: '' } }
+    catch (e: any) { return { diff: '', error: e.message } }
   }
 
   async searchInDiffs(query: string): Promise<{ hashes: string[] }> {

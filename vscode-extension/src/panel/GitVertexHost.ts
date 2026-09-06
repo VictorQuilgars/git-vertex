@@ -100,7 +100,7 @@ export function buildWebviewHtml(
     ? `<script nonce="${nonce}">window.__GV_BOOT__=${JSON.stringify(boot).replace(/</g, '\\u003c')};</script>`
     : ''
   return /* html */`<!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -515,7 +515,7 @@ export class GitVertexHost implements vscode.Disposable {
         const store = getThemeStore()
         return { themes: store.installed(), discarded: store.takeDiscarded() }
       }
-      case 'appGetInfo': return { platform: process.platform, version: '1.5.0' }
+      case 'appGetInfo': return { platform: process.platform, version: '1.5.0', repoPath: this._repoPath, repoName: this._repoPath ? path.basename(this._repoPath) : undefined }
       case 'openExternal': { vscode.env.openExternal(vscode.Uri.parse(args[0])); return { success: true } }
       case 'openInEditor': {
         try {

@@ -50,6 +50,25 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
   const subRef = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>()
   const [sub, setSub] = useState<{ i: number; x: number; y: number } | null>(null)
+  // Set when a submenu was opened from the keyboard: its first row takes the
+  // focus once it has rendered, which a hover-opened one must never do.
+  const focusSubOnOpen = useRef(false)
+
+  // The menu takes the focus while it is up, and gives it back on close. That
+  // is what stops the graph's own arrow keys from moving the selection under
+  // an open menu, and what lets a keyboard user land where they were.
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    ref.current?.focus()
+    return () => { if (previous?.isConnected) previous.focus() }
+  }, [])
+
+  useEffect(() => {
+    if (sub && focusSubOnOpen.current) {
+      focusSubOnOpen.current = false
+      subRef.current?.querySelector<HTMLButtonElement>('.ctx-item:not(.ctx-disabled)')?.focus()
+    }
+  }, [sub])
 
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
@@ -57,14 +76,52 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
       if (ref.current?.contains(t) || subRef.current?.contains(t)) return
       onClose()
     }
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    // The keyboard model of a menu: arrows walk the enabled rows of whichever
+    // menu is open (the submenu while it is), Right opens a row's submenu on
+    // its first entry, Left closes it and returns to the row, Enter and Space
+    // are the button's own activation, Escape closes everything.
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+      const container = sub ? subRef.current : ref.current
+      if (!container) return
+      const rows = Array.from(container.querySelectorAll<HTMLButtonElement>('.ctx-item:not(.ctx-disabled)'))
+      if (rows.length === 0) return
+      const current = rows.indexOf(document.activeElement as HTMLButtonElement)
+      const focusAt = (i: number) => rows[((i % rows.length) + rows.length) % rows.length].focus()
+      switch (e.key) {
+        case 'ArrowDown': e.preventDefault(); focusAt(current < 0 ? 0 : current + 1); break
+        case 'ArrowUp': e.preventDefault(); focusAt(current < 0 ? rows.length - 1 : current - 1); break
+        case 'Home': e.preventDefault(); focusAt(0); break
+        case 'End': e.preventDefault(); focusAt(rows.length - 1); break
+        case 'ArrowRight': {
+          if (sub || current < 0) return
+          const i = Number(rows[current].dataset.index)
+          const item = items[i]
+          if (!item || 'separator' in item || !item.submenu?.length) return
+          e.preventDefault()
+          clearTimeout(timer.current)
+          const r = rows[current].getBoundingClientRect()
+          focusSubOnOpen.current = true
+          setSub({ i, x: r.right - 3, y: r.top - 4 })
+          break
+        }
+        case 'ArrowLeft': {
+          if (!sub) return
+          e.preventDefault()
+          const parentRow = ref.current?.querySelector<HTMLButtonElement>(`.ctx-item[data-index="${sub.i}"]`)
+          setSub(null)
+          parentRow?.focus()
+          break
+        }
+      }
+    }
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.removeEventListener('mousedown', onMouseDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [onClose])
+  }, [onClose, sub, items])
 
   // Clamp to viewport — keep the menu fully on-screen even in a short panel.
   useEffect(() => {
@@ -103,6 +160,10 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
   const row = (item: MenuAction, i: number, close: () => void, inSub = false) => (
     <button
       key={i}
+      role="menuitem"
+      data-index={i}
+      aria-haspopup={item.submenu?.length ? 'menu' : undefined}
+      aria-expanded={item.submenu?.length ? (!inSub && sub?.i === i) : undefined}
       className={`ctx-item${item.danger ? ' ctx-danger' : ''}${item.disabled ? ' ctx-disabled' : ''}${item.tone ? ` ctx-item--${item.tone}` : ''}`}
       disabled={item.disabled}
       // Inside the submenu, hovering only keeps it alive. In the parent menu, a
@@ -127,12 +188,13 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
 
   const menu = (
     <>
-      <div ref={ref} className="ctx-menu" style={{ position: 'fixed', left: x, top: y, zIndex: 9999 }}>
+      <div ref={ref} role="menu" tabIndex={-1} className="ctx-menu" style={{ position: 'fixed', left: x, top: y, zIndex: 9999 }}>
         {items.map((item, i) => 'separator' in item ? <div key={i} className="ctx-sep" /> : row(item, i, onClose))}
       </div>
       {subItems && sub && (
         <div
           ref={subRef}
+          role="menu"
           className={`ctx-menu${openItem && !('separator' in openItem) && openItem.tone ? ` ctx-menu--${openItem.tone}` : ''}`}
           style={{ position: 'fixed', left: sub.x, top: sub.y, zIndex: 10000 }}
           onMouseEnter={() => clearTimeout(timer.current)}

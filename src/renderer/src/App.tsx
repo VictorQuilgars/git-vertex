@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useWindowWidth } from './hooks/useWindowWidth'
+import { detailsTakeCenter } from './utils/layout'
 import { Icon } from './components/Icon/Icon'
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import { CommitNode, BranchInfo, ConflictKind, FileChange, PullMode, StashScope, type CompareAxis } from './types'
 import { useLang } from './i18n/LanguageContext'
 import Toolbar from './components/Toolbar/Toolbar'
@@ -210,6 +213,9 @@ const newTabId = (prefix: TabKind) => `${prefix}-${Date.now()}-${tabSeq++}`
  */
 const GITHUB_POLL_MS = 60_000
 
+/** How much history one load of the graph holds, and how much a "more" adds. */
+const LOG_PAGE = 500
+
 export default function App() {
   // ── Dialog state ───────────────────────────────────────────
   const [dlg, setDlg] = useState<DialogState | null>(null)
@@ -233,6 +239,11 @@ export default function App() {
   const [repoPath, setRepoPath] = useState<string | null>(null)
   const [repoName, setRepoName] = useState<string>('')
   const [commits, setCommits] = useState<CommitNode[]>([])
+  // The graph holds a page of history, not the repository: LOG_PAGE commits,
+  // then LOG_PAGE more per click. The status bar says how many, because a
+  // search over the graph is a search over what was loaded and nothing else.
+  const [logLimit, setLogLimit] = useState(LOG_PAGE)
+  const logLimitRef = useRef(LOG_PAGE); logLimitRef.current = logLimit
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [currentBranch, setCurrentBranch] = useState<string>('')
   const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(null)
@@ -418,14 +429,6 @@ export default function App() {
   // the resolver's manual editor — review-only until the user saves it.
   const [conflictResolverProposal, setConflictResolverProposal] = useState<string | null>(null)
   const [wipCount, setWipCount] = useState(0)
-  /**
-   * The auto-fetch interval, in minutes — 0 disables it. Read as STATE, not
-   * once into a ref: it used to be `localStorage('autoFetch')`, a key nothing
-   * in the app ever wrote, so the loop could not be turned off and the setting
-   * the user can actually change — `autoFetchInterval`, in Settings — drove
-   * only the main process's own timer and never this loop (#141).
-   */
-  const [autoFetchMinutes, setAutoFetchMinutes] = useState(0)
 
   // ── Toast (via ToastProvider) ──────────────────────────────
   const toastApi = useToast()
@@ -504,7 +507,7 @@ export default function App() {
       // query is built from the visibility state rather than from them.
       const branchRes = await window.gitAPI.getBranches()
       const logRes = await window.gitAPI.getLog(logOptionsFor({
-        maxCount: 500,
+        maxCount: logLimitRef.current,
         all: showAllRef.current,
         solo: soloRef.current,
         visibility: visibilityRef.current,
@@ -717,28 +720,25 @@ export default function App() {
   }, [])
 
   // ── Auto-fetch ─────────────────────────────────────────────
-  useEffect(() => {
-    let alive = true
-    void window.gitAPI.settingsGetAll().then((s: any) => {
-      if (alive) setAutoFetchMinutes(parseInt(s?.autoFetchInterval ?? '0', 10) || 0)
-    }).catch(() => {})
-    return () => { alive = false }
-    // Settings is a tab, not a modal, so there is no close to hook: re-reading
-    // on every tab change is what makes editing the interval and coming back
-    // take effect without a reload.
-  }, [activeTabId])
-
-  useEffect(() => {
-    if (!repoPath || !autoFetchMinutes) return
-    const id = setInterval(async () => {
-      const r = await window.gitAPI.fetch()
-      if (r.success) {
-        setLastFetchTime(new Date())
-        await loadRepoData()
-      }
-    }, autoFetchMinutes * 60 * 1000)
-    return () => clearInterval(id)
-  }, [repoPath, autoFetchMinutes, loadRepoData])
+  // The main process owns the timer — one per setting, re-armed when the
+  // setting or the repository changes — and this only listens to what it did.
+  // There used to be a second timer here on the same setting, so every
+  // interval fetched twice, and a run that failed said nothing anywhere. A
+  // failure is shown once per distinct message: a remote that is down is one
+  // fact, not one toast per interval.
+  const lastAutoFetchError = useRef<string | null>(null)
+  useEffect(() => window.gitAPI.onAutoFetched?.(r => {
+    if (r.success) {
+      lastAutoFetchError.current = null
+      setLastFetchTime(new Date())
+      void loadRepoData(true)
+      return
+    }
+    const message = r.error ?? ''
+    if (message === lastAutoFetchError.current) return
+    lastAutoFetchError.current = message
+    showToast(t('toast.autoFetchFailed', message), 'err')
+  }), [loadRepoData, showToast, t])
 
   // ── Open repo helpers ──────────────────────────────────────
   // Which section a manual refresh is reading, and a tick per section that
@@ -1188,7 +1188,7 @@ export default function App() {
         }
         const fallback = next[Math.max(0, idx - 1)]
         setActiveTabId(fallback.id)
-        if (fallback.kind === 'repo') {
+        if (fallback.path) {
           window.gitAPI.setRepo(fallback.path!).then(r => {
             if (r.path) {
               setRepoPath(r.path)
@@ -1214,8 +1214,8 @@ export default function App() {
     }
     setActiveTabId(id)
     // Reconcile the body if the survivor isn't the repo currently loaded.
-    if (kept && kept.kind !== 'repo') clearRepoView()
-    else if (kept && kept.kind === 'repo' && kept.path !== repoPath) {
+    if (kept && !kept.path && kept.kind !== 'view') clearRepoView()
+    else if (kept?.path && kept.path !== repoPath) {
       window.gitAPI.setRepo(kept.path!).then(r => {
         if (r.path) {
           setRepoPath(r.path); setRepoName(r.name ?? kept.name!)
@@ -2329,6 +2329,7 @@ export default function App() {
       showToast(t('toast.err', r.error ?? ''), 'err')
     }
     setLoading(false)
+    return r.success
   }
 
   const handleConflictAbort = async () => {
@@ -2441,6 +2442,41 @@ export default function App() {
   const launchpadActive = activeTab?.kind === 'launchpad'
   const themesActive = activeTab?.kind === 'themes'
   const viewTab = activeTab?.kind === 'view' ? activeTab.body : undefined
+  // The details take the centre when the graph would have no usable width left
+  // beside the two side panes — computed from the panes the user actually has
+  // (see utils/layout.ts), so a wide right pane counts as much as a narrow window.
+  const windowWidth = useWindowWidth()
+
+  const loadMoreHistory = useCallback(() => {
+    logLimitRef.current += LOG_PAGE
+    setLogLimit(logLimitRef.current)
+    void loadRepoData(true)
+  }, [loadRepoData])
+
+  // The tab strip's keyboard: arrows move between tabs and open the one they
+  // land on, Home and End go to the ends, Delete closes. Only the active tab
+  // is in the Tab order, so the strip is one stop for Tab, not one per tab.
+  const onTabKeyDown = (e: React.KeyboardEvent, tab: AppTab) => {
+    const i = tabs.findIndex(tb => tb.id === tab.id)
+    if (i < 0) return
+    let target: AppTab | undefined
+    switch (e.key) {
+      case 'ArrowRight': target = tabs[(i + 1) % tabs.length]; break
+      case 'ArrowLeft': target = tabs[(i - 1 + tabs.length) % tabs.length]; break
+      case 'Home': target = tabs[0]; break
+      case 'End': target = tabs[tabs.length - 1]; break
+      case 'Enter': case ' ': e.preventDefault(); switchTab(tab); return
+      case 'Delete': case 'Backspace': e.preventDefault(); closeTab(tab.id); return
+      default: return
+    }
+    e.preventDefault()
+    if (!target || target.id === tab.id) return
+    switchTab(target)
+    const id = target.id
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`.app-tab[data-tab-id="${id}"]`)?.focus())
+  }
+  const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
+    && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
 
   return (
     <div className="app">
@@ -2451,7 +2487,7 @@ export default function App() {
       {/* Always render the top bar so Settings/profile stay reachable from the
           welcome screen too (not only once a repo/tab is open). */}
       {(
-        <div className="app-tabs">
+        <div className="app-tabs" role="tablist">
           {isMac && !isFullscreen && <div className="app-tabs-mac-spacer" />}
           {/* 📁 Repository Management — a fixed button opening a full-page
               overlay (like Settings), never a tab. */}
@@ -2463,6 +2499,11 @@ export default function App() {
           {tabs.map(tab => (
             <div
               key={tab.id}
+              role="tab"
+              aria-selected={tab.id === activeTabId && !whatsNewActive}
+              tabIndex={tab.id === activeTabId ? 0 : -1}
+              data-tab-id={tab.id}
+              onKeyDown={e => onTabKeyDown(e, tab)}
               className={`app-tab ${tab.id === activeTabId && !whatsNewActive ? 'active' : ''}`}
               onClick={() => switchTab(tab)}
               onAuxClick={e => { if (e.button === 1) { e.preventDefault(); closeTab(tab.id) } }}
@@ -2646,7 +2687,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="app-body" style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
+      <div className={`app-body${compactDetails ? ' app-body--detail' : ''}`} style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
         {repoPath && !viewTab && (
         <div className="app-sidebar" style={{ width: sidebarW }} ref={sidebarPanelRef}>
@@ -2660,6 +2701,12 @@ export default function App() {
               githubLogin={githubLogin}
               githubRepo={githubOwnerRepo}
               onOpenGithubItem={(url) => window.gitAPI.openExternal(url)}
+              wipCount={wipCount}
+              wipSelected={selectedCommit?.hash === '__WIP__'}
+              onViewWip={() => setSelectedCommit({
+                hash: '__WIP__', shortHash: 'WIP', message: '//WIP',
+                author: '', authorEmail: '', date: '', parents: [], refs: []
+              })}
               repoPath={repoPath}
               repoName={repoName}
               currentBranch={currentBranch}
@@ -2770,6 +2817,9 @@ export default function App() {
         {repoPath && !viewTab && <div className="resize-handle" onMouseDown={startResizeSidebar} />}
 
         <div className="app-center">
+          {/* Fenced: a view that throws says so in its own pane, and the tabs,
+              the sidebar and the toolbar stay up. */}
+          <ErrorBoundary>
           {conflictResolverFile ? (
             <ConflictResolver
               file={conflictResolverFile}
@@ -2797,16 +2847,24 @@ export default function App() {
               embedded
               baseHash={rebaseHash}
               initialPlan={rebasePlanProposal ?? undefined}
+              unpushedCount={branches.find(b => b.current && !b.remote)?.ahead}
               onClose={() => { setRebaseHash(null); setRebasePlanProposal(null) }}
               onSuccess={loadRepoData}
               showToast={showToast}
             />
+          ) : viewTab && activeTab?.path && activeTab.path !== repoPath ? (
+            <div role="status">{t('common.loading')}</div>
           ) : viewTab ? (
             viewTab.view === 'compare' ? (
               <CompareView
+                key={activeTabId}
                 initialA={viewTab.a}
                 initialB={viewTab.b}
                 initialAxis={viewTab.axis}
+                onComparisonChange={(a, b, axis) => setTabs(prev => prev.map(tb =>
+                  tb.id === activeTabId && tb.body?.view === 'compare'
+                    ? { ...tb, body: { ...tb.body, a, b, axis } }
+                    : tb))}
                 repoKey={repoPath}
                 onTitleChange={(title) => setTabs(prev => prev.map(tb =>
                   tb.id === activeTabId && tb.body?.view === 'compare'
@@ -2814,9 +2872,10 @@ export default function App() {
                     : tb))}
               />
             ) : viewTab.view === 'fileHistory' ? (
-              <FileHistory file={viewTab.file} />
+              <FileHistory key={activeTabId} file={viewTab.file} />
             ) : viewTab.view === 'fileDiff' ? (
               <CenterFileDiff
+                key={activeTabId}
                 target={viewTab.target}
                 onClose={() => closeTab(activeTabId!)}
                 onStaged={() => loadRepoData(true)}
@@ -3014,13 +3073,21 @@ export default function App() {
               onSearchMatches={setSearchMatches}
             />
           )}
+          </ErrorBoundary>
         </div>
 
         {repoPath && !rebaseHash && !viewTab && !issueDetail && (selectedCommit || conflictMode) && (
           <>
             <div className="resize-handle" onMouseDown={startResizeRight} />
             <div className="app-right" style={{ width: rightW }}>
+              {compactDetails && !conflictMode && (
+                <button className="app-detail-back" onClick={() => setSelectedCommit(null)}>
+                  <Icon name="chevronLeft" size={14} /> {t('cfd.backToGraph')}
+                </button>
+              )}
+              <ErrorBoundary>
               <RightPanel
+                repoPath={repoPath}
                 onCompareWorking={(hash) => openViewTab({ view: 'compare', a: hash, b: null, label: `${hash.slice(0, 7)} → ${t('cv.workingTree')}` })}
                 selectedCommit={selectedCommit}
                 onCommitSuccess={loadRepoData}
@@ -3056,6 +3123,7 @@ export default function App() {
                 onSplitCommits={() => setComposerOpen(true)}
                 branchStrip={branchStripProps}
               />
+              </ErrorBoundary>
             </div>
           </>
         )}
@@ -3071,6 +3139,9 @@ export default function App() {
           lastFetchTime={lastFetchTime}
           loading={loading}
           onFetch={handleFetch}
+          commitCount={commits.length}
+          historyTruncated={commits.length >= logLimit}
+          onLoadMore={loadMoreHistory}
         />
       )}
 

@@ -5,6 +5,8 @@ import './SettingsModal.css'
 import { modelKind } from '../../utils/aiModelKind'
 import { AI_PROVIDER_CATALOG, AI_LOCAL_PRESETS, parseCustomProviders, type AIProviderDef } from '../../utils/aiProviders'
 import { useLang, ENABLED_LANGS } from '../../i18n/LanguageContext'
+import { translations } from '../../i18n/translations'
+import { isSecretMask } from '../../utils/secrets'
 import {
   useSettings, isVSCodeHost, setInstalledThemes, followsEditor,
   type ThemeId, type InstalledThemeInfo,
@@ -51,6 +53,36 @@ type AIProvider = string
 // already handled by VS Code itself (SSH, external tools/terminal) or not
 // reachable there (Init isn't wired into the extension).
 const DESKTOP_ONLY_SECTIONS: Section[] = ['externalTools', 'ssh', 'about']
+
+// What each section is about, for the search box above the nav: the English
+// strings of the keys each section renders, by family. A query matches a
+// section when it appears in its name or anywhere in its text — "gpg" finds
+// Identity, "autolink" finds GitHub — so nine sections and their long lists
+// need not be walked to find one control.
+const SECTION_TEXT: Record<Section, string[]> = {
+  git: ['settings.git.', 'settings.profiles.', 'settings.profile', 'settings.defaultProfile', 'settings.saveAsProfile', 'settings.gitBinary.', 'settings.gpg.'],
+  appearance: ['settings.appearance.', 'settings.theme.', 'settings.themes.', 'settings.date.', 'settings.lang.'],
+  graph: ['settings.graph.'],
+  github: ['settings.github.', 'settings.autolinks.'],
+  ai: ['settings.ai.'],
+  notifications: ['settings.behavior.', 'settings.general.', 'settings.notifications.'],
+  externalTools: ['settings.externalTools.'],
+  ssh: ['settings.ssh.'],
+  about: ['settings.about.', 'settings.update.', 'settings.installAndRestart'],
+}
+const sectionText = (() => {
+  const en = translations.en as Record<string, unknown>
+  const out = {} as Record<Section, string>
+  for (const id of SECTIONS) {
+    out[id] = Object.entries(en)
+      .filter(([k, v]) => typeof v === 'string' && SECTION_TEXT[id].some(p => k.startsWith(p)))
+      .map(([, v]) => v as string).join(' ').toLowerCase()
+  }
+  return out
+})()
+
+/** How many built-in themes the picker shows before "show all". */
+const THEMES_FOLDED = 8
 
 // ── Nav icons ─────────────────────────────────────────────────
 // These were seven `<path>` sets inside a local NavIcon wrapper that spelled
@@ -471,6 +503,8 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
   const { t, lang, setLang } = useLang()
   const { settings, get, getBool, set } = useSettings()
   const [section, setSection] = useState<Section>(lastSection)
+  const [navQuery, setNavQuery] = useState('')
+  const [showAllThemes, setShowAllThemes] = useState(false)
   useEffect(() => { localStorage.setItem(SECTION_KEY, section) }, [section])
 
   // ── Themes ────────────────────────────────────────────────────────────────
@@ -524,11 +558,23 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
     refreshInstalled()
   }, [get, set, refreshInstalled])
 
-  const navGroups = embedded
+  const allNavGroups = embedded
     ? NAV_GROUPS
         .map(g => ({ ...g, items: g.items.filter(i => !DESKTOP_ONLY_SECTIONS.includes(i.id)) }))
         .filter(g => g.items.length > 0)
     : NAV_GROUPS
+  const query = navQuery.trim().toLowerCase()
+  const sectionMatches = (item: { id: Section; label: string }) =>
+    !query || t(item.label as any).toLowerCase().includes(query) || sectionText[item.id].includes(query)
+  const navGroups = query
+    ? allNavGroups.map(g => ({ ...g, items: g.items.filter(sectionMatches) })).filter(g => g.items.length > 0)
+    : allNavGroups
+  // A query the open section does not answer moves to the first one that does.
+  useEffect(() => {
+    if (!query) return
+    const visible = navGroups.flatMap(g => g.items.map(i => i.id))
+    if (visible.length && !visible.includes(section)) setSection(visible[0])
+  }, [query])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Git config
   const [gitUserName, setGitUserName] = useState('')
@@ -938,6 +984,18 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
       <div className="stg-body">
         {/* Left nav — grouped */}
         <nav className="stg-nav">
+          <div className="stg-nav-search">
+            <Icon name="search" size={12} />
+            <input
+              type="search"
+              value={navQuery}
+              placeholder={t('settings.search')}
+              aria-label={t('settings.search')}
+              onChange={e => setNavQuery(e.target.value)}
+              spellCheck={false}
+            />
+          </div>
+          {navGroups.length === 0 && <div className="stg-nav-empty">{t('settings.searchNone')}</div>}
           {navGroups.map(grp => (
             <div key={grp.group} className="stg-nav-group">
               <div className="stg-nav-group-label">{t(grp.group as any)}</div>
@@ -1131,7 +1189,13 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                       resolves against :root and every tile would show the
                       current theme. */}
                   <ul className="stg-wall stg-wall--compact">
-                    {THEME_PRESETS.map(th => {
+                    {/* The current theme and a handful, then the rest on
+                        request: thirty-two tiles took the pane before the
+                        options below them, for a choice made once. */}
+                    {(showAllThemes
+                      ? THEME_PRESETS
+                      : THEME_PRESETS.filter((th, i) => i < THEMES_FOLDED || get('theme', 'aqua-dark') === th.id)
+                    ).map(th => {
                       const active = get('theme', 'aqua-dark') === th.id
                       return (
                         <li key={th.id} className={`stg-tile ${active ? 'active' : ''}`}>
@@ -1187,6 +1251,12 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                     })}
                   </ul>
                 </fieldset>
+
+                {THEME_PRESETS.length > THEMES_FOLDED && (
+                  <button className="stg-wall-toggle" onClick={() => setShowAllThemes(v => !v)} aria-expanded={showAllThemes}>
+                    {showAllThemes ? t('settings.themes.showFewer') : t('settings.themes.showAll', THEME_PRESETS.length)}
+                  </button>
+                )}
 
                 {discarded.length > 0 && (
                   <p className="stg-gal-note stg-gal-note--warn">
@@ -1354,6 +1424,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                         {t('settings.save')}
                       </button>
                     </div>
+                    {isSecretMask(githubToken) && <p className="stg-secret-hint">{t('settings.secretHeld')}</p>}
                     <p className="stg-desc" style={{ marginTop: 6 }}>{t('settings.github.patHint')}</p>
                   </div>
                 )}
@@ -1446,6 +1517,7 @@ export default function SettingsModal({ onClose, showToast, onUpdateFound, embed
                               aria-label={t('settings.ai.apiKey', p.label)}
                               onChange={e => setAiKeys(k => ({ ...k, [p.id]: e.target.value }))}
                               onBlur={e => { if (e.target.value) fetchModels(p.id, e.target.value) }}
+                              title={isSecretMask(key) ? t('settings.secretHeld') : undefined}
                               placeholder={p.keyPlaceholder}
                             />
                             <button type="button" className="stg-eye" onClick={() => setShowKeyFor(v => v === p.id ? null : p.id)}

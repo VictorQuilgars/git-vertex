@@ -36,10 +36,12 @@ async function build() {
   // only here. All three now agree.
   await esbuild.build({
     // `.svg` imports resolve to the file's source, matching electron-vite's
-    // pre-load hook and jest's svgTransform. components/Icon reads its 25
-    // drawings from a folder of real SVG files; without this the panel would
-    // get a URL and render nothing.
-    loader: { '.svg': 'text' },
+    // pre-load hook and jest's svgTransform. components/Icon reads its
+    // drawings from a folder of real SVG files and parses the text; a data
+    // URL percent-encodes `#` and `"` inside it, which is what four icons
+    // rendered as for two releases — this object used to be declared twice,
+    // and the second copy quietly won. One `loader` now, and the check below.
+    loader: { '.svg': 'text', '.ttf': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.png': 'dataurl' },
     entryPoints: [path.join(__dirname, 'src', 'webview', 'app.tsx')],
     bundle: true,
     outfile: path.join(__dirname, 'media', 'main.js'),
@@ -49,9 +51,16 @@ async function build() {
     jsx: 'automatic',
     sourcemap: true,
     minify: false,
-    loader: { '.ttf': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.png': 'dataurl', '.svg': 'dataurl' },
     define: { 'process.env.NODE_ENV': '"production"' },
   })
+  // The bundle that ships is the one checked, not the config that produced it.
+  // esbuild's dataurl loader emits an SVG as `data:image/svg+xml,<svg …` with
+  // `#` as `%23`; the app's own `data:image/svg+xml;base64,` (utils/aiAvatars)
+  // is a different string and is meant to be there.
+  const bundle = fs.readFileSync(path.join(__dirname, 'media', 'main.js'), 'utf8')
+  if (bundle.includes('data:image/svg+xml,')) {
+    throw new Error('media/main.js carries an SVG as a data URL — the icons read their files as text; check the esbuild `loader`.')
+  }
   console.log('Webview bundled → media/main.js (+ main.css)')
 }
 

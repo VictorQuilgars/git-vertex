@@ -1007,3 +1007,21 @@
 }
 .sb-ai-item:hover .sb-ai-show, .sb-ai-show:focus-visible { opacity: 1; }
 .sb-ai-show:hover { color: var(--text-primary); border-color: var(--border-strong); }
+
+/* Working changes, as a destination above the lists. */
+.sb-wip {
+  display: flex; align-items: center; gap: var(--space-sm); width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  background: none; border: 0; border-bottom: 1px solid var(--border-muted);
+  color: var(--text-primary-soft); font-size: var(--text-sm); text-align: left; cursor: pointer;
+  flex-shrink: 0;
+}
+.sb-wip:hover { background: var(--surface-hover); color: var(--text-primary); }
+.sb-wip--on { color: var(--accent); background: var(--surface-active); }
+.sb-wip:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sb-wip-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-wip-count {
+  font-size: var(--text-xs); color: var(--text-secondary);
+  background: var(--surface-sunken); border-radius: var(--radius-sm);
+  padding: 0 var(--space-sm); line-height: 1.6;
+}

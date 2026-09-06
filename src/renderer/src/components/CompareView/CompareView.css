@@ -159,6 +159,25 @@
   color: var(--text-disabled);
 }
 
+/* A comparison git refused: the reason, and a way to ask again. */
+.cv-error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-3xl);
+  color: var(--danger);
+  text-align: center;
+}
+.cv-retry {
+  flex-shrink: 0;
+  background: transparent; border: 1px solid var(--danger); border-radius: var(--radius-sm);
+  color: var(--danger); font-size: var(--text-xs);
+  padding: var(--space-2xs) var(--space-md); cursor: pointer;
+}
+.cv-retry:hover { background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent); }
+
 /* "Copy link to this comparison" — a quiet action in the header, next to the
    ahead/behind counts it describes. */
 .cv-copy-link {

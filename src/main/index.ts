@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Notification, systemPreferences } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, Notification, systemPreferences, safeStorage } from 'electron'
 import { join, dirname } from 'path'
 import { existsSync, readdirSync } from 'fs'
 import { createHash } from 'crypto'
@@ -19,8 +19,10 @@ import {
 } from './git-service'
 import { initGitBinary, gitBinaryReady } from './git-binary'
 import { ThemeStore } from './theme-store'
+import { isSafeExternalUrl } from './external-url'
 import { resolveAICall, appendInstructions, type AIFeature } from './ai-resolve'
-import { providerById, authHeaders } from '../renderer/src/utils/aiProviders'
+import { providerById, providerCredential, authHeaders } from '../renderer/src/utils/aiProviders'
+import { SECRET_MASK, maskSecrets, openSecrets, resolveSecretWrite, sealSecrets, isSecretSetting, type Cipher } from './settings-secrets'
 import { callProvider } from './ai-call'
 import { BASE_BUDGET, headroomFor, headroomKey, nextHeadroom } from './ai-budgets'
 import { detailFor, DIFF_FEATURES } from './ai-diff'
@@ -61,12 +63,36 @@ let gitService: GitService | null = null
 // Re-armed whenever the active repo changes (openRepoAt) or the interval
 // setting changes (settings:set). 0/unset = disabled, the usual
 // "Auto-Fetch Interval" (0 disables auto-fetch).
+//
+// This is the ONE owner of the periodic fetch. The renderer used to arm a
+// second timer on the same setting, so every interval fetched twice, and only
+// that copy told anyone: this one swallowed its result. It reports each run to
+// the window now — the status bar's "fetched N min ago" and the graph follow
+// it, and a failure is a message rather than a silence.
 let autoFetchTimer: ReturnType<typeof setInterval> | null = null
+let autoFetchRunning = false
 function scheduleAutoFetch(): void {
   if (autoFetchTimer) { clearInterval(autoFetchTimer); autoFetchTimer = null }
   const minutes = parseAutoFetchMinutes(readSettings().autoFetchInterval)
   if (!gitService || !minutes) return
-  autoFetchTimer = setInterval(() => { gitService?.fetch().catch(() => {}) }, minutes * 60 * 1000)
+  autoFetchTimer = setInterval(() => { void autoFetchTick() }, minutes * 60 * 1000)
+}
+async function autoFetchTick(): Promise<void> {
+  const svc = gitService
+  // A slow remote must not stack a second fetch on the first.
+  if (!svc || autoFetchRunning) return
+  autoFetchRunning = true
+  try {
+    const r = await svc.fetch()
+    sendToWindow('git:auto-fetched', { success: r.success, error: r.error })
+  } catch (e: any) {
+    sendToWindow('git:auto-fetched', { success: false, error: e?.message ?? String(e) })
+  } finally {
+    autoFetchRunning = false
+  }
+}
+function sendToWindow(channel: string, payload?: unknown): void {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
 }
 
 // ── Auto-update submodules ──────────────────────────────────────
@@ -282,7 +308,11 @@ function createWindow(): void {
     enableLargerThanScreen: process.env.GV_SCREENSHOTS === '1',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      // The preload uses contextBridge, ipcRenderer and webFrame and nothing
+      // else, which is exactly what a sandboxed preload may use: the renderer
+      // runs under Chromium's own sandbox, as a page does, rather than with
+      // Node's reach one bridge away.
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false
     },
@@ -309,7 +339,7 @@ function createWindow(): void {
   mainWindow.on('leave-full-screen', sendFullscreen)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    if (isSafeExternalUrl(details.url)) shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
@@ -867,9 +897,9 @@ ipcMain.handle('git:get-last-commit-message', async (_event, ref?: string) => {
   return gitService.getLastCommitMessage(ref)
 })
 
-ipcMain.handle('git:get-working-file-diff', async (_event, filepath: string, staged: boolean) => {
+ipcMain.handle('git:get-working-file-diff', async (_event, filepath: string, staged: boolean, context?: number) => {
   if (!gitService) return { diff: '' }
-  return gitService.getWorkingFileDiff(filepath, staged)
+  return gitService.getWorkingFileDiff(filepath, staged, context)
 })
 
 ipcMain.handle('git:discard-file', async (_event, file: string) => {
@@ -1447,12 +1477,22 @@ async function ghApi(): Promise<GithubApi> {
   return apiForUser(readSettings(), await currentRemoteUrl())
 }
 
+// The secrets in settings.json go through the system's protected storage —
+// see settings-secrets.ts for what is sealed, opened and masked. A file
+// written in clear by an older version reads as it is and is sealed by its
+// next write; on a platform with no protected storage it stays in clear.
+const settingsCipher: Cipher = {
+  available: () => { try { return safeStorage.isEncryptionAvailable() } catch { return false } },
+  seal: (plain) => safeStorage.encryptString(plain).toString('base64'),
+  open: (sealed) => safeStorage.decryptString(Buffer.from(sealed, 'base64')),
+}
+
 function readSettings(): Record<string, string> {
-  try { return JSON.parse(readFileSync(getSettingsPath(), 'utf-8')) } catch { return {} }
+  try { return openSecrets(JSON.parse(readFileSync(getSettingsPath(), 'utf-8')), settingsCipher) } catch { return {} }
 }
 
 function writeSettings(data: Record<string, string>): void {
-  writeFileSync(getSettingsPath(), JSON.stringify(data, null, 2), 'utf-8')
+  writeFileSync(getSettingsPath(), JSON.stringify(sealSecrets(data, settingsCipher), null, 2), 'utf-8')
 }
 
 // ── Themes ───────────────────────────────────────────────────────────────────
@@ -1501,11 +1541,13 @@ ipcMain.handle('themes:installed', () => {
 })
 
 ipcMain.handle('ai:get-api-key', () => {
-  return { key: readSettings().groqApiKey ?? '' }
+  return { key: maskSecrets(readSettings()).groqApiKey ?? '' }
 })
 
 ipcMain.handle('ai:set-api-key', (_event, key: string) => {
-  const s = readSettings(); s.groqApiKey = key; writeSettings(s)
+  const s = readSettings()
+  const resolved = resolveSecretWrite(s, 'groqApiKey', key)
+  if (resolved !== null) { s.groqApiKey = resolved; writeSettings(s) }
   return { success: true }
 })
 
@@ -1520,6 +1562,13 @@ ipcMain.handle('ai:list-models', async () => {
 })
 
 ipcMain.handle('ai:list-provider-models', async (_event, provider: string, apiKey: string, baseUrl?: string) => {
+  // The settings page holds a mask for a key it never saw; the stored one
+  // answers for it here.
+  if (apiKey === SECRET_MASK) {
+    const s = readSettings()
+    const def = providerById(s, provider)
+    apiKey = def ? providerCredential(s, def) : ''
+  }
   // Everything that is not Anthropic or Google is the OpenAI dialect: one
   // GET {base}/models serves the catalog's clouds, the customs, and the
   // keyless local runtimes (#169). `baseUrl` arrives from the settings page
@@ -2289,12 +2338,18 @@ ipcMain.handle('git:conflict-outlook', async (_e, branch?: string) => {
 })
 
 // ── Settings: get/set all ──────────────────────────────────────
+// The window gets a mask where a secret is set: nothing there needs a token's
+// value, every call that uses one is made here. A mask sent back means "keep
+// what is stored" — see settings-secrets.ts.
 ipcMain.handle('settings:get-all', () => {
-  return readSettings()
+  return maskSecrets(readSettings())
 })
 
 ipcMain.handle('settings:set', (_e, key: string, value: string) => {
-  const s = readSettings(); s[key] = value; writeSettings(s)
+  const s = readSettings()
+  const resolved = isSecretSetting(key) ? resolveSecretWrite(s, key, value) : value
+  if (resolved === null) return { success: true }
+  s[key] = resolved; writeSettings(s)
   if (key === 'autoFetchInterval') scheduleAutoFetch()
   if (key === 'sshUseAgent' || key === 'sshPrivateKey') applySshConfig()
   return { success: true }
@@ -2414,8 +2469,13 @@ ipcMain.handle('git:set-global-config', async (_e, userName: string, userEmail: 
   } catch (e: any) { return { success: false, error: e.message } }
 })
 
-ipcMain.handle('app:open-external', (_e, url: string) => {
-  shell.openExternal(url)
+ipcMain.handle('app:open-external', async (_e, url: string) => {
+  // A remote URL, an issue body, a README: none of it is ours. Only the web
+  // schemes and mail reach the OS; a `file:` or a custom scheme would open a
+  // file or launch a program on a click that only promised a browser.
+  if (!isSafeExternalUrl(url)) return { success: false, error: `Refusing to open ${String(url).slice(0, 80)}` }
+  await shell.openExternal(url)
+  return { success: true }
 })
 
 // Open a repo file in an external editor. Uses the configured `externalEditor`

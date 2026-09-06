@@ -28,8 +28,9 @@ const api: any = new Proxy({}, { get: (_t, p) => (window as any).gitAPI?.[p as s
  * branch or tag is called, it cannot collide with this.
  */
 const WORKING = ':working'
+const shortRef = (ref: string) => /^[0-9a-f]{40,64}$/i.test(ref) ? ref.slice(0, 7) : ref
 
-export default function CompareView({ initialA, initialB, initialAxis, repoKey, onTitleChange }: {
+export default function CompareView({ initialA, initialB, initialAxis, repoKey, onTitleChange, onComparisonChange }: {
   initialA?: string
   /** `null` opens against the working tree. */
   initialB?: string | null
@@ -47,6 +48,7 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
    * it was opened for long after you had moved on.
    */
   onTitleChange?: (title: string) => void
+  onComparisonChange?: (a: string, b: string | null, axis: CompareAxis) => void
 }) {
   const { t } = useLang()
   const [refs, setRefs] = useState<string[]>([])
@@ -74,6 +76,10 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
   const [pickedDiff, setPickedDiff] = useState<{ diff: string; files: FileChange[]; loading: boolean }>(
     { diff: '', files: [], loading: false })
   const [loading, setLoading] = useState(false)
+  // A comparison git refused, kept apart from one with nothing in it: the
+  // catch below used to swallow the refusal and leave the empty lists up.
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   // This view is its own tab with no host around it, so it resolves the remote
   // itself rather than being handed one.
   const [remoteRepo, setRemoteRepo] = useState<RemoteRepo | null>(null)
@@ -110,6 +116,7 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
     if (!refA || !refB) { setAhead([]); setBehind([]); setDiff(''); setFiles([]); setMergeBase(null); return }
     let stale = false
     setLoading(true)
+    setLoadError(null)
     Promise.all([
       // The working tree has no commits of its own, so there is no ahead/behind
       // to draw against it — only a diff.
@@ -119,18 +126,27 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
       against === null ? Promise.resolve({ base: null }) : api.getMergeBase(refA, against).catch(() => ({ base: null })),
     ]).then(([cmp, d, f, mb]: any[]) => {
       if (stale) return
+      const refused = cmp?.error || d?.error || f?.error
+      if (refused) {
+        setLoadError(String(refused))
+        setAhead([]); setBehind([]); setDiff(''); setFiles([]); setMergeBase(null)
+        return
+      }
       setAhead(cmp?.ahead ?? [])
       setBehind(cmp?.behind ?? [])
       setDiff(d?.diff ?? '')
       setFiles(f?.files ?? [])
       setMergeBase(mb?.base ?? null)
-    }).catch(() => { /* invalid ref */ }).finally(() => { if (!stale) setLoading(false) })
+    }).catch((e: unknown) => {
+      if (!stale) setLoadError(e instanceof Error ? e.message : String(e))
+    }).finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
-  }, [refA, refB, against, axis])
+  }, [refA, refB, against, axis, loadAttempt])
 
   useEffect(() => {
     if (!refA || !refB) return
-    onTitleChange?.(`${refA} ${axis === 'diverged' ? '…' : '‥'} ${against === null ? t('cv.workingTree') : refB}`)
+    onComparisonChange?.(refA, against, axis)
+    onTitleChange?.(`${shortRef(refA)} ${axis === 'diverged' ? '…' : '‥'} ${against === null ? t('cv.workingTree') : shortRef(refB)}`)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refA, refB, axis, against])
 
@@ -171,12 +187,13 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
     setRefA(c.a); setRefB(c.b === null ? WORKING : c.b); setAxis(c.axis)
   }, [])
   const labelFor = (c: SavedComparison) =>
-    `${c.a} ${c.axis === 'diverged' ? '…' : '‥'} ${c.b === null ? t('cv.workingTree') : c.b}`
+    `${shortRef(c.a)} ${c.axis === 'diverged' ? '…' : '‥'} ${c.b === null ? t('cv.workingTree') : shortRef(c.b)}`
 
   const renderRefSelect = (value: string, onChange: (v: string) => void, withWorking = false) => (
     <select className="cv-ref-select" value={value} onChange={e => onChange(e.target.value)}>
       <option value="">{t('cv.chooseRef')}</option>
       {withWorking && <option value={WORKING}>{t('cv.workingTree')}</option>}
+      {value && value !== WORKING && !refs.includes(value) && <option value={value}>{shortRef(value)}</option>}
       {refs.map(r => <option key={r} value={r}>{r}</option>)}
     </select>
   )
@@ -205,8 +222,8 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
   // Who the comparison is *about*: `A...B` reports what B did. Naming it is
   // what turns an empty pane from "broken" into "nothing to show, and here is
   // where the commits actually are".
-  const axisTargetLabel = against === null ? t('cv.workingTree') : refB
-  const otherSideLabel = refA
+  const axisTargetLabel = against === null ? t('cv.workingTree') : shortRef(refB)
+  const otherSideLabel = shortRef(refA)
   const otherSideCount = ahead.length > 0 ? ahead.length : behind.length
 
   return (
@@ -258,10 +275,10 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
       {ready && (
         <div className="cv-reading">
           {against === null
-            ? t('cv.readingWorking', refA)
+            ? t('cv.readingWorking', shortRef(refA))
             : axis === 'diverged'
-              ? t('cv.readingDiverged', refB, refA)
-              : t('cv.readingEndpoints', refA, refB)}
+              ? t('cv.readingDiverged', shortRef(refB), shortRef(refA))
+              : t('cv.readingEndpoints', shortRef(refA), shortRef(refB))}
         </div>
       )}
 
@@ -279,11 +296,16 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
 
       {!ready ? (
         <div className="cv-empty">{t('cv.chooseTwo')}</div>
+      ) : loadError ? (
+        <div className="cv-error" role="alert">
+          <span>{t('cv.loadFailed', loadError)}</span>
+          <button className="cv-retry" onClick={() => setLoadAttempt(n => n + 1)}>{t('common.retry')}</button>
+        </div>
       ) : (
         <div className="cv-body">
           <div className="cv-left" style={{ width: leftW }}>
-            {renderCommitList(t('cv.inOnly', refB), ahead, 'var(--success)')}
-            {renderCommitList(t('cv.inOnly', refA), behind, 'var(--danger)')}
+            {renderCommitList(t('cv.inOnly', axisTargetLabel), ahead, 'var(--success)')}
+            {renderCommitList(t('cv.inOnly', otherSideLabel), behind, 'var(--danger)')}
           </div>
           <div className="cv-resize" onMouseDown={e => startResizeLeft(e, { axis: 'x' })} title={t('cv.resizeLists')} />
           <div className="cv-right">
@@ -320,8 +342,8 @@ export default function CompareView({ initialA, initialB, initialAxis, repoKey, 
               <DiffViewer
                 commit={null}
                 headerLabel={against === null
-                  ? `${refA} → ${t('cv.workingTree')}`
-                  : `${refA}${axis === 'diverged' ? '...' : '..'}${refB}`}
+                  ? `${shortRef(refA)} → ${t('cv.workingTree')}`
+                  : `${shortRef(refA)}${axis === 'diverged' ? '...' : '..'}${shortRef(refB)}`}
                 diff={diff}
                 files={files}
                 loading={loading}

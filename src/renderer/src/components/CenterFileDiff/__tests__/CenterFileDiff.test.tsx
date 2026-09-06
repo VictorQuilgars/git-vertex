@@ -63,3 +63,22 @@ describe('CenterFileDiff — external diff tool (v1.20.0)', () => {
     await waitFor(() => expect(api.openExternalDiff).toHaveBeenCalledWith('head content\n', 'working content\n', 'src/app.ts'))
   })
 })
+
+describe('CenterFileDiff — a failed read is not an empty diff', () => {
+  test('says the read failed, and Retry reads again', async () => {
+    const api = installMockGitAPI({
+      getWorkingFileDiff: jest.fn()
+        .mockResolvedValueOnce({ diff: '', error: 'fatal: bad object' })
+        .mockResolvedValueOnce({ diff: SAMPLE_DIFF }),
+    })
+    renderWithProviders(
+      <CenterFileDiff target={{ type: 'working', filePath: 'src/app.ts', area: 'unstaged' }} />
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('fatal: bad object')
+    expect(screen.queryByText(/No differences/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /retry/i }))
+    await waitFor(() => expect(document.querySelector('.cfd-hunk')).not.toBeNull())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(api.getWorkingFileDiff).toHaveBeenCalledTimes(2)
+  })
+})

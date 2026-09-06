@@ -18,6 +18,13 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧭 Nothing lost on the way
+- **Enter on Cancel no longer confirms.** A destructive question opens on **Cancel**, an ordinary one on **Confirm**; Enter activates the button that has the focus and nothing else. Tab stays in the box, Escape closes it, the focus goes back where it came from.
+- **A commit message survives a look at the history** — kept per repository as you type, restored after the panel reloads, cleared only by a commit that succeeded. An amend armed for a commit that is no longer HEAD disarms itself.
+- **Two comparison tabs no longer show the same comparison**, and a commit hash is a real choice in the picker.
+- **The keyboard reaches the menus and the rebase**: arrows over a context menu's rows, Right into a submenu, Left back; two arrows per rebase row, and a line that says what the plan comes to.
+- **A diff git could not read is no longer "No differences"**: the reason is shown, with a Retry. Four icons that drew percent-encoded draw again.
+
 ### 🎚 Reply length, per feature
 - Every AI call carried a ceiling nobody could see or change — 512 tokens for a commit message, 8192 for a conflict resolution. One control each in **Settings › AI Assistant** now: *Standard*, *Generous*, *Maximum*.
 - **A model that thinks before it writes no longer fails silently.** A reasoning model spends its budget reasoning, so a ceiling that suits one model can cut another off before it writes a character — which the app used to call "the model returned an empty response". A truncated answer is retried with **more** room, what worked is kept in that feature's control, and an answer that still will not fit says so and names the model.

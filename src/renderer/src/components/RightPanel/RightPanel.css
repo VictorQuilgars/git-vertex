@@ -1775,6 +1775,17 @@
 }
 .cd-explain-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent); }
 .cd-explain-btn:disabled { opacity: .6; cursor: wait; }
+/* The way to the guidance field: a caret in the same ink, turned when open. */
+.cd-explain-more {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 28px; flex-shrink: 0;
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius-md);
+  color: var(--purple-text); cursor: pointer;
+}
+.cd-explain-more:hover { border-color: color-mix(in srgb, var(--purple) var(--alpha-muted), transparent); }
+.cd-explain-more:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cd-explain-more svg { transition: transform var(--dur-fast); }
+.cd-explain-more--open svg { transform: rotate(180deg); }
 
 /* The files bar: a named, counted header with icon tools. */
 .cd-files-title { font-size: var(--text-micro); letter-spacing: .08em; font-weight: var(--weight-semibold); color: var(--text-secondary); }

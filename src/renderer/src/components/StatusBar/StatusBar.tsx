@@ -11,6 +11,11 @@ interface StatusBarProps {
   lastFetchTime?: Date | null
   loading?: boolean
   onFetch: () => void
+  /** How many commits the graph holds — a page of history, not the repository. */
+  commitCount?: number
+  /** The page was full, so there is very likely more. */
+  historyTruncated?: boolean
+  onLoadMore?: () => void
 }
 
 const IcoBranch = () => (
@@ -20,7 +25,7 @@ const IcoSync = ({ spinning }: { spinning?: boolean }) => (
   <Icon name="refresh" size={12} className={spinning ? 'sb-spin' : ''} />
 )
 
-export default function StatusBar({ repoName, branch, ahead, behind, lastFetchTime, loading, onFetch }: StatusBarProps) {
+export default function StatusBar({ repoName, branch, ahead, behind, lastFetchTime, loading, onFetch, commitCount, historyTruncated, onLoadMore }: StatusBarProps) {
   const { t } = useLang()
   const [zoom, setZoom] = useState(100)
 
@@ -58,6 +63,18 @@ export default function StatusBar({ repoName, branch, ahead, behind, lastFetchTi
           <span className="sb-tracking">
             {ahead > 0 && <span className="sb-ahead" title={t('statusbar.ahead', ahead)}>↑{ahead}</span>}
             {behind > 0 && <span className="sb-behind" title={t('statusbar.behind', behind)}>↓{behind}</span>}
+          </span>
+        )}
+        {/* The graph's scope, said where the eye goes to check it: a search
+            that finds nothing found nothing in THESE commits. */}
+        {commitCount !== undefined && commitCount > 0 && (
+          <span className="sb-history" title={t('statusbar.historyScope')}>
+            <span>{t('statusbar.commitsLoaded', commitCount)}</span>
+            {historyTruncated && onLoadMore && (
+              <button className="sb-history-more" onClick={onLoadMore} disabled={loading}>
+                {t('statusbar.loadMore', 500)}
+              </button>
+            )}
           </span>
         )}
       </div>

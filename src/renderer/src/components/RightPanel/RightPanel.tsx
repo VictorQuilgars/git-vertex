@@ -1,3 +1,4 @@
+import { useCommitDraft } from '../../hooks/useCommitDraft'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
 import hljs from 'highlight.js'
@@ -440,6 +441,7 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
   // by git's own identity, which is the one the commits carry.
   const [isSelf, setIsSelf] = useState(false)
   const [explainGuidance, setExplainGuidance] = useState('')
+  const [guidanceOpen, setGuidanceOpen] = useState(false)
   const [cdFileFilter, setCdFileFilter] = useState('')
   useEffect(() => {
     let alive = true
@@ -664,8 +666,11 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
               <p className="cd-title">{linkifyIssues(commit.message, githubRepo, autolinks)}</p>
               {cleanBody && <pre className="cd-body">{linkifyIssues(cleanBody, githubRepo, autolinks)}</pre>}
               {/* The honest empty state: the references line says when there is
-                  nothing on it, instead of silently being absent. */}
-              {!hasIssueReferences(commit.message + '\n' + cleanBody, githubRepo, autolinks) && (
+                  nothing on it, instead of silently being absent — but only
+                  where a reference could have been: with no GitHub remote and
+                  no autolink rule there is nothing to find, and saying so on
+                  every commit is noise in the one place height is scarce. */}
+              {(githubRepo || autolinks.length > 0) && !hasIssueReferences(commit.message + '\n' + cleanBody, githubRepo, autolinks) && (
                 <div className="cd-no-autolinks">
                   <Icon name="info" size={12} />{t('panel.noAutolinks')}
                 </div>
@@ -801,22 +806,36 @@ function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOpenFileD
           )}
 
           {/* Explain, inline. The guidance is real — it reaches the prompt —
-              which is the only reason the field exists. Outlined in the
-              model's colour, never filled: it is a proposal, not the pane. */}
+              which is the only reason the field exists; it is asked for, not
+              offered, because most explanations need none and the empty field
+              took a full row from every commit. Outlined in the model's
+              colour, never filled: it is a proposal, not the pane. */}
           <div className="cd-explain-row">
-            <input
-              className="cd-explain-input"
-              placeholder={t('panel.explainGuidance')}
-              value={explainGuidance}
-              onChange={e => setExplainGuidance(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !aiBusy) runAiExplain(true, explainGuidance)
-              }}
-            />
+            {guidanceOpen && (
+              <input
+                className="cd-explain-input"
+                placeholder={t('panel.explainGuidance')}
+                value={explainGuidance}
+                autoFocus
+                onChange={e => setExplainGuidance(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !aiBusy) runAiExplain(true, explainGuidance)
+                }}
+              />
+            )}
             <button className="cd-explain-btn" disabled={aiBusy}
               onClick={() => runAiExplain(true, explainGuidance)}>
               <Icon name="ai" size={12} />
               <span>{aiBusy ? '…' : t('panel.explainBtn')}</span>
+            </button>
+            <button
+              className={`cd-explain-more${guidanceOpen ? ' cd-explain-more--open' : ''}`}
+              title={t('panel.explainGuidanceToggle')}
+              aria-label={t('panel.explainGuidanceToggle')}
+              aria-pressed={guidanceOpen}
+              onClick={() => setGuidanceOpen(o => !o)}
+            >
+              <Icon name="chevronDown" size={11} />
             </button>
           </div>
 
@@ -1071,13 +1090,14 @@ function CheckTreeRow({ node, depth, ctx }: { node: TreeNode; depth: number; ctx
   )
 }
 
-function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState }: {
+function StagingView({ repoPath, onCommitSuccess, showToast, currentBranch, conflictMode, conflictFiles, onConflictFinish, onConflictAbort, onOpenFileDiff, onOpenStagingEditor, commitProposal, onProposalConsumed, onExplainWorking, onSplitCommits, embedded, branchStrip, emptyState }: {
+  repoPath?: string
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
   currentBranch?: string
   conflictMode?: string | null
   conflictFiles?: string[]
-  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
+  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void | boolean | Promise<void | boolean>
   onConflictAbort?: () => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
   onOpenStagingEditor?: (file: string) => void
@@ -1105,8 +1125,8 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   // Single free-form commit message: the user controls their own line breaks
   // (first line reads as the subject by git convention, but nothing forces
   // that split — no separate summary/description fields).
-  const [message, setMessage] = useState('')
-  const [amend, setAmend] = useState(false)
+  const { draft, update: updateDraft, message, setMessage, clear: clearDraft } = useCommitDraft(repoPath)
+  const amend = draft.amend
   const [amendFiles, setAmendFiles] = useState<FileChange[]>([])
   const [treeMode, setTreeMode] = useState(() => localStorage.getItem('st-tree-mode') === 'true')
   const [sortAsc, setSortAsc] = useState(true)
@@ -1190,19 +1210,37 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   const splitLists = trimTop && panelSize.w >= 360
 
   const toggleAmend = useCallback(async (checked: boolean) => {
-    setAmend(checked)
-    if (checked) {
-      const [msgRes, filesRes] = await Promise.all([
-        window.gitAPI.getLastCommitMessage(),
-        window.gitAPI.getCommitFiles('HEAD'),
-      ])
-      setMessage(msgRes.message ?? '')
-      setAmendFiles(filesRes.files ?? [])
-    } else {
-      setMessage('')
-      setAmendFiles([])
-    }
-  }, [])
+    if (!checked) { updateDraft(prev => ({ ...prev, amend: false })); return }
+    const head = await window.gitAPI.getLastCommitMessage()
+    updateDraft(prev => ({
+      ...prev,
+      amend: true,
+      amendHead: head.hash,
+      // An edit kept from an earlier amend is only worth restoring when it was
+      // written for this very commit; once HEAD has moved it is the wrong text.
+      amendMessage: prev.amendHead === head.hash && prev.amendMessage ? prev.amendMessage : (head.message ?? ''),
+    }))
+  }, [updateDraft])
+
+  // An amend armed for a commit that is no longer HEAD — after a restart, or a
+  // commit made from a terminal while the box was checked — is disarmed rather
+  // than allowed to rewrite whatever HEAD has become with a message meant for
+  // another commit. Re-checked whenever the repository reports a change.
+  const amendHead = draft.amendHead
+  const [headTick, setHeadTick] = useState(0)
+  useEffect(() => {
+    if (!amend) { setAmendFiles([]); return }
+    let active = true
+    Promise.all([window.gitAPI.getLastCommitMessage(), window.gitAPI.getCommitFiles('HEAD')]).then(([head, r]) => {
+      if (!active) return
+      if (head.hash && amendHead && head.hash !== amendHead) {
+        updateDraft(prev => ({ ...prev, amend: false, amendMessage: '', amendHead: undefined }))
+        return
+      }
+      setAmendFiles(r.files ?? [])
+    })
+    return () => { active = false }
+  }, [amend, amendHead, headTick, updateDraft])
 
   const load = useCallback(async () => {
     const r = await window.gitAPI.getWorkingChanges()
@@ -1212,7 +1250,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    const handler = () => load()
+    const handler = () => { load(); setHeadTick(n => n + 1) }
     const offRepo = window.gitAPI.onRepoChanged(handler)
     const offWorking = window.gitAPI.onWorkingChanged(handler)
     return () => { offRepo(); offWorking() }
@@ -1220,7 +1258,7 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
 
   useEffect(() => {
     if (isConflict) {
-      window.gitAPI.getMergeMessage().then(r => { if (r.message) setMessage(r.message) })
+      window.gitAPI.getMergeMessage().then(r => { if (r.message) setMessage(prev => prev || r.message) })
     }
   }, [isConflict])
 
@@ -1983,21 +2021,26 @@ function StagingView({ onCommitSuccess, showToast, currentBranch, conflictMode, 
     if (!message.trim()) return
     const full = message.trim()
     setCommitting(true)
-    if (isConflict && onConflictFinish) {
-      const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
-      onConflictFinish(action, full)
-      setMessage('')
-    } else {
-      const finalMessage = signoff ? `${full}\n\nSigned-off-by: ` : full
-      const r = await window.gitAPI.commit(finalMessage, amend)
-      if (r.success) {
-        showToast(t('toast.commitOk'))
-        setMessage(''); setAmend(false); setSelectedDiff(null)
-        onProposalConsumed?.()
-        await load(); onCommitSuccess()
-      } else showToast(t('toast.commitErr', r.error ?? ''), 'err')
+    try {
+      if (isConflict && onConflictFinish) {
+        const action = (conflictMode === 'rebase' || conflictMode === 'cherry-pick' || conflictMode === 'revert') ? 'rebase' : 'merge'
+        const success = await onConflictFinish(action, full)
+        if (success === true) clearDraft()
+      } else {
+        const finalMessage = signoff ? `${full}\n\nSigned-off-by: ` : full
+        const r = await window.gitAPI.commit(finalMessage, amend)
+        if (r.success) {
+          showToast(t('toast.commitOk'))
+          clearDraft(); setSelectedDiff(null)
+          onProposalConsumed?.()
+          await load(); onCommitSuccess()
+        } else showToast(t('toast.commitErr', r.error ?? ''), 'err')
+      }
+    } catch (error) {
+      showToast(t('toast.commitErr', error instanceof Error ? error.message : String(error)), 'err')
+    } finally {
+      setCommitting(false)
     }
-    setCommitting(false)
   }
 }
 
@@ -2163,6 +2206,7 @@ function ConflictPanel({
 
 // ── Right Panel root ──────────────────────────────────────────
 interface RightPanelProps {
+  repoPath?: string
   selectedCommit: CommitNode | null
   onCommitSuccess: () => void
   showToast: (msg: string, type?: 'ok' | 'err') => void
@@ -2175,7 +2219,7 @@ interface RightPanelProps {
   // kind is shown, rather than every file being labelled "both modified".
   conflictKinds?: Record<string, ConflictKind>
   conflictMode?: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null
-  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void
+  onConflictFinish?: (action: 'rebase' | 'merge', message?: string) => void | boolean | Promise<void | boolean>
   onConflictAbort?: () => void
   onOpenResolver?: (file: string) => void
   onOpenFileDiff?: (target: CenterDiffTarget) => void
@@ -2215,7 +2259,7 @@ interface RightPanelProps {
 }
 
 export default function RightPanel({
-  selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
+  repoPath, selectedCommit, onCommitSuccess, showToast, onSelectCommit, currentBranch, wipCount, onViewWip,
   conflictFiles, conflictKinds, conflictMode, onConflictFinish, onConflictAbort, onOpenResolver, onOpenFileDiff, onOpenStagingEditor, githubRepo,
   onOpenFileOnRemote, onCopyFileLink, onRestoreFile, onOpenFileHistory, onCompareWorking,
   onRewordMessage, commitProposal, onCommitProposalConsumed, onExplainWorking, onSplitCommits,
@@ -2243,6 +2287,8 @@ export default function RightPanel({
         />
       ) : (isWip || allConflictsResolved) && !hasCommit ? (
         <StagingView
+          key={repoPath}
+          repoPath={repoPath}
           onCommitSuccess={onCommitSuccess}
           showToast={showToast}
           currentBranch={currentBranch}
