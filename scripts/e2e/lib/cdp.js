@@ -104,9 +104,10 @@ class Page {
     throw new Error(`timed out waiting for: ${what}`)
   }
 
+  /** Click, or say why not: a disabled button swallows a click without a word. */
   async click(selector) {
-    const hit = await this.eval(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false; el.click(); return true })()`)
-    if (!hit) throw new Error(`nothing to click at ${selector}`)
+    const hit = await this.eval(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return 'absent'; if (el.disabled) return 'disabled'; el.click(); return 'ok' })()`)
+    if (hit !== 'ok') throw new Error(`nothing to click at ${selector}: ${hit}`)
   }
 
   /** A right click, the way React sees it: a contextmenu event at the element's centre. */
@@ -144,9 +145,15 @@ class Page {
   /** Type into whatever has the focus, as keystrokes would. */
   async type(text) { await this.send('Input.insertText', { text }) }
 
-  async press(key) {
-    const codes = { Enter: 13, Escape: 27, Tab: 9, ArrowDown: 40, ArrowUp: 38, ArrowLeft: 37, ArrowRight: 39 }
-    const base = { key, code: key, windowsVirtualKeyCode: codes[key] ?? 0, nativeVirtualKeyCode: codes[key] ?? 0 }
+  /**
+   * A key, with modifiers when asked: `{ ctrl, shift, alt, meta }`. The app's
+   * shortcuts take Ctrl where macOS would take Cmd, so Ctrl does on every platform.
+   */
+  async press(key, mods = {}) {
+    const codes = { Enter: 13, Escape: 27, Tab: 9, ArrowDown: 40, ArrowUp: 38, ArrowLeft: 37, ArrowRight: 39, Home: 36, End: 35, Delete: 46, Backspace: 8, ',': 188 }
+    const names = { ',': 'Comma' }
+    const modifiers = (mods.alt ? 1 : 0) | (mods.ctrl ? 2 : 0) | (mods.meta ? 4 : 0) | (mods.shift ? 8 : 0)
+    const base = { key, code: names[key] ?? key, windowsVirtualKeyCode: codes[key] ?? 0, nativeVirtualKeyCode: codes[key] ?? 0, modifiers }
     await this.send('Input.dispatchKeyEvent', { type: 'keyDown', ...base, ...(key === 'Enter' ? { text: '\r' } : {}) })
     await this.send('Input.dispatchKeyEvent', { type: 'keyUp', ...base })
   }

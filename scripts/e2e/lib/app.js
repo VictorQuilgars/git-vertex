@@ -38,13 +38,13 @@ function makeProfile(recentRepos) {
   return dir
 }
 
-async function launch({ profile, logFile }) {
+async function launch({ profile, logFile, append = false }) {
   const port = await freePort()
   const electron = require('electron')   // the path of the binary, when required from node
   const args = ['.', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`]
   // The harness, not the shipped app: on a Linux runner the setuid sandbox is not there.
   if (process.platform === 'linux') args.push('--no-sandbox')
-  const log = fs.openSync(logFile, 'w')
+  const log = fs.openSync(logFile, append ? 'a' : 'w')
   const child = spawn(electron, args, { cwd: ROOT, stdio: ['ignore', log, log], env: { ...process.env, GV_E2E: '1' } })
   const target = await findMainTarget(port).catch(e => { child.kill('SIGKILL'); throw e })
   const page = await Page.connect(target)
@@ -57,4 +57,13 @@ function stop(child) {
   setTimeout(() => { try { child.kill('SIGKILL') } catch { /* gone */ } }, 3000).unref()
 }
 
-module.exports = { ROOT, ensureBuilt, makeProfile, launch, stop }
+/** Stop, and return once the process is gone: a relaunch on the same profile needs its lock released. */
+function stopAndWait(child) {
+  return new Promise(resolve => {
+    if (!child || child.exitCode !== null) return resolve()
+    child.once('exit', () => resolve())
+    stop(child)
+  })
+}
+
+module.exports = { ROOT, ensureBuilt, makeProfile, launch, stop, stopAndWait }
