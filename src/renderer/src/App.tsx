@@ -327,6 +327,18 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [loadRepoData, handleUndo, handleRedo, conflictResolverFile])
+  // The tab strip is a roving tab stop: only the active tab is reachable by
+  // Tab, so the focus has to follow the selection, or the next arrow walks
+  // from the tab we just left. Keyed on the selection rather than scheduled by
+  // the keystroke — switching to a repository tab awaits its session, and a
+  // frame scheduled by the key could land before the render that moves the tab
+  // stop. Only when a tab already has the focus, so clicking one, or working
+  // anywhere else, never has it taken away.
+  useEffect(() => {
+    const el = document.activeElement as HTMLElement | null
+    if (!el?.classList.contains('app-tab') || el.dataset.tabId === activeTabId) return
+    document.querySelector<HTMLElement>(`.app-tab[data-tab-id="${activeTabId}"]`)?.focus()
+  }, [activeTabId])
   // ── Resize handlers ────────────────────────────────────────
   const startResizeSidebar = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -468,10 +480,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Git action bar — hidden while in preferences, over the theme gallery,
-          which has no repo to act on, and over a view tab: its search searches
-          the graph, and the tab it would sit above is not the graph. */}
-      {!whatsNewActive && !themesActive && !viewTab && (
+      {/* Git action bar — every control in it acts on a repository, so it is
+          drawn only when one is open. Without that it still had one control,
+          its own repository selector, and drew a full-width empty row above
+          the welcome, the Launchpad and the theme gallery — over a welcome
+          whose first button already says "Open a repository". Switching to any
+          of those tabs clears the repository, so this one test covers all
+          three. Still hidden while in preferences and over a view tab: its
+          search searches the graph, and the tab it would sit above is not the
+          graph. */}
+      {!whatsNewActive && !viewTab && !!repoPath && (
       <Toolbar
         repoName={repoName}
         recentRepos={recentRepos}
