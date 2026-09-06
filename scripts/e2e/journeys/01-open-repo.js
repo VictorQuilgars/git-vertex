@@ -4,8 +4,12 @@ module.exports = {
   name: 'open a repository, every domain answers',
   async run({ page, expect }) {
     await page.until(`!!document.querySelector('.welcome-recent-item')`, { what: 'the welcome screen' })
+    // No repository, no git action bar: it used to draw a full-width empty row
+    // holding only its own "Open a repository", above a welcome that offers it.
+    expect(await page.eval(`!document.querySelector('.toolbar')`), 'the welcome carries no toolbar')
     await page.click('.welcome-recent-item')
     await page.until(`!!document.querySelector('.sb-history')`, { what: 'the status bar with the loaded count' })
+    expect(await page.eval(`!!document.querySelector('.toolbar .tb-repo-btn')`), 'a repository open brings the toolbar, named after it')
     expect.match(await page.eval(`document.querySelector('.sb-history').textContent`), /^3 commits loaded/, 'the status bar')
     expect(await page.eval(`!!document.querySelector('.sb-wip')`), 'the Working changes row is there')
     const calls = {
