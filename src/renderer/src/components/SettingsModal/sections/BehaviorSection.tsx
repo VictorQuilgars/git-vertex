@@ -1,11 +1,13 @@
 // Settings › notifications. Reads its slice of the page's state; the state itself lives in useSettingsPage.
 import type { SettingsPage } from '../useSettingsPage'
+import { SaveNote } from '../shared'
 
 export function BehaviorSection({ page }: { page: SettingsPage }) {
   const { t, settings, section, notifyFetch, setNotifyFetch, notifyCommit, setNotifyCommit, notifyUpdate, setNotifyUpdate, autoStash, setAutoStash, warnBeforeConflict, setWarnBeforeConflict, defaultBranchName, setDefaultBranchName, autoFetchInterval, setAutoFetchInterval, autoUpdateSubmodules, setAutoUpdateSubmodules, embedded } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.behavior.title')}</h2>
+                <SaveNote />
 
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" checked={autoStash}

@@ -1,5 +1,12 @@
 // Settings › git. Reads its slice of the page's state; the state itself lives in useSettingsPage.
+//
+// The section a user has to be told about (#197): the identity and the SSH
+// command write GIT's OWN global configuration — every git client on this
+// machine reads them afterwards — while the signing box and the binary path
+// are this app's alone. Each block says which it is, in the field, and when it
+// is saved.
 import type { SettingsPage } from '../useSettingsPage'
+import { GitGlobalChip, SaveNote } from '../shared'
 
 export function GitSection({ page }: { page: SettingsPage }) {
   const { t, settings, section, gitUserName, setGitUserName, gitUserEmail, setGitUserEmail, gitBinary, setGitBinary, gitBinaryPath, setGitBinaryPath, gitBinaryBusy, setGitBinaryBusy, gpgSign, setGpgSign, profiles, saveGit, saveCurrentAsProfile, applyProfile, deleteProfile, showToast, embedded } = page
@@ -9,7 +16,7 @@ export function GitSection({ page }: { page: SettingsPage }) {
                 <p className="stg-desc">{t('settings.git.desc')}</p>
 
                 <label className="stg-field">
-                  <span>{t('settings.git.name')}</span>
+                  <span>{t('settings.git.name')}<GitGlobalChip writes="user.name" /></span>
                   <input
                     className="stg-input"
                     value={gitUserName}
@@ -19,7 +26,7 @@ export function GitSection({ page }: { page: SettingsPage }) {
                 </label>
 
                 <label className="stg-field">
-                  <span>{t('settings.git.email')}</span>
+                  <span>{t('settings.git.email')}<GitGlobalChip writes="user.email" /></span>
                   <input
                     className="stg-input"
                     type="email"
@@ -35,12 +42,16 @@ export function GitSection({ page }: { page: SettingsPage }) {
                     {t('settings.saveAsProfile')}
                   </button>
                 </div>
+                <SaveNote button={t('settings.save')} />
 
                 {/* Profils / identités */}
                 {profiles.length > 0 && (
                   <>
                     <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.profiles.title')}</h2>
                     <p className="stg-desc">{t('settings.profiles.desc')}</p>
+                    {/* The one block of this section that acts at once: a
+                        profile is not a field being edited, it is a switch. */}
+                    <p className="stg-savenote">{t('settings.profiles.applyNote')}</p>
                     <div className="stg-profiles">
                       {profiles.map((p, i) => {
                         const active = p.name === gitUserName.trim() && p.email === gitUserEmail.trim()
@@ -68,7 +79,13 @@ export function GitSection({ page }: { page: SettingsPage }) {
                 {!embedded && (
                   <>
                     <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.gitBinary.title')}</h2>
-                    <p className="stg-desc">{t('settings.gitBinary.desc')}</p>
+                    {/* The PATH and the Finder are a diagnosis, not a setting:
+                        true, worth reading once, and in the way every other
+                        time. The setting stays; the explanation folds. */}
+                    <details className="stg-help">
+                      <summary>{t('settings.gitBinary.why')}</summary>
+                      <p className="stg-desc">{t('settings.gitBinary.desc')}</p>
+                    </details>
                     <p className="stg-desc" style={{ color: 'var(--text-primary-soft)' }}>
                       {gitBinary
                         ? <>
@@ -109,11 +126,15 @@ export function GitSection({ page }: { page: SettingsPage }) {
                         {gitBinaryBusy ? t('settings.gitBinary.checking') : t('settings.gitBinary.apply')}
                       </button>
                     </div>
+                    <SaveNote button={t('settings.gitBinary.apply')} />
                   </>
                 )}
 
                 {/* Signature GPG */}
                 <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.gpg.title')}</h2>
+                {/* This app's own: it adds -S to the commits IT makes, and
+                    writes nothing to ~/.gitconfig — hence no chip. */}
+                <SaveNote />
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" checked={gpgSign}
                     onChange={async e => {

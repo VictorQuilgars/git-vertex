@@ -167,6 +167,42 @@
   border-radius: var(--radius-xs);
 }
 
+/* ── What a field changes, and when it is kept (#197) ─────────── */
+/* The chip sits in the label, not in a paragraph above it: a warning you have
+   to have read before you arrive is not a warning, it is documentation. */
+.stg-scope {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  margin-left: var(--space-sm);
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.stg-scope code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-tiny);
+  color: var(--text-primary-soft);
+}
+.stg-savenote {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+/* The explanation a setting needs the first time and never again — open it
+   when you are wondering, not every time you walk past. */
+.stg-help > summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.stg-help > summary:hover { color: var(--text-primary-soft); }
+.stg-help > .stg-desc { margin-top: var(--space-sm); }
+
 /* ── Form fields ─────────────────────────────────────────────── */
 .stg-field {
   display: flex;

@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Changed
+- **The settings say what they change, and when they are kept.** The page held two kinds of setting and presented them identically: what belongs to this app — a theme, an auto-fetch interval, an API key — and what writes **Git's own global configuration**, which every git client on the machine reads afterwards. The second kind now says so in the field itself, with the key it writes: *Git global · `user.name`* on the identity, *Git global · `core.sshCommand`* on the SSH key and the agent switch — the two places where a choice made here leaves this app. The fields that only look git-shaped carry nothing: GPG signing adds `-S` to the commits this app makes and writes nothing to `~/.gitconfig`, and a chip there would be the same confusion in a smaller font. The save modes are said rather than discovered: each block reads either *Saved as you change it.* or *Nothing here is saved until you press Save.* — one mode per block, in words, instead of a page where some fields kept themselves and others waited for a button with nothing to tell them apart. The identity's description said these values "sign your commits", directly above the block that actually signs them; it now says what they are, the name and email your commits are authored with. And the explanation of why the app has to go looking for git — the truncated PATH of an app launched from the Finder — folds away behind *Why this app has to look for git*: a diagnosis worth reading once and in the way every other time. The setting itself stays where it was. (#197)
+
 ## 1.34.0
 
 ### Added

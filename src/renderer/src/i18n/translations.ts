@@ -761,7 +761,13 @@ const fr = {
 
   // Settings — Git
   'settings.git.title': 'Configuration Git globale',
-  'settings.git.desc': 'Ces valeurs sont utilisées pour signer vos commits (git config --global).',
+  'settings.git.desc': 'Le nom et l\'e-mail sous lesquels vos commits sont créés.',
+  'settings.scope.gitGlobal': 'Git global',
+  'settings.scope.gitGlobal.title': 'Écrit dans la configuration Git globale (~/.gitconfig) : tous les clients Git de cette machine voient le changement.',
+  'settings.saveMode.live': 'Enregistré au fur et à mesure.',
+  'settings.saveMode.button': (label: string) => `Rien n'est enregistré ici tant que vous n'avez pas appuyé sur ${label}.`,
+  'settings.profiles.applyNote': 'Utiliser un profil l\'applique immédiatement.',
+  'settings.gitBinary.why': 'Pourquoi cette application doit chercher git',
   'settings.git.name': 'Nom',
   'settings.git.name.placeholder': 'Prénom Nom',
   'settings.git.email': 'Email',
@@ -2564,7 +2570,13 @@ const en: typeof fr = {
 
   // Settings — Git
   'settings.git.title': 'Global Git Configuration',
-  'settings.git.desc': 'These values are used to sign your commits (git config --global).',
+  'settings.git.desc': 'The name and email your commits are authored with.',
+  'settings.scope.gitGlobal': 'Git global',
+  'settings.scope.gitGlobal.title': 'Writes to the global Git configuration (~/.gitconfig): every Git client on this machine sees the change.',
+  'settings.saveMode.live': 'Saved as you change it.',
+  'settings.saveMode.button': (label: string) => `Nothing here is saved until you press ${label}.`,
+  'settings.profiles.applyNote': 'Using a profile applies it straight away.',
+  'settings.gitBinary.why': 'Why this app has to look for git',
   'settings.git.name': 'Name',
   'settings.git.name.placeholder': 'First Last',
   'settings.git.email': 'Email',

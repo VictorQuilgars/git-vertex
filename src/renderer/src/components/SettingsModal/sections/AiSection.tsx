@@ -2,7 +2,7 @@
 import { Icon } from '../../Icon/Icon'
 import { AI_LOCAL_PRESETS, type AIProviderDef } from '../../../utils/aiProviders'
 import { isSecretMask } from '../../../utils/secrets'
-import { AI_FEATURES, DIFF_FEATURES, type AIPair, ModelSelect, AI_GLOBAL_CHIPS, headersToLines, linesToHeaders, makeCustomId, AITuning, AI_PROVIDERS } from '../shared'
+import { AI_FEATURES, DIFF_FEATURES, type AIPair, ModelSelect, AI_GLOBAL_CHIPS, headersToLines, linesToHeaders, makeCustomId, AITuning, AI_PROVIDERS, SaveNote } from '../shared'
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AiSection({ page }: { page: SettingsPage }) {
@@ -290,6 +290,7 @@ export function AiSection({ page }: { page: SettingsPage }) {
                   <div className="stg-ai-savebar-inner">
                     <span className="stg-ai-savebar-note">{aiDirty ? t('settings.ai.unsaved') : ''}</span>
                     <button className="stg-save" onClick={saveAI} disabled={!aiDirty}>{t('settings.save')}</button>
+                    <SaveNote button={t('settings.save')} />
                   </div>
                 </div>
               </div>
