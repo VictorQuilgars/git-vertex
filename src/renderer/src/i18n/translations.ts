@@ -1,6 +1,11 @@
 export type Lang = 'fr' | 'en'
 
 const fr = {
+  'panel.resize.filesCommit': 'Redimensionner les fichiers et le commit',
+  'panel.resize.graphFiles': 'Redimensionner le graphe et les fichiers',
+  'panel.compact.options': 'Options',
+  'panel.compact.hideGraph': 'Masquer le graphe',
+  'panel.compact.showGraph': 'Afficher le graphe',
   // Toolbar
   'toolbar.fetch.tooltip': 'Fetch — récupère les refs distants',
   'toolbar.pull.tooltip': 'Pull — intègre les commits distants',
@@ -1800,6 +1805,11 @@ const fr = {
 }
 
 const en: typeof fr = {
+  'panel.resize.filesCommit': 'Resize files and commit',
+  'panel.resize.graphFiles': 'Resize graph and files',
+  'panel.compact.options': 'Options',
+  'panel.compact.hideGraph': 'Hide graph',
+  'panel.compact.showGraph': 'Show graph',
   // Toolbar
   'toolbar.fetch.tooltip': 'Fetch — retrieves remote refs',
   'toolbar.pull.tooltip': 'Pull — integrates remote commits',

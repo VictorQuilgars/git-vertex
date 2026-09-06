@@ -1,0 +1,15 @@
+.column-resize-handle {
+  width: 6px;
+  flex-shrink: 0;
+  align-self: stretch;
+  cursor: col-resize;
+  touch-action: none;
+  background: var(--bg-canvas);
+  border-inline: 1px solid var(--border-muted);
+}
+.column-resize-handle:hover,
+.column-resize-handle:focus-visible,
+.column-resize-handle:active {
+  background: var(--accent);
+  outline: none;
+}

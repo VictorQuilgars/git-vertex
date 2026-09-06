@@ -11,6 +11,8 @@ import { Mark } from '../../../src/renderer/src/components/Mark/Mark'
 import type { BranchInfo } from '../../../src/renderer/src/types'
 
 interface Props {
+  graphHidden?: boolean
+  onToggleGraph?: () => void
   repoName: string
   branch: string
   branches: BranchInfo[]
@@ -201,6 +203,10 @@ export default function CompactToolbar(p: Props) {
       )}
 
       <span className="gvt-spring" />
+      {p.onToggleGraph && <button className="gvt-tbtn" onClick={p.onToggleGraph}
+        aria-pressed={p.graphHidden}>
+        {t(p.graphHidden ? 'panel.compact.showGraph' : 'panel.compact.hideGraph')}
+      </button>}
 
       {/* Sync actions — labelled, all identical style */}
       <TextBtn title={p.lastFetch ? `Fetch · ${relTime(p.lastFetch, lang, t)}` : 'Fetch'} label="Fetch" onClick={p.onFetch} disabled={p.loading}>

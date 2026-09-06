@@ -3,6 +3,7 @@
 // panel is visually identical to the desktop app. The `gitApiShim` import must
 // come first: it installs window.gitAPI before any component mounts.
 import './gitApiShim'
+import ColumnResizeHandle from '../../../src/renderer/src/components/ColumnResizeHandle/ColumnResizeHandle'
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
@@ -946,24 +947,6 @@ function VertexApp() {
     setTimeout(() => loadRepoData(), 0)
   }, [loadRepoData])
 
-  // ── Right-panel resize ───────────────────────────────────────
-  const startResizeRight = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    const startX = e.clientX
-    const startW = rightW
-    const onMove = (ev: MouseEvent) => {
-      const w = Math.max(320, Math.min(900, startW + (startX - ev.clientX)))
-      setRightW(w)
-    }
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-      setRightW(w => { void window.gitAPI.settingsSet('rightWidth', String(w)); return w })
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }, [rightW])
-
   // ── Side-panel resize (drag the handle on its right edge) ────
   const startResizeSide = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -995,13 +978,38 @@ function VertexApp() {
   // The composer's drawer measures this — see the post beside .app-center.
   const composerAnchorRef = useRef<HTMLDivElement>(null)
 
-  // The right panel is always freely resizable (drag its handle). We no longer
-  // auto-widen it when the terminal is short — that fought the user's own sizing;
-  // the compact staging layout now handles small heights. Just clamp so the
-  // panel can't push the graph below a usable minimum.
-  const effRightW = Math.min(rightW, Math.max(320, viewportW - 340))
-
+  const [bodySize, setBodySize] = useState({ w: 0, h: 0 })
+  useEffect(() => {
+    const el = appBodyRef.current
+    if (!el) return
+    const observer = new ResizeObserver(([entry]) => {
+      setBodySize({ w: entry.contentRect.width, h: entry.contentRect.height })
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  // Compact widths are separate from the user's tall-panel layout. Zero means
+  // use the initial proportion; window resizing only clamps, never overwrites it.
+  const [compactRightW, setCompactRightW] = useState(() => {
+    const saved = Number(localStorage.getItem('gv-compact-right-width'))
+    return Number.isFinite(saved) && saved >= 480 ? saved : 0
+  })
+  const [graphHidden, setGraphHidden] = useState(false)
   const showRight = (!!selectedCommit || !!conflictMode) && !issueDetail
+  const compactWorking = showRight && selectedCommit?.hash === '__WIP__' && !conflictMode
+    && bodySize.h > 0 && bodySize.h < 300
+  const availableWidth = Math.max(0, (bodySize.w || viewportW) - (stacked ? 0 : 44 + (activeView ? sideW + 3 : 0)))
+  const compactColumns = compactWorking && availableWidth >= 692
+  const focusWorking = compactWorking && graphHidden
+  const maxRightW = Math.max(320, Math.min(compactColumns ? Infinity : 900, availableWidth - (compactColumns ? 206 : 306)))
+  const minRightW = compactColumns ? 486 : Math.min(320, maxRightW)
+  const preferredRightW = compactColumns ? (compactRightW || Math.round(availableWidth * 0.73)) : rightW
+  const effRightW = Math.min(maxRightW, Math.max(minRightW, preferredRightW))
+  const resizeRight = (width: number) => compactColumns ? setCompactRightW(width) : setRightW(width)
+  const saveRightWidth = (width: number) => {
+    if (compactColumns) localStorage.setItem('gv-compact-right-width', String(width))
+    else void window.gitAPI.settingsSet('rightWidth', String(width))
+  }
 
   // Branch strip shown above the staging file list (v1.22.0). Everything here
   // already existed on the toolbar or in the ⋮ menu — this only brings it into
@@ -1094,6 +1102,8 @@ function VertexApp() {
   return (
     <div className="app gv-app">
       <CompactToolbar
+        graphHidden={focusWorking}
+        onToggleGraph={compactWorking && !stacked ? () => setGraphHidden(v => !v) : undefined}
         repoName={repoName}
         branch={currentBranch}
         branches={branches}
@@ -1260,7 +1270,7 @@ function VertexApp() {
             panel column exists — and the window's left edge when none does
             (stacked). Zero width: a measuring post, not layout. */}
         <div ref={composerAnchorRef} style={{ width: 0, alignSelf: 'stretch' }} />
-        <div className="app-center" style={{ flex: 1, display: stacked && showRight ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
+        <div className="app-center" style={{ flex: 1, display: (stacked && showRight) || focusWorking ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
           {issueDetail && githubRepo ? (
             issueDetail.kind === 'pr' ? (
               <PRDetail
@@ -1355,8 +1365,9 @@ function VertexApp() {
 
         {showRight && (
           <>
-            {!stacked && <div className="resize-handle" onMouseDown={startResizeRight} />}
-            <div className={stacked ? 'app-right gv-right-stacked' : 'app-right'} style={stacked ? undefined : { width: effRightW }}>
+            {!stacked && !focusWorking && <ColumnResizeHandle value={effRightW} min={minRightW} max={maxRightW}
+              label={t('panel.resize.graphFiles')} onChange={resizeRight} onCommit={saveRightWidth} />}
+            <div className={stacked ? 'app-right gv-right-stacked' : 'app-right'} style={stacked ? undefined : focusWorking ? { flex: 1, minWidth: 0 } : { width: effRightW }}>
               {stacked && !conflictMode && (
                 <div className="gv-stacked-bar">
                   <button className="gv-stacked-back" onClick={() => setSelectedCommit(null)}>

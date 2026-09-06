@@ -12,6 +12,7 @@ import { linkifyIssues, IssueRepo } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
 import { useSettings } from '../../contexts/SettingsContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import ColumnResizeHandle from '../ColumnResizeHandle/ColumnResizeHandle'
 import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
 import WorkingChangesEmpty, { type NextStepsState, type NextStepsActions } from './WorkingChangesEmpty'
@@ -178,6 +179,12 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
   const [wipAiMenu, setWipAiMenu] = useState<{ x: number; y: number } | null>(null)
   const [selectedDiff, setSelectedDiff] = useState<SelectedDiffFile | null>(null)
   const filterRef = useRef<HTMLInputElement>(null)
+  const [formWidth, setFormWidth] = useState(() => {
+    const saved = Number(localStorage.getItem('st-embedded-form-width'))
+    return Number.isFinite(saved) && saved >= 240 ? saved : 300
+  })
+  const [fileToolsMenu, setFileToolsMenu] = useState<{ x: number; y: number } | null>(null)
+  const [compactMenu, setCompactMenu] = useState<{ x: number; y: number } | null>(null)
   const [formHeight, setFormHeight] = useState(() => parseInt(localStorage.getItem('st-form-h') || '300'))
   const dragRef = useRef<{ y: number; h: number } | null>(null)
 
@@ -222,7 +229,11 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
   //                                  of the message toolbar instead of its own
   //                                  band.
   const compact = panelH > 0 && panelH < 300
-  const compactRow = compact && panelSize.w >= 640
+  const embeddedRow = !!embedded && !isConflict && compact && panelSize.w >= 480
+    && (!emptyState || changes.staged.length + changes.unstaged.length + changes.untracked.length > 0 || amend)
+  const compactRow = embeddedRow || (!embedded && compact && panelSize.w >= 640)
+  const maxFormWidth = Math.max(240, panelSize.w - 166)
+  const effectiveFormWidth = Math.min(formWidth, maxFormWidth)
   const tiny = compact && panelH < 190
   // Stacked (narrow) + compact, and not mid-conflict — conflict resolution
   // keeps the explicit Abort/Commit&Merge bar regardless of size.
@@ -507,6 +518,11 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
     <ContextMenu
       x={fileMenu.x} y={fileMenu.y}
       items={[
+        ...(embeddedRow ? [
+          { label: t('panel.openDiff'), action: () => selectFile({ path: fileMenu.path, area: stateByPath.get(fileMenu.path) === 'staged' ? 'staged' : 'unstaged' }) },
+          ...(onOpenStagingEditor ? [{ label: t('panel.hunkEditor'), action: () => onOpenStagingEditor(fileMenu.path) }] : []),
+          { label: t('panel.discard'), danger: true, action: () => { void discardOne(fileMenu.path) } },
+        ] : []),
         { label: t('panel.file.copyPath'), action: () => navigator.clipboard.writeText(fileMenu.path) },
         {
           label: t('panel.file.copyName'),
@@ -536,7 +552,8 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
     : (canCommit && !!message.trim())
 
   return (
-    <div className={`rp-content rp-staging st2 ${compact ? 'st2--compact' : ''} ${compactRow ? 'st2--row' : ''} ${tiny ? 'st2--tiny' : ''} ${trimTop ? 'st2--trimtop' : ''} ${splitLists ? 'st2--splitlists' : ''}`} ref={stRootRef}>
+    <div className={`rp-content rp-staging st2 ${compact ? 'st2--compact' : ''} ${compactRow ? 'st2--row' : ''} ${tiny ? 'st2--tiny' : ''} ${trimTop ? 'st2--trimtop' : ''} ${splitLists ? 'st2--splitlists' : ''} ${embeddedRow && !showEmptyState ? 'st2--embedded-row' : ''}`} ref={stRootRef}
+      style={embeddedRow && !showEmptyState ? { gridTemplateColumns: `minmax(160px, 1fr) 6px ${effectiveFormWidth}px` } : undefined}>
       {/* ── Top bar ── */}
       {embedded ? (
         /* The panel's header: what this pane is, how much is in it, and the
@@ -573,7 +590,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
       )}
 
       {/* ── Branch strip (v1.22.0) — above the files, in both layouts ── */}
-      {branchStrip && <BranchStrip {...branchStrip} />}
+      {branchStrip && !embeddedRow && <BranchStrip {...branchStrip} />}
 
       {/* ── Nothing to stage: the pane says what comes next instead of nothing.
           Only the panel supplies this; the desktop keeps its quiet pane. ── */}
@@ -594,11 +611,22 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
             {/* The count that counts is how many are staged, not how many
                 changed — "ready to commit" is read off this, not off the
                 checkboxes one by one. */}
-            <span className="stx-count">{t('panel.filesChanged')}</span>
+            {!embeddedRow && <span className="stx-count">{t('panel.filesChanged')}</span>}
             <span className="stx-staged-badge">
               {t('panel.stagedOf', changes.staged.length, totalChanged)}
             </span>
             <div className="stx-spring" />
+            {embeddedRow ? <>
+              <button className="st2-icon-btn stx-tool" title={t('common.moreActions')} aria-label={t('common.moreActions')} aria-haspopup="menu"
+                onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setFileToolsMenu({ x: r.left, y: r.bottom }) }}><Icon name="kebab" size={12} /></button>
+              {fileToolsMenu && <ContextMenu x={fileToolsMenu.x} y={fileToolsMenu.y} onClose={() => setFileToolsMenu(null)} items={[
+                { label: t('panel.sort'), action: () => setSortAsc(s => !s) },
+                { label: t('panel.view.tree'), checked: treeMode, action: toggleTree },
+                { label: t('panel.copyFileList'), action: copyFileList, disabled: mergedFiles.length === 0 },
+                { label: t('panel.stashFromPanel'), action: stashAll, disabled: totalChanged === 0 },
+                { label: t('panel.discardAll'), action: discardAll, danger: true, disabled: totalChanged === 0 },
+              ]} />}
+            </> : <>
             {/* Discard-all lived only in the topbar, which the compact layout
                 hides; stash only in the toolbar. Both belong here (v1.22.0). */}
             <button className="st2-icon-btn stx-tool st2-danger" title={t('panel.discardAll')}
@@ -610,6 +638,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
             <button className="st2-icon-btn stx-tool" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}><IcoSort /></button>
             <button className={`st2-icon-btn stx-tool ${!treeMode ? 'active' : ''}`} title={t('panel.view.path')} onClick={() => treeMode && toggleTree()}><IcoPathView /></button>
             <button className={`st2-icon-btn stx-tool ${treeMode ? 'active' : ''}`} title={t('panel.view.tree')} onClick={() => !treeMode && toggleTree()}><IcoTreeView /></button>
+            </>}
           </div>
           {/* The filter is a field, not a button that reveals one: a search
               you have to find is a search nobody uses. */}
@@ -649,12 +678,15 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
                           {f.path.includes('/') && <span className="st-path-dir">{f.path.slice(0, f.path.lastIndexOf('/'))}</span>}
                         </span>
                         <DiffStat additions={f.additions} deletions={f.deletions} />
+                        {embeddedRow ? <button className="st2-icon-btn stx-tool stx-file-menu" title={t('common.moreActions')} aria-label={t('common.moreActions')} aria-haspopup="menu"
+                          onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setFileMenu({ x: r.left, y: r.bottom, path: f.path }) }}><Icon name="kebab" size={12} /></button> : <>
                         <button className="st-action" title={t('panel.file.copyPath')}
                           onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(f.path) }}><IcoCopy /></button>
                         <button className="st-action st-open-diff" title={t('panel.openDiff')}
                           onClick={e => { e.stopPropagation(); selectFile({ path: f.path, area: staged ? 'staged' : 'unstaged' }) }}><IcoOpenDiff /></button>
                         {onOpenStagingEditor && <button className="st-action st-hunk-editor" title={t('panel.hunkEditor')} onClick={e => { e.stopPropagation(); onOpenStagingEditor(f.path) }}><IcoHunks /></button>}
                         <button className="st-action st-discard" title={t('panel.discard')} onClick={e => { e.stopPropagation(); discardOne(f.path) }}>↺</button>
+                        </>}
                       </div>
                     )
                   })
@@ -847,7 +879,10 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
       {/* No splitter in the empty state: there is nothing under it to size,
           and a drag handle over dead space reads as a broken pane. */}
       {!showEmptyState && (
-        <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
+        embeddedRow ? <ColumnResizeHandle value={effectiveFormWidth} min={240} max={maxFormWidth}
+          label={t('panel.resize.filesCommit')} onChange={setFormWidth}
+          onCommit={width => localStorage.setItem('st-embedded-form-width', String(width))} />
+        : <div className="st2-resize" onMouseDown={onResizeDown}><div className="st2-resize-grip" /></div>
       )}
 
       {/* ── Commit area — not in the empty state: there is nothing to commit,
@@ -876,7 +911,20 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
             button (and, once stackedCompact drops the bottom action bar, the
             commit ✓) stay on this row regardless. */}
         <div className="st2-msg-toolbar">
-          {!isConflict && (
+          {embeddedRow && <>
+            <button className="st2-options-toggle" aria-haspopup="menu" aria-expanded={!!compactMenu}
+              onClick={e => {
+                const r = e.currentTarget.getBoundingClientRect()
+                setCompactMenu({ x: r.left, y: r.bottom + 4 })
+              }}>{t('panel.compact.options')}{amend || signoff ? ' •' : ''}</button>
+            {compactMenu && <ContextMenu x={compactMenu.x} y={compactMenu.y} onClose={() => setCompactMenu(null)} items={[
+              { label: t('panel.amendPrevious'), checked: amend, action: () => { void toggleAmend(!amend) } },
+              { label: t('panel.signoff'), checked: signoff, action: () => setSignoff(!signoff) },
+              { label: t('panel.coAuthor.add'), action: () => { void loadAuthors(); setCoAuthorMenu(compactMenu) } },
+              ...(branchStrip?.onAssociateIssue ? [{ label: t('sb.branch.associateIssue'), action: branchStrip.onAssociateIssue }] : []),
+            ]} />}
+          </>}
+          {!isConflict && !embeddedRow && (
             <label className="st2-amend">
               <input type="checkbox" checked={amend} onChange={e => toggleAmend(e.target.checked)} />
               <span>{t('panel.amendPrevious')}</span>
@@ -1001,12 +1049,12 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
               <button className="st2-commit-btn st2-abort" onClick={onConflictAbort}>{t('panel.abort')}</button>
             )}
             <button
-              className={`st2-commit-btn ${tiny ? 'st2-commit-btn--mini' : ''} ${compact && !tiny ? 'st2-commit-btn--short' : ''} ${commitReady ? 'ready' : ''}`}
+              className={`st2-commit-btn ${tiny && !embeddedRow ? 'st2-commit-btn--mini' : ''} ${compact && !tiny ? 'st2-commit-btn--short' : ''} ${commitReady ? 'ready' : ''}`}
               disabled={!commitReady || committing}
               onClick={doCommit}
               title={compact ? commitLabel : '⌘↵'}
             >
-              {tiny ? <IcoCheck /> : <><IcoCommit /> {compact ? t('panel.commit.short') : commitLabel}</>}
+              {tiny && !embeddedRow ? <IcoCheck /> : <><IcoCommit /> {embeddedRow ? commitLabel : compact ? t('panel.commit.short') : commitLabel}</>}
             </button>
           </div>
         )}
