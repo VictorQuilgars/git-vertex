@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.34.0': `## What's new in 1.34.0
 
 ### ↔️ Resizable columns in the VS Code panel
 - Keep more code visible: when the bottom panel is short and wide enough, **graph, files and commit message sit side by side**, in the extension's existing style.
@@ -46,7 +46,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📝 The changelog remembers
 - Reopening the drawer shows what was written, and when — no second call for a text you already paid for.
 - Moved on since? It says *3 commits since — this changelog does not cover them*, and **Update** extends what is there instead of rewriting the bullets you already read.
-- **Insert into changelog** puts it in the repository's own file, under Unreleased, merged into the headings already there — never a second \`### Added\`, never the same bullet twice, never a line removed.
+- **Insert into changelog** puts it in the repository's own file, under 1.34.0, merged into the headings already there — never a second \`### Added\`, never the same bullet twice, never a line removed.
 
 ### 📐 The toolbar's left edge, put to work
 - The **repository selector** moved out of the left panel's header (47px of list back) and into the toolbar, where the left edge was empty.

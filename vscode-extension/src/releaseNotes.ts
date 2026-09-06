@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.32.0': `## What's new in 1.32.0
 
 ### ↔️ Resizable columns in the VS Code panel
 - Keep more code visible: when the bottom panel is short and wide enough, **graph, files and commit message sit side by side**, in the extension's existing style.
@@ -49,7 +49,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📝 The changelog remembers
 - Reopening the drawer shows what was written, and when — no second call for a text you already paid for.
 - Moved on since? It says *3 commits since — this changelog does not cover them*, and **Update** extends what is there instead of rewriting the bullets you already read.
-- **Insert into changelog** puts it in the repository's own file, under Unreleased, merged into the headings already there — never a second \`### Added\`, never the same bullet twice, never a line removed.
+- **Insert into changelog** puts it in the repository's own file, under 1.32.0, merged into the headings already there — never a second \`### Added\`, never the same bullet twice, never a line removed.
 
 ### 🧩 In the panel too
 - Every reading opens as an **editor tab** — the panel has no room for the desktop's drawer, and this is how the staging editor and the rebase planner already open.
