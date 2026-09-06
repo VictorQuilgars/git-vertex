@@ -37,7 +37,8 @@ product_meta() {
       P_DIR="."
       P_PREFIX="v"
       P_CHANGELOG="CHANGELOG.md"
-      P_VERIFY="npm test"
+      # The units, then the built app driven through the audit's journeys.
+      P_VERIFY="npm test && npm run build && npm run e2e"
       # Feeds the app's own "What's new" tab, shown on first launch after an
       # update. It is separate from CHANGELOG.md and easy to forget, so a
       # release without an entry here fails instead of shipping a blank tab.
