@@ -12,7 +12,9 @@ whole repo — it is not:
 | MCP server | `mcp/` | `mcp-vX.Y.Z` | npm (`git-vertex-mcp`) |
 | CLI | `cli/` | `cli-vX.Y.Z` | npm (`git-vertex-cli`) |
 
-Desktop: `npm run dev`, `npm run package`, tests `npm test` (jest).
+Desktop: `npm run dev`, `npm run package`, tests `npm test` (jest), and `npm run e2e` —
+the built app driven over CDP through the audit's journeys, no display needed
+(`scripts/e2e/README.md`; `--update` records the screenshot references, per platform).
 Releasing anything: `scripts/release.sh <app|ext|cli|mcp> <patch|minor|major|X.Y.Z>` —
 **never tag by hand**, see `RELEASING.md`. Products can be combined for a change
 that spans them: `scripts/release.sh app+ext minor`, or `app=1.28.0+ext=patch`

@@ -35,10 +35,11 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
       setRepoName(name)
       setSelectedCommit(null)
       if (!restored) setCommits([])
-      const updated = await window.gitAPI.getRecentRepos()
-      setRecentRepos(updated ?? [])
-      await detectGithub()
-      // Register or activate a tab for this repo
+      // Register or activate a tab for this repo — before anything is awaited.
+      // The tab used to be converted after the recents and the GitHub detection
+      // had been read, and until then the tab showing the repository was still
+      // a home tab: a click on it in that window cleared the repository that
+      // had just been opened. The end-to-end suite clicked in that window.
       setTabs(prev => {
         // Paths are NFC-normalized in the main process, but a tab registered
         // before that (or from a differently-normalized source) must still
@@ -55,6 +56,9 @@ export function useAppTabs(app: AppChrome & RepoSession & AppGithub & AppConflic
         setActiveTabId(id)
         return [...prev, { id, kind: 'repo', path: res.path!, name }]
       })
+      const updated = await window.gitAPI.getRecentRepos()
+      setRecentRepos(updated ?? [])
+      await detectGithub()
     } else if (res.error && res.error !== 'cancelled') {
       showToast(t('toast.err', res.error), 'err')
     }

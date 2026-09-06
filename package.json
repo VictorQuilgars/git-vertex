@@ -16,6 +16,7 @@
     "package": "electron-vite build && electron-builder",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json && tsc --noEmit -p tsconfig.typecheck.node.json",
     "test": "jest",
+    "e2e": "node scripts/e2e/run.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ai-live": "jest -c jest.live.config.cjs",
@@ -132,6 +133,7 @@
     "react-dom": "^18.3.0",
     "ts-jest": "^29.1.0",
     "typescript": "^5.6.0",
-    "vite": "^5.4.0"
+    "vite": "^5.4.0",
+    "ws": "^8.21.3"
   }
 }

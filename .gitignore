@@ -23,6 +23,7 @@ tsconfig.node.tsbuildinfo
 # Test artifacts
 coverage/
 test-results/
+scripts/e2e/out/
 
 # graphify generated knowledge graph
 graphify-out/

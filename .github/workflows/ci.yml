@@ -60,6 +60,18 @@ jobs:
       # undefined, which breaks GitHub sign-in at runtime and nothing at build
       # time — so this still catches what it is meant to catch.
       - run: npm run build
+      # The journeys the audit reproduced by hand, against the build above,
+      # under xvfb: the app itself, not its units. See scripts/e2e/README.md.
+      - run: sudo apt-get install -y xvfb
+      - run: npm run e2e
+      # The screenshots of the run, failure or not: what the window looked like
+      # is the one thing a log cannot say.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: scripts/e2e/out/*.png
+          if-no-files-found: ignore
 
   ext:
     name: Extension compile
