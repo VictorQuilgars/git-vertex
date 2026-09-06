@@ -26,15 +26,25 @@ open is neither reused nor touched.
 | `05-window-sizes` | 900×600 and 1300×800: the search, Pull, the Working changes row within the window; the details across the centre; screenshots |
 | `06-sessions` | two repositories: a call bound to the hidden one, a commit made while hidden shown at once on return, a closed tab's repository answering nothing |
 | `07-stage-commit` | the dirty file staged, the button greyed until a message; a commit refused by a hook keeps the message and the draft; the same click accepted counts one more commit, empties the form and the tree |
+| `08-load-more` | a repository six hundred commits deep: the status bar says 500 loaded and offers 500 more; the click loads the rest and the offer goes |
+| `09-settings-search` | Ctrl+, opens the settings; a search narrows the sections and the open one is among those that answer; a query nothing answers says so; Delete on the focused tab closes it |
+| `10-keyboard` | the tab strip by Left, End and Delete; a commit's menu walked with Down into the rebase editor, the graph's selection still under it; the editor sums up its plan and follows a squash; Cancel leaves HEAD alone |
+| `11-amend-disarm` | amend ticked shows HEAD's message; a commit made from a terminal unticks it and the ordinary draft is back; ticked again it is armed for the new HEAD |
+| `12-restart` | a draft typed, the app closed and opened again on the same profile, the repository reopened, the draft still there |
 
-A journey is `{ name, run({ page, expect, fixture, snapshot }) }`. They run in
-order, in one window; a failure is reported and the next still runs. Screenshots
-land in `out/` (ignored); when `references/<name>.png` exists it is compared
-with a half-percent tolerance.
+A journey is `{ name, run({ page, expect, fixture, snapshot, relaunch }) }`. They
+run in order, in one window — `relaunch()` closes the app and opens it again on
+the same profile, and gives the new page back; a failure is reported and the
+next still runs, and a pass on the second go says what the first one tripped on.
+Screenshots land in `out/` (ignored); when `references/<name>.png` exists it is
+compared with a half-percent tolerance.
 
 ## Library
 
-`lib/cdp.js` the protocol client (evaluate, wait, click, right-click, menu row,
-type, key, viewport, screenshot), `lib/app.js` the launch on a fresh profile,
-`lib/fixture.js` two scratch repositories per run, `lib/png.js` a decoder and a
-comparison with no dependency, `lib/assert.js` `expect`.
+`lib/cdp.js` the protocol client (evaluate, wait, click — which refuses a
+disabled element rather than swallow the click — right-click, menu row, type,
+key with modifiers, viewport, screenshot), `lib/app.js` the launch on a fresh
+profile and a stop that waits for the process, `lib/fixture.js` three scratch
+repositories per run — one of them six hundred commits deep, written by
+fast-import — `lib/png.js` a decoder and a comparison with no dependency,
+`lib/assert.js` `expect`.

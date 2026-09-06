@@ -15,7 +15,7 @@
 const fs = require('fs')
 const path = require('path')
 const { spawnSync } = require('child_process')
-const { ensureBuilt, makeProfile, launch, stop } = require('./lib/app')
+const { ensureBuilt, makeProfile, launch, stop, stopAndWait } = require('./lib/app')
 const { makeFixture } = require('./lib/fixture')
 const { decode, differ } = require('./lib/png')
 const { expect, E2EFailure } = require('./lib/assert')
@@ -40,12 +40,26 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true })
   ensureBuilt({ build: args.has('--build') })
   const fixture = makeFixture()
-  const profile = makeProfile([fixture.repo1, fixture.repo2])
+  const profile = makeProfile([fixture.repo1, fixture.repo2, fixture.repo3])
   const logFile = path.join(OUT, 'app.log')
   console.log(`· profile ${profile}\n· repositories ${fixture.root}`)
-  const { child, page } = await launch({ profile, logFile })
+  let child, page
+  ;({ child, page } = await launch({ profile, logFile }))
   const failures = []
   const notes = []
+
+  // The app closed and opened again on the same profile, for a journey about
+  // what survives a restart. The page is a new one — the journey continues on
+  // what it is given back — and what the old one collected is carried over.
+  const relaunch = async () => {
+    const errors = page.consoleErrors, exceptions = page.exceptions
+    page.close()
+    await stopAndWait(child)
+    ;({ child, page } = await launch({ profile, logFile, append: true }))
+    page.consoleErrors.unshift(...errors)
+    page.exceptions.unshift(...exceptions)
+    return page
+  }
 
   // A screenshot is taken once the window has stopped changing: the sidebar's
   // counts and the graph's rows arrive over several loads, and a capture in
@@ -83,21 +97,32 @@ async function main() {
   for (const file of files) {
     const journey = require(path.join(__dirname, 'journeys', file))
     const t0 = Date.now()
-    let error = null
+    let error = null, first = null
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        await journey.run({ page, expect, fixture, snapshot })
-        console.log(`${attempt === 1 ? '✓' : '✓ (on the second go)'} ${journey.name} (${Date.now() - t0}ms)`)
+        await journey.run({ page, expect, fixture, snapshot, relaunch })
+        // A pass on the second go says what the first one tripped on: a flaky
+        // journey is worth reading about, not only counting.
+        console.log(attempt === 1
+          ? `✓ ${journey.name} (${Date.now() - t0}ms)`
+          : `✓ (on the second go) ${journey.name} (${Date.now() - t0}ms)\n    first go: ${first.message}`)
         error = null
         break
       } catch (e) {
         error = e
+        first ??= e
         const png = await page.screenshot()
         if (png) fs.writeFileSync(path.join(OUT, `failure-${file.replace(/\.js$/, '')}${attempt === 1 ? '' : '-retry'}.png`), png)
         await reset()
       }
     }
-    if (error) { failures.push({ journey: journey.name, error }); console.log(`✗ ${journey.name}\n    ${error.message}`) }
+    // Both goes failed: the second one's message is the failure, the first
+    // one's is often the cause — a step that left the window in a state the
+    // retry could not start from.
+    if (error) {
+      failures.push({ journey: journey.name, error })
+      console.log(`✗ ${journey.name}\n    ${error.message}${first !== error ? `\n    first go: ${first.message}` : ''}`)
+    }
   }
   for (const n of notes) console.log(`  · ${n}`)
   if (page.exceptions.length) { failures.push({ journey: 'the window', error: new Error('uncaught exceptions: ' + page.exceptions.join(' | ')) }); console.log(`✗ uncaught exceptions in the window:\n    ${page.exceptions.join('\n    ')}`) }

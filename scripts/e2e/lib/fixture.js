@@ -1,5 +1,6 @@
-// Two scratch repositories, made for each run: enough history for a graph, a
-// branch to delete, a dirty file to stage, and a second repository to switch to.
+// Three scratch repositories, made for each run: enough history for a graph, a
+// branch to delete, a dirty file to stage, a second repository to switch to,
+// and a third deeper than a page of the graph.
 'use strict'
 const { execFileSync } = require('child_process')
 const fs = require('fs')
@@ -34,14 +35,34 @@ function makeRepo(root, name, { commits, branch, dirty }) {
   return dir
 }
 
+// A deep history, written by fast-import in one process rather than one
+// `git commit` at a time: six hundred commits take well under a second. The
+// dates are the fixture's fixed ones, so the hashes are stable here too.
+function makeDeepRepo(root, name, commits) {
+  const dir = path.join(root, name)
+  fs.mkdirSync(dir, { recursive: true })
+  git(dir, 'init', '-q', '-b', 'main')
+  git(dir, 'config', 'user.email', 'e2e@example.com')
+  git(dir, 'config', 'user.name', 'E2E')
+  const data = (s) => `data ${Buffer.byteLength(s)}\n${s}\n`
+  let stream = ''
+  for (let i = 1; i <= commits; i++) {
+    const when = Math.floor(Date.UTC(2026, 0, 1, 12, 0, tick++) / 1000)
+    stream += `commit refs/heads/main\ncommitter E2E <e2e@example.com> ${when} +0000\n${data(`commit ${i} of ${name}`)}M 100644 inline notes.txt\n${data(`line ${i}`)}\n`
+  }
+  execFileSync('git', ['fast-import', '--quiet'], { cwd: dir, input: stream, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, LC_ALL: 'C' } })
+  git(dir, 'reset', '-q', '--hard')
+  return dir
+}
+
 function makeFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gv-e2e-repos-'))
-  return {
-    root,
-    repo1: makeRepo(root, 'alpha', { commits: 3, branch: 'feature', dirty: true }),
-    repo2: makeRepo(root, 'beta', { commits: 1, branch: 'topic', dirty: false }),
-    git,
-  }
+  // The order matters: the first two take the ticks they always took, so the
+  // hashes the screenshot references show are the same.
+  const repo1 = makeRepo(root, 'alpha', { commits: 3, branch: 'feature', dirty: true })
+  const repo2 = makeRepo(root, 'beta', { commits: 1, branch: 'topic', dirty: false })
+  const repo3 = makeDeepRepo(root, 'gamma', 600)
+  return { root, repo1, repo2, repo3, git }
 }
 
 module.exports = { makeFixture }
