@@ -37,6 +37,7 @@
     "dev": "tsx src/cli.tsx",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.tsx",
     "prepublishOnly": "npm run build"
   },
   "engines": {

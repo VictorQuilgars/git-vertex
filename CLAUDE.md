@@ -15,6 +15,9 @@ whole repo — it is not:
 Desktop: `npm run dev`, `npm run package`, tests `npm test` (jest), and `npm run e2e` —
 the built app driven over CDP through the audit's journeys, no display needed
 (`scripts/e2e/README.md`; `--update` records the screenshot references, per platform).
+`npm run measure` puts numbers on startup, on opening a 50k-commit repository and
+on the bundle (`scripts/measure.js`); `npm run check:electron` says how far behind
+the Electron we build on is, against a tolerated gap written down in the script.
 Releasing anything: `scripts/release.sh <app|ext|cli|mcp> <patch|minor|major|X.Y.Z>` —
 **never tag by hand**, see `RELEASING.md`. Products can be combined for a change
 that spans them: `scripts/release.sh app+ext minor`, or `app=1.28.0+ext=patch`
