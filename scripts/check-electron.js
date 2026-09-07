@@ -18,14 +18,18 @@ const { execFileSync } = require('child_process')
 const path = require('path')
 
 /**
- * How many majors behind we currently are, and accept being.
+ * How many majors behind we accept being.
  *
- * 12 on 2026-09-07: the app builds on Electron 32 (Chromium 128, August 2024)
- * and the current stable is 44. It is a real gap and it is not fixed here —
- * an Electron upgrade is its own change, with its own testing — but from now
- * on it cannot widen unnoticed.
+ * Zero since 2026-09-07, when the app moved from Electron 32 to 44 and caught
+ * up with the stable line. It was 12 for the length of one commit — long enough
+ * to write the ratchet, not long enough to get used to it. Raising it means
+ * accepting an unsupported Chromium in a shipped app: say why, in the commit.
+ *
+ * A new Electron major every eight weeks means this check goes red about that
+ * often. That is the point: it is a small, regular, scheduled decision instead
+ * of a two-year drift discovered in an audit.
  */
-const TOLERATED = 12
+const TOLERATED = 0
 
 const major = v => Number(String(v).replace(/^[^\d]*/, '').split('.')[0])
 

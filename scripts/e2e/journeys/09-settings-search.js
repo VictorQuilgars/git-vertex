@@ -20,6 +20,10 @@ module.exports = {
     await page.until(`document.querySelectorAll('.stg-nav-item').length < ${all.length}`, { what: 'the sections narrowed by "token"' })
     const some = await items()
     expect(some.length > 0, 'a section answers "token"')
+    // The open section moves in an effect, a render after the list narrows:
+    // read in the same tick as the narrowing, this is a coin toss.
+    await page.until(`(() => { const items = Array.from(document.querySelectorAll('.stg-nav-item')).map(b => b.textContent.trim()); const open = document.querySelector('.stg-nav-item.active')?.textContent.trim(); return !!open && items.includes(open) })()`,
+      { what: 'the open section to be one that answers' })
     expect(some.includes(await active()), `the open section is one that answers (${await active()} among ${some.join(', ')})`)
     // A query nothing answers says so.
     await page.eval(setSearch('zzzz-no-such-setting'))

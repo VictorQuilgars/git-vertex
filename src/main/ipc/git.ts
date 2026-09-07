@@ -49,9 +49,15 @@ export function discoverLocalRepos(seeds: string[]): string[] {
 
 export function registerGitHandlers(): void {
   handle('git:open-repo', async () => {
+    // Electron 43 changed where a dialog with no defaultPath opens: the
+    // Downloads folder rather than the last one used. Nobody keeps their
+    // repositories there, so the picker is told where to start — beside the
+    // repository most recently opened, which is where the next one usually is.
+    const [mostRecent] = getRecentRepos()
     const result = await dialog.showOpenDialog(state.mainWindow, {
       properties: ['openDirectory'],
-      title: 'Open a Git repository'
+      title: 'Open a Git repository',
+      ...(mostRecent ? { defaultPath: dirname(mostRecent) } : {}),
     })
     if (result.canceled || result.filePaths.length === 0) return { error: 'cancelled' }
     return openRepoAt(result.filePaths[0])

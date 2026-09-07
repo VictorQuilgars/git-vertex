@@ -5,13 +5,23 @@
 const http = require('http')
 const WS = globalThis.WebSocket ?? require('ws')
 
-function getJson(url) {
+/**
+ * ⚠️ The timeout is load-bearing. Without it a request that is accepted and
+ * never answered hangs for ever, and the deadline below — which is only checked
+ * between attempts — never comes round again: the runner then dies with no
+ * message at all rather than saying it could not find the window. Electron's
+ * debugger endpoint can take several seconds to answer the first time a freshly
+ * downloaded binary is launched, which is exactly when this bit.
+ */
+function getJson(url, timeoutMs = 2000) {
   return new Promise((resolve, reject) => {
-    http.get(url, res => {
+    const req = http.get(url, res => {
       let body = ''
       res.on('data', c => { body += c })
       res.on('end', () => { try { resolve(JSON.parse(body)) } catch (e) { reject(e) } })
-    }).on('error', reject)
+    })
+    req.on('error', reject)
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`GET ${url} timed out after ${timeoutMs}ms`)))
   })
 }
 
