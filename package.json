@@ -17,6 +17,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json && tsc --noEmit -p tsconfig.typecheck.node.json",
     "test": "jest",
     "e2e": "node scripts/e2e/run.js",
+    "measure": "node scripts/measure.js",
+    "check:electron": "node scripts/check-electron.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ai-live": "jest -c jest.live.config.cjs",

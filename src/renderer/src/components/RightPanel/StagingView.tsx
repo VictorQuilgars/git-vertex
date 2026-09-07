@@ -151,6 +151,11 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
   const { t } = useLang()
   const isConflict = !!conflictMode
   const [changes, setChanges] = useState<WorkingChanges>({ staged: [], unstaged: [], untracked: [] })
+  // Whether that state is an answer or just the value it starts at. "Nothing to
+  // stage" is a thing to say about a working tree that has been read, not about
+  // one we have not asked about yet — without this the pane says it for a frame
+  // on every repository, however many files are waiting.
+  const [loaded, setLoaded] = useState(false)
   // Single free-form commit message: the user controls their own line breaks
   // (first line reads as the subject by git convention, but nothing forces
   // that split — no separate summary/description fields).
@@ -284,6 +289,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
   const load = useCallback(async () => {
     const r = await window.gitAPI.getWorkingChanges()
     setChanges(r as WorkingChanges)
+    setLoaded(true)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -411,10 +417,16 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
   const amendOnly = amendFiles.filter(f => !stagedPaths.has(f.path))
   const stagedCount = changes.staged.length + amendOnly.length
   const totalChanged = changes.staged.length + totalUnstaged
-  // A clean tree in the panel: the pane shows what comes next, not a form for
-  // a commit that has nothing in it. Amend is excluded — an amend with no new
-  // files is still a commit being written.
-  const showEmptyState = !!(embedded && emptyState && !isConflict && totalChanged === 0 && !amend)
+  // A clean tree: the pane shows what comes next, not a form for a commit that
+  // has nothing in it. Both products get it; whether there is anything to say
+  // is the host's answer, given by supplying `emptyState` at all.
+  //
+  // Amend and a message already typed are excluded, and for the same reason: a
+  // commit is being written. A draft outlives the changes it was written for —
+  // discard them and the message is still yours — and replacing it with a card
+  // of suggestions would take it off the screen without deleting it, which is
+  // the worst of both.
+  const showEmptyState = !!(emptyState && loaded && !isConflict && totalChanged === 0 && !amend && !message.trim())
   const canCommit = changes.staged.length > 0 || amend
 
   const toggleTree = () => setTreeMode(v => { localStorage.setItem('st-tree-mode', String(!v)); return !v })
@@ -592,8 +604,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
       {/* ── Branch strip (v1.22.0) — above the files, in both layouts ── */}
       {branchStrip && !embeddedRow && <BranchStrip {...branchStrip} />}
 
-      {/* ── Nothing to stage: the pane says what comes next instead of nothing.
-          Only the panel supplies this; the desktop keeps its quiet pane. ── */}
+      {/* ── Nothing to stage: the pane says what comes next instead of nothing. ── */}
       {showEmptyState && (
         <WorkingChangesEmpty state={emptyState!.state} actions={emptyState!.actions} />
       )}
@@ -704,7 +715,7 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
       )}
 
       {/* ── Desktop: Unstaged / Staged two-section layout ── */}
-      {!embedded && (<>
+      {!embedded && !showEmptyState && (<>
       <div className="st2-viewbar">
         <button className="st2-icon-btn st2-sort" title={t('panel.sort')} onClick={() => setSortAsc(s => !s)}>
           <IcoSort />

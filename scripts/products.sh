@@ -37,8 +37,11 @@ product_meta() {
       P_DIR="."
       P_PREFIX="v"
       P_CHANGELOG="CHANGELOG.md"
-      # The units, then the built app driven through the audit's journeys.
-      P_VERIFY="npm test && npm run build && npm run e2e"
+      # The units, then the built app driven through the audit's journeys —
+      # and, first, how far behind the Electron we ship on is (#198). That one
+      # passes when the registry cannot be reached: the network is not what a
+      # release is waiting on.
+      P_VERIFY="npm run check:electron && npm test && npm run build && npm run e2e"
       # Feeds the app's own "What's new" tab, shown on first launch after an
       # update. It is separate from CHANGELOG.md and easy to forget, so a
       # release without an entry here fails instead of shipping a blank tab.
@@ -72,7 +75,9 @@ product_meta() {
       P_NOTES=""
       P_LABEL="CLI"
       P_WORKFLOW="publish-cli.yml"
-      P_VERIFY="npm run typecheck"   # no test suite under cli/ yet
+      # The screens against a scratch repository and what a key does to them
+      # (cli/test), on top of the type check that was the whole gate before.
+      P_VERIFY="npm run typecheck && npm test"
       ;;
     mcp)
       P_DIR="mcp"
