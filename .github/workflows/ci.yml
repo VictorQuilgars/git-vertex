@@ -123,6 +123,27 @@ jobs:
       - run: npm run typecheck
         working-directory: cli
 
+  # A job of its own rather than a step of the one above, because "CLI
+  # typecheck" is the name the branch ruleset requires: renaming it would
+  # leave a required check that never reports. Add "CLI tests" to the ruleset
+  # to make it required too.
+  cli-tests:
+    name: CLI tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - run: npm ci
+        working-directory: cli
+      # The screens against a scratch repository, and what a key does to them.
+      # The fixture configures its own identity, so nothing here has to.
+      - run: npm test
+        working-directory: cli
+
   mcp:
     name: MCP tests
     runs-on: ubuntu-latest

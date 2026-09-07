@@ -75,7 +75,9 @@ product_meta() {
       P_NOTES=""
       P_LABEL="CLI"
       P_WORKFLOW="publish-cli.yml"
-      P_VERIFY="npm run typecheck"   # no test suite under cli/ yet
+      # The screens against a scratch repository and what a key does to them
+      # (cli/test), on top of the type check that was the whole gate before.
+      P_VERIFY="npm run typecheck && npm test"
       ;;
     mcp)
       P_DIR="mcp"
