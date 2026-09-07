@@ -42,7 +42,8 @@ jobs:
       # requires, or it could go red without blocking anything. It needs no
       # install and takes under a second, so it runs first and fails early.
       - name: Release script tests
-        run: bash scripts/__tests__/promote-unreleased.test.sh
+        run: |
+          for t in scripts/__tests__/*.test.sh; do echo "── $t"; bash "$t"; done
       - uses: actions/setup-node@v4
         with:
           node-version: 22   # Electron 44 asks for node >= 22.12
