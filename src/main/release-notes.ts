@@ -9,6 +9,11 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **Only what is true is offered**: no *Publish* on a published branch, no *Push 3* on a branch level with its upstream, nothing to publish at all without a remote.
 - A row that leads to a list — apply a stash, switch branch, start from an issue — **opens that section of the sidebar** and scrolls to it.
 - It never replaces an amend, nor **a message you have already typed**: a draft outlives the changes it was written for.
+
+### 🚪 Every argument is looked at before it reaches git
+- One table of rules at the boundary, read before any handler runs: a call with a malformed ref, path, remote or URL is **answered with a sentence saying which argument and why**, rather than reaching git.
+- **A file path that leaves the repository is refused** — a request for \`../../.ssh/id_rsa\` is not a file of this repository, whichever pane asked for it.
+- Nothing that worked stops working: an argument nobody sent, or sent empty, reaches the handler exactly as before.
 `,
   '1.34.0': `## What's new in 1.34.0
 
