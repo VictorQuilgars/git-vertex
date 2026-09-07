@@ -1,5 +1,6 @@
 // Settings › externalTools. Reads its slice of the page's state; the state itself lives in useSettingsPage.
 import type { SettingsPage } from '../useSettingsPage'
+import { SaveNote } from '../shared'
 
 export function ExternalToolsSection({ page }: { page: SettingsPage }) {
   const { t, settings, section, externalEditor, setExternalEditor, externalDiffTool, setExternalDiffTool, externalMergeTool, setExternalMergeTool, externalTerminal, setExternalTerminal } = page
@@ -7,6 +8,7 @@ export function ExternalToolsSection({ page }: { page: SettingsPage }) {
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.externalTools.title')}</h2>
                 <p className="stg-desc">{t('settings.externalTools.desc')}</p>
+                <SaveNote />
 
                 <label className="stg-field">
                   <span>{t('settings.behavior.externalEditor')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.behavior.externalEditorHintPre')}<code>code</code>, <code>code --wait</code>, <code>subl</code>, <code>meld</code>{t('settings.behavior.externalEditorHintPost')}</span></span>

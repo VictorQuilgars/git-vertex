@@ -1,5 +1,6 @@
 // Settings › graph. Reads its slice of the page's state; the state itself lives in useSettingsPage.
 import type { SettingsPage } from '../useSettingsPage'
+import { SaveNote } from '../shared'
 
 export function GraphSection({ page }: { page: SettingsPage }) {
   const { t, settings, getBool, set, section } = page
@@ -7,6 +8,7 @@ export function GraphSection({ page }: { page: SettingsPage }) {
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.graph.title')}</h2>
                 <p className="stg-desc">{t('settings.graph.desc')}</p>
+                <SaveNote />
 
                 {([
                   ['graphShowAvatars', 'settings.graph.avatars', 'settings.graph.avatarsHint'],

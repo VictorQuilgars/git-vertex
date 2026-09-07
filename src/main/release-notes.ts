@@ -14,6 +14,12 @@ export const RELEASE_NOTES: Record<string, string> = {
 - One table of rules at the boundary, read before any handler runs: a call with a malformed ref, path, remote or URL is **answered with a sentence saying which argument and why**, rather than reaching git.
 - **A file path that leaves the repository is refused** — a request for \`../../.ssh/id_rsa\` is not a file of this repository, whichever pane asked for it.
 - Nothing that worked stops working: an argument nobody sent, or sent empty, reaches the handler exactly as before.
+
+### ⚙️ The settings say what they change, and when they are kept
+- A field that writes **Git's own global configuration** now says so, with the key it writes — *Git global · \`user.name\`*, *Git global · \`core.sshCommand\`* — so you can tell, from the field, whether a change touches this app or every git on the machine.
+- The fields that only look git-shaped carry nothing: GPG signing adds \`-S\` to the commits this app makes and writes nothing to \`~/.gitconfig\`.
+- **When a change is kept is said, not discovered**: each block reads either *Saved as you change it.* or *Nothing here is saved until you press Save.*
+- The explanation of why the app has to look for git folds away behind a line you open when you are wondering. The setting stays where it was.
 `,
   '1.34.0': `## What's new in 1.34.0
 

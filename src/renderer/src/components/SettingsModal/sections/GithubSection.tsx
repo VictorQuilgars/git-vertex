@@ -3,6 +3,7 @@ import { Icon } from '../../Icon/Icon'
 import { Brand } from '../../BrandMark/BrandMark'
 import { isSecretMask } from '../../../utils/secrets'
 import type { SettingsPage } from '../useSettingsPage'
+import { SaveNote } from '../shared'
 
 export function GithubSection({ page }: { page: SettingsPage }) {
   const { t, settings, section, githubToken, setGithubToken, ghEnterpriseHost, setGhEnterpriseHost, ghEnterpriseToken, setGhEnterpriseToken, showToken, setShowToken, githubUser, githubSource, githubLoading, fetchGithubUser, autolinks, saveAutolinks, handleGithubLogin, handleGithubDisconnect, saveGithub, embedded } = page
@@ -121,6 +122,7 @@ export function GithubSection({ page }: { page: SettingsPage }) {
                       spellCheck={false}
                     />
                     <button className="stg-save" onClick={saveGithub}>{t('settings.save')}</button>
+                    <SaveNote button={t('settings.save')} />
                   </div>
                   <p className="stg-desc" style={{ marginTop: 6 }}>{t('settings.github.enterpriseHint')}</p>
                 </div>

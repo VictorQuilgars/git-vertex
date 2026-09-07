@@ -1,5 +1,11 @@
 // Settings › ssh. Reads its slice of the page's state; the state itself lives in useSettingsPage.
+//
+// Two of these controls do not stay in this app (#197): choosing a key — or
+// turning the agent off — writes `core.sshCommand` into ~/.gitconfig, so every
+// git client on the machine uses that key afterwards. The chip says so where
+// the choice is made.
 import type { SettingsPage } from '../useSettingsPage'
+import { GitGlobalChip, SaveNote } from '../shared'
 
 export function SshSection({ page }: { page: SettingsPage }) {
   const { t, settings, section, sshUseAgent, setSshUseAgent, sshPrivateKey, setSshPrivateKey, sshPublicKey, setSshPublicKey, sshGenerating, setSshGenerating, sshPassphrase, setSshPassphrase, showToast } = page
@@ -7,6 +13,7 @@ export function SshSection({ page }: { page: SettingsPage }) {
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.ssh.title')}</h2>
                 <p className="stg-desc">{t('settings.ssh.desc')}</p>
+                <SaveNote />
 
                 <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" checked={sshUseAgent}
@@ -14,11 +21,11 @@ export function SshSection({ page }: { page: SettingsPage }) {
                       setSshUseAgent(e.target.checked)
                       await window.gitAPI.settingsSet('sshUseAgent', String(e.target.checked))
                     }} />
-                  <span>{t('settings.ssh.useAgent')}</span>
+                  <span>{t('settings.ssh.useAgent')}<GitGlobalChip writes="core.sshCommand" /></span>
                 </label>
 
                 <label className="stg-field" style={{ marginTop: 12, opacity: sshUseAgent ? 0.5 : 1 }}>
-                  <span>{t('settings.ssh.privateKey')}</span>
+                  <span>{t('settings.ssh.privateKey')}<GitGlobalChip writes="core.sshCommand" /></span>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input
                       className="stg-input"

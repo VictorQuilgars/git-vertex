@@ -9,6 +9,7 @@ import { AI_PROVIDER_CATALOG, type AIProviderDef } from '../../utils/aiProviders
 import { translations } from '../../i18n/translations'
 import { type ThemeId } from '../../contexts/SettingsContext'
 import { parseAutolinks, type Autolink } from '../../utils/autolinks'
+import { useLang } from '../../i18n/LanguageContext'
 
 /**
  * Like parseAutolinks, but keeps half-typed rows on screen. The strict parser
@@ -57,14 +58,16 @@ export const DESKTOP_ONLY_SECTIONS: Section[] = ['externalTools', 'ssh', 'about'
 // Identity, "autolink" finds GitHub — so nine sections and their long lists
 // need not be walked to find one control.
 export const SECTION_TEXT: Record<Section, string[]> = {
-  git: ['settings.git.', 'settings.profiles.', 'settings.profile', 'settings.defaultProfile', 'settings.saveAsProfile', 'settings.gitBinary.', 'settings.gpg.'],
+  // 'settings.scope.' is here and in ssh on purpose: the two sections that
+  // write ~/.gitconfig are the two a search for "gitconfig" should find.
+  git: ['settings.git.', 'settings.profiles.', 'settings.profile', 'settings.defaultProfile', 'settings.saveAsProfile', 'settings.gitBinary.', 'settings.gpg.', 'settings.scope.'],
   appearance: ['settings.appearance.', 'settings.theme.', 'settings.themes.', 'settings.date.', 'settings.lang.'],
   graph: ['settings.graph.'],
   github: ['settings.github.', 'settings.autolinks.'],
   ai: ['settings.ai.'],
   notifications: ['settings.behavior.', 'settings.general.', 'settings.notifications.'],
   externalTools: ['settings.externalTools.'],
-  ssh: ['settings.ssh.'],
+  ssh: ['settings.ssh.', 'settings.scope.'],
   about: ['settings.about.', 'settings.update.', 'settings.installAndRestart'],
 }
 
@@ -235,6 +238,44 @@ export interface AIPair { provider: AIProvider; model: string }
 /** The characteristic a model id gives away, worn as a coloured badge —
     reasoning in the AI ink (it is the model thinking), fast in the doing
     green. Unlabelled ids wear nothing: the heuristic never guesses. */
+// ── What a control changes, and when it is kept ──────────────────
+// The page mixed two kinds of change without saying so: what is this app's
+// (a theme, an auto-fetch interval, an API key) and what writes GIT's OWN
+// global configuration — the identity, the SSH command — which every git
+// client on the machine then reads. And the save modes differed from one
+// field to the next with nothing on screen to say which was which.
+//
+// Two marks answer both, in the field rather than in a paragraph above it.
+
+/**
+ * This field writes `~/.gitconfig`. `writes` names the key it sets, so the
+ * tooltip is specific — `user.name`, `core.sshCommand` — rather than a vague
+ * warning about "git settings".
+ */
+export function GitGlobalChip({ writes }: { writes: string }) {
+  const { t } = useLang()
+  return (
+    <span className="stg-scope" title={`${writes} — ${t('settings.scope.gitGlobal.title')}`}>
+      {t('settings.scope.gitGlobal')} · <code>{writes}</code>
+    </span>
+  )
+}
+
+/**
+ * When this block is saved. One mode per block, said once: either everything
+ * in it is kept as you change it, or nothing is until you press the button it
+ * names. A block that says nothing is a block you have to guess at, and the
+ * two modes look identical while you are typing.
+ */
+export function SaveNote({ button }: { button?: string }) {
+  const { t } = useLang()
+  return (
+    <p className="stg-savenote">
+      {button ? t('settings.saveMode.button', button) : t('settings.saveMode.live')}
+    </p>
+  )
+}
+
 export function KindBadge({ id }: { id: string }) {
   const k = modelKind(id)
   if (!k) return null

@@ -50,6 +50,7 @@ export default function SettingsModal(props: SettingsModalProps) {
                 <button
                   key={item.id}
                   className={`stg-nav-item ${section === item.id ? 'active' : ''}`}
+                  data-section={item.id}
                   onClick={() => setSection(item.id)}
                 >
                   <span className="stg-nav-icon">{item.icon}</span>

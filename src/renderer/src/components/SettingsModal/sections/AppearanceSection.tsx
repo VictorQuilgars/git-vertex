@@ -1,7 +1,7 @@
 // Settings › appearance. Reads its slice of the page's state; the state itself lives in useSettingsPage.
 import { Icon } from '../../Icon/Icon'
 import { isVSCodeHost, followsEditor } from '../../../contexts/SettingsContext'
-import { THEMES_FOLDED, THEME_PRESETS } from '../shared'
+import { THEMES_FOLDED, THEME_PRESETS, SaveNote } from '../shared'
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AppearanceSection({ page }: { page: SettingsPage }) {
@@ -10,6 +10,7 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.appearance.title')}</h2>
                 <p className="stg-desc">{t('settings.appearance.desc')}</p>
+                <SaveNote />
 
                 {/* The picker is offered in BOTH products now. In the panel it
                     is governed by "Follow the editor" below, which is on by
