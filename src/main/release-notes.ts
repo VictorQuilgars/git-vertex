@@ -4,6 +4,12 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🔒 Electron 32 → 44
+- The app carries its own browser, and Electron only patches the latest three majors: this one was **twelve behind**, running a Chromium from August 2024 with no security fix since. It is on the current stable now.
+- **macOS 13 (Ventura) or later is required.** On macOS 12 or earlier, 1.34.0 is the last version — the installer will say so rather than leaving you with an app that will not start.
+- **Notifications on macOS are off until the app is code-signed**, which the system now requires for them. Windows and Linux are unaffected.
+- **Open a repository** starts beside the repository you opened last, since the dialog no longer remembers on its own.
+
 ### 🧭 A clean working tree says what comes next
 - The staging pane's next steps — **publish this branch**, push the commits waiting, pull what arrived, review what the branch would bring — were shown in the VS Code panel only. The desktop had two empty lists and a commit button that could not be pressed; it shows the same card now.
 - **Only what is true is offered**: no *Publish* on a published branch, no *Push 3* on a branch level with its upstream, nothing to publish at all without a remote.
