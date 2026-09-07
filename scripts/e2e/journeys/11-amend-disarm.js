@@ -2,6 +2,8 @@
 // itself rather than rewriting the new commit with the old message. The
 // ordinary draft is kept apart from the amend one, and comes back.
 'use strict'
+const fs = require('fs')
+const path = require('path')
 const TEXTAREA = `textarea[placeholder^="Commit message"]`
 const AMEND = '.st2-amend input'
 const clearForm = `(() => { const el = document.querySelector('${TEXTAREA}'); if (!el.value) return; const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(el, ''); el.dispatchEvent(new Event('input', { bubbles: true })) })()`
@@ -11,6 +13,9 @@ module.exports = {
     const { repo1, git } = fixture
     const value = () => page.eval(`document.querySelector('${TEXTAREA}').value`)
     const ticked = () => page.eval(`document.querySelector('${AMEND}').checked`)
+    // A clean tree shows what comes next rather than the commit form (#189),
+    // and journey 07 leaves it clean: give this one a change to write about.
+    if (!git(repo1, 'status', '--porcelain').trim()) fs.appendFileSync(path.join(repo1, 'notes.txt'), 'uncommitted again\n')
     await page.click('.app-tab')
     await page.click('.sb-wip')
     await page.until(`!!document.querySelector('${TEXTAREA}')`, { what: 'the commit form' })

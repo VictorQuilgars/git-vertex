@@ -4,6 +4,12 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧭 A clean working tree says what comes next
+- The staging pane's next steps — **publish this branch**, push the commits waiting, pull what arrived, review what the branch would bring — were shown in the VS Code panel only. The desktop had two empty lists and a commit button that could not be pressed; it shows the same card now.
+- **Only what is true is offered**: no *Publish* on a published branch, no *Push 3* on a branch level with its upstream, nothing to publish at all without a remote.
+- A row that leads to a list — apply a stash, switch branch, start from an issue — **opens that section of the sidebar** and scrolls to it.
+- It never replaces an amend, nor **a message you have already typed**: a draft outlives the changes it was written for.
+
 ### 🚪 Every argument is looked at before it reaches git
 - One table of rules at the boundary, read before any handler runs: a call with a malformed ref, path, remote or URL is **answered with a sentence saying which argument and why**, rather than reaching git.
 - **A file path that leaves the repository is refused** — a request for \`../../.ssh/id_rsa\` is not a file of this repository, whichever pane asked for it.
