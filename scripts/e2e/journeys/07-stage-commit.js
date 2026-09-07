@@ -63,8 +63,14 @@ module.exports = {
     expect.equal(count(), String(Number(before) + 1), 'git has one more commit')
     expect.equal(git(repo1, 'log', '-1', '--format=%s').trim(), MESSAGE, 'the commit carries the message')
     expect.equal(git(repo1, 'status', '--porcelain').trim(), '', 'the working tree is clean')
-    await page.until(`document.querySelector('${TEXTAREA}')?.value === ''`, { what: 'the form emptied by the commit' })
+    // The tree is clean now, so the pane says what comes next instead of
+    // holding a form for a commit with nothing in it (#189).
+    await page.until(`!document.querySelector('${TEXTAREA}') && !!document.querySelector('.wce')`, { what: 'the next steps replacing the form' })
     expect.equal((await drafts()).length, 0, 'the draft cleared by the commit that succeeded')
+    // Only what is true: this fixture has no remote, so there is nothing to
+    // publish and nothing to push, and the card says so by not saying it.
+    expect.equal(await page.eval(`document.querySelectorAll('.wce-row').length`), 0, 'no push or publish row without a remote')
+    expect(await page.eval(`document.querySelectorAll('.wce-start').length > 0`), 'the card offers something to start')
     expect(await page.eval(`!!document.querySelector('.sb-wip')`), 'the Working changes row is still there, tree clean or not')
   },
 }

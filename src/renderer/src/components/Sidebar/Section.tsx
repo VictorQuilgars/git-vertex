@@ -1,5 +1,5 @@
 // A collapsible, resizable section of the sidebar, and the height it remembers.
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Icon, type IconName } from '../Icon/Icon'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { useLang } from '../../i18n/LanguageContext'
@@ -75,6 +75,36 @@ export function startSectionResize(e: React.MouseEvent, el: HTMLDivElement | nul
   window.addEventListener('mouseup', onUp)
 }
 
+// ── Reveal a section from elsewhere ──────────────────────────────
+// A row in another pane — "Apply a stash", "Switch branch" — leads to the list
+// where the action is. Which section is open is the section's own state, kept
+// where it is used rather than lifted into the sidebar and drilled through
+// six components for a signal that fires on a click and is then over. So the
+// caller names the section and the section listens for its own name.
+
+type RevealFn = () => void
+const revealListeners = new Map<string, Set<RevealFn>>()
+
+/** Open the sidebar section with this id and bring it into view. */
+export function revealSection(id: string): void {
+  for (const fn of revealListeners.get(id) ?? []) fn()
+}
+
+function useRevealed(id: string, onReveal: RevealFn): void {
+  const latest = useRef(onReveal)
+  latest.current = onReveal
+  useEffect(() => {
+    const fn: RevealFn = () => latest.current()
+    const set = revealListeners.get(id) ?? new Set<RevealFn>()
+    set.add(fn)
+    revealListeners.set(id, set)
+    return () => {
+      set.delete(fn)
+      if (set.size === 0) revealListeners.delete(id)
+    }
+  }, [id])
+}
+
 // ── Collapse section ─────────────────────────────────────────────
 export function Section({ id, title, icon, brand, count, children, defaultOpen = true, onAdd, addLabel, menuItems, hiddenCount, onShowAll, onRefresh, refreshing, onFold }: {
   /** Stable across repositories — the key the section's height is kept under. */
@@ -132,6 +162,13 @@ export function Section({ id, title, icon, brand, count, children, defaultOpen =
   const { t } = useLang()
   const [height, setHeight] = useSectionHeight(id)
   const root = useRef<HTMLDivElement>(null)
+  // Sent here by a row in another pane. Opening a section that is already open
+  // is not a no-op: the point is to put it where the eye is, which is why the
+  // scroll happens either way.
+  useRevealed(id, () => {
+    setOpen(true)
+    root.current?.scrollIntoView({ block: 'nearest' })
+  })
   return (
     <div ref={root} className={`sb-section${open ? ' sb-section--open' : ''}`}
       style={open && height ? { flex: `0 0 ${height}px` } : undefined}>

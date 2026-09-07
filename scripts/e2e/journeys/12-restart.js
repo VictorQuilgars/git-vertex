@@ -1,13 +1,18 @@
 // The audit's P1, after a restart: the app closed and opened again on the
 // same profile, the repository reopened, the draft still in the form.
 'use strict'
+const fs = require('fs')
+const path = require('path')
 const TEXTAREA = `textarea[placeholder^="Commit message"]`
 const clearForm = `(() => { const el = document.querySelector('${TEXTAREA}'); if (!el.value) return; const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(el, ''); el.dispatchEvent(new Event('input', { bubbles: true })) })()`
 const DRAFT = 'Draft kept across a restart'
 module.exports = {
   name: 'a commit draft survives a restart of the app',
   async run({ page, expect, fixture, relaunch }) {
-    const { repo1 } = fixture
+    const { repo1, git } = fixture
+    // A clean tree shows what comes next rather than the commit form (#189),
+    // and journey 07 leaves it clean: give this one a change to write about.
+    if (!git(repo1, 'status', '--porcelain').trim()) fs.appendFileSync(path.join(repo1, 'notes.txt'), 'uncommitted again\n')
     await page.click('.app-tab')
     await page.click('.sb-wip')
     await page.until(`!!document.querySelector('${TEXTAREA}')`, { what: 'the commit form' })

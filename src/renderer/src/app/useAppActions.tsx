@@ -7,6 +7,7 @@ import { isRefHidden } from '../utils/graphVisibility'
 import { remoteUrl } from '../utils/remoteUrl'
 import { canonicalRef, publishedNameFor } from '../components/ContextMenu/branchRefs'
 import { buildBranchMenu, type BranchMenuExtras } from '../components/ContextMenu/branchMenu'
+import { revealSection } from '../components/Sidebar/Section'
 import { MenuItemDef } from '../components/ContextMenu/ContextMenu'
 import type { AppChrome } from './useAppChrome'
 import type { RepoSession } from './useRepoSession'
@@ -17,7 +18,7 @@ import type { AppTabs } from './useAppTabs'
 import type { AppUpdates } from './useAppUpdates'
 
 export function useAppActions(app: AppChrome & RepoSession & AppGithub & AppConflicts & AppAi & AppTabs & AppUpdates) {
-  const { showPrompt, showConfirm, t, showToast, repoPath, commits, branches, currentBranch, setSelectedCommit, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, branchMeta, setLoading, stashes, pullMode, tracking, githubOwnerRepo, remoteRepo, loadStashes, loadTags, loadRepoData, setIssueModalBranch, autolinks, prIntentFor, handleStartPR, currentBranchPR, handleOpenBranchesOnRemote, handleOpenBranchOnRemote, withAutoStash, guardConflict, handleRebaseOnto, setAiRead, applyRepo, openViewTab } = app
+  const { showPrompt, showConfirm, t, showToast, repoPath, commits, branches, currentBranch, setSelectedCommit, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, branchMeta, setLoading, stashes, pullMode, tracking, githubOwnerRepo, remoteRepo, loadStashes, loadTags, loadRepoData, setIssueModalBranch, autolinks, prIntentFor, handleStartPR, currentBranchPR, handleOpenBranchesOnRemote, handleOpenBranchOnRemote, withAutoStash, guardConflict, handleRebaseOnto, setAiRead, applyRepo, openViewTab, defaultBranch, githubPRs, setSidebarTab } = app
 
   // Comparisons and previews are tabs now, not overlays — see ViewTab.
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
@@ -543,6 +544,49 @@ export function useAppActions(app: AppChrome & RepoSession & AppGithub & AppConf
       onRename: () => handleRenameBranch(currentBranch),
     },
   }
+
+  // ── What the staging pane says on a clean tree (#189) ───────────
+  // The panel has said this since v1.22.0 and the desktop said nothing: an
+  // empty file list and a commit button that cannot be pressed. Same component,
+  // same rule — a row is drawn only when it is true of the repository — with
+  // the desktop's own way of reaching a list: the sidebar section, opened and
+  // scrolled to, since the desktop stacks its sections instead of choosing one
+  // on a rail.
+  const revealInSidebar = (id: string) => { setSidebarTab('list'); revealSection(id) }
+  const workingEmptyState = {
+    state: {
+      branch: currentBranch,
+      // The desktop reads "published" the way every other menu here does —
+      // a remote branch of the same name (publishedNameFor) — because the
+      // session tracks ahead/behind, not the upstream's name.
+      hasUpstream: !!publishedNameFor(currentBranch, branches),
+      remoteName: remoteNames[0] ?? 'origin',
+      ahead: tracking.ahead,
+      behind: tracking.behind,
+      openPRs: githubPRs?.length,
+    },
+    actions: {
+      // Nowhere to publish to is not a next step: a repository with no remote
+      // would get a row that opens a push and fails on it.
+      onPublish: remoteNames.length > 0 && !publishedNameFor(currentBranch, branches)
+        ? () => handleSetUpstream(currentBranch) : undefined,
+      onPush: handlePush,
+      onPull: handlePull,
+      // What this branch would bring — the compare a pull request would show.
+      // Comparing a branch with itself is not a review, so not on the default
+      // branch, and not when we do not know which one that is.
+      onReviewChanges: defaultBranch && currentBranch && currentBranch !== defaultBranch
+        ? () => openViewTab({ view: 'compare', a: defaultBranch, b: currentBranch, axis: 'diverged', label: `${defaultBranch} … ${currentBranch}` })
+        : undefined,
+      onShowPRs: githubPRs !== undefined ? () => revealInSidebar('prs') : undefined,
+      onStartFromIssue: githubOwnerRepo ? () => revealInSidebar('issues') : undefined,
+      onStartReviewPR: githubPRs?.length ? () => revealInSidebar('prs') : undefined,
+      onApplyStash: stashes.length > 0 ? () => revealInSidebar('stash') : undefined,
+      onCreateWorktree: () => revealInSidebar('worktrees'),
+      onCreateBranch: handleCreateBranch,
+      onSwitchBranch: () => revealInSidebar('local'),
+    },
+  }
   // Drag branch A onto a target. `targetBranch` (B) is set when the drop landed
   // on a branch tip, which is the only case that offers "merge". Direction
   // follows the gesture: merge A INTO B, rebase A ONTO B, reset A to the target.
@@ -666,7 +710,7 @@ export function useAppActions(app: AppChrome & RepoSession & AppGithub & AppConf
   }
 
   return {
-    compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, undoAction, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash,
+    compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, undoAction, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash,
   }
 }
 
