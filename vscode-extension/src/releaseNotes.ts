@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.33.0': `## What's new in 1.33.0
 
 ### 🧭 The commit pane stops guessing
 - The next-steps card no longer **flashes over the file list** while the working tree is still being read: on a repository with changes, the files are the first thing you see.

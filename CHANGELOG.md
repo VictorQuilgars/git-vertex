@@ -1,6 +1,6 @@
 # Changelog — Git Vertex (desktop)
 
-## Unreleased
+## 1.35.0
 
 ### Added
 - **A clean working tree says what comes next, on the desktop too.** The staging pane has offered next steps since v1.22.0 — publish this branch, push the commits waiting, pull what arrived, review what the branch would bring, and a list of things to start — but only inside the VS Code panel. On the desktop the same clean tree was an empty *Unstaged* list, an empty *Staged* list and a commit button that could not be pressed. It is the same card now, computed the same way and following the same rule: **a row is drawn only when it is true of this repository** — no *Publish* on a published branch, no *Push 3* on a branch level with its upstream, and nothing to publish at all in a repository with no remote. Where a row leads to a list rather than to an action — apply a stash, switch branch, start from an issue — the desktop opens that section of the sidebar and scrolls to it, since the desktop stacks its sections instead of choosing one on a rail. Two things it never replaces: an amend being written, and **a message already typed** — a draft outlives the changes it was written for, and a card of suggestions over the top of it would take your own words off the screen without deleting them. And it waits until the working tree has actually been read before saying there is nothing in it. (#189)
