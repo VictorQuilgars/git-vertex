@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **The commit pane stops guessing, twice.** The next-steps card it shows on a clean working tree was drawn from the state the pane *starts* with — empty — so it appeared for a frame on every repository as you opened it, however many files were waiting to be staged. It now waits until the working tree has actually been read: on a repository with changes, the file list is the first thing you see. And **a commit message you have already typed keeps its form**: a draft outlives the changes it was written for — discard them, or stash them, and the words are still yours — where before the card replaced it and took your own text off the screen without deleting it. An amend being written was already excluded; this is the same rule, applied to the other way a commit is in progress.
+- **The settings say what they change, and when they are kept.** The page held two kinds of setting and presented them identically: what belongs to this extension, and what writes **Git's own global configuration** — which every git client on the machine reads afterwards. The identity fields now carry a chip naming the file and the key they write, *Git global · `user.name`*, because saving them runs `git config --global` and that is not a fact you should have to know. The fields that only look git-shaped carry nothing. And each block says once how it is saved — *Saved as you change it.* or *Nothing here is saved until you press Save.* — instead of leaving you to find out by watching. The identity's description said these values "sign your commits", directly above nothing of the sort; it now says what they are, the name and email your commits are authored with.
+
 ## 1.32.0
 
 ### Added
