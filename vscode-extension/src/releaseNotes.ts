@@ -16,6 +16,16 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🧭 The commit pane stops guessing
+- The next-steps card no longer **flashes over the file list** while the working tree is still being read: on a repository with changes, the files are the first thing you see.
+- **A commit message you have typed keeps its form** on a clean tree. A draft outlives the changes it was written for; the card used to take it off the screen without deleting it.
+
+### ⚙️ The settings say what they change, and when they are kept
+- The identity fields carry a chip naming what they write — *Git global · \`user.name\`* — because saving them runs \`git config --global\`, which **every git client on the machine** then reads.
+- Each block says once how it is saved: *Saved as you change it.* or *Nothing here is saved until you press Save.*
+`,
   '1.32.0': `## What's new in 1.32.0
 
 ### ↔️ Resizable columns in the VS Code panel
