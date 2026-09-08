@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.33.0
 
 ### Changed
 - **The commit pane stops guessing, twice.** The next-steps card it shows on a clean working tree was drawn from the state the pane *starts* with — empty — so it appeared for a frame on every repository as you opened it, however many files were waiting to be staged. It now waits until the working tree has actually been read: on a repository with changes, the file list is the first thing you see. And **a commit message you have already typed keeps its form**: a draft outlives the changes it was written for — discard them, or stash them, and the words are still yours — where before the card replaced it and took your own text off the screen without deleting it. An amend being written was already excluded; this is the same rule, applied to the other way a commit is in progress.

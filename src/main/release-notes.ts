@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.35.0': `## What's new in 1.35.0
 
 ### 🔒 Electron 32 → 44
 - The app carries its own browser, and Electron only patches the latest three majors: this one was **twelve behind**, running a Chromium from August 2024 with no security fix since. It is on the current stable now.
