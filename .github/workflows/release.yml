@@ -117,6 +117,22 @@ jobs:
           VITE_GITHUB_PROXY_URL: ${{ secrets.VITE_GITHUB_PROXY_URL }}
         run: npm run package -- --mac --publish always
 
+      # electron-builder puts the macOS floor in the app's Info.plist and
+      # nowhere else, so the update feed does not carry it — and it is the feed
+      # that decides whether a Mac too old for this build is OFFERED it. Without
+      # this the updater would replace a working app with one the system then
+      # refuses to open, and the working one is gone. Written after packaging,
+      # over the copy electron-builder just uploaded.
+      #
+      # It matters most on Intel: every Mac that cannot run Ventura is one.
+      - name: Tell the update feed which macOS this build needs
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/mac-update-floor.js dist/latest-mac.yml
+          gh release upload "${{ needs.gate.outputs.tag }}" dist/latest-mac.yml --clobber
+
   build-win:
     name: Build Windows
     needs: [gate, draft]

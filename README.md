@@ -63,6 +63,21 @@
 
 ## Requirements
 
+| | |
+|---|---|
+| **macOS** | 13 Ventura or later — Apple Silicon **and** Intel |
+| **Windows** | 10 or later, 64-bit |
+| **Linux** | 64-bit (AppImage, `.deb`) |
+
+The macOS floor is where Electron 44 puts it: v38 dropped macOS 11 and v44
+dropped macOS 12. That line is as much about hardware as about versions —
+**every Mac that cannot run Ventura is an Intel one** (broadly a 2017 model or
+older; 2018 for the Air and the mini, 2019 for the Mac Pro). Intel Macs that
+*can* run Ventura are fully supported: every release carries its own x64 build
+alongside the arm64 one, and the update feed serves both. On an older macOS,
+v1.34.0 is the last version, and the app will not offer an update it could not
+run.
+
 **git 2.40 or newer is recommended** (2.28 is the hard minimum).
 
 Everything works from 2.28 on, with one exception: predicting conflicts before a

@@ -6,7 +6,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🔒 Electron 32 → 44
 - The app carries its own browser, and Electron only patches the latest three majors: this one was **twelve behind**, running a Chromium from August 2024 with no security fix since. It is on the current stable now.
-- **macOS 13 (Ventura) or later is required.** On macOS 12 or earlier, 1.34.0 is the last version — the installer will say so rather than leaving you with an app that will not start.
+- **macOS 13 (Ventura) or later is required.** Every Mac that cannot run Ventura is an Intel one (broadly a 2017 model or older); Intel Macs that can run it keep their own build and their updates, as before. On an older macOS, 1.34.0 is the last version — and the updater will not offer this one, rather than replacing a working app with one that will not start.
 - **Notifications on macOS are off until the app is code-signed**, which the system now requires for them. Windows and Linux are unaffected.
 - **Open a repository** starts beside the repository you opened last, since the dialog no longer remembers on its own.
 
