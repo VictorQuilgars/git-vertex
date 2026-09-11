@@ -2,6 +2,14 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🔔 A journal of what happened, per repository
+- The chip that says a push failed used to be the **only** record of it: four fit on screen and the fifth pushed the first off for good. Everything the app reports is now written down behind the **bell** as well, under the repository it ran on — errors first, with the words the chip used and how long ago it was.
+- **An error chip links to its own entry**, so you can come back to it after it is gone. The badge counts the failures of the repository on screen you have not read; opening the bell is reading them.
+- **An operation that reports after you have switched tabs goes to its own repository's journal**, and is waiting there when that tab comes back.
+- It is kept for the session and bounded: an error is about a working tree as it was, and a week-old one after a restart is noise.
+`,
   '1.35.0': `## What's new in 1.35.0
 
 ### 🔒 Electron 32 → 44

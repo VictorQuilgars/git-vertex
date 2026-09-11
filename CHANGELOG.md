@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Added
+- **A journal of what happened to each repository, behind the bell.** A toast was the only record of an operation: four fit on screen, the fifth pushed the first off for good, and a failed push read past four fetches later was simply gone. Every operation the app reports on — push, pull, fetch, merge, rebase, stash, commit, and everything else that raises a chip — is now also written down under **the repository it ran on**, and the bell is where you go back to it. Errors first, each line naming its repository and how long ago it was, the same words the chip used. An error chip carries a quiet **Journal** link to its own entry, so the chip is no longer the only copy; the bell's badge counts the failures of the repository on screen that have not been read, and opening it is reading them. With sessions, an operation that started on one repository and reports after you have switched away goes to **its** journal, not to whichever tab is in front — so it is waiting there when that tab comes back. Kept in memory for the session and bounded per repository: an error text is about a working tree as it was, and it can carry a path or a remote URL. (#193)
+
 ## 1.35.0
 
 ### Added

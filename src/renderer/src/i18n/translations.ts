@@ -258,6 +258,11 @@ const fr = {
   'notifs.time.minutes': (n: number) => `il y a ${n} min`,
   'notifs.time.hours': (n: number) => `il y a ${n} h`,
   'notifs.time.days': (n: number) => `il y a ${n} j`,
+  // Le journal du dépôt (#193) — ce que l'application a fait sur ce dépôt.
+  'notifs.journal.title': (repo: string) => `Journal · ${repo}`,
+  'notifs.journal.noRepo': 'Aucun dépôt',
+  'notifs.openJournal': "Relire cette erreur dans le journal du dépôt",
+  'notifs.openJournalShort': 'Journal',
 
   // CommitGraph
   'graph.empty': 'Aucun commit à afficher',
@@ -2067,6 +2072,11 @@ const en: typeof fr = {
   'notifs.time.minutes': (n: number) => `${n} min ago`,
   'notifs.time.hours': (n: number) => `${n} h ago`,
   'notifs.time.days': (n: number) => `${n} d ago`,
+  // The repository's journal (#193) — what the app did to this repository.
+  'notifs.journal.title': (repo: string) => `Journal · ${repo}`,
+  'notifs.journal.noRepo': 'No repository',
+  'notifs.openJournal': 'Read this error again in the repository journal',
+  'notifs.openJournalShort': 'Journal',
 
   // CommitGraph
   'graph.empty': 'No commits to display',

@@ -116,6 +116,25 @@ Rendered as a **full page** (not a modal overlay) — replaces `app-body` when o
 Sections: Git global config | GitHub token | AI provider + model + key.
 Triggered by the ⚙ button in Toolbar (toggles `settingsOpen` state in App.tsx).
 
+## Notification centre, and the repository journal
+Component: `src/renderer/src/components/NotificationCenter/NotificationCenter.tsx`
+The bell holds two things. **Notifications** are about the app (an update is
+available), are read/unread and are mirrored to `localStorage`. **The journal**
+(#193) is what the app did to the repository on screen, for the session:
+`src/renderer/src/contexts/JournalContext.tsx`, mounted **above** `ToastProvider`
+in `main.tsx` so an error chip can link to its own entry.
+
+Every chip is an entry, written by the **repo-aware `showToast`** that
+`useRepoSession` shadows the chrome's with — the same `origin` decides whether
+the chip names its repository and whose journal the line goes in, so a
+background repository's entries wait in its own. In memory, bounded per
+repository (`JOURNAL_MAX`), never persisted: an error text is about a working
+tree as it was, and it can carry a path or a remote URL.
+
+The VS Code panel has its own root (`vscode-extension/src/webview/app.tsx`) and
+no bell, so it mounts no provider — `useJournal()` answers with a disabled no-op
+and `Toast.tsx` simply draws no link.
+
 ## Push modal
 Component: `src/renderer/src/components/PushModal/PushModal.tsx`
 Allows choosing remote + target branch + `--set-upstream`.
