@@ -2,6 +2,8 @@ import simpleGit, { SimpleGit, LogResult, BranchSummary } from 'simple-git'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { getGitBinary, isSimpleGitSafeBinary } from './git-binary'
+import * as core from './git-core'
+import type { CompareAxis, FileChange } from './git-core'
 
 export interface CommitNode {
   hash: string
@@ -65,12 +67,10 @@ export interface BranchInfo {
   gone?: boolean    // upstream configured but deleted on the remote
 }
 
-export interface FileChange {
-  path: string
-  status: string  // A, M, D, R, C
-  additions: number
-  deletions: number
-}
+// Declared in git-core so the panel's service and this one cannot disagree on
+// it; re-exported here because everything on the desktop imports it from
+// git-service.
+export type { FileChange } from './git-core'
 
 // git localizes its messages, and the raw commands below have their stderr both
 // surfaced to an English-only UI and, in places, matched by wording. Pin the
@@ -151,18 +151,26 @@ export function makeSimpleGit(repoPath?: string): SimpleGit {
 // git-service keeps working unchanged.
 export { MIN_GIT_FOR_CONFLICT_PREDICTION, parseGitVersion, isGitVersionAtLeast } from './git-version'
 
-/** Which question a comparison answers — see diffBetweenCommits. */
-export type CompareAxis = 'diverged' | 'endpoints'
-
-/** The arguments `git diff` needs for one comparison, in one place. */
-function compareRange(from: string, to: string | null, axis: CompareAxis): string[] {
-  if (to === null) return [from]                      // …against the working tree
-  return [axis === 'diverged' ? `${from}...${to}` : `${from}..${to}`]
-}
+// The diff family — and the guard every ref goes through — now lives in
+// git-core.ts, which the VS Code extension host bundles too: one implementation
+// for both products (#191). `CompareAxis` is re-exported so ipc/git.ts and the
+// other importers of git-service keep working unchanged.
+export type { CompareAxis } from './git-core'
 
 export class GitService {
   private git: SimpleGit
   public repoPath: string
+
+  /**
+   * What git-core runs git through on this host.
+   *
+   * The desktop's half of the contract: the binary resolved through a login
+   * shell (git-binary.ts), because an app launched from the Finder gets a
+   * truncated PATH and would otherwise run Apple's git 2.39. `makeSimpleGit`
+   * has already applied it — the runner is only the adapter that turns
+   * simple-git into the `(args) => Promise<string>` the core asks for.
+   */
+  private run: core.GitRunner = (args) => this.git.raw(args)
 
   // Redo stack: HEAD shas captured right before each undo. Because undo is a
   // soft reset (non-destructive — the working tree is untouched and the prior
@@ -185,10 +193,9 @@ export class GitService {
   // Validate a ref/hash argument. Returns an error string if invalid, else null.
   // Rejects empty values and leading-dash values (option injection — git would
   // interpret "-X" as a flag even though simple-git passes args without a shell).
+  // The rule itself is in git-core, so the panel refuses exactly what this does.
   private assertRef(ref: string, label = 'reference'): string | null {
-    if (typeof ref !== 'string' || !ref.trim()) return `Empty git ${label}`
-    if (ref.trim().startsWith('-')) return `Invalid git ${label}: "${ref}"`
-    return null
+    return core.assertRef(ref, label)
   }
 
   // True if the working tree has any tracked changes (staged or unstaged).
@@ -371,143 +378,41 @@ export class GitService {
     return { branches }
   }
 
-  // A diff that could not be read is not an empty diff. Every method here
-  // used to answer `{ diff: '' }` to both, and the views said "No changes"
-  // over a commit git had refused to show. The error travels; the view says it.
+  // ── The diff family — one implementation, both products ────
+  //
+  // The bodies are in git-core.ts. What is left here is the contract the rest
+  // of the desktop calls, so nothing else had to move; the panel's service
+  // delegates the same names to the same functions. See git-core.ts for why,
+  // and for the doc comments that used to be on these.
+
   async getDiff(commitHash: string): Promise<{ diff: string; error?: string }> {
-    try {
-      const parents = await this.git.raw(['log', '--pretty=format:%P', '-n', '1', commitHash])
-      const parentList = parents.trim().split(' ').filter(Boolean)
-      const diff = parentList.length > 0
-        ? await this.git.raw(['diff', `${parentList[0]}..${commitHash}`])
-        // Root commit
-        : await this.git.raw(['show', commitHash, '--pretty=format:', '--no-color'])
-      return { diff }
-    } catch (e: any) {
-      return { diff: '', error: e.message }
-    }
+    return core.commitDiff(this.run, commitHash)
   }
 
   async getCommitFiles(commitHash: string): Promise<{ files: FileChange[] }> {
-    try {
-      // --root makes diff-tree emit files for the initial (parentless) commit too
-      const [nameStatus, numStat] = await Promise.all([
-        this.git.raw(['diff-tree', '--no-commit-id', '-r', '--root', '--name-status', commitHash]),
-        this.git.raw(['diff-tree', '--no-commit-id', '-r', '--root', '--numstat',     commitHash]),
-      ])
-      // Build stats map from numstat
-      const stats: Record<string, { additions: number; deletions: number }> = {}
-      for (const line of numStat.trim().split('\n')) {
-        const parts = line.split('\t')
-        if (parts.length >= 3) stats[parts[2]] = { additions: parseInt(parts[0]) || 0, deletions: parseInt(parts[1]) || 0 }
-      }
-      const files: FileChange[] = []
-      for (const line of nameStatus.trim().split('\n')) {
-        if (!line.trim()) continue
-        const parts = line.split('\t')
-        const rawStatus = parts[0]?.[0] ?? 'M'
-        const status = rawStatus === 'A' ? 'A' : rawStatus === 'D' ? 'D' : rawStatus === 'R' ? 'R' : 'M'
-        const path = parts[status === 'R' ? 2 : 1] ?? ''
-        if (!path) continue
-        files.push({ path, status, ...(stats[path] ?? { additions: 0, deletions: 0 }) })
-      }
-      return { files }
-    } catch (e) {
-      return { files: [] }
-    }
+    return core.commitFiles(this.run, commitHash)
   }
 
-  // Parse `git diff --name-status` + `--numstat` output into FileChange[].
-  private parseNameAndNumStat(nameStatus: string, numStat: string): FileChange[] {
-    const stats: Record<string, { additions: number; deletions: number }> = {}
-    for (const line of numStat.trim().split('\n')) {
-      const parts = line.split('\t')
-      if (parts.length >= 3) {
-        stats[parts[2]] = { additions: parseInt(parts[0]) || 0, deletions: parseInt(parts[1]) || 0 }
-      }
-    }
-    const files: FileChange[] = []
-    for (const line of nameStatus.trim().split('\n')) {
-      if (!line.trim()) continue
-      const parts = line.split('\t')
-      const rawStatus = parts[0]?.[0] ?? 'M'
-      const status = rawStatus === 'A' ? 'A' : rawStatus === 'D' ? 'D' : rawStatus === 'R' ? 'R' : 'M'
-      const path = parts[status === 'R' ? 2 : 1] ?? ''
-      if (!path) continue
-      files.push({ path, status, ...(stats[path] ?? { additions: 0, deletions: 0 }) })
-    }
-    return files
-  }
-
-  // Diff between two arbitrary commits (or any two revisions).
-  // Order matters: changes are expressed as going from `fromHash` to `toHash`.
-  /**
-   * The diff between two refs — along the axis the caller asks for.
-   *
-   * `endpoints` is two-dot, `A..B`: the difference between the two trees as
-   * they stand. `diverged` is three-dot, `A...B`: what B did since the two
-   * parted, which is what a pull request shows and what `git log A..B` — the
-   * commit list beside it — has always answered.
-   *
-   * The distinction is not cosmetic. On `main..feature`, two-dot reports every
-   * file main gained since the split as *deleted*, because they are absent
-   * from feature's tree; the comparison then claims a branch deleted files it
-   * never touched.
-   *
-   * ⚠️ `diverged` is empty when `to` is an ANCESTOR of `from`: the merge base
-   * is `to` itself, so there is nothing between them. That is correct and
-   * useless, which is why the default here stays `endpoints` — a caller
-   * comparing two commits the user picked by hand, in the order they picked
-   * them, must not silently show nothing.
-   *
-   * `to: null` compares against the working tree.
-   */
   async diffBetweenCommits(
     fromHash: string,
     toHash: string | null,
     axis: CompareAxis = 'endpoints',
   ): Promise<{ diff: string; error?: string }> {
-    const bad = this.assertRef(fromHash, 'commit') || (toHash !== null && this.assertRef(toHash, 'commit'))
-    if (bad) return { diff: '', error: bad }
-    try {
-      return { diff: await this.git.raw(['diff', ...compareRange(fromHash, toHash, axis)]) }
-    } catch (e: any) {
-      return { diff: '', error: e.message }
-    }
+    return core.diffBetweenCommits(this.run, fromHash, toHash, axis)
   }
 
   /** The commit two refs last had in common, or null when they share none. */
   async getMergeBase(a: string, b: string): Promise<{ base: string | null; error?: string }> {
-    const bad = this.assertRef(a, 'ref') || this.assertRef(b, 'ref')
-    if (bad) return { base: null, error: bad }
-    try {
-      const base = (await this.git.raw(['merge-base', a, b])).trim()
-      return { base: base || null }
-    } catch {
-      // Unrelated histories: git fails loudly and there is no base to name.
-      return { base: null }
-    }
+    return core.mergeBase(this.run, a, b)
   }
 
-  // File list (with per-file add/del counts) between two commits.
   /** The file list of the same comparison — same axis, same rules. */
   async filesBetweenCommits(
     fromHash: string,
     toHash: string | null,
     axis: CompareAxis = 'endpoints',
   ): Promise<{ files: FileChange[]; error?: string }> {
-    const bad = this.assertRef(fromHash, 'commit') || (toHash !== null && this.assertRef(toHash, 'commit'))
-    if (bad) return { files: [], error: bad }
-    try {
-      const range = compareRange(fromHash, toHash, axis)
-      const [nameStatus, numStat] = await Promise.all([
-        this.git.raw(['diff', '--name-status', ...range]),
-        this.git.raw(['diff', '--numstat', ...range]),
-      ])
-      return { files: this.parseNameAndNumStat(nameStatus, numStat) }
-    } catch (e: any) {
-      return { files: [], error: e.message }
-    }
+    return core.filesBetweenCommits(this.run, fromHash, toHash, axis)
   }
 
   async getCommitBody(hash: string): Promise<{ body: string }> {
@@ -806,32 +711,9 @@ export class GitService {
 
   // ── Working tree / staging ─────────────────────────────────
 
-  // `git diff --numstat` reports a rename as either "old => new" or
-  // "dir/{old => new}/file" — both name the *new* path once expanded, which is
-  // the one the status list keys on.
-  private static numstatPath(raw: string): string {
-    if (!raw.includes('=>')) return raw
-    const braced = /^(.*)\{(.*) => (.*)\}(.*)$/.exec(raw)
-    if (braced) return `${braced[1]}${braced[3]}${braced[4]}`.replace(/\/{2,}/g, '/')
-    return raw.split('=>').pop()!.trim()
-  }
-
   /** Per-path added/removed line counts. Binary files are omitted (git prints "-"). */
   private async numstat(args: string[]): Promise<Map<string, { additions: number; deletions: number }>> {
-    const out = new Map<string, { additions: number; deletions: number }>()
-    try {
-      const raw = await this.git.raw(['diff', '--numstat', ...args])
-      for (const line of raw.split('\n')) {
-        if (!line.trim()) continue
-        const [a, d, ...rest] = line.split('\t')
-        const path = rest.join('\t').trim()
-        if (!path || a === '-' || d === '-') continue
-        out.set(GitService.numstatPath(path), { additions: Number(a) || 0, deletions: Number(d) || 0 })
-      }
-    } catch {
-      // No stats is a degraded display, never a reason to fail the whole status.
-    }
-    return out
+    return core.workingNumstat(this.run, args)
   }
 
   async getWorkingChanges(): Promise<{
@@ -901,16 +783,12 @@ export class GitService {
   }
 
   async getWorkingFileDiff(filepath: string, staged: boolean, context?: number): Promise<{ diff: string; error?: string }> {
-    try {
-      const ctx = typeof context === 'number' && Number.isFinite(context) ? [`-U${Math.max(0, Math.floor(context))}`] : []
-      const args = staged
-        ? ['diff', '--cached', ...ctx, '--', filepath]
-        : ['diff', ...ctx, '--', filepath]
-      const diff = await this.git.raw(args)
-      return { diff }
-    } catch (e: any) {
-      return { diff: '', error: e.message }
-    }
+    return core.workingFileDiff(this.run, filepath, staged, context)
+  }
+
+  /** Unified diff of one file within one commit — what the file-history tab draws. */
+  async getFileDiffAtCommit(commitHash: string, filepath: string): Promise<{ diff: string; error?: string }> {
+    return core.fileDiffAtCommit(this.run, commitHash, filepath)
   }
 
   async stage(paths: string[]): Promise<{ success: boolean; error?: string }> {
@@ -1163,12 +1041,7 @@ export class GitService {
 
   // Diff between a commit and the current working directory
   async diffCommitToWorking(hash: string): Promise<{ diff: string; error?: string }> {
-    try {
-      const diff = await this.git.raw(['diff', hash])
-      return { diff }
-    } catch (e: any) {
-      return { diff: '', error: e.message }
-    }
+    return core.diffCommitToWorking(this.run, hash)
   }
 
   // ── Targeted rebase operations (drop / move) without the rebase UI ──
@@ -1839,17 +1712,7 @@ export class GitService {
 
   // Full patch of a stash, untracked files included when supported.
   async getStashDiff(index: number): Promise<{ diff: string; error?: string }> {
-    const ref = `stash@{${index}}`
-    try {
-      return { diff: await this.git.raw(['stash', 'show', '-p', '--include-untracked', ref]) }
-    } catch {
-      // --include-untracked on `stash show` needs git ≥ 2.32 — retry without
-      try {
-        return { diff: await this.git.raw(['stash', 'show', '-p', ref]) }
-      } catch (e: any) {
-        return { diff: '', error: e.message }
-      }
-    }
+    return core.stashDiff(this.run, index)
   }
 
   // ── Reflog ─────────────────────────────────────────────────
@@ -2370,47 +2233,7 @@ exit 0
   async getBlame(hash: string, filepath: string): Promise<{
     lines: { shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string }[]
   }> {
-    try {
-      const result = await this.git.raw(['blame', '--porcelain', hash, '--', filepath])
-      const lines: { shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string }[] = []
-      const rawLines = result.split('\n')
-      const meta: Record<string, { author: string; date: string }> = {}
-      let i = 0
-      while (i < rawLines.length) {
-        const header = rawLines[i]
-        if (!header) { i++; continue }
-        const headerMatch = header.match(/^([0-9a-f]{40}) \d+ (\d+)/)
-        if (!headerMatch) { i++; continue }
-        const commitHash = headerMatch[1]
-        const lineNum = parseInt(headerMatch[2])
-        i++
-        // Read metadata lines until we hit the content line (starts with \t)
-        let author = meta[commitHash]?.author ?? ''
-        let date = meta[commitHash]?.date ?? ''
-        while (i < rawLines.length && !rawLines[i].startsWith('\t')) {
-          const metaLine = rawLines[i]
-          if (metaLine.startsWith('author ') && !meta[commitHash]) {
-            author = metaLine.slice(7)
-          }
-          if (metaLine.startsWith('author-time ') && !meta[commitHash]) {
-            date = new Date(parseInt(metaLine.slice(12)) * 1000).toLocaleDateString('fr-FR')
-          }
-          i++
-        }
-        if (!meta[commitHash]) {
-          meta[commitHash] = { author, date }
-        } else {
-          author = meta[commitHash].author
-          date = meta[commitHash].date
-        }
-        const content = rawLines[i] ? rawLines[i].slice(1) : ''
-        i++
-        lines.push({ hash: commitHash, shortHash: commitHash.slice(0, 7), author, date, lineNum, content })
-      }
-      return { lines }
-    } catch (e) {
-      return { lines: [] }
-    }
+    return core.blame(this.run, hash, filepath)
   }
 
   // ── Submodules ──────────────────────────────────────────────
@@ -2470,15 +2293,7 @@ exit 0
   // ── Extended search ─────────────────────────────────────────
 
   async searchInDiffs(query: string): Promise<{ hashes: string[] }> {
-    try {
-      const result = await this.git.raw([
-        'log', '--all', '--pretty=format:%H', '-S', query, '--max-count=100'
-      ])
-      const hashes = result.trim().split('\n').filter(Boolean)
-      return { hashes }
-    } catch (e) {
-      return { hashes: [] }
-    }
+    return core.searchInDiffs(this.run, query)
   }
 
   /**

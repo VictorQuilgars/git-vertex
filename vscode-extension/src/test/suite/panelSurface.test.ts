@@ -34,8 +34,7 @@ import { DESKTOP_ONLY, KNOWN_GAPS } from './parity-lists'
 // its guard are still there. It does not prove unreachability; it makes a
 // reachability decision impossible to change silently.
 
-const EXT_ROOT = path.resolve(__dirname, '../../..')
-const REPO_ROOT = path.resolve(EXT_ROOT, '..')
+import { EXT_ROOT, REPO_ROOT } from './roots'
 const PANEL_ENTRY = path.join(EXT_ROOT, 'src', 'webview', 'app.tsx')
 
 interface Unreachable {

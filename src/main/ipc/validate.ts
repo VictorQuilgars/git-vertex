@@ -175,6 +175,7 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:get-blame': ['rev', 'repoFile'],
   'git:get-file-history': ['repoFile'],
   'git:get-file-at-commit': ['rev', 'repoFile'],
+  'git:file-diff-at-commit': ['rev', 'repoFile'],
   'git:diff-commit-to-working': ['rev'],
   'git:search-in-diffs': [null],
 

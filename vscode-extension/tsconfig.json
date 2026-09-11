@@ -12,7 +12,7 @@
   "include": [
     "src"
   ],
-  "//": "TYPECHECK ONLY \u2014 it emits nothing. Two things need to be true at once: the extension host must be able to import shared logic from ../src/renderer (remoteUrl.ts and whatever the shared lots add next), and out/test/** must keep the exact layout the two test runners locate by path. rootDir cannot satisfy both, so the jobs are split: this file checks everything with no rootDir constraint, tsconfig.test.json emits the test tree, and esbuild (build-webview.js) produces the shipped bundles. src/webview is bundled by esbuild too and is not type-checked here.",
+  "//": "TYPECHECK ONLY \u2014 it emits nothing, and it has no rootDir on purpose: the extension host imports shared logic from outside vscode-extension/ (../src/renderer/remoteUrl.ts, ../src/main/theme-validate.ts, ../src/main/git-core.ts), which a rootDir would refuse. The jobs are split three ways: this file checks everything, tsconfig.test.json emits the test tree (from the repo root, for the same reason \u2014 read its note before moving anything), and esbuild (build-webview.js) produces the shipped bundles. src/webview is bundled by esbuild too and is not type-checked here.",
   "exclude": [
     "node_modules",
     ".vscode-test",

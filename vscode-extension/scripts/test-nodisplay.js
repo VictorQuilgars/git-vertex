@@ -17,10 +17,11 @@ const Mocha = require('mocha')
 
 const EXT_ROOT = path.resolve(__dirname, '..')
 const SRC_SUITE = path.join(EXT_ROOT, 'src', 'test', 'suite')
-const OUT_SUITE = path.join(EXT_ROOT, 'out', 'test', 'suite')
+// The compiled tree mirrors the repo root — see tsconfig.test.json.
+const OUT_SUITE = path.join(EXT_ROOT, 'out', 'vscode-extension', 'src', 'test', 'suite')
 
 if (!fs.existsSync(OUT_SUITE)) {
-  console.error('out/test/suite is missing — run `npm run compile` first.')
+  console.error(`${path.relative(EXT_ROOT, OUT_SUITE)} is missing — run \`npm run compile\` first.`)
   process.exit(1)
 }
 

@@ -2,6 +2,12 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🗓 Blame dates read as English again
+- **Blame** in the commit panel dated every line with the French calendar — \`11/09/2026\`, which this English-only app reads as the 11th of September and everyone else as the 9th of November. It writes \`9/11/2026\` now, the way the VS Code panel always did.
+- The reason it could differ at all: the desktop and the panel each carried **their own copy** of reading a diff, a blame, a comparison. There is one shared implementation now, and each product keeps only its own way of reaching git.
+`,
   '1.35.0': `## What's new in 1.35.0
 
 ### 🔒 Electron 32 → 44
