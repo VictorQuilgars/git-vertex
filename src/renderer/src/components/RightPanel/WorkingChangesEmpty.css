@@ -35,7 +35,7 @@
 .wce-row-ico { flex-shrink: 0; color: var(--text-secondary); }
 .wce-row-label { flex: 1; min-width: 0; }
 .wce-row-btn {
-  flex-shrink: 0; height: 28px; padding: 0 var(--space-xl);
+  flex-shrink: 0; height: var(--row-ctl); padding: 0 var(--space-xl);
   background: var(--surface-sunken); border: 1px solid var(--border-muted);
   border-radius: var(--radius-md); color: var(--text-primary);
   font-size: var(--text-xs); cursor: pointer;
@@ -49,7 +49,7 @@
 }
 /* Start-new: full-width rows, the reference shape. */
 .wce-start {
-  height: 34px; padding: 0 var(--space-lg);
+  height: var(--row-field); padding: 0 var(--space-lg);
   background: var(--surface-sunken); border: 1px solid var(--border-muted);
   border-radius: var(--radius-md); color: var(--text-primary);
   font-size: var(--text-sm); text-align: center; cursor: pointer;

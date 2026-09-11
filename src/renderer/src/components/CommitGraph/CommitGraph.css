@@ -11,7 +11,7 @@
 .cg-header {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: var(--row-graph);
   background: var(--surface);
   border-bottom: 1px solid var(--border-muted);
   font-size: var(--text-tiny);
@@ -63,7 +63,7 @@
   --cg-row-color: var(--border-subtle);
   display: flex;
   align-items: center;
-  height: 28px;
+  height: var(--row-graph);
   position: absolute;
   left: 0;
   right: 0;
@@ -298,7 +298,7 @@
   align-items: center;
   gap: var(--space-xs);
   padding: 0 var(--space-md) 0 var(--space-md);
-  height: 26px;
+  height: var(--row-nav);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
@@ -417,7 +417,7 @@
 .cg-skel-row {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: var(--row-graph);
   padding: 0 var(--space-xl);
   opacity: 0;
   animation: cg-skel-in var(--dur-slow) ease forwards;
@@ -482,14 +482,14 @@
   align-items: center;
   gap: var(--space-xs);
   min-width: 0;
-  height: 28px;   /* ROW_HEIGHT — the first line's height; the node centres on the CELL */
+  height: var(--row-graph);   /* ROW_HEIGHT — the first line's height; the node centres on the CELL */
 }
 .cg-row-meta {
   display: flex;
   align-items: center;
   gap: var(--space-md);
   min-width: 0;
-  height: 22px;   /* REF_LINE_H — must match CommitGraph.tsx */
+  height: var(--row-ref);   /* REF_LINE_H — must match CommitGraph.tsx */
   padding-bottom: 2px;
   color: var(--text-tertiary);
   font-size: 11px;

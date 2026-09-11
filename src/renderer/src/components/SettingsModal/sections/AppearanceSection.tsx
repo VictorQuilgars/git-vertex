@@ -12,6 +12,35 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                 <p className="stg-desc">{t('settings.appearance.desc')}</p>
                 <SaveNote />
 
+                {/* ── Reading density (#195) ──
+                    Each option carries `data-density` on its own preview, so
+                    what you are choosing between is drawn at the density it
+                    names rather than described in words. Same trick as the
+                    theme tiles below, and the reason compact is a real
+                    [data-density] rule rather than inline properties on
+                    <html>: only a rule reaches a descendant. */}
+                <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.density.title')}</h2>
+                <p className="stg-desc">{t('settings.density.desc')}</p>
+                <div className="stg-density" role="radiogroup" aria-label={t('settings.density.title')}>
+                  {(['comfortable', 'compact'] as const).map(d => (
+                    <label key={d} className={`stg-density-opt ${get('density', 'comfortable') === d ? 'stg-density-opt--on' : ''}`}>
+                      <input
+                        type="radio"
+                        name="gv-density"
+                        value={d}
+                        checked={get('density', 'comfortable') === d}
+                        onChange={() => set('density', d)}
+                      />
+                      <span className="stg-density-preview" data-density={d} aria-hidden>
+                        <span className="stg-density-row" />
+                        <span className="stg-density-row" />
+                        <span className="stg-density-row" />
+                      </span>
+                      <span className="stg-density-label">{t(`settings.density.${d}` as any)}</span>
+                    </label>
+                  ))}
+                </div>
+
                 {/* The picker is offered in BOTH products now. In the panel it
                     is governed by "Follow the editor" below, which is on by
                     default — a panel that does not match its editor reads as

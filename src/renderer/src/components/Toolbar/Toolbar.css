@@ -26,7 +26,7 @@
 .tb-group-sep {
   width: 1px;
   align-self: center;
-  height: 34px;
+  height: var(--row-field);
   background: var(--surface-active);
   opacity: 0.5;
   margin: 0 var(--space-sm);
@@ -88,7 +88,7 @@
   align-items: center;
   gap: var(--space-xs);
   padding: 0 var(--space-lg);
-  height: 26px;
+  height: var(--row-nav);
   background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-faint), transparent);
   border: 1px solid color-mix(in srgb, var(--accent-emphasis) var(--alpha-muted), transparent);
   border-radius: var(--radius-xl);
@@ -105,7 +105,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  height: 28px;
+  height: var(--row-ctl);
   padding: 0 var(--space-lg);
   border-radius: var(--radius-md);
   border: 1px solid transparent;
@@ -148,7 +148,7 @@
 .tb-split-arrow {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: var(--row-ctl);
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-secondary);
@@ -175,7 +175,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  height: 30px;
+  height: var(--row-field);
   background: var(--bg-canvas);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -247,7 +247,7 @@
   align-items: center;
   gap: var(--space-md);
   max-width: 260px;
-  height: 28px;
+  height: var(--row-ctl);
   padding: 0 var(--space-md);
   border-radius: var(--radius-md);
   background: none;

@@ -4,6 +4,11 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 📏 A reading density
+- **Settings › Appearance › Density**, two options that each preview themselves. *Comfortable* is what the app has always drawn — nothing moves unless you ask.
+- *Compact* takes away **air, not letters**: shorter rows, tighter padding, body text down one step. The graph follows properly, so commits stay aligned with the text beside them.
+- The smallest text goes the other way, **at both densities**: metadata that was 9 and 10px is 10 and 11px now.
+
 ### 🔔 A journal of what happened, per repository
 - The chip that says a push failed used to be the **only** record of it: four fit on screen and the fifth pushed the first off for good. Everything the app reports is now written down behind the **bell** as well, under the repository it ran on — errors first, with the words the chip used and how long ago it was.
 - **An error chip links to its own entry**, so you can come back to it after it is gone. The badge counts the failures of the repository on screen you have not read; opening the bell is reading them.

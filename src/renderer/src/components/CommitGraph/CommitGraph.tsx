@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import { createPortal } from 'react-dom'
-import { LayoutCommit, computeGraphLayout, rowOffsets } from './graph-layout'
+import { LayoutCommit, computeGraphLayout, rowOffsets, rowHeight as densityRowHeight, refLineHeight as densityRefLine } from './graph-layout'
 import MessageChip from './MessageChip'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
@@ -15,7 +15,7 @@ import { isRefHidden, type GraphVisibility } from '../../utils/graphVisibility'
 import { useSettings } from '../../contexts/SettingsContext'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
-import { ROW_HEIGHT, REF_LINE_H, COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
+import { COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
 import { useGraphMenus } from './graph-menus'
 import './CommitGraph.css'
 
@@ -174,6 +174,13 @@ export default function CommitGraph(props: CommitGraphProps) {
 } = props
   const { t } = useLang()
   const { getBool, get, set } = useSettings()
+  // The graph's two heights come from the stylesheet, because a density moves
+  // them (#195) and this file does arithmetic on them. Re-read when the density
+  // changes: SettingsContext writes data-density and drops the cache inside the
+  // state updater, so by the time this render runs the values are the new ones.
+  const density = get('density', 'comfortable')
+  const rowH = useMemo(() => densityRowHeight(), [density])
+  const refH = useMemo(() => densityRefLine(), [density])
   // Configured reference patterns (Jira, Linear…). Parsed once per render pass
   // rather than per row: a graph is hundreds of messages.
   const autolinks = React.useMemo(() => parseAutolinks(get('autolinks', '')), [get])
@@ -394,12 +401,12 @@ export default function CommitGraph(props: CommitGraphProps) {
     // has a ref: the sha, the author and the date live there now, so a row
     // without a branch is not a shorter row — it is the same row with one fewer
     // thing on its second line.
-    () => rowOffsets(displayLayout.map(() => refsBelow), ROW_HEIGHT, REF_LINE_H),
-    [displayLayout, refsBelow])
-  const rowTop = useCallback((row: number) => rowTops[row] ?? row * ROW_HEIGHT, [rowTops])
+    () => rowOffsets(displayLayout.map(() => refsBelow), rowH, refH),
+    [displayLayout, refsBelow, rowH, refH])
+  const rowTop = useCallback((row: number) => rowTops[row] ?? row * rowH, [rowTops, rowH])
   /** The middle of a row's first line — where the node and every edge meet it. */
   const rowHeight = useCallback(
-    (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || ROW_HEIGHT, [rowTops])
+    (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || rowH, [rowTops, rowH])
   // The CELL's middle, not the first line's: a stacked row is two lines tall
   // and its bullet sits at its centre, the way the reference centres its
   // avatar on the block. Classic single-line rows: the same number as before.
@@ -498,7 +505,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   const svgPadL = refsBelow ? 24 : SVG_PAD_L
   const laneW = refsBelow ? 16 : LANE_WIDTH
   const svgW = Math.max(svgPadL + (maxLane + 1) * laneW + SVG_PAD_R, 48)
-  const svgH = rowTops[displayLayout.length] ?? displayLayout.length * ROW_HEIGHT
+  const svgH = rowTops[displayLayout.length] ?? displayLayout.length * rowH
   // The stacked text is RAGGED on purpose (at Victor's call): each row's text
   // starts just past its own graph — its node, or the rightmost rail passing
   // through that row, whichever reaches further. A shared column reserved the
@@ -904,7 +911,7 @@ export default function CommitGraph(props: CommitGraphProps) {
               if (commit.hash === WIP_HASH) return null
               const cx = svgPadL + commit.lane * laneW
               const bandH = 24
-              const y = rowTop(commit.row) + (ROW_HEIGHT - bandH) / 2
+              const y = rowTop(commit.row) + (rowH - bandH) / 2
               const right = svgW - SVG_PAD_R
               const w = Math.max(right - cx, 0)
               if (w <= 0) return null

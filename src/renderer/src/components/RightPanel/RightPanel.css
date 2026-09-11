@@ -552,7 +552,7 @@
 .st-amend { display: flex; align-items: center; gap: var(--space-xs); color: var(--text-tertiary); font-size: var(--text-xs); cursor: pointer; }
 .st-amend input { accent-color: var(--accent); }
 .st-commit-btn {
-  height: 28px; padding: 0 var(--space-2xl); border-radius: var(--radius-md);
+  height: var(--row-ctl); padding: 0 var(--space-2xl); border-radius: var(--radius-md);
   border: 1px solid var(--border-default); background: var(--surface-sunken);
   color: var(--text-tertiary); font-size: var(--text-sm); font-weight: var(--weight-semibold);
   cursor: not-allowed; transition: all var(--dur-fast);
@@ -1171,7 +1171,7 @@
   align-items: center;
   justify-content: center;
   width: 30px;
-  height: 30px;
+  height: var(--row-field);
   border: none;
   background: none;
   color: var(--text-secondary);
@@ -1503,7 +1503,7 @@
 .st2-commit-btn--mini {
   flex: 0 0 auto;
   width: 46px;
-  height: 34px;
+  height: var(--row-field);
   padding: 0;
   gap: 0;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent), 0 0 0 3px var(--bg-canvas);
@@ -1718,7 +1718,7 @@
    the human's colour. */
 .cd-compare-btn {
   display: inline-flex; align-items: center; gap: var(--space-xs);
-  height: 26px; padding: 0 var(--space-md);
+  height: var(--row-nav); padding: 0 var(--space-md);
   margin-left: auto;
   background: transparent;
   border: 1px solid var(--border-muted);
@@ -1759,7 +1759,7 @@
   margin: var(--space-sm) var(--space-xl) 0;
 }
 .cd-explain-input {
-  flex: 1; min-width: 0; height: 28px;
+  flex: 1; min-width: 0; height: var(--row-ctl);
   padding: 0 var(--space-md);
   background: var(--surface-sunken);
   border: 1px solid var(--border-muted); border-radius: var(--radius-md);
@@ -1767,7 +1767,7 @@
 }
 .cd-explain-btn {
   display: inline-flex; align-items: center; gap: var(--space-xs);
-  height: 28px; padding: 0 var(--space-lg); flex-shrink: 0;
+  height: var(--row-ctl); padding: 0 var(--space-lg); flex-shrink: 0;
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
   border-radius: var(--radius-md);
@@ -1846,7 +1846,7 @@
 .st2--embedded-row .st2-commit-btn {
   flex: 1;
   min-width: 0;
-  min-height: 28px;
+  min-height: var(--row-ctl);
   padding: var(--space-xs) var(--space-md);
   box-shadow: none;
   overflow: hidden;
