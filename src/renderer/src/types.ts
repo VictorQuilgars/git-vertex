@@ -211,6 +211,7 @@ declare global {
     popStash: (index: number) => Promise<R>
     dropStash: (index: number) => Promise<R>
     // Blame
+    getFileDiffAtCommit: (commitHash: string, filepath: string) => Promise<{ diff: string; error?: string }>
     getBlame: (hash: string, filepath: string) => Promise<{ lines: { shortHash: string; hash: string; author: string; date: string; lineNum: number; content: string }[] }>
     // Submodules
     getSubmodules: () => Promise<{ submodules: { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[] }>

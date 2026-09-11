@@ -481,6 +481,14 @@ export function registerGitHandlers(): void {
     return state.gitService.getStashDiff(index)
   })
 
+  // The file-history tab's right pane. It is the VS Code panel that opens that
+  // tab today, but the method is shared renderer code calling a shared core —
+  // the desktop answering "no such method" was the asymmetry #191 is about.
+  handle('git:file-diff-at-commit', async (_event, commitHash: string, filepath: string) => {
+    if (!state.gitService) return { diff: '' }
+    return state.gitService.getFileDiffAtCommit(commitHash, filepath)
+  })
+
   // ── IPC: Blame ─────────────────────────────────────────────
   handle('git:get-blame', async (_event, hash: string, filepath: string) => {
     if (!state.gitService) return { lines: [] }

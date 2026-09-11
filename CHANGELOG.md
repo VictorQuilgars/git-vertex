@@ -1,5 +1,13 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **Blame dates are written in English again.** `Blame` in the commit panel dated every line with the French calendar — `11/09/2026`, read as the 11th of September by a UI that is English-only everywhere else, and as the 9th of November by anyone who took it at face value. The VS Code panel, running the same view, had always written `9/11/2026`. The date is no longer taken from the machine the app happens to run on. (#191)
+
+### Changed
+- **The two products now run one implementation of a diff.** Reading a commit, comparing two refs, listing what a comparison touched, a working-tree diff, a stash's patch, a blame, a search through diffs: the desktop app and the VS Code panel each had their own copy of all of it, and the copies drifted — the blame dates above are what that looks like from the outside. There is one now, shared, with each product keeping only its own way of reaching git. Nothing about what these produce was meant to change beyond the fix above. (#191)
+
 ## 1.35.0
 
 ### Added

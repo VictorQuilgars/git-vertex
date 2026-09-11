@@ -4,4 +4,5 @@ src/**
 tsconfig.json
 **/*.map
 node_modules/**
-out/test/**
+out/vscode-extension/**
+out/src/**
