@@ -18,6 +18,7 @@ import { Brand } from './components/BrandMark/BrandMark'
 import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import UpdateOverlay from './components/UpdateOverlay/UpdateOverlay'
 import NotificationCenter from './components/NotificationCenter/NotificationCenter'
+import { useJournal } from './contexts/JournalContext'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
@@ -72,10 +73,22 @@ export default function App() {
   const searchHook = useAppSearch({ ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook })
   const app = { ...chromeHook, ...sessionHook, ...githubHook, ...conflictsHook, ...aiHook, ...tabsHook, ...updatesHook, ...actionsHook, ...searchHook }
   const {
-    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, notifsOpen, setNotifsOpen, unreadCount, addUpdateNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands,
+    dlg, showPrompt, showConfirm, closeDlg, t, showToast, repoPath, repoName, commits, logLimit, logLimitRef, branches, currentBranch, selectedCommit, setSelectedCommit, showAllBranches, setShowAllBranches, soloBranch, setSoloBranch, visibility, remoteNames, toggleHidden, setFamilyHidden, branchMeta, setNotedHashes, loading, recentRepos, setRecentRepos, workspaces, setWorkspaces, stashes, tags, lastFetchTime, setLastFetchTime, pullMode, setPullModeState, handleSetPullMode, tracking, githubRepoUrl, githubOwnerRepo, defaultBranch, conflictFiles, setConflictFiles, conflictKinds, setConflictKinds, conflictMode, wipCount, loadStashes, visibilityRef, soloRef, showAllRef, loadRepoData, loadRepoDataRef, hasSnapshot, filterFirstRun, resolverFileSeenRef, lastAutoFetchError, loadMoreHistory, issueModalBranch, setIssueModalBranch, githubUser, setGithubUser, setGithubConnected, githubPRs, githubPRsRef, githubIssues, githubIssuesRef, githubLogin, issueDetail, setIssueDetail, prModalOpen, setPrModalOpen, prIntent, setPrIntent, githubRefreshing, githubRefreshTick, githubPollTick, setGithubPollTick, loadGithubLists, refreshGithubSection, issueComposerOpen, setIssueComposerOpen, handleSharePatch, prIntentFor, handleStartPR, handleOpenCommitOnRemote, currentBranchPR, handleOpenFileOnRemote, handleCopyFileLink, handleCreateBranchFromIssue, handleOpenBranchOnRemote, rebaseHash, setRebaseHash, rebasePlanProposal, setRebasePlanProposal, conflictResolverFile, setConflictResolverFile, conflictResolverProposal, setConflictResolverProposal, handleRebaseOnto, handleRebaseCurrentOntoCommit, handleConflictFinish, handleConflictAbort, aiSearch, setAiSearch, setAiSearchHashes, aiSearchLoading, commitProposal, setCommitProposal, aiRead, setAiRead, composerOpen, setComposerOpen, sidebarTab, setSidebarTab, memoryToken, rememberedAI, insertChangelogGuarded, tabs, setTabs, activeTabId, tabMenu, setTabMenu, repoMgmtOpen, setRepoMgmtOpen, whatsNew, setWhatsNew, whatsNewActive, setWhatsNewActive, applyRepo, handleOpenRepo, handleSetRepo, openReleaseNotes, handleRemoveRecent, deepLinkHash, setDeepLinkHash, applyDeepLink, openHomeTab, openLaunchpadTab, openThemesTab, openViewTab, openSettingsTab, switchTab, closeTab, closeOtherTabs, activeTab, launchpadActive, themesActive, viewTab, onTabKeyDown, updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, startUpdateDownload, compareBaseHash, setCompareBaseHash, gitflowOpen, setGitflowOpen, pushModalOpen, setPushModalOpen, cloneOpen, setCloneOpen, initModalOpen, setInitModalOpen, handleCreateRepo, handleUndo, handleRedo, handleFetch, handlePush, handlePushModal, handleStash, handlePop, handleTerminal, handlePull, handleGoTo, handleCheckout, handleCheckoutTag, handleCreateBranch, handleDeleteBranch, handleDeleteBranchBoth, handleMergeBranch, handlePushBranch, handleDeleteRemoteBranch, handleSetUpstream, handleRenameBranch, handleCreateBranchAt, handleCherryPick, handleRevert, handleReset, applyReword, handleRewordCommit, handleDropCommit, handleCherryPickMany, handleDropCommits, handlePushToCommit, handleCreatePatch, handleCopyPatch, handleCreateWorktreeAt, handleCopyBranchLink, handleRestoreFile, handleCopyCommitLink, branchMenuItems, branchStripProps, workingEmptyState, handleBranchDrop, handleMoveCommit, handleCreateTagAtCommit, handleCreateAnnotatedTagAtCommit, handleCreateTag, handleDeleteTag, handlePushTag, handleDeleteRemoteTag, handleCreateStash, handleApplyStash, handlePopStash, handleDropStash, searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands,
   } = app
 
  logLimitRef.current = logLimit
+  // The bell: an update notification is about the app, a journal entry is about
+  // the repository on screen (#193). The panel's open state lives with the
+  // journal so an error chip can link straight to its own entry.
+  const journal = useJournal()
+  const notifsOpen = journal.open
+  const setNotifsOpen = journal.setOpen
+  const repoJournal = journal.entriesFor(repoPath)
+  // Unseen errors of the SHOWN repository, since that is what opening the bell
+  // puts in front of the user. Another tab's failures wait in its own journal.
+  const bellCount = unreadCount + journal.unseenErrors(repoPath)
+  // Opening it is reading it.
+  useEffect(() => { if (notifsOpen) journal.markSeen(repoPath) }, [notifsOpen, repoPath])
   const [sidebarW, setSidebarW] = useState<number>(230)
   const [rightW, setRightW] = useState<number>(() => {
     const saved = parseInt(localStorage.getItem('app-right-w') ?? '', 10)
@@ -458,10 +471,10 @@ export default function App() {
               </button>
             )}
             <button className={`app-tb-icon app-tb-bell ${notifsOpen ? 'active' : ''}`}
-              title={t('notifs.title')} onClick={() => setNotifsOpen(v => !v)}>
+              title={t('notifs.title')} onClick={() => setNotifsOpen(!notifsOpen)}>
               <Icon name="bell" />
-              {unreadCount > 0 && (
-                <span className="app-tb-bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              {bellCount > 0 && (
+                <span className="app-tb-bell-badge">{bellCount > 99 ? '99+' : bellCount}</span>
               )}
             </button>
             <button className={`app-tb-icon ${viewTab?.view === 'settings' ? 'active' : ''}`}
@@ -538,6 +551,10 @@ export default function App() {
       {notifsOpen && (
         <NotificationCenter
           notifications={notifications}
+          journal={repoJournal}
+          repoName={repoName}
+          onDropEntry={journal.drop}
+          onClearJournal={() => journal.clear(repoPath)}
           onClose={() => setNotifsOpen(false)}
           onToggleRead={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n))}
           onDelete={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}

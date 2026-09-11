@@ -118,3 +118,49 @@
   transition: background var(--dur-fast), color var(--dur-fast);
 }
 .notifs-item-tool:hover { background: var(--surface-info); color: var(--text-primary); }
+
+/* ── The repository's journal (#193) ──────────────────────────
+   The second half of the panel: what happened to the repository on screen,
+   for the session. A group heading rather than a second panel — the bell is
+   one place to go back to, whichever of the two you came for. */
+.notifs-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl) var(--space-md) var(--space-2xl);
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border-muted);
+  position: sticky;
+  top: 0;
+}
+.notifs-group-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A journal line is a record, not a control: nothing to activate. */
+.notifs-item--journal { cursor: default; }
+/* The icon tile carries the outcome, as the toast chip does — and for the same
+   reason: only the icon is tinted, so a failure is findable without every line
+   shouting. */
+.notifs-item--err .notifs-item-icon {
+  background: color-mix(in srgb, var(--danger) var(--alpha-faint), transparent);
+  color: var(--danger);
+}
+.notifs-item--info .notifs-item-icon {
+  background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent);
+  color: var(--accent);
+}
+.notifs-item-count {
+  margin-left: var(--space-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--text-tertiary);
+}

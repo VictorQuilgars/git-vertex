@@ -19,7 +19,10 @@ export function useAppUpdates(app: AppChrome & RepoSession & AppGithub & AppConf
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     try { return JSON.parse(localStorage.getItem('notifications') ?? '[]') } catch { return [] }
   })
-  const [notifsOpen, setNotifsOpen] = useState(false)
+  // The bell's open state is NOT here: it moved to the journal context (#193),
+  // which is mounted above the toasts so an error chip can link to its own
+  // entry. `unreadCount` is still only the update notifications — App adds the
+  // shown repository's unseen errors to it for the badge.
   const unreadCount = notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0)
   // Add a notification, de-duplicated by kind+version so re-checks don't stack.
   const addUpdateNotification = useCallback((version: string) => {
@@ -39,7 +42,7 @@ export function useAppUpdates(app: AppChrome & RepoSession & AppGithub & AppConf
   }, [])
 
   return {
-    updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, notifsOpen, setNotifsOpen, unreadCount, addUpdateNotification, startUpdateDownload,
+    updatePhase, setUpdatePhase, updateVersion, setUpdateVersion, updatePct, setUpdatePct, updateOverlayOpen, setUpdateOverlayOpen, notifications, setNotifications, unreadCount, addUpdateNotification, startUpdateDownload,
   }
 }
 

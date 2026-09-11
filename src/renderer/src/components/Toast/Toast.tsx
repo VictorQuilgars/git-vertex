@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import './Toast.css'
 import { Icon } from '../Icon/Icon'
 import { useLang } from '../../i18n/LanguageContext'
+import { useJournal } from '../../contexts/JournalContext'
 
 /**
  * The chip that confirms an action — #127.
@@ -13,9 +14,13 @@ import { useLang } from '../../i18n/LanguageContext'
  *   outcome, on the ordinary raised surface. The whole surface used to be
  *   tinted per type, which made every confirmation shout as loudly as every
  *   failure. Only the icon carries the colour now.
- * - **An error does not expire.** A success is over the moment it is read and
- *   goes on a timer; a failure is something the user has to act on, and a
- *   message that vanishes on its own is one they may never have read.
+ * - **An error does not expire, and it is not the only copy.** A success is
+ *   over the moment it is read and goes on a timer; a failure is something the
+ *   user has to act on, and a message that vanishes on its own is one they may
+ *   never have read. Four fit here, and the fifth used to evict the first for
+ *   good — so an error chip now carries a link to its entry in the repository's
+ *   journal (#193), which keeps the whole session. The link is drawn only where
+ *   a journal is mounted: the VS Code panel has no bell.
  * - **It is announced.** The stack is a live region, so a screen reader says
  *   what happened; errors carry `role="alert"` so they interrupt rather than
  *   wait their turn.
@@ -92,6 +97,7 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { t: tr } = useLang()  // `t` is already the toast item in the map below
+  const journal = useJournal()
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const counter = useRef(0)
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>())
@@ -185,6 +191,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <span className="chip-icon"><Icon name={ICONS[t.type]} size={16} /></span>
             <span className="chip-msg">{t.message}</span>
             {t.count > 1 && <span className="chip-count">×{t.count}</span>}
+            {/* Not a ToastAction: an action would make this chip un-collapsible
+                (a chip carrying one is never merged with its repeat), and ten
+                identical failures would then bury the window they report on. */}
+            {t.type === 'error' && journal.enabled && (
+              <button
+                className="chip-journal"
+                title={tr('notifs.openJournal')}
+                onClick={() => journal.setOpen(true)}
+              >{tr('notifs.openJournalShort')}</button>
+            )}
             {t.actions?.map((a, i) => (
               <button
                 key={i}

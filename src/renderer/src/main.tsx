@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { ToastProvider } from './components/Toast/Toast'
+import { JournalProvider } from './contexts/JournalContext'
 import { LanguageProvider } from './i18n/LanguageContext'
 import { SettingsProvider, THEME_STORAGE_KEY, THEME_SEEDS_KEY, cssRuleFor } from './contexts/SettingsContext'
 import './App.css'
@@ -35,9 +36,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <SettingsProvider>
       <LanguageProvider>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
+        {/* Above the toasts: a chip is written into the journal as it is
+            raised, and an error chip links back to its own entry there. */}
+        <JournalProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </JournalProvider>
       </LanguageProvider>
     </SettingsProvider>
   </React.StrictMode>

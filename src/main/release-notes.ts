@@ -4,6 +4,12 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🔔 A journal of what happened, per repository
+- The chip that says a push failed used to be the **only** record of it: four fit on screen and the fifth pushed the first off for good. Everything the app reports is now written down behind the **bell** as well, under the repository it ran on — errors first, with the words the chip used and how long ago it was.
+- **An error chip links to its own entry**, so you can come back to it after it is gone. The badge counts the failures of the repository on screen you have not read; opening the bell is reading them.
+- **An operation that reports after you have switched tabs goes to its own repository's journal**, and is waiting there when that tab comes back.
+- It is kept for the session and bounded: an error is about a working tree as it was, and a week-old one after a restart is noise.
+
 ### 🗓 Blame dates read as English again
 - **Blame** in the commit panel dated every line with the French calendar — \`11/09/2026\`, which this English-only app reads as the 11th of September and everyone else as the 9th of November. It writes \`9/11/2026\` now, the way the VS Code panel always did.
 - The reason it could differ at all: the desktop and the panel each carried **their own copy** of reading a diff, a blame, a comparison. There is one shared implementation now, and each product keeps only its own way of reaching git.

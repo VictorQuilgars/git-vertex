@@ -19,6 +19,7 @@ import { emptyVisibility, logOptionsFor, type GraphVisibility, type RefFamily } 
 import { type RemoteRepo } from '../utils/remoteUrl'
 import { type StashEntry, type TagEntry, kindsByPath, LOG_PAGE } from './shared'
 import type { AppChrome, ToastAction } from './useAppChrome'
+import { useJournal } from '../contexts/JournalContext'
 
 /** What a hidden tab keeps of its repository, and what a load produces. */
 interface RepoSnapshot {
@@ -189,12 +190,21 @@ export function useRepoSession(app: AppChrome) {
   // `about` names the repository explicitly, for what arrives from the main
   // process with its repository attached. This shadows the chrome's showToast
   // for every hook after this one.
+  //
+  // It is also where the journal is written (#193). The same `origin` decides
+  // both: which repository the chip should name, and whose journal the line
+  // goes into — so an operation that reports after a switch is recorded where
+  // it ran, not where the user happens to be looking. The journal keeps the
+  // message WITHOUT the prefix, since it already has a repository column.
   const chromeToast = app.showToast
+  const journal = useJournal()
+  const noteJournal = journal.note
   const showToast = useCallback((msg: string, type?: 'ok' | 'err' | 'info', action?: ToastAction | ToastAction[], sticky?: boolean, about?: string | null) => {
     const origin = about === undefined ? repoPath : about
     const elsewhere = !!origin && origin !== activePathRef.current
+    noteJournal(origin, msg, type ?? 'ok')
     chromeToast(elsewhere ? `${origin.split('/').pop()} · ${msg}` : msg, type, action, sticky)
-  }, [chromeToast, repoPath])
+  }, [chromeToast, noteJournal, repoPath])
   /** The last tab showing this repository closed: drop what was kept, and the main process's session. */
   const forgetRepo = useCallback((path: string) => {
     snapshots.current.delete(path)
