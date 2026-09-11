@@ -70,7 +70,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  height: 28px;
+  height: var(--row-ctl);
   padding: 0 var(--space-md) 0 var(--space-xs);
   border: none;
   background: transparent;
@@ -520,7 +520,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  height: 26px;
+  height: var(--row-nav);
   padding: 0 var(--space-lg);
   border: 1px solid color-mix(in srgb, var(--success) var(--alpha-strong), transparent);
   border-radius: var(--radius-md);

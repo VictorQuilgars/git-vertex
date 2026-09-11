@@ -89,7 +89,7 @@
 }
 
 .dlg-btn {
-  height: 28px;
+  height: var(--row-ctl);
   padding: 0 var(--space-2xl);
   border-radius: var(--radius-md);
   border: 1px solid;

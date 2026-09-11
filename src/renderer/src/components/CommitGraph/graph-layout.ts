@@ -81,14 +81,61 @@ export function canvasRgb(): [number, number, number] {
   return rgb
 }
 
+// ── Row geometry, for the same reason as the lanes above ───────────────────
+//
+// The graph draws its nodes and its edges in an SVG, at coordinates it computes
+// itself: a row's top is a running sum of the rows before it, and an edge is a
+// line between two of them. That is arithmetic, and a var() cannot be added to
+// anything — so the two heights have to come back out of the stylesheet as
+// numbers. They are declared in tokens.css (--row-graph, --row-ref), where the
+// density blocks can move them (#195), and read here.
+//
+// The fallbacks are the comfortable values, and they matter: jsdom has no
+// stylesheet, so every test that lays a graph out gets these.
+export const ROW_HEIGHT_FALLBACK = 28
+export const REF_LINE_FALLBACK = 22
+
+let rowCache: { row: number; ref: number } | null = null
+
+function readPx(cs: CSSStyleDeclaration, name: string, fallback: number): number {
+  const n = parseFloat(cs.getPropertyValue(name))
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
+function rowMetrics(): { row: number; ref: number } {
+  if (rowCache) return rowCache
+  if (typeof document === 'undefined' || !document.documentElement) {
+    return { row: ROW_HEIGHT_FALLBACK, ref: REF_LINE_FALLBACK }
+  }
+  const cs = getComputedStyle(document.documentElement)
+  const read = {
+    row: readPx(cs, '--row-graph', ROW_HEIGHT_FALLBACK),
+    ref: readPx(cs, '--row-ref', REF_LINE_FALLBACK),
+  }
+  // Same rule as the lanes: only cache a real read. Before the stylesheet is
+  // there both come back empty, and freezing the fallback would leave a compact
+  // graph drawn at comfortable heights until the next reload.
+  const stylesheetIsThere = cs.getPropertyValue('--row-graph').trim() !== ''
+  if (stylesheetIsThere) rowCache = read
+  return read
+}
+
+/** The height of one commit row, as the current density defines it. */
+export function rowHeight(): number { return rowMetrics().row }
+
+/** The height of one branch/tag line under a commit. */
+export function refLineHeight(): number { return rowMetrics().ref }
+
 /**
- * Drop both theme caches. Call this when the tokens on <html> change, otherwise
- * the lanes and the canvas stay frozen at whatever they were on first paint —
- * which is why swapping a theme used to need a reload.
+ * Drop the theme caches. Call this when the tokens on <html> change, otherwise
+ * the lanes, the canvas and the row heights stay frozen at whatever they were
+ * on first paint — which is why swapping a theme used to need a reload, and
+ * what would otherwise leave the graph at the old density (#195).
  */
 export function resetThemeCache(): void {
   laneCache = null
   canvasCache = null
+  rowCache = null
 }
 
 export interface LayoutCommit extends CommitNode {

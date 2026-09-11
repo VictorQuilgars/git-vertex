@@ -173,7 +173,7 @@ in the staging area with an `amend` badge (fetched via `getCommitFiles('HEAD')`)
 
 ## CommitGraph
 `src/renderer/src/components/CommitGraph/CommitGraph.tsx`
-- `LANE_WIDTH = 18`, `ROW_HEIGHT = 34`
+- `LANE_WIDTH = 18`; the row heights come from `--row-graph` / `--row-ref` (see Density below) — `ROW_HEIGHT`/`REF_LINE_H` in `graph-parts` are only the no-stylesheet fallbacks
 - `svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 62)` — minimum 62px to avoid header overlap
 - Graph layout computed in `src/renderer/src/components/CommitGraph/graph-layout.ts`
 
@@ -233,6 +233,31 @@ Inside VS Code the panel follows the editor by default, watched by a
 setting rather than a law: turn it off and the panel takes its own theme. Any
 rewrite of the tokens must call `resetThemeCache()` — the graph resolves lanes
 and the canvas to literals once and caches them.
+
+### Density is the third family, and it is about LENGTH
+`[data-density="compact"]` at the bottom of `tokens.css` (#195). A theme is a
+block of seeds; a density is a block of **lengths** — the spacing steps used as
+padding, the four row tokens, and the two body text sizes. `comfortable` is the
+default and has **no block**: it is what `:root` already carries, so the feature
+arriving moved nobody's layout.
+
+`__tests__/density-discipline.test.ts` is its guard, and it is needed because
+`token-discipline` only polices `:root` and `[data-theme]` blocks: it refuses any
+declaration whose value is not a plain length (so a colour cannot get in through
+the one block nothing else watches), any token the default does not already
+declare, and any `--row-graph` below `2 × NODE_RADIUS` — below that the graph's
+nodes touch and then overlap.
+
+**Row heights are tokens now**: `--row-graph`, `--row-ref`, `--row-nav`,
+`--row-ctl`, `--row-field`. The rule when converting a literal: a `height` with a
+**fixed px `width`** beside it is a square — an icon button, an avatar — and keeps
+its number. `width: 100%` is a row.
+
+⚠️ `--row-graph` and `--row-ref` are read back into TypeScript by
+`graph-layout.ts` (`rowHeight()` / `refLineHeight()`), because the graph does
+arithmetic on them to place nodes and edges in an SVG. They are cached like the
+lanes, so anything that rewrites tokens on `<html>` must call `resetThemeCache()`
+— and `CommitGraph` re-reads them in a memo keyed on the density setting.
 
 - CSS modules per component, BEM-like class names (`component-element--modifier`)
 - No global CSS framework

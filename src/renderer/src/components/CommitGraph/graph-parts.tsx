@@ -3,14 +3,23 @@
 // Split out of CommitGraph.tsx, which held them with the graph itself and its menus.
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from '../Icon/Icon'
-import { canvasRgb } from './graph-layout'
+import { canvasRgb, ROW_HEIGHT_FALLBACK, REF_LINE_FALLBACK } from './graph-layout'
 import { type ChipSegment } from './MessageChip'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
 
-export const ROW_HEIGHT  = 28
+/**
+ * ⚠️ These are the FALLBACKS, not the heights the graph draws with.
+ *
+ * A density moves both (#195), so the live values come out of the stylesheet
+ * through `rowHeight()` / `refLineHeight()` in graph-layout — which is what
+ * CommitGraph calls. These two are what those answer when there is no
+ * stylesheet to read (jsdom), and they are re-exported here only because this
+ * is where the graph's geometry constants have always been looked for.
+ */
+export const ROW_HEIGHT  = ROW_HEIGHT_FALLBACK
 
 /** The row's second line in the stacked layout. Must match .cg-row-meta. */
-export const REF_LINE_H  = 22
+export const REF_LINE_H  = REF_LINE_FALLBACK
 
 /** The coloured stripe at the very left of a row (.cg-color-bar). */
 export const COLOR_BAR_W = 3

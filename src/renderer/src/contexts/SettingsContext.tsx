@@ -67,6 +67,21 @@ export const THEME_STORAGE_KEY = 'gv-theme'
  */
 export const THEME_SEEDS_KEY = 'gv-theme-seeds'
 
+/**
+ * The reading density (#195), mirrored for the same reason as the theme: it
+ * moves row heights and padding, so a first frame painted at the wrong one is
+ * a visible jump rather than a flash of colour.
+ */
+export const DENSITY_STORAGE_KEY = 'gv-density'
+
+/** The two the picker offers. Anything else in settings.json falls back. */
+export const DENSITIES = ['comfortable', 'compact'] as const
+export type Density = typeof DENSITIES[number]
+
+export function resolveDensity(value: string | null | undefined): Density {
+  return (DENSITIES as readonly string[]).includes(value ?? '') ? value as Density : 'comfortable'
+}
+
 /** Installed themes, kept in module state so resolveTheme can see them without
  *  a round trip. Set once the main process answers. */
 let installedThemes: InstalledThemeInfo[] = []
@@ -178,6 +193,9 @@ export const SETTING_DEFAULTS: SettingsMap = {
   // desktop window, and the stat bar is more of a "nice to have" there.
   graphShowStats: isVSCodeHost ? 'false' : 'true',
   graphCompactColumns: 'false',
+  // Comfortable is the values in `:root`, so an existing install is not moved
+  // by this feature arriving; compact is the block that overrides them.
+  density: 'comfortable',
   // Panel only. On by default: giving the panel its own picker means it can
   // stop matching the editor, and a panel that does not match its editor reads
   // as broken. Turning this off is the user asking for their own.
@@ -204,9 +222,16 @@ function applyAppearance(s: SettingsMap) {
     else localStorage.removeItem(THEME_SEEDS_KEY)
   } catch { /* private mode */ }
 
-  // The graph resolves --lane-n and --bg-canvas to literals once and caches
-  // them, because it does arithmetic on them. Anything that rewrites tokens on
-  // <html> has to drop that cache, or the graph keeps painting the old theme.
+  // A density is a block of lengths rather than of seeds, and it is applied the
+  // same way — on <html>, mirrored, so main.tsx can set it before React mounts.
+  const density = resolveDensity(s.density)
+  root.dataset.density = density
+  try { localStorage.setItem(DENSITY_STORAGE_KEY, density) } catch { /* private mode */ }
+
+  // The graph resolves --lane-n, --bg-canvas and the two row heights to literals
+  // once and caches them, because it does arithmetic on them. Anything that
+  // rewrites tokens on <html> has to drop that cache, or the graph keeps
+  // painting the old theme — and, since #195, at the old density.
   resetThemeCache()
 }
 

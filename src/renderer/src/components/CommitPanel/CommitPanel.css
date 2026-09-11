@@ -226,7 +226,7 @@
 .amend-label:hover { color: var(--text-primary-soft); }
 
 .commit-btn {
-  height: 30px;
+  height: var(--row-field);
   padding: 0 var(--space-2xl);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-default);

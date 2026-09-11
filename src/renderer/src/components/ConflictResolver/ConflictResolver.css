@@ -80,7 +80,7 @@
 .mt-ai-input {
   flex: 1;
   min-width: 0;
-  height: 26px;
+  height: var(--row-nav);
   padding: 0 var(--space-lg);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);

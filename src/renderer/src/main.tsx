@@ -4,7 +4,7 @@ import App from './App'
 import { ToastProvider } from './components/Toast/Toast'
 import { JournalProvider } from './contexts/JournalContext'
 import { LanguageProvider } from './i18n/LanguageContext'
-import { SettingsProvider, THEME_STORAGE_KEY, THEME_SEEDS_KEY, cssRuleFor } from './contexts/SettingsContext'
+import { SettingsProvider, THEME_STORAGE_KEY, THEME_SEEDS_KEY, DENSITY_STORAGE_KEY, resolveDensity, cssRuleFor } from './contexts/SettingsContext'
 import './App.css'
 
 // Settings arrive over IPC, which is a round trip: the first frame would paint
@@ -31,6 +31,13 @@ try {
     }
   }
 } catch { /* private mode, or a mangled mirror: accept the flash */ }
+
+// The density, for the same reason and from the same cache (#195). It moves row
+// heights and padding rather than colours, so getting it late is not a flash —
+// it is the whole window resizing its rows one frame in.
+try {
+  document.documentElement.dataset.density = resolveDensity(localStorage.getItem(DENSITY_STORAGE_KEY))
+} catch { /* private mode: the default is already what :root carries */ }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -314,7 +314,7 @@
   color: var(--text-secondary);
   font-size: var(--text-md);
   width: 30px;
-  height: 30px;
+  height: var(--row-field);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -889,3 +889,39 @@
 
 /* A secret the app holds, and the window does not. */
 .stg-secret-hint { margin: var(--space-xs) 0 0; color: var(--text-secondary); font-size: var(--text-xs); }
+
+/* ── Reading density (#195) ──────────────────────────────────
+   Two options, each previewing itself: the swatch carries data-density, so its
+   rows are the height that choice actually draws. */
+.stg-density { display: flex; gap: var(--space-xl); margin-bottom: var(--space-xl); }
+.stg-density-opt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-lg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--dur-fast), background var(--dur-fast);
+}
+.stg-density-opt:hover { background: var(--surface-hover); }
+.stg-density-opt--on { border-color: var(--accent); background: var(--surface-sunken); }
+.stg-density-opt input { margin: 0; }
+.stg-density-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2xs);
+  width: 96px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--bg-canvas);
+}
+/* The one thing the preview shows, and it reads the token being chosen. */
+.stg-density-row {
+  height: var(--row-graph);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
+}
+.stg-density-label { font-size: var(--text-sm); color: var(--text-primary); }

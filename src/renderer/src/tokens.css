@@ -196,8 +196,8 @@
    * `base` is the body size. Replaced 22 sizes, including 12.5px, 13.5px and
    * 11.5px — half-pixels that only existed because no step landed right.
    */
-  --text-micro: 9px;
-  --text-tiny: 10px;
+  --text-micro: 10px;
+  --text-tiny: 11px;
   --text-xs: 11px;
   --text-sm: 12px;
   --text-base: 13px;
@@ -231,6 +231,32 @@
   --space-4xl: 24px;
   --space-5xl: 32px;
   --space-6xl: 40px;
+
+  /* ── Rows ──────────────────────────────────────────────────────────────
+   * A height that carries a LINE of something — a commit, a branch, a field.
+   * They are here rather than in each stylesheet because density moves them
+   * together with the spacing above: text that grows without its row overflows
+   * it, which is the whole reason #195 could not be done by restating the type
+   * scale alone.
+   *
+   * What is NOT a row: a square. An icon button, an avatar, a swatch — those
+   * keep their literal, because a 22×22 button that grows on one axis is not a
+   * roomier button, it is a broken one. The rule when converting: a `height`
+   * with an explicit `width` beside it is a square and stays put.
+   *
+   * --row-graph and --row-ref are read back into TypeScript by graph-layout —
+   * the graph does arithmetic on them to place nodes and edges in an SVG, which
+   * a var() cannot do. Change them here, nowhere else.
+   */
+  /* ⚠️ --row-graph has a FLOOR: the graph draws a node of NODE_RADIUS (11, in
+   * graph-parts) at the centre of each row, so a row shorter than 24px makes
+   * consecutive nodes touch and then overlap. density-discipline.test.ts holds
+   * every density to it. Compact sits exactly on it. */
+  --row-graph: 28px;   /* one commit in the graph */
+  --row-ref: 22px;     /* one branch/tag line under a commit */
+  --row-nav: 26px;     /* a row of the left column, and the chips at that rhythm */
+  --row-ctl: 28px;     /* an inline control: button, chip, tab */
+  --row-field: 30px;   /* a list row, or a form field */
 
   /* ── Radius ────────────────────────────────────────────────────────────*/
   --radius-xs: 3px;
@@ -1226,4 +1252,55 @@
   --seed-lane-8: #68B3DE;
   --seed-lane-9: #506FCA;
   --seed-lane-10: #7B43BA;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * DENSITY — the third family, and the only one that is about SIZE (#195)
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * A theme is a block of seeds. A density is a block of LENGTHS, and nothing
+ * else: `density-discipline.test.ts` fails on any declaration here whose value
+ * is not a plain length, so a colour cannot be smuggled in through the one
+ * block that is not policed as a theme.
+ *
+ * Two of them, and only one needs a rule:
+ *
+ *   comfortable  the default — the values above, in `:root`. `data-density`
+ *                is still written for it, so the picker's preview chips (which
+ *                carry the attribute on a descendant) select the right thing,
+ *                and so an existing install is not changed by this feature.
+ *   compact      below.
+ *
+ * ── What compact changes, and what it deliberately does not ──
+ *
+ * It takes away AIR, not letters. The audit's finding was that 900 × 600 is
+ * unusable — and what fills a short window is vertical rhythm: padding, gaps,
+ * row heights. Shrinking the glyphs instead would answer a complaint nobody
+ * made, on top of one the audit made in the opposite direction (metadata at 9
+ * and 10px was too small to read, and is 10 and 11px now in BOTH densities).
+ *
+ * So: the spacing steps used as padding come down, the rows come down, and the
+ * type scale moves by one step on the two body sizes only. The small end of
+ * the type scale is untouched — it is already at its floor.
+ */
+[data-density="compact"] {
+  /* The small steps are borders and hairline gaps; only the ones used as
+     padding have room to give. */
+  --space-lg: 8px;
+  --space-xl: 10px;
+  --space-2xl: 12px;
+  --space-3xl: 16px;
+  --space-4xl: 20px;
+  --space-5xl: 24px;
+  --space-6xl: 32px;
+
+  --row-graph: 24px;
+  --row-ref: 19px;
+  --row-nav: 22px;
+  --row-ctl: 24px;
+  --row-field: 26px;
+
+  /* Body text only. Nothing below --text-sm moves: see above. */
+  --text-base: 12px;
+  --text-md: 13px;
 }

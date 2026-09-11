@@ -261,6 +261,11 @@ const fr = {
   // Le journal du dépôt (#193) — ce que l'application a fait sur ce dépôt.
   'notifs.journal.title': (repo: string) => `Journal · ${repo}`,
   'notifs.journal.noRepo': 'Aucun dépôt',
+  // Densité de lecture (#195)
+  'settings.density.title': 'Densité',
+  'settings.density.desc': "Combien d'air entre les lignes. « Compact » resserre les hauteurs de ligne et les marges, pas la taille du texte — c'est l'air qui remplit une fenêtre courte, pas les lettres.",
+  'settings.density.comfortable': 'Confortable',
+  'settings.density.compact': 'Compact',
   'notifs.openJournal': "Relire cette erreur dans le journal du dépôt",
   'notifs.openJournalShort': 'Journal',
 
@@ -2075,6 +2080,11 @@ const en: typeof fr = {
   // The repository's journal (#193) — what the app did to this repository.
   'notifs.journal.title': (repo: string) => `Journal · ${repo}`,
   'notifs.journal.noRepo': 'No repository',
+  // Reading density (#195)
+  'settings.density.title': 'Density',
+  'settings.density.desc': 'How much air there is between rows. Compact tightens row heights and padding, not the text — what fills a short window is the air, not the letters.',
+  'settings.density.comfortable': 'Comfortable',
+  'settings.density.compact': 'Compact',
   'notifs.openJournal': 'Read this error again in the repository journal',
   'notifs.openJournalShort': 'Journal',
 
