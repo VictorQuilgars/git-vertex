@@ -23,10 +23,7 @@ import { DESKTOP_ONLY, KNOWN_GAPS } from './parity-lists'
 // not-implemented at runtime, and nothing here stops the shared UI from still
 // rendering a control for one — panelSurface.test.ts is the guard for that.
 
-// __dirname is out/test/suite at runtime, so every path is resolved from the
-// extension root rather than from the compiled tree.
-const EXT_ROOT = path.resolve(__dirname, '../../..')
-const REPO_ROOT = path.resolve(EXT_ROOT, '..')
+import { EXT_ROOT, REPO_ROOT } from './roots'
 const PRELOAD = path.join(REPO_ROOT, 'src', 'preload', 'index.ts')
 const EXT_SERVICE = path.join(EXT_ROOT, 'src', 'gitService.ts')
 const EXT_HOST = path.join(EXT_ROOT, 'src', 'panel', 'GitVertexHost.ts')

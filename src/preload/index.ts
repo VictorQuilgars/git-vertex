@@ -122,6 +122,7 @@ const gitAPI = {
   stashDiff: (index: number) => invoke('git:stash-diff', index),
   dropStash: (index: number) => invoke('git:drop-stash', index),
   // Blame
+  getFileDiffAtCommit: (commitHash: string, filepath: string) => invoke('git:file-diff-at-commit', commitHash, filepath),
   getBlame: (hash: string, filepath: string) => invoke('git:get-blame', hash, filepath),
   // Submodules
   getSubmodules: () => invoke('git:get-submodules'),

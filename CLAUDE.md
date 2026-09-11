@@ -51,6 +51,29 @@ fails on any unclassified method; run it with `npm run test:nodisplay` in
 exists on both sides with a *poorer* signature is the worse case — it succeeds while
 doing something else. Both classes have shipped.
 
+### The git operations behind it are shared too — the diff family, so far
+`src/main/git-core.ts` holds the behaviour both services run: the diff family, the
+blame parser, `assertRef`. Pure functions over a **runner**, `(args) => Promise<string>`
+— one line of adapter per host. It imports nothing at all, and must keep importing
+neither `electron` nor `vscode`: the desktop compiles it, esbuild bundles it into the
+extension host, the same way `theme-validate.ts` is shared. **A runner must give git's
+C-locale output** (`LC_ALL=C`); both hosts already pin it, and the core parses what it
+is given.
+
+The two services are otherwise still two implementations of one contract, and they
+drift: `getBlame` dated its lines `fr-FR` on the desktop and `en-US` in the panel for
+eleven releases. The arity guards below cannot see that — the method existed on both
+sides, took the right arguments, and did something else. Move the next family (log,
+status) the same way, both sides in one commit, and add its rows to
+`src/main/__tests__/git-core-parity.test.ts`, which fails when either service grows its
+own copy back.
+
+⚠️ `vscode-extension/tsconfig.test.json` emits **from the repository root** so
+`gitService.ts` can import the core; the compiled tree is `out/vscode-extension/src/…`.
+Three things locate it by path — `package.json`'s `test` script, `scripts/test-nodisplay.js`
+and `runTests.ts` — and the suites find the sources through `src/test/suite/roots.ts`
+rather than by counting `..`.
+
 ### IPC pattern
 - Main: `ipcMain.handle('namespace:action', async (_event, ...args) => { ... })`
 - Preload: `actionName: (...args) => ipcRenderer.invoke('namespace:action', ...args)`
@@ -63,7 +86,8 @@ host if the caller is shared renderer code.
 
 | File | Role |
 |------|------|
-| `src/main/git-service.ts` | GitService class wrapping simple-git. All git ops live here. |
+| `src/main/git-core.ts` | The git operations BOTH products run — diffs, blame, the ref guard. Free of electron and vscode. |
+| `src/main/git-service.ts` | GitService class wrapping simple-git. The desktop's git ops; the diff family delegates to git-core. |
 | `src/main/git-binary.ts` | Resolves the git binary once (login-shell PATH); `gitEnv`/`makeSimpleGit` use it |
 | `src/main/index.ts` | IPC handlers wired to GitService + settings + AI providers |
 | `src/preload/index.ts` | Typed bridge — every entry here is a callable on `window.gitAPI` |

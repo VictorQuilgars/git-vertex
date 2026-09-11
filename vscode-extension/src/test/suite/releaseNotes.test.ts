@@ -20,7 +20,7 @@ import { RELEASE_NOTES } from '../../releaseNotes'
 // `release.sh` accepts `Unreleased` in both files and promotes it to the real
 // number in the release commit. These tests only care that the two stay in step.
 
-const EXT_ROOT = path.resolve(__dirname, '../../..')
+import { EXT_ROOT } from './roots'
 const CHANGELOG = fs.readFileSync(path.join(EXT_ROOT, 'CHANGELOG.md'), 'utf8')
 
 /** The body of a changelog section, blank-trimmed — '' when absent or empty. */
