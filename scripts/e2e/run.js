@@ -27,6 +27,10 @@ const OUT = path.join(__dirname, 'out')
 // regression through too.
 const REFS = path.join(__dirname, 'references', process.platform)
 const TOLERANCE = 0.005   // half a percent of pixels may differ: anti-aliasing, a cursor
+// Above this share of the tolerance, a comparison that passes is reported as
+// a reference to re-record rather than as a match. Half: anti-aliasing and a
+// cursor do not cost that much, and a real change almost always costs more.
+const STALE_REFERENCE = 0.5
 
 // Linux without a display: xvfb gives the window somewhere to paint.
 if (process.platform === 'linux' && !process.env.DISPLAY && !args.has('--no-xvfb')) {
@@ -85,7 +89,17 @@ async function main() {
     if (!fs.existsSync(ref)) { notes.push(`${name}: no reference yet (run with --update to record one)`); return }
     const d = differ(decode(fs.readFileSync(ref)), decode(png))
     if (d.ratio > TOLERANCE) throw new E2EFailure(`${name}: ${(d.ratio * 100).toFixed(2)}% of pixels differ from the reference${d.reason ? ` (${d.reason})` : ''} — see ${path.relative(process.cwd(), path.join(OUT, name + '.png'))}`)
-    notes.push(`${name}: matches the reference (${(d.ratio * 100).toFixed(2)}% differ)`)
+    // Passing is not the same as matching. A deliberate visual change that
+    // nobody re-recorded sits under the tolerance and stays there — the
+    // reading density (#195) left this one at 0.42% of 0.5%, which passed on
+    // this machine and on CI and then failed a release on the first run that
+    // added a cursor to the frame. A reference eating most of the budget is
+    // a reference that is out of date, and it should say so while it is
+    // still cheap to fix.
+    const budget = d.ratio / TOLERANCE
+    notes.push(budget > STALE_REFERENCE
+      ? `${name}: passes, but ${(d.ratio * 100).toFixed(2)}% differ — ${Math.round(budget * 100)}% of the tolerance. The reference is probably out of date; re-record with --update once you have looked at it.`
+      : `${name}: matches the reference (${(d.ratio * 100).toFixed(2)}% differ)`)
   }
 
   // A failed journey may leave a menu or a dialog open; Escape closes either

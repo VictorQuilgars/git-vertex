@@ -10,6 +10,18 @@ npm run e2e -- --build   # rebuild first
 npm run e2e -- --update  # record the screenshots as references
 ```
 
+**A change that moves pixels on purpose has to re-record them, in the same
+commit.** A reference that is merely out of date does not fail — it eats the
+tolerance and waits. The reading density (#195) left `graph-900x600` at 0.42%
+of the 0.5% allowed: green here, green on CI, and then a release refused on
+the first run where a cursor happened to be in the frame. The runner now says
+so while it is still cheap — a comparison over half the tolerance is reported
+as a reference to re-record rather than as a match.
+
+References are per platform (`references/<platform>/`), because text is not
+rasterised the same on macOS and on a Linux runner. Recording on one machine
+leaves the other's stale.
+
 No display is needed: on Linux the runner re-runs itself under `xvfb-run`
 (`apt-get install -y xvfb`). On a desktop the window opens, is driven, and
 closes; the profile is its own (`--user-data-dir`), so the app you may have
