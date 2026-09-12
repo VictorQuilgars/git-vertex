@@ -11,6 +11,17 @@ import * as path from 'path'
 const gitVersion = parseGitVersion(execSync('git --version').toString()) ?? '0'
 const describeWithMergeTree = isGitVersionAtLeast(gitVersion, MIN_GIT_FOR_CONFLICT_PREDICTION) ? describe : describe.skip
 
+/**
+ * What one refresh of the graph and the panels may cost, in git processes.
+ * Lower them when a call goes away; raising one needs a reason in the commit
+ * that does it. See 'the refresh, counted in processes' below for why this is
+ * the number that matters rather than a duration.
+ */
+const OPEN_BUDGET_CLEAN = 8
+const OPEN_BUDGET_DIRTY = 10
+const REFRESH_BUDGET_CLEAN = 6
+const REFRESH_BUDGET_DIRTY = 8
+
 describe('GitService', () => {
   let tempDir: string
   let git: GitService
@@ -1189,6 +1200,73 @@ describe('GitService', () => {
   // ─────────────────────────────────────────────────────────────────────
   // getLog — signature field & ref filtering (solo/mute branches)
   // ─────────────────────────────────────────────────────────────────────
+
+  // ─────────────────────────────────────────────────────────────────────
+  // How many git processes a refresh costs
+  // ─────────────────────────────────────────────────────────────────────
+
+  // On this machine a git process is a few milliseconds and the count is an
+  // abstraction. On Windows it is the measurement: starting `git.exe` costs an
+  // order of magnitude more than running it, so what a refresh COSTS there is
+  // very nearly how many times it starts one. Nothing in this repository can
+  // measure a Windows spawn, but the count is the same number everywhere — so
+  // it is what gets asserted, and a change that adds a process to the refresh
+  // has to say so here.
+  describe('the refresh, counted in processes', () => {
+    /**
+     * Every git invocation made by `fn`. Each of these simple-git methods is
+     * one process; `run` (git-core's runner) goes through `raw`, so it is
+     * already counted.
+     */
+    async function countProcesses(fn: () => Promise<unknown>): Promise<string[]> {
+      const inner = (git as any).git
+      const seen: string[] = []
+      const patched = ['raw', 'status', 'branch', 'revparse', 'log', 'tags'] as const
+      const real: Record<string, any> = {}
+      for (const name of patched) {
+        if (typeof inner[name] !== 'function') continue
+        real[name] = inner[name].bind(inner)
+        inner[name] = (...a: any[]) => {
+          seen.push(name === 'raw' ? `raw ${Array.isArray(a[0]) ? a[0][0] : a[0]}` : name)
+          return real[name](...a)
+        }
+      }
+      try { await fn() } finally { for (const name of Object.keys(real)) inner[name] = real[name] }
+      return seen
+    }
+
+    /** Exactly what useRepoSession's loadRepoData asks for, in its two waves. */
+    const refresh = () => Promise.all([
+      Promise.all([git.getBranches(), git.getLog()]),
+      Promise.all([
+        git.getStashes(), git.getTags(), git.getConflictedFiles(),
+        git.getConflictMode(), git.getWorkingChanges(),
+      ]),
+    ])
+
+    // The FIRST refresh of a repository pays for two answers that cannot
+    // change while it is open — where `.git` is, and whether there is a HEAD —
+    // and never pays for them again. Both numbers are asserted: the first is
+    // what opening costs, the second is what every watcher event, every
+    // commit and every fetch costs afterwards, which is the one that is paid
+    // over and over.
+    test('a clean repository, opened and then refreshed', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      expect((await countProcesses(refresh)).length).toBeLessThanOrEqual(OPEN_BUDGET_CLEAN)
+      expect((await countProcesses(refresh)).length).toBeLessThanOrEqual(REFRESH_BUDGET_CLEAN)
+    })
+
+    test('a dirty repository, opened and then refreshed', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'changed')
+      fs.writeFileSync(path.join(tempDir, 'g.txt'), 'new')
+      execSync(`cd ${tempDir} && git add g.txt`)
+      expect((await countProcesses(refresh)).length).toBeLessThanOrEqual(OPEN_BUDGET_DIRTY)
+      expect((await countProcesses(refresh)).length).toBeLessThanOrEqual(REFRESH_BUDGET_DIRTY)
+    })
+  })
 
   // ─────────────────────────────────────────────────────────────────────
   // One `git status` at a time

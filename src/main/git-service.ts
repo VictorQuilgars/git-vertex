@@ -248,7 +248,17 @@ export class GitService {
     // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
-    if (!(await this.hasHead())) return { commits: [] }
+    //
+    // Asked once. A repository that has a HEAD does not stop having one while
+    // it is open — the first commit is the only transition, and it goes the
+    // other way — so the check is a process spent on every refresh, and on
+    // every "load more", to learn something that changed once. It is still
+    // re-asked if the log ever fails: `update-ref -d HEAD` exists, and the
+    // answer to a failure must not be a cached belief.
+    if (!this.headSeen) {
+      if (!(await this.hasHead())) return { commits: [] }
+      this.headSeen = true
+    }
     const maxCount = options.maxCount ?? 200
     const args: string[] = [
       // --numstat prints "added\tdeleted\tpath" lines after each commit's
@@ -279,7 +289,16 @@ export class GitService {
       args.push('--all')
     }
 
-    const result = await this.git.raw(['log', ...args])
+    let result: string
+    try {
+      result = await this.git.raw(['log', ...args])
+    } catch (e) {
+      // The belief above was wrong, or something else is: check properly, and
+      // answer an empty history rather than throwing when that is the truth.
+      this.headSeen = false
+      if (!(await this.hasHead())) return { commits: [] }
+      throw e
+    }
     const commits: CommitNode[] = []
     const lines = result.split('\n')
     // %H is a full 40-char hex hash immediately followed by our '|' delimiter —
@@ -753,13 +772,23 @@ export class GitService {
     untracked: string[]
   }> {
     try {
-      // Two extra diffs so each section reports its own counts. Untracked files
-      // get none: git diff cannot see them, and stat-ing each one would mean a
-      // subprocess per file.
-      const [status, stagedStats, unstagedStats] = await Promise.all([
-        this.status(),
-        this.numstat(['--cached']),
-        this.numstat([]),
+      // Two extra diffs so each section reports its own counts — but only for
+      // a section that HAS something, which is what the status has just said.
+      // A clean working tree is the ordinary state of a repository being
+      // opened, and it used to pay for two diffs of nothing; asking after the
+      // status rather than beside it makes that refresh one process instead
+      // of three. The status itself is free here — getConflictedFiles is
+      // asking for it in the same wave and they share the one in flight.
+      //
+      // Untracked files get no counts at all: git diff cannot see them, and
+      // stat-ing each one would mean a subprocess per file.
+      const status = await this.status()
+      const dirty = (pick: (f: { index: string; working_dir: string }) => string) =>
+        status.files.some(f => { const c = pick(f).trim(); return c !== '' && c !== '?' })
+      const none = new Map<string, { additions: number; deletions: number }>()
+      const [stagedStats, unstagedStats] = await Promise.all([
+        dirty(f => f.index) ? this.numstat(['--cached']) : none,
+        dirty(f => f.working_dir) ? this.numstat([]) : none,
       ])
 
       // Build a set of staged paths for dedup
@@ -2151,17 +2180,33 @@ exit 0
     return this.redoStack.length > 0
   }
 
+  /**
+   * Where this repository's `.git` actually is — asked once and kept.
+   *
+   * In a submodule or a linked worktree `.git` is a FILE pointing elsewhere,
+   * so the answer has to come from git rather than from a join. But it cannot
+   * change while the repository is open, and getConflictMode wanted it on
+   * every refresh: one process, four times a second during a rebase, for a
+   * string that is the same every time.
+   */
+  /** True once `rev-parse --verify HEAD` has succeeded — see getLog. */
+  private headSeen = false
+  private gitDirCache: string | null = null
+  private async gitDir(): Promise<string> {
+    if (this.gitDirCache) return this.gitDirCache
+    const path = await import('path')
+    const raw = (await this.git.revparse(['--git-dir'])).trim()
+    this.gitDirCache = path.isAbsolute(raw) ? raw : path.join(this.repoPath, raw)
+    return this.gitDirCache
+  }
+
   async getConflictMode(): Promise<{ mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null }> {
     const fs = await import('fs')
     const path = await import('path')
-    const dotGit = path.join(this.repoPath, '.git')
-    
-    // In some setups (like submodules or worktrees), .git is a file.
-    // simple-git's git.revparse(['--git-dir']) is more reliable.
+
     try {
-      const gitDir = (await this.git.revparse(['--git-dir'])).trim()
-      const absGitDir = path.isAbsolute(gitDir) ? gitDir : path.join(this.repoPath, gitDir)
-      
+      const absGitDir = await this.gitDir()
+
       if (fs.existsSync(path.join(absGitDir, 'MERGE_HEAD'))) return { mode: 'merge' }
       if (fs.existsSync(path.join(absGitDir, 'rebase-apply')) || fs.existsSync(path.join(absGitDir, 'rebase-merge'))) return { mode: 'rebase' }
       if (fs.existsSync(path.join(absGitDir, 'CHERRY_PICK_HEAD'))) return { mode: 'cherry-pick' }
