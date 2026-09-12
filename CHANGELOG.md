@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **The CLI speaks English.** The terminal UI predates the English-only rule the app and the extension were swept for, and it still carried fifty-one sites of French: the whole help panel, every status line, the sidebar's section headers, the column titles, and thirteen error messages from the git layer — *Conflit de rebase*, *Aucun remote configuré*, *Rien à rétablir*. It is translated, the section headers now read as the desktop's do (`LOCAL`, `REMOTES`, `TAGS`), and a test reads the sources so the next one fails in CI rather than on screen. (#77)
+
 ## 1.36.0
 
 ### Added
