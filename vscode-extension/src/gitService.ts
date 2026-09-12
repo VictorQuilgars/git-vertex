@@ -2182,6 +2182,20 @@ exit 0
     catch (e: any) { return { success: false, error: e.message } }
   }
 
+  // No --force: git's refusal when a submodule holds local changes IS the
+  // safety of the command. Same contract as the desktop.
+  async deinitSubmodule(p: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['submodule', 'deinit', '--', p]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
+  // `.gitmodules` holds the URL; `.git/config` is what git fetches from. A moved
+  // remote arrives in the first and is ignored until this copies it to the second.
+  async syncSubmodule(p: string): Promise<{ success: boolean; error?: string }> {
+    try { await this.git.raw(['submodule', 'sync', '--', p]); return { success: true } }
+    catch (e: any) { return { success: false, error: e.message } }
+  }
+
   // ── Worktrees (ported from desktop GitService) ────────────────
 
   async listWorktrees(): Promise<{ worktrees: { path: string; branch: string; head: string; isMain: boolean; locked: boolean }[] }> {

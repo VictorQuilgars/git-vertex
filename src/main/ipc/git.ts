@@ -511,6 +511,16 @@ export function registerGitHandlers(): void {
     return state.gitService.updateSubmodule(path)
   })
 
+  handle('git:deinit-submodule', async (_event, path: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.deinitSubmodule(path)
+  })
+
+  handle('git:sync-submodule', async (_event, path: string) => {
+    if (!state.gitService) return { success: false, error: 'No repo open' }
+    return state.gitService.syncSubmodule(path)
+  })
+
   // ── IPC: Extended search & branch comparison ───────────────
   handle('git:search-in-diffs', async (_event, query: string) => {
     if (!state.gitService) return { hashes: [] }

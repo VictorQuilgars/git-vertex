@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Added
+- **Two submodule actions that were missing: empty it, and re-read its URL.** The sidebar could initialize a submodule and update it, and that was all — the last two gaps in the internal git-coverage matrix. Right-click a submodule now also offers **Sync the URL**, for when its remote moved and the change arrived as a commit to `.gitmodules`: git keeps fetching from the URL written into `.git/config` at clone time, so until this runs every update still goes to the old host. And **Empty the working tree**, which frees the checkout while leaving the submodule declared and re-initialisable. That one asks first, and no `--force` is ever sent — git refusing when there is work that is not pushed is the whole safety of the command, and its refusal is shown rather than swallowed. (#86)
+
 ## 1.36.0
 
 ### Added

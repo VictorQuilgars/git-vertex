@@ -2,6 +2,12 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🧩 Two submodule actions that were missing
+- **Sync the URL** — when a submodule's remote moves, the change arrives in \`.gitmodules\` and git keeps fetching from the URL it wrote at clone time. This copies one to the other.
+- **Empty the working tree** — frees the checkout, keeps the submodule declared. It asks first, and git still refuses if there is work that is not pushed.
+`,
   '1.36.0': `## What's new in 1.36.0
 
 ### 📏 A reading density
