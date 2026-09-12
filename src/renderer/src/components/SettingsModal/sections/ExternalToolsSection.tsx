@@ -3,7 +3,7 @@ import type { SettingsPage } from '../useSettingsPage'
 import { SaveNote } from '../shared'
 
 export function ExternalToolsSection({ page }: { page: SettingsPage }) {
-  const { t, settings, section, externalEditor, setExternalEditor, externalDiffTool, setExternalDiffTool, externalMergeTool, setExternalMergeTool, externalTerminal, setExternalTerminal } = page
+  const { t, externalEditor, setExternalEditor, externalDiffTool, setExternalDiffTool, externalMergeTool, setExternalMergeTool, externalTerminal, setExternalTerminal } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.externalTools.title')}</h2>

@@ -47,9 +47,6 @@ export function serializeAutolinks(links: Autolink[]): string {
 }
 
 /** Escapes a prefix so `C++-` or `A.B-` is matched literally, not as a pattern. */
-function escapeForRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
 
 export interface AutolinkMatch {
   /** Index in the source text where the reference starts. */

@@ -2,7 +2,7 @@
 // editor tab, in the "search & compare" shape. Ref selectors on top, the
 // ahead/behind commit lists on the left, the full diff on the right.
 
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import DiffViewer from '../DiffViewer/DiffViewer'
 import type { FileChange } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'

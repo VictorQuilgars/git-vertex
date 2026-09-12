@@ -8,7 +8,7 @@ import type { SettingsPage } from '../useSettingsPage'
 import { GitGlobalChip, SaveNote } from '../shared'
 
 export function SshSection({ page }: { page: SettingsPage }) {
-  const { t, settings, section, sshUseAgent, setSshUseAgent, sshPrivateKey, setSshPrivateKey, sshPublicKey, setSshPublicKey, sshGenerating, setSshGenerating, sshPassphrase, setSshPassphrase, showToast } = page
+  const { t, sshUseAgent, setSshUseAgent, sshPrivateKey, setSshPrivateKey, sshPublicKey, setSshPublicKey, sshGenerating, setSshGenerating, sshPassphrase, setSshPassphrase, showToast } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.ssh.title')}</h2>

@@ -15,7 +15,7 @@ export function ghMatch(item: GithubListItem, q: string): boolean {
 }
 
 // ── §4: the filter editor of a section — beside the list, not over it ────
-export function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, onCancel, onDraft, t }: {
+export function GhFilterEditor({ kind, initial, draft, repoLabel, existing, onCreate, onDraft, t }: {
   kind: 'prs' | 'issues'
   /**
    * An existing filter being edited. This — and only this — is what makes the

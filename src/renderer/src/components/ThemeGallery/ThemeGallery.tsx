@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useLang } from '../../i18n/LanguageContext'
 import { useSettings, setInstalledThemes } from '../../contexts/SettingsContext'
 import type { InstalledThemeInfo } from '../../contexts/SettingsContext'

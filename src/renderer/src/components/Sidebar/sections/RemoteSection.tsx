@@ -7,7 +7,7 @@ import { BranchItem } from '../BranchItem'
 import type { SidebarState } from '../useSidebar'
 
 export function RemoteSection({ s }: { s: SidebarState }) {
-  const { currentBranch, onCheckout, onDeleteRemoteBranch, onExplainBranch, onBranchChangelog, onGoTo, soloBranch, onToggleSolo, onToggleHide, isFavorite, onToggleFavorite, onOpenBranchOnRemote, prIntentFor, onCreatePR, onCopyBranchLink, single, remotes, branchHidden, familyMenu, toggleFolder, openFolders, filtering, showAll, remoteBranches } = s
+  const { currentBranch, onDeleteRemoteBranch, onExplainBranch, onBranchChangelog, onGoTo, soloBranch, onToggleSolo, onToggleHide, isFavorite, onToggleFavorite, onOpenBranchOnRemote, prIntentFor, onCreatePR, onCopyBranchLink, single, branchHidden, familyMenu, toggleFolder, openFolders, filtering, showAll, remoteBranches } = s
   return (
     <Section id="remote" title="REMOTE" icon="cloud" count={remoteBranches.length} defaultOpen={single}
               menuItems={familyMenu('remotes')}
