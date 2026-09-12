@@ -1,4 +1,4 @@
-import { MIN_GIT_FOR_FSMONITOR, TUNED_KEY, TUNED_VALUE, isTuned, tuneRepository, type TuningRunner } from '../repo-tuning'
+import { MIN_GIT_FOR_FSMONITOR, TUNED_KEY, TUNED_VALUE, isTuned, maybeTuneRepository, tuneRepository, type TuningRunner } from '../repo-tuning'
 import { execFile, execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -124,6 +124,43 @@ test('the floor for the built-in daemon is the version git shipped it in', () =>
 // one value that skips core.fsmonitor, and switching that on would leave a
 // `git fsmonitor--daemon` behind for a directory the test is about to
 // delete. What fsmonitor does with its arguments is covered above.
+// The whole decision, which both hosts call rather than writing twice. The
+// second copy would have lived in the extension host, where no test in this
+// repository can reach it — and the panel would have drawn the checkbox with
+// nothing behind it, which is the failure CLAUDE.md records shipping twice.
+describe('maybeTuneRepository', () => {
+  const modernOn = { enabled: true, gitVersion: '2.45.0', platform: 'win32' }
+
+  test('the setting off means git is not even asked whether it has been done', async () => {
+    const { run, asked } = runner({})
+    expect(await maybeTuneRepository(run, { ...modernOn, enabled: false })).toBeNull()
+    expect(asked).toEqual([])
+  })
+
+  test('a repository already tuned is left alone, at the cost of one process', async () => {
+    const { run, asked } = runner({ [`config --get ${TUNED_KEY}`]: { code: 0, stdout: `${TUNED_VALUE}\n` } })
+    expect(await maybeTuneRepository(run, modernOn)).toBeNull()
+    expect(asked).toHaveLength(1)
+  })
+
+  test('a repository not yet tuned is, and says what it did', async () => {
+    const { run, ran } = runner({
+      [`config --get ${TUNED_KEY}`]: { code: 1 },
+      'config --get core.fsmonitor': { code: 1 },
+    })
+    const report = await maybeTuneRepository(run, modernOn)
+    expect(report).toEqual({ fsmonitor: 'set', commitGraph: 'set' })
+    expect(ran('config core.fsmonitor true')).toBe(true)
+  })
+
+  // Called three seconds after a repository opens, from a main process and
+  // from an extension host. Neither has anywhere useful to put a throw.
+  test('a runner that throws is a repository that works as before', async () => {
+    const angry: TuningRunner = async () => { throw new Error('git is gone') }
+    await expect(maybeTuneRepository(angry, modernOn)).resolves.toBeNull()
+  })
+})
+
 describe('against real git', () => {
   let dir: string
   const run: TuningRunner = (args) => new Promise(resolve => {

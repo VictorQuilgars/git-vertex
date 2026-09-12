@@ -105,6 +105,33 @@ export async function tuneRepository(
   return report
 }
 
+/**
+ * The whole decision, in one place both hosts call.
+ *
+ * Each host supplies only what is its own: a way to run git, whether the user
+ * asked for this, which git it found, and what it is running on. Everything
+ * else — the setting being off, a repository already done, what is supportable
+ * here — is decided once and tested once. The alternative was the same four
+ * conditions written twice, in a desktop main process and in an extension
+ * host, one of which has no test that can reach it at all.
+ *
+ * Returns null when nothing was done, which is the ordinary case: the setting
+ * is off by default and a repository is tuned once in its life.
+ */
+export async function maybeTuneRepository(
+  run: TuningRunner,
+  opts: { enabled: boolean; gitVersion: string | null; platform: string },
+): Promise<TuningReport | null> {
+  if (!opts.enabled) return null
+  try {
+    if (await isTuned(run)) return null
+    return await tuneRepository(run, opts)
+  } catch {
+    // A repository that cannot be tuned is a repository that works as before.
+    return null
+  }
+}
+
 /** One line for the log, so what happened to a repository is answerable. */
 export function describeTuning(report: TuningReport): string {
   return `fsmonitor ${report.fsmonitor}, commit-graph ${report.commitGraph}`

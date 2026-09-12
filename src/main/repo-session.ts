@@ -9,7 +9,7 @@ import { parseAutoFetchMinutes, shouldUseSshCommand, buildSshCommand, updateSubm
 import { addRecentRepo } from './recent-repos'
 import { gitBinary, gitEnv } from './git-service'
 import { gitDirChangeMatters, makeWatchFilter, type IgnoreProbe } from './watch-filter'
-import { describeTuning, isTuned, tuneRepository, type TuningRunner } from './repo-tuning'
+import { describeTuning, maybeTuneRepository, type TuningRunner } from './repo-tuning'
 import { getGitBinary } from './git-binary'
 import { execFile } from 'child_process'
 import fs from 'fs'
@@ -101,19 +101,12 @@ function tuningRunner(repoPath: string): TuningRunner {
 }
 
 async function maybeTune(repoPath: string): Promise<void> {
-  if (readSettings().repoTuning !== 'true') return
-  const run = tuningRunner(repoPath)
-  try {
-    if (await isTuned(run)) return
-    const report = await tuneRepository(run, {
-      gitVersion: getGitBinary().version,
-      platform: process.platform,
-    })
-    console.log(`[git-vertex] tuned ${repoPath}: ${describeTuning(report)}`)
-  } catch (e) {
-    // A repository that cannot be tuned is a repository that works as before.
-    console.log(`[git-vertex] could not tune ${repoPath}: ${(e as Error)?.message ?? e}`)
-  }
+  const report = await maybeTuneRepository(tuningRunner(repoPath), {
+    enabled: readSettings().repoTuning === 'true',
+    gitVersion: getGitBinary().version,
+    platform: process.platform,
+  })
+  if (report) console.log(`[git-vertex] tuned ${repoPath}: ${describeTuning(report)}`)
 }
 
 // ── Watchers, per session ───────────────────────────────────────

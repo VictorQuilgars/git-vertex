@@ -18,10 +18,18 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 📏 A reading density
+- **Settings › Appearance › Density**, two options that each preview themselves. *Comfortable* is what the panel has always drawn — nothing moves unless you ask.
+- *Compact* takes away **air, not letters**: shorter rows, tighter padding, body text down one step. In a panel docked beside an editor, that is where the room runs out first.
+- The smallest text goes the other way, **at both densities**: metadata that was 9 and 10px is 10 and 11px now.
+
 ### ⚡ The panel opens a repository faster
 - **The graph you had last time is drawn in the first frame**, while the real one is read behind it. Nothing is taken from it as an answer — the refresh runs as it always did and replaces what is drawn.
 - **The page stopped verifying signatures.** \`%G?\` runs gpg once per signed commit and the graph draws none: a 200-commit page measured 580 ms with it, 150 ms without.
 - **One \`git status\` per refresh rather than two** — the slowest read there is, on a large working tree, was being made twice.
+- **The branch list is one git process**, and comes out of plumbing rather than out of text git writes for people — which also retires the parse that turned a detached HEAD into a branch called \`(HEAD\`.
+- **Settings › Behaviour › Speed up large repositories.** Writes \`core.fsmonitor\` into each repository the panel opens, so a daemon watches the working tree and \`git status\` stops walking it. Off unless you ask: it goes into the repository's own config, the row says which keys, and \`git config --unset\` undoes it.
+- **On Windows, the same page says what the extension cannot fix.** Defender inspects every file git opens; excluding the folder your repositories live in usually beats everything else put together. The command is there to read and to copy — never run for you.
 `,
   '1.33.0': `## What's new in 1.33.0
 
