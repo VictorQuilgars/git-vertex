@@ -9,7 +9,7 @@ import type { SettingsPage } from '../useSettingsPage'
 import { GitGlobalChip, SaveNote } from '../shared'
 
 export function GitSection({ page }: { page: SettingsPage }) {
-  const { t, settings, section, gitUserName, setGitUserName, gitUserEmail, setGitUserEmail, gitBinary, setGitBinary, gitBinaryPath, setGitBinaryPath, gitBinaryBusy, setGitBinaryBusy, gpgSign, setGpgSign, profiles, saveGit, saveCurrentAsProfile, applyProfile, deleteProfile, showToast, embedded } = page
+  const { t, gitUserName, setGitUserName, gitUserEmail, setGitUserEmail, gitBinary, setGitBinary, gitBinaryPath, setGitBinaryPath, gitBinaryBusy, setGitBinaryBusy, gpgSign, setGpgSign, profiles, saveGit, saveCurrentAsProfile, applyProfile, deleteProfile, showToast, embedded } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.git.title')}</h2>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import hljs from 'highlight.js'
 // The hljs theme is src/renderer/src/syntax.css, imported from App.css so all

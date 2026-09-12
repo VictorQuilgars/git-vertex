@@ -4,7 +4,7 @@ import { TagItem } from '../rows'
 import type { SidebarState } from '../useSidebar'
 
 export function TagsSection({ s }: { s: SidebarState }) {
-  const { tags, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHide, onToggleHideTag, single, t, tagHidden, familyMenu, showAll } = s
+  const { tags, onCreateTag, onDeleteTag, onCheckoutTag, onGoTo, onPushTag, onDeleteRemoteTag, onToggleHideTag, single, t, tagHidden, familyMenu, showAll } = s
   return (
     <Section id="tags" title="TAGS" icon="tag" count={tags.length} defaultOpen={single}
             onAdd={onCreateTag} addLabel={t('sb.newTag')}

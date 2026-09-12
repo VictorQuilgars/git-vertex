@@ -1,21 +1,9 @@
 // A merge, rebase, cherry-pick or revert stopped on conflicts.
 
-import { useCommitDraft } from '../../hooks/useCommitDraft'
-import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Icon } from '../Icon/Icon'
-import hljs from 'highlight.js'
-import { CommitNode, ConflictKind, FileChange, WorkingChanges } from '../../types'
-import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
+import { useState, useEffect } from 'react'
+import { ConflictKind } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
-import { aiAvatarDataUri } from '../../utils/aiAvatars'
-import { linkifyIssues, IssueRepo } from '../IssueLink/IssueLink'
-import { parseAutolinks } from '../../utils/autolinks'
-import { useSettings } from '../../contexts/SettingsContext'
-import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
-import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
-import WorkingChangesEmpty, { type NextStepsState, type NextStepsActions } from './WorkingChangesEmpty'
-import { hasIssueReferences } from '../IssueLink/IssueLink'
 import { SIDE_HAS_VERSION } from './shared'
 
 // ── Conflict Panel ──────────────────────────────────────────────

@@ -159,18 +159,18 @@ export default function CommitGraph(props: CommitGraphProps) {
   alwaysShowWip = false,
   onStageAll,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
-  onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt,
-  onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit,
-  onCompareWorking, onSelectForCompare, onCompareWithSelected, compareBaseHash,
-  onDropCommit, onMoveCommit, onBranchDrop, wipCount = 0,
-  onCherryPickMany, onDropCommits,
+  
+  onCheckoutBranch, 
+  compareBaseHash,
+  wipCount = 0,
+  
   conflictMode = null, githubRepo = null, loading = false, onSearchMatches,
-  onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch,
-  onPushBranch, onSetUpstream, prIntentFor, onCreatePR, branchMenuItems,
-  onCopyCommitLink, onCreateAnnotatedTag, onDeleteRemoteBranch, onPushTag, onDeleteTag,
-  onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch,
-  onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false,
-  onNativeMenuTarget, visibility, remoteNames,
+  
+  
+  
+  
+  nativeContextMenu = false,
+  visibility, remoteNames,
 } = props
   const { t } = useLang()
   const { getBool, get, set } = useSettings()

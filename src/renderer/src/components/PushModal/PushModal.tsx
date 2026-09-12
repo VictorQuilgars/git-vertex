@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './PushModal.css'
 import { BranchInfo } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'

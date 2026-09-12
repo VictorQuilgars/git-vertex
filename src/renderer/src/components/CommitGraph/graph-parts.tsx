@@ -1,7 +1,7 @@
 // What a row of the graph is drawn with: the geometry constants, the column widths,
 // the avatars, the date formats, the ref chips and their expansion, the stats bar.
 // Split out of CommitGraph.tsx, which held them with the graph itself and its menus.
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Icon } from '../Icon/Icon'
 import { canvasRgb, ROW_HEIGHT_FALLBACK, REF_LINE_FALLBACK } from './graph-layout'
 import { type ChipSegment } from './MessageChip'

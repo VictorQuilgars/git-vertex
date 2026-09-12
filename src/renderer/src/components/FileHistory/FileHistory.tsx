@@ -2,7 +2,7 @@
 // "Visual File History"): commit timeline on the left, per-commit diff or
 // blame on the right. Opened by the VS Code extension via boot mode 'history'.
 
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import DiffViewer from '../DiffViewer/DiffViewer'
 import type { CommitNode } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'

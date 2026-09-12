@@ -1,6 +1,6 @@
 // What the root component is made of outside its own body: the tab model, the view
 // helpers, the stash preview, the constants. Split out of App.tsx.
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { CommitNode, ConflictKind, type CompareAxis } from '../types'
 import { useLang } from '../i18n/LanguageContext'
 import DiffViewer from '../components/DiffViewer/DiffViewer'
