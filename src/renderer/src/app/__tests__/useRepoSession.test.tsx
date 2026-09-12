@@ -57,6 +57,46 @@ test('a load that finishes after a switch lands in its own repository, not the s
   expect(view.result.current.currentBranch).toBe('a-main')
 })
 
+// The five waves a refresh used to be are the refresh, on a machine where
+// starting git costs more than running it. Nothing here depends on anything
+// else, so nothing waits: the log is held back 40 ms and every other question
+// has already left by then. Under the old order getStashes would not have been
+// asked yet — it waited for the log.
+test('a refresh asks for everything at once', async () => {
+  const { apis, view } = setup({ '/a': 40 })
+  act(() => view.result.current.setRepoPath('/a'))
+  let load!: Promise<void>
+  act(() => { load = view.result.current.loadRepoData() })
+  const a = apis['/a']
+  for (const asked of [a.getBranches, a.getLog, a.getStashes, a.getTags, a.getConflictedFiles, a.getConflictMode, a.getWorkingChanges]) {
+    expect(asked).toHaveBeenCalled()
+  }
+  await act(async () => { await load })
+})
+
+// getTracking spent three more processes — rev-parse HEAD, rev-parse @{u}, a
+// rev-list walk — recomputing what getBranches already read for every branch
+// in one for-each-ref.
+test('ahead/behind comes off the current branch, with no second question', async () => {
+  const { apis, view } = setup()
+  apis['/a'].getBranches.mockResolvedValue({ branches: [
+    { name: 'a-main', current: true, ahead: 2, behind: 3 },
+    { name: 'other', current: false, ahead: 9, behind: 9 },
+  ] })
+  act(() => view.result.current.setRepoPath('/a'))
+  await act(async () => { await view.result.current.loadRepoData() })
+  expect(view.result.current.tracking).toEqual({ ahead: 2, behind: 3 })
+  expect(apis['/a'].getTracking).not.toHaveBeenCalled()
+})
+
+test('a branch in sync, or a detached HEAD, is zero and zero', async () => {
+  const { apis, view } = setup()
+  apis['/a'].getBranches.mockResolvedValue({ branches: [{ name: 'detached at 1a2b3c4', current: true, detached: true }] })
+  act(() => view.result.current.setRepoPath('/a'))
+  await act(async () => { await view.result.current.loadRepoData() })
+  expect(view.result.current.tracking).toEqual({ ahead: 0, behind: 0 })
+})
+
 test('coming back to a repository shows what it had, at once, before any call', async () => {
   const { apis, view } = setup()
   act(() => view.result.current.setRepoPath('/a'))

@@ -262,43 +262,68 @@ export function useRepoSession(app: AppChrome) {
     if (!silent && shown()) setLoading(true)
     const api = apiFor(path)
     try {
-      // Branches are still read first: the sidebar needs them, and the log
-      // query is built from the visibility state rather than from them.
-      const branchRes = await api.getBranches()
-      const logRes = await api.getLog(logOptionsFor({
+      // ── All of it at once ──────────────────────────────────
+      //
+      // These six reads do not depend on one another — the log query is built
+      // from the visibility state, not from the branches — and they used to be
+      // asked in five waves anyway, each waiting on the last. On this machine
+      // that is a few tens of milliseconds of nothing; on Windows, where
+      // starting git.exe costs an order of magnitude more than it does here,
+      // the waiting IS the refresh. So every request leaves at once and the
+      // answers are applied in two groups.
+      //
+      // Two groups, not six: the graph is what the window is, so branches and
+      // the log paint as soon as those two are in, and the panels follow. Each
+      // group is still one React render, as before.
+      //
+      // The `rest` requests cannot reject — a failure there has always been
+      // read as "nothing to show" (`?? []` below, and getTracking's own catch
+      // before it) — and settling them here also keeps a rejection from
+      // floating unhandled while the first group is still being awaited.
+      // Branches and the log keep throwing: those two failing is the
+      // repository failing, and the caller has always seen it.
+      const branchesP = api.getBranches()
+      const logP = api.getLog(logOptionsFor({
         maxCount: path === activePathRef.current ? logLimitRef.current : (snapshots.current.get(path)?.logLimit ?? LOG_PAGE),
         all: showAllRef.current,
         solo: soloRef.current,
         visibility: visibilityRef.current,
       }))
+      const stashP = api.getStashes().catch(() => ({ stashes: [] }))
+      const tagP = api.getTags().catch(() => ({ tags: [] }))
+      const conflictP = api.getConflictedFiles().catch(() => ({ files: [], entries: [] }))
+      const modeP = api.getConflictMode().catch(() => ({ mode: null }))
+      const changesP = api.getWorkingChanges().catch(() => ({ staged: [], unstaged: [], untracked: [] }))
+
+      const [branchRes, logRes] = await Promise.all([branchesP, logP])
       const first: Partial<RepoSnapshot> = {}
       if (logRes.commits) first.commits = logRes.commits
+      const cur = branchRes.branches?.find((b: BranchInfo) => b.current)
       if (branchRes.branches) {
         first.branches = branchRes.branches
-        const cur = branchRes.branches.find((b: BranchInfo) => b.current)
         if (cur) first.currentBranch = cur.name
       }
+      // Ahead/behind comes off the current branch rather than from
+      // getTracking, which spent three more processes — rev-parse HEAD,
+      // rev-parse @{u}, then a rev-list walk — to recompute what getBranches
+      // already read for every branch at once, from `%(upstream:track)` in its
+      // single for-each-ref. Detached, or no upstream, leaves both at zero in
+      // either version.
+      first.tracking = { ahead: cur?.ahead ?? 0, behind: cur?.behind ?? 0 }
       applyLoaded(path, first)
+
+      const [stashRes, tagRes, conflictRes, modeRes, changesRes] =
+        await Promise.all([stashP, tagP, conflictP, modeP, changesP])
       const rest: Partial<RepoSnapshot> = {}
-      const [stashRes, tagRes] = await Promise.all([api.getStashes(), api.getTags()])
       rest.stashes = stashRes.stashes ?? []
       rest.tags = (tagRes as any).tags ?? []
-      const [conflictRes, modeRes] = await Promise.all([
-        api.getConflictedFiles(),
-        api.getConflictMode(),
-      ])
       rest.conflictFiles = conflictRes.files ?? []
       rest.conflictKinds = kindsByPath(conflictRes.entries)
       rest.conflictMode = modeRes.mode
-      const changesRes = await api.getWorkingChanges()
       rest.wipCount =
         (changesRes.staged?.length ?? 0) +
         (changesRes.unstaged?.length ?? 0) +
         (changesRes.untracked?.length ?? 0)
-      try {
-        const tr = await (api as any).getTracking()
-        rest.tracking = { ahead: tr?.ahead ?? 0, behind: tr?.behind ?? 0 }
-      } catch { /* no upstream */ }
       applyLoaded(path, rest)
     } finally {
       if (!silent && shown()) setLoading(false)
