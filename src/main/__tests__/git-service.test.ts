@@ -11,6 +11,17 @@ import * as path from 'path'
 const gitVersion = parseGitVersion(execSync('git --version').toString()) ?? '0'
 const describeWithMergeTree = isGitVersionAtLeast(gitVersion, MIN_GIT_FOR_CONFLICT_PREDICTION) ? describe : describe.skip
 
+/**
+ * What one refresh of the graph and the panels may cost, in git processes.
+ * Lower them when a call goes away; raising one needs a reason in the commit
+ * that does it. See 'the refresh, counted in processes' below for why this is
+ * the number that matters rather than a duration.
+ */
+const OPEN_BUDGET_CLEAN = 7
+const OPEN_BUDGET_DIRTY = 9
+const REFRESH_BUDGET_CLEAN = 5
+const REFRESH_BUDGET_DIRTY = 7
+
 describe('GitService', () => {
   let tempDir: string
   let git: GitService
@@ -1190,12 +1201,237 @@ describe('GitService', () => {
   // getLog — signature field & ref filtering (solo/mute branches)
   // ─────────────────────────────────────────────────────────────────────
 
+  // ─────────────────────────────────────────────────────────────────────
+  // getBranches — the states HEAD can be in
+  // ─────────────────────────────────────────────────────────────────────
+
+  // The list used to come from `git branch -a --verbose`, porcelain parsed by
+  // a regex over a sentence written for people. That is where `(HEAD detached
+  // at 1a2b3c4)` reached the sidebar as a branch called `(HEAD`. It is
+  // for-each-ref now, in fields — and these are the states that parse had to
+  // be repaired for, so they are the ones worth holding down.
+  describe('getBranches', () => {
+    const current = async () => (await git.getBranches()).branches.find(b => b.current)
+
+    beforeEach(() => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'one')
+      execSync(`cd ${tempDir} && git add . && git commit -q -m "the first"`)
+    })
+
+    test('the checked-out branch is the current one, with its hash and its subject', async () => {
+      const cur = await current()
+      expect(cur?.name).toBe('main')
+      expect(cur?.remote).toBe(false)
+      expect(cur?.detached).toBeFalsy()
+      expect(cur?.label).toBe('the first')
+      expect(cur?.commit).toMatch(/^[0-9a-f]{7,}$/)
+    })
+
+    test('every local branch is listed, and only one is current', async () => {
+      execSync(`cd ${tempDir} && git branch other && git branch third`)
+      const { branches } = await git.getBranches()
+      expect(branches.map(b => b.name).sort()).toEqual(['main', 'other', 'third'])
+      expect(branches.filter(b => b.current)).toHaveLength(1)
+    })
+
+    test('a detached HEAD is named for what it is, not parsed out of a sentence', async () => {
+      const sha = execSync(`cd ${tempDir} && git rev-parse --short HEAD`).toString().trim()
+      execSync(`cd ${tempDir} && git checkout -q --detach HEAD`)
+      const cur = await current()
+      expect(cur?.detached).toBe(true)
+      expect(cur?.name).toBe(`detached at ${sha}`)
+      expect(cur?.name.startsWith('(')).toBe(false)
+    })
+
+    test('mid-rebase, the current row names the branch being replayed', async () => {
+      execSync(`cd ${tempDir} && git checkout -q -b feature`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'feature')
+      execSync(`cd ${tempDir} && git commit -q -am "on the feature"`)
+      execSync(`cd ${tempDir} && git checkout -q main`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'main')
+      execSync(`cd ${tempDir} && git commit -q -am "on main"`)
+      // Conflicts, and stops with the rebase in progress.
+      try { execSync(`cd ${tempDir} && git rebase main feature`, { stdio: 'ignore' }) } catch { /* expected */ }
+
+      const cur = await current()
+      expect(cur?.detached).toBe(true)
+      expect(cur?.name).toBe('rebasing feature')
+      execSync(`cd ${tempDir} && git rebase --abort`)
+    })
+
+    test('a remote-tracking branch is listed as one, and ahead/behind is read for the local', async () => {
+      const remote = `${tempDir}-origin.git`
+      execSync(`git init -q --bare ${remote}`)
+      execSync(`cd ${tempDir} && git remote add origin ${remote} && git push -q -u origin main`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'two')
+      execSync(`cd ${tempDir} && git commit -q -am "not pushed"`)
+
+      const { branches } = await git.getBranches()
+      const local = branches.find(b => b.name === 'main')
+      const tracking = branches.find(b => b.remote)
+      expect(local?.ahead).toBe(1)
+      expect(local?.behind).toBe(0)
+      expect(tracking?.name).toBe('remotes/origin/main')
+      // A remote-tracking ref has no upstream of its own.
+      expect(tracking?.ahead).toBeUndefined()
+      execSync(`rm -rf ${remote}`)
+    })
+
+    test('an upstream deleted on the remote reads as gone', async () => {
+      const remote = `${tempDir}-origin.git`
+      execSync(`git init -q --bare ${remote}`)
+      // Not main: a bare repository refuses to delete the branch its own HEAD
+      // points at, which is the one thing this test needs to happen.
+      execSync(`cd ${tempDir} && git remote add origin ${remote}`)
+      execSync(`cd ${tempDir} && git branch doomed && git push -q -u origin doomed`)
+      execSync(`cd ${tempDir} && git push -q origin --delete doomed && git fetch -q --prune origin`)
+      const local = (await git.getBranches()).branches.find(b => b.name === 'doomed')
+      expect(local?.gone).toBe(true)
+      execSync(`rm -rf ${remote}`)
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // How many git processes a refresh costs
+  // ─────────────────────────────────────────────────────────────────────
+
+  // On this machine a git process is a few milliseconds and the count is an
+  // abstraction. On Windows it is the measurement: starting `git.exe` costs an
+  // order of magnitude more than running it, so what a refresh COSTS there is
+  // very nearly how many times it starts one. Nothing in this repository can
+  // measure a Windows spawn, but the count is the same number everywhere — so
+  // it is what gets asserted, and a change that adds a process to the refresh
+  // has to say so here.
+  describe('the refresh, counted in processes', () => {
+    /**
+     * Every git invocation made by `fn`. Each of these simple-git methods is
+     * one process; `run` (git-core's runner) goes through `raw`, so it is
+     * already counted.
+     */
+    async function countProcesses(fn: () => Promise<unknown>): Promise<string[]> {
+      const inner = (git as any).git
+      const seen: string[] = []
+      const patched = ['raw', 'status', 'branch', 'revparse', 'log', 'tags'] as const
+      const real: Record<string, any> = {}
+      for (const name of patched) {
+        if (typeof inner[name] !== 'function') continue
+        real[name] = inner[name].bind(inner)
+        inner[name] = (...a: any[]) => {
+          seen.push(name === 'raw' ? `raw ${Array.isArray(a[0]) ? a[0][0] : a[0]}` : name)
+          return real[name](...a)
+        }
+      }
+      try { await fn() } finally { for (const name of Object.keys(real)) inner[name] = real[name] }
+      return seen
+    }
+
+    /** Exactly what useRepoSession's loadRepoData asks for, in its two waves. */
+    const refresh = () => Promise.all([
+      Promise.all([git.getBranches(), git.getLog()]),
+      Promise.all([
+        git.getStashes(), git.getTags(), git.getConflictedFiles(),
+        git.getConflictMode(), git.getWorkingChanges(),
+      ]),
+    ])
+
+    // The FIRST refresh of a repository pays for two answers that cannot
+    // change while it is open — where `.git` is, and whether there is a HEAD —
+    // and never pays for them again. Both numbers are asserted: the first is
+    // what opening costs, the second is what every watcher event, every
+    // commit and every fetch costs afterwards, which is the one that is paid
+    // over and over.
+    test('a clean repository, opened and then refreshed', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      expect((await countProcesses(refresh)).length).toBeLessThanOrEqual(OPEN_BUDGET_CLEAN)
+      expect((await countProcesses(refresh)).length).toBeLessThanOrEqual(REFRESH_BUDGET_CLEAN)
+    })
+
+    test('a dirty repository, opened and then refreshed', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'changed')
+      fs.writeFileSync(path.join(tempDir, 'g.txt'), 'new')
+      execSync(`cd ${tempDir} && git add g.txt`)
+      expect((await countProcesses(refresh)).length).toBeLessThanOrEqual(OPEN_BUDGET_DIRTY)
+      expect((await countProcesses(refresh)).length).toBeLessThanOrEqual(REFRESH_BUDGET_DIRTY)
+    })
+  })
+
+  // ─────────────────────────────────────────────────────────────────────
+  // One `git status` at a time
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('git status is shared between readers that overlap', () => {
+    /** Count the calls that reach simple-git, and restore the method after. */
+    async function countStatus(run: () => Promise<unknown>): Promise<number> {
+      const inner = (git as any).git
+      const real = inner.status.bind(inner)
+      let calls = 0
+      inner.status = (...a: any[]) => { calls++; return real(...a) }
+      try { await run() } finally { inner.status = real }
+      return calls
+    }
+
+    beforeEach(() => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+    })
+
+    // The refresh asks both of these, and once it asks in parallel they are
+    // two processes stat-ing the whole working tree AND both rewriting the
+    // index — which is a race for index.lock as much as it is wasted time.
+    test('conflicts and working changes at the same time cost one process', async () => {
+      const calls = await countStatus(() =>
+        Promise.all([git.getConflictedFiles(), git.getWorkingChanges()]))
+      expect(calls).toBe(1)
+    })
+
+    test('a reader that starts afterwards gets its own', async () => {
+      const calls = await countStatus(async () => {
+        await git.getConflictedFiles()
+        await git.getConflictedFiles()
+      })
+      expect(calls).toBe(2)
+    })
+
+    // The guard that matters: sharing must never mean serving yesterday.
+    test('a change made between two reads is seen by the second', async () => {
+      const before = await git.getWorkingChanges()
+      expect(before.untracked).not.toContain('new.txt')
+      fs.writeFileSync(path.join(tempDir, 'new.txt'), 'hello')
+      const after = await git.getWorkingChanges()
+      expect(after.untracked).toContain('new.txt')
+    })
+  })
+
   describe('getLog signature & refs', () => {
-    test('unsigned commits report signature "N"', async () => {
+    // `%G?` is not a field, it is a verification: git runs gpg once per SIGNED
+    // commit it prints. Nothing draws the result — the graph has drawn no
+    // signature since 28/08/2026 (CommitGraph.signature.test.tsx) — and on a
+    // 200-commit page here it was 580 ms against 150 ms without. Putting those
+    // four characters back in the format string is a one-line change that
+    // costs a gpg process per row, so the guard is on the ARGUMENTS: a test
+    // over the returned value would pass just as well on a repository that
+    // happens to sign nothing.
+    test('the page query never asks git to verify a signature', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const inner = (git as any).git
+      const raw = inner.raw.bind(inner)
+      const seen: string[][] = []
+      inner.raw = (args: string[], ...rest: any[]) => { seen.push(args); return raw(args, ...rest) }
+      try { await git.getLog() } finally { inner.raw = raw }
+      const logArgs = seen.find(a => Array.isArray(a) && a[0] === 'log')
+      expect(logArgs).toBeDefined()
+      expect(logArgs!.join(' ')).not.toContain('%G?')
+    })
+
+    test('a commit from the page carries no signature status', async () => {
       fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
       execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
       const log = await git.getLog()
-      expect(log.commits[0].signature).toBe('N')
+      expect(log.commits[0].signature).toBeUndefined()
     })
 
     test('refs option restricts the log to the given branch (solo)', async () => {
@@ -1249,8 +1485,9 @@ describe('GitService', () => {
       execSync(`cd ${tempDir} && git add f.txt`)
       const r = await git.commit('Unsigned commit', false, false)
       expect(r.success).toBe(true)
-      const log = await git.getLog()
-      expect(log.commits[0].signature).toBe('N')
+      // Asked of git directly: the page no longer carries `%G?` (see above),
+      // and what this test is about is the commit, not the page.
+      expect(execSync(`cd ${tempDir} && git log -1 --pretty=%G?`).toString().trim()).toBe('N')
     })
 
     test('commit with sign=true surfaces an error when signing is impossible', async () => {

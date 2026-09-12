@@ -1,7 +1,7 @@
 // gitService.ts — All git operations for the VS Code extension host.
 // Uses simple-git (no Electron dependency).
 
-import simpleGit, { SimpleGit, BranchSummary } from 'simple-git'
+import simpleGit, { SimpleGit, StatusResult } from 'simple-git'
 import { readFileSync } from 'fs'
 import { resolve as pathResolve } from 'path'
 import { CommitNode, BranchInfo, ConflictEntry, ConflictKind, FileChange, WorkingChanges, RebaseState, RebaseStep } from './types'
@@ -213,7 +213,9 @@ export class GitService {
     if (!(await this.hasHead())) return { commits: [] }
     const maxCount = options.maxCount ?? 300
     const args: string[] = [
-      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D|%G?',
+      // ⚠️ NOT %G? — see the desktop service. It verifies every signed commit
+      // on the page, one gpg process each, for a value nothing draws.
+      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D',
       `--max-count=${maxCount}`,
       '--date-order',
     ]
@@ -232,7 +234,7 @@ export class GitService {
 
     for (const line of result.trim().split('\n')) {
       if (!line.trim()) continue
-      const [hash, parentStr, message, author, authorEmail, date, refsStr, sigStr] = line.split('|')
+      const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
       const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
       const refs = refsStr
         ? refsStr.split(',').map(r => r.trim()).filter(r => r.length > 0)
@@ -245,8 +247,7 @@ export class GitService {
         authorEmail: authorEmail || '',
         date: date || '',
         parents,
-        refs,
-        signature: (sigStr || 'N').trim()
+        refs
       })
     }
     return { commits }
@@ -287,51 +288,20 @@ export class GitService {
   }
 
   async getBranches(): Promise<{ branches: BranchInfo[] }> {
-    const summary: BranchSummary = await this.git.branch(['-a', '--verbose'])
-    const branches: BranchInfo[] = Object.values(summary.branches).map(b => ({
-      name: b.name,
-      current: b.current,
-      remote: b.name.startsWith('remotes/'),
-      commit: b.commit,
-      label: b.label || b.name
-    }))
-    // Empty repo: `git branch` lists nothing before the first commit, but the
-    // unborn branch (symbolic-ref) still has a name worth showing in the UI.
-    if (!branches.some(b => b.current)) {
-      try {
-        const name = (await this.git.raw(['symbolic-ref', '--short', 'HEAD'])).trim()
-        if (name) branches.push({ name, current: true, remote: false, commit: '', label: name })
-      } catch { /* detached HEAD — nothing to add */ }
-    }
-    // Repair simple-git's parse of the detached-HEAD placeholder (see
-    // detachedHeadLabel). The UI shows `name`, so the fix has to land there.
-    const cur = branches.find(b => b.current)
-    if (cur && cur.name.startsWith('(')) {
+    // One for-each-ref, out of plumbing: the list, the current marker and
+    // ahead/behind all at once. See git-core's branchRows for why this
+    // replaced `git branch -a --verbose` and a second call.
+    const { rows, detached } = await core.branchRows(this.run)
+    const branches: BranchInfo[] = rows
+    // HEAD is on no branch: detached, or mid-rebase. `git branch` used to
+    // print a sentence here — `* (HEAD detached at 1a2b3c4)` — which
+    // simple-git parsed into a branch called `(HEAD`. The label is built from
+    // plumbing instead, and it reads a file, which is why this one step stays
+    // on the host.
+    if (detached) {
       const label = await this.detachedHeadLabel()
-      if (label) {
-        cur.name = label
-        cur.label = label
-        cur.detached = true
-      }
+      if (label) branches.push({ name: label, current: true, remote: false, commit: '', label, detached: true })
     }
-    // Ahead/behind vs upstream for local branches, in a single git call.
-    try {
-      const track = await this.git.raw(['for-each-ref', 'refs/heads', '--format=%(refname:short)|%(upstream:track)'])
-      const info = new Map<string, { ahead: number; behind: number; gone: boolean }>()
-      for (const line of track.split('\n')) {
-        const [name, t] = line.split('|')
-        if (!name || !t) continue
-        info.set(name, {
-          ahead: parseInt(/ahead (\d+)/.exec(t)?.[1] ?? '0', 10),
-          behind: parseInt(/behind (\d+)/.exec(t)?.[1] ?? '0', 10),
-          gone: t.includes('gone'),
-        })
-      }
-      for (const b of branches) {
-        const tr = !b.remote ? info.get(b.name) : undefined
-        if (tr) Object.assign(b, tr)
-      }
-    } catch { /* tracking info is best-effort */ }
     return { branches }
   }
 
@@ -360,7 +330,7 @@ export class GitService {
       // each reports its own counts. Untracked files get none — git diff cannot
       // see them, and stat-ing each would mean a subprocess per file.
       const [status, stagedStats, unstagedStats] = await Promise.all([
-        this.git.status(),
+        this.status(),
         this.workingNumstat(['--cached']),
         this.workingNumstat([]),
       ])
@@ -554,7 +524,7 @@ export class GitService {
   async discardFile(file: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Untracked files have no prior version to restore — delete them instead.
-      const status = await this.git.status()
+      const status = await this.status()
       const isUntracked = status.not_added.includes(file)
         || status.files.some(f => f.path === file && f.index === '?' && f.working_dir === '?')
       if (isUntracked) {
@@ -744,7 +714,7 @@ export class GitService {
       const msg: string = e.message ?? ''
       if (msg.includes('no upstream') || msg.includes('set-upstream') || msg.includes('has no upstream')) {
         try {
-          const status = await this.git.status()
+          const status = await this.status()
           const branch = status.current ?? 'main'
           const { remote } = await this.getDefaultRemote()
           if (!remote) return { success: false, error: 'No remote configured' }
@@ -762,7 +732,7 @@ export class GitService {
     try {
       const result = await this.git.raw([
         'log', '--all',
-        `--pretty=format:%H|%P|%s|%an|%ae|%ai|%D|%G?`,
+        `--pretty=format:%H|%P|%s|%an|%ae|%ai|%D`,
         '--max-count=100',
         `--grep=${query}`,
         '--regexp-ignore-case',
@@ -770,7 +740,7 @@ export class GitService {
       const commits: CommitNode[] = []
       for (const line of result.trim().split('\n')) {
         if (!line.trim()) continue
-        const [hash, parentStr, message, author, authorEmail, date, refsStr, sigStr] = line.split('|')
+        const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
         const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
         const refs = refsStr ? refsStr.split(',').map(r => r.trim()).filter(Boolean) : []
         commits.push({
@@ -781,8 +751,7 @@ export class GitService {
           authorEmail: authorEmail || '',
           date: date || '',
           parents,
-          refs,
-          signature: (sigStr || 'N').trim()
+          refs
         })
       }
       return { commits }
@@ -1067,7 +1036,7 @@ export class GitService {
   // conflict.
   async getConflictedFiles(): Promise<{ files: string[]; entries: ConflictEntry[] }> {
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       const entries = status.files
         .filter(f => f.index === 'U' || f.working_dir === 'U' || (f.index === 'A' && f.working_dir === 'A') || (f.index === 'D' && f.working_dir === 'D'))
         .map(f => ({ path: f.path, kind: conflictKind(f.index, f.working_dir) }))
@@ -1293,10 +1262,34 @@ export class GitService {
 
   // ── History-rewriting helpers (ported from the desktop GitService) ──
 
+  // ── One `git status` at a time ──────────────────────────────
+  //
+  // `git status` is the most expensive read the app makes — it stats the whole
+  // working tree, and on NTFS behind a virus scanner that is the slowest thing
+  // in a refresh by a wide margin. A refresh used to run TWO of them, because
+  // getConflictedFiles and getWorkingChanges each asked for their own, and
+  // once the refresh started asking in parallel they also ran at the same
+  // time: two processes both refreshing and rewriting `.git/index`, racing for
+  // `index.lock`.
+  //
+  // So callers share the one in flight. Two callers that overlap in time both
+  // asked "now" and the same answer is the right one for both; the promise is
+  // dropped as soon as it settles, so a call that starts after it gets a fresh
+  // one and nothing is ever served stale.
+  private inFlightStatus: Promise<StatusResult> | null = null
+  private status(): Promise<StatusResult> {
+    if (this.inFlightStatus) return this.inFlightStatus
+    const shared = this.git.status()
+    this.inFlightStatus = shared
+    const clear = (): void => { if (this.inFlightStatus === shared) this.inFlightStatus = null }
+    shared.then(clear, clear)
+    return shared
+  }
+
   // True if the working tree has any tracked changes (staged or unstaged).
   private async isDirty(): Promise<boolean> {
     try {
-      const s = await this.git.status()
+      const s = await this.status()
       return s.files.some(f => f.index !== '?' || f.working_dir !== '?')
     } catch {
       return false
@@ -1319,7 +1312,7 @@ export class GitService {
     const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
     if (bad) return { success: false, error: bad }
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       if (status.current === branch) {
         if (await this.isDirty()) {
           return { success: false, error: 'Uncommitted changes — commit or stash before moving current branch' }
@@ -1908,7 +1901,7 @@ exit 0
 
   async getStatus(): Promise<{ staged: string[]; unstaged: string[]; untracked: string[] }> {
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       return { staged: status.staged, unstaged: status.modified, untracked: status.not_added }
     } catch { return { staged: [], unstaged: [], untracked: [] } }
   }

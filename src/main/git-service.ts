@@ -1,4 +1,4 @@
-import simpleGit, { SimpleGit, LogResult, BranchSummary } from 'simple-git'
+import simpleGit, { SimpleGit, LogResult, StatusResult } from 'simple-git'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { getGitBinary, isSimpleGitSafeBinary } from './git-binary'
@@ -14,7 +14,8 @@ export interface CommitNode {
   date: string
   parents: string[]
   refs: string[]   // branch/tag labels
-  signature?: string  // GPG signature status from `%G?` (G/B/U/X/Y/R/E/N)
+  // `%G?` (G/B/U/X/Y/R/E/N). Left unset by getLog on purpose — see types.ts.
+  signature?: string
   // Total lines added/removed across the commit's diff (from `--numstat`).
   // Undefined/0 for merge commits, where git log emits no diff by default.
   additions?: number
@@ -198,10 +199,34 @@ export class GitService {
     return core.assertRef(ref, label)
   }
 
+  // ── One `git status` at a time ──────────────────────────────
+  //
+  // `git status` is the most expensive read the app makes — it stats the whole
+  // working tree, and on NTFS behind a virus scanner that is the slowest thing
+  // in a refresh by a wide margin. A refresh used to run TWO of them, because
+  // getConflictedFiles and getWorkingChanges each asked for their own, and
+  // once the refresh started asking in parallel they also ran at the same
+  // time: two processes both refreshing and rewriting `.git/index`, racing for
+  // `index.lock`.
+  //
+  // So callers share the one in flight. Two callers that overlap in time both
+  // asked "now" and the same answer is the right one for both; the promise is
+  // dropped as soon as it settles, so a call that starts after it gets a fresh
+  // one and nothing is ever served stale.
+  private inFlightStatus: Promise<StatusResult> | null = null
+  private status(): Promise<StatusResult> {
+    if (this.inFlightStatus) return this.inFlightStatus
+    const shared = this.git.status()
+    this.inFlightStatus = shared
+    const clear = (): void => { if (this.inFlightStatus === shared) this.inFlightStatus = null }
+    shared.then(clear, clear)
+    return shared
+  }
+
   // True if the working tree has any tracked changes (staged or unstaged).
   private async isDirty(): Promise<boolean> {
     try {
-      const s = await this.git.status()
+      const s = await this.status()
       return s.files.some(f => f.index !== '?' || f.working_dir !== '?')
     } catch {
       return false
@@ -223,14 +248,31 @@ export class GitService {
     // Freshly-initialized repo (no commit yet): plain `git log` exits 128.
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
-    if (!(await this.hasHead())) return { commits: [] }
+    //
+    // Asked once. A repository that has a HEAD does not stop having one while
+    // it is open — the first commit is the only transition, and it goes the
+    // other way — so the check is a process spent on every refresh, and on
+    // every "load more", to learn something that changed once. It is still
+    // re-asked if the log ever fails: `update-ref -d HEAD` exists, and the
+    // answer to a failure must not be a cached belief.
+    if (!this.headSeen) {
+      if (!(await this.hasHead())) return { commits: [] }
+      this.headSeen = true
+    }
     const maxCount = options.maxCount ?? 200
     const args: string[] = [
       // --numstat prints "added\tdeleted\tpath" lines after each commit's
       // format line (empty for merges, since git log skips their diff by
       // default) — still a single process call for the whole page of history.
       '--numstat',
-      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D|%G?',
+      // ⚠️ NOT %G?. See the note above `signature` in types.ts: that placeholder
+      // makes git verify every signed commit on the page — one gpg process each
+      // — and nothing in the app draws the result. Measured on this repository,
+      // a 200-commit page: 580 ms with it, 150 ms without; the 51 signed commits
+      // in it cost ~8.4 ms apiece on macOS, and a gpg spawn on Windows is an
+      // order of magnitude worse. A page of a repository whose merges all come
+      // from the GitHub button is entirely signed, and paid for in full.
+      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D',
       `--max-count=${maxCount}`,
       '--date-order', // children always before parents (like --topo-order), but sibling
                     // commits are sorted by commit date
@@ -247,7 +289,16 @@ export class GitService {
       args.push('--all')
     }
 
-    const result = await this.git.raw(['log', ...args])
+    let result: string
+    try {
+      result = await this.git.raw(['log', ...args])
+    } catch (e) {
+      // The belief above was wrong, or something else is: check properly, and
+      // answer an empty history rather than throwing when that is the truth.
+      this.headSeen = false
+      if (!(await this.hasHead())) return { commits: [] }
+      throw e
+    }
     const commits: CommitNode[] = []
     const lines = result.split('\n')
     // %H is a full 40-char hex hash immediately followed by our '|' delimiter —
@@ -258,7 +309,7 @@ export class GitService {
     while (i < lines.length) {
       const line = lines[i]
       if (!commitLineRe.test(line)) { i++; continue }
-      const [hash, parentStr, message, author, authorEmail, date, refsStr, sigStr] = line.split('|')
+      const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
       const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
       const refs = refsStr
         ? refsStr.split(',')
@@ -287,7 +338,6 @@ export class GitService {
         date: date || '',
         parents,
         refs,
-        signature: (sigStr || 'N').trim(),
         additions,
         deletions,
       })
@@ -330,51 +380,20 @@ export class GitService {
   }
 
   async getBranches(): Promise<{ branches: BranchInfo[] }> {
-    const summary: BranchSummary = await this.git.branch(['-a', '--verbose'])
-    const branches: BranchInfo[] = Object.values(summary.branches).map(b => ({
-      name: b.name,
-      current: b.current,
-      remote: b.name.startsWith('remotes/'),
-      commit: b.commit,
-      label: b.label || b.name
-    }))
-    // Empty repo: `git branch` lists nothing before the first commit, but the
-    // unborn branch (symbolic-ref) still has a name worth showing in the UI.
-    if (!branches.some(b => b.current)) {
-      try {
-        const name = (await this.git.raw(['symbolic-ref', '--short', 'HEAD'])).trim()
-        if (name) branches.push({ name, current: true, remote: false, commit: '', label: name })
-      } catch { /* detached HEAD — nothing to add */ }
-    }
-    // Repair simple-git's parse of the detached-HEAD placeholder (see
-    // detachedHeadLabel). The UI shows `name`, so the fix has to land there.
-    const cur = branches.find(b => b.current)
-    if (cur && cur.name.startsWith('(')) {
+    // One for-each-ref, out of plumbing: the list, the current marker and
+    // ahead/behind all at once. See git-core's branchRows for why this
+    // replaced `git branch -a --verbose` and a second call.
+    const { rows, detached } = await core.branchRows(this.run)
+    const branches: BranchInfo[] = rows
+    // HEAD is on no branch: detached, or mid-rebase. `git branch` used to
+    // print a sentence here — `* (HEAD detached at 1a2b3c4)` — which
+    // simple-git parsed into a branch called `(HEAD`. The label is built from
+    // plumbing instead, and it reads a file, which is why this one step stays
+    // on the host.
+    if (detached) {
       const label = await this.detachedHeadLabel()
-      if (label) {
-        cur.name = label
-        cur.label = label
-        cur.detached = true
-      }
+      if (label) branches.push({ name: label, current: true, remote: false, commit: '', label, detached: true })
     }
-    // Ahead/behind vs upstream for local branches, in a single git call.
-    try {
-      const track = await this.git.raw(['for-each-ref', 'refs/heads', '--format=%(refname:short)|%(upstream:track)'])
-      const info = new Map<string, { ahead: number; behind: number; gone: boolean }>()
-      for (const line of track.split('\n')) {
-        const [name, t] = line.split('|')
-        if (!name || !t) continue
-        info.set(name, {
-          ahead: parseInt(/ahead (\d+)/.exec(t)?.[1] ?? '0', 10),
-          behind: parseInt(/behind (\d+)/.exec(t)?.[1] ?? '0', 10),
-          gone: t.includes('gone'),
-        })
-      }
-      for (const b of branches) {
-        const tr = !b.remote ? info.get(b.name) : undefined
-        if (tr) Object.assign(b, tr)
-      }
-    } catch { /* tracking info is best-effort */ }
     return { branches }
   }
 
@@ -652,7 +671,7 @@ export class GitService {
         msg.includes('has no upstream')
       ) {
         try {
-          const status = await this.git.status()
+          const status = await this.status()
           const branch = status.current ?? 'main'
           const { remote } = await this.getDefaultRemote()
           if (!remote) return { success: false, error: 'No remote configured' }
@@ -682,7 +701,7 @@ export class GitService {
 
   async getStatus(): Promise<{ staged: string[]; unstaged: string[]; untracked: string[] }> {
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       return {
         staged: status.staged,
         unstaged: status.modified,
@@ -722,13 +741,23 @@ export class GitService {
     untracked: string[]
   }> {
     try {
-      // Two extra diffs so each section reports its own counts. Untracked files
-      // get none: git diff cannot see them, and stat-ing each one would mean a
-      // subprocess per file.
-      const [status, stagedStats, unstagedStats] = await Promise.all([
-        this.git.status(),
-        this.numstat(['--cached']),
-        this.numstat([]),
+      // Two extra diffs so each section reports its own counts — but only for
+      // a section that HAS something, which is what the status has just said.
+      // A clean working tree is the ordinary state of a repository being
+      // opened, and it used to pay for two diffs of nothing; asking after the
+      // status rather than beside it makes that refresh one process instead
+      // of three. The status itself is free here — getConflictedFiles is
+      // asking for it in the same wave and they share the one in flight.
+      //
+      // Untracked files get no counts at all: git diff cannot see them, and
+      // stat-ing each one would mean a subprocess per file.
+      const status = await this.status()
+      const dirty = (pick: (f: { index: string; working_dir: string }) => string) =>
+        status.files.some(f => { const c = pick(f).trim(); return c !== '' && c !== '?' })
+      const none = new Map<string, { additions: number; deletions: number }>()
+      const [stagedStats, unstagedStats] = await Promise.all([
+        dirty(f => f.index) ? this.numstat(['--cached']) : none,
+        dirty(f => f.working_dir) ? this.numstat([]) : none,
       ])
 
       // Build a set of staged paths for dedup
@@ -874,7 +903,7 @@ export class GitService {
       // An untracked file is not affected by restore/checkout (git has no prior
       // version to restore). The only way to "discard" it is to delete it from
       // the working tree — `git clean -fd` handles both files and directories.
-      const status = await this.git.status()
+      const status = await this.status()
       const isUntracked = status.not_added.includes(file)
         || status.files.some(f => f.path === file && f.index === '?' && f.working_dir === '?')
       if (isUntracked) {
@@ -1426,7 +1455,7 @@ export class GitService {
     const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
     if (bad) return { success: false, error: bad }
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       if (status.current === branch) {
         // Moving the current branch is a hard reset — it discards uncommitted
         // work silently. Refuse loudly instead of destroying changes.
@@ -1856,7 +1885,7 @@ exit 0
   // correctly deletes the file, see resolveConflictWithSide) said nothing about it.
   async getConflictedFiles(): Promise<{ files: string[]; entries: ConflictEntry[] }> {
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       const entries = status.files
         .filter(f => f.index === 'U' || f.working_dir === 'U' || (f.index === 'A' && f.working_dir === 'A') || (f.index === 'D' && f.working_dir === 'D'))
         .map(f => ({ path: f.path, kind: conflictKind(f.index, f.working_dir) }))
@@ -2120,17 +2149,33 @@ exit 0
     return this.redoStack.length > 0
   }
 
+  /**
+   * Where this repository's `.git` actually is — asked once and kept.
+   *
+   * In a submodule or a linked worktree `.git` is a FILE pointing elsewhere,
+   * so the answer has to come from git rather than from a join. But it cannot
+   * change while the repository is open, and getConflictMode wanted it on
+   * every refresh: one process, four times a second during a rebase, for a
+   * string that is the same every time.
+   */
+  /** True once `rev-parse --verify HEAD` has succeeded — see getLog. */
+  private headSeen = false
+  private gitDirCache: string | null = null
+  private async gitDir(): Promise<string> {
+    if (this.gitDirCache) return this.gitDirCache
+    const path = await import('path')
+    const raw = (await this.git.revparse(['--git-dir'])).trim()
+    this.gitDirCache = path.isAbsolute(raw) ? raw : path.join(this.repoPath, raw)
+    return this.gitDirCache
+  }
+
   async getConflictMode(): Promise<{ mode: 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null }> {
     const fs = await import('fs')
     const path = await import('path')
-    const dotGit = path.join(this.repoPath, '.git')
-    
-    // In some setups (like submodules or worktrees), .git is a file.
-    // simple-git's git.revparse(['--git-dir']) is more reliable.
+
     try {
-      const gitDir = (await this.git.revparse(['--git-dir'])).trim()
-      const absGitDir = path.isAbsolute(gitDir) ? gitDir : path.join(this.repoPath, gitDir)
-      
+      const absGitDir = await this.gitDir()
+
       if (fs.existsSync(path.join(absGitDir, 'MERGE_HEAD'))) return { mode: 'merge' }
       if (fs.existsSync(path.join(absGitDir, 'rebase-apply')) || fs.existsSync(path.join(absGitDir, 'rebase-merge'))) return { mode: 'rebase' }
       if (fs.existsSync(path.join(absGitDir, 'CHERRY_PICK_HEAD'))) return { mode: 'cherry-pick' }
@@ -2528,7 +2573,7 @@ exit 0
     if (names.includes('main')) return 'main'
     if (names.includes('master')) return 'master'
     // fall back to current branch
-    const status = await this.git.status()
+    const status = await this.status()
     return status.current ?? 'main'
   }
 

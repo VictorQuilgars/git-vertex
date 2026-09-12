@@ -71,6 +71,114 @@ function reason(e: unknown): string {
  * problem. Empty is refused for its own sake — `git diff ''` is not the diff
  * the caller asked for.
  */
+/** One row of the branch list, as both products' BranchInfo. */
+export interface BranchRow {
+  name: string
+  current: boolean
+  remote: boolean
+  commit: string
+  label: string
+  ahead?: number
+  behind?: number
+  gone?: boolean
+  detached?: boolean
+}
+
+/**
+ * The branch list, in ONE process and out of plumbing.
+ *
+ * It used to be two — `git branch -a --verbose` for the list, then
+ * `for-each-ref` for ahead/behind — and the first of those is porcelain,
+ * parsed by simple-git with a regex over text git writes for humans. That
+ * parse is where `(HEAD detached at 1a2b3c4)` came out of the sidebar as a
+ * branch called `(HEAD`, and where `remotes/origin/HEAD -> origin/main` still
+ * comes out with `->` where its hash belongs. for-each-ref answers both
+ * questions at once, in fields, with no sentence to misread.
+ *
+ * `%(contents:subject)` is LAST on purpose: a commit subject may contain the
+ * separator and nothing else here can, so everything past the fourth `|`
+ * belongs to it.
+ */
+export const BRANCH_FORMAT = '%(HEAD)|%(refname)|%(objectname:short)|%(upstream:track)|%(contents:subject)'
+
+export function branchArgs(): string[] {
+  return ['for-each-ref', 'refs/heads', 'refs/remotes', `--format=${BRANCH_FORMAT}`]
+}
+
+/** `[ahead 1, behind 2]`, `[gone]`, or nothing at all when a branch is level. */
+function tracking(raw: string): Pick<BranchRow, 'ahead' | 'behind' | 'gone'> | null {
+  if (!raw) return null
+  return {
+    ahead: parseInt(/ahead (\d+)/.exec(raw)?.[1] ?? '0', 10),
+    behind: parseInt(/behind (\d+)/.exec(raw)?.[1] ?? '0', 10),
+    gone: raw.includes('gone'),
+  }
+}
+
+export function parseBranchRows(raw: string): BranchRow[] {
+  const rows: BranchRow[] = []
+  for (const line of raw.split('\n')) {
+    if (!line.trim()) continue
+    const parts = line.split('|')
+    if (parts.length < 5) continue
+    const [head, refname, commit, track] = parts
+    const subject = parts.slice(4).join('|')
+    const remote = refname.startsWith('refs/remotes/')
+    // `remotes/origin/main` and `main` — the names the UI has always used,
+    // which are what `git branch -a` printed and what every caller compares
+    // against. NOT `%(refname:short)`, which shortens
+    // `refs/remotes/origin/HEAD` to `origin` and would collide with a branch.
+    const name = remote
+      ? `remotes/${refname.slice('refs/remotes/'.length)}`
+      : refname.replace(/^refs\/heads\//, '')
+    const row: BranchRow = {
+      name,
+      current: head.trim() === '*',
+      remote,
+      commit: commit.trim(),
+      label: subject || name,
+    }
+    // Upstreams belong to local branches; a remote-tracking ref has none.
+    const t = !remote ? tracking(track) : null
+    if (t) Object.assign(row, t)
+    rows.push(row)
+  }
+  return rows
+}
+
+/** Where HEAD is, when no ref in the list is marked current. */
+export interface BranchList {
+  rows: BranchRow[]
+  /** HEAD is not on a branch: detached, or mid-rebase. The host names the state. */
+  detached: boolean
+}
+
+/**
+ * The branch list, and what to make of a HEAD that is on none of them.
+ *
+ * Two states hide behind "no row is current", and the UI needs a current row
+ * for both, because that row is where the sidebar and the status bar read the
+ * name. An UNBORN branch — HEAD points at a branch with no commit yet — has a
+ * real name and `symbolic-ref` gives it. A DETACHED HEAD has no name at all,
+ * and what to call it is the host's business: the label comes out of
+ * `.git/rebase-merge/head-name` and a file read has no place in here.
+ */
+export async function branchRows(run: GitRunner): Promise<BranchList> {
+  const rows = parseBranchRows(await run(branchArgs()))
+  if (rows.some(r => r.current)) return { rows, detached: false }
+  let unborn = ''
+  try {
+    // Succeeds only while HEAD is a symbolic ref, which is exactly the unborn
+    // case once no ref carries the marker.
+    unborn = (await run(['symbolic-ref', '--short', 'HEAD'])).trim()
+  } catch { /* not a symbolic ref — detached */ }
+  if (unborn) {
+    rows.push({ name: unborn, current: true, remote: false, commit: '', label: unborn })
+    return { rows, detached: false }
+  }
+  return { rows, detached: true }
+}
+
 export function assertRef(ref: string, label = 'reference'): string | null {
   if (typeof ref !== 'string' || !ref.trim()) return `Empty git ${label}`
   if (ref.trim().startsWith('-')) return `Invalid git ${label}: "${ref}"`

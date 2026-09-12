@@ -9,6 +9,7 @@ export interface CommitNode {
   date: string
   parents: string[]
   refs: string[]
+  // `%G?`. Left unset by getLog on purpose — see the renderer's types.ts.
   signature?: string
   // Assigned by layout
   lane?: number

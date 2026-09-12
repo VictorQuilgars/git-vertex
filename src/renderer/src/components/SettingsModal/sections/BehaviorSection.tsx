@@ -1,9 +1,10 @@
 // Settings › notifications. Reads its slice of the page's state; the state itself lives in useSettingsPage.
+import { isWindows } from '../../../utils/platform'
 import type { SettingsPage } from '../useSettingsPage'
-import { SaveNote } from '../shared'
+import { DefenderNote, SaveNote } from '../shared'
 
 export function BehaviorSection({ page }: { page: SettingsPage }) {
-  const { t, settings, section, notifyFetch, setNotifyFetch, notifyCommit, setNotifyCommit, notifyUpdate, setNotifyUpdate, autoStash, setAutoStash, warnBeforeConflict, setWarnBeforeConflict, defaultBranchName, setDefaultBranchName, autoFetchInterval, setAutoFetchInterval, autoUpdateSubmodules, setAutoUpdateSubmodules, embedded } = page
+  const { t, settings, section, notifyFetch, setNotifyFetch, notifyCommit, setNotifyCommit, notifyUpdate, setNotifyUpdate, autoStash, setAutoStash, warnBeforeConflict, setWarnBeforeConflict, defaultBranchName, setDefaultBranchName, autoFetchInterval, setAutoFetchInterval, autoUpdateSubmodules, setAutoUpdateSubmodules, repoTuning, setRepoTuning, embedded } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.behavior.title')}</h2>
@@ -65,6 +66,29 @@ export function BehaviorSection({ page }: { page: SettingsPage }) {
                     }} />
                   <span>{t('settings.general.autoSubmodules')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.general.autoSubmodulesHint')}</span></span>
                 </label>
+
+                {/* Writes into the repository's own config, so it says which
+                    keys — the same rule as the identity fields above. */}
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 12 }}>
+                  <input type="checkbox" checked={repoTuning} style={{ marginTop: 3 }}
+                    onChange={async e => {
+                      setRepoTuning(e.target.checked)
+                      await window.gitAPI.settingsSet('repoTuning', String(e.target.checked))
+                    }} />
+                  <span>
+                    {t('settings.general.repoTuning')}
+                    <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: 12, marginTop: 2 }}>
+                      {t('settings.general.repoTuningHint')}
+                    </span>
+                  </span>
+                </label>
+
+                {/* The largest single speed-up on Windows is not in this
+                    application, and saying so is more use than not. Shown
+                    only where it applies, and never run for the user: it is
+                    an administrator command against their own machine's
+                    security settings, so it is theirs to read and to run. */}
+                {isWindows() && <DefenderNote />}
 
                 {/* OS notifications — desktop only (no-op in the VS Code host) */}
                 {!embedded && (

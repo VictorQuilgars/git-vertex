@@ -77,10 +77,29 @@ async function once(repo, profile, logFile) {
     // — the difference between this and the number above is Electron itself.
     const paint = await page.eval(`(() => { const e = performance.getEntriesByType('paint'); const fcp = e.find(x => x.name === 'first-contentful-paint') ?? e[e.length - 1]; return fcp ? Math.round(fcp.startTime) : -1 })()`)
 
-    const openedAt = Date.now()
+    // Click to graph, stamped INSIDE the page.
+    //
+    // It used to be two Date.now() here with `page.until` between them, and
+    // `until` polls every 150 ms: the answer was the next poll after the
+    // truth, so a number that is really 168 ms reports as 181 or as 224
+    // depending on where the polls fell. That is not noise around a value,
+    // it is a quantum wider than most of what is worth measuring, and it
+    // cost an afternoon chasing a regression that was the ruler.
+    //
+    // A MutationObserver in the renderer stamps performance.now() at the DOM
+    // mutation that brings the 500th row, against a t0 taken just before the
+    // click. Polling still decides when we ASK, and no longer what we get.
+    await page.eval(`(() => {
+      window.__graphAt = null
+      const obs = new MutationObserver(() => {
+        if (window.__graphAt === null && document.querySelectorAll('.cg-row').length >= 500) window.__graphAt = performance.now()
+      })
+      obs.observe(document.body, { childList: true, subtree: true })
+      window.__t0 = performance.now()
+    })()`)
     await page.eval(`document.querySelector('.welcome-recent-item').click()`)
-    await page.until(`document.querySelectorAll('.cg-row').length >= 500`, { what: 'a graph of 500 commits', timeoutMs: 120000 })
-    const graph = Date.now() - openedAt
+    await page.until(`window.__graphAt !== null`, { what: 'a graph of 500 commits', timeoutMs: 120000 })
+    const graph = await page.eval(`Math.round(window.__graphAt - window.__t0)`)
 
     // Once it has stopped moving: the counts, the branches and the working
     // tree all arrive after the graph, and a heap read in the middle of that
@@ -114,6 +133,23 @@ async function once(repo, profile, logFile) {
     fs.rmSync(profile, { recursive: true, force: true })
   }
 
+  // And the open that is not the first one.
+  //
+  // Every run above is a repository this installation has never seen, which
+  // is the honest worst case and also the rarer one: people reopen the same
+  // few repositories all day. The graph cache only exists for that second
+  // visit, so a measurement that throws the profile away every time cannot see it
+  // at all — the same profile is kept here, and the second launch is what a
+  // normal morning looks like.
+  const kept = makeProfile([repo])
+  const warm = []
+  for (let i = 0; i < 2; i++) {
+    const r = await once(repo, kept, path.join(out, `measure-warm-${i}.log`))
+    warm.push(r)
+    console.log(`· ${i === 0 ? 'first visit ' : 'second visit'}: graph ${ms(r.graph)}`)
+  }
+  fs.rmSync(kept, { recursive: true, force: true })
+
   const b = bundle()
   const git = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT }).toString().trim()
   const electron = require(path.join(ROOT, 'node_modules', 'electron', 'package.json')).version
@@ -124,6 +160,7 @@ async function once(repo, profile, logFile) {
 | Cold start to the welcome (median of ${RUNS}) | ${ms(median(runs.map(r => r.welcome)))} |
 | — of which the renderer's first contentful paint | ${median(runs.map(r => r.paint)) < 0 ? 'n/a' : ms(median(runs.map(r => r.paint)))} |
 | Click to a graph of 500 commits | ${ms(median(runs.map(r => r.graph)))} |
+| — opening it again, same profile | ${ms(warm[1].graph)} |
 | Renderer heap, settled | ${runs[0].heap == null ? 'n/a' : mb(median(runs.map(r => r.heap)))} |
 | Renderer bundle (unzipped) | ${mb(b.js)} of JavaScript, ${mb(b.css)} of CSS |
 `)

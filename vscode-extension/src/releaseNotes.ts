@@ -16,6 +16,13 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### ⚡ The panel opens a repository faster
+- **The graph you had last time is drawn in the first frame**, while the real one is read behind it. Nothing is taken from it as an answer — the refresh runs as it always did and replaces what is drawn.
+- **The page stopped verifying signatures.** \`%G?\` runs gpg once per signed commit and the graph draws none: a 200-commit page measured 580 ms with it, 150 ms without.
+- **One \`git status\` per refresh rather than two** — the slowest read there is, on a large working tree, was being made twice.
+`,
   '1.33.0': `## What's new in 1.33.0
 
 ### 🧭 The commit pane stops guessing

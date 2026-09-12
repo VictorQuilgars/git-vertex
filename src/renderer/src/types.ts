@@ -9,8 +9,20 @@ export interface CommitNode {
   hash: string; shortHash: string; message: string
   author: string; authorEmail: string; date: string
   parents: string[]; refs: string[]
-  // GPG signature status from `%G?`: G good, B bad, U good-unknown, X expired,
-  // Y expired-key, R revoked-key, E cannot-check, N none
+  /**
+   * GPG signature status (`%G?`): G good, B bad, U good-unknown, X expired,
+   * Y expired-key, R revoked-key, E cannot-check, N none.
+   *
+   * ⚠️ The graph page does NOT fill this, and must not start: `%G?` makes git
+   * verify every signed commit it prints, one gpg process per commit, and
+   * since 28/08/2026 the graph draws no signature at all
+   * (CommitGraph.signature.test.tsx). A page of 200 commits measured 580 ms
+   * with it against 150 ms without, and a repository whose merges come from
+   * the GitHub button is signed on every row.
+   *
+   * The detail pane that one day shows it asks for the ONE commit that is
+   * selected — `git log -1 --pretty=%G? <hash>` — never for the page.
+   */
   signature?: string
   lane?: number; color?: string; edges?: GraphEdge[]
   // Total lines added/removed across the commit's diff (from `--numstat`).

@@ -6,6 +6,11 @@ import { installMockGitAPI } from '../../__tests__/test-utils'
 // its path from start to end: a late answer lands in its own snapshot, never
 // in whatever repository is shown by then; coming back is a restore.
 
+// Each test starts with nothing kept: the graph cache lives in localStorage,
+// which jsdom shares across a file, and a repository that another test left
+// behind is exactly what "no snapshot yet" must not mean here.
+beforeEach(() => { try { localStorage.clear() } catch { /* no storage, nothing kept */ } })
+
 const commit = (tag: string) => ({ hash: tag.repeat(40).slice(0, 40), shortHash: tag.repeat(7), message: tag, author: '', authorEmail: '', date: '', parents: [], refs: [] })
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
 
@@ -57,6 +62,78 @@ test('a load that finishes after a switch lands in its own repository, not the s
   expect(view.result.current.currentBranch).toBe('a-main')
 })
 
+// A refresh was six waves, each waiting on the last, which on a machine where
+// starting git costs more than running it IS the refresh. It is two now — and
+// not one, which was tried: firing all six together put 85 ms on the
+// click-to-graph of a 20,000-commit repository, because five more git
+// processes take CPU and disk from the one query the user is waiting for.
+// So the graph goes first, alone.
+test('the graph has the first wave to itself', async () => {
+  const { apis, view } = setup({ '/a': 40 })
+  act(() => view.result.current.setRepoPath('/a'))
+  let load!: Promise<void>
+  act(() => { load = view.result.current.loadRepoData() })
+  const a = apis['/a']
+  expect(a.getBranches).toHaveBeenCalled()
+  expect(a.getLog).toHaveBeenCalled()
+  // Still on its way — nothing else has been asked for yet.
+  expect(a.getStashes).not.toHaveBeenCalled()
+  expect(a.getWorkingChanges).not.toHaveBeenCalled()
+  await act(async () => { await load })
+  expect(a.getStashes).toHaveBeenCalled()
+  expect(a.getWorkingChanges).toHaveBeenCalled()
+})
+
+// And the panels, which were four more waves, are one.
+test('the panels are asked for together, once the graph is drawn', async () => {
+  const events: string[] = []
+  const { apis, view } = setup()
+  const a = apis['/a']
+  const trace = <T,>(name: string, value: T) => {
+    ;(a as any)[name] = jest.fn(async () => { events.push(`ask:${name}`); return value })
+  }
+  trace('getStashes', { stashes: [] })
+  trace('getTags', { tags: [] })
+  trace('getConflictedFiles', { files: [] })
+  trace('getConflictMode', { mode: null })
+  trace('getWorkingChanges', { staged: [], unstaged: [], untracked: [] })
+  a.getLog.mockImplementation(async () => { events.push('ask:getLog'); return { commits: [] } })
+
+  act(() => view.result.current.setRepoPath('/a'))
+  await act(async () => { await view.result.current.loadRepoData() })
+
+  // The log is asked for on its own; the five that follow all leave before
+  // any of them is awaited, which is what one wave means.
+  expect(events[0]).toBe('ask:getLog')
+  expect(events.slice(1).sort()).toEqual([
+    'ask:getConflictMode', 'ask:getConflictedFiles', 'ask:getStashes',
+    'ask:getTags', 'ask:getWorkingChanges',
+  ])
+})
+
+// getTracking spent three more processes — rev-parse HEAD, rev-parse @{u}, a
+// rev-list walk — recomputing what getBranches already read for every branch
+// in one for-each-ref.
+test('ahead/behind comes off the current branch, with no second question', async () => {
+  const { apis, view } = setup()
+  apis['/a'].getBranches.mockResolvedValue({ branches: [
+    { name: 'a-main', current: true, ahead: 2, behind: 3 },
+    { name: 'other', current: false, ahead: 9, behind: 9 },
+  ] })
+  act(() => view.result.current.setRepoPath('/a'))
+  await act(async () => { await view.result.current.loadRepoData() })
+  expect(view.result.current.tracking).toEqual({ ahead: 2, behind: 3 })
+  expect(apis['/a'].getTracking).not.toHaveBeenCalled()
+})
+
+test('a branch in sync, or a detached HEAD, is zero and zero', async () => {
+  const { apis, view } = setup()
+  apis['/a'].getBranches.mockResolvedValue({ branches: [{ name: 'detached at 1a2b3c4', current: true, detached: true }] })
+  act(() => view.result.current.setRepoPath('/a'))
+  await act(async () => { await view.result.current.loadRepoData() })
+  expect(view.result.current.tracking).toEqual({ ahead: 0, behind: 0 })
+})
+
 test('coming back to a repository shows what it had, at once, before any call', async () => {
   const { apis, view } = setup()
   act(() => view.result.current.setRepoPath('/a'))
@@ -70,6 +147,65 @@ test('coming back to a repository shows what it had, at once, before any call', 
   expect(restored).toBe(true)
   expect(view.result.current.commits.map(c => c.message)).toEqual(['a'])
   expect(apis['/a'].getLog).toHaveBeenCalledTimes(callsBefore)
+})
+
+// The first frame of the next launch. A window that opens on a repository it
+// has seen before draws the graph it had, at once, with no call made — and the
+// refresh that follows is silent because something correct-looking is already
+// there.
+test('a repository seen in an earlier run is drawn before anything is asked', async () => {
+  const first = setup()
+  act(() => first.view.result.current.setRepoPath('/a'))
+  await act(async () => { await first.view.result.current.loadRepoData() })
+  act(() => { first.view.result.current.saveSnapshot() })
+  first.view.unmount()
+
+  // A new hook, as after a relaunch: nothing in memory, only what was kept.
+  const next = setup()
+  expect(next.view.result.current.hasSnapshot('/a')).toBe(true)
+  let restored = false
+  act(() => { restored = next.view.result.current.restoreSnapshot('/a') })
+  expect(restored).toBe(true)
+  expect(next.view.result.current.commits.map(c => c.message)).toEqual(['a'])
+  expect(next.view.result.current.currentBranch).toBe('a-main')
+  expect(next.apis['/a'].getLog).not.toHaveBeenCalled()
+})
+
+// What the working tree is doing is not kept: it changes while the app is
+// closed, and a stale conflict banner is a wrong statement rather than a
+// slightly old graph. The refresh is making that `git status` anyway.
+test('the restored graph says nothing about the working tree', async () => {
+  const first = setup()
+  first.apis['/a'].getConflictedFiles.mockResolvedValue({ files: ['clash.txt'] })
+  first.apis['/a'].getWorkingChanges.mockResolvedValue({ staged: ['a'], unstaged: [], untracked: [] })
+  act(() => first.view.result.current.setRepoPath('/a'))
+  await act(async () => { await first.view.result.current.loadRepoData() })
+  expect(first.view.result.current.conflictFiles).toEqual(['clash.txt'])
+  act(() => { first.view.result.current.saveSnapshot() })
+  first.view.unmount()
+
+  const next = setup()
+  act(() => { next.view.result.current.restoreSnapshot('/a') })
+  expect(next.view.result.current.commits.map(c => c.message)).toEqual(['a'])
+  expect(next.view.result.current.conflictFiles).toEqual([])
+  expect(next.view.result.current.wipCount).toBe(0)
+})
+
+// Closing a repository means closing it: it must not come back, drawn from
+// last week, the next time it is opened from the recents.
+test('a repository that was forgotten is not drawn from the cache either', async () => {
+  const first = setup()
+  act(() => first.view.result.current.setRepoPath('/a'))
+  await act(async () => { await first.view.result.current.loadRepoData() })
+  act(() => { first.view.result.current.saveSnapshot() })
+  act(() => { first.view.result.current.forgetRepo('/a') })
+  first.view.unmount()
+
+  const next = setup()
+  expect(next.view.result.current.hasSnapshot('/a')).toBe(false)
+  let restored = true
+  act(() => { restored = next.view.result.current.restoreSnapshot('/a') })
+  expect(restored).toBe(false)
 })
 
 test('every plain call is about the shown repository, and a hidden one refreshes into its snapshot', async () => {

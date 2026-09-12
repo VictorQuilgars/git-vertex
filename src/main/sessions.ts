@@ -18,6 +18,7 @@
 import { AsyncLocalStorage } from 'async_hooks'
 import type { GitService } from './git-service'
 import type { FSWatcher } from 'fs'
+import type { WatchFilter } from './watch-filter'
 
 export interface RepoSession {
   path: string
@@ -27,6 +28,10 @@ export interface RepoSession {
   workingDirWatcher: FSWatcher | null
   gitDebounce: ReturnType<typeof setTimeout> | null
   workingDebounce: ReturnType<typeof setTimeout> | null
+  /** Working-tree paths seen since the last debounce fired, deduped. */
+  workingPending: Set<string>
+  /** Decides whether a batch of those is worth a refresh. Built with the watcher. */
+  watchFilter: WatchFilter | null
   autoFetchTimer: ReturnType<typeof setInterval> | null
   autoFetchRunning: boolean
   /** When it was last the active one — the eviction order. */
@@ -44,7 +49,7 @@ const requestRepo = new AsyncLocalStorage<string | null>()
 let activations = 0
 
 export function newSession(path: string, name: string, service: GitService): RepoSession {
-  return { path, name, service, gitDirWatcher: null, workingDirWatcher: null, gitDebounce: null, workingDebounce: null, autoFetchTimer: null, autoFetchRunning: false, lastActive: ++activations }
+  return { path, name, service, gitDirWatcher: null, workingDirWatcher: null, gitDebounce: null, workingDebounce: null, workingPending: new Set(), watchFilter: null, autoFetchTimer: null, autoFetchRunning: false, lastActive: ++activations }
 }
 
 /** Run `fn` as a request about `repo` — every sessionFor() below it, across awaits, answers with that repository. */
