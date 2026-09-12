@@ -173,7 +173,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   onNativeMenuTarget, visibility, remoteNames,
 } = props
   const { t } = useLang()
-  const { getBool, get, set } = useSettings()
+  const { getBool, get, set, appliedTheme } = useSettings()
   // The graph's two heights come from the stylesheet, because a density moves
   // them (#195) and this file does arithmetic on them. Re-read when the density
   // changes: SettingsContext writes data-density and drops the cache inside the
@@ -246,7 +246,12 @@ export default function CommitGraph(props: CommitGraphProps) {
       author: '', authorEmail: '', date: '', parents: headHash ? [headHash] : [], refs: [],
     }
     return computeGraphLayout([wip, ...commits])
-  }, [commits, hasWipNode, headHash, conflictMode, wipCount])
+  // `appliedTheme` is a real dependency, not defensive (#160): computeGraphLayout
+  // resolves the ten lane colours ONCE and bakes one into every commit it
+  // returns, so without it a theme change repainted everything the CSS owns and
+  // left the graph's branches on the old palette until a fetch or a reload moved
+  // the layout for another reason.
+  }, [commits, hasWipNode, headHash, conflictMode, wipCount, appliedTheme])
   const [ctx, setCtx] = useState<CtxState | null>(null)
   const [headerCtx, setHeaderCtx] = useState<{ x: number; y: number } | null>(null)
   const [branchCtx, setBranchCtx] = useState<{ x: number; y: number; pref: ProcessedRef } | null>(null)
