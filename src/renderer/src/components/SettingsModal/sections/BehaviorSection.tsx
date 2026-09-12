@@ -1,6 +1,7 @@
 // Settings › notifications. Reads its slice of the page's state; the state itself lives in useSettingsPage.
+import { isWindows } from '../../../utils/platform'
 import type { SettingsPage } from '../useSettingsPage'
-import { SaveNote } from '../shared'
+import { DefenderNote, SaveNote } from '../shared'
 
 export function BehaviorSection({ page }: { page: SettingsPage }) {
   const { t, settings, section, notifyFetch, setNotifyFetch, notifyCommit, setNotifyCommit, notifyUpdate, setNotifyUpdate, autoStash, setAutoStash, warnBeforeConflict, setWarnBeforeConflict, defaultBranchName, setDefaultBranchName, autoFetchInterval, setAutoFetchInterval, autoUpdateSubmodules, setAutoUpdateSubmodules, repoTuning, setRepoTuning, embedded } = page
@@ -81,6 +82,13 @@ export function BehaviorSection({ page }: { page: SettingsPage }) {
                     </span>
                   </span>
                 </label>
+
+                {/* The largest single speed-up on Windows is not in this
+                    application, and saying so is more use than not. Shown
+                    only where it applies, and never run for the user: it is
+                    an administrator command against their own machine's
+                    security settings, so it is theirs to read and to run. */}
+                {isWindows() && <DefenderNote />}
 
                 {/* OS notifications — desktop only (no-op in the VS Code host) */}
                 {!embedded && (

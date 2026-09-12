@@ -276,6 +276,47 @@ export function SaveNote({ button }: { button?: string }) {
   )
 }
 
+/**
+ * What this application cannot make faster, on the one platform where it is
+ * usually the largest number.
+ *
+ * Defender's real-time protection inspects each file as it is opened, and
+ * `git status` on a large repository opens all of them — which is why the
+ * same repository is quick on a Mac and slow on a Windows laptop with the
+ * same git. Excluding the folder the repositories live in routinely beats
+ * everything in this codebase put together, and there is nothing we can do
+ * about it from in here.
+ *
+ * Shown, never run. It is an administrator command against the machine's own
+ * security settings: it belongs to whoever owns the machine, who should read
+ * it before running it — so the button copies, and says what it copied.
+ */
+export function DefenderNote() {
+  const { t } = useLang()
+  const [copied, setCopied] = useState(false)
+  const command = "Add-MpPreference -ExclusionPath 'C:\\Users\\you\\code'"
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(command)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* no clipboard — the command is on screen to be read */ }
+  }
+  return (
+    <div className="stg-defender">
+      <p className="stg-defender-title">{t('settings.general.defender')}</p>
+      <p className="stg-defender-body">{t('settings.general.defenderBody')}</p>
+      <div className="stg-defender-cmd">
+        <code>{command}</code>
+        <button type="button" className="stg-defender-copy" onClick={copy}>
+          {copied ? t('settings.general.defenderCopied') : t('settings.general.defenderCopy')}
+        </button>
+      </div>
+      <p className="stg-defender-body">{t('settings.general.defenderCaveat')}</p>
+    </div>
+  )
+}
+
 export function KindBadge({ id }: { id: string }) {
   const k = modelKind(id)
   if (!k) return null
