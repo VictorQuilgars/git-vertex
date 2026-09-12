@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.36.0': `## What's new in 1.36.0
 
 ### 📏 A reading density
 - **Settings › Appearance › Density**, two options that each preview themselves. *Comfortable* is what the app has always drawn — nothing moves unless you ask.

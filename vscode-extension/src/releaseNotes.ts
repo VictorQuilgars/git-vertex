@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.34.0': `## What's new in 1.34.0
 
 ### 📏 A reading density
 - **Settings › Appearance › Density**, two options that each preview themselves. *Comfortable* is what the panel has always drawn — nothing moves unless you ask.
