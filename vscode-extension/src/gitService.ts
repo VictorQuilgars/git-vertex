@@ -213,7 +213,9 @@ export class GitService {
     if (!(await this.hasHead())) return { commits: [] }
     const maxCount = options.maxCount ?? 300
     const args: string[] = [
-      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D|%G?',
+      // ⚠️ NOT %G? — see the desktop service. It verifies every signed commit
+      // on the page, one gpg process each, for a value nothing draws.
+      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D',
       `--max-count=${maxCount}`,
       '--date-order',
     ]
@@ -232,7 +234,7 @@ export class GitService {
 
     for (const line of result.trim().split('\n')) {
       if (!line.trim()) continue
-      const [hash, parentStr, message, author, authorEmail, date, refsStr, sigStr] = line.split('|')
+      const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
       const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
       const refs = refsStr
         ? refsStr.split(',').map(r => r.trim()).filter(r => r.length > 0)
@@ -245,8 +247,7 @@ export class GitService {
         authorEmail: authorEmail || '',
         date: date || '',
         parents,
-        refs,
-        signature: (sigStr || 'N').trim()
+        refs
       })
     }
     return { commits }
@@ -762,7 +763,7 @@ export class GitService {
     try {
       const result = await this.git.raw([
         'log', '--all',
-        `--pretty=format:%H|%P|%s|%an|%ae|%ai|%D|%G?`,
+        `--pretty=format:%H|%P|%s|%an|%ae|%ai|%D`,
         '--max-count=100',
         `--grep=${query}`,
         '--regexp-ignore-case',
@@ -770,7 +771,7 @@ export class GitService {
       const commits: CommitNode[] = []
       for (const line of result.trim().split('\n')) {
         if (!line.trim()) continue
-        const [hash, parentStr, message, author, authorEmail, date, refsStr, sigStr] = line.split('|')
+        const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
         const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
         const refs = refsStr ? refsStr.split(',').map(r => r.trim()).filter(Boolean) : []
         commits.push({
@@ -781,8 +782,7 @@ export class GitService {
           authorEmail: authorEmail || '',
           date: date || '',
           parents,
-          refs,
-          signature: (sigStr || 'N').trim()
+          refs
         })
       }
       return { commits }

@@ -1191,11 +1191,32 @@ describe('GitService', () => {
   // ─────────────────────────────────────────────────────────────────────
 
   describe('getLog signature & refs', () => {
-    test('unsigned commits report signature "N"', async () => {
+    // `%G?` is not a field, it is a verification: git runs gpg once per SIGNED
+    // commit it prints. Nothing draws the result — the graph has drawn no
+    // signature since 28/08/2026 (CommitGraph.signature.test.tsx) — and on a
+    // 200-commit page here it was 580 ms against 150 ms without. Putting those
+    // four characters back in the format string is a one-line change that
+    // costs a gpg process per row, so the guard is on the ARGUMENTS: a test
+    // over the returned value would pass just as well on a repository that
+    // happens to sign nothing.
+    test('the page query never asks git to verify a signature', async () => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+      const inner = (git as any).git
+      const raw = inner.raw.bind(inner)
+      const seen: string[][] = []
+      inner.raw = (args: string[], ...rest: any[]) => { seen.push(args); return raw(args, ...rest) }
+      try { await git.getLog() } finally { inner.raw = raw }
+      const logArgs = seen.find(a => Array.isArray(a) && a[0] === 'log')
+      expect(logArgs).toBeDefined()
+      expect(logArgs!.join(' ')).not.toContain('%G?')
+    })
+
+    test('a commit from the page carries no signature status', async () => {
       fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
       execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
       const log = await git.getLog()
-      expect(log.commits[0].signature).toBe('N')
+      expect(log.commits[0].signature).toBeUndefined()
     })
 
     test('refs option restricts the log to the given branch (solo)', async () => {
@@ -1249,8 +1270,9 @@ describe('GitService', () => {
       execSync(`cd ${tempDir} && git add f.txt`)
       const r = await git.commit('Unsigned commit', false, false)
       expect(r.success).toBe(true)
-      const log = await git.getLog()
-      expect(log.commits[0].signature).toBe('N')
+      // Asked of git directly: the page no longer carries `%G?` (see above),
+      // and what this test is about is the commit, not the page.
+      expect(execSync(`cd ${tempDir} && git log -1 --pretty=%G?`).toString().trim()).toBe('N')
     })
 
     test('commit with sign=true surfaces an error when signing is impossible', async () => {
