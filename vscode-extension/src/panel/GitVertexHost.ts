@@ -13,7 +13,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
-import { GitService, gitEnv } from '../gitService'
+import { GitService, gitEnv, parseGitVersion } from '../gitService'
 import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
 import {
@@ -42,8 +42,57 @@ import { findChangelogs, isMergedInto, mergeIntoChangelog } from '../../../src/m
 import { resolveBase } from '../../../src/main/ai-material'
 import { ThemeStore } from '../../../src/main/theme-store'
 import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
+import { describeTuning, maybeTuneRepository, type TuningRunner } from '../../../src/main/repo-tuning'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
+
+// ── Git's own caches, when the user asked for them ───────────────────────────
+//
+// The panel's half of Settings › Behaviour › Speed up large repositories. The
+// decision itself is in src/main/repo-tuning.ts, which is free of `electron`
+// and of `vscode` for exactly this reason — the same rule theme-validate.ts
+// lives by — so both products run one implementation and one set of tests.
+// What is host-specific is only the four things handed to it below.
+//
+// Without this the shared settings page would draw the row in the panel and
+// the checkbox would do nothing, which is the failure this repository has
+// shipped twice (see CLAUDE.md on the shared renderer).
+
+/** Asked once per session: the version does not change under a running editor. */
+let gitVersionCache: string | null | undefined
+async function gitVersionOnce(): Promise<string | null> {
+  if (gitVersionCache !== undefined) return gitVersionCache
+  try {
+    const { promisify } = require('util') as typeof import('util')
+    const cp = require('child_process') as typeof import('child_process')
+    const { stdout } = await promisify(cp.execFile)('git', ['--version'], { env: gitEnv() })
+    gitVersionCache = parseGitVersion(String(stdout))
+  } catch { gitVersionCache = null }
+  return gitVersionCache
+}
+
+/** Run git in `repoPath`, reporting a non-zero exit rather than throwing on it. */
+function tuningRunner(repoPath: string): TuningRunner {
+  const cp = require('child_process') as typeof import('child_process')
+  return (args) => new Promise(resolve => {
+    cp.execFile('git', args, { cwd: repoPath, env: gitEnv(), maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
+      resolve({
+        code: err ? ((err as { code?: unknown }).code as number ?? 1) : 0,
+        stdout: stdout || '',
+        stderr: stderr || '',
+      })
+    })
+  })
+}
+
+async function maybeTunePanelRepo(repoPath: string, state: vscode.Memento): Promise<void> {
+  const report = await maybeTuneRepository(tuningRunner(repoPath), {
+    enabled: state.get<Record<string, string>>('gvSettings', {}).repoTuning === 'true',
+    gitVersion: await gitVersionOnce(),
+    platform: process.platform,
+  })
+  if (report) console.log(`[git-vertex] tuned ${repoPath}: ${describeTuning(report)}`)
+}
 
 // ── Themes ───────────────────────────────────────────────────────────────────
 // The store is shared with the desktop main process rather than reimplemented:
@@ -238,6 +287,10 @@ export class GitVertexHost implements vscode.Disposable {
     ensureDiffProvider(this._gitService)
     this._setupWatcher(repoPath)
     this._broadcast('repoChanged')
+    // Behind the panel, not in front of it: `commit-graph write` on a deep
+    // history is seconds of CPU, and they must not be seconds spent looking
+    // at an empty graph.
+    setTimeout(() => { void maybeTunePanelRepo(repoPath, this._state) }, 3000)
   }
 
   public get repoPath(): string | undefined { return this._repoPath }
