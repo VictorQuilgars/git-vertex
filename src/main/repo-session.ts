@@ -7,7 +7,9 @@ import { existsSync } from 'fs'
 import { GitService } from './git-service'
 import { parseAutoFetchMinutes, shouldUseSshCommand, buildSshCommand, updateSubmodulesIfEnabled } from './settings-helpers'
 import { addRecentRepo } from './recent-repos'
-import { gitBinary } from './git-service'
+import { gitBinary, gitEnv } from './git-service'
+import { makeWatchFilter, type IgnoreProbe } from './watch-filter'
+import { execFile } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { sendToWindow, state } from './app-state'
@@ -74,11 +76,38 @@ export async function applySshConfig(): Promise<void> {
 }
 
 // ── Watchers, per session ───────────────────────────────────────
+
+/**
+ * The ignored subset of `paths`, from git itself. `-z` on both sides because a
+ * filename may contain anything but NUL, and `--stdin` so one process answers
+ * for the whole batch.
+ *
+ * check-ignore exits 1 when NOTHING is ignored — success with an empty answer,
+ * not a failure. Anything else is left to throw, and the filter reads a throw
+ * as "refresh anyway".
+ */
+function checkIgnore(repoPath: string): IgnoreProbe {
+  return (paths) => new Promise<string[]>((resolve, reject) => {
+    const child = execFile(
+      gitBinary(),
+      ['-C', repoPath, 'check-ignore', '-z', '--stdin'],
+      { env: gitEnv(), maxBuffer: 8 * 1024 * 1024 },
+      (err, stdout) => {
+        if (err && (err as { code?: number }).code !== 1) return reject(err)
+        resolve(stdout.split('\0').filter(Boolean))
+      },
+    )
+    child.on('error', reject)
+    child.stdin?.end(paths.join('\0'))
+  })
+}
+
 function stopWatching(session: RepoSession): void {
   session.gitDirWatcher?.close(); session.gitDirWatcher = null
   session.workingDirWatcher?.close(); session.workingDirWatcher = null
   if (session.gitDebounce) { clearTimeout(session.gitDebounce); session.gitDebounce = null }
   if (session.workingDebounce) { clearTimeout(session.workingDebounce); session.workingDebounce = null }
+  session.workingPending.clear()
 }
 
 function startWatching(session: RepoSession): void {
@@ -97,12 +126,29 @@ function startWatching(session: RepoSession): void {
     })
   } catch { /* git dir may not be watchable in all setups */ }
 
-  // Watch working tree → covers unstaged file edits from external editors
+  // Watch working tree → covers unstaged file edits from external editors.
+  //
+  // The watcher is recursive, so it also sees node_modules, dist, coverage and
+  // every other thing the repository ignores — and a refresh is ten git
+  // processes. What the debounce collects is therefore asked about before
+  // anyone is told: see watch-filter.ts.
+  session.watchFilter ??= makeWatchFilter(checkIgnore(session.path))
   try {
     session.workingDirWatcher = fs.watch(session.path, { recursive: true }, (_type, filename) => {
-      if (!filename || filename.startsWith('.git')) return
+      // The `.git` DIRECTORY, not everything whose name starts with it: the
+      // old test also swallowed `.gitignore` and `.gitattributes`, which are
+      // the two files in the tree that change what the staging area shows.
+      if (!filename) return
+      if (filename === '.git' || filename.startsWith('.git/') || filename.startsWith('.git\\')) return
+      session.workingPending.add(filename)
       if (session.workingDebounce) clearTimeout(session.workingDebounce)
-      session.workingDebounce = setTimeout(() => sendToWindow('git:working-changed', payload), 1500)
+      session.workingDebounce = setTimeout(() => {
+        const batch = [...session.workingPending]
+        session.workingPending.clear()
+        void session.watchFilter!.worthRefreshing(batch).then(worth => {
+          if (worth) sendToWindow('git:working-changed', payload)
+        })
+      }, 1500)
     })
   } catch { /* ignore */ }
 }
