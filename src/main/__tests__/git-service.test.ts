@@ -17,10 +17,10 @@ const describeWithMergeTree = isGitVersionAtLeast(gitVersion, MIN_GIT_FOR_CONFLI
  * that does it. See 'the refresh, counted in processes' below for why this is
  * the number that matters rather than a duration.
  */
-const OPEN_BUDGET_CLEAN = 8
-const OPEN_BUDGET_DIRTY = 10
-const REFRESH_BUDGET_CLEAN = 6
-const REFRESH_BUDGET_DIRTY = 8
+const OPEN_BUDGET_CLEAN = 7
+const OPEN_BUDGET_DIRTY = 9
+const REFRESH_BUDGET_CLEAN = 5
+const REFRESH_BUDGET_DIRTY = 7
 
 describe('GitService', () => {
   let tempDir: string
@@ -1200,6 +1200,96 @@ describe('GitService', () => {
   // ─────────────────────────────────────────────────────────────────────
   // getLog — signature field & ref filtering (solo/mute branches)
   // ─────────────────────────────────────────────────────────────────────
+
+  // ─────────────────────────────────────────────────────────────────────
+  // getBranches — the states HEAD can be in
+  // ─────────────────────────────────────────────────────────────────────
+
+  // The list used to come from `git branch -a --verbose`, porcelain parsed by
+  // a regex over a sentence written for people. That is where `(HEAD detached
+  // at 1a2b3c4)` reached the sidebar as a branch called `(HEAD`. It is
+  // for-each-ref now, in fields — and these are the states that parse had to
+  // be repaired for, so they are the ones worth holding down.
+  describe('getBranches', () => {
+    const current = async () => (await git.getBranches()).branches.find(b => b.current)
+
+    beforeEach(() => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'one')
+      execSync(`cd ${tempDir} && git add . && git commit -q -m "the first"`)
+    })
+
+    test('the checked-out branch is the current one, with its hash and its subject', async () => {
+      const cur = await current()
+      expect(cur?.name).toBe('main')
+      expect(cur?.remote).toBe(false)
+      expect(cur?.detached).toBeFalsy()
+      expect(cur?.label).toBe('the first')
+      expect(cur?.commit).toMatch(/^[0-9a-f]{7,}$/)
+    })
+
+    test('every local branch is listed, and only one is current', async () => {
+      execSync(`cd ${tempDir} && git branch other && git branch third`)
+      const { branches } = await git.getBranches()
+      expect(branches.map(b => b.name).sort()).toEqual(['main', 'other', 'third'])
+      expect(branches.filter(b => b.current)).toHaveLength(1)
+    })
+
+    test('a detached HEAD is named for what it is, not parsed out of a sentence', async () => {
+      const sha = execSync(`cd ${tempDir} && git rev-parse --short HEAD`).toString().trim()
+      execSync(`cd ${tempDir} && git checkout -q --detach HEAD`)
+      const cur = await current()
+      expect(cur?.detached).toBe(true)
+      expect(cur?.name).toBe(`detached at ${sha}`)
+      expect(cur?.name.startsWith('(')).toBe(false)
+    })
+
+    test('mid-rebase, the current row names the branch being replayed', async () => {
+      execSync(`cd ${tempDir} && git checkout -q -b feature`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'feature')
+      execSync(`cd ${tempDir} && git commit -q -am "on the feature"`)
+      execSync(`cd ${tempDir} && git checkout -q main`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'main')
+      execSync(`cd ${tempDir} && git commit -q -am "on main"`)
+      // Conflicts, and stops with the rebase in progress.
+      try { execSync(`cd ${tempDir} && git rebase main feature`, { stdio: 'ignore' }) } catch { /* expected */ }
+
+      const cur = await current()
+      expect(cur?.detached).toBe(true)
+      expect(cur?.name).toBe('rebasing feature')
+      execSync(`cd ${tempDir} && git rebase --abort`)
+    })
+
+    test('a remote-tracking branch is listed as one, and ahead/behind is read for the local', async () => {
+      const remote = `${tempDir}-origin.git`
+      execSync(`git init -q --bare ${remote}`)
+      execSync(`cd ${tempDir} && git remote add origin ${remote} && git push -q -u origin main`)
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'two')
+      execSync(`cd ${tempDir} && git commit -q -am "not pushed"`)
+
+      const { branches } = await git.getBranches()
+      const local = branches.find(b => b.name === 'main')
+      const tracking = branches.find(b => b.remote)
+      expect(local?.ahead).toBe(1)
+      expect(local?.behind).toBe(0)
+      expect(tracking?.name).toBe('remotes/origin/main')
+      // A remote-tracking ref has no upstream of its own.
+      expect(tracking?.ahead).toBeUndefined()
+      execSync(`rm -rf ${remote}`)
+    })
+
+    test('an upstream deleted on the remote reads as gone', async () => {
+      const remote = `${tempDir}-origin.git`
+      execSync(`git init -q --bare ${remote}`)
+      // Not main: a bare repository refuses to delete the branch its own HEAD
+      // points at, which is the one thing this test needs to happen.
+      execSync(`cd ${tempDir} && git remote add origin ${remote}`)
+      execSync(`cd ${tempDir} && git branch doomed && git push -q -u origin doomed`)
+      execSync(`cd ${tempDir} && git push -q origin --delete doomed && git fetch -q --prune origin`)
+      const local = (await git.getBranches()).branches.find(b => b.name === 'doomed')
+      expect(local?.gone).toBe(true)
+      execSync(`rm -rf ${remote}`)
+    })
+  })
 
   // ─────────────────────────────────────────────────────────────────────
   // How many git processes a refresh costs

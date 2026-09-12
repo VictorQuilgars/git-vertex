@@ -373,3 +373,89 @@ describe('git-core — against a real repository, on both hosts', () => {
       .resolves.toEqual({ hashes: [] })
   })
 })
+
+// ── The branch list ───────────────────────────────────────────
+//
+// Pure parsing, so no repository: what matters here is the shapes git can
+// hand back, several of which broke the porcelain parse this replaced.
+describe('parseBranchRows', () => {
+  const line = (head: string, refname: string, commit: string, track: string, subject: string) =>
+    [head, refname, commit, track, subject].join('|')
+
+  test('locals and remotes keep the names the UI has always used', () => {
+    const rows = core.parseBranchRows([
+      line('*', 'refs/heads/main', '1a2b3c4', '', 'the tip'),
+      line(' ', 'refs/heads/feature', 'deadbee', '', 'wip'),
+      line(' ', 'refs/remotes/origin/main', '1a2b3c4', '', 'the tip'),
+    ].join('\n'))
+    expect(rows.map(r => [r.name, r.remote, r.current])).toEqual([
+      ['main', false, true],
+      ['feature', false, false],
+      ['remotes/origin/main', true, false],
+    ])
+    expect(rows[0].commit).toBe('1a2b3c4')
+    expect(rows[0].label).toBe('the tip')
+  })
+
+  test('ahead, behind, and both at once', () => {
+    const rows = core.parseBranchRows([
+      line(' ', 'refs/heads/a', 'aaa', '[ahead 3]', 's'),
+      line(' ', 'refs/heads/b', 'bbb', '[behind 2]', 's'),
+      line(' ', 'refs/heads/c', 'ccc', '[ahead 1, behind 4]', 's'),
+    ].join('\n'))
+    expect(rows.map(r => [r.ahead, r.behind])).toEqual([[3, 0], [0, 2], [1, 4]])
+  })
+
+  test('a branch level with its upstream, and one with no upstream, say nothing', () => {
+    const rows = core.parseBranchRows(line(' ', 'refs/heads/a', 'aaa', '', 's'))
+    expect(rows[0].ahead).toBeUndefined()
+    expect(rows[0].behind).toBeUndefined()
+    expect(rows[0].gone).toBeUndefined()
+  })
+
+  test('an upstream deleted on the remote is gone', () => {
+    const rows = core.parseBranchRows(line(' ', 'refs/heads/a', 'aaa', '[gone]', 's'))
+    expect(rows[0].gone).toBe(true)
+  })
+
+  // A remote-tracking ref has no upstream of its own, and reading one for it
+  // would put an ahead/behind badge on a row that cannot have one.
+  test('a remote-tracking ref is never given tracking numbers', () => {
+    const rows = core.parseBranchRows(line(' ', 'refs/remotes/origin/a', 'aaa', '[ahead 9]', 's'))
+    expect(rows[0].ahead).toBeUndefined()
+    expect(rows[0].gone).toBeUndefined()
+  })
+
+  // The separator is in the format on purpose and the subject is last: a
+  // commit message may contain anything.
+  test('a commit subject containing the separator survives whole', () => {
+    const rows = core.parseBranchRows(line('*', 'refs/heads/main', 'aaa', '', 'fix: a|b parsing'))
+    expect(rows[0].label).toBe('fix: a|b parsing')
+  })
+
+  test('a commit with no subject falls back to the branch name', () => {
+    const rows = core.parseBranchRows(line('*', 'refs/heads/main', 'aaa', '', ''))
+    expect(rows[0].label).toBe('main')
+  })
+
+  test('blank lines and truncated ones are skipped, not half-read', () => {
+    const rows = core.parseBranchRows(['', 'refs/heads/broken|aaa', '   ', line(' ', 'refs/heads/ok', 'bbb', '', 's')].join('\n'))
+    expect(rows.map(r => r.name)).toEqual(['ok'])
+  })
+
+  test('a branch whose name contains a slash keeps all of it', () => {
+    const rows = core.parseBranchRows([
+      line(' ', 'refs/heads/feature/deep/name', 'aaa', '', 's'),
+      line(' ', 'refs/remotes/origin/feature/deep/name', 'aaa', '', 's'),
+    ].join('\n'))
+    expect(rows.map(r => r.name)).toEqual(['feature/deep/name', 'remotes/origin/feature/deep/name'])
+  })
+
+  // `%(refname:short)` would shorten this one to `origin`, which is a remote
+  // name rather than a branch and would collide with anything called that.
+  test('origin/HEAD keeps its own name, and gets a real hash', () => {
+    const rows = core.parseBranchRows(line(' ', 'refs/remotes/origin/HEAD', '1a2b3c4', '', 'the tip'))
+    expect(rows[0].name).toBe('remotes/origin/HEAD')
+    expect(rows[0].commit).toBe('1a2b3c4')
+  })
+})

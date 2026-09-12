@@ -1,4 +1,4 @@
-import simpleGit, { SimpleGit, LogResult, BranchSummary, StatusResult } from 'simple-git'
+import simpleGit, { SimpleGit, LogResult, StatusResult } from 'simple-git'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { getGitBinary, isSimpleGitSafeBinary } from './git-binary'
@@ -380,51 +380,20 @@ export class GitService {
   }
 
   async getBranches(): Promise<{ branches: BranchInfo[] }> {
-    const summary: BranchSummary = await this.git.branch(['-a', '--verbose'])
-    const branches: BranchInfo[] = Object.values(summary.branches).map(b => ({
-      name: b.name,
-      current: b.current,
-      remote: b.name.startsWith('remotes/'),
-      commit: b.commit,
-      label: b.label || b.name
-    }))
-    // Empty repo: `git branch` lists nothing before the first commit, but the
-    // unborn branch (symbolic-ref) still has a name worth showing in the UI.
-    if (!branches.some(b => b.current)) {
-      try {
-        const name = (await this.git.raw(['symbolic-ref', '--short', 'HEAD'])).trim()
-        if (name) branches.push({ name, current: true, remote: false, commit: '', label: name })
-      } catch { /* detached HEAD — nothing to add */ }
-    }
-    // Repair simple-git's parse of the detached-HEAD placeholder (see
-    // detachedHeadLabel). The UI shows `name`, so the fix has to land there.
-    const cur = branches.find(b => b.current)
-    if (cur && cur.name.startsWith('(')) {
+    // One for-each-ref, out of plumbing: the list, the current marker and
+    // ahead/behind all at once. See git-core's branchRows for why this
+    // replaced `git branch -a --verbose` and a second call.
+    const { rows, detached } = await core.branchRows(this.run)
+    const branches: BranchInfo[] = rows
+    // HEAD is on no branch: detached, or mid-rebase. `git branch` used to
+    // print a sentence here — `* (HEAD detached at 1a2b3c4)` — which
+    // simple-git parsed into a branch called `(HEAD`. The label is built from
+    // plumbing instead, and it reads a file, which is why this one step stays
+    // on the host.
+    if (detached) {
       const label = await this.detachedHeadLabel()
-      if (label) {
-        cur.name = label
-        cur.label = label
-        cur.detached = true
-      }
+      if (label) branches.push({ name: label, current: true, remote: false, commit: '', label, detached: true })
     }
-    // Ahead/behind vs upstream for local branches, in a single git call.
-    try {
-      const track = await this.git.raw(['for-each-ref', 'refs/heads', '--format=%(refname:short)|%(upstream:track)'])
-      const info = new Map<string, { ahead: number; behind: number; gone: boolean }>()
-      for (const line of track.split('\n')) {
-        const [name, t] = line.split('|')
-        if (!name || !t) continue
-        info.set(name, {
-          ahead: parseInt(/ahead (\d+)/.exec(t)?.[1] ?? '0', 10),
-          behind: parseInt(/behind (\d+)/.exec(t)?.[1] ?? '0', 10),
-          gone: t.includes('gone'),
-        })
-      }
-      for (const b of branches) {
-        const tr = !b.remote ? info.get(b.name) : undefined
-        if (tr) Object.assign(b, tr)
-      }
-    } catch { /* tracking info is best-effort */ }
     return { branches }
   }
 
