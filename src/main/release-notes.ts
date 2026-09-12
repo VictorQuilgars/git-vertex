@@ -15,6 +15,12 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **An operation that reports after you have switched tabs goes to its own repository's journal**, and is waiting there when that tab comes back.
 - It is kept for the session and bounded: an error is about a working tree as it was, and a week-old one after a restart is noise.
 
+### ⚡ Repositories open faster, and reopen instantly
+- **The graph you had last time is drawn in the first frame**, while the real one is being read behind it. A 20,000-commit repository: 168 ms the first time, **42 ms** every time after. Nothing is taken from it as an answer — the refresh runs exactly as it would have, and replaces what is drawn.
+- **The page stopped verifying signatures.** \`%G?\` runs gpg once per signed commit, and nothing has drawn the result since the badge was removed. A 200-commit page of this repository: 580 ms with it, 150 ms without — and a repository whose merges come from the GitHub button is signed on every row.
+- A refresh was **fourteen git processes in six waves**, each waiting on the last; it is ten in two, with the graph alone in the first. Most of that is invisible on a Mac and most of it is the wait on Windows, where starting git costs more than running it.
+- **A build running in an open window no longer refreshes it every 1.5 seconds.** What the watcher sees is put to \`git check-ignore\` before anyone is told, so \`node_modules\` and \`dist\` stop buying refreshes — and an edit to \`.gitignore\`, which used to buy none at all, now does.
+
 ### 🗓 Blame dates read as English again
 - **Blame** in the commit panel dated every line with the French calendar — \`11/09/2026\`, which this English-only app reads as the 11th of September and everyone else as the 9th of November. It writes \`9/11/2026\` now, the way the VS Code panel always did.
 - The reason it could differ at all: the desktop and the panel each carried **their own copy** of reading a diff, a blame, a comparison. There is one shared implementation now, and each product keeps only its own way of reaching git.

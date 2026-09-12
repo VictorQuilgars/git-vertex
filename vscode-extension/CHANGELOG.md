@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- **The panel stopped verifying a signature it never draws.** `%G?` in the log query is not a field but a verification: git runs gpg once per *signed* commit on the page, and the graph has drawn no signature at all since 28/08/2026. Measured on the desktop's own repository, a 200-commit page was 580 ms with it and 150 ms without — and a repository whose merges all come from the GitHub button is signed on every row, so the whole page was paid for.
+- **One `git status` per refresh instead of two.** The conflict list and the working changes each asked for their own, which on a large working tree — and especially on NTFS behind a virus scanner — is the slowest read the panel makes, done twice. Readers that overlap in time now share the one in flight, which also stops two git processes rewriting `.git/index` at the same moment.
+- **The graph a repository had last time is on screen before git answers.** The panel draws the previous visit's graph in the first frame and replaces it when the real one lands; nothing is skipped and no answer comes from the cache. The working tree is deliberately not kept — a stale conflict banner is a wrong statement rather than a slightly old graph.
+
 ## 1.33.0
 
 ### Changed
