@@ -8,7 +8,7 @@ import App from './App.js'
 const startDir = process.argv[2] || process.cwd()
 const root = resolveRepoRoot(startDir)
 if (!root) {
-  console.error(`Git Vertex : aucun dépôt Git trouvé dans ${startDir}`)
+  console.error(`Git Vertex: no Git repository found in ${startDir}`)
   process.exit(1)
 }
 

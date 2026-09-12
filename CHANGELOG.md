@@ -14,6 +14,7 @@
 - **The two products now run one implementation of a diff.** Reading a commit, comparing two refs, listing what a comparison touched, a working-tree diff, a stash's patch, a blame, a search through diffs: the desktop app and the VS Code panel each had their own copy of all of it, and the copies drifted — the blame dates above are what that looks like from the outside. There is one now, shared, with each product keeping only its own way of reaching git. Nothing about what these produce was meant to change beyond the fix above. (#191)
 
 ### Fixed
+- **The CLI speaks English.** The terminal UI predates the English-only rule the app and the extension were swept for, and it still carried fifty-one sites of French: the whole help panel, every status line, the sidebar's section headers, the column titles, and thirteen error messages from the git layer — *Conflit de rebase*, *Aucun remote configuré*, *Rien à rétablir*. It is translated, the section headers now read as the desktop's do (`LOCAL`, `REMOTES`, `TAGS`), and a test reads the sources so the next one fails in CI rather than on screen. (#77)
 - **Blame dates are written in English again.** `Blame` in the commit panel dated every line with the French calendar — `11/09/2026`, read as the 11th of September by a UI that is English-only everywhere else, and as the 9th of November by anyone who took it at face value. The VS Code panel, running the same view, had always written `9/11/2026`. The date is no longer taken from the machine the app happens to run on. (#191)
 
 ## 1.35.0
