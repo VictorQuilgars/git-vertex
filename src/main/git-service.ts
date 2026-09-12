@@ -1,4 +1,4 @@
-import simpleGit, { SimpleGit, LogResult, BranchSummary } from 'simple-git'
+import simpleGit, { SimpleGit, LogResult, BranchSummary, StatusResult } from 'simple-git'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { getGitBinary, isSimpleGitSafeBinary } from './git-binary'
@@ -199,10 +199,34 @@ export class GitService {
     return core.assertRef(ref, label)
   }
 
+  // ── One `git status` at a time ──────────────────────────────
+  //
+  // `git status` is the most expensive read the app makes — it stats the whole
+  // working tree, and on NTFS behind a virus scanner that is the slowest thing
+  // in a refresh by a wide margin. A refresh used to run TWO of them, because
+  // getConflictedFiles and getWorkingChanges each asked for their own, and
+  // once the refresh started asking in parallel they also ran at the same
+  // time: two processes both refreshing and rewriting `.git/index`, racing for
+  // `index.lock`.
+  //
+  // So callers share the one in flight. Two callers that overlap in time both
+  // asked "now" and the same answer is the right one for both; the promise is
+  // dropped as soon as it settles, so a call that starts after it gets a fresh
+  // one and nothing is ever served stale.
+  private inFlightStatus: Promise<StatusResult> | null = null
+  private status(): Promise<StatusResult> {
+    if (this.inFlightStatus) return this.inFlightStatus
+    const shared = this.git.status()
+    this.inFlightStatus = shared
+    const clear = (): void => { if (this.inFlightStatus === shared) this.inFlightStatus = null }
+    shared.then(clear, clear)
+    return shared
+  }
+
   // True if the working tree has any tracked changes (staged or unstaged).
   private async isDirty(): Promise<boolean> {
     try {
-      const s = await this.git.status()
+      const s = await this.status()
       return s.files.some(f => f.index !== '?' || f.working_dir !== '?')
     } catch {
       return false
@@ -659,7 +683,7 @@ export class GitService {
         msg.includes('has no upstream')
       ) {
         try {
-          const status = await this.git.status()
+          const status = await this.status()
           const branch = status.current ?? 'main'
           const { remote } = await this.getDefaultRemote()
           if (!remote) return { success: false, error: 'No remote configured' }
@@ -689,7 +713,7 @@ export class GitService {
 
   async getStatus(): Promise<{ staged: string[]; unstaged: string[]; untracked: string[] }> {
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       return {
         staged: status.staged,
         unstaged: status.modified,
@@ -733,7 +757,7 @@ export class GitService {
       // get none: git diff cannot see them, and stat-ing each one would mean a
       // subprocess per file.
       const [status, stagedStats, unstagedStats] = await Promise.all([
-        this.git.status(),
+        this.status(),
         this.numstat(['--cached']),
         this.numstat([]),
       ])
@@ -881,7 +905,7 @@ export class GitService {
       // An untracked file is not affected by restore/checkout (git has no prior
       // version to restore). The only way to "discard" it is to delete it from
       // the working tree — `git clean -fd` handles both files and directories.
-      const status = await this.git.status()
+      const status = await this.status()
       const isUntracked = status.not_added.includes(file)
         || status.files.some(f => f.path === file && f.index === '?' && f.working_dir === '?')
       if (isUntracked) {
@@ -1433,7 +1457,7 @@ export class GitService {
     const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
     if (bad) return { success: false, error: bad }
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       if (status.current === branch) {
         // Moving the current branch is a hard reset — it discards uncommitted
         // work silently. Refuse loudly instead of destroying changes.
@@ -1863,7 +1887,7 @@ exit 0
   // correctly deletes the file, see resolveConflictWithSide) said nothing about it.
   async getConflictedFiles(): Promise<{ files: string[]; entries: ConflictEntry[] }> {
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       const entries = status.files
         .filter(f => f.index === 'U' || f.working_dir === 'U' || (f.index === 'A' && f.working_dir === 'A') || (f.index === 'D' && f.working_dir === 'D'))
         .map(f => ({ path: f.path, kind: conflictKind(f.index, f.working_dir) }))
@@ -2535,7 +2559,7 @@ exit 0
     if (names.includes('main')) return 'main'
     if (names.includes('master')) return 'master'
     // fall back to current branch
-    const status = await this.git.status()
+    const status = await this.status()
     return status.current ?? 'main'
   }
 

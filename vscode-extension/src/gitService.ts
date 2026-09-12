@@ -1,7 +1,7 @@
 // gitService.ts — All git operations for the VS Code extension host.
 // Uses simple-git (no Electron dependency).
 
-import simpleGit, { SimpleGit, BranchSummary } from 'simple-git'
+import simpleGit, { SimpleGit, BranchSummary, StatusResult } from 'simple-git'
 import { readFileSync } from 'fs'
 import { resolve as pathResolve } from 'path'
 import { CommitNode, BranchInfo, ConflictEntry, ConflictKind, FileChange, WorkingChanges, RebaseState, RebaseStep } from './types'
@@ -361,7 +361,7 @@ export class GitService {
       // each reports its own counts. Untracked files get none — git diff cannot
       // see them, and stat-ing each would mean a subprocess per file.
       const [status, stagedStats, unstagedStats] = await Promise.all([
-        this.git.status(),
+        this.status(),
         this.workingNumstat(['--cached']),
         this.workingNumstat([]),
       ])
@@ -555,7 +555,7 @@ export class GitService {
   async discardFile(file: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Untracked files have no prior version to restore — delete them instead.
-      const status = await this.git.status()
+      const status = await this.status()
       const isUntracked = status.not_added.includes(file)
         || status.files.some(f => f.path === file && f.index === '?' && f.working_dir === '?')
       if (isUntracked) {
@@ -745,7 +745,7 @@ export class GitService {
       const msg: string = e.message ?? ''
       if (msg.includes('no upstream') || msg.includes('set-upstream') || msg.includes('has no upstream')) {
         try {
-          const status = await this.git.status()
+          const status = await this.status()
           const branch = status.current ?? 'main'
           const { remote } = await this.getDefaultRemote()
           if (!remote) return { success: false, error: 'No remote configured' }
@@ -1067,7 +1067,7 @@ export class GitService {
   // conflict.
   async getConflictedFiles(): Promise<{ files: string[]; entries: ConflictEntry[] }> {
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       const entries = status.files
         .filter(f => f.index === 'U' || f.working_dir === 'U' || (f.index === 'A' && f.working_dir === 'A') || (f.index === 'D' && f.working_dir === 'D'))
         .map(f => ({ path: f.path, kind: conflictKind(f.index, f.working_dir) }))
@@ -1293,10 +1293,34 @@ export class GitService {
 
   // ── History-rewriting helpers (ported from the desktop GitService) ──
 
+  // ── One `git status` at a time ──────────────────────────────
+  //
+  // `git status` is the most expensive read the app makes — it stats the whole
+  // working tree, and on NTFS behind a virus scanner that is the slowest thing
+  // in a refresh by a wide margin. A refresh used to run TWO of them, because
+  // getConflictedFiles and getWorkingChanges each asked for their own, and
+  // once the refresh started asking in parallel they also ran at the same
+  // time: two processes both refreshing and rewriting `.git/index`, racing for
+  // `index.lock`.
+  //
+  // So callers share the one in flight. Two callers that overlap in time both
+  // asked "now" and the same answer is the right one for both; the promise is
+  // dropped as soon as it settles, so a call that starts after it gets a fresh
+  // one and nothing is ever served stale.
+  private inFlightStatus: Promise<StatusResult> | null = null
+  private status(): Promise<StatusResult> {
+    if (this.inFlightStatus) return this.inFlightStatus
+    const shared = this.git.status()
+    this.inFlightStatus = shared
+    const clear = (): void => { if (this.inFlightStatus === shared) this.inFlightStatus = null }
+    shared.then(clear, clear)
+    return shared
+  }
+
   // True if the working tree has any tracked changes (staged or unstaged).
   private async isDirty(): Promise<boolean> {
     try {
-      const s = await this.git.status()
+      const s = await this.status()
       return s.files.some(f => f.index !== '?' || f.working_dir !== '?')
     } catch {
       return false
@@ -1319,7 +1343,7 @@ export class GitService {
     const bad = this.assertRef(branch, 'branch') || this.assertRef(hash, 'commit')
     if (bad) return { success: false, error: bad }
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       if (status.current === branch) {
         if (await this.isDirty()) {
           return { success: false, error: 'Uncommitted changes — commit or stash before moving current branch' }
@@ -1908,7 +1932,7 @@ exit 0
 
   async getStatus(): Promise<{ staged: string[]; unstaged: string[]; untracked: string[] }> {
     try {
-      const status = await this.git.status()
+      const status = await this.status()
       return { staged: status.staged, unstaged: status.modified, untracked: status.not_added }
     } catch { return { staged: [], unstaged: [], untracked: [] } }
   }

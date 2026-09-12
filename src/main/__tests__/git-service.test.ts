@@ -1190,6 +1190,53 @@ describe('GitService', () => {
   // getLog — signature field & ref filtering (solo/mute branches)
   // ─────────────────────────────────────────────────────────────────────
 
+  // ─────────────────────────────────────────────────────────────────────
+  // One `git status` at a time
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('git status is shared between readers that overlap', () => {
+    /** Count the calls that reach simple-git, and restore the method after. */
+    async function countStatus(run: () => Promise<unknown>): Promise<number> {
+      const inner = (git as any).git
+      const real = inner.status.bind(inner)
+      let calls = 0
+      inner.status = (...a: any[]) => { calls++; return real(...a) }
+      try { await run() } finally { inner.status = real }
+      return calls
+    }
+
+    beforeEach(() => {
+      fs.writeFileSync(path.join(tempDir, 'f.txt'), 'x')
+      execSync(`cd ${tempDir} && git add . && git commit -m "init"`)
+    })
+
+    // The refresh asks both of these, and once it asks in parallel they are
+    // two processes stat-ing the whole working tree AND both rewriting the
+    // index — which is a race for index.lock as much as it is wasted time.
+    test('conflicts and working changes at the same time cost one process', async () => {
+      const calls = await countStatus(() =>
+        Promise.all([git.getConflictedFiles(), git.getWorkingChanges()]))
+      expect(calls).toBe(1)
+    })
+
+    test('a reader that starts afterwards gets its own', async () => {
+      const calls = await countStatus(async () => {
+        await git.getConflictedFiles()
+        await git.getConflictedFiles()
+      })
+      expect(calls).toBe(2)
+    })
+
+    // The guard that matters: sharing must never mean serving yesterday.
+    test('a change made between two reads is seen by the second', async () => {
+      const before = await git.getWorkingChanges()
+      expect(before.untracked).not.toContain('new.txt')
+      fs.writeFileSync(path.join(tempDir, 'new.txt'), 'hello')
+      const after = await git.getWorkingChanges()
+      expect(after.untracked).toContain('new.txt')
+    })
+  })
+
   describe('getLog signature & refs', () => {
     // `%G?` is not a field, it is a verification: git runs gpg once per SIGNED
     // commit it prints. Nothing draws the result — the graph has drawn no
