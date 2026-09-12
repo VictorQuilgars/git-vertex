@@ -1,3 +1,4 @@
+import { THEME } from '../ui/theme'
 import type { LayoutCommit } from '../core/graphLayout.js'
 
 export interface GraphCell { char: string; color: string }
@@ -21,12 +22,12 @@ export function buildGraphRows(commits: LayoutCommit[]): GraphCell[][] {
       if (pr === undefined || pr <= r) continue
       const parent = commits[pr]
       const lane = parent ? parent.lane : c.lane
-      const color = c.color || '#8b949e'
+      const color = c.color || THEME.muted
       for (let rr = r + 1; rr < pr; rr++) {
         if (!through[rr].has(lane)) through[rr].set(lane, color)
       }
       // Also keep the node's own lane visually connected on the first gap row.
-      if (pr > r + 1 && !through[r + 1].has(c.lane)) through[r + 1].set(c.lane, c.color || '#8b949e')
+      if (pr > r + 1 && !through[r + 1].has(c.lane)) through[r + 1].set(c.lane, c.color || THEME.muted)
     }
   }
 
@@ -38,7 +39,7 @@ export function buildGraphRows(commits: LayoutCommit[]): GraphCell[][] {
     let last = c.lane
     for (const lane of through[r].keys()) last = Math.max(last, lane)
     for (let lane = 0; lane <= last; lane++) {
-      if (lane === c.lane) cells.push({ char: '●', color: c.color || '#58a6ff' })
+      if (lane === c.lane) cells.push({ char: '●', color: c.color || THEME.branch })
       else if (through[r].has(lane)) cells.push({ char: '│', color: through[r].get(lane)! })
       else cells.push({ char: ' ', color: '' })
     }
