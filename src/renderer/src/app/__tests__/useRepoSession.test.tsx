@@ -62,21 +62,53 @@ test('a load that finishes after a switch lands in its own repository, not the s
   expect(view.result.current.currentBranch).toBe('a-main')
 })
 
-// The five waves a refresh used to be are the refresh, on a machine where
-// starting git costs more than running it. Nothing here depends on anything
-// else, so nothing waits: the log is held back 40 ms and every other question
-// has already left by then. Under the old order getStashes would not have been
-// asked yet — it waited for the log.
-test('a refresh asks for everything at once', async () => {
+// A refresh was six waves, each waiting on the last, which on a machine where
+// starting git costs more than running it IS the refresh. It is two now — and
+// not one, which was tried: firing all six together put 85 ms on the
+// click-to-graph of a 20,000-commit repository, because five more git
+// processes take CPU and disk from the one query the user is waiting for.
+// So the graph goes first, alone.
+test('the graph has the first wave to itself', async () => {
   const { apis, view } = setup({ '/a': 40 })
   act(() => view.result.current.setRepoPath('/a'))
   let load!: Promise<void>
   act(() => { load = view.result.current.loadRepoData() })
   const a = apis['/a']
-  for (const asked of [a.getBranches, a.getLog, a.getStashes, a.getTags, a.getConflictedFiles, a.getConflictMode, a.getWorkingChanges]) {
-    expect(asked).toHaveBeenCalled()
-  }
+  expect(a.getBranches).toHaveBeenCalled()
+  expect(a.getLog).toHaveBeenCalled()
+  // Still on its way — nothing else has been asked for yet.
+  expect(a.getStashes).not.toHaveBeenCalled()
+  expect(a.getWorkingChanges).not.toHaveBeenCalled()
   await act(async () => { await load })
+  expect(a.getStashes).toHaveBeenCalled()
+  expect(a.getWorkingChanges).toHaveBeenCalled()
+})
+
+// And the panels, which were four more waves, are one.
+test('the panels are asked for together, once the graph is drawn', async () => {
+  const events: string[] = []
+  const { apis, view } = setup()
+  const a = apis['/a']
+  const trace = <T,>(name: string, value: T) => {
+    ;(a as any)[name] = jest.fn(async () => { events.push(`ask:${name}`); return value })
+  }
+  trace('getStashes', { stashes: [] })
+  trace('getTags', { tags: [] })
+  trace('getConflictedFiles', { files: [] })
+  trace('getConflictMode', { mode: null })
+  trace('getWorkingChanges', { staged: [], unstaged: [], untracked: [] })
+  a.getLog.mockImplementation(async () => { events.push('ask:getLog'); return { commits: [] } })
+
+  act(() => view.result.current.setRepoPath('/a'))
+  await act(async () => { await view.result.current.loadRepoData() })
+
+  // The log is asked for on its own; the five that follow all leave before
+  // any of them is awaited, which is what one wave means.
+  expect(events[0]).toBe('ask:getLog')
+  expect(events.slice(1).sort()).toEqual([
+    'ask:getConflictMode', 'ask:getConflictedFiles', 'ask:getStashes',
+    'ask:getTags', 'ask:getWorkingChanges',
+  ])
 })
 
 // getTracking spent three more processes — rev-parse HEAD, rev-parse @{u}, a
