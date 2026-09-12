@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.34.0
 
 ### Added
 - **A reading density, compact or comfortable.** Body text was 12–13px and metadata went down to 9 and 10px, and in a panel docked to the side of an editor that is where the room runs out first. **Settings › Appearance › Density** now offers two, each previewing itself. *Comfortable* is what the panel has always drawn, so nothing moves unless you ask. *Compact* takes away **air, not letters**: row heights come down (the graph from 28 to 24px, the whole list column from 26 to 22), the padding steps tighten, and the two body text sizes drop one step — while the smallest text does not move at all, because it was the thing that was too small in the first place. That one is fixed for everyone, at both densities: metadata that was 9 and 10px is 10 and 11px now. The graph re-reads the row heights out of the stylesheet and re-lays its nodes and edges, so the commits stay aligned with the text beside them.
