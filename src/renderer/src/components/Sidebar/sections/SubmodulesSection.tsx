@@ -4,7 +4,7 @@ import { SubmoduleItem } from '../rows'
 import type { SidebarState } from '../useSidebar'
 
 export function SubmodulesSection({ s }: { s: SidebarState }) {
-  const { submodules, handleInitSubmodule, handleUpdateSubmodule } = s
+  const { submodules, handleInitSubmodule, handleUpdateSubmodule, handleSyncSubmodule, handleDeinitSubmodule } = s
   return (
     <Section id="submodules" title="SUBMODULES" icon="listTree" count={submodules.length} defaultOpen={false}>
               {submodules.map(sub => (
@@ -13,6 +13,8 @@ export function SubmodulesSection({ s }: { s: SidebarState }) {
                   sub={sub}
                   onInit={() => handleInitSubmodule(sub.path)}
                   onUpdate={() => handleUpdateSubmodule(sub.path)}
+                  onSync={() => handleSyncSubmodule(sub.path)}
+                  onDeinit={() => handleDeinitSubmodule(sub.path)}
                 />
               ))}
             </Section>

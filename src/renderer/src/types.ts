@@ -229,6 +229,8 @@ declare global {
     getSubmodules: () => Promise<{ submodules: { path: string; url: string; status: 'ok' | 'dirty' | 'uninitialized' }[] }>
     initSubmodule: (path: string) => Promise<R>
     updateSubmodule: (path: string) => Promise<R>
+    deinitSubmodule: (path: string) => Promise<R>
+    syncSubmodule: (path: string) => Promise<R>
     // Extended search & branch comparison
     searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
     /** The 1-based row of each hash in the log the graph loads (same refs, same order); absent when no shown ref reaches it. */

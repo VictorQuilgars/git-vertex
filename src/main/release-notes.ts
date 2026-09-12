@@ -4,6 +4,10 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧩 Two submodule actions that were missing
+- **Sync the URL** — when a submodule's remote moves, the change arrives in \`.gitmodules\` and git keeps fetching from the URL it wrote at clone time. This copies one to the other.
+- **Empty the working tree** — frees the checkout, keeps the submodule declared. It asks first, and git still refuses if there is work that is not pushed.
+
 ### 📏 A reading density
 - **Settings › Appearance › Density**, two options that each preview themselves. *Comfortable* is what the app has always drawn — nothing moves unless you ask.
 - *Compact* takes away **air, not letters**: shorter rows, tighter padding, body text down one step. The graph follows properly, so commits stay aligned with the text beside them.
