@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Fixed
+- **In the VS Code panel, the graph follows the editor's theme instead of keeping the old colours.** The graph resolves the ten branch colours to real values once — a `var()` cannot be added to anything, and it does arithmetic on them to fade an edge toward the canvas — and bakes one into every commit of its layout. When the editor's theme changed under the panel, everything the stylesheet owns repainted and the branches did not, until something unrelated moved the layout again. On the desktop this was hidden rather than absent: the settings page is a full-page tab, so leaving it rebuilds the graph from scratch and the colours came back right by accident. They are right on purpose now. (#160)
+
 ## 1.36.0
 
 ### Added

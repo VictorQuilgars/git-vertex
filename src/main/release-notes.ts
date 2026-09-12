@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🎨 The graph follows the theme
+- In the **VS Code panel**, the branch colours kept the old palette when the editor's theme changed — the graph resolves them to real values once and draws with those. They follow now.
+`,
   '1.36.0': `## What's new in 1.36.0
 
 ### 📏 A reading density
