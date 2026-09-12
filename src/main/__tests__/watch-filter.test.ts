@@ -89,3 +89,42 @@ test('a Windows separator names the same file', async () => {
   const filter = makeWatchFilter(probe)
   expect(await filter.worthRefreshing(['packages\\app\\.gitignore'])).toBe(true)
 })
+
+// ── Inside .git ───────────────────────────────────────────────
+
+import { gitDirChangeMatters } from '../watch-filter'
+
+describe('a change inside .git', () => {
+  test.each([
+    ['HEAD', 'a checkout'],
+    ['refs/heads/main', 'a commit'],
+    ['packed-refs', 'a prune'],
+    ['index', 'something staged'],
+    ['MERGE_HEAD', 'a merge in progress'],
+    ['rebase-merge/head-name', 'a rebase in progress'],
+    ['FETCH_HEAD', 'a fetch that just finished'],
+    ['refs/remotes/origin/main', 'a remote branch moved'],
+  ])('%s matters (%s)', (p) => expect(gitDirChangeMatters(p)).toBe(true))
+
+  // A fetch writes thousands of these, and the debounce is trailing: they do
+  // not merely cost events, they hold the refresh back for as long as they
+  // keep coming. The ref update that follows is the news.
+  test.each([
+    ['objects/ab/cdef0123456789', 'a loose object'],
+    ['objects/pack/pack-abc.pack', 'a pack'],
+    ['objects/pack/pack-abc.idx', 'its index'],
+    ['index.lock', 'a command writing the index'],
+    ['refs/heads/main.lock', 'a ref being updated'],
+    ['config.lock', 'a config write'],
+  ])('%s does not (%s)', (p) => expect(gitDirChangeMatters(p)).toBe(false))
+
+  test('Windows separators are the same paths', () => {
+    expect(gitDirChangeMatters('objects\\ab\\cdef')).toBe(false)
+    expect(gitDirChangeMatters('refs\\heads\\main')).toBe(true)
+  })
+
+  // fs.watch can report no filename at all; nothing to judge is nothing to do.
+  test('no filename is not a change', () => {
+    expect(gitDirChangeMatters('')).toBe(false)
+  })
+})

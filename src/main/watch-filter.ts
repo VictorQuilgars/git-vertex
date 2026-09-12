@@ -100,3 +100,29 @@ export function makeWatchFilter(probe: IgnoreProbe): WatchFilter {
     },
   }
 }
+
+// ── The other watcher: inside .git ─────────────────────────────
+//
+// That one has no ignore file to consult, and most of what it sees cannot
+// change anything the window draws. A fetch writes thousands of loose objects
+// and a pack; every git command that writes takes and drops a `.lock`. The
+// debounce is trailing, so a long stream of object writes does not merely
+// cost events — it HOLDS THE REFRESH BACK until the stream stops, which on a
+// slow Windows fetch is the whole fetch.
+//
+// What is ignored is only what cannot be the story on its own: objects are
+// always followed by the ref update that makes them reachable, and a lock
+// file is a lock file. Everything else — HEAD, refs, packed-refs, the index,
+// MERGE_HEAD, the rebase directories, FETCH_HEAD — still fires.
+const GIT_NOISE = [
+  // Object writes: a fetch, a commit, a gc. The ref that follows is the news.
+  /^objects[/\\]/,
+  // Taken and dropped by every writing git command, ours included.
+  /\.lock$/,
+]
+
+/** True when a change inside `.git` could alter what the window shows. */
+export function gitDirChangeMatters(relPath: string): boolean {
+  if (!relPath) return false
+  return !GIT_NOISE.some(re => re.test(relPath))
+}

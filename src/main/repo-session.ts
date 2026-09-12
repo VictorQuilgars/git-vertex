@@ -8,7 +8,7 @@ import { GitService } from './git-service'
 import { parseAutoFetchMinutes, shouldUseSshCommand, buildSshCommand, updateSubmodulesIfEnabled } from './settings-helpers'
 import { addRecentRepo } from './recent-repos'
 import { gitBinary, gitEnv } from './git-service'
-import { makeWatchFilter, type IgnoreProbe } from './watch-filter'
+import { gitDirChangeMatters, makeWatchFilter, type IgnoreProbe } from './watch-filter'
 import { describeTuning, isTuned, tuneRepository, type TuningRunner } from './repo-tuning'
 import { getGitBinary } from './git-binary'
 import { execFile } from 'child_process'
@@ -159,9 +159,13 @@ function startWatching(session: RepoSession): void {
   // shows it, and refreshes a background one quietly rather than the visible.
   const payload = { repo: session.path }
 
-  // Watch .git → covers commits, staging, branches, conflicts, rebase, fetch
+  // Watch .git → covers commits, staging, branches, conflicts, rebase, fetch.
+  // Minus the object writes and the lock files, which cannot be the news on
+  // their own and which hold a trailing debounce open for as long as they
+  // keep coming — see gitDirChangeMatters.
   try {
-    session.gitDirWatcher = fs.watch(gitDir, { recursive: true }, () => {
+    session.gitDirWatcher = fs.watch(gitDir, { recursive: true }, (_type, filename) => {
+      if (filename && !gitDirChangeMatters(filename)) return
       if (session.gitDebounce) clearTimeout(session.gitDebounce)
       session.gitDebounce = setTimeout(() => sendToWindow('git:repo-changed', payload), 200)
     })
