@@ -1041,6 +1041,8 @@ const fr = {
   'settings.general.autoFetchHint': '(en minutes, 0 = désactivé)',
   'settings.general.autoSubmodules': 'Maintenir les submodules à jour',
   'settings.general.autoSubmodulesHint': '(met à jour les submodules après un checkout, pull, merge ou rebase)',
+  'settings.general.repoTuning': 'Accélérer les gros dépôts',
+  'settings.general.repoTuningHint': "Config du dépôt · écrit core.fsmonitor et fetch.writeCommitGraph dans chaque dépôt à sa première ouverture, et y écrit un commit-graph. Un démon surveille alors l'arbre de travail pour que « git status » cesse de le parcourir — ce qui se voit surtout sur Windows et sur les gros dépôts. Un réglage que vous auriez posé vous-même n'est jamais remplacé, et rien n'est écrit là où git ne sait pas le faire. À défaire avec « git config --unset ».",
   // Settings — External tools (v1.20.0)
   'settings.externalTools.title': 'Outils externes',
   'settings.externalTools.desc': 'Applications utilisées pour ouvrir des fichiers, comparer des révisions ou résoudre des conflits en dehors de Git Vertex.',
@@ -2859,6 +2861,8 @@ const en: typeof fr = {
   'settings.general.autoFetchHint': '(in minutes, 0 = disabled)',
   'settings.general.autoSubmodules': 'Keep submodules up to date',
   'settings.general.autoSubmodulesHint': '(updates submodules after a checkout, pull, merge or rebase)',
+  'settings.general.repoTuning': 'Speed up large repositories',
+  'settings.general.repoTuningHint': "Repository config · writes core.fsmonitor and fetch.writeCommitGraph into each repository the first time it is opened, and writes it a commit-graph. A daemon then watches the working tree so that `git status` stops walking it — which shows most on Windows and on large repositories. A setting you made yourself is never replaced, and nothing is written where git cannot support it. Undo with `git config --unset`.",
   // Settings — External tools (v1.20.0)
   'settings.externalTools.title': 'External Tools',
   'settings.externalTools.desc': 'Applications used to open files, compare revisions, or resolve conflicts outside of Git Vertex.',

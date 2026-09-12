@@ -3,7 +3,7 @@ import type { SettingsPage } from '../useSettingsPage'
 import { SaveNote } from '../shared'
 
 export function BehaviorSection({ page }: { page: SettingsPage }) {
-  const { t, settings, section, notifyFetch, setNotifyFetch, notifyCommit, setNotifyCommit, notifyUpdate, setNotifyUpdate, autoStash, setAutoStash, warnBeforeConflict, setWarnBeforeConflict, defaultBranchName, setDefaultBranchName, autoFetchInterval, setAutoFetchInterval, autoUpdateSubmodules, setAutoUpdateSubmodules, embedded } = page
+  const { t, settings, section, notifyFetch, setNotifyFetch, notifyCommit, setNotifyCommit, notifyUpdate, setNotifyUpdate, autoStash, setAutoStash, warnBeforeConflict, setWarnBeforeConflict, defaultBranchName, setDefaultBranchName, autoFetchInterval, setAutoFetchInterval, autoUpdateSubmodules, setAutoUpdateSubmodules, repoTuning, setRepoTuning, embedded } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.behavior.title')}</h2>
@@ -64,6 +64,22 @@ export function BehaviorSection({ page }: { page: SettingsPage }) {
                       await window.gitAPI.settingsSet('autoUpdateSubmodules', String(e.target.checked))
                     }} />
                   <span>{t('settings.general.autoSubmodules')} <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{t('settings.general.autoSubmodulesHint')}</span></span>
+                </label>
+
+                {/* Writes into the repository's own config, so it says which
+                    keys — the same rule as the identity fields above. */}
+                <label className="stg-field" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 12 }}>
+                  <input type="checkbox" checked={repoTuning} style={{ marginTop: 3 }}
+                    onChange={async e => {
+                      setRepoTuning(e.target.checked)
+                      await window.gitAPI.settingsSet('repoTuning', String(e.target.checked))
+                    }} />
+                  <span>
+                    {t('settings.general.repoTuning')}
+                    <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: 12, marginTop: 2 }}>
+                      {t('settings.general.repoTuningHint')}
+                    </span>
+                  </span>
                 </label>
 
                 {/* OS notifications — desktop only (no-op in the VS Code host) */}

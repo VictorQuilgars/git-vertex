@@ -9,6 +9,8 @@ import { parseAutoFetchMinutes, shouldUseSshCommand, buildSshCommand, updateSubm
 import { addRecentRepo } from './recent-repos'
 import { gitBinary, gitEnv } from './git-service'
 import { makeWatchFilter, type IgnoreProbe } from './watch-filter'
+import { describeTuning, isTuned, tuneRepository, type TuningRunner } from './repo-tuning'
+import { getGitBinary } from './git-binary'
 import { execFile } from 'child_process'
 import fs from 'fs'
 import path from 'path'
@@ -73,6 +75,45 @@ export async function applySshConfig(): Promise<void> {
       await exec(gitBinary(), ['config', '--global', '--unset', 'core.sshCommand']).catch(() => {})
     }
   } catch { /* best-effort */ }
+}
+
+// ── Git's own caches, for a repository the user asked us to tune ──
+//
+// Off unless `repoTuning` is on, because this writes into the repository's
+// own config and every git client on the machine reads it afterwards — see
+// repo-tuning.ts for what and why. Run once per repository, in the
+// background, after the window already has its graph: `commit-graph write`
+// on a deep history is seconds of CPU, and it must not be seconds the user
+// spends looking at an empty pane.
+function tuningRunner(repoPath: string): TuningRunner {
+  return (args) => new Promise(resolve => {
+    execFile(
+      gitBinary(),
+      ['-C', repoPath, ...args],
+      { env: gitEnv(), maxBuffer: 8 * 1024 * 1024 },
+      (err, stdout, stderr) => resolve({
+        code: err ? ((err as { code?: unknown }).code as number ?? 1) : 0,
+        stdout: stdout || '',
+        stderr: stderr || '',
+      }),
+    )
+  })
+}
+
+async function maybeTune(repoPath: string): Promise<void> {
+  if (readSettings().repoTuning !== 'true') return
+  const run = tuningRunner(repoPath)
+  try {
+    if (await isTuned(run)) return
+    const report = await tuneRepository(run, {
+      gitVersion: getGitBinary().version,
+      platform: process.platform,
+    })
+    console.log(`[git-vertex] tuned ${repoPath}: ${describeTuning(report)}`)
+  } catch (e) {
+    // A repository that cannot be tuned is a repository that works as before.
+    console.log(`[git-vertex] could not tune ${repoPath}: ${(e as Error)?.message ?? e}`)
+  }
 }
 
 // ── Watchers, per session ───────────────────────────────────────
@@ -187,6 +228,8 @@ export async function openRepoAt(rawRepoPath: string): Promise<{ path?: string; 
     addRecentRepo(repoPath)
     startWatching(session)
     scheduleAutoFetch(session)
+    // Behind the window, not in front of it.
+    setTimeout(() => { void maybeTune(repoPath) }, 3000)
     return { path: repoPath, name }
   } catch (e: any) {
     return { error: e.message }
