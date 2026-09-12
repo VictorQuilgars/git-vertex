@@ -18,6 +18,7 @@ import { useBranchMeta } from '../hooks/useBranchMeta'
 import { emptyVisibility, logOptionsFor, type GraphVisibility, type RefFamily } from '../utils/graphVisibility'
 import { type RemoteRepo } from '../utils/remoteUrl'
 import { type StashEntry, type TagEntry, kindsByPath, LOG_PAGE } from './shared'
+import { forgetGraph, hasGraph, readGraph, writeGraph } from './graph-cache'
 import type { AppChrome, ToastAction } from './useAppChrome'
 import { useJournal } from '../contexts/JournalContext'
 
@@ -168,10 +169,54 @@ export function useRepoSession(app: AppChrome) {
     const path = activePathRef.current
     if (!path) return
     snapshots.current.set(path, { commits, branches, currentBranch, stashes, tags, tracking, conflictFiles, conflictKinds, conflictMode, wipCount, logLimit })
+    // Leaving a repository is the moment worth keeping: what is on screen is
+    // settled, and the next visit may well be after the app has been closed.
+    if (commits.length) writeGraph(path, { commits, branches, currentBranch, stashes, tags, tracking, logLimit })
   }
-  /** Show a hidden repository as it was. True if there was a snapshot to show. */
-  const restoreSnapshot = useCallback((path: string): boolean => {
+  /**
+   * Keep this repository's graph for the next visit — throttled, because a
+   * refresh can fire four times a second while a rebase runs and the point of
+   * the cache is the FIRST frame of the next launch, not this one. Leaving the
+   * repository (saveSnapshot) keeps it unconditionally.
+   */
+  const KEEP_EVERY_MS = 5000
+  const lastKept = useRef(new Map<string, number>())
+  const keep = (path: string) => {
     const snap = snapshots.current.get(path)
+    if (!snap?.commits.length) return
+    const now = Date.now()
+    if (now - (lastKept.current.get(path) ?? 0) < KEEP_EVERY_MS) return
+    lastKept.current.set(path, now)
+    const { commits, branches, currentBranch, stashes, tags, tracking, logLimit } = snap
+    writeGraph(path, { commits, branches, currentBranch, stashes, tags, tracking, logLimit })
+  }
+
+  /**
+   * Last visit's graph, as a snapshot this window can show. The working tree
+   * is NOT part of it — conflicts, the conflict mode and the WIP count are
+   * statements about the files on disk right now, and the refresh that
+   * follows is making the `git status` they come from anyway. They start
+   * empty, which is what an unread repository looks like, rather than wrong.
+   */
+  const fromDisk = (path: string): RepoSnapshot | null => {
+    const kept = readGraph(path)
+    if (!kept) return null
+    const snap: RepoSnapshot = { ...emptySnapshot(), ...kept }
+    snapshots.current.set(path, snap)
+    return snap
+  }
+
+  /**
+   * Show a hidden repository as it was. True if there was a snapshot to show.
+   *
+   * The one funnel: every way a repository becomes the shown one goes through
+   * here — opening it, switching to its tab, closing the one in front of it —
+   * which is why the kept graph is restored here and nowhere else. Nothing
+   * downstream changes: a restore that succeeds already means the graph is
+   * drawn and the refresh that follows is silent.
+   */
+  const restoreSnapshot = useCallback((path: string): boolean => {
+    const snap = snapshots.current.get(path) ?? fromDisk(path)
     if (!snap) { logLimitRef.current = LOG_PAGE; setLogLimit(LOG_PAGE); return false }
     setCommits(snap.commits); setBranches(snap.branches); setCurrentBranch(snap.currentBranch)
     setStashes(snap.stashes); setTags(snap.tags); setTracking(snap.tracking)
@@ -180,7 +225,7 @@ export function useRepoSession(app: AppChrome) {
     logLimitRef.current = snap.logLimit; setLogLimit(snap.logLimit)
     return true
   }, [])
-  const hasSnapshot = useCallback((path: string) => snapshots.current.has(path), [])
+  const hasSnapshot = useCallback((path: string) => snapshots.current.has(path) || hasGraph(path), [])
   // A toast about a repository that is not the one shown says which one it
   // is about; one about the shown repository says nothing more. An operation
   // starts on the repository shown at the time and reports when it is done,
@@ -208,6 +253,9 @@ export function useRepoSession(app: AppChrome) {
   /** The last tab showing this repository closed: drop what was kept, and the main process's session. */
   const forgetRepo = useCallback((path: string) => {
     snapshots.current.delete(path)
+    // A repository the user closed should not reappear, drawn from last week,
+    // the next time they open it from the recents.
+    forgetGraph(path)
     void window.gitAPI.closeRepo?.(path)
   }, [])
 
@@ -325,6 +373,7 @@ export function useRepoSession(app: AppChrome) {
         (changesRes.unstaged?.length ?? 0) +
         (changesRes.untracked?.length ?? 0)
       applyLoaded(path, rest)
+      keep(path)
     } finally {
       if (!silent && shown()) setLoading(false)
       loadingPaths.current.delete(path)

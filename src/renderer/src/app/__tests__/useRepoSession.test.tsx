@@ -6,6 +6,11 @@ import { installMockGitAPI } from '../../__tests__/test-utils'
 // its path from start to end: a late answer lands in its own snapshot, never
 // in whatever repository is shown by then; coming back is a restore.
 
+// Each test starts with nothing kept: the graph cache lives in localStorage,
+// which jsdom shares across a file, and a repository that another test left
+// behind is exactly what "no snapshot yet" must not mean here.
+beforeEach(() => { try { localStorage.clear() } catch { /* no storage, nothing kept */ } })
+
 const commit = (tag: string) => ({ hash: tag.repeat(40).slice(0, 40), shortHash: tag.repeat(7), message: tag, author: '', authorEmail: '', date: '', parents: [], refs: [] })
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
 
@@ -110,6 +115,65 @@ test('coming back to a repository shows what it had, at once, before any call', 
   expect(restored).toBe(true)
   expect(view.result.current.commits.map(c => c.message)).toEqual(['a'])
   expect(apis['/a'].getLog).toHaveBeenCalledTimes(callsBefore)
+})
+
+// The first frame of the next launch. A window that opens on a repository it
+// has seen before draws the graph it had, at once, with no call made — and the
+// refresh that follows is silent because something correct-looking is already
+// there.
+test('a repository seen in an earlier run is drawn before anything is asked', async () => {
+  const first = setup()
+  act(() => first.view.result.current.setRepoPath('/a'))
+  await act(async () => { await first.view.result.current.loadRepoData() })
+  act(() => { first.view.result.current.saveSnapshot() })
+  first.view.unmount()
+
+  // A new hook, as after a relaunch: nothing in memory, only what was kept.
+  const next = setup()
+  expect(next.view.result.current.hasSnapshot('/a')).toBe(true)
+  let restored = false
+  act(() => { restored = next.view.result.current.restoreSnapshot('/a') })
+  expect(restored).toBe(true)
+  expect(next.view.result.current.commits.map(c => c.message)).toEqual(['a'])
+  expect(next.view.result.current.currentBranch).toBe('a-main')
+  expect(next.apis['/a'].getLog).not.toHaveBeenCalled()
+})
+
+// What the working tree is doing is not kept: it changes while the app is
+// closed, and a stale conflict banner is a wrong statement rather than a
+// slightly old graph. The refresh is making that `git status` anyway.
+test('the restored graph says nothing about the working tree', async () => {
+  const first = setup()
+  first.apis['/a'].getConflictedFiles.mockResolvedValue({ files: ['clash.txt'] })
+  first.apis['/a'].getWorkingChanges.mockResolvedValue({ staged: ['a'], unstaged: [], untracked: [] })
+  act(() => first.view.result.current.setRepoPath('/a'))
+  await act(async () => { await first.view.result.current.loadRepoData() })
+  expect(first.view.result.current.conflictFiles).toEqual(['clash.txt'])
+  act(() => { first.view.result.current.saveSnapshot() })
+  first.view.unmount()
+
+  const next = setup()
+  act(() => { next.view.result.current.restoreSnapshot('/a') })
+  expect(next.view.result.current.commits.map(c => c.message)).toEqual(['a'])
+  expect(next.view.result.current.conflictFiles).toEqual([])
+  expect(next.view.result.current.wipCount).toBe(0)
+})
+
+// Closing a repository means closing it: it must not come back, drawn from
+// last week, the next time it is opened from the recents.
+test('a repository that was forgotten is not drawn from the cache either', async () => {
+  const first = setup()
+  act(() => first.view.result.current.setRepoPath('/a'))
+  await act(async () => { await first.view.result.current.loadRepoData() })
+  act(() => { first.view.result.current.saveSnapshot() })
+  act(() => { first.view.result.current.forgetRepo('/a') })
+  first.view.unmount()
+
+  const next = setup()
+  expect(next.view.result.current.hasSnapshot('/a')).toBe(false)
+  let restored = true
+  act(() => { restored = next.view.result.current.restoreSnapshot('/a') })
+  expect(restored).toBe(false)
 })
 
 test('every plain call is about the shown repository, and a hidden one refreshes into its snapshot', async () => {
