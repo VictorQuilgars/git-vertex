@@ -5,7 +5,7 @@ import { THEMES_FOLDED, THEME_PRESETS, SaveNote } from '../shared'
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AppearanceSection({ page }: { page: SettingsPage }) {
-  const { t, settings, get, set, section, showAllThemes, setShowAllThemes, installed, discarded, bankCount, preview, themePickerDisabled, removeTheme, onBrowseThemes } = page
+  const { t, settings, get, set, showAllThemes, setShowAllThemes, installed, discarded, bankCount, preview, themePickerDisabled, removeTheme, onBrowseThemes } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.appearance.title')}</h2>

@@ -4,10 +4,10 @@
   "compilerOptions": {
     "composite": false,
     "jsx": "react-jsx",
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
-  "//noUnused": "Tidiness is a different job from correctness, and one with judgement in it: half of what noUnusedLocals reports is a state pair whose setter is used and whose value is not, which cannot be deleted without reading the component. Both flags are off here so the gate stays about correctness; the dead-code sweep is its own task.",
+  "//noUnused": "Both ON since #83, and part of the gate now. The sweep that let them be turned on removed 163 dead declarations and surfaced three defects a type-checker sees and a reviewer does not: two icons that accepted a `size` and rendered without it, and a chevron given `open` that never turned \u2014 the CSS rule it needed was there, nothing applied the class. The judgement the old note described is real and has not gone away, so it is written down where the next sweep will look: an element of an ARRAY pattern leaves a HOLE (`const [, setA] = useState()`), because removing it rebinds the setter to the value; and a whole PARAMETER is never cut, since dropping one changes a signature. Both are why this is a gate and not a script.",
   "//tests": "The suites are compiled by ts-jest with tsconfig.jest.web.json, which is what `npm test` reports on. They also do on purpose what this config forbids — render a component with the three props a test needs rather than the thirty it declares — so checking them twice, by two different standards, only produces noise.",
   "exclude": ["src/renderer/src/**/__tests__/**"]
 }

@@ -16,7 +16,7 @@ import './SettingsModal.css'
 
 export default function SettingsModal(props: SettingsModalProps) {
   const page = useSettingsPage(props)
-  const { t, settings, section, setSection, navQuery, setNavQuery, navGroups, onClose } = page
+  const { t, section, setSection, navQuery, setNavQuery, navGroups, onClose } = page
   return (
     <div className="stg-page">
       {/* Header */}

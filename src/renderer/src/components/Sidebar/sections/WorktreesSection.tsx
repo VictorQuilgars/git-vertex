@@ -4,7 +4,7 @@ import { WorktreeItem } from '../rows'
 import type { SidebarState } from '../useSidebar'
 
 export function WorktreesSection({ s }: { s: SidebarState }) {
-  const { onSetRepo, single, worktrees, agents, t, agentsFor, handleAddWorktree, handleRemoveWorktree } = s
+  const { onSetRepo, single, worktrees, t, agentsFor, handleAddWorktree, handleRemoveWorktree } = s
   return (
     <Section id="worktrees" title="WORKTREES" icon="worktree" count={worktrees.length} defaultOpen={single}
             onAdd={handleAddWorktree} addLabel={t('sb.addWorktree')}>

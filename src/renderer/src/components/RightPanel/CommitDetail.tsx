@@ -1,20 +1,15 @@
 // A selected commit: its message, files, blame, and what the model says of it.
 
-import { useCommitDraft } from '../../hooks/useCommitDraft'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
-import hljs from 'highlight.js'
-import { CommitNode, ConflictKind, FileChange, WorkingChanges } from '../../types'
+import { CommitNode, FileChange } from '../../types'
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
-import { aiAvatarDataUri } from '../../utils/aiAvatars'
 import { linkifyIssues, IssueRepo } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
 import { useSettings } from '../../contexts/SettingsContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
-import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
-import WorkingChangesEmpty, { type NextStepsState, type NextStepsActions } from './WorkingChangesEmpty'
 import { hasIssueReferences } from '../IssueLink/IssueLink'
 import { GravatarAvatar, StatusBadge, TreeFileRow, buildTree, fmtDate, fmtRelativeDate, selfEmail, type RewordPlan, DiffStat } from './shared'
 
@@ -230,8 +225,7 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   }, [commit.hash])
 
   const parentShort = commit.parents?.[0]?.slice(0, 7) ?? null
-  const isHeadCommit = commit.refs.some(r => r.includes('HEAD'))
-  // Editing the tip needs nothing from the host; editing anything older needs
+    // Editing the tip needs nothing from the host; editing anything older needs
   // the host's reword handler, since it is a rebase. Both need git to have said
   // yes — a merge commit, a root commit or a commit off HEAD's history cannot
   // be reworded at all, and the block stays plain text for them.

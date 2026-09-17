@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useLang } from '../../i18n/LanguageContext'
 import './GitflowModal.css'
 
