@@ -73,7 +73,7 @@ function Markdown({ md }: { md: string }) {
 }
 
 export default function RepoManager({
-  recentRepos, openRepoPaths, workspaces, onSetWorkspace, onOpenRepo, onRemoveRecent, onClone, onBrowse, onInit, showToast,
+  recentRepos, openRepoPaths, onSetWorkspace, onOpenRepo, onRemoveRecent, onClone, onBrowse, onInit, showToast,
 }: Props) {
   const { t } = useLang()
   const [repos, setRepos] = useState<LocalRepo[]>([])

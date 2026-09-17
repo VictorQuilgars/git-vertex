@@ -2505,4 +2505,77 @@ describe('GitService', () => {
     })
   })
 
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Submodules: deinit and sync (#86) — the last two of the coverage matrix
+  // ─────────────────────────────────────────────────────────────────────
+
+  describe('submodule deinit and sync', () => {
+    let upstream: string
+
+    /** A real submodule: a second repository, added and checked out. */
+    const addSubmodule = () => {
+      upstream = `${tempDir}-sub`
+      fs.mkdirSync(upstream, { recursive: true })
+      execSync('git init -b main -q', { cwd: upstream })
+      execSync('git config user.email t@t.t && git config user.name T', { cwd: upstream, shell: '/bin/sh' })
+      fs.writeFileSync(path.join(upstream, 'lib.txt'), 'from the submodule\n')
+      execSync('git add -A && git commit -qm sub', { cwd: upstream, shell: '/bin/sh' })
+
+      fs.writeFileSync(path.join(tempDir, 'root.txt'), 'root\n')
+      execSync('git add -A && git commit -qm root', { cwd: tempDir, shell: '/bin/sh' })
+      execSync(`git -c protocol.file.allow=always submodule add -q "${upstream}" vendor/lib`, { cwd: tempDir })
+      execSync('git commit -qm "add the submodule"', { cwd: tempDir })
+    }
+
+    afterEach(() => { try { execSync(`rm -rf ${upstream}`) } catch { /* ignore */ } })
+
+    test('deinit empties the working tree and leaves the submodule declared', async () => {
+      addSubmodule()
+      expect(fs.existsSync(path.join(tempDir, 'vendor/lib/lib.txt'))).toBe(true)
+
+      const r = await git.deinitSubmodule('vendor/lib')
+      expect(r).toEqual({ success: true })
+      // Emptied…
+      expect(fs.readdirSync(path.join(tempDir, 'vendor/lib'))).toEqual([])
+      // …but still declared, which is the difference from removing it.
+      expect(fs.readFileSync(path.join(tempDir, '.gitmodules'), 'utf8')).toContain('vendor/lib')
+      const { submodules } = await git.getSubmodules()
+      expect(submodules.map(s => s.path)).toContain('vendor/lib')
+    })
+
+    test('deinit refuses rather than destroy uncommitted work', async () => {
+      addSubmodule()
+      fs.writeFileSync(path.join(tempDir, 'vendor/lib/lib.txt'), 'edited, never committed\n')
+
+      const r = await git.deinitSubmodule('vendor/lib')
+      // No --force is sent, and that refusal is the whole safety of it.
+      expect(r.success).toBe(false)
+      expect(r.error).toBeTruthy()
+      expect(fs.readFileSync(path.join(tempDir, 'vendor/lib/lib.txt'), 'utf8')).toContain('never committed')
+    })
+
+    test('sync copies a moved URL from .gitmodules into .git/config', async () => {
+      addSubmodule()
+      const moved = `${upstream}-moved`
+      fs.cpSync(upstream, moved, { recursive: true })
+      // The remote moved, and the change arrived as a commit to .gitmodules —
+      // which is not what git fetches from.
+      execSync(`git config -f .gitmodules submodule.vendor/lib.url "${moved}"`, { cwd: tempDir })
+      const configUrl = () => execSync('git config --get submodule.vendor/lib.url', { cwd: tempDir }).toString().trim()
+      expect(configUrl()).toBe(upstream)
+
+      const r = await git.syncSubmodule('vendor/lib')
+      expect(r).toEqual({ success: true })
+      expect(configUrl()).toBe(moved)
+      execSync(`rm -rf ${moved}`)
+    })
+
+    test('a path that is not a submodule is an error, not a silent success', async () => {
+      addSubmodule()
+      const r = await git.syncSubmodule('not/a/submodule')
+      expect(r.success).toBe(false)
+    })
+  })
+
 })

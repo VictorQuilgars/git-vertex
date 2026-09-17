@@ -2335,6 +2335,41 @@ exit 0
     }
   }
 
+  /**
+   * Empty a submodule's working tree, keeping its registration.
+   *
+   * No `--force`, deliberately: without it git REFUSES when the submodule has
+   * local changes or unpushed commits, and that refusal is the whole safety of
+   * the command — it is the difference between "this is checked out and I do
+   * not need it right now" and losing work that exists nowhere else. The error
+   * travels to the caller, which says it.
+   */
+  async deinitSubmodule(path: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['submodule', 'deinit', '--', path])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  /**
+   * Copy the URL from `.gitmodules` into `.git/config` for a submodule.
+   *
+   * What it is for: a submodule's remote moved and the change arrived as a
+   * commit to `.gitmodules`. Git does not re-read that on its own — the URL it
+   * fetches from lives in `.git/config`, written once at clone time — so until
+   * this runs, every update on that submodule still goes to the old host.
+   */
+  async syncSubmodule(path: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.raw(['submodule', 'sync', '--', path])
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // ── Extended search ─────────────────────────────────────────
 
   async searchInDiffs(query: string): Promise<{ hashes: string[] }> {

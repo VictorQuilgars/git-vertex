@@ -8,7 +8,10 @@ import type { AppConflicts } from './useAppConflicts'
 import type { AppAi } from './useAppAi'
 import type { AppTabs } from './useAppTabs'
 
-export function useAppUpdates(app: AppChrome & RepoSession & AppGithub & AppConflicts & AppAi & AppTabs) {
+// `_app`, underscored: every hook in the chain takes what came before it, and
+// this one currently reads none of it. The parameter stays so the shape of the
+// chain is uniform; the underscore says the emptiness is deliberate.
+export function useAppUpdates(_app: AppChrome & RepoSession & AppGithub & AppConflicts & AppAi & AppTabs) {
   // Update overlay state machine: available → downloading → installing.
   const [updatePhase, setUpdatePhase] = useState<'idle' | 'available' | 'downloading' | 'installing'>('idle')
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)

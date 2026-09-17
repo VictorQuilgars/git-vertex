@@ -4,7 +4,7 @@ import { RemoteItem } from '../rows'
 import type { SidebarState } from '../useSidebar'
 
 export function RemotesSection({ s }: { s: SidebarState }) {
-  const { onToggleHide, onToggleHideRemote, single, remotes, defaultRemote, t, handleAddRemote, handleRemoveRemote, handleRenameRemote, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, remoteHidden, familyMenu, showAll } = s
+  const { onToggleHideRemote, single, remotes, defaultRemote, t, handleAddRemote, handleRemoveRemote, handleRenameRemote, handlePruneRemote, handleSetDefaultRemote, handleFetchRemote, remoteHidden, familyMenu, showAll } = s
   return (
     <Section id="remotes" title="REMOTES" icon="repo" count={remotes.length} defaultOpen={single}
             onAdd={handleAddRemote} addLabel={t('sb.addRemote')}

@@ -2,7 +2,11 @@
 
 ## Unreleased
 
+### Added
+- **Two submodule actions that were missing: empty it, and re-read its URL.** The sidebar could initialize a submodule and update it, and that was all — the last two gaps in the internal git-coverage matrix. Right-click a submodule now also offers **Sync the URL**, for when its remote moved and the change arrived as a commit to `.gitmodules`: git keeps fetching from the URL written into `.git/config` at clone time, so until this runs every update still goes to the old host. And **Empty the working tree**, which frees the checkout while leaving the submodule declared and re-initialisable. That one asks first, and no `--force` is ever sent — git refusing when there is work that is not pushed is the whole safety of the command, and its refusal is shown rather than swallowed. (#86)
+
 ### Fixed
+- **The CLI speaks English.** The terminal UI predates the English-only rule the app and the extension were swept for, and it still carried fifty-one sites of French: the whole help panel, every status line, the sidebar's section headers, the column titles, and thirteen error messages from the git layer — *Conflit de rebase*, *Aucun remote configuré*, *Rien à rétablir*. It is translated, the section headers now read as the desktop's do (`LOCAL`, `REMOTES`, `TAGS`), and a test reads the sources so the next one fails in CI rather than on screen. (#77)
 - **In the VS Code panel, the graph follows the editor's theme instead of keeping the old colours.** The graph resolves the ten branch colours to real values once — a `var()` cannot be added to anything, and it does arithmetic on them to fade an edge toward the canvas — and bakes one into every commit of its layout. When the editor's theme changed under the panel, everything the stylesheet owns repainted and the branches did not, until something unrelated moved the layout again. On the desktop this was hidden rather than absent: the settings page is a full-page tab, so leaving it rebuilds the graph from scratch and the colours came back right by accident. They are right on purpose now. (#160)
 
 ## 1.36.0

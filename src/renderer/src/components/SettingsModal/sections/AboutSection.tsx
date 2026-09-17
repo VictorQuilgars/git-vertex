@@ -6,7 +6,7 @@ import { Mark } from '../../Mark/Mark'
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AboutSection({ page }: { page: SettingsPage }) {
-  const { t, lang, setLang, settings, section, appInfo, updateStatus, setUpdateStatus, updateVersion, updateReady, downloadProgress, updateError, setUpdateError, checkHadError, onUpdateFound } = page
+  const { t, lang, setLang, appInfo, updateStatus, setUpdateStatus, updateVersion, updateReady, downloadProgress, updateError, setUpdateError, checkHadError, onUpdateFound } = page
   return (
               <div className="stg-section">
                 <div className="stg-about-hero">

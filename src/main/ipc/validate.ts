@@ -245,6 +245,8 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   // Submodules, worktrees, gitflow
   'git:init-submodule': ['repoFile'],
   'git:update-submodule': ['repoFile'],
+  'git:deinit-submodule': ['repoFile'],
+  'git:sync-submodule': ['repoFile'],
   'git:add-worktree': ['absPath', 'rev', 'refName'],
   'git:remove-worktree': ['absPath', null],
   'git:gitflow-start': [null, 'refName'],
