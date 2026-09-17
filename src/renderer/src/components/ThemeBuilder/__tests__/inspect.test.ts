@@ -1,4 +1,4 @@
-import { tokenSeeds, describeElement, readTokenMap, type TokenMap } from '../inspect'
+import { tokenSeeds, describeElement, readTokenMap, roleOf, createInspector, drawablePlaces, type TokenMap } from '../inspect'
 
 // The inspect mode (#242): a token is followed through the derived table
 // until it reaches a seed, and an element answers with the seeds behind the
@@ -66,7 +66,152 @@ describe('on a page', () => {
   })
 
   test('unmapped elements still have a selection and an explicit empty palette', () => {
-    expect(describeElement(root.querySelector('.bare')!, readTokenMap())).toEqual({ name: 'nothing', id: '.bare', tokens: [] })
+    const bare = root.querySelector('.bare')!
+    expect(describeElement(bare, readTokenMap())).toEqual({ name: 'nothing', id: '.bare', el: bare, tokens: [] })
+  })
+
+  test('a token declared in a block <html> matches is followed, not only :root', () => {
+    // The layout's block redefines --bg-shell; a map that read :root alone
+    // answered "text" for the body and never "canvas".
+    const layout = document.createElement('style')
+    layout.textContent = '[data-layout="blocks"] { --bg-shell: var(--seed-sunken); } [data-layout="flush"] { --bg-shell: var(--seed-accent); }'
+    document.head.appendChild(layout)
+    document.documentElement.setAttribute('data-layout', 'blocks')
+    try {
+      const map = readTokenMap()
+      expect(map['--bg-shell']).toBe('var(--seed-sunken)')
+      expect(tokenSeeds('--bg-shell', map)).toEqual(['sunken'])
+    } finally {
+      document.documentElement.removeAttribute('data-layout')
+      layout.remove()
+    }
+  })
+})
+
+describe('what a seed does on the element', () => {
+  let style: HTMLStyleElement
+  let root: HTMLDivElement
+  beforeEach(() => {
+    style = document.createElement('style')
+    style.textContent = [
+      ':root { --seed-canvas: #0E1116; --seed-surface: #151A21; --seed-border: #2B3341; --seed-text: #E8ECF1; --seed-accent: #3FD8C2; --bg-canvas: var(--seed-canvas); --surface: var(--seed-surface); --border-default: var(--seed-border); --text-primary: var(--seed-text); --accent: var(--seed-accent); }',
+      '.page { background: var(--bg-canvas); color: var(--text-primary); }',
+      '.panel { background: var(--surface); border: 1px solid var(--border-default); }',
+      '.link { color: var(--accent); }',
+    ].join('\n')
+    document.head.appendChild(style)
+    root = document.createElement('div')
+    root.innerHTML = '<div class="page"><div class="panel"><div class="wrap"><span class="link">open</span><span class="plain">plain</span></div></div></div>'
+    document.body.appendChild(root)
+  })
+  afterEach(() => { style.remove(); root.remove() })
+
+  test('each token carries its role: a background is a fill, a color is the ink, a border a border', () => {
+    expect(roleOf('background')).toBe('fill')
+    expect(roleOf('background-color')).toBe('fill')
+    expect(roleOf('color')).toBe('ink')
+    expect(roleOf('border')).toBe('border')
+    expect(roleOf('border-top-color')).toBe('border')
+    expect(roleOf('outline')).toBe('outline')
+    expect(roleOf('box-shadow')).toBe('shadow')
+    expect(roleOf('stroke')).toBe('icon')
+    expect(roleOf('border-radius')).toBeNull()
+    expect(roleOf('width')).toBeNull()
+    const panel = describeElement(root.querySelector('.panel')!, readTokenMap())!
+    expect(panel.tokens.filter(t => !t.inherited).map(t => [t.role, t.seeds[0]])).toEqual([['fill', 'surface'], ['border', 'border']])
+  })
+
+  test('a click on a transparent wrapper answers with the panel behind it, and the ink it shows through', () => {
+    const wrap = root.querySelector('.wrap')!
+    const r = describeElement(wrap, readTokenMap())!
+    // The outline goes on the panel: that is what paints under the pointer.
+    expect(r.el).toBe(root.querySelector('.panel'))
+    expect(r.id).toBe('.panel')
+    // Its own fill and border first; then the ink it inherits from the page,
+    // marked as such, so "text" under a box is not read as its background.
+    expect(r.tokens.map(t => [t.role, t.seeds[0], !!t.inherited])).toEqual([
+      ['fill', 'surface', false], ['border', 'border', false], ['ink', 'text', true],
+    ])
+  })
+
+  test('a coloured text answers with its own ink, and the fill behind it from around', () => {
+    const r = describeElement(root.querySelector('.link')!, readTokenMap())!
+    expect(r.el).toBe(root.querySelector('.link'))
+    expect(r.tokens.map(t => [t.role, t.seeds[0], !!t.inherited])).toEqual([['ink', 'accent', false], ['fill', 'surface', true]])
+    // The page's ink is NOT listed: the link paints its own, and only the
+    // nearest of each role shows through.
+    expect(r.tokens.some(t => t.seeds.includes('text'))).toBe(false)
+  })
+
+  test('an inspector answers the same element from its cache, and walks the places of a seed', () => {
+    const inspector = createInspector()
+    const plain = root.querySelector('.plain')!
+    expect(inspector.describe(plain)).toBe(inspector.describe(plain))
+    expect(inspector.describe(plain).el).toBe(root.querySelector('.panel'))
+    const places = inspector.placesOf('border')
+    expect(places.map(p => p.el)).toEqual([root.querySelector('.panel')])
+    expect(places[0].roles).toEqual(['border'])
+    const surface = inspector.placesOf('surface')
+    expect(surface).toEqual([{ el: root.querySelector('.panel'), roles: ['fill'] }])
+    expect(inspector.placesOf('text').map(p => p.el)).toEqual([root.querySelector('.page')])
+    expect(inspector.placesOf('lane-1')).toEqual([])
+  })
+
+  test('a rule on a pseudo-element places its host, and a state pseudo-class places nothing at rest', () => {
+    const extra = document.createElement('style')
+    extra.textContent = '.wrap::before { background: var(--accent); } .plain:hover { color: var(--accent); }'
+    document.head.appendChild(extra)
+    try {
+      const places = createInspector().placesOf('accent')
+      expect(places.map(p => [p.el.className, p.roles])).toEqual([['link', ['ink']], ['wrap', ['fill']]])
+    } finally { extra.remove() }
+  })
+})
+
+describe('the boxes drawn for a seed', () => {
+  const rect = (left: number, top: number, width: number, height: number) =>
+    ({ left, top, width, height, right: left + width, bottom: top + height } as DOMRect)
+  const el = (className: string, r: DOMRect | null, parent: Element = document.body) => {
+    const e = document.createElement('div')
+    e.className = className
+    parent.appendChild(e)
+    jest.spyOn(e, 'getBoundingClientRect').mockReturnValue(r ?? rect(0, 0, 0, 0))
+    return e
+  }
+  const win = { innerWidth: 1000, innerHeight: 800 } as Window
+
+  test('off-screen, empty and builder-owned places are dropped; a place with several roles is drawn as its largest', () => {
+    const shown = el('a', rect(10, 10, 100, 20))
+    const empty = el('b', null)
+    const below = el('c', rect(10, 900, 100, 20))
+    const drawer = el('d', rect(10, 10, 100, 20))
+    drawer.setAttribute('data-theme-builder', '')
+    const inside = el('e', rect(20, 20, 10, 10), drawer)
+    const boxes = drawablePlaces([
+      { el: shown, roles: ['ink', 'fill'] }, { el: empty, roles: ['fill'] }, { el: below, roles: ['fill'] },
+      { el: drawer, roles: ['fill'] }, { el: inside, roles: ['fill'] },
+    ], win)
+    expect(boxes.map(b => [b.el, b.role])).toEqual([[shown, 'fill']])
+    expect(boxes[0].rect.left).toBe(10)
+    ;[shown, empty, below, drawer].forEach(e => e.remove())
+  })
+
+  test('an ink is boxed on the innermost element only: a body that sets it contains every label that sets it again', () => {
+    const page = el('page', rect(0, 0, 1000, 800))
+    const label = el('label', rect(10, 10, 50, 20), page)
+    const other = el('other', rect(10, 40, 50, 20), page)
+    const boxes = drawablePlaces([
+      { el: page, roles: ['ink'] }, { el: label, roles: ['ink'] }, { el: other, roles: ['fill', 'ink'] },
+    ], win)
+    expect(boxes.map(b => [b.el.className, b.role])).toEqual([['label', 'ink'], ['other', 'fill']])
+    page.remove()
+  })
+
+  test('a cap keeps the overlay finite', () => {
+    const page = el('page', rect(0, 0, 1000, 800))
+    const many = Array.from({ length: 12 }, (_, i) => el(`x${i}`, rect(i, 0, 10, 10), page))
+    expect(drawablePlaces(many.map(e => ({ el: e, roles: ['fill'] as const as ['fill'] })), win, 5)).toHaveLength(5)
+    page.remove()
   })
 })
 

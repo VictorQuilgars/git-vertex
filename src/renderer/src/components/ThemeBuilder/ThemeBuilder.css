@@ -1,6 +1,6 @@
 .thb-drawer {
   position: fixed;
-  height: min(760px, calc(100vh - 88px)); /* overridden inline from where it sits */
+  height: min(920px, calc(100vh - 88px)); /* overridden inline from where it sits */
   border-radius: var(--radius-md);
   overflow: hidden;
   width: 380px;
@@ -114,9 +114,83 @@ html.gv-inspecting, html.gv-inspecting *:not([data-theme-builder]):not([data-the
 .thb-head { cursor: move; touch-action: none; }
 .thb-drawer--detached { inset: 0; width: 100%; height: 100vh; border-radius: 0; }
 .thb-drawer--detached .thb-head { cursor: default; }
-.thb-highlight { position: fixed; pointer-events: none; z-index: var(--z-drawer); border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.thb-highlight { position: fixed; pointer-events: none; z-index: calc(var(--z-drawer) - 1); border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .thb-help { padding: 0 var(--space-xl) 0; color: var(--text-secondary); font-size: var(--text-xs); }
 .thb-help li { margin-bottom: var(--space-sm); }
-.thb-quick-colors { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
-.thb-quick-color { display: inline-flex; align-items: center; gap: var(--space-xs); }
+.thb-quick-colors { display: flex; flex-direction: column; gap: var(--space-xs); }
+.thb-quick-color { display: flex; align-items: center; gap: var(--space-xs); }
+.thb-quick-color .thb-swatch { width: 24px; height: 24px; }
+/* What the seed does on the element: its fill, its ink, its border. */
+.thb-role-tag { flex: 1; min-width: 0; color: var(--text-tertiary); font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .thb-drawer > * { flex-shrink: 0; }
+
+/* Stop the inherited crosshair at the editor boundary; controls retain their own cursors. */
+.thb-drawer { cursor: auto; }
+.thb-undo { flex-shrink: 0; }
+
+/* ── The 24 places ─────────────────────────────────────────────────────────
+   Sticky over the list, so a click on a place scrolls the list to the seed
+   while the places stay in view. Drawn from the SEEDS, not the derived
+   tokens: a place shows the seed itself. */
+.thb-specimen {
+  position: sticky; top: 0; z-index: var(--z-raised);
+  background: var(--surface); padding: var(--space-sm) 0 var(--space-sm);
+  border-bottom: 1px solid var(--border-muted);
+}
+.thb-spec-head { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+.thb-spec-head .thb-group-title { margin: 0; white-space: nowrap; }
+.thb-spec-count { flex: 1; min-width: 0; font-size: var(--text-xs); color: var(--text-secondary); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thb-spec-toggle { padding: 1px var(--space-xs); font-size: var(--text-xs); }
+.thb-spec-hint { margin: 0 0 var(--space-xs); color: var(--text-tertiary); }
+.thb-specimen--collapsed { padding-bottom: var(--space-xs); }
+.thb-spec {
+  font-family: 'JetBrains Mono', monospace; font-size: var(--text-tiny); line-height: 1.3;
+  border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-default);
+}
+.thb-area { cursor: pointer; outline: 2px solid transparent; outline-offset: -2px; }
+.thb-area--canvas { background: var(--seed-canvas); padding: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-sm); }
+.thb-area--surface {
+  background: var(--seed-surface); border: 1px solid var(--seed-border); border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm); display: flex; flex-direction: column; gap: var(--space-xs);
+}
+.thb-spec-row { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.thb-spot {
+  display: inline-block; cursor: pointer; white-space: nowrap;
+  padding: 0 2px; border-radius: var(--radius-xs);
+  outline: 2px solid transparent; outline-offset: 1px;
+}
+.thb-spot:hover, .thb-spot:focus-visible, .thb-spot--hint { outline-color: var(--accent); }
+.thb-spec-cap { color: var(--seed-text-3); }
+.thb-spec-tag { padding: 1px 6px; border-radius: var(--radius-sm); }
+.thb-spot--border { border: 2px solid var(--seed-border); color: var(--seed-text-3); margin-left: auto; }
+.thb-spot--sunken { background: var(--seed-sunken); border: 1px solid var(--seed-border); color: var(--seed-text-2); margin-left: auto; }
+.thb-spot--text { color: var(--seed-text); }
+.thb-spot--text-2 { color: var(--seed-text-2); }
+.thb-spot--text-3 { color: var(--seed-text-3); }
+.thb-spot--accent { background: var(--seed-accent); color: var(--seed-on-fill); }
+.thb-spot--on-fill { background: var(--seed-accent); color: var(--seed-on-fill); border-radius: var(--radius-pill); }
+.thb-spot--agent { color: var(--seed-agent); border: 1px solid var(--seed-agent); border-radius: var(--radius-pill); }
+.thb-spot--success { color: var(--seed-success); }
+.thb-spot--warning { color: var(--seed-warning); }
+.thb-spot--danger { color: var(--seed-danger); }
+.thb-spot--conflict { color: var(--seed-conflict); }
+.thb-spec-lanes { display: flex; align-items: center; gap: var(--space-2xs); }
+.thb-spec-lane { display: inline-flex; padding: 2px; }
+.thb-spec-lane i { display: block; width: 10px; height: 10px; border-radius: var(--radius-circle); }
+.thb-spot--lane-1 i { background: var(--seed-lane-1); }
+.thb-spot--lane-2 i { background: var(--seed-lane-2); }
+.thb-spot--lane-3 i { background: var(--seed-lane-3); }
+.thb-spot--lane-4 i { background: var(--seed-lane-4); }
+.thb-spot--lane-5 i { background: var(--seed-lane-5); }
+.thb-spot--lane-6 i { background: var(--seed-lane-6); }
+.thb-spot--lane-7 i { background: var(--seed-lane-7); }
+.thb-spot--lane-8 i { background: var(--seed-lane-8); }
+.thb-spot--lane-9 i { background: var(--seed-lane-9); }
+.thb-spot--lane-10 i { background: var(--seed-lane-10); }
+
+/* Where a seed paints, in the window: one box per place, under the drawer. */
+.thb-places { position: fixed; inset: 0; pointer-events: none; z-index: calc(var(--z-drawer) - 1); }
+.thb-place { position: fixed; border-radius: 2px; outline: 2px solid var(--accent); outline-offset: -1px; }
+.thb-place--fill { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.thb-place--ink, .thb-place--icon { outline-style: dashed; }
+.thb-place--border, .thb-place--outline, .thb-place--shadow { outline-style: dotted; }
