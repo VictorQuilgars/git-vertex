@@ -25,7 +25,19 @@ export const SEED_KEYS = [
 ] as const
 
 export type SeedKey = (typeof SEED_KEYS)[number]
-export type Seeds = Record<SeedKey, string>
+
+/**
+ * Seeds a theme MAY declare. `divider` (#237) is the pane edges — the one
+ * line a VS Code theme paints in its accent, Dracula's purple between two
+ * editor groups — kept apart from `border`, which may never be a hue. A file
+ * without it, which is every one served from /themes/v1/, draws its pane
+ * edges in its border: `cssRuleFor` in the renderer fills it in. Optional
+ * rather than required so that nothing installed before it existed stops
+ * loading.
+ */
+export const OPTIONAL_SEED_KEYS = ['divider'] as const
+export type OptionalSeedKey = (typeof OPTIONAL_SEED_KEYS)[number]
+export type Seeds = Record<SeedKey, string> & Partial<Record<OptionalSeedKey, string>>
 
 /**
  * The 32 themes that live in `tokens.css`, by id.
@@ -217,10 +229,11 @@ export function validateTheme(
   }
   const got = Object.keys(seeds)
   const missing = SEED_KEYS.filter(k => !got.includes(k))
-  const extra = got.filter(k => !(SEED_KEYS as readonly string[]).includes(k))
+  const extra = got.filter(k => !(SEED_KEYS as readonly string[]).includes(k)
+    && !(OPTIONAL_SEED_KEYS as readonly string[]).includes(k))
   if (missing.length) fail(`seeds missing: ${missing.join(', ')}`)
   if (extra.length) fail(`unexpected seeds: ${extra.join(', ')}`)
-  const malformed = SEED_KEYS.filter(k => {
+  const malformed = [...SEED_KEYS, ...OPTIONAL_SEED_KEYS].filter(k => {
     const v = (seeds as Record<string, unknown>)[k]
     return v !== undefined && (typeof v !== 'string' || !HEX.test(v))
   })

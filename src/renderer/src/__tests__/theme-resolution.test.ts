@@ -80,9 +80,11 @@ describe('the rule injected before React mounts', () => {
     expect(rule).toContain('--seed-lane-10:#9AA5CE')
   })
 
-  it('declares all 24 seeds, so no token falls back to the default theme', () => {
+  it('declares every seed tokens.css has, so no token falls back to the default theme', () => {
+    // The file's 24, and the divider filled in from the border (#237): a
+    // theme from /themes/v1/ would otherwise draw the default's pane edges.
     const rule = cssRuleFor(installed.id, installed.seeds)
-    expect(rule.match(/--seed-/g)).toHaveLength(24)
+    expect(rule.match(/--seed-/g)).toHaveLength(25)
   })
 
   // The mirror is in localStorage, which a user can edit. It builds a
@@ -158,5 +160,23 @@ describe('the installed-list response is unwrapped, not assumed to be an array',
     const after = src.slice(call, call + 400)
     expect(after).toMatch(/\.themes/)
     expect(after).not.toMatch(/Array\.isArray\(\s*(list|r)\s*\)/)
+  })
+})
+
+
+// A theme file from before the divider seed existed — every one served from
+// /themes/v1/ — draws its pane edges in its border; one that declares a
+// divider keeps it (#237).
+describe('cssRuleFor fills the divider in', () => {
+  it('gives a 24-seed theme its border as divider', () => {
+    const { divider: _omitted, ...older } = SEEDS as Record<string, string>
+    const rule = cssRuleFor('older', older)
+    expect(rule).toContain(`--seed-divider:${older.border}`)
+  })
+
+  it('keeps a divider the theme declares', () => {
+    const rule = cssRuleFor('newer', { ...SEEDS, divider: '#BD93F9' })
+    expect(rule).toContain('--seed-divider:#BD93F9')
+    expect(rule.match(/--seed-divider:/g)).toHaveLength(1)
   })
 })

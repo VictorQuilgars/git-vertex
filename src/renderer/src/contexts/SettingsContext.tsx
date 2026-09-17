@@ -183,10 +183,17 @@ function injectInstalledThemeRules(themes: InstalledThemeInfo[]): void {
 export function cssRuleFor(themeId: string, seeds: Record<string, string>): string {
   const safeId = /^[a-z0-9][a-z0-9-]{0,63}$/.test(themeId) ? themeId : ''
   if (!safeId) return ''
-  const body = Object.entries(seeds)
+  const entries = Object.entries(seeds)
     .filter(([k, v]) => /^[a-z0-9-]+$/.test(k) && /^#[0-9A-Fa-f]{6}$/.test(v))
-    .map(([k, v]) => `--seed-${k}:${v}`)
-    .join(';')
+  // A theme from before the divider seed existed — every one served from
+  // /themes/v1/ — draws its pane edges in its border (#237). Filled in here,
+  // where the rule is built, so the main process keeps validating rather
+  // than repairing.
+  if (!entries.some(([k]) => k === 'divider')) {
+    const border = entries.find(([k]) => k === 'border')
+    if (border) entries.push(['divider', border[1]])
+  }
+  const body = entries.map(([k, v]) => `--seed-${k}:${v}`).join(';')
   return body ? `[data-theme="${safeId}"]{${body}}` : ''
 }
 

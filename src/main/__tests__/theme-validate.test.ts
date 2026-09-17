@@ -209,6 +209,14 @@ describe('validateTheme', () => {
     expect(chromaShift('#BD93F9', '#282A36')).toBeCloseTo(0.14, 1)
   })
 
+  it('accepts the optional divider, and holds it to the shape rule only', () => {
+    // The pane edges are where a theme may spend its accent: Dracula's purple
+    // is welcome here and refused as a border (#237).
+    expect(validateTheme(seedsWith({ divider: '#BD93F9' })).errors).toEqual([])
+    expect(validateTheme(seedsWith({ divider: 'purple' })).ok).toBe(false)
+    expect(validateTheme(seedsWith({ divider: '#BD9' })).errors.join(' ')).toContain('divider')
+  })
+
   it('rejects a payload with no seeds at all', () => {
     const r = validateTheme({ id: 'x', name: 'X' })
     expect(r.ok).toBe(false)
@@ -263,9 +271,10 @@ describe('the built-in themes pass the validator', () => {
   })
 
   // All 32 — the two hand-drawn ones included — are held to the border rule.
-  it.each(themes)('%s: the border is its canvas a shade off', (_id, body) => {
+  it.each(themes)('%s: the border is its canvas a shade off, and the divider is declared', (_id, body) => {
     const s = seedsIn(body)
     expect(chromaShift(s.border, s.canvas)).toBeLessThanOrEqual(MAX_BORDER_SHIFT)
+    expect(s.divider).toMatch(/^#[0-9A-Fa-f]{6}$/)
   })
 
   // The thirty imported ones pass the whole validator, as the generator

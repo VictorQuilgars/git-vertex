@@ -80,7 +80,7 @@
   margin-left: -1px;
   flex-shrink: 0;
   cursor: col-resize;
-  border-left: 1px solid var(--border-muted);
+  border-left: 1px solid var(--divider-muted);
   background: transparent;
 }
 .cv-resize:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }

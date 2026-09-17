@@ -54,7 +54,7 @@
   width: 210px;
   flex-shrink: 0;
   background: var(--bg-canvas);
-  border-right: 1px solid var(--border-muted);
+  border-right: 1px solid var(--divider-muted);
   padding: var(--space-xl) 0;
   display: flex;
   flex-direction: column;

@@ -30,7 +30,7 @@ body {
   align-items: stretch;
   gap: var(--space-2xs);
   background: var(--bg-inset);
-  border-bottom: 1px solid var(--border-muted);
+  border-bottom: 1px solid var(--divider-muted);
   padding: 0 var(--space-sm);
   overflow-x: auto;
   flex-shrink: 0;
