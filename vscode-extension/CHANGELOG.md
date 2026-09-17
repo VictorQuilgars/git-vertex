@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **A branch name in the graph opened two menus.** A right-click on a branch name in the pill under a commit opened the branch's menu, then went on to the commit row underneath — whose menu, in VS Code, is the editor's native one. Two menus, one over the other, and the native one is the one that stays. The right-click stops at the name now, as it always did on the branch chips of the column layout. (#233)
+
 ## 1.34.0
 
 ### Added

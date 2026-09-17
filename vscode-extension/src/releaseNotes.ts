@@ -16,6 +16,11 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🖱️ One menu per right-click
+- A right-click on a **branch name in the graph** opened the branch's menu and, over it, the commit's native one. It opens the branch's, and only that.
+`,
   '1.34.0': `## What's new in 1.34.0
 
 ### 📏 A reading density

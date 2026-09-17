@@ -85,7 +85,10 @@ export default function MessageChip({ segments, refsHidden = 0, tone, emphasis =
           title={seg.title ?? seg.label}
           onClick={seg.onClick ? e => { e.stopPropagation(); seg.onClick!() } : undefined}
           onDoubleClick={seg.onDoubleClick ? e => { e.stopPropagation(); seg.onDoubleClick!() } : undefined}
-          onContextMenu={seg.onContextMenu}
+          // Answered here means answered here: left to bubble, the row
+          // underneath opens the commit's menu on the same right-click — and in
+          // VS Code that one is native, so a branch name got two menus (#233).
+          onContextMenu={seg.onContextMenu ? e => { e.preventDefault(); e.stopPropagation(); seg.onContextMenu!(e) } : undefined}
         >
           <Icon name={KIND_ICON[seg.kind] as never} size={10} className="mchip-ico" />
           <span className="mchip-label">{seg.label}</span>
