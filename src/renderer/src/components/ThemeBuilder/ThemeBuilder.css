@@ -1,6 +1,6 @@
 .thb-drawer {
   position: fixed;
-  height: min(760px, calc(100vh - 88px));
+  height: min(760px, calc(100vh - 88px)); /* overridden inline from where it sits */
   border-radius: var(--radius-md);
   overflow: hidden;
   width: 380px;

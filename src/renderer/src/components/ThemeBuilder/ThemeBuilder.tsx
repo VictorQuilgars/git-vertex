@@ -46,9 +46,13 @@ function ThemeBuilderDrawer({ from }: { from: string | null }) {
   const { t } = useLang()
   const { container, detach, attach } = useBuilderWindow()
   const [help, setHelp] = useState(false)
-  // Docked to the right edge at first, where the old fixed drawer was: over
-  // the details, never over the sidebar and the graph a theme is judged on.
-  const [position, setPosition] = useState(() => ({ x: Math.max(0, window.innerWidth - 380 - 24), y: 72 }))
+  // Docked to the right edge at first, where the old fixed drawer was, and
+  // level with the panes: over the details, never over the sidebar and the
+  // graph a theme is judged on, and never over the toolbar's search.
+  const [position, setPosition] = useState(() => ({
+    x: Math.max(0, window.innerWidth - 380 - 24),
+    y: Math.round(document.querySelector('.app-body')?.getBoundingClientRect().top ?? 72) + 8,
+  }))
   const drag = useRef<{ x: number; y: number } | null>(null)
   // The outline around the hovered element is painted straight onto a
   // ref'd div: a state per mouse move re-rendered the whole drawer sixty
@@ -195,7 +199,7 @@ function ThemeBuilderDrawer({ from }: { from: string | null }) {
   const sourceName = installed?.name ?? source
 
   const editor = (
-    <aside className={`thb-drawer ${container ? 'thb-drawer--detached' : ''}`} style={container ? undefined : { left: position.x, top: position.y }} data-theme-builder role="dialog" aria-label={t('builder.title')}>
+    <aside className={`thb-drawer ${container ? 'thb-drawer--detached' : ''}`} style={container ? undefined : { left: position.x, top: position.y, height: `min(760px, calc(100vh - ${position.y + 16}px))` }} data-theme-builder role="dialog" aria-label={t('builder.title')}>
       <header className="thb-head" title={t('builder.move')}
         onPointerDown={e => {
           if (container || (e.target as Element).closest('button')) return
