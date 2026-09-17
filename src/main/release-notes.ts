@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🔤 The command-line app speaks English
+- The terminal UI predates the English-only rule the app and the extension were swept for, and still carried French in its help panel, its status lines, its column headers and the errors behind them. It is translated, and a test now reads the sources so the next one fails before it ships.
+`,
   '1.36.0': `## What's new in 1.36.0
 
 ### 📏 A reading density

@@ -81,9 +81,9 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     const items: SideItem[] = []
     const locals = branches.filter(b => !b.remote)
     const remotes = branches.filter(b => b.remote)
-    items.push({ type: 'header', label: 'LOCALES' })
+    items.push({ type: 'header', label: 'LOCAL' })
     locals.forEach(b => items.push({ type: 'branch', label: b.name, branch: b }))
-    if (remotes.length) { items.push({ type: 'header', label: 'DISTANTES' }); remotes.forEach(b => items.push({ type: 'remote', label: b.name, branch: b })) }
+    if (remotes.length) { items.push({ type: 'header', label: 'REMOTES' }); remotes.forEach(b => items.push({ type: 'remote', label: b.name, branch: b })) }
     if (tags.length) { items.push({ type: 'header', label: 'TAGS' }); tags.forEach(t => items.push({ type: 'tag', label: t.name })) }
     if (stashes.length) { items.push({ type: 'header', label: 'STASH' }); stashes.forEach(s => items.push({ type: 'stash', label: s.message, stashIndex: s.index })) }
     return items
@@ -127,7 +127,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     setStatus(`${label}…`)
     try {
       const r = await fn()
-      if (r && r.success === false) setStatus(`✗ ${label} : ${r.error ?? ''}`)
+      if (r && r.success === false) setStatus(`✗ ${label}: ${r.error ?? ''}`)
       else setStatus(`✓ ${label}`)
     } catch (e: any) { setStatus(`✗ ${label} : ${e?.message ?? e}`) }
     await reload()
@@ -147,14 +147,14 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     setStatus(`Diff ${c.shortHash}…`)
     const r = await git.getDiff(c.hash)
     setDiffTitle(c.shortHash)
-    setDiffText(`${c.shortHash}  ${c.message}\n${c.author} · ${c.date}\n${'─'.repeat(40)}\n` + (r.diff || '(aucune différence)'))
+    setDiffText(`${c.shortHash}  ${c.message}\n${c.author} · ${c.date}\n${'─'.repeat(40)}\n` + (r.diff || '(no differences)'))
     setDiffScroll(0); setCenter('diff'); setStatus('')
   }, [git])
   const openFileDiff = useCallback(async (f: FileItem) => {
-    if (f.kind === 'untracked') { setDiffTitle(f.path); setDiffText('(nouveau fichier — non suivi)\n\n' + f.path); setDiffScroll(0); setCenter('diff'); return }
+    if (f.kind === 'untracked') { setDiffTitle(f.path); setDiffText('(new file — untracked)\n\n' + f.path); setDiffScroll(0); setCenter('diff'); return }
     const r = await git.getWorkingFileDiff(f.path, f.kind === 'staged')
     setDiffTitle(f.path.split('/').pop() ?? f.path)
-    setDiffText(r.diff || '(aucune différence)'); setDiffScroll(0); setCenter('diff')
+    setDiffText(r.diff || '(no differences)'); setDiffScroll(0); setCenter('diff')
   }, [git])
 
   useInput((input, key) => {
@@ -168,7 +168,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
       if (key.escape) { setMode('normal'); return }
       if (key.return) {
         const msg = commitMsg.trim()
-        if (!msg) { setStatus('Message vide'); return }
+        if (!msg) { setStatus('Empty message'); return }
         run('Commit', () => git.commit(msg)).then(() => setCommitMsg(''))
         setMode('normal'); return
       }
@@ -178,7 +178,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     }
     if (mode === 'newbranch') {
       if (key.escape) { setMode('normal'); setBranchName(''); return }
-      if (key.return) { const n = branchName.trim(); if (n) run('Nouvelle branche', () => git.createBranch(n)); setBranchName(''); setMode('normal'); return }
+      if (key.return) { const n = branchName.trim(); if (n) run('New branch', () => git.createBranch(n)); setBranchName(''); setMode('normal'); return }
       if (key.backspace || key.delete) { setBranchName(s => s.slice(0, -1)); return }
       if (input && !key.ctrl && !key.meta) setBranchName(s => s + input)
       return
@@ -192,7 +192,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     if (input === '2') { setFocus('graph'); return }
     if (input === '3') { setFocus('staging'); return }
     if (key.tab) { const order: Focus[] = ['sidebar', 'graph', 'staging']; const d = key.shift ? -1 : 1; setFocus(order[(order.indexOf(focus) + d + 3) % 3]); return }
-    if (input === 'r') { reload(); flash('Rechargé'); return }
+    if (input === 'r') { reload(); flash('Reloaded'); return }
     if (input === 'f') { run('Fetch', () => git.fetch()); return }
     if (input === 'p') { run('Pull', () => git.pull()); return }
     if (input === 'P') { run('Push', () => git.push()); return }
@@ -217,7 +217,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
         return
       }
       if (input === 'n') { setMode('newbranch'); return }
-      if (input === 'D' && it?.type === 'branch' && !it.branch?.current) { askConfirm(`Supprimer ${it.label} ?`, () => run('Supprimer branche', () => git.deleteBranch(it.label))); return }
+      if (input === 'D' && it?.type === 'branch' && !it.branch?.current) { askConfirm(`Delete ${it.label}?`, () => run('Delete branch', () => git.deleteBranch(it.label))); return }
       return
     }
 
@@ -238,14 +238,14 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
       const cur = files[sStage]
       if (key.return && cur) { openFileDiff(cur); return }
       if (input === ' ' && cur) {
-        if (cur.kind === 'staged') run('Désindexer', () => git.unstage([cur.path]))
-        else run('Indexer', () => git.stage([cur.path]))
+        if (cur.kind === 'staged') run('Unstage', () => git.unstage([cur.path]))
+        else run('Stage', () => git.stage([cur.path]))
         return
       }
-      if (input === 'a') { run('Tout indexer', () => git.stageAll()); return }
-      if (input === 'A') { run('Tout désindexer', () => git.unstage(changes.staged.map(f => f.path))); return }
-      if (input === 'c') { if (changes.staged.length === 0) flash('Rien d’indexé'); else setMode('commit'); return }
-      if (input === 'd' && cur) { askConfirm(`Annuler les modifs de ${cur.path} ?`, () => run('Annuler', () => git.discardFile(cur.path))); return }
+      if (input === 'a') { run('Stage all', () => git.stageAll()); return }
+      if (input === 'A') { run('Unstage all', () => git.unstage(changes.staged.map(f => f.path))); return }
+      if (input === 'c') { if (changes.staged.length === 0) flash('Nothing staged'); else setMode('commit'); return }
+      if (input === 'd' && cur) { askConfirm(`Discard the changes to ${cur.path}?`, () => run('Discard', () => git.discardFile(cur.path))); return }
       return
     }
   })
@@ -259,16 +259,16 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
     return (
       <Box flexDirection="column" width={cols} height={rows}>
         <Header repo={repo} branch={currentBranch} ahead={ahead} behind={behind} status={status} />
-        <Panel width={cols} height={panelH} num="?" title="Aide">
-          <Text color={THEME.title} bold>Git Vertex — TUI (façon desktop)</Text>
+        <Panel width={cols} height={panelH} num="?" title="Help">
+          <Text color={THEME.title} bold>Git Vertex — the desktop, in a terminal</Text>
           <Text> </Text>
-          <Text><Text color={THEME.title}>Panneaux </Text>1 Sidebar · 2 Graphe · 3 Modifications · Tab pour cycler</Text>
-          <Text><Text color={THEME.title}>Global   </Text>↑↓/jk naviguer · r recharger · f/p/P fetch/pull/push · q quitter</Text>
-          <Text><Text color={THEME.title}>Sidebar  </Text>Entrée checkout / pop stash · n nouvelle branche · D supprimer</Text>
-          <Text><Text color={THEME.title}>Graphe   </Text>Entrée voir le diff du commit (Échap pour revenir)</Text>
-          <Text><Text color={THEME.title}>Modifs   </Text>Espace (dé)indexer · a/A tout · Entrée diff · c commit · d annuler</Text>
-          <Text><Text color={THEME.title}>Diff     </Text>Ctrl+D / Ctrl+U défiler</Text>
-          <Text> </Text><Text dimColor>Une touche pour fermer.</Text>
+          <Text><Text color={THEME.title}>Panes    </Text>1 Sidebar · 2 Graph · 3 Changes · Tab to cycle</Text>
+          <Text><Text color={THEME.title}>Global   </Text>↑↓/jk move · r reload · f/p/P fetch/pull/push · q quit</Text>
+          <Text><Text color={THEME.title}>Sidebar  </Text>Enter checkout / pop stash · n new branch · D delete</Text>
+          <Text><Text color={THEME.title}>Graph    </Text>Enter show the commit's diff (Esc to go back)</Text>
+          <Text><Text color={THEME.title}>Changes  </Text>Space (un)stage · a/A all · Enter diff · c commit · d discard</Text>
+          <Text><Text color={THEME.title}>Diff     </Text>Ctrl+D / Ctrl+U scroll</Text>
+          <Text> </Text><Text dimColor>Any key closes this.</Text>
         </Panel>
         <Footer mode={mode} focus={focus} center={center} commitMsg={commitMsg} branchName={branchName} confirm={confirm} />
       </Box>
@@ -295,7 +295,7 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
           </Panel>
         )}
         {/* Right: commit details (top) + staging (bottom) + commit message */}
-        <Panel width={stageW} height={panelH} num="3" title={selectedCommit ? selectedCommit.shortHash : `${totalChanged} modif${totalChanged !== 1 ? 's' : ''}`} accent={focus === 'staging' ? THEME.menuOn : THEME.title}>
+        <Panel width={stageW} height={panelH} num="3" title={selectedCommit ? selectedCommit.shortHash : `${totalChanged} change${totalChanged !== 1 ? 's' : ''}`} accent={focus === 'staging' ? THEME.menuOn : THEME.title}>
           <RightPanel commit={selectedCommit} commitFiles={commitFiles} files={files} sel={sStage} width={stageW - 4} height={innerH}
             focused={focus === 'staging'} commitMode={mode === 'commit'} commitMsg={commitMsg} />
         </Panel>
@@ -319,7 +319,7 @@ function Header({ repo, branch, ahead, behind, status }: { repo: string; branch:
 }
 
 function Sidebar({ items, sel, visible, width, focused }: { items: SideItem[]; sel: number; visible: number; width: number; focused: boolean }) {
-  if (items.length === 0) return <Text dimColor>  Aucune branche</Text>
+  if (items.length === 0) return <Text dimColor>  No branches</Text>
   const start = windowStart(sel, items.length, visible)
   const view = items.slice(start, start + visible)
   return (
@@ -363,7 +363,7 @@ function GraphView({ commits, graphRows, sel, visible, width, focused, wipCount,
     <Box flexDirection="column">
       {/* header */}
       <Text color={THEME.dim} wrap="truncate-end">
-        {fit('GRAPHE', gcol + 1)}{fit('COMMIT MESSAGE', msgW)}{showMeta ? fit('AUTEUR', aW) : ''}{showMeta ? fit('DATE', dW) : ''}{fit('SHA', sW)}
+        {fit('GRAPH', gcol + 1)}{fit('COMMIT MESSAGE', msgW)}{showMeta ? fit('AUTHOR', aW) : ''}{showMeta ? fit('DATE', dW) : ''}{fit('SHA', sW)}
       </Text>
       {items.map((c, i) => {
         const gi = start + i
@@ -373,7 +373,7 @@ function GraphView({ commits, graphRows, sel, visible, width, focused, wipCount,
             <Box key="wip" width={width}>
               <Text wrap="truncate-end" backgroundColor={active ? THEME.selBg : undefined}>
                 <Text color="#d29922">◌{' '.repeat(gcol - 1)} </Text>
-                <Text color={active ? '#ffffff' : '#d29922'}>{fit(`WIP · ${wipCount} fichier${wipCount !== 1 ? 's' : ''} modifié${wipCount !== 1 ? 's' : ''}`, msgW + aW + dW + sW)}</Text>
+                <Text color={active ? '#ffffff' : '#d29922'}>{fit(`WIP · ${wipCount} file${wipCount !== 1 ? 's' : ''} changed`, msgW + aW + dW + sW)}</Text>
               </Text>
             </Box>
           )
@@ -421,7 +421,7 @@ function RightPanel({ commit, commitFiles, files, sel, width, height, focused, c
         <Text color={commitMode ? THEME.menuOn : THEME.dim}>✎ </Text>
         {commitMsg
           ? <Text color={THEME.text}>{fit(commitMsg, width - 3)}</Text>
-          : <Text color={THEME.dim}>{commitMode ? 'Message du commit…' : 'c : écrire un commit'}</Text>}
+          : <Text color={THEME.dim}>{commitMode ? 'Commit message…' : 'c to write a commit'}</Text>}
         {commitMode && <Text color={THEME.menuOn}>▏</Text>}
       </Text>
     </Box>
@@ -437,7 +437,7 @@ function CommitDetails({ commit, files, width, height }: { commit: LayoutCommit;
   if (refs.length) rows.push(<Text key="r" wrap="truncate-end">{refs.map((s, k) => <Text key={k} color={s.color} bold={s.bold}>{s.text} </Text>)}</Text>)
   const add = files.reduce((n, f) => n + (f.additions || 0), 0)
   const del = files.reduce((n, f) => n + (f.deletions || 0), 0)
-  rows.push(<Text key="c" wrap="truncate-end"><Text color={THEME.dim}>{files.length} fichier{files.length !== 1 ? 's' : ''}  </Text><Text color="#3fb950">+{add}</Text><Text> </Text><Text color="#f85149">-{del}</Text></Text>)
+  rows.push(<Text key="c" wrap="truncate-end"><Text color={THEME.dim}>{files.length} file{files.length !== 1 ? 's' : ''}  </Text><Text color="#3fb950">+{add}</Text><Text> </Text><Text color="#f85149">-{del}</Text></Text>)
   const fileRoom = Math.max(0, height - rows.length)
   files.slice(0, fileRoom).forEach((f, k) => rows.push(
     <Box key={'f' + k} width={width}><Text wrap="truncate-end">
@@ -454,9 +454,9 @@ function Staging({ files, sel, width, height, focused }: { files: FileItem[]; se
   const unstaged = files.filter(f => f.kind !== 'staged')
   const staged = files.filter(f => f.kind === 'staged')
   const rows: { file?: FileItem; header?: string }[] = []
-  rows.push({ header: `Non indexé (${unstaged.length})` })
+  rows.push({ header: `Unstaged (${unstaged.length})` })
   unstaged.forEach(f => rows.push({ file: f }))
-  rows.push({ header: `Indexé (${staged.length})` })
+  rows.push({ header: `Staged (${staged.length})` })
   staged.forEach(f => rows.push({ file: f }))
   const selRow = rows.findIndex(r => r.file === files[sel])
   const start = windowStart(selRow < 0 ? 0 : selRow, rows.length, height)
@@ -500,19 +500,19 @@ function DiffPane({ text, scroll, visible, width }: { text: string; scroll: numb
         const s = fit(l, width)
         return <Text key={i} color={color} dimColor={dim} wrap="truncate-end">{s}</Text>
       })}
-      {hasFooter && <Text color={THEME.dim}>… {start + view.length}/{lines.length} · Ctrl+D/U · Échap</Text>}
+      {hasFooter && <Text color={THEME.dim}>… {start + view.length}/{lines.length} · Ctrl+D/U · Esc</Text>}
     </Box>
   )
 }
 
 function Footer({ mode, focus, center, commitMsg, branchName, confirm }: { mode: Mode; focus: Focus; center: CenterMode; commitMsg: string; branchName: string; confirm: { text: string } | null }) {
-  if (mode === 'commit') return <Text><Text color={THEME.title}>Commit : </Text><Text>{commitMsg}</Text><Text color={THEME.menuOn}>▏</Text><Text dimColor>  (Entrée valider · Échap annuler)</Text></Text>
-  if (mode === 'newbranch') return <Text><Text color={THEME.menuOn}>Nouvelle branche : </Text><Text>{branchName}</Text><Text color={THEME.menuOn}>▏</Text><Text dimColor>  (Entrée créer · Échap)</Text></Text>
+  if (mode === 'commit') return <Text><Text color={THEME.title}>Commit: </Text><Text>{commitMsg}</Text><Text color={THEME.menuOn}>▏</Text><Text dimColor>  (Enter to commit · Esc to cancel)</Text></Text>
+  if (mode === 'newbranch') return <Text><Text color={THEME.menuOn}>New branch: </Text><Text>{branchName}</Text><Text color={THEME.menuOn}>▏</Text><Text dimColor>  (Enter to create · Esc)</Text></Text>
   if (mode === 'confirm') return <Text><Text color="#d29922">{confirm?.text} </Text><Text dimColor>(y / n)</Text></Text>
-  const common = '1/2/3 ou Tab · ↑↓/jk · f/p/P · r · ? aide · q'
-  const per = center === 'diff' ? 'Échap revenir · Ctrl+D/U défiler'
-    : focus === 'sidebar' ? 'Entrée checkout · n nouvelle · D supprimer'
-      : focus === 'graph' ? 'Entrée voir le diff du commit'
-        : 'Espace (dé)indexer · a tout · Entrée diff · c commit · d annuler'
+  const common = '1/2/3 or Tab · ↑↓/jk · f/p/P · r · ? help · q'
+  const per = center === 'diff' ? 'Esc to go back · Ctrl+D/U to scroll'
+    : focus === 'sidebar' ? 'Enter checkout · n new · D delete'
+      : focus === 'graph' ? 'Enter shows the commit diff'
+        : 'Space (un)stage · a all · Enter diff · c commit · d discard'
   return <Text wrap="truncate-end"><Text color="#3fb950">{per}</Text><Text dimColor>  │  {common}</Text></Text>
 }
