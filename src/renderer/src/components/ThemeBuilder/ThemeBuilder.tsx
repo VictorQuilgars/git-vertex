@@ -13,7 +13,20 @@ import { readTokenMap, describeElement, type Inspection } from './inspect'
 import type { SeedKey } from '../../../../main/theme-validate'
 import './ThemeBuilder.css'
 
-// The app previews the draft; controls can move or detach without losing it.
+// The theme builder (#242): a drawer over the app, and the app is the preview.
+//
+// A theme is 24 seeds; every colour on screen derives from them. So there is
+// nothing to "set the commit button's colour" — the drawer edits the seeds,
+// the whole window repaints as you type, and the inspect mode answers the
+// other question: click anything, and see which seed it derives from. The
+// drawer floats, docked to the right edge at first, and can be dragged by
+// its title bar or opened in a window of its own (`useBuilderWindow`), so
+// the app is never hidden behind its own controls; the draft, the
+// inspection and the save all stay in the main tree.
+//
+// Saving installs the theme through the same store and validator as one from
+// the bank; the rules are shown live here, but the renderer is sandboxed and
+// shared and never decides what reaches the stylesheet.
 const DEFAULT_THEME = 'aqua-dark'
 
 /** The drawer, or nothing. Mounted once at each product's root. */
@@ -33,10 +46,22 @@ function ThemeBuilderDrawer({ from }: { from: string | null }) {
   const { t } = useLang()
   const { container, detach, attach } = useBuilderWindow()
   const [help, setHelp] = useState(false)
-  const [position, setPosition] = useState({ x: 24, y: 72 })
+  // Docked to the right edge at first, where the old fixed drawer was: over
+  // the details, never over the sidebar and the graph a theme is judged on.
+  const [position, setPosition] = useState(() => ({ x: Math.max(0, window.innerWidth - 380 - 24), y: 72 }))
   const drag = useRef<{ x: number; y: number } | null>(null)
-  const [highlight, setHighlight] = useState<DOMRect | null>(null)
+  // The outline around the hovered element is painted straight onto a
+  // ref'd div: a state per mouse move re-rendered the whole drawer sixty
+  // times a second while inspecting.
+  const hlRef = useRef<HTMLDivElement>(null)
   const selected = useRef<Element | null>(null)
+  const paint = useCallback((r: DOMRect | null) => {
+    const el = hlRef.current
+    if (!el) return
+    if (!r) { el.style.display = 'none'; return }
+    el.style.display = 'block'
+    el.style.left = `${r.left}px`; el.style.top = `${r.top}px`; el.style.width = `${r.width}px`; el.style.height = `${r.height}px`
+  }, [])
   useEffect(() => {
     const resize = () => setPosition(p => ({ x: Math.max(0, Math.min(p.x, window.innerWidth - 380)), y: Math.max(0, Math.min(p.y, window.innerHeight - 120)) }))
     window.addEventListener('resize', resize)
@@ -81,7 +106,7 @@ function ThemeBuilderDrawer({ from }: { from: string | null }) {
       e.preventDefault()
       e.stopPropagation()
       selected.current = target
-      setHighlight(target.getBoundingClientRect())
+      paint(target.getBoundingClientRect())
       setPicked(describeElement(target, map))
     }
     const block = (e: Event) => {
@@ -90,9 +115,9 @@ function ThemeBuilderDrawer({ from }: { from: string | null }) {
     }
     const onMove = (e: MouseEvent) => {
       const target = e.target as Element
-      if (!target.closest('[data-theme-builder]')) setHighlight(target.getBoundingClientRect())
+      if (!target.closest('[data-theme-builder]')) paint(target.getBoundingClientRect())
     }
-    const onScroll = () => setHighlight(selected.current?.getBoundingClientRect() ?? null)
+    const onScroll = () => paint(selected.current?.getBoundingClientRect() ?? null)
     const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') setInspecting(false) }
     document.addEventListener('pointerdown', block, true)
     document.addEventListener('mousedown', block, true)
@@ -110,12 +135,13 @@ function ThemeBuilderDrawer({ from }: { from: string | null }) {
       document.removeEventListener('mousemove', onMove, true)
       document.removeEventListener('scroll', onScroll, true)
       document.removeEventListener('click', onClick, true)
-      setHighlight(null)
+      paint(null)
+      selected.current = null
       document.removeEventListener('keydown', onKey, true)
       container?.ownerDocument.removeEventListener('keydown', onKey, true)
       document.documentElement.classList.remove('gv-inspecting')
     }
-  }, [inspecting, container])
+  }, [inspecting, container, paint])
 
   const rows = useRef<Partial<Record<SeedKey, HTMLDivElement | null>>>({})
   const [flash, setFlash] = useState<SeedKey | null>(null)
@@ -283,7 +309,7 @@ function ThemeBuilderDrawer({ from }: { from: string | null }) {
   )
   return <>
     {container ? createPortal(editor, container) : editor}
-    {inspecting && highlight && <div className="thb-highlight" style={{ left: highlight.left, top: highlight.top, width: highlight.width, height: highlight.height }} />}
+    {inspecting && <div ref={hlRef} className="thb-highlight" style={{ display: 'none' }} aria-hidden="true" />}
   </>
 }
 

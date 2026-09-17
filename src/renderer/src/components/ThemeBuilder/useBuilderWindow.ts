@@ -18,14 +18,31 @@ export function useBuilderWindow() {
     if (!win) return
     popup.current = win
     win.document.title = 'Theme Builder — Git Vertex'
+    // The app's stylesheets, mirrored into the popup — and kept mirrored,
+    // since the draft's rule and the installed themes' rules are <style>
+    // elements the app rewrites. Mirrored INCREMENTALLY: every seed change
+    // rewrites the draft's rule, and re-cloning every sheet on each of them
+    // (the bundled CSS is 400 KB) is a reparse per keystroke.
+    const clones = new Map<Element, HTMLElement>()
     const sync = () => {
-      win.document.head.querySelectorAll('[data-builder-style]').forEach(el => el.remove())
-      document.head.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
-        const clone = el.cloneNode(true) as HTMLElement
-        clone.setAttribute('data-builder-style', '')
-        win.document.head.appendChild(clone)
-      })
-      for (const key of ['data-theme', 'data-density']) {
+      const sources = Array.from(document.head.querySelectorAll('style, link[rel="stylesheet"]'))
+      for (const [src, clone] of clones) {
+        if (!sources.includes(src)) { clone.remove(); clones.delete(src) }
+      }
+      for (const src of sources) {
+        const clone = clones.get(src)
+        if (!clone) {
+          const c = src.cloneNode(true) as HTMLElement
+          c.setAttribute('data-builder-style', '')
+          win.document.head.appendChild(c)
+          clones.set(src, c)
+        } else if (src instanceof HTMLStyleElement && clone.textContent !== src.textContent) {
+          clone.textContent = src.textContent
+        }
+      }
+      // The three attributes the stylesheet reads off <html>: the theme, the
+      // density and the layout — the popup's controls are drawn like the app's.
+      for (const key of ['data-theme', 'data-density', 'data-layout']) {
         const value = document.documentElement.getAttribute(key)
         if (value) win.document.documentElement.setAttribute(key, value)
         else win.document.documentElement.removeAttribute(key)
@@ -34,7 +51,7 @@ export function useBuilderWindow() {
     sync()
     const observer = new MutationObserver(sync)
     observer.observe(document.head, { childList: true, subtree: true, characterData: true })
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-density'] })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-density', 'data-layout'] })
     const closed = () => { observer.disconnect(); popup.current = null; setContainer(null) }
     win.addEventListener('beforeunload', closed)
     cleanup.current = () => { observer.disconnect(); win.removeEventListener('beforeunload', closed) }
