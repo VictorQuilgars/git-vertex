@@ -11,9 +11,9 @@ const CHANGES = {
   untracked: [],
 }
 
-function render(props: Record<string, any> = {}) {
+function render(props: Record<string, any> = {}, changes = CHANGES) {
   installMockGitAPI({
-    getWorkingChanges: jest.fn().mockResolvedValue(CHANGES),
+    getWorkingChanges: jest.fn().mockResolvedValue(changes),
     getLastCommitMessage: jest.fn().mockResolvedValue({ message: '' }),
     getMergeMessage: jest.fn().mockResolvedValue({ message: '' }),
     getCommitFiles: jest.fn().mockResolvedValue({ files: [] }),
@@ -37,6 +37,21 @@ describe('the staging pane, the panel shape', () => {
   test('the files header says N of M staged', async () => {
     render()
     await waitFor(() => expect(screen.getByText(/1 of 2 staged/i)).toBeInTheDocument())
+  })
+
+  // A file staged and then modified again is in both lists, and is shown in
+  // both — but it is one file, and the header and the badge count files (#232).
+  test('a file staged and modified again is one file, not two', async () => {
+    render({}, {
+      staged: [{ path: 'src/a.ts', status: 'M', additions: 2, deletions: 0 }],
+      unstaged: [
+        { path: 'src/a.ts', status: 'M', additions: 1, deletions: 0 },
+        { path: 'client/tailwind.config.ts', status: 'M', additions: 1, deletions: 0 },
+      ],
+      untracked: [],
+    })
+    await waitFor(() => expect(screen.getByText(/1 of 2 staged/i)).toBeInTheDocument())
+    expect(screen.getByTitle(/2 files changed/)).toHaveTextContent('2')
   })
 
   // Row 5: name strong, folder weak — on the staging rows too.

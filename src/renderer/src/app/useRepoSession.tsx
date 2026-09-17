@@ -17,6 +17,7 @@ import { CommitNode, BranchInfo, ConflictKind, PullMode } from '../types'
 import { useBranchMeta } from '../hooks/useBranchMeta'
 import { emptyVisibility, logOptionsFor, type GraphVisibility, type RefFamily } from '../utils/graphVisibility'
 import { type RemoteRepo } from '../utils/remoteUrl'
+import { changedFileCount } from '../utils/workingChanges'
 import { type StashEntry, type TagEntry, kindsByPath, LOG_PAGE } from './shared'
 import { forgetGraph, hasGraph, readGraph, writeGraph } from './graph-cache'
 import type { AppChrome, ToastAction } from './useAppChrome'
@@ -393,10 +394,7 @@ export function useRepoSession(app: AppChrome) {
       rest.conflictFiles = conflictRes.files ?? []
       rest.conflictKinds = kindsByPath(conflictRes.entries)
       rest.conflictMode = modeRes.mode
-      rest.wipCount =
-        (changesRes.staged?.length ?? 0) +
-        (changesRes.unstaged?.length ?? 0) +
-        (changesRes.untracked?.length ?? 0)
+      rest.wipCount = changedFileCount(changesRes)
       applyLoaded(path, rest)
       keep(path)
     } finally {

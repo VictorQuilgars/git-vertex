@@ -1,5 +1,10 @@
 # Changelog — Git Vertex CLI
 
+## Unreleased
+
+### Fixed
+- **The `WIP` row counted a file staged and then modified again twice.** It is in both columns of `git status`, and the row added the two lists. It counts files now. (#232)
+
 ## 0.1.1
 
 ### Fixed

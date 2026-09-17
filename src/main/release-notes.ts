@@ -13,6 +13,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🎨 The graph follows the theme
 - In the **VS Code panel**, the branch colours kept the old palette when the editor's theme changed — the graph resolves them to real values once and draws with those. They follow now.
+
+### 🔢 The working-tree row counts files
+- A file staged and then **modified again** is in both columns of \`git status\`, and the staging pane rightly lists it twice — once to commit, once still to stage. The \`WIP\` row and the pane's header added the two lists and said three files over two. They count files now.
 `,
   '1.36.0': `## What's new in 1.36.0
 
