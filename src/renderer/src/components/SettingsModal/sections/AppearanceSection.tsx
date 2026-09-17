@@ -1,12 +1,13 @@
 // Settings › appearance. Reads its slice of the page's state; the state itself lives in useSettingsPage.
 import { Icon } from '../../Icon/Icon'
 import { isVSCodeHost, followsEditor } from '../../../contexts/SettingsContext'
-import { THEMES_FOLDED, THEME_PRESETS, SaveNote } from '../shared'
+import { THEMES_FOLDED, THEME_PRESETS, SaveNote, foldThemes } from '../shared'
 import { openThemeBuilder } from '../../ThemeBuilder/builderStore'
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AppearanceSection({ page }: { page: SettingsPage }) {
   const { t, settings, get, set, showAllThemes, setShowAllThemes, installed, discarded, bankCount, preview, themePickerDisabled, removeTheme, onBrowseThemes } = page
+  const folded = foldThemes(THEME_PRESETS, installed, get('theme', 'aqua-dark'))
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.appearance.title')}</h2>
@@ -95,6 +96,18 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                 {themePickerDisabled && (
                   <p className="stg-gal-note">{t('settings.themes.pickerDisabled')}</p>
                 )}
+                {/* Your own theme (#242), first: the one thing here that is
+                    not a choice among ready-made ones. A drawer over the app,
+                    which is the preview, starting from the theme in use. */}
+                <button className="stg-cta" onClick={() => openThemeBuilder(get('theme', 'aqua-dark'))}>
+                  <span className="stg-cta-icon" aria-hidden="true"><Icon name="ink" size={26} /></span>
+                  <span className="stg-cta-text">
+                    <strong>{t('builder.card')}</strong>
+                    <span>{t('builder.cardHint')}</span>
+                  </span>
+                  <span className="stg-cta-go">{t('builder.cardGo')}</span>
+                </button>
+
                 <fieldset className="stg-themes-fieldset" disabled={themePickerDisabled}>
                   {/* The same tile as the gallery. A 26×18 chip could not
                       show what a theme looks like, which is the one thing this
@@ -110,14 +123,11 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                       each of those. A derived token would NOT work here — it
                       resolves against :root and every tile would show the
                       current theme. */}
-                  <ul className="stg-wall stg-wall--compact">
-                    {/* The current theme and a handful, then the rest on
-                        request: thirty-two tiles took the pane before the
-                        options below them, for a choice made once. */}
-                    {(showAllThemes
-                      ? THEME_PRESETS
-                      : THEME_PRESETS.filter((th, i) => i < THEMES_FOLDED || get('theme', 'aqua-dark') === th.id)
-                    ).map(th => {
+                  <ul className={`stg-wall stg-wall--compact ${showAllThemes ? '' : 'stg-wall--folded'}`}>
+                    {/* Two rows of five, then the rest on request from the
+                        card at their end: thirty-two tiles took the pane
+                        before the options below them, for a choice made once. */}
+                    {(showAllThemes ? THEME_PRESETS : folded.presets).map(th => {
                       const active = get('theme', 'aqua-dark') === th.id
                       return (
                         <li key={th.id} className={`stg-tile ${active ? 'active' : ''}`}>
@@ -142,7 +152,7 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                     })}
                     {/* Installed themes sit with the built-in ones — the
                         distinction is ours, not the user's. */}
-                    {installed.map(th => {
+                    {(showAllThemes ? installed : folded.installed).map(th => {
                       const active = get('theme', 'aqua-dark') === th.id
                       return (
                         <li key={th.id} className={`stg-tile ${active ? 'active' : ''}`}>
@@ -171,14 +181,27 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                         </li>
                       )
                     })}
+                    {/* The card at the end of the two rows, their height: the
+                        way to the rest. Unfolded, it is a tile like the others
+                        and folds them back. */}
+                    {THEME_PRESETS.length + installed.length > THEMES_FOLDED && (
+                      <li className="stg-tile stg-tile--more">
+                        <button className="stg-more" onClick={() => setShowAllThemes(v => !v)} aria-expanded={showAllThemes}>
+                          {!showAllThemes && (
+                            <span className="stg-more-dots" aria-hidden="true">
+                              {THEME_PRESETS.filter(th => !folded.presets.includes(th)).slice(0, 12).map(th => (
+                                <i key={th.id} className="stg-more-dot" data-theme={th.id} />
+                              ))}
+                            </span>
+                          )}
+                          <span className="stg-more-label">
+                            {showAllThemes ? t('settings.themes.showFewer') : t('settings.themes.showAll', THEME_PRESETS.length + installed.length)}
+                          </span>
+                        </button>
+                      </li>
+                    )}
                   </ul>
                 </fieldset>
-
-                {THEME_PRESETS.length > THEMES_FOLDED && (
-                  <button className="stg-wall-toggle" onClick={() => setShowAllThemes(v => !v)} aria-expanded={showAllThemes}>
-                    {showAllThemes ? t('settings.themes.showFewer') : t('settings.themes.showAll', THEME_PRESETS.length)}
-                  </button>
-                )}
 
                 {discarded.length > 0 && (
                   <p className="stg-gal-note stg-gal-note--warn">
@@ -193,15 +216,6 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                     it opens the gallery as a TAB — the same gesture as opening
                     a repo, and in the panel the same one as the interactive
                     rebase. */}
-                {/* Your own theme (#242): a drawer over the app, which is the
-                    preview, starting from the theme in use. */}
-                <button className="stg-browse stg-browse--build" onClick={() => openThemeBuilder(get('theme', 'aqua-dark'))}>
-                  <span className="stg-browse-build-icon" aria-hidden="true"><Icon name="ink" size={18} /></span>
-                  <span className="stg-browse-text">
-                    <strong>{t('builder.card')}</strong>
-                    <span>{t('builder.cardHint')}</span>
-                  </span>
-                </button>
                 <button className="stg-browse" onClick={onBrowseThemes} disabled={!onBrowseThemes}>
                   <span className="stg-browse-strip" aria-hidden="true">
                     {preview.map(r => (
