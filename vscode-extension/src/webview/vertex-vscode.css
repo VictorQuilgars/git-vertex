@@ -30,8 +30,10 @@
   flex-shrink: 0;
   height: 100%;
   padding: 6px 0;
-  background: var(--bg-canvas);
-  border-right: 1px solid var(--border-muted);
+  /* The rail is the frame's, like VS Code's activity bar: the shell colour,
+     which is the canvas when flush and the frame when the panes are cards. */
+  background: var(--bg-shell);
+  border-right: var(--pane-edge) solid var(--border-muted);
   user-select: none;
   overflow: hidden;
 }
@@ -73,6 +75,7 @@
   overflow: hidden;
   display: flex;
   min-width: 180px;
+  border-radius: var(--pane-radius);
 }
 .gv-sidepanel .sidebar { border-right: none; }
 
@@ -84,8 +87,8 @@
   height: 34px;
   flex-shrink: 0;
   padding: 0 8px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-muted);
+  background: var(--bg-toolbar);
+  border-bottom: var(--pane-edge) solid var(--border-muted);
   font-size: 12px;
   user-select: none;
 }
@@ -300,12 +303,13 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: var(--bg-canvas);
+  background: var(--bg-shell);
   overflow: auto;
   display: flex;
   flex-direction: column;
 }
-.gv-settings-overlay .stg-page { flex: 1; min-height: 0; }
+/* The settings page is a card on the frame too, as it is in the desktop's centre. */
+.gv-settings-overlay .stg-page { flex: 1; min-height: 0; margin: var(--pane-gap); border-radius: var(--pane-radius); overflow: hidden; background: var(--bg-canvas); }
 
 /* ── A model's reading, filling an editor tab (#70) ──
    The drawer gave it its padding and its width; a tab gives neither, so the

@@ -1334,8 +1334,8 @@
  * `layout-discipline.test.ts` keeps this to lengths and to references to
  * tokens the default declares.
  *
- * The desktop applies `blocks` unless the setting says otherwise; the VS Code
- * panel is always flush — it lives inside a card of VS Code's already.
+ * Both products apply `blocks` unless the setting says otherwise; the panel
+ * draws its rail and its compact toolbar as the frame, the rest as cards.
  */
 [data-layout="blocks"] {
   --pane-gap: 8px;

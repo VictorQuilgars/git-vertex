@@ -8,7 +8,7 @@ import ColumnResizeHandle from '../../../src/renderer/src/components/ColumnResiz
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
 
-import { SettingsProvider, useSettings } from '../../../src/renderer/src/contexts/SettingsContext'
+import { SettingsProvider, useSettings, resolveLayout, LAYOUT_STORAGE_KEY } from '../../../src/renderer/src/contexts/SettingsContext'
 import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
@@ -1549,6 +1549,12 @@ function CompareTab({ refA, refB }: { refA?: string; refB?: string }) {
   }, [])
   return <CompareView initialA={refA} initialB={refB} repoKey={repoKey ?? 'repo'} />
 }
+
+// The layout before React mounts, from the same mirror the desktop uses (#240):
+// its default is not what :root carries, so this runs even with nothing mirrored.
+try {
+  document.documentElement.dataset.layout = resolveLayout(localStorage.getItem(LAYOUT_STORAGE_KEY))
+} catch { document.documentElement.dataset.layout = 'blocks' }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <PanelErrorBoundary>

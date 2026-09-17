@@ -42,10 +42,9 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                 </div>
 
                 {/* ── Layout (#240) ── the frame: the panes as cards, or edge to
-                    edge. Desktop only: the panel lives inside a card of VS
-                    Code's already. Each option carries data-layout on its own
-                    preview, for the same reason the density's does. */}
-                {!isVSCodeHost && (
+                    edge, in both products. Each option carries data-layout on
+                    its own preview, for the same reason the density's does. */}
+                {(
                   <>
                     <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.layout.title')}</h2>
                     <p className="stg-desc">{t('settings.layout.desc')}</p>
