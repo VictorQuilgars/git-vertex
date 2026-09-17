@@ -141,6 +141,38 @@ const SEMANTIC_KEYS: SeedKey[] = ['success', 'warning', 'danger', 'conflict']
 const PLAUSIBLE_HUE: Partial<Record<SeedKey, number>> = { success: 157.2, danger: 26.0 }
 const MAX_HUE_GAP = 60
 const MIN_CHROMA = 0.05
+/**
+ * How far from its canvas the border seed may sit in Oklab's chroma plane —
+ * the distance between the two colours' (a, b), lightness set aside.
+ *
+ * One seed outlines every control, and a theme's structural separator — the
+ * key the generator used to read first — is where a theme spends its accent:
+ * Dracula's `#BD93F9` became the outline of everything (#237). The rule is
+ * "the background a shade darker or lighter": lightness is free, because a
+ * high-contrast theme's grey on black is as neutral as a border gets, but the
+ * hue and chroma have to be the canvas's own. Red's `#63342D` on `#390000`
+ * is 0.02 away and passes; Dracula's purple on its grey-blue is 0.14 away.
+ * A chroma difference alone would not do: it lets a lavender through on a
+ * dark purple canvas, and a green through on a red one.
+ *
+ * Measured over the bank at 0.04, 0.05 and 0.06 before choosing; mirrors
+ * `BORDER_MAX_SHIFT` in map_seeds.py, and the two must agree or the bank
+ * serves what this refuses.
+ */
+export const MAX_BORDER_SHIFT = 0.05
+
+/** Oklab (a, b) from OKLCH — the chroma plane the border rule measures in. */
+function ab(c: Oklch): [number, number] {
+  const h = (c.H * Math.PI) / 180
+  return [c.C * Math.cos(h), c.C * Math.sin(h)]
+}
+
+/** Distance between two colours in Oklab's chroma plane, lightness ignored. */
+export function chromaShift(aHex: string, bHex: string): number {
+  const [a1, b1] = ab(oklch(aHex))
+  const [a2, b2] = ab(oklch(bHex))
+  return Math.hypot(a1 - a2, b1 - b2)
+}
 
 export interface ValidationResult {
   ok: boolean
@@ -233,6 +265,15 @@ export function validateTheme(
     } else if (C < MIN_CHROMA) {
       fail(`${k} is almost colourless (chroma ${C.toFixed(3)})`)
     }
+  }
+
+  // ── 6. The border is the background a shade off, never a hue ──────────────
+  // Read from the theme's control outlines, a border that is a colour of its
+  // own is the accent used as structure. The generator derives one instead;
+  // this refuses one that arrives anyway.
+  const shift = chromaShift(s.border, s.canvas)
+  if (shift > MAX_BORDER_SHIFT) {
+    fail(`border is a colour of its own (${shift.toFixed(3)} from the canvas in Oklab's chroma plane, at most ${MAX_BORDER_SHIFT})`)
   }
 
   return { ok: errors.length === 0, errors }

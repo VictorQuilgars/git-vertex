@@ -16,6 +16,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🔢 The working-tree row counts files
 - A file staged and then **modified again** is in both columns of \`git status\`, and the staging pane rightly lists it twice — once to commit, once still to stage. The \`WIP\` row and the pane's header added the two lists and said three files over two. They count files now.
+
+### 🎨 Outlines are the background, a shade off
+- A theme's accent was the outline of **every control**: the border was read from the one structural line a VS Code theme paints in its accent — Dracula's purple, on inputs, chips and rows alike. It is read from the theme's control outlines now, and fifteen built-in themes get the quieter line their editor draws. A theme from the bank whose border is a colour of its own is refused, and the bank is generated against the same rule.
 `,
   '1.36.0': `## What's new in 1.36.0
 

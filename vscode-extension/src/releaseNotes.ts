@@ -23,6 +23,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🖱️ One menu per right-click
 - A right-click on a **branch name in the graph** opened the branch's menu and, over it, the commit's native one. It opens the branch's, and only that.
+
+### 🎨 Outlines are the background, a shade off
+- A theme's accent was the outline of **every control**: the border was read from the one structural line a VS Code theme paints in its accent — Dracula's purple, on inputs, chips and rows alike. It is read from the theme's control outlines now, and fifteen built-in themes get the quieter line their editor draws. A theme from the bank whose border is a colour of its own is refused, and the bank is generated against the same rule.
 `,
   '1.34.0': `## What's new in 1.34.0
 
