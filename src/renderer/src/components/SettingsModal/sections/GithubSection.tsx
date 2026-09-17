@@ -6,7 +6,7 @@ import type { SettingsPage } from '../useSettingsPage'
 import { SaveNote } from '../shared'
 
 export function GithubSection({ page }: { page: SettingsPage }) {
-  const { t, settings, section, githubToken, setGithubToken, ghEnterpriseHost, setGhEnterpriseHost, ghEnterpriseToken, setGhEnterpriseToken, showToken, setShowToken, githubUser, githubSource, githubLoading, fetchGithubUser, autolinks, saveAutolinks, handleGithubLogin, handleGithubDisconnect, saveGithub, embedded } = page
+  const { t, githubToken, setGithubToken, ghEnterpriseHost, setGhEnterpriseHost, ghEnterpriseToken, setGhEnterpriseToken, showToken, setShowToken, githubUser, githubSource, githubLoading, fetchGithubUser, autolinks, saveAutolinks, handleGithubLogin, handleGithubDisconnect, saveGithub, embedded } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.github.title')}</h2>

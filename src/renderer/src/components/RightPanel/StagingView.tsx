@@ -3,20 +3,14 @@
 import { useCommitDraft } from '../../hooks/useCommitDraft'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
-import hljs from 'highlight.js'
-import { CommitNode, ConflictKind, FileChange, WorkingChanges } from '../../types'
+import { FileChange, WorkingChanges } from '../../types'
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
-import { aiAvatarDataUri } from '../../utils/aiAvatars'
-import { linkifyIssues, IssueRepo } from '../IssueLink/IssueLink'
-import { parseAutolinks } from '../../utils/autolinks'
-import { useSettings } from '../../contexts/SettingsContext'
-import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
+import ContextMenu from '../ContextMenu/ContextMenu'
 import ColumnResizeHandle from '../ColumnResizeHandle/ColumnResizeHandle'
 import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
 import WorkingChangesEmpty, { type NextStepsState, type NextStepsActions } from './WorkingChangesEmpty'
-import { hasIssueReferences } from '../IssueLink/IssueLink'
 import { STATUS_META, StatusBadge, TreeFileRow, buildTree, type TreeNode, DiffStat } from './shared'
 
 // ── Staging view (commit panel) ───────────────
@@ -24,7 +18,7 @@ export interface SelectedDiffFile { path: string; area: 'staged' | 'unstaged' }
 
 // Inline icons (currentColor)
 export const IcoTrash = () => (<Icon name="trash" size={15} />)
-export const IcoSpark = ({ size = 14 }: { size?: number }) => (<Icon name="ai" />)
+export const IcoSpark = ({ size = 14 }: { size?: number }) => (<Icon name="ai" size={size} />)
 export const IcoSort = () => (<Icon name="sort" size={15} />)
 export const IcoPathView = () => (<Icon name="list" size={12} />)
 export const IcoSearch = () => (<Icon name="search" size={12} />)
@@ -37,10 +31,15 @@ export const IcoOpenDiff = () => (<Icon name="externalLink" size={12} />)
 export const IcoTreeView = () => (<Icon name="listTree" size={12} />)
 export const IcoCommit = () => (<Icon name="commit" size={15} />)
 export const IcoStash = () => (<Icon name="stash" size={15} />)
-export const IcoCheck = ({ size = 16 }: { size?: number }) => (<Icon name="check" />)
+export const IcoCheck = ({ size = 16 }: { size?: number }) => (<Icon name="check" size={size} />)
 export const IcoHunks = () => (<Icon name="hunk" size={13} />)
 export const IcoCloud = () => (<Icon name="cloud" size={15} />)
-export const IcoChevron = ({ open }: { open: boolean }) => (<Icon name="chevronRight" size={11} />)
+// The rotation is in RightPanel.css (`.st2-chev.open`), and nothing applied
+// the class: the three collapsible sections of the staging panel passed
+// `open` to a chevron that always pointed right. Surfaced by noUnusedParameters.
+export const IcoChevron = ({ open }: { open: boolean }) => (
+  <Icon name="chevronRight" size={11} className={`st2-chev${open ? ' open' : ''}`} />
+)
 
 // ── Embedded (VS Code) single-list staging: checkbox helpers ──────
 export type StageState = 'staged' | 'unstaged' | 'partial'

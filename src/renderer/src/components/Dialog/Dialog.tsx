@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react'
+import { useState, useId } from 'react'
 import { useDialogFocus } from './useDialogFocus'
 import { useLang } from '../../i18n/LanguageContext'
 import './Dialog.css'
