@@ -93,7 +93,12 @@ export default function App({ git, repo, branch: initialBranch }: { git: GitServ
   const currentBranch = branches.find(b => b.current)?.name ?? initialBranch
   const ahead = branches.find(b => b.current)?.ahead ?? 0
   const behind = branches.find(b => b.current)?.behind ?? 0
-  const totalChanged = changes.staged.length + changes.unstaged.length + changes.untracked.length
+  // Over paths: a file staged and then modified again is in both lists, and
+  // is one file, not two (issue 232, written without its hash so the palette
+  // test does not read it as a colour).
+  const totalChanged = new Set([
+    ...changes.staged.map(f => f.path), ...changes.unstaged.map(f => f.path), ...changes.untracked,
+  ]).size
   const selectedCommit = sGraph > 0 ? commits[sGraph - 1] : null
 
   const reload = useCallback(async () => {

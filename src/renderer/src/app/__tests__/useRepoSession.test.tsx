@@ -191,6 +191,20 @@ test('the restored graph says nothing about the working tree', async () => {
   expect(next.view.result.current.wipCount).toBe(0)
 })
 
+// The number on the working-tree row is a count of files. A file staged and
+// then modified again is in both of git's columns, and was counted twice (#232).
+test('the working-tree count is over files, not over the two lists', async () => {
+  const { apis, view } = setup()
+  apis['/a'].getWorkingChanges.mockResolvedValue({
+    staged: [{ path: 'a.ts', status: 'M' }, { path: 'b.ts', status: 'M' }],
+    unstaged: [{ path: 'a.ts', status: 'M' }],
+    untracked: ['c.ts'],
+  })
+  act(() => view.result.current.setRepoPath('/a'))
+  await act(async () => { await view.result.current.loadRepoData() })
+  expect(view.result.current.wipCount).toBe(3)
+})
+
 // Closing a repository means closing it: it must not come back, drawn from
 // last week, the next time it is opened from the recents.
 test('a repository that was forgotten is not drawn from the cache either', async () => {

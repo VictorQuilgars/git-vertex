@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🔢 The working-tree row counts files
+- A file staged and then **modified again** is in both columns of \`git status\`, and the staging pane rightly lists it twice — once to commit, once still to stage. The \`WIP\` row and the pane's header added the two lists and said three files over two. They count files now.
+
 ### 🖱️ One menu per right-click
 - A right-click on a **branch name in the graph** opened the branch's menu and, over it, the commit's native one. It opens the branch's, and only that.
 `,

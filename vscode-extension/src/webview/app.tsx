@@ -37,6 +37,7 @@ import { prIntentFor as computePRIntent, branchNeedsPush, type PRIntent } from '
 import { repoFromRemotes, remoteUrl, type RemoteRepo } from '../../../src/renderer/src/utils/remoteUrl'
 import { useBranchMeta, type LinkedIssue } from '../../../src/renderer/src/hooks/useBranchMeta'
 import { issueBranchName } from '../../../src/renderer/src/utils/issueBranch'
+import { changedFileCount } from '../../../src/renderer/src/utils/workingChanges'
 import { issueRefLabel, issueRefUrl, type IssueRef } from '../../../src/renderer/src/utils/issueRef'
 import { parseAutolinks } from '../../../src/renderer/src/utils/autolinks'
 import {
@@ -277,7 +278,7 @@ function VertexApp() {
       setConflictKinds(Object.fromEntries((conflictRes?.entries ?? []).map(e => [e.path, e.kind])))
       setConflictMode(modeRes?.mode ?? null)
       const ch = await window.gitAPI.getWorkingChanges()
-      setWipCount((ch?.staged?.length ?? 0) + (ch?.unstaged?.length ?? 0) + (ch?.untracked?.length ?? 0))
+      setWipCount(changedFileCount(ch))
       try {
         const st = await window.gitAPI.getStashes()
         setStashes(st?.stashes ?? [])
