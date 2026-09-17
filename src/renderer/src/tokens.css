@@ -69,6 +69,14 @@
   /* Surfaces */
   --bg-canvas: var(--seed-canvas);
   --bg-inset: color-mix(in oklab, var(--seed-canvas) 82%, #000000);
+  /* The window frame — what shows between the panes in the blocks layout
+     (#240): the two pane backgrounds averaged, then a tenth of the way toward
+     the text ink. Toward the INK rather than toward black, because a frame has
+     to differ from both cards and our default canvas is already ink — there is
+     no darker to go. So the frame is lighter than the cards in a dark theme,
+     as VS Code Dark+'s title bar is lighter than its editor, and greyer than
+     them in a light one, as Light+'s is. */
+  --bg-frame: color-mix(in oklab, color-mix(in oklab, var(--seed-canvas), var(--seed-surface)) 90%, var(--seed-text));
   --bg-statusbar: color-mix(in oklab, var(--seed-canvas) 91%, #000000);
   --surface: var(--seed-surface);
   --surface-hover: color-mix(in oklab, var(--seed-surface) 55%, var(--seed-sunken));
@@ -266,6 +274,16 @@
   --radius-xl: 12px;
   --radius-pill: 999px;
   --radius-circle: 50%;
+
+  /* ── Layout — the frame around the panes (#240) ──
+     What :root carries is `flush`: no gap, no radius, a 1px edge on each
+     pane, the rendering the app had. `[data-layout="blocks"]`, at the bottom
+     of the file, is the other one, and the desktop's default. */
+  --pane-gap: 0px;
+  --pane-radius: 0px;
+  --pane-edge: 1px;
+  --bg-shell: var(--bg-canvas);
+  --bg-toolbar: var(--surface);
 
   /* ── Motion ────────────────────────────────────────────────────────────
    * 0.1 / 0.12 / 0.15 were indistinguishable and sat on comparable
@@ -1303,4 +1321,42 @@
   /* Body text only. Nothing below --text-sm moves: see above. */
   --text-base: 12px;
   --text-md: 13px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LAYOUT — the fourth family, and it is about the FRAME (#240)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * A theme is a block of seeds, a density a block of lengths that are about
+ * air; a layout is a block of lengths that are about the frame. `blocks`
+ * sets the panes apart on the darker frame, as rounded cards, the way VS
+ * Code lays out its parts; `flush` is what :root carries and has no block.
+ * `layout-discipline.test.ts` keeps this to lengths and to references to
+ * tokens the default declares.
+ *
+ * The desktop applies `blocks` unless the setting says otherwise; the VS Code
+ * panel is always flush — it lives inside a card of VS Code's already.
+ */
+[data-layout="blocks"] {
+  --pane-gap: 8px;
+  --pane-radius: 8px;
+  --pane-edge: 0px;
+  --bg-shell: var(--bg-frame);
+  --bg-toolbar: var(--bg-frame);
+}
+/* Compact takes the frame in too — after the block above, so it wins. */
+[data-layout="blocks"][data-density="compact"] {
+  --pane-gap: 6px;
+  --pane-radius: 6px;
+}
+/* Flush is what :root carries — and it says so again here, because custom
+ * properties inherit: under a blocks <html>, the picker's flush preview has
+ * no rule of its own and drew the blocks. The values are :root's, to the
+ * byte; layout-discipline.test.ts fails if they drift. */
+[data-layout="flush"] {
+  --pane-gap: 0px;
+  --pane-radius: 0px;
+  --pane-edge: 1px;
+  --bg-shell: var(--bg-canvas);
+  --bg-toolbar: var(--surface);
 }

@@ -41,6 +41,36 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                   ))}
                 </div>
 
+                {/* ── Layout (#240) ── the frame: the panes as cards, or edge to
+                    edge. Desktop only: the panel lives inside a card of VS
+                    Code's already. Each option carries data-layout on its own
+                    preview, for the same reason the density's does. */}
+                {!isVSCodeHost && (
+                  <>
+                    <h2 className="stg-section-title" style={{ marginTop: 8 }}>{t('settings.layout.title')}</h2>
+                    <p className="stg-desc">{t('settings.layout.desc')}</p>
+                    <div className="stg-density" role="radiogroup" aria-label={t('settings.layout.title')}>
+                      {(['blocks', 'flush'] as const).map(l => (
+                        <label key={l} className={`stg-density-opt ${get('layout', 'blocks') === l ? 'stg-density-opt--on' : ''}`}>
+                          <input
+                            type="radio"
+                            name="gv-layout"
+                            value={l}
+                            checked={get('layout', 'blocks') === l}
+                            onChange={() => set('layout', l)}
+                          />
+                          <span className="stg-layout-preview" data-layout={l} aria-hidden>
+                            <span className="stg-layout-pane" />
+                            <span className="stg-layout-pane stg-layout-pane--wide" />
+                            <span className="stg-layout-pane" />
+                          </span>
+                          <span className="stg-density-label">{t(`settings.layout.${l}` as any)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+
                 {/* The picker is offered in BOTH products now. In the panel it
                     is governed by "Follow the editor" below, which is on by
                     default — a panel that does not match its editor reads as

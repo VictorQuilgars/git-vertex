@@ -925,6 +925,23 @@
   background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
 }
 .stg-density-label { font-size: var(--text-sm); color: var(--text-primary); }
+/* The layout picker's preview (#240): three panes on the frame, drawn at the
+   option's own gap, radius and edge — the [data-layout] rule reaches the
+   preview as the density's does. */
+.stg-layout-preview {
+  display: flex;
+  gap: var(--pane-gap);
+  padding: var(--pane-gap);
+  width: 96px;
+  height: 56px;
+  box-sizing: border-box;
+  background: var(--bg-shell);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+}
+.stg-layout-pane { flex: 1; background: var(--surface); border-radius: var(--pane-radius); }
+.stg-layout-pane + .stg-layout-pane { border-left: var(--pane-edge) solid var(--border-muted); }
+.stg-layout-pane--wide { flex: 2; background: var(--bg-canvas); }
 
 /* The Defender note — Windows only, and advice rather than a control, so it
    reads as a card beside the setting it belongs to rather than as a field. */

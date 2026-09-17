@@ -10,7 +10,7 @@
 html, body, #root { height: 100%; width: 100%; overflow: hidden; }
 
 body {
-  background: var(--bg-canvas);
+  background: var(--bg-shell);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -19,10 +19,13 @@ body {
 
 .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-.app-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+/* The frame (#240): the gap is padding here and the handles' width between
+   the panes; each pane is a card, rounded by the layout's radius and
+   clipped by the overflow it already had. */
+.app-body { display: flex; flex: 1; overflow: hidden; min-height: 0; padding: var(--pane-gap) var(--pane-gap) var(--pane-gap); }
 /* Full-page tab views (e.g. "what's new") — fill the area below the tab bar,
    with no repo chrome (sidebar/toolbar) behind them. */
-.app-fullpage-view { flex: 1; min-height: 0; overflow: hidden; }
+.app-fullpage-view { flex: 1; min-height: 0; overflow: hidden; margin: var(--pane-gap); border-radius: var(--pane-radius); background: var(--bg-canvas); }
 
 /* ── Repo tabs ── */
 .app-tabs {
@@ -30,7 +33,7 @@ body {
   align-items: stretch;
   gap: var(--space-2xs);
   background: var(--bg-inset);
-  border-bottom: 1px solid var(--border-muted);
+  border-bottom: var(--pane-edge) solid var(--border-muted);
   padding: 0 var(--space-sm);
   overflow-x: auto;
   flex-shrink: 0;
@@ -187,21 +190,21 @@ body {
 .app-tab-launch.active { filter: none; opacity: 1; background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); }
 
 /* Sidebar */
-.app-sidebar { flex-shrink: 0; overflow: hidden; display: flex; }
+.app-sidebar { flex-shrink: 0; overflow: hidden; display: flex; border-radius: var(--pane-radius); }
 
 /* Resize handle */
 .resize-handle {
-  width: 3px; flex-shrink: 0; cursor: col-resize;
+  width: max(3px, var(--pane-gap)); flex-shrink: 0; cursor: col-resize;
   background: transparent; transition: background var(--dur-base);
   z-index: var(--z-sticky);
 }
 .resize-handle:hover, .resize-handle:active { background: var(--accent); }
 
 /* Center */
-.app-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.app-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; border-radius: var(--pane-radius); background: var(--bg-canvas); }
 
 /* Right */
-.app-right { flex-shrink: 0; overflow: hidden; display: flex; }
+.app-right { flex-shrink: 0; overflow: hidden; display: flex; border-radius: var(--pane-radius); }
 
 /* ── Welcome screen ──────────────────────────────────────────── */
 .app-welcome {
