@@ -14,7 +14,17 @@
 
 .gv-app {
   height: 100%;
+  /* The frame behind the cards (#240). The host's inline <style> paints
+     html/body in the canvas and loads after App.css, so the body rule there
+     never wins here; the panel's own root paints the shell instead — the
+     canvas when flush, the frame when the panes are cards, the SAME token and
+     formula as the desktop. Only this root: the editor tabs (gallery, what's
+     new, compare) draw no cards and keep the canvas. */
+  background: var(--bg-shell);
 }
+/* The gap between the rail's card and the graph when no view is open: the
+   resize handle is the gap otherwise, and it only exists with a view. */
+.gv-gap { width: var(--pane-gap); flex-shrink: 0; }
 
 /* The desktop App.css sets `.app { height: 100vh }`. In the panel webview the
    available height is the viewport, so 100vh works, but force overflow hidden. */

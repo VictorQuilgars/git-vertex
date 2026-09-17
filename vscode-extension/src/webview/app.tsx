@@ -1270,6 +1270,7 @@ function VertexApp() {
           </div>
         )}
         {activeView && !stacked && <div className="resize-handle" onMouseDown={startResizeSide} />}
+        {!activeView && !stacked && <div className="gv-gap" />}
         {/* Where the composer's drawer emerges: the right edge of whatever
             panel column exists — and the window's left edge when none does
             (stacked). Zero width: a measuring post, not layout. */}
