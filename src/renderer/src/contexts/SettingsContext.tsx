@@ -98,6 +98,22 @@ export function resolveDensity(value: string | null | undefined): Density {
   return (DENSITIES as readonly string[]).includes(value ?? '') ? value as Density : 'comfortable'
 }
 
+/**
+ * The frame (#240): `blocks` sets the panes apart as rounded cards on a darker
+ * frame, the way VS Code lays out its parts; `flush` is edge to edge with a
+ * 1px line, what the app drew before. Mirrored like the density: a first
+ * frame at the wrong one is every pane jumping by its gap.
+ */
+export const LAYOUT_STORAGE_KEY = 'gv-layout'
+
+/** The two the picker offers; blocks is the desktop's default. */
+export const LAYOUTS = ['blocks', 'flush'] as const
+export type Layout = typeof LAYOUTS[number]
+
+export function resolveLayout(value: string | null | undefined): Layout {
+  return (LAYOUTS as readonly string[]).includes(value ?? '') ? value as Layout : 'blocks'
+}
+
 /** Installed themes, kept in module state so resolveTheme can see them without
  *  a round trip. Set once the main process answers. */
 let installedThemes: InstalledThemeInfo[] = []
@@ -212,6 +228,9 @@ export const SETTING_DEFAULTS: SettingsMap = {
   // Comfortable is the values in `:root`, so an existing install is not moved
   // by this feature arriving; compact is the block that overrides them.
   density: 'comfortable',
+  // The panes as cards on the frame; `flush` is the old rendering. The panel
+  // ignores it — it is always flush, see applyAppearance.
+  layout: 'blocks',
   // Panel only. On by default: giving the panel its own picker means it can
   // stop matching the editor, and a panel that does not match its editor reads
   // as broken. Turning this off is the user asking for their own.
@@ -243,6 +262,12 @@ function applyAppearance(s: SettingsMap) {
   const density = resolveDensity(s.density)
   root.dataset.density = density
   try { localStorage.setItem(DENSITY_STORAGE_KEY, density) } catch { /* private mode */ }
+
+  // The layout, the same way. Never in the panel: it lives inside a card of
+  // VS Code's already, and a frame around a frame is two frames.
+  const layout: Layout = isVSCodeHost ? 'flush' : resolveLayout(s.layout)
+  root.dataset.layout = layout
+  try { localStorage.setItem(LAYOUT_STORAGE_KEY, layout) } catch { /* private mode */ }
 
   // The graph resolves --lane-n, --bg-canvas and the two row heights to literals
   // once and caches them, because it does arithmetic on them. Anything that

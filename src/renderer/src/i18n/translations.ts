@@ -266,6 +266,11 @@ const fr = {
   'settings.density.desc': "Combien d'air entre les lignes. « Compact » resserre les hauteurs de ligne et les marges, pas la taille du texte — c'est l'air qui remplit une fenêtre courte, pas les lettres.",
   'settings.density.comfortable': 'Confortable',
   'settings.density.compact': 'Compact',
+  // Layout — the frame (#240)
+  'settings.layout.title': 'Mise en page',
+  'settings.layout.desc': "Comment les volets sont posés. « Cartes » les sépare par un vide sur un cadre plus sombre, avec des coins arrondis, comme VS Code dispose ses parties. « Bord à bord » est le rendu d'avant, un trait de 1 px entre eux.",
+  'settings.layout.blocks': 'Cartes',
+  'settings.layout.flush': 'Bord à bord',
   'notifs.openJournal': "Relire cette erreur dans le journal du dépôt",
   'notifs.openJournalShort': 'Journal',
 
@@ -2097,6 +2102,11 @@ const en: typeof fr = {
   'settings.density.desc': 'How much air there is between rows. Compact tightens row heights and padding, not the text — what fills a short window is the air, not the letters.',
   'settings.density.comfortable': 'Comfortable',
   'settings.density.compact': 'Compact',
+  // Layout — the frame (#240)
+  'settings.layout.title': 'Layout',
+  'settings.layout.desc': 'How the panes sit. Blocks sets them apart on a darker frame, with rounded corners, the way VS Code lays out its parts. Flush is how the app drew before, edge to edge with a 1px line between them.',
+  'settings.layout.blocks': 'Blocks',
+  'settings.layout.flush': 'Flush',
   'notifs.openJournal': 'Read this error again in the repository journal',
   'notifs.openJournalShort': 'Journal',
 

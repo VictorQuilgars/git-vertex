@@ -4,7 +4,7 @@ import App from './App'
 import { ToastProvider } from './components/Toast/Toast'
 import { JournalProvider } from './contexts/JournalContext'
 import { LanguageProvider } from './i18n/LanguageContext'
-import { SettingsProvider, THEME_STORAGE_KEY, THEME_SEEDS_KEY, DENSITY_STORAGE_KEY, resolveDensity, cssRuleFor } from './contexts/SettingsContext'
+import { SettingsProvider, THEME_STORAGE_KEY, THEME_SEEDS_KEY, DENSITY_STORAGE_KEY, resolveDensity, cssRuleFor, resolveLayout, LAYOUT_STORAGE_KEY } from './contexts/SettingsContext'
 import './App.css'
 
 // Settings arrive over IPC, which is a round trip: the first frame would paint
@@ -38,6 +38,12 @@ try {
 try {
   document.documentElement.dataset.density = resolveDensity(localStorage.getItem(DENSITY_STORAGE_KEY))
 } catch { /* private mode: the default is already what :root carries */ }
+
+// The layout too (#240). Its default is NOT what :root carries — :root is flush,
+// the blocks are the desktop's choice — so this runs even with nothing mirrored.
+try {
+  document.documentElement.dataset.layout = resolveLayout(localStorage.getItem(LAYOUT_STORAGE_KEY))
+} catch { document.documentElement.dataset.layout = 'blocks' }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -4,6 +4,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧱 The panes are cards
+- Sidebar, graph and panel sit as **rounded cards on a darker frame**, set apart by a gap rather than a line — the way VS Code lays out its parts. **Settings › Appearance › Layout** offers *Flush*, the edge-to-edge rendering the app had.
+
 ### 🧩 Two submodule actions that were missing
 - **Sync the URL** — when a submodule's remote moves, the change arrives in \`.gitmodules\` and git keeps fetching from the URL it wrote at clone time. This copies one to the other.
 - **Empty the working tree** — frees the checkout, keeps the submodule declared. It asks first, and git still refuses if there is work that is not pushed.

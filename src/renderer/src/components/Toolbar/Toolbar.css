@@ -2,8 +2,8 @@
   display: flex;
   align-items: center;
   height: 60px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-muted);
+  background: var(--bg-toolbar);
+  border-bottom: var(--pane-edge) solid var(--border-muted);
   padding: 0 var(--space-lg);
   gap: var(--space-2xs);
   flex-shrink: 0;
