@@ -1,3 +1,5 @@
+import { SEED_KEYS } from '../../../../main/theme-validate'
+
 // The inspect mode (#242): click anything in the window and learn which seed
 // colours it. Generic on purpose — no component is annotated. The rules that
 // apply to the element are read off the stylesheets, the `var(--…)` they use
@@ -7,7 +9,23 @@
 /** Derived token → its raw value, as tokens.css wrote it. Read once per inspection. */
 export type TokenMap = Record<string, string>
 
-const VAR_REF = /var\((--[a-z0-9-]+)/g
+const VAR_REF = /var\(\s*(--[a-z0-9-]+)/g
+
+/** Traverse active grouping rules (media, supports, layers), not just the top level. */
+function styleRules(rules: CSSRuleList, doc: Document): CSSStyleRule[] {
+  const out: CSSStyleRule[] = []
+  for (const rule of Array.from(rules)) {
+    if ('selectorText' in rule && 'style' in rule) out.push(rule as CSSStyleRule)
+    else if ('cssRules' in rule) {
+      if (rule.type === 4 && doc.defaultView?.matchMedia &&
+          !doc.defaultView.matchMedia((rule as CSSMediaRule).conditionText).matches) continue
+      if (rule.type === 12 && doc.defaultView?.CSS?.supports &&
+          !doc.defaultView.CSS.supports((rule as CSSSupportsRule).conditionText)) continue
+      out.push(...styleRules((rule as CSSGroupingRule).cssRules, doc))
+    }
+  }
+  return out
+}
 
 /** The custom properties `:root` declares, off the live stylesheet. */
 export function readTokenMap(doc: Document = document): TokenMap {
@@ -15,7 +33,7 @@ export function readTokenMap(doc: Document = document): TokenMap {
   for (const sheet of Array.from(doc.styleSheets)) {
     let rules: CSSRuleList
     try { rules = sheet.cssRules } catch { continue }
-    for (const rule of Array.from(rules)) {
+    for (const rule of styleRules(rules, doc)) {
       if (!('selectorText' in rule) || !('style' in rule)) continue
       const r = rule as CSSStyleRule
       if (!r.selectorText.split(',').some(s => s.trim() === ':root')) continue
@@ -30,7 +48,10 @@ export function readTokenMap(doc: Document = document): TokenMap {
 
 /** The seeds a token comes from — itself, when it is one. */
 export function tokenSeeds(token: string, map: TokenMap, seen: Set<string> = new Set()): string[] {
-  if (token.startsWith('--seed-')) return [token.slice('--seed-'.length)]
+  if (token.startsWith('--seed-')) {
+    const seed = token.slice('--seed-'.length)
+    return (SEED_KEYS as readonly string[]).includes(seed) ? [seed] : []
+  }
   if (seen.has(token)) return []
   seen.add(token)
   const value = map[token]
@@ -72,7 +93,7 @@ function tokensOf(el: Element, map: TokenMap, doc: Document): InspectedToken[] {
   for (const sheet of Array.from(doc.styleSheets)) {
     let rules: CSSRuleList
     try { rules = sheet.cssRules } catch { continue }
-    for (const rule of Array.from(rules)) {
+    for (const rule of styleRules(rules, doc)) {
       if (!('selectorText' in rule) || !('style' in rule)) continue
       const r = rule as CSSStyleRule
       let hit = false
@@ -81,6 +102,21 @@ function tokensOf(el: Element, map: TokenMap, doc: Document): InspectedToken[] {
     }
   }
   if (el instanceof HTMLElement || el instanceof SVGElement) take(el.style)
+  // The graph caches seed colours as literal SVG attributes. Recover those
+  // exact matches against the live draft, not the original stylesheet seeds.
+  const computedRoot = doc.defaultView?.getComputedStyle(doc.documentElement)
+  const normalize = (value: string) => value.trim().toLowerCase()
+  for (const prop of ['fill', 'stroke', 'color']) {
+    const literal = normalize(el.getAttribute(prop) ?? (el as SVGElement).style?.getPropertyValue(prop) ?? '')
+    if (/^#[0-9a-f]{6}$/.test(literal)) {
+      const seeds = SEED_KEYS.filter(k => normalize(computedRoot?.getPropertyValue(`--seed-${k}`) || map[`--seed-${k}`] || '') === literal)
+      if (seeds.length) out.set(`${prop}:${literal}`, { token: `${prop}:${literal}`, property: prop, seeds })
+    }
+    for (const m of (el.getAttribute(prop) ?? '').matchAll(VAR_REF)) {
+      const seeds = tokenSeeds(m[1], map)
+      if (seeds.length) out.set(m[1], { token: m[1], property: prop, seeds })
+    }
+  }
   return Array.from(out.values())
 }
 
@@ -93,7 +129,8 @@ function labelOf(el: Element): string {
     .filter(n => n.nodeType === Node.TEXT_NODE)
     .map(n => n.textContent ?? '').join(' ').replace(/\s+/g, ' ').trim()
   if (text) return text.length > 40 ? `${text.slice(0, 40)}…` : text
-  return el.tagName.toLowerCase()
+  const childLabel = el.matches('button, a, [role=button]') ? el.textContent?.replace(/\s+/g, ' ').trim() : ''
+  return childLabel ? childLabel.slice(0, 40) : el.tagName.toLowerCase()
 }
 
 function idOf(el: Element): string {
@@ -108,10 +145,10 @@ function idOf(el: Element): string {
  */
 export function describeElement(el: Element, map: TokenMap, doc: Document = document): Inspection | null {
   let cur: Element | null = el
-  for (let depth = 0; cur && depth < 6; depth++) {
+  while (cur) {
     const tokens = tokensOf(cur, map, doc)
     if (tokens.length) return { name: labelOf(cur), id: idOf(cur), tokens }
     cur = cur.parentElement
   }
-  return null
+  return { name: labelOf(el), id: idOf(el), tokens: [] }
 }

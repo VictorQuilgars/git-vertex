@@ -65,7 +65,40 @@ describe('on a page', () => {
     expect(r!.tokens[0].seeds).toEqual(['sunken', 'accent'])
   })
 
-  test('an element that paints nothing, under nothing that paints, is null', () => {
-    expect(describeElement(root.querySelector('.bare')!, readTokenMap())).toBeNull()
+  test('unmapped elements still have a selection and an explicit empty palette', () => {
+    expect(describeElement(root.querySelector('.bare')!, readTokenMap())).toEqual({ name: 'nothing', id: '.bare', tokens: [] })
   })
+})
+
+ test('selection walks through deeply nested wrappers', () => {
+   const style = document.createElement('style')
+   style.textContent = '.deep-panel { background: var(--accent); }'
+   document.head.appendChild(style)
+   const panel = document.createElement('div')
+   panel.className = 'deep-panel'
+   let target = panel
+   for (let i = 0; i < 12; i++) { const child = document.createElement('span'); target.appendChild(child); target = child }
+   document.body.appendChild(panel)
+   expect(describeElement(target, MAP)?.tokens[0].seeds).toEqual(['accent'])
+   panel.remove(); style.remove()
+ })
+
+ test('nested CSS rules and SVG presentation attributes expose their seeds', () => {
+   const style = document.createElement('style')
+   style.textContent = '@media (min-width: 1px) { .nested { color: var(--accent); } }'
+   document.head.appendChild(style)
+   const el = document.createElement('span'); el.className = 'nested'
+   expect(describeElement(el, MAP)?.tokens[0].seeds).toEqual(['accent'])
+   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+   svg.setAttribute('stroke', 'var( --seed-lane-3)')
+   expect(describeElement(svg, MAP)?.tokens[0].seeds).toEqual(['lane-3'])
+   style.remove()
+ })
+
+test('literal graph colours resolve against the current draft', () => {
+  document.documentElement.style.setProperty('--seed-lane-3', '#123456')
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  svg.setAttribute('stroke', '#123456')
+  expect(describeElement(svg, MAP)?.tokens[0].seeds).toEqual(['lane-3'])
+  document.documentElement.style.removeProperty('--seed-lane-3')
 })

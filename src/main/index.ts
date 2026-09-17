@@ -182,8 +182,26 @@ function createWindow(): void {
   state.mainWindow.on('leave-full-screen', sendFullscreen)
 
   state.mainWindow.webContents.setWindowOpenHandler((details) => {
+    if (details.url === 'about:blank' && details.frameName === 'git-vertex-theme-builder') {
+      return { action: 'allow', overrideBrowserWindowOptions: {
+        width: 460, height: 760, minWidth: 340, minHeight: 400,
+        title: 'Theme Builder — Git Vertex', autoHideMenuBar: true,
+        webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, preload: undefined }
+      } }
+    }
     if (isSafeExternalUrl(details.url)) shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  state.mainWindow.webContents.on('did-create-window', (child, details) => {
+    if (details.frameName !== 'git-vertex-theme-builder') return
+    // This window is only a same-origin editor surface, never a browser.
+    child.webContents.on('will-navigate', event => event.preventDefault())
+    child.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    const owner = state.mainWindow
+    const closeChild = () => { if (!child.isDestroyed()) child.close() }
+    owner?.once('closed', closeChild)
+    child.once('closed', () => owner?.removeListener('closed', closeChild))
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
