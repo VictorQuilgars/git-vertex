@@ -37,6 +37,16 @@ export function registerSettingsHandlers(): void {
     }
   })
 
+  // A theme built in the app (#242): the payload comes from the window, and
+  // is validated here exactly as one from the bank would be.
+  handle('themes:install-from-seeds', (_event, payload: unknown) => {
+    try {
+      return { success: true, theme: getThemeStore().installFromPayload(payload) }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
   handle('themes:remove', (_event, id: string) => {
     try {
       getThemeStore().remove(id)

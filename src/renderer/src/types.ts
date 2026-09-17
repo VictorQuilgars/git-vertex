@@ -296,6 +296,8 @@ declare global {
       error?: string
     }>
     themesInstall?: (id: string) => Promise<R & { theme?: InstalledTheme }>
+    /** A theme built in the app (#242): the full payload, validated in main like one from the bank. */
+    themesInstallFromSeeds?: (payload: unknown) => Promise<R & { theme?: InstalledTheme }>
     themesRemove?: (id: string) => Promise<R>
 
     // ── The half of the bridge this mirror never declared ──────────

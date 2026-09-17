@@ -315,6 +315,8 @@ const gitAPI = {
   // ThemeStore. The renderer never fetches — it is sandboxed and shared.
   themesCatalogue: (opts?: { refresh?: boolean }) => invoke('themes:catalogue', opts),
   themesInstall: (id: string) => invoke('themes:install', id),
+  /** A theme built in the app (#242): the full payload, validated in main like one from the bank. */
+  themesInstallFromSeeds: (payload: unknown) => invoke('themes:install-from-seeds', payload),
   themesRemove: (id: string) => invoke('themes:remove', id),
   themesInstalled: () => invoke('themes:installed'),
   // ── Sessions ─────────────────────────────────────────────────

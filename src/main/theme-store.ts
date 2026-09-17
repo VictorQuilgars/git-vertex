@@ -197,11 +197,40 @@ export class ThemeStore {
     if (!check.ok) {
       throw new Error(`That theme was rejected: ${check.errors.join('; ')}`)
     }
+    return this.commit(payload)
+  }
 
+  /**
+   * Install a theme the user built (#242) — a full payload, the exact shape
+   * the bank serves, with seeds that never touched the network.
+   *
+   * Same validator, same reasons, same refusal: the builder shows the rules
+   * live, but the renderer is sandboxed and shared and must never be the
+   * thing that decides what reaches the stylesheet. Saving over an installed
+   * id is an update — the builder opens an installed theme to edit it — and
+   * counts against nothing; a new id counts against the cap.
+   */
+  installFromPayload(payload: unknown): InstalledTheme {
+    const check = validateTheme(payload, { builtIns: this.builtIns })
+    if (!check.ok) {
+      throw new Error(`That theme was rejected: ${check.errors.join('; ')}`)
+    }
+    const p = payload as ThemePayload
+    const installed = this.installed()
+    if (installed.length >= MAX_INSTALLED && !installed.some(t => t.id === p.id)) {
+      throw new Error(
+        `You have ${installed.length} themes installed, which is the limit. Remove one first.`,
+      )
+    }
+    return this.commit(p)
+  }
+
+  /** Write a validated payload and record it. Both install paths end here. */
+  private commit(payload: ThemePayload): InstalledTheme {
     this.ensureDir()
-    writeFileSync(this.themePath(id), JSON.stringify(payload), 'utf-8')
+    writeFileSync(this.themePath(payload.id), JSON.stringify(payload), 'utf-8')
     const entry = this.toInstalled(payload)
-    this.writeManifest([...installed.filter(t => t.id !== id), entry])
+    this.writeManifest([...this.installed().filter(t => t.id !== payload.id), entry])
     return entry
   }
 

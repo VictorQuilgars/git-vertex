@@ -15,6 +15,7 @@ import CompactToolbar from './CompactToolbar'
 import AIReadingTab from './AIReadingTab'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
 import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/ThemeGallery'
+import ThemeBuilder from '../../../src/renderer/src/components/ThemeBuilder/ThemeBuilder'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import type { ConflictKind } from '../../../src/renderer/src/types'
@@ -1145,6 +1146,8 @@ function VertexApp() {
         pr={currentBranchPR}
         onCreatePR={handleStartPR}
       />
+      {/* The theme builder's drawer (#242): over everything, the panel as its preview. */}
+      <ThemeBuilder />
       {settingsOpen && (
         <div className="gv-settings-overlay">
           <SettingsModal embedded onClose={() => setSettingsOpen(false)} showToast={showToast}

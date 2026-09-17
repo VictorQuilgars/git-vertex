@@ -190,3 +190,38 @@ describe('catalogue', () => {
     expect(c.error).toBeDefined()
   })
 })
+
+// A theme built in the app (#242): the same validator, the same refusal, and
+// no network anywhere on the path.
+describe('installFromPayload', () => {
+  it('writes a theme that validates, with no network', () => {
+    const s = store()
+    const t = s.installFromPayload(payload({ id: 'mine-ink-rose', name: 'Ink Rose', src: 'local' }))
+    expect(t.id).toBe('mine-ink-rose')
+    expect(existsSync(join(dir, 'themes', 'mine-ink-rose.json'))).toBe(true)
+    expect(s.installed().map(x => x.id)).toEqual(['mine-ink-rose'])
+  })
+
+  it('refuses what the validator refuses, and writes nothing', () => {
+    const s = store()
+    expect(() => s.installFromPayload(payload({ id: 'mine-x', seeds: { ...GOOD_SEEDS, canvas: 'red' } })))
+      .toThrow(/rejected/)
+    expect(() => s.installFromPayload(payload({ id: 'aqua-dark' }))).toThrow(/rejected/)
+    expect(existsSync(join(dir, 'themes', 'mine-x.json'))).toBe(false)
+  })
+
+  it('saving over an installed id is an update, not a second theme', () => {
+    const s = store()
+    s.installFromPayload(payload({ id: 'mine-x', name: 'One' }))
+    s.installFromPayload(payload({ id: 'mine-x', name: 'Two' }))
+    expect(s.installed().map(x => x.name)).toEqual(['Two'])
+  })
+
+  it('counts a new id against the cap, and an update not', () => {
+    const s = store()
+    for (let i = 0; i < MAX_INSTALLED; i++) s.installFromPayload(payload({ id: `mine-${i}`, name: `T${i}` }))
+    expect(() => s.installFromPayload(payload({ id: 'mine-more' }))).toThrow(/limit/)
+    expect(() => s.installFromPayload(payload({ id: 'mine-0', name: 'Again' }))).not.toThrow()
+  })
+})
+

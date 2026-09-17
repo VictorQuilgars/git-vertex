@@ -26,6 +26,7 @@ import SettingsModal from './components/SettingsModal/SettingsModal'
 import CloneModal from './components/CloneModal/CloneModal'
 import Launchpad from './components/Launchpad/Launchpad'
 import ThemeGallery from './components/ThemeGallery/ThemeGallery'
+import ThemeBuilder from './components/ThemeBuilder/ThemeBuilder'
 import CompareView from './components/CompareView/CompareView'
 import FileHistory from './components/FileHistory/FileHistory'
 import RepoManager from './components/RepoManager/RepoManager'
@@ -1050,6 +1051,9 @@ export default function App() {
           </>
         )}
       </div>
+
+      {/* The theme builder's drawer (#242): over everything, the app as its preview. */}
+      <ThemeBuilder />
 
       {/* ── Status bar (bottom) ── */}
       {repoPath && (

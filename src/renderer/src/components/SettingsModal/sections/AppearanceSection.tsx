@@ -2,6 +2,7 @@
 import { Icon } from '../../Icon/Icon'
 import { isVSCodeHost, followsEditor } from '../../../contexts/SettingsContext'
 import { THEMES_FOLDED, THEME_PRESETS, SaveNote } from '../shared'
+import { openThemeBuilder } from '../../ThemeBuilder/builderStore'
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AppearanceSection({ page }: { page: SettingsPage }) {
@@ -192,6 +193,15 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                     it opens the gallery as a TAB — the same gesture as opening
                     a repo, and in the panel the same one as the interactive
                     rebase. */}
+                {/* Your own theme (#242): a drawer over the app, which is the
+                    preview, starting from the theme in use. */}
+                <button className="stg-browse stg-browse--build" onClick={() => openThemeBuilder(get('theme', 'aqua-dark'))}>
+                  <span className="stg-browse-build-icon" aria-hidden="true"><Icon name="ink" size={18} /></span>
+                  <span className="stg-browse-text">
+                    <strong>{t('builder.card')}</strong>
+                    <span>{t('builder.cardHint')}</span>
+                  </span>
+                </button>
                 <button className="stg-browse" onClick={onBrowseThemes} disabled={!onBrowseThemes}>
                   <span className="stg-browse-strip" aria-hidden="true">
                     {preview.map(r => (

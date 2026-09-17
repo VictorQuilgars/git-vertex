@@ -232,3 +232,12 @@
 .stg-browse-title { color: var(--text-primary); font-size: var(--text-base); font-weight: var(--weight-medium); }
 .stg-browse-sub { color: var(--text-tertiary); font-size: var(--text-sm); }
 .stg-browse-go { flex: none; opacity: 0.7; }
+
+/* The card that opens the theme builder (#242), beside the browse card. */
+.stg-browse--build { margin-bottom: var(--space-sm); }
+.stg-browse-build-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: var(--radius-md);
+  background: var(--surface); border: 1px solid var(--border-default); color: var(--accent);
+}
+

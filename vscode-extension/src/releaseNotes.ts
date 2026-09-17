@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🎨 Make your own theme
+- **Settings › Appearance › Create a theme** opens a drawer over the app, and the app is the preview: change a seed, the whole window repaints. Click anything with *Inspect* to see which seed colours it. Saving installs the theme and puts it in use; the file it exports is the bank's own format.
+
 ### 🧱 The panes are cards
 - The side panel and the graph sit as **rounded cards on a frame**, set apart by a gap rather than a line; the rail and the compact toolbar are the frame. **Settings › Appearance › Layout** offers *Flush*, the edge-to-edge rendering the panel had.
 
