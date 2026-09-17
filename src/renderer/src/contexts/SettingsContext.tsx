@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { resetThemeCache } from '../components/CommitGraph/graph-layout'
 
 // Centralized app settings. Loads everything once from the main process, exposes
@@ -14,6 +14,22 @@ interface SettingsContextValue {
   set: (key: string, value: string) => void
   get: (key: string, fallback?: string) => string
   getBool: (key: string, fallback?: boolean) => boolean
+  /**
+   * The theme currently on `<html>` — the RESOLVED one, as state (#160).
+   *
+   * Anything that reads a token into a JavaScript value has to recompute when
+   * this changes, because a var() cannot reach it: the graph resolves the ten
+   * lane colours to literals and bakes one into every commit of its layout, so
+   * on a theme change its branches kept the old palette until the next fetch or
+   * reload moved the layout for another reason.
+   *
+   * A resolved id rather than a counter, and state rather than a read of the
+   * DOM: React bails out of a re-render when it has not changed, so a settings
+   * change that is not about appearance does not recompute a graph of five
+   * hundred commits. It also covers the panel, where the editor's theme changes
+   * under us through a MutationObserver and no setting moves at all.
+   */
+  appliedTheme: string
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
@@ -249,6 +265,20 @@ function watchHostTheme(onChange: () => void): () => void {
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<SettingsMap>(SETTING_DEFAULTS)
   const [ready, setReady] = useState(false)
+  const [appliedTheme, setAppliedTheme] = useState<string>(
+    () => (typeof document !== 'undefined' && document.documentElement.dataset.theme) || '')
+  // The latest settings, readable synchronously. `set` used to build the next
+  // map inside a state updater AND apply the appearance from in there — an
+  // updater is not the place for a side effect (StrictMode runs it twice) and
+  // it is deferred, so reading back what was applied saw the previous theme.
+  const settingsRef = useRef<SettingsMap>(SETTING_DEFAULTS)
+
+  /** Apply, then publish what was applied. */
+  const applyAndPublish = useCallback((s: SettingsMap) => {
+    applyAppearance(s)
+    // After, never before: applyAppearance is what writes the attribute.
+    setAppliedTheme(document.documentElement.dataset.theme ?? '')
+  }, [])
 
   useEffect(() => {
     let current = SETTING_DEFAULTS
@@ -268,24 +298,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     load.then(() => window.gitAPI.settingsGetAll()).then((s: SettingsMap) => {
       current = { ...SETTING_DEFAULTS, ...s }
+      settingsRef.current = current
       setSettings(current)
-      applyAppearance(current)
+      applyAndPublish(current)
       setReady(true)
     }).catch(() => {
-      applyAppearance(SETTING_DEFAULTS)
+      applyAndPublish(SETTING_DEFAULTS)
       setReady(true)
     })
-    return watchHostTheme(() => applyAppearance(current))
-  }, [])
+    return watchHostTheme(() => applyAndPublish(current))
+  }, [applyAndPublish])
 
   const set = useCallback((key: string, value: string) => {
-    setSettings(prev => {
-      const next = { ...prev, [key]: value }
-      applyAppearance(next)
-      return next
-    })
+    const next = { ...settingsRef.current, [key]: value }
+    settingsRef.current = next
+    setSettings(next)
+    applyAndPublish(next)
     window.gitAPI.settingsSet(key, value)
-  }, [])
+  }, [applyAndPublish])
 
   const get = useCallback(
     (key: string, fallback = '') => settings[key] ?? fallback,
@@ -300,7 +330,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <SettingsContext.Provider value={{ settings, ready, set, get, getBool }}>
+    <SettingsContext.Provider value={{ settings, ready, set, get, getBool, appliedTheme }}>
       {children}
     </SettingsContext.Provider>
   )

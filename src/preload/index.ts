@@ -128,6 +128,8 @@ const gitAPI = {
   getSubmodules: () => invoke('git:get-submodules'),
   initSubmodule: (path: string) => invoke('git:init-submodule', path),
   updateSubmodule: (path: string) => invoke('git:update-submodule', path),
+  deinitSubmodule: (path: string) => invoke('git:deinit-submodule', path),
+  syncSubmodule: (path: string) => invoke('git:sync-submodule', path),
   // Extended search & branch comparison
   searchInDiffs: (query: string) => invoke('git:search-in-diffs', query),
   locateInHistory: (hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => invoke('git:locate-in-history', hashes, options),
