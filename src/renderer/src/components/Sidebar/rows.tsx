@@ -198,11 +198,13 @@ export function RemoteItem({
 
 // ── Submodule item ────────────────────────────────────────────────
 export function SubmoduleItem({
-  sub, onInit, onUpdate
+  sub, onInit, onUpdate, onSync, onDeinit
 }: {
   sub: SubmoduleEntry
   onInit: () => void
   onUpdate: () => void
+  onSync: () => void
+  onDeinit: () => void
 }) {
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   const { t } = useLang()
@@ -212,6 +214,13 @@ export function SubmoduleItem({
   const menuItems: MenuItemDef[] = [
     ...(sub.status === 'uninitialized' ? [{ label: t('sb.sub.init'), action: onInit }] : []),
     { label: t('sb.sub.update'), action: onUpdate },
+    // Only where they mean something: there is no URL to re-read into a
+    // submodule that was never checked out, and nothing to empty either.
+    ...(sub.status === 'uninitialized' ? [] : [
+      { label: t('sb.sub.sync'), action: onSync },
+      { separator: true as const },
+      { label: t('sb.sub.deinit'), action: onDeinit, danger: true },
+    ]),
   ]
 
   return (
