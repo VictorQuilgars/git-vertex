@@ -361,7 +361,7 @@
   --seed-canvas: #282C34;
   --seed-surface: #21252B;
   --seed-sunken: #1D1F23;
-  --seed-border: #181A1F;
+  --seed-border: #3E4452;
   --seed-text: #ABB2BF;
   --seed-text-2: #8E94A0;
   --seed-text-3: #808793;
@@ -391,7 +391,7 @@
   --seed-canvas: #303446;
   --seed-surface: #292C3C;
   --seed-sunken: #414559;
-  --seed-border: #292C3C;
+  --seed-border: #626880;
   --seed-text: #C6D0F5;
   --seed-text-2: #B2BCDE;
   --seed-text-3: #A9B2D3;
@@ -421,7 +421,7 @@
   --seed-canvas: #12100C;
   --seed-surface: #1C1917;
   --seed-sunken: #23211E;
-  --seed-border: #363431;
+  --seed-border: #31302C;
   --seed-text: #D4D4D4;
   --seed-text-2: #939291;
   --seed-text-3: #898887;
@@ -451,7 +451,7 @@
   --seed-canvas: #282A36;
   --seed-surface: #21222C;
   --seed-sunken: #282A36;
-  --seed-border: #191A21;
+  --seed-border: #50525B;
   --seed-text: #F8F8F2;
   --seed-text-2: #B3B4B5;
   --seed-text-3: #909194;
@@ -481,7 +481,7 @@
   --seed-canvas: #24292E;
   --seed-surface: #1F2428;
   --seed-sunken: #2F363D;
-  --seed-border: #1B1F23;
+  --seed-border: #484D52;
   --seed-text: #E1E4E8;
   --seed-text-2: #A3A7AB;
   --seed-text-3: #9CA0A5;
@@ -541,7 +541,7 @@
   --seed-canvas: #272822;
   --seed-surface: #1E1F1C;
   --seed-sunken: #414339;
-  --seed-border: #1E1F1C;
+  --seed-border: #414339;
   --seed-text: #F8F8F2;
   --seed-text-2: #BBBCB5;
   --seed-text-3: #AEAFA8;
@@ -601,7 +601,7 @@
   --seed-canvas: #390000;
   --seed-surface: #330000;
   --seed-sunken: #580000;
-  --seed-border: #63342D;
+  --seed-border: #5C110F;
   --seed-text: #F8F8F8;
   --seed-text-2: #BEA8A4;
   --seed-text-3: #A58781;
@@ -661,7 +661,7 @@
   --seed-canvas: #002B36;
   --seed-surface: #00212B;
   --seed-sunken: #002F3A;
-  --seed-border: #003847;
+  --seed-border: #1F404A;
   --seed-text: #839496;
   --seed-text-2: #7F9092;
   --seed-text-3: #839496;
@@ -721,7 +721,7 @@
   --seed-canvas: #002451;
   --seed-surface: #001C40;
   --seed-sunken: #001733;
-  --seed-border: #345076;
+  --seed-border: #404F7D;
   --seed-text: #FFFFFF;
   --seed-text-2: #ACB9C9;
   --seed-text-3: #7D90AA;
@@ -781,7 +781,7 @@
   --seed-canvas: #0D1017;
   --seed-surface: #0D1017;
   --seed-sunken: #10141C;
-  --seed-border: #1B1F28;
+  --seed-border: #2E3036;
   --seed-text: #BFBDB6;
   --seed-text-2: #8A8A88;
   --seed-text-3: #7F7F7E;
@@ -811,7 +811,7 @@
   --seed-canvas: #282C34;
   --seed-surface: #21252B;
   --seed-sunken: #1B1D23;
-  --seed-border: #181A1F;
+  --seed-border: #424750;
   --seed-text: #ABB2BF;
   --seed-text-2: #8E94A0;
   --seed-text-3: #7F8591;
@@ -841,7 +841,7 @@
   --seed-canvas: #1A1B26;
   --seed-surface: #16161E;
   --seed-sunken: #14141B;
-  --seed-border: #0F0F14;
+  --seed-border: #363848;
   --seed-text: #A9B1D6;
   --seed-text-2: #7F86A3;
   --seed-text-3: #787E9A;
@@ -931,7 +931,7 @@
   --seed-canvas: #263238;
   --seed-surface: #263238;
   --seed-sunken: #303C41;
-  --seed-border: #263238;
+  --seed-border: #4D5A5F;
   --seed-text: #EEFFFF;
   --seed-text-2: #ACBCBE;
   --seed-text-3: #98A8AA;
@@ -991,7 +991,7 @@
   --seed-canvas: #EFF1F5;
   --seed-surface: #E6E9EF;
   --seed-sunken: #CCD0DA;
-  --seed-border: #E6E9EF;
+  --seed-border: #ACB0BE;
   --seed-text: #4C4F69;
   --seed-text-2: #50536D;
   --seed-text-3: #555871;
@@ -1021,7 +1021,7 @@
   --seed-canvas: #FFFFFF;
   --seed-surface: #FCFCFC;
   --seed-sunken: #DBDBDB;
-  --seed-border: #B7B7B7;
+  --seed-border: #DFDFDF;
   --seed-text: #000000;
   --seed-text-2: #2E2E2E;
   --seed-text-3: #5D5D5D;
@@ -1111,7 +1111,7 @@
   --seed-canvas: #FFFFFF;
   --seed-surface: #EBEBEB;
   --seed-sunken: #DBDBDB;
-  --seed-border: #D4D4D4;
+  --seed-border: #DFDFDF;
   --seed-text: #000000;
   --seed-text-2: #2E2E2E;
   --seed-text-3: #5D5D5D;
@@ -1201,7 +1201,7 @@
   --seed-canvas: #F8F9FA;
   --seed-surface: #F8F9FA;
   --seed-sunken: #FCFCFC;
-  --seed-border: #DFE3E7;
+  --seed-border: #D3D5D7;
   --seed-text: #5C6166;
   --seed-text-2: #6A6E73;
   --seed-text-3: #71757A;
