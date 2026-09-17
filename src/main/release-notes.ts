@@ -10,6 +10,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🔤 The command-line app speaks English
 - The terminal UI predates the English-only rule the app and the extension were swept for, and still carried French in its help panel, its status lines, its column headers and the errors behind them. It is translated, and a test now reads the sources so the next one fails before it ships.
+
+### 🎨 The graph follows the theme
+- In the **VS Code panel**, the branch colours kept the old palette when the editor's theme changed — the graph resolves them to real values once and draws with those. They follow now.
 `,
   '1.36.0': `## What's new in 1.36.0
 
