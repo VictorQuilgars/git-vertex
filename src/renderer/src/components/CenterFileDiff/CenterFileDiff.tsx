@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import hljs from 'highlight.js'
 import { useLang } from '../../i18n/LanguageContext'
 import { useSettings } from '../../contexts/SettingsContext'

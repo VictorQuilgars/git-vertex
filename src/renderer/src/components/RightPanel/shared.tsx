@@ -2,22 +2,13 @@
 // the date formats. Split out of RightPanel.tsx, which held four components
 // and everything they had in common in one 2,300-line file.
 
-import { useCommitDraft } from '../../hooks/useCommitDraft'
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Icon } from '../Icon/Icon'
 import hljs from 'highlight.js'
-import { CommitNode, ConflictKind, FileChange, WorkingChanges } from '../../types'
-import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
+import { ConflictKind } from '../../types'
 import { useLang } from '../../i18n/LanguageContext'
 import { aiAvatarDataUri } from '../../utils/aiAvatars'
-import { linkifyIssues, IssueRepo } from '../IssueLink/IssueLink'
-import { parseAutolinks } from '../../utils/autolinks'
-import { useSettings } from '../../contexts/SettingsContext'
-import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
-import BranchStrip, { type BranchStripProps } from './BranchStrip'
 import './RightPanel.css'
-import WorkingChangesEmpty, { type NextStepsState, type NextStepsActions } from './WorkingChangesEmpty'
-import { hasIssueReferences } from '../IssueLink/IssueLink'
 
 
 // Whether each side actually holds a version of the path. Where one does not,

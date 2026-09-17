@@ -4,7 +4,7 @@ import type { SettingsPage } from '../useSettingsPage'
 import { DefenderNote, SaveNote } from '../shared'
 
 export function BehaviorSection({ page }: { page: SettingsPage }) {
-  const { t, settings, section, notifyFetch, setNotifyFetch, notifyCommit, setNotifyCommit, notifyUpdate, setNotifyUpdate, autoStash, setAutoStash, warnBeforeConflict, setWarnBeforeConflict, defaultBranchName, setDefaultBranchName, autoFetchInterval, setAutoFetchInterval, autoUpdateSubmodules, setAutoUpdateSubmodules, repoTuning, setRepoTuning, embedded } = page
+  const { t, notifyFetch, setNotifyFetch, notifyCommit, setNotifyCommit, notifyUpdate, setNotifyUpdate, autoStash, setAutoStash, warnBeforeConflict, setWarnBeforeConflict, defaultBranchName, setDefaultBranchName, autoFetchInterval, setAutoFetchInterval, autoUpdateSubmodules, setAutoUpdateSubmodules, repoTuning, setRepoTuning, embedded } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.behavior.title')}</h2>

@@ -6,7 +6,7 @@ import { Section } from '../Section'
 import type { SidebarState } from '../useSidebar'
 
 export function IssuesSection({ s }: { s: SidebarState }) {
-  const { onCreateBranch, githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubRepo, onRefreshGithub, onNewIssue, githubRefreshing, onRefresh, single, t, issuesQuery, setIssuesQuery, ghFilters, setFilterEditor, mutateFilters } = s
+  const { githubIssues, onOpenGithubItem, onStartBranchFromIssue, onShowGithubDetail, githubDetailOpen, githubRepo, onRefreshGithub, onNewIssue, githubRefreshing, single, t, issuesQuery, setIssuesQuery, ghFilters, setFilterEditor, mutateFilters } = s
   if (!githubIssues) return null
   return (
     <Section id="issues" title="GITHUB ISSUES" brand="github" count={githubIssues.length} defaultOpen={single}

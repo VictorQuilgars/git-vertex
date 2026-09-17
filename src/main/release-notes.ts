@@ -7,6 +7,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🧩 Two submodule actions that were missing
 - **Sync the URL** — when a submodule's remote moves, the change arrives in \`.gitmodules\` and git keeps fetching from the URL it wrote at clone time. This copies one to the other.
 - **Empty the working tree** — frees the checkout, keeps the submodule declared. It asks first, and git still refuses if there is work that is not pushed.
+
+### 🔤 The command-line app speaks English
+- The terminal UI predates the English-only rule the app and the extension were swept for, and still carried French in its help panel, its status lines, its column headers and the errors behind them. It is translated, and a test now reads the sources so the next one fails before it ships.
 `,
   '1.36.0': `## What's new in 1.36.0
 

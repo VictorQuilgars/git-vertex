@@ -29,11 +29,14 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
   const {
     currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit, onCompareWorking, onSelectForCompare, onCompareWithSelected, compareBaseHash, onDropCommit, onMoveCommit, onBranchDrop, onCherryPickMany, onDropCommits, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, prIntentFor, onCreatePR, branchMenuItems, onCopyCommitLink, onCreateAnnotatedTag, onDeleteRemoteBranch, onPushTag, onDeleteTag, onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch, onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false, onNativeMenuTarget,
   } = props
-  const { t, set, showAvatars, showAuthor, showDate, showSha, showStats, compactColumns, drop, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt } = ctx
+  const { t, set, showAvatars, showAuthor, showDate, showSha, showStats, compactColumns, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt } = ctx
 
   // The "start a Pull Request" row, pointing whichever way prIntentFor decided
   // — from this branch, or into it, depending on where you are standing.
-  const prRow = useCallback((branchRef: string, isCurrent: boolean): MenuItemDef | null => {
+  // No `isCurrent`: which way the row points is prIntentFor's decision, and has
+  // been since it took it over. The argument was still being passed at three
+  // call sites and read at none.
+  const prRow = useCallback((branchRef: string): MenuItemDef | null => {
     if (!prIntentFor || !onCreatePR) return null
     const intent = prIntentFor(branchRef)
     if (!intent) return null
@@ -65,7 +68,7 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
     if (!isHead && onDeleteBranch) items.push({ label: t('graph.menu.deleteBranchNamed', display), action: () => onDeleteBranch(name), danger: true })
     if (onPushBranch) items.push({ label: t('graph.menu.pushBranch'), action: () => onPushBranch(name) })
     if (onSetUpstream) items.push({ label: t('graph.menu.setUpstream'), action: () => onSetUpstream(name) })
-    const pr = prRow(name, isHead)
+    const pr = prRow(name)
     if (pr) items.push(pr)
     items.push({ label: t('graph.menu.copyBranchName'), action: () => navigator.clipboard.writeText(name) })
     return items
@@ -264,7 +267,7 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
 
     if (pref.cls === 'rc-remote') {
       if (onCheckoutBranch) items.push({ label: '✓ Checkout', action: () => onCheckoutBranch(name) })
-      const remotePr = prRow(name, false)
+      const remotePr = prRow(name)
       if (remotePr) items.push(remotePr)
       if (onDeleteRemoteBranch) items.push({ label: t('graph.menu.deleteRemoteBranch'), action: () => onDeleteRemoteBranch(name), danger: true })
       items.push({ label: t('graph.menu.copyName'), action: () => navigator.clipboard.writeText(pref.display) })
@@ -278,7 +281,7 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
     if (items.length) items.push({ separator: true })
     if (onPushBranch) items.push({ label: '⬆ Push', action: () => onPushBranch(name) })
     if (onSetUpstream) items.push({ label: t('graph.menu.setUpstream'), action: () => onSetUpstream(name) })
-    const localPr = prRow(name, !!pref.isHead)
+    const localPr = prRow(name)
     if (localPr) items.push(localPr)
     if (onRenameBranch) items.push({ label: t('graph.menu.rename'), action: () => onRenameBranch(name) })
     items.push({ label: t('graph.menu.copyName'), action: () => navigator.clipboard.writeText(name) })

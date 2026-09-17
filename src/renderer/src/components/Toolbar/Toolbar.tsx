@@ -104,7 +104,7 @@ export default function Toolbar({
   loading,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
   aiSearch, aiSearchLoading, onToggleAiSearch, onAiSearchSubmit,
-  updateReady, onInstallUpdate, githubRepoUrl, onGitflow,
+  onGitflow,
   topRow = true
 }: ToolbarProps) {
   const { t } = useLang()
