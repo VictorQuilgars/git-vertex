@@ -23,10 +23,21 @@ const rootBody = css.match(/^:root,?[^{]*\{([\s\S]*?)^\}/m)![1]
 const rootTokens = new Set(declarations(rootBody).map(d => d[0]))
 
 describe('the layout family', () => {
-  test('there is a blocks block, and nothing else — flush is what :root carries', () => {
+  test('there are blocks and flush, and nothing else', () => {
     const ids = layoutBlocks().map(([sel]) => sel.match(/data-layout="([^"]+)"/)![1])
-    expect(ids.length).toBeGreaterThanOrEqual(1)
-    expect(new Set(ids)).toEqual(new Set(['blocks']))
+    expect(new Set(ids)).toEqual(new Set(['blocks', 'flush']))
+  })
+
+  // Flush is what :root carries, and it has a block only because custom
+  // properties inherit: the picker's flush preview sits under a blocks <html>
+  // and drew the blocks. So the block must say exactly what :root says, and
+  // must say everything blocks says, or something leaks through.
+  test('the flush block repeats :root, to the byte, and covers everything blocks sets', () => {
+    const root = Object.fromEntries(declarations(rootBody))
+    const flush = Object.fromEntries(declarations(layoutBlocks().find(([sel]) => sel.includes('data-layout="flush"'))![1]))
+    for (const [token, value] of Object.entries(flush)) expect([token, value]).toEqual([token, root[token]])
+    const blocksTokens = layoutBlocks().filter(([sel]) => sel.includes('data-layout="blocks"')).flatMap(([, body]) => declarations(body).map(d => d[0]))
+    for (const token of blocksTokens) expect(flush).toHaveProperty(token)
   })
 
   test('every declaration is a plain length or a reference to a token the default declares', () => {
@@ -59,7 +70,7 @@ describe('the layout family', () => {
   })
 
   test('blocks has a gap and a radius, and takes the edge away', () => {
-    const [, body] = layoutBlocks().find(([sel]) => !sel.includes('data-density'))!
+    const [, body] = layoutBlocks().find(([sel]) => sel.includes('data-layout="blocks"') && !sel.includes('data-density'))!
     const b = Object.fromEntries(declarations(body))
     expect(parseFloat(b['--pane-gap'])).toBeGreaterThan(0)
     expect(parseFloat(b['--pane-radius'])).toBeGreaterThan(0)
@@ -67,7 +78,7 @@ describe('the layout family', () => {
   })
 
   test('compact takes the frame in, never lets it out', () => {
-    const blocks = Object.fromEntries(declarations(layoutBlocks().find(([sel]) => !sel.includes('data-density'))![1]))
+    const blocks = Object.fromEntries(declarations(layoutBlocks().find(([sel]) => sel.includes('data-layout="blocks"') && !sel.includes('data-density'))![1]))
     const compact = layoutBlocks().find(([sel]) => sel.includes('data-density="compact"'))
     expect(compact).toBeDefined()
     for (const [token, value] of declarations(compact![1])) {

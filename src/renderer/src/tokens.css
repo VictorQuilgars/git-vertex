@@ -1349,3 +1349,14 @@
   --pane-gap: 6px;
   --pane-radius: 6px;
 }
+/* Flush is what :root carries — and it says so again here, because custom
+ * properties inherit: under a blocks <html>, the picker's flush preview has
+ * no rule of its own and drew the blocks. The values are :root's, to the
+ * byte; layout-discipline.test.ts fails if they drift. */
+[data-layout="flush"] {
+  --pane-gap: 0px;
+  --pane-radius: 0px;
+  --pane-edge: 1px;
+  --bg-shell: var(--bg-canvas);
+  --bg-toolbar: var(--surface);
+}
