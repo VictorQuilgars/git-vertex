@@ -1,5 +1,5 @@
 // The GitHub side of the open repository: which remote is GitHub, the lists it loads, the pull-request intents, and the actions that open there.
-import React, { useState, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { type LinkedIssue } from '../hooks/useBranchMeta'
 import { issueBranchName } from '../utils/issueBranch'
 import type { GithubListItem } from '../components/Sidebar/Sidebar'

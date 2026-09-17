@@ -3,7 +3,7 @@ import type { SettingsPage } from '../useSettingsPage'
 import { SaveNote } from '../shared'
 
 export function GraphSection({ page }: { page: SettingsPage }) {
-  const { t, settings, getBool, set, section } = page
+  const { t, getBool, set } = page
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.graph.title')}</h2>

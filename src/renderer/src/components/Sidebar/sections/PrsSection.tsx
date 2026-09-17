@@ -7,7 +7,7 @@ import { Section } from '../Section'
 import type { SidebarState } from '../useSidebar'
 
 export function PrsSection({ s }: { s: SidebarState }) {
-  const { githubPRs, onOpenGithubItem, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, onRefreshGithub, onStartPR, githubRefreshing, githubRefreshTick, githubPollTick, onRefresh, single, t, prsQuery, setPrsQuery, ghFilters, setFilterEditor, mutateFilters } = s
+  const { githubPRs, onOpenGithubItem, onShowGithubDetail, githubDetailOpen, githubLogin, githubRepo, onRefreshGithub, onStartPR, githubRefreshing, githubRefreshTick, githubPollTick, single, t, prsQuery, setPrsQuery, ghFilters, setFilterEditor, mutateFilters } = s
   if (!githubPRs) return null
   return (
     <Section id="prs" title="PULL REQUESTS" icon="pullRequest" count={githubPRs.length} defaultOpen={single}
