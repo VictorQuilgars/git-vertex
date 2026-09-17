@@ -83,26 +83,6 @@ export const sectionText = (() => {
 })()
 
 /** How many built-in themes the picker shows before "show all". */
-/**
- * How many tiles the folded wall shows: two rows of five, with a card the
- * height of both at their end that unfolds the rest. Installed themes come
- * first — they were chosen — and the built-ins fill what is left, the two
- * hand-drawn ones always among them; the theme in use is always shown.
- */
-export const THEMES_FOLDED = 10
-
-export function foldThemes<P extends { id: string }, I extends { id: string }>(
-  presets: readonly P[], installed: readonly I[], activeId: string,
-): { presets: P[]; installed: I[] } {
-  const keepPresets = Math.max(2, THEMES_FOLDED - installed.length)
-  const inst = installed.slice(0, THEMES_FOLDED - keepPresets)
-  const activeInstalled = installed.find(t => t.id === activeId)
-  if (activeInstalled && !inst.includes(activeInstalled)) inst.splice(inst.length - 1, 1, activeInstalled)
-  const pre = presets.slice(0, THEMES_FOLDED - inst.length)
-  const activePreset = presets.find(t => t.id === activeId)
-  if (activePreset && !pre.includes(activePreset)) pre.splice(pre.length - 1, 1, activePreset)
-  return { presets: pre, installed: inst }
-}
 
 // ── Nav icons ─────────────────────────────────────────────────
 // These were seven `<path>` sets inside a local NavIcon wrapper that spelled

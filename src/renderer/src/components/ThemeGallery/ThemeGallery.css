@@ -233,28 +233,39 @@
 .stg-browse-sub { color: var(--text-tertiary); font-size: var(--text-sm); }
 .stg-browse-go { flex: none; opacity: 0.7; }
 
-/* ── The settings wall, folded: two rows of five and, at their end, a card
-   the height of both that unfolds the rest (#242). Only where the pane is
-   wide enough for six columns; narrower, the auto-fill above stands and the
-   card is a tile among the others. */
-@media (min-width: 1100px) {
-  .stg-wall--folded { grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(150px, 0.8fr); }
-  .stg-wall--folded .stg-tile--more { grid-column: 6; grid-row: 1 / span 2; }
+/* ── The shelf (#242): every theme on two rows sliding sideways, and the
+   bank's card standing still at their end. The strip is masked at the edges
+   it has not reached, so a tile arriving from the right fades in rather
+   than popping at the border. The mask only needs an opaque stop; a token
+   serves, since a colour literal outside tokens.css is a bug. */
+.stg-shelf { display: flex; align-items: stretch; gap: var(--space-lg); margin-bottom: var(--space-xl); min-width: 0; }
+.stg-strip {
+  flex: 1; min-width: 0;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  padding: var(--space-2xs) 0 var(--space-sm);
+  mask-image: linear-gradient(to right, transparent 0, var(--seed-canvas) 24px, var(--seed-canvas) calc(100% - 96px), transparent 100%);
 }
-.stg-tile--more { border-style: dashed; background: transparent; }
-.stg-tile--more:hover { border-color: var(--accent); background: var(--surface-sunken); }
-.stg-more {
-  width: 100%; height: 100%; min-height: 120px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-md);
-  padding: var(--space-lg); border: 0; background: transparent; color: var(--text-secondary);
-  font: inherit; font-weight: var(--weight-medium); cursor: pointer; text-align: center;
+.stg-strip--start { mask-image: linear-gradient(to right, var(--seed-canvas) 0, var(--seed-canvas) calc(100% - 96px), transparent 100%); }
+.stg-strip--end { mask-image: linear-gradient(to right, transparent 0, var(--seed-canvas) 24px, var(--seed-canvas) 100%); }
+.stg-strip--start.stg-strip--end { mask-image: none; }
+.stg-wall--strip {
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, auto);
+  grid-template-columns: none;
+  grid-auto-columns: 190px;
+  padding-right: var(--space-lg);
 }
-.stg-more:hover { color: var(--text-primary); }
-/* A dozen of the themes behind the card, each dot its own accent, read off
-   its seeds the way the tiles are. */
-.stg-more-dots { display: grid; grid-template-columns: repeat(4, 12px); gap: var(--space-xs); }
-.stg-more-dot { width: 12px; height: 12px; border-radius: var(--radius-circle); background: var(--seed-accent); border: 1px solid var(--seed-border); }
-.stg-more-label { font-size: var(--text-sm); }
+.stg-wall--strip .stg-tile { scroll-snap-align: start; }
+/* The bank's card, tall: the strip of chips on top, the words below, the
+   arrow at the bottom, the height of the two rows beside it. */
+.stg-browse--tall {
+  flex: 0 0 200px; margin-top: 0;
+  flex-direction: column; align-items: flex-start; justify-content: space-between;
+}
+.stg-browse--tall .stg-browse-text { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.stg-browse-go { align-self: flex-end; color: var(--text-tertiary); }
+.stg-browse--tall:hover .stg-browse-go { color: var(--accent); }
 
 /* ── The call to build your own (#242): the one thing in this section that is
    not a choice among ready-made themes, and the feature that makes the

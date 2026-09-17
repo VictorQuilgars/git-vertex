@@ -176,15 +176,22 @@ class Page {
   async clearViewport() { await this.send('Emulation.clearDeviceMetricsOverride'); await this.settleFrames() }
 
   /**
-   * Two frames in the page after an emulated resize, then a beat. The first
-   * emulation of a run left the toolbar's media query unanswered for the
-   * whole 15s a journey waits, while a probe that read `innerWidth` — a
-   * forced layout — saw it flip at once: nothing had asked the page for a
-   * frame at the new size. Asking for one here is what a real window gets.
+   * A forced layout and two frames in the page after an emulated resize, then
+   * a beat. The first emulation of a run left the toolbar's media query
+   * unanswered for the whole 15s a journey waits, while a probe that read
+   * `innerWidth` — a forced layout — saw it flip at once, and the failure
+   * screenshot, which forces a frame, showed the toolbar flipping as it was
+   * taken. Nothing had asked the page for a layout at the new size. Frames
+   * alone were not enough (one run in two); the layout read is what the
+   * probes did, so it is what this does, and the frames follow.
    */
   async settleFrames() {
     try {
-      await this.eval('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(window.innerWidth))))')
+      await this.eval(`(() => {
+        const w = document.documentElement.getBoundingClientRect().width + window.innerWidth
+        matchMedia('(max-width: 1250px)').matches
+        return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(w))))
+      })()`)
     } catch { /* no page yet: the sleep below is all there is */ }
     await sleep(300)
   }
