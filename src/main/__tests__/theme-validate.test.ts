@@ -3,7 +3,9 @@
 // Every case here is a payload that must NOT reach tokens.css's job. The
 // CSS-injection case in particular is the whole reason rule 1 rejects instead
 // of sanitising: these values are interpolated into a stylesheet.
-import { validateTheme, oklch, contrast, hueGap, SEED_KEYS } from '../theme-validate'
+import * as fs from 'fs'
+import * as path from 'path'
+import { validateTheme, oklch, contrast, hueGap, chromaShift, MAX_BORDER_SHIFT, SEED_KEYS } from '../theme-validate'
 
 /** A theme that passes every rule — each test breaks exactly one thing. */
 function goodTheme(over: Record<string, unknown> = {}) {
@@ -180,6 +182,33 @@ describe('validateTheme', () => {
     },
   )
 
+  // ── 6. The border is the background a shade off ───────────────────────────
+
+  it('rejects a border that is a colour of its own', () => {
+    // Dracula's purple, which the generator read from panel.border — the one
+    // structural line the theme paints in its accent — and put on every
+    // outline in the app (#237).
+    const r = validateTheme(seedsWith({ canvas: '#282A36', border: '#BD93F9' }))
+    expect(r.ok).toBe(false)
+    expect(r.errors.join(' ')).toContain('border is a colour of its own')
+  })
+
+  it('accepts a border tinted like its canvas, and a grey far from it', () => {
+    // Red's dark red-brown on its dark red: the same hue, a shade lighter.
+    expect(validateTheme(seedsWith({ canvas: '#390000', border: '#63342D' })).errors).toEqual([])
+    // GitHub Dark High Contrast's grey on near-black: far in lightness, no hue.
+    expect(validateTheme(seedsWith({ canvas: '#0A0C10', border: '#7A828E' })).errors).toEqual([])
+  })
+
+  it('measures the border rule in the chroma plane, not by chroma alone', () => {
+    // A lavender on a dark purple: the chroma DIFFERENCE is small, the colour
+    // is not the canvas's. A chroma-only rule let this through.
+    expect(chromaShift('#C79BFF', '#19002E')).toBeGreaterThan(0.05)
+    // Same colour, any lightness: no shift at all.
+    expect(chromaShift('#7A828E', '#0A0C10')).toBeLessThan(0.02)
+    expect(chromaShift('#BD93F9', '#282A36')).toBeCloseTo(0.14, 1)
+  })
+
   it('rejects a payload with no seeds at all', () => {
     const r = validateTheme({ id: 'x', name: 'X' })
     expect(r.ok).toBe(false)
@@ -211,5 +240,42 @@ describe('colour maths', () => {
     expect(hueGap(350, 10)).toBeCloseTo(20)
     expect(hueGap(10, 350)).toBeCloseTo(20)
     expect(hueGap(0, 180)).toBeCloseTo(180)
+  })
+})
+
+// Every theme tokens.css ships passes the rules an installed one has to. The
+// border rule would otherwise refuse Dracula at the door and ship it inside
+// — which is how it was, with #BD93F9 on every outline, until #237.
+describe('the built-in themes pass the validator', () => {
+  const css = fs.readFileSync(path.resolve(__dirname, '../../renderer/src/tokens.css'), 'utf8')
+  const seedsIn = (body: string): Record<string, string> =>
+    Object.fromEntries([...body.matchAll(/--seed-([a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})/g)].map(m => [m[1], m[2]]))
+  // Same shape as token-discipline.test.ts reads: the default block's selector
+  // is `:root, [data-theme="aqua-dark"]`, every other theme is one selector.
+  const blocks = [...css.matchAll(/^(:root,?[^{]*|\[data-theme="[^"]+"\][^{]*)\{([\s\S]*?)^\}/gm)]
+  const themes: Array<[string, string]> = blocks.map(m => {
+    const id = m[1].match(/data-theme="([^"]+)"/)?.[1] ?? 'aqua-dark'
+    return [id, m[2]]
+  })
+
+  it('reads all 32', () => {
+    expect(themes.map(t => t[0])).toHaveLength(32)
+  })
+
+  // All 32 — the two hand-drawn ones included — are held to the border rule.
+  it.each(themes)('%s: the border is its canvas a shade off', (_id, body) => {
+    const s = seedsIn(body)
+    expect(chromaShift(s.border, s.canvas)).toBeLessThanOrEqual(MAX_BORDER_SHIFT)
+  })
+
+  // The thirty imported ones pass the whole validator, as the generator
+  // promised. The two hand-drawn themes are not in this list: aqua-light's
+  // accent reads 4.14:1 on its canvas, under the 4.5:1 an installed theme is
+  // held to — a brand seed, and a decision for the design board rather than
+  // for this test.
+  const imported = themes.filter(([id]) => !id.startsWith('aqua-'))
+  it.each(imported)('%s passes the validator', (id, body) => {
+    const r = validateTheme({ id, seeds: seedsIn(body) })
+    expect(r.errors).toEqual([])
   })
 })
