@@ -284,6 +284,7 @@
   --pane-edge: 1px;
   --bg-shell: var(--bg-canvas);
   --bg-toolbar: var(--surface);
+  --bg-rail: var(--bg-canvas);
 
   /* ── Motion ────────────────────────────────────────────────────────────
    * 0.1 / 0.12 / 0.15 were indistinguishable and sat on comparable
@@ -1334,8 +1335,8 @@
  * `layout-discipline.test.ts` keeps this to lengths and to references to
  * tokens the default declares.
  *
- * The desktop applies `blocks` unless the setting says otherwise; the VS Code
- * panel is always flush — it lives inside a card of VS Code's already.
+ * Both products apply `blocks` unless the setting says otherwise; the panel
+ * draws its rail and its compact toolbar as the frame, the rest as cards.
  */
 [data-layout="blocks"] {
   --pane-gap: 8px;
@@ -1343,6 +1344,7 @@
   --pane-edge: 0px;
   --bg-shell: var(--bg-frame);
   --bg-toolbar: var(--bg-frame);
+  --bg-rail: var(--surface);
 }
 /* Compact takes the frame in too — after the block above, so it wins. */
 [data-layout="blocks"][data-density="compact"] {
@@ -1359,4 +1361,5 @@
   --pane-edge: 1px;
   --bg-shell: var(--bg-canvas);
   --bg-toolbar: var(--surface);
+  --bg-rail: var(--bg-canvas);
 }

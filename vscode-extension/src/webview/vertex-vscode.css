@@ -14,13 +14,37 @@
 
 .gv-app {
   height: 100%;
+  /* The frame behind the cards (#240). The host's inline <style> paints
+     html/body in the canvas and loads after App.css, so the body rule there
+     never wins here; the panel's own root paints the shell instead — the
+     canvas when flush, the frame when the panes are cards, the SAME token and
+     formula as the desktop. Only this root: the editor tabs (gallery, what's
+     new, compare) draw no cards and keep the canvas. */
+  background: var(--bg-shell);
 }
+/* The gap between the rail's card and the graph when no view is open: the
+   resize handle is the gap otherwise, and it only exists with a view. */
+.gv-gap { width: var(--pane-gap); flex-shrink: 0; }
 
 /* The desktop App.css sets `.app { height: 100vh }`. In the panel webview the
    available height is the viewport, so 100vh works, but force overflow hidden. */
 .gv-app.app { overflow: hidden; }
 
 /* ── Activity rail ───────────────────────────────────────────── */
+/* The left card (#240): the rail, and the view it opens beside it. One block —
+   the rail alone when nothing is open, the rail plus the view when something
+   is — rounded and clipped like the other panes. The rail's own background is
+   a token because it differs by layout: the canvas when flush, as it always
+   was, and the card's surface when the panes are cards, so it reads as part
+   of the block rather than as a strip of frame inside it. */
+.gv-left {
+  display: flex;
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--surface);
+  border-radius: var(--pane-radius);
+  overflow: hidden;
+}
 .gv-rail {
   display: flex;
   flex-direction: column;
@@ -30,8 +54,7 @@
   flex-shrink: 0;
   height: 100%;
   padding: 6px 0;
-  background: var(--bg-canvas);
-  border-right: 1px solid var(--border-muted);
+  background: var(--bg-rail);
   user-select: none;
   overflow: hidden;
 }
@@ -73,8 +96,23 @@
   overflow: hidden;
   display: flex;
   min-width: 180px;
+  /* Where the view starts, inside the card: an inner line, so it stays in the
+     flush layout as well — it is the rail's old right edge, moved here so a
+     rail alone has no line at the card's edge. */
+  border-left: 1px solid var(--border-muted);
 }
 .gv-sidepanel .sidebar { border-right: none; }
+
+/* The splitter between the graph and the details, a direct child of the body:
+   in the flush layout the 6px handle with a 1px line either side it always
+   was; between two cards it is as wide as the gap, the frame's colour, and
+   draws no line — two lines in an 8px gap were the whole seam. The one inside
+   the staging pane is nested deeper and keeps its lines. */
+.app-body > .column-resize-handle {
+  width: max(6px, var(--pane-gap));
+  background: var(--bg-shell);
+  border-inline: var(--pane-edge) solid var(--border-muted);
+}
 
 /* ── Compact toolbar ───────────────────────────────────────── */
 .gvt {
@@ -84,8 +122,8 @@
   height: 34px;
   flex-shrink: 0;
   padding: 0 8px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-muted);
+  background: var(--bg-toolbar);
+  border-bottom: var(--pane-edge) solid var(--border-muted);
   font-size: 12px;
   user-select: none;
 }
@@ -300,12 +338,13 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: var(--bg-canvas);
+  background: var(--bg-shell);
   overflow: auto;
   display: flex;
   flex-direction: column;
 }
-.gv-settings-overlay .stg-page { flex: 1; min-height: 0; }
+/* The settings page is a card on the frame too, as it is in the desktop's centre. */
+.gv-settings-overlay .stg-page { flex: 1; min-height: 0; margin: var(--pane-gap); border-radius: var(--pane-radius); overflow: hidden; background: var(--bg-canvas); }
 
 /* ── A model's reading, filling an editor tab (#70) ──
    The drawer gave it its padding and its width; a tab gives neither, so the

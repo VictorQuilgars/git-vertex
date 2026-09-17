@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧱 The panes are cards
+- The side panel and the graph sit as **rounded cards on a frame**, set apart by a gap rather than a line; the rail and the compact toolbar are the frame. **Settings › Appearance › Layout** offers *Flush*, the edge-to-edge rendering the panel had.
+
 ### 🔢 The working-tree row counts files
 - A file staged and then **modified again** is in both columns of \`git status\`, and the staging pane rightly lists it twice — once to commit, once still to stage. The \`WIP\` row and the pane's header added the two lists and said three files over two. They count files now.
 
