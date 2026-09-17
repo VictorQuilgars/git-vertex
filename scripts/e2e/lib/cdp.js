@@ -170,10 +170,24 @@ class Page {
 
   async setViewport(width, height) {
     await this.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
-    await sleep(300)
+    await this.settleFrames()
   }
 
-  async clearViewport() { await this.send('Emulation.clearDeviceMetricsOverride'); await sleep(300) }
+  async clearViewport() { await this.send('Emulation.clearDeviceMetricsOverride'); await this.settleFrames() }
+
+  /**
+   * Two frames in the page after an emulated resize, then a beat. The first
+   * emulation of a run left the toolbar's media query unanswered for the
+   * whole 15s a journey waits, while a probe that read `innerWidth` — a
+   * forced layout — saw it flip at once: nothing had asked the page for a
+   * frame at the new size. Asking for one here is what a real window gets.
+   */
+  async settleFrames() {
+    try {
+      await this.eval('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(window.innerWidth))))')
+    } catch { /* no page yet: the sleep below is all there is */ }
+    await sleep(300)
+  }
 
   /** A PNG of the page, or null when the window cannot be painted (hidden on a desktop). */
   async screenshot() {
