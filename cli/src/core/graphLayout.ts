@@ -1,20 +1,12 @@
+import { LANES } from '../ui/theme'
 // Graph layout algorithm — adapted from src/renderer/src/components/CommitGraph/graph-layout.ts
 // Computes lane assignments and edges for a commit graph.
 
 import { CommitNode, GraphEdge } from './types.js'
 
-export const LANE_COLORS = [
-  '#2dd4bf', // teal
-  '#4d9de0', // blue
-  '#9b59b6', // purple
-  '#e879f9', // fuchsia
-  '#22d3ee', // cyan
-  '#818cf8', // indigo
-  '#a78bfa', // lavender
-  '#34d399', // emerald
-  '#60a5fa', // cornflower
-  '#f472b6', // pink
-]
+// The lanes live in the palette (ui/theme). Re-exported under the name this
+// module has always handed out.
+export const LANE_COLORS = LANES
 
 export interface LayoutCommit extends CommitNode {
   lane: number

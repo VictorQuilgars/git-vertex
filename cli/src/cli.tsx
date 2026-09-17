@@ -1,3 +1,4 @@
+import { THEME } from './ui/theme'
 import React from 'react'
 import { render } from 'ink'
 import { execFileSync } from 'child_process'
@@ -25,7 +26,9 @@ const git = new GitService(root)
 // terminals ignore them harmlessly. 110/111 reset to the user's theme.
 const enterAlt = '\x1b[?1049h'
 const leaveAlt = '\x1b[?1049l'
-const setColors = '\x1b]10;#c9d1d9\x07\x1b]11;#0d1117\x07'
+// OSC 10/11: the terminal's foreground and background, so the app's canvas
+// is the app's rather than whatever the profile happens to be set to.
+const setColors = `\x1b]10;${THEME.text}\x07\x1b]11;${THEME.bg}\x07`
 const resetColors = '\x1b]110\x07\x1b]111\x07'
 process.stdout.write(enterAlt + setColors)
 

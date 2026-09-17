@@ -6,20 +6,11 @@ export interface MenuItem { label: string; active?: boolean }
 const SUP: Record<string, string> = { '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶' }
 const superscript = (n?: string) => (n ? (SUP[n] ?? n) : '')
 
-// btop-style layout with the Git Vertex desktop dark palette (#0d1117, etc.)
-export const THEME = {
-  bg: '#0d1117',      // desktop background
-  surface: '#161b22',
-  border: '#30363d',
-  title: '#3fb950',   // desktop green
-  num: '#f85149',     // red hotkey number
-  menu: '#6e7681',    // dim menu word
-  menuKey: '#c9d1d9', // brighter first letter
-  menuOn: '#58a6ff',  // blue accent (active)
-  text: '#c9d1d9',
-  dim: '#6e7681',
-  selBg: '#1f3a5f',
-}
+// The palette moved to ./theme, which is the only file allowed to write a
+// colour. Re-exported because this is where it has always been imported from.
+// Panel draws with it as well as re-exporting it.
+import { THEME } from './theme'
+export { THEME }
 
 function TopLine({ width, title, num, menu, accent, borderColor }: {
   width: number; title: string; num?: string; menu?: MenuItem[]; accent: string; borderColor: string

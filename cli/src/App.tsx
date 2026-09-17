@@ -25,21 +25,21 @@ function fit(s: string, w: number): string {
   return s + ' '.repeat(w - s.length)
 }
 function statusColor(s: string): string {
-  if (s === 'A' || s === '?') return '#3fb950'
-  if (s === 'D') return '#f85149'
-  if (s === 'M') return '#d29922'
-  if (s === 'R') return '#d2a8ff'
-  return '#8b949e'
+  if (s === 'A' || s === '?') return THEME.added
+  if (s === 'D') return THEME.removed
+  if (s === 'M') return THEME.modified
+  if (s === 'R') return THEME.renamed
+  return THEME.muted
 }
 // Branch/tag/HEAD chips (desktop-like)
 function refSegs(refs: string[]): { text: string; color: string; bold?: boolean }[] {
   const out: { text: string; color: string; bold?: boolean }[] = []
   for (const r of refs) {
-    if (r.startsWith('tag: ')) out.push({ text: '⌂' + r.slice(5), color: '#d2a8ff' })
-    else if (r.startsWith('HEAD -> ')) out.push({ text: '⎇' + r.slice(8), color: '#3fb950', bold: true })
-    else if (r === 'HEAD') out.push({ text: 'HEAD', color: '#f0e68c', bold: true })
-    else if (r.includes('/')) out.push({ text: r, color: '#6e7681' })
-    else out.push({ text: '⎇' + r, color: '#58a6ff' })
+    if (r.startsWith('tag: ')) out.push({ text: '⌂' + r.slice(5), color: THEME.tag })
+    else if (r.startsWith('HEAD -> ')) out.push({ text: '⎇' + r.slice(8), color: THEME.branchCurrent, bold: true })
+    else if (r === 'HEAD') out.push({ text: 'HEAD', color: THEME.head, bold: true })
+    else if (r.includes('/')) out.push({ text: r, color: THEME.remote })
+    else out.push({ text: '⎇' + r, color: THEME.branch })
   }
   return out
 }
@@ -313,7 +313,7 @@ function Header({ repo, branch, ahead, behind, status }: { repo: string; branch:
       <Text color={THEME.title}>⎇ {branch}</Text>
       {(ahead > 0 || behind > 0) && <Text color={THEME.dim}> ↑{ahead} ↓{behind}</Text>}
       <Text> </Text>
-      {status ? <Text color={status.startsWith('✗') ? '#f85149' : THEME.dim}>{status}</Text> : null}
+      {status ? <Text color={status.startsWith('✗') ? THEME.removed : THEME.dim}>{status}</Text> : null}
     </Box>
   )
 }
@@ -328,13 +328,13 @@ function Sidebar({ items, sel, visible, width, focused }: { items: SideItem[]; s
         const gi = start + i
         if (it.type === 'header') return <Text key={gi} color={THEME.dim} bold>{it.label}</Text>
         const active = gi === sel && focused
-        const color = it.type === 'remote' ? '#6e7681' : it.type === 'tag' ? '#d2a8ff' : it.type === 'stash' ? '#d29922' : (it.branch?.current ? '#3fb950' : '#58a6ff')
+        const color = it.type === 'remote' ? THEME.remote : it.type === 'tag' ? THEME.tag : it.type === 'stash' ? THEME.stash : (it.branch?.current ? THEME.branchCurrent : THEME.branch)
         const mark = it.branch?.current ? '● ' : it.type === 'tag' ? '⌂ ' : it.type === 'stash' ? '≡ ' : '⎇ '
         return (
           <Box key={gi} width={width}>
             <Text wrap="truncate-end" backgroundColor={active ? THEME.selBg : undefined}>
               <Text color={color}>{mark}</Text>
-              <Text color={active ? '#ffffff' : color}>{fit(it.label, width - 2)}</Text>
+              <Text color={active ? THEME.onSelected : color}>{fit(it.label, width - 2)}</Text>
             </Text>
           </Box>
         )
@@ -372,8 +372,8 @@ function GraphView({ commits, graphRows, sel, visible, width, focused, wipCount,
           return (
             <Box key="wip" width={width}>
               <Text wrap="truncate-end" backgroundColor={active ? THEME.selBg : undefined}>
-                <Text color="#d29922">◌{' '.repeat(gcol - 1)} </Text>
-                <Text color={active ? '#ffffff' : '#d29922'}>{fit(`WIP · ${wipCount} file${wipCount !== 1 ? 's' : ''} changed`, msgW + aW + dW + sW)}</Text>
+                <Text color={THEME.wip}>◌{' '.repeat(gcol - 1)} </Text>
+                <Text color={active ? THEME.onSelected : THEME.wip}>{fit(`WIP · ${wipCount} file${wipCount !== 1 ? 's' : ''} changed`, msgW + aW + dW + sW)}</Text>
               </Text>
             </Box>
           )
@@ -389,9 +389,9 @@ function GraphView({ commits, graphRows, sel, visible, width, focused, wipCount,
               {g.map((cell, k) => <Text key={k} color={cell.color || undefined}>{cell.char}</Text>)}
               <Text>{' '.repeat(pad)} </Text>
               {refs.map((s, k) => <Text key={k} color={s.color} bold={s.bold}>{s.text} </Text>)}
-              <Text backgroundColor={active ? THEME.selBg : undefined} color={active ? '#ffffff' : THEME.text}>{fit(c.message, msgAvail)}</Text>
+              <Text backgroundColor={active ? THEME.selBg : undefined} color={active ? THEME.onSelected : THEME.text}>{fit(c.message, msgAvail)}</Text>
               {showMeta && <Text color={THEME.dim}>{fit(c.author, aW)}{fit((c.date || '').slice(0, 10), dW)}</Text>}
-              <Text color="#6e7681">{fit(c.shortHash, sW)}</Text>
+              <Text color={THEME.dim}>{fit(c.shortHash, sW)}</Text>
             </Text>
           </Box>
         )
@@ -437,13 +437,13 @@ function CommitDetails({ commit, files, width, height }: { commit: LayoutCommit;
   if (refs.length) rows.push(<Text key="r" wrap="truncate-end">{refs.map((s, k) => <Text key={k} color={s.color} bold={s.bold}>{s.text} </Text>)}</Text>)
   const add = files.reduce((n, f) => n + (f.additions || 0), 0)
   const del = files.reduce((n, f) => n + (f.deletions || 0), 0)
-  rows.push(<Text key="c" wrap="truncate-end"><Text color={THEME.dim}>{files.length} file{files.length !== 1 ? 's' : ''}  </Text><Text color="#3fb950">+{add}</Text><Text> </Text><Text color="#f85149">-{del}</Text></Text>)
+  rows.push(<Text key="c" wrap="truncate-end"><Text color={THEME.dim}>{files.length} file{files.length !== 1 ? 's' : ''}  </Text><Text color={THEME.added}>+{add}</Text><Text> </Text><Text color={THEME.removed}>-{del}</Text></Text>)
   const fileRoom = Math.max(0, height - rows.length)
   files.slice(0, fileRoom).forEach((f, k) => rows.push(
     <Box key={'f' + k} width={width}><Text wrap="truncate-end">
       <Text color={statusColor(f.status)}>{f.status} </Text>
       <Text color={THEME.text}>{fit(f.path.split('/').pop() ?? f.path, Math.max(3, width - 12))}</Text>
-      <Text color="#3fb950"> +{f.additions}</Text><Text color="#f85149"> -{f.deletions}</Text>
+      <Text color={THEME.added}> +{f.additions}</Text><Text color={THEME.removed}> -{f.deletions}</Text>
     </Text></Box>
   ))
   while (rows.length < height) rows.push(<Text key={'p' + rows.length}> </Text>)
@@ -467,13 +467,13 @@ function Staging({ files, sel, width, height, focused }: { files: FileItem[]; se
     const f = r.file!
     const active = focused && files[sel] === f
     const mark = f.kind === 'staged' ? '●' : f.kind === 'untracked' ? '+' : '○'
-    const mc = f.kind === 'staged' ? '#3fb950' : f.kind === 'untracked' ? '#3fb950' : '#d29922'
+    const mc = f.kind === 'staged' ? THEME.added : f.kind === 'untracked' ? THEME.added : THEME.modified
     return (
       <Box key={gi} width={width}>
         <Text wrap="truncate-end" backgroundColor={active ? THEME.selBg : undefined}>
           <Text color={mc}>{mark} </Text>
           <Text color={statusColor(f.status)}>{f.status} </Text>
-          <Text color={active ? '#ffffff' : THEME.text}>{fit(f.path, width - 5)}</Text>
+          <Text color={active ? THEME.onSelected : THEME.text}>{fit(f.path, width - 5)}</Text>
         </Text>
       </Box>
     )
@@ -492,11 +492,11 @@ function DiffPane({ text, scroll, visible, width }: { text: string; scroll: numb
     <Box flexDirection="column">
       {view.map((l, i) => {
         let color: string | undefined; let dim = false
-        if (l.startsWith('@@')) color = '#58a6ff'
+        if (l.startsWith('@@')) color = THEME.hunk
         else if (l.startsWith('+++') || l.startsWith('---') || l.startsWith('diff ') || l.startsWith('index ')) dim = true
-        else if (l.startsWith('+')) color = '#3fb950'
-        else if (l.startsWith('-')) color = '#f85149'
-        else color = '#8b949e'
+        else if (l.startsWith('+')) color = THEME.added
+        else if (l.startsWith('-')) color = THEME.removed
+        else color = THEME.muted
         const s = fit(l, width)
         return <Text key={i} color={color} dimColor={dim} wrap="truncate-end">{s}</Text>
       })}
@@ -508,11 +508,11 @@ function DiffPane({ text, scroll, visible, width }: { text: string; scroll: numb
 function Footer({ mode, focus, center, commitMsg, branchName, confirm }: { mode: Mode; focus: Focus; center: CenterMode; commitMsg: string; branchName: string; confirm: { text: string } | null }) {
   if (mode === 'commit') return <Text><Text color={THEME.title}>Commit: </Text><Text>{commitMsg}</Text><Text color={THEME.menuOn}>▏</Text><Text dimColor>  (Enter to commit · Esc to cancel)</Text></Text>
   if (mode === 'newbranch') return <Text><Text color={THEME.menuOn}>New branch: </Text><Text>{branchName}</Text><Text color={THEME.menuOn}>▏</Text><Text dimColor>  (Enter to create · Esc)</Text></Text>
-  if (mode === 'confirm') return <Text><Text color="#d29922">{confirm?.text} </Text><Text dimColor>(y / n)</Text></Text>
+  if (mode === 'confirm') return <Text><Text color={THEME.modified}>{confirm?.text} </Text><Text dimColor>(y / n)</Text></Text>
   const common = '1/2/3 or Tab · ↑↓/jk · f/p/P · r · ? help · q'
   const per = center === 'diff' ? 'Esc to go back · Ctrl+D/U to scroll'
     : focus === 'sidebar' ? 'Enter checkout · n new · D delete'
       : focus === 'graph' ? 'Enter shows the commit diff'
         : 'Space (un)stage · a all · Enter diff · c commit · d discard'
-  return <Text wrap="truncate-end"><Text color="#3fb950">{per}</Text><Text dimColor>  │  {common}</Text></Text>
+  return <Text wrap="truncate-end"><Text color={THEME.title}>{per}</Text><Text dimColor>  │  {common}</Text></Text>
 }
