@@ -1,6 +1,8 @@
 import { test, describe, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { opened, type Screen } from './harness.js'
+import fs from 'node:fs'
+import path from 'node:path'
+import { git, makeRepo, opened, type Screen } from './harness.js'
 
 // What the screens SHOW — the audit's words for what the smoke test was not
 // saying (#194). Every assertion here is about a fact of the repository being
@@ -58,5 +60,21 @@ describe('the screen, on a repository of three commits', () => {
     const frame = s.frame()
     const newest = s.hashes()[0]
     assert.equal(frame.split(newest).length - 1, 1, `${newest} appears once — in the graph`)
+  })
+})
+
+// The row's number is a count of files. A file staged and then modified again
+// is in both columns of `git status`, and the row added the two lists (#232).
+describe('the working-tree row, on a file staged and then modified again', () => {
+  let t: Screen
+  after(() => t?.stop())
+
+  test('counts it once', async () => {
+    const dir = makeRepo()
+    git(dir, 'add', 'notes.txt')
+    fs.appendFileSync(path.join(dir, 'notes.txt'), 'and more\n')
+    t = await opened(dir)
+    // notes.txt twice over in git's eyes, plus untracked.txt: two files, not three.
+    assert.match(t.frame(), /WIP · 2 /)
   })
 })

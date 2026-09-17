@@ -16,6 +16,11 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🔢 The working-tree row counts files
+- A file staged and then **modified again** is in both columns of \`git status\`, and the staging pane rightly lists it twice — once to commit, once still to stage. The \`WIP\` row and the pane's header added the two lists and said three files over two. They count files now.
+`,
   '1.34.0': `## What's new in 1.34.0
 
 ### 📏 A reading density

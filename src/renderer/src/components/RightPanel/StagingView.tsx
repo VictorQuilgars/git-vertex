@@ -4,6 +4,7 @@ import { useCommitDraft } from '../../hooks/useCommitDraft'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
 import { FileChange, WorkingChanges } from '../../types'
+import { changedFileCount } from '../../utils/workingChanges'
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
 import ContextMenu from '../ContextMenu/ContextMenu'
@@ -415,7 +416,9 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
   const stagedPaths = new Set(changes.staged.map(f => f.path))
   const amendOnly = amendFiles.filter(f => !stagedPaths.has(f.path))
   const stagedCount = changes.staged.length + amendOnly.length
-  const totalChanged = changes.staged.length + totalUnstaged
+  // Over paths, not over the two lists: a file staged and modified again
+  // is in both, and is one file (#232).
+  const totalChanged = changedFileCount(changes)
   // A clean tree: the pane shows what comes next, not a form for a commit that
   // has nothing in it. Both products get it; whether there is anything to say
   // is the host's answer, given by supplying `emptyState` at all.
