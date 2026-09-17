@@ -96,11 +96,14 @@ describe('the layout family', () => {
       ['components/Toolbar/Toolbar.css', /^\s*border-bottom:\s*var\(--pane-edge\) solid/m],
       ['components/StatusBar/StatusBar.css', /^\s*border-top:\s*var\(--pane-edge\) solid/m],
     ]
-    // The panel's own chrome: the rail and the compact toolbar are the frame's.
+    // The panel's own chrome: the compact toolbar is the frame's, the rail and
+    // its view are one card, and the splitter between the cards draws its
+    // lines with the edge token.
     const EXT = path.resolve(__dirname, '../../../../vscode-extension/src/webview/vertex-vscode.css')
     const ext = fs.readFileSync(EXT, 'utf8')
-    expect(ext).toMatch(/\.gv-rail \{[^}]*border-right:\s*var\(--pane-edge\) solid/)
     expect(ext).toMatch(/\.gvt \{[^}]*border-bottom:\s*var\(--pane-edge\) solid/)
+    expect(ext).toMatch(/\.gv-left \{[^}]*border-radius:\s*var\(--pane-radius\)/)
+    expect(ext).toMatch(/\.app-body > \.column-resize-handle \{[^}]*border-inline:\s*var\(--pane-edge\) solid/)
     for (const [file, re] of edges) {
       expect(fs.readFileSync(path.join(SRC, file), 'utf8')).toMatch(re)
     }

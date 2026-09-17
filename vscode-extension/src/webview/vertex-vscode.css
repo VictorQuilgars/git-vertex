@@ -21,6 +21,20 @@
 .gv-app.app { overflow: hidden; }
 
 /* ── Activity rail ───────────────────────────────────────────── */
+/* The left card (#240): the rail, and the view it opens beside it. One block —
+   the rail alone when nothing is open, the rail plus the view when something
+   is — rounded and clipped like the other panes. The rail's own background is
+   a token because it differs by layout: the canvas when flush, as it always
+   was, and the card's surface when the panes are cards, so it reads as part
+   of the block rather than as a strip of frame inside it. */
+.gv-left {
+  display: flex;
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--surface);
+  border-radius: var(--pane-radius);
+  overflow: hidden;
+}
 .gv-rail {
   display: flex;
   flex-direction: column;
@@ -30,10 +44,7 @@
   flex-shrink: 0;
   height: 100%;
   padding: 6px 0;
-  /* The rail is the frame's, like VS Code's activity bar: the shell colour,
-     which is the canvas when flush and the frame when the panes are cards. */
-  background: var(--bg-shell);
-  border-right: var(--pane-edge) solid var(--border-muted);
+  background: var(--bg-rail);
   user-select: none;
   overflow: hidden;
 }
@@ -75,9 +86,23 @@
   overflow: hidden;
   display: flex;
   min-width: 180px;
-  border-radius: var(--pane-radius);
+  /* Where the view starts, inside the card: an inner line, so it stays in the
+     flush layout as well — it is the rail's old right edge, moved here so a
+     rail alone has no line at the card's edge. */
+  border-left: 1px solid var(--border-muted);
 }
 .gv-sidepanel .sidebar { border-right: none; }
+
+/* The splitter between the graph and the details, a direct child of the body:
+   in the flush layout the 6px handle with a 1px line either side it always
+   was; between two cards it is as wide as the gap, the frame's colour, and
+   draws no line — two lines in an 8px gap were the whole seam. The one inside
+   the staging pane is nested deeper and keeps its lines. */
+.app-body > .column-resize-handle {
+  width: max(6px, var(--pane-gap));
+  background: var(--bg-shell);
+  border-inline: var(--pane-edge) solid var(--border-muted);
+}
 
 /* ── Compact toolbar ───────────────────────────────────────── */
 .gvt {

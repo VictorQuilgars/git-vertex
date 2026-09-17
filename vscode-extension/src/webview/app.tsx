@@ -1175,11 +1175,13 @@ function VertexApp() {
         </div>
       )}
       <div className="app-body" ref={appBodyRef}>
+        {/* The rail and the view it opens are ONE card (#240): the rail is the
+            block, and opening a view widens the block rather than adding a
+            second one beside it. */}
         {!stacked && (
+          <div className="gv-left">
           <ActivityRail active={activeView} onSelect={handleSelectView} />
-        )}
-        {activeView && !stacked && (
-          <>
+          {activeView && (
           <div className="gv-sidepanel" style={{ width: sideW }}>
           <Sidebar
             view={activeView}
@@ -1264,9 +1266,10 @@ function VertexApp() {
             memoryToken={memoryToken}
           />
           </div>
-          <div className="resize-handle" onMouseDown={startResizeSide} />
-          </>
+          )}
+          </div>
         )}
+        {activeView && !stacked && <div className="resize-handle" onMouseDown={startResizeSide} />}
         {/* Where the composer's drawer emerges: the right edge of whatever
             panel column exists — and the window's left edge when none does
             (stacked). Zero width: a measuring post, not layout. */}
