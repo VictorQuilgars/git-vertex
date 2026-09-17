@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import MessageChip from '../MessageChip'
 import { messageChipSegments } from '../CommitGraph'
 
@@ -293,5 +293,35 @@ describe('no closure captures the row geometry and keeps it', () => {
     // rowMid for the geometry, svgPadL and laneW because the stacked layout
     // starts further left on tighter rails — everything read is declared.
     expect(src).toMatch(/const renderEdge = useCallback\([\s\S]*?\}, \[rowMid, svgPadL, laneW\]\)/)
+  })
+})
+
+// A right-click on a segment is the segment's. Left to bubble, the row under
+// the pill answered it too — and in VS Code the row's menu is the native one,
+// so a branch name opened two menus, one over the other (#233).
+describe('MessageChip — a right-click on a segment stops there', () => {
+  test('the row underneath does not see it, and the browser draws no menu of its own', () => {
+    const own = jest.fn()
+    const row = jest.fn()
+    render(
+      <div onContextMenu={row}>
+        <MessageChip segments={[{ kind: 'branch', label: 'feat/x', onContextMenu: own }]} />
+      </div>
+    )
+    const notPrevented = fireEvent.contextMenu(screen.getByText('feat/x'))
+    expect(own).toHaveBeenCalledTimes(1)
+    expect(row).not.toHaveBeenCalled()
+    expect(notPrevented).toBe(false)
+  })
+
+  test('a segment with no menu of its own leaves the right-click to the row', () => {
+    const row = jest.fn()
+    render(
+      <div onContextMenu={row}>
+        <MessageChip segments={[{ kind: 'tag', label: 'v1.0' }]} />
+      </div>
+    )
+    fireEvent.contextMenu(screen.getByText('v1.0'))
+    expect(row).toHaveBeenCalledTimes(1)
   })
 })
