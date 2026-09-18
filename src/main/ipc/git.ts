@@ -664,6 +664,12 @@ export function registerGitHandlers(): void {
     return state.gitService.getReflog()
   })
 
+  // ── IPC: Contributors ──────────────────────────────────────
+  handle('git:get-contributors', async (_event, limit?: number) => {
+    if (!state.gitService) return { contributors: [] }
+    return state.gitService.getContributors(limit)
+  })
+
   // ── IPC: File History ──────────────────────────────────────
   handle('git:get-file-history', async (_event, filepath: string) => {
     if (!state.gitService) return { commits: [] }

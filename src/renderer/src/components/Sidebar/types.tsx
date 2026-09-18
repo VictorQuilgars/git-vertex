@@ -22,6 +22,7 @@ export type SidebarView =
   | 'ai'
 
 export interface ReflogEntry { hash: string; ref: string; message: string; date: string }
+export interface Contributor { name: string; email: string; commits: number }
 
 /**
  * Where a row's subject went.
@@ -130,6 +131,13 @@ export interface SidebarProps {
   onOpenNote?: (note: { kind: 'branch' | 'stash' | 'working'; key: string; title: string }) => void
   /** Point the graph at a set of commits — what a reading covered (#70). */
   onShowCommits?: (hashes: string[]) => void
+  /**
+   * Show only one author's commits in the graph — `null` clears it. Present,
+   * and the overview lists who has committed here; absent, and it does not.
+   */
+  onFilterAuthor?: (author: string | null) => void
+  /** The author the graph is filtered to, if any — the row reads as pressed. */
+  authorFilter?: string | null
   /**
    * Which of the two stacks is showing, held by the host: generating a
    * changelog anywhere in the app brings this one into view, and it cannot do

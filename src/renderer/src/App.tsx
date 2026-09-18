@@ -690,6 +690,8 @@ export default function App() {
                 const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                 if (found) setSelectedCommit(found)
               }}
+              onFilterAuthor={(author) => setSearchQuery(author ? `author:${author}` : '')}
+              authorFilter={searchQuery.startsWith('author:') ? searchQuery.slice(7) : null}
               onCompareBranch={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
               soloBranch={soloBranch}
               visibility={visibility}

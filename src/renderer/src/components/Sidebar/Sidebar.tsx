@@ -19,6 +19,7 @@ import { RemotesSection } from './sections/RemotesSection'
 import { SubmodulesSection } from './sections/SubmodulesSection'
 import { WorktreesSection } from './sections/WorktreesSection'
 import { ReflogSection } from './sections/ReflogSection'
+import { ContributorsSection } from './sections/ContributorsSection'
 import { PrsSection } from './sections/PrsSection'
 import { IssuesSection } from './sections/IssuesSection'
 import './Sidebar.css'
@@ -194,6 +195,13 @@ export default function Sidebar(props: SidebarProps) {
           {/* WORKTREES */}
           {show('worktrees') && (
           <WorktreesSection s={s} />
+          )}
+
+          {/* CONTRIBUTORS — who works here; a row filters the graph to them.
+              Only where the host can filter (the section returns nothing
+              otherwise), collapsed like the reflog under it. */}
+          {show('overview') && (
+          <ContributorsSection s={s} />
           )}
 
           {/* REFLOG — recovery/history tool, kept collapsed at the bottom of

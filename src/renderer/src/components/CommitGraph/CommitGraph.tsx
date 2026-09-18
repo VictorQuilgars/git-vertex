@@ -13,6 +13,7 @@ import type { BranchMenuExtras } from '../ContextMenu/branchMenu'
 import { useLang } from '../../i18n/LanguageContext'
 import { isRefHidden, type GraphVisibility } from '../../utils/graphVisibility'
 import { useSettings } from '../../contexts/SettingsContext'
+import { periodOf, periodLabel, periodBoundaries, periodAt } from './timeline'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
 import { COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
@@ -204,6 +205,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   const showDate = getBool('graphShowDate', true)
   const showSha = getBool('graphShowSha', true)
   const showStats = getBool('graphShowStats', true)
+  const showTimeline = getBool('graphTimeline', true)
   const compactColumns = getBool('graphCompactColumns', false)
   const dateFormat = get('dateFormat', 'relative')
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -419,6 +421,41 @@ export default function CommitGraph(props: CommitGraphProps) {
     () => rowOffsets(displayLayout.map(() => refsBelow), rowH, refH),
     [displayLayout, refsBelow, rowH, refH])
   const rowTop = useCallback((row: number) => rowTops[row] ?? row * rowH, [rowTops, rowH])
+
+  // ── Stretches of time (timeline.ts) ──
+  // Which stretch each row is in; where a new one begins (a hairline); and
+  // which one the first visible row is in (the band at the top). The band
+  // only appears once the page spans more than one stretch — a repository
+  // of one afternoon has nothing to name.
+  const periods = useMemo(() => {
+    if (!showTimeline) return []
+    const now = new Date()
+    return displayLayout.map(c => c.hash === WIP_HASH ? null : periodOf(c.date, now))
+  }, [displayLayout, showTimeline])
+  const periodSeps = useMemo(() => periodBoundaries(periods), [periods])
+  const manyPeriods = useMemo(() => new Set(periods.filter(Boolean)).size > 1, [periods])
+  const [firstRow, setFirstRow] = useState(0)
+  const scrollRaf = useRef(0)
+  const onBodyScroll = useCallback(() => {
+    if (scrollRaf.current) return
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = 0
+      const body = bodyRef.current
+      if (!body || rowTops.length === 0) return
+      const top = body.scrollTop
+      // The first row whose bottom edge is still below the top of the viewport.
+      let lo = 0, hi = rowTops.length - 1
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1
+        if ((rowTops[mid + 1] ?? Infinity) > top) hi = mid
+        else lo = mid + 1
+      }
+      setFirstRow(lo)
+    })
+  }, [rowTops])
+  useEffect(() => () => { if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current) }, [])
+  const bandKey = showTimeline && manyPeriods ? periodAt(periods, firstRow) : null
+  const bandLabel = bandKey ? periodLabel(bandKey, t, t('graph.dateLocale')) : null
   /** The middle of a row's first line — where the node and every edge meet it. */
   const rowHeight = useCallback(
     (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || rowH, [rowTops, rowH])
@@ -654,15 +691,20 @@ export default function CommitGraph(props: CommitGraphProps) {
     const hasHostHashes = searchHashes != null
     if (searchQuery || hasHostHashes) {
       const q = searchQuery.toLowerCase()
+      // `author:name` narrows to who wrote the commit and nothing else — what
+      // the contributors list asks for; a bare query still matches anywhere.
+      const authorQ = q.startsWith('author:') ? q.slice(7).trim() : null
       return new Set(
         displayLayout
           .filter(c => c.hash !== WIP_HASH && (
             // Host-provided matches (diff search, AI search) OR local text match
             (hasHostHashes && searchHashes!.has(c.hash)) ||
             (searchQuery !== '' && (
-              c.message.toLowerCase().includes(q) ||
-              c.author.toLowerCase().includes(q) ||
-              c.shortHash.includes(q)
+              authorQ !== null
+                ? c.author.toLowerCase().includes(authorQ)
+                : (c.message.toLowerCase().includes(q) ||
+                   c.author.toLowerCase().includes(q) ||
+                   c.shortHash.includes(q))
             ))
           ))
           .map(c => c.row)
@@ -876,7 +918,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   }, [commits])
 
   // Every menu the graph opens, from ./graph-menus.
-  const { buildMenuItems, batchMenuItems, buildDropItems, buildBranchMenu, buildHeaderMenuItems, handleRowContextMenu } = useGraphMenus(props, { t, set, showAvatars, showAuthor, showDate, showSha, showStats, compactColumns, drop, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt })
+  const { buildMenuItems, batchMenuItems, buildDropItems, buildBranchMenu, buildHeaderMenuItems, handleRowContextMenu } = useGraphMenus(props, { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, compactColumns, drop, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt })
 
   return (
     <div className="cg-container" ref={containerRef}>
@@ -917,8 +959,15 @@ export default function CommitGraph(props: CommitGraphProps) {
       </div>}
 
       {/* ── Body ── */}
-      <div className="cg-body" ref={bodyRef}>
+      <div className="cg-body" ref={bodyRef} onScroll={onBodyScroll}>
+        {bandLabel && (
+          <div className="cg-period-band" aria-hidden="true"><span className="cg-period-pill">{bandLabel}</span></div>
+        )}
         <div className="cg-scroll-content" style={{ height: svgH, position: 'relative' }}>
+          {/* Where one stretch of time ends and the next begins. */}
+          {[...periodSeps].map(row => (
+            <div key={`sep-${row}`} className="cg-period-sep" style={{ top: rowTop(row) }} />
+          ))}
 
           {/* Graph SVG — offset by the refs column, which is why it has to be
               zero when there is no column: with refs under the message the

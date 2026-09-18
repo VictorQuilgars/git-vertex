@@ -1026,3 +1026,19 @@
   background: var(--surface-sunken); border-radius: var(--radius-sm);
   padding: 0 var(--space-sm); line-height: 1.6;
 }
+
+/* ── Contributors ─────────────────────────────────────────────────
+   A row per author, the branch row's rhythm; the count sits at the end. The
+   pressed one is the author the graph is narrowed to. */
+.sb-contrib-row {
+  display: flex; align-items: center; gap: var(--space-sm);
+  width: calc(100% - 2 * var(--space-xs)); height: var(--row-nav);
+  padding: 0 var(--space-lg) 0 var(--space-2xl); margin: 0 var(--space-xs);
+  background: transparent; border: none; border-radius: var(--radius-sm);
+  color: var(--text-secondary); font-size: var(--text-sm); text-align: left; cursor: pointer;
+}
+.sb-contrib-row:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.sb-contrib-row--active { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); color: var(--accent); }
+.sb-contrib-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-contrib-count { flex-shrink: 0; font-size: var(--text-tiny); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.sb-contrib-row--active .sb-contrib-count { color: var(--accent); }

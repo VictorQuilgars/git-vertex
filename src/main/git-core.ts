@@ -487,3 +487,35 @@ export async function searchInDiffs(run: GitRunner, query: string): Promise<{ ha
     return { hashes: [] }
   }
 }
+
+// ── Contributors ──────────────────────────────────────────────────
+export interface Contributor { name: string; email: string; commits: number }
+
+/** `git shortlog -sne` lines: a count, a tab, a name, an address in angle brackets. */
+export function parseShortlog(raw: string): Contributor[] {
+  const out: Contributor[] = []
+  for (const line of raw.split('\n')) {
+    const m = /^\s*(\d+)\t(.*?)\s*<([^>]*)>\s*$/.exec(line)
+    if (!m) continue
+    out.push({ commits: Number(m[1]), name: m[2].trim(), email: m[3].trim() })
+  }
+  return out
+}
+
+/**
+ * Who has committed here, most commits first, merges left out — the
+ * identities git's own `shortlog` reports, mailmap applied. `--all` rather
+ * than HEAD: the question is who works on this repository, not on this
+ * branch.
+ */
+export async function contributors(
+  run: GitRunner, opts: { limit?: number } = {},
+): Promise<{ contributors: Contributor[] }> {
+  const limit = opts.limit ?? 20
+  try {
+    const raw = await run(['shortlog', '-sne', '--no-merges', '--all'])
+    return { contributors: parseShortlog(raw).slice(0, limit) }
+  } catch {
+    return { contributors: [] }
+  }
+}

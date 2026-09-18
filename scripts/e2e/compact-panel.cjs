@@ -24,7 +24,7 @@ window.acquireVsCodeApi=()=>({postMessage:msg=>{
     settingsGetAll:{language:'en',theme:'vertex',rightWidth:'380'},themesInstalled:{themes:[]},
     appGetInfo:{repoName:'preview',repoPath:'/preview'},
     getBranches:{branches:[{name:'main',current:true,commit:'abc123',label:'main'}]},
-    getLog:{commits:[{hash:'abc123',shortHash:'abc123',message:'almost done',author:'Victor',authorEmail:'v@example.test',date:new Date().toISOString(),parents:[],refs:['HEAD -> main']}]},
+    getLog:{commits:[{hash:'abc123',shortHash:'abc123',message:'almost done',author:'Victor',authorEmail:'v@example.test',date:new Date().toISOString(),parents:['def456'],refs:['HEAD -> main']},{hash:'def456',shortHash:'def456',message:'first light',author:'Victor',authorEmail:'v@example.test',date:new Date(Date.now()-40*864e5).toISOString(),parents:[],refs:[]}]},
     getWorkingChanges:{staged:[{path:files[0],status:'M'}],unstaged:files.slice(1).map(path=>({path,status:'M'})),untracked:[]},
     getConflictMode:{mode:null},getConflictedFiles:{files:[]},getTags:{tags:[]},getStashes:{stashes:[]},
     getTracking:{ahead:5,behind:0,upstream:'origin/main'},getRemotes:{remotes:[]},

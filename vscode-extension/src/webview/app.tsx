@@ -1296,6 +1296,8 @@ function VertexApp() {
             onPushTag={handlePushTag}
             onDeleteRemoteTag={handleDeleteRemoteTag}
             onSelectCommit={handleSelectCommitByHash}
+            onFilterAuthor={(author) => setSearchQuery(author ? `author:${author}` : '')}
+            authorFilter={searchQuery.startsWith('author:') ? searchQuery.slice(7) : null}
             onCompareBranch={(name: string) => window.gitAPI.openCompare(currentBranch, name)}
             soloBranch={soloBranch}
             visibility={visibility}

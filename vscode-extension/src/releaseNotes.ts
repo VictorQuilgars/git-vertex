@@ -33,6 +33,12 @@ export const RELEASE_NOTES: Record<string, string> = {
 - In the graph, **h** is HEAD, **u** its upstream, **w** the working changes, **Home** / **End** the ends of the page.
 - **One Escape closes one thing**: a menu open over the graph owns the key before the selection does.
 
+### 📅 The graph says when
+- A band at the top of the graph names the **stretch of time** the first visible row is in, and a hairline marks where one stretch ends. *Date bands* in the header's menu turns it off.
+
+### 👥 Who works here
+- A **Contributors** section in the overview; a row narrows the graph to one author. The search field accepts **author:name**.
+
 ### 🚪 No repository: the doors
 - A panel with nothing to show names the situation and offers **Open Folder…**, **Clone Repository…** and **Initialize Repository** — VS Code's own.
 
