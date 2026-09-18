@@ -207,6 +207,14 @@ function portalTo(slot: HTMLElement | undefined, node: React.ReactElement) {
   return slot ? createPortal(node, slot) : node
 }
 
+/** What a row can be, to the branch that is checked out. */
+type MarkerRole = 'head' | 'upstream' | 'target'
+/** The bar's width; the band starts where it ends. */
+const MARKER_BAR_W = 3
+/** The lane band's height — and so the role band's and the bar's, which continue it. */
+const LANE_BAND_H = 24
+const MARKER_ICON: Record<MarkerRole, 'check' | 'cloud' | 'merge'> = { head: 'check', upstream: 'cloud', target: 'merge' }
+
 export interface CtxState { x: number; y: number; commit: LayoutCommit; branchName?: string; batch?: boolean }
 
 export interface DropState { x: number; y: number; hash: string; branch: string }
@@ -576,6 +584,24 @@ export default function CommitGraph(props: CommitGraphProps) {
     () => rowsToDraw(displayLayout, drawWindow, [selectedHash, dragSource]),
     [displayLayout, drawWindow, selectedHash, dragSource])
   const drawnEdges = useMemo(() => edgesInWindow(displayLayout, drawWindow), [displayLayout, drawWindow])
+  // ── Role marks (#253) ── The rows a branch is read against: HEAD, its
+  // upstream, the branch it merges into. One mark per row, split when a row is
+  // several of them — and no target's mark on HEAD's own row, where there is no
+  // merge to speak of. Worked out for the rows that are drawn, not per render
+  // of each row: they are three rows at most.
+  const markedRows = useMemo(() => {
+    const out: { commit: LayoutCommit; roles: MarkerRole[] }[] = []
+    for (const commit of windowRows) {
+      if (commit.hash === WIP_HASH) continue
+      const isHead = commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
+      const roles: MarkerRole[] = []
+      if (isHead) roles.push('head')
+      if (commit.hash === upstreamHash) roles.push('upstream')
+      if (commit.hash === targetHash && !isHead) roles.push('target')
+      if (roles.length) out.push({ commit, roles })
+    }
+    return out
+  }, [windowRows, currentBranch, upstreamHash, targetHash])
   const bandKey = showTimeline && manyPeriods ? periodAt(periods, firstRow) : null
   const bandLabel = bandKey ? periodLabel(bandKey, t, t('graph.dateLocale')) : null
   /** The middle of a row's first line — where the node and every edge meet it. */
@@ -585,6 +611,11 @@ export default function CommitGraph(props: CommitGraphProps) {
   // and its bullet sits at its centre, the way the reference centres its
   // avatar on the block. Classic single-line rows: the same number as before.
   const rowMid = useCallback((row: number) => rowTop(row) + rowHeight(row) / 2, [rowTop, rowHeight])
+  /** Where a role mark sits in its row: the lane band's own box in the column layout, the whole row in the stacked one. */
+  const markerBox = useCallback((row: number) => refsBelow
+    ? { top: rowTop(row), height: rowHeight(row) }
+    : { top: rowTop(row) + (rowH - LANE_BAND_H) / 2, height: LANE_BAND_H },
+  [refsBelow, rowTop, rowHeight, rowH])
   // keyboard …), make sure the selected row is visible.
   useEffect(() => {
     if (!selectedHash) return
@@ -1274,6 +1305,20 @@ export default function CommitGraph(props: CommitGraphProps) {
               overflow: 'visible',
             }}
           >
+            {/* Role bands — from the mark at the graph's left edge to the node's
+                centre, in the role's colour. FIRST in the SVG, so everything the
+                graph draws is over it; and cut to the lane band's own height and
+                place, so the two read as one strip through the row that changes
+                colour at the node, not as a block laid beside it. */}
+            {markedRows.map(({ commit, roles }) => {
+              const cx = svgPadL + commit.lane * laneW
+              const { top, height } = markerBox(commit.row)
+              return (
+                <rect key={`role-${commit.hash}`} className={`cg-marker-band cg-marker-band--${roles[0]}`}
+                  x={MARKER_BAR_W} y={top} width={Math.max(0, cx - MARKER_BAR_W)} height={height} />
+              )
+            })}
+
             {/* Lane bands — a soft colored strip from each commit's node to the
                 right edge of the graph (just before the commit info), matching the
                 node color. The right edge is a straight, more pronounced vertical
@@ -1285,7 +1330,7 @@ export default function CommitGraph(props: CommitGraphProps) {
             {!refsBelow && windowRows.map(commit => {
               if (commit.hash === WIP_HASH) return null
               const cx = svgPadL + commit.lane * laneW
-              const bandH = 24
+              const bandH = LANE_BAND_H
               const y = rowTop(commit.row) + (rowH - bandH) / 2
               const right = svgW - SVG_PAD_R
               const w = Math.max(right - cx, 0)
@@ -1402,6 +1447,43 @@ export default function CommitGraph(props: CommitGraphProps) {
 
           </svg>
 
+          {/* Role marks: the bar, and the names it opens into under the pointer.
+              Siblings of the SVG and above it — a row is a stacking context UNDER
+              the graph, so a mark inside a row opened beneath the node's avatar
+              with its label cut. The hit zone comes first in the document so the
+              pill paints over it and keeps its own hover as it slides out, and it
+              stops short of the node: the node stays the node's. */}
+          {markedRows.map(({ commit, roles }) => {
+            const left = refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW
+            const { top, height } = markerBox(commit.row)
+            const reach = Math.max(0, svgPadL + commit.lane * laneW - NODE_RADIUS - 3)
+            const tip = roles.map(r => r === 'head' ? t('graph.marker.headTip')
+              : r === 'upstream' ? t('graph.marker.upstreamTip')
+              : t('graph.marker.targetTip', mergeTargetRef ?? '')).join(', ')
+            const select = (e: React.MouseEvent) => handleRowClick(e, commit)
+            return (
+              <React.Fragment key={`mark-${commit.hash}`}>
+                <div className="cg-marker-hit" style={{ left, top, height, width: reach }} title={tip} onClick={select} />
+                <div className="cg-marker-rail" data-roles={roles.join(' ')} data-hash={commit.hash} title={tip} onClick={select}
+                  style={{ left, top, height, minWidth: Math.min(14, Math.max(MARKER_BAR_W, reach)) }}>
+                  <span className="cg-marker-bar">
+                    {roles.map(r => <i key={r} className={`cg-marker-swatch cg-marker--${r}`} />)}
+                  </span>
+                  <span className="cg-marker-pill">
+                    <span className="cg-marker-pill-inner">
+                      {roles.map(r => (
+                        <span key={r} className={`cg-marker-seg cg-marker--${r}`}>
+                          <Icon name={MARKER_ICON[r]} size={11} />
+                          <span className="cg-marker-label">{t(`graph.marker.${r}`)}</span>
+                        </span>
+                      ))}
+                    </span>
+                  </span>
+                </div>
+              </React.Fragment>
+            )
+          })}
+
           {/* Rows */}
           {drawnRows.map(commit => {
             const isSelected = commit.hash === selectedHash
@@ -1437,15 +1519,6 @@ export default function CommitGraph(props: CommitGraphProps) {
             }
             const rowIsHead = !isWip && commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
             const rowCanReword = rowIsHead || commit.parents.length > 0
-            // The rows a branch is read against wear a mark at the graph's left
-            // edge: HEAD, its upstream, the branch it merges into. One mark,
-            // split, when a row is several of them — and no target's mark on
-            // HEAD's own row, where there is no merge to speak of.
-            const roles: Array<'head' | 'upstream' | 'target'> = []
-            if (rowIsHead) roles.push('head')
-            if (!isWip && commit.hash === upstreamHash) roles.push('upstream')
-            if (!isWip && commit.hash === targetHash && !rowIsHead) roles.push('target')
-
             return (
               <div
                 key={commit.hash}
@@ -1478,29 +1551,6 @@ export default function CommitGraph(props: CommitGraphProps) {
               >
                 {/* Colored left stripe based on branch */}
                 <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />
-
-                {/* The role mark: a thin bar at the graph's left edge, tinted up
-                    to the node, that opens into its names under the pointer. */}
-                {roles.length > 0 && (() => {
-                  const left = refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW
-                  const tip = (r: typeof roles[number]) => r === 'head' ? t('graph.marker.headTip')
-                    : r === 'upstream' ? t('graph.marker.upstreamTip')
-                    : t('graph.marker.targetTip', mergeTargetRef ?? '')
-                  return (
-                    <div className={`cg-row-marker cg-row-marker--${roles[0]}`} style={{ left }}
-                      title={roles.map(tip).join(', ')} data-roles={roles.join(' ')}>
-                      <span className="cg-row-marker-band" style={{ width: Math.max(0, svgPadL + commit.lane * laneW - 3) }} />
-                      <span className="cg-row-marker-bar">
-                        {roles.map(r => <i key={r} className={`cg-row-marker-swatch cg-row-marker-swatch--${r}`} />)}
-                      </span>
-                      <span className="cg-row-marker-pill">
-                        {roles.map(r => (
-                          <span key={r} className={`cg-row-marker-seg cg-row-marker-swatch--${r}`}>{t(`graph.marker.${r}`)}</span>
-                        ))}
-                      </span>
-                    </div>
-                  )
-                })()}
 
                 {/* The refs, either in their own column or under the subject.
                     One definition, placed twice — the hover that reveals the

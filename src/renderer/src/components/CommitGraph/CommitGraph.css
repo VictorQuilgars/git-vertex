@@ -599,61 +599,71 @@
 }
 .cg-period-sep { position: absolute; left: 0; right: 0; height: 1px; background: var(--border-muted); z-index: 1; pointer-events: none; }
 
-/* ── Role marks (#253) ── HEAD, its upstream, the branch it merges into: a
-   3px bar at the graph's left edge, split when a row is several of them, with a
-   faint band of the first role's colour running up to the node. Under the
-   pointer — the mark's own, never the row's — the bar opens into its names. */
-.cg-row-marker {
+/* ── Role marks (#253) ── HEAD, its upstream, the branch it merges into.
+   Three pieces, each where it can be drawn properly:
+   · the BAND is a rect in the graph's SVG, first in it — under the lane bands,
+     the connectors, the edges and the nodes — and cut to the lane band's box, so
+     the row reads as one strip that changes colour at the node;
+   · the BAR sits at the graph's left edge, split when a row is several roles;
+   · the PILL is what the bar opens into under the pointer — the mark's own
+     pointer, never the row's. Bar and pill live ABOVE the SVG: a row is a
+     stacking context under the graph, and a mark inside one opened beneath the
+     node's avatar with its label cut. */
+.cg-marker-band { opacity: 0.3; pointer-events: none; }
+.cg-marker-band--head { fill: var(--ref-head); }
+.cg-marker-band--upstream { fill: var(--ref-upstream); }
+.cg-marker-band--target { fill: var(--ref-target); }
+
+/* From the column's left edge to the node's margin: what can be hovered is what
+   can be seen, not a 3px bar. Before the rail in the document, so the pill
+   paints over it and keeps its own hover as it slides out. */
+.cg-marker-hit { position: absolute; z-index: 3; cursor: pointer; }
+
+.cg-marker-rail {
   position: absolute;
-  top: 0;
-  height: 100%;
-  min-width: 10px;
   z-index: 3;
   display: flex;
   align-items: stretch;
-  --cg-marker: var(--ref-head);
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: box-shadow 0.24s ease;
 }
-.cg-row-marker--upstream { --cg-marker: var(--ref-upstream); }
-.cg-row-marker--target { --cg-marker: var(--ref-target); }
-.cg-row-marker-band {
-  position: absolute;
-  left: 3px;
-  top: 0;
-  height: 100%;
-  background: color-mix(in srgb, var(--cg-marker) 30%, transparent);
-  pointer-events: none;
-  z-index: -1;
-}
-.cg-row-marker-bar { display: flex; flex-direction: column; width: 3px; border-radius: var(--radius-xs); overflow: hidden; }
-.cg-row-marker-swatch { flex: 1; }
-.cg-row-marker-swatch--head { background: var(--ref-head); }
-.cg-row-marker-swatch--upstream { background: var(--ref-upstream); }
-.cg-row-marker-swatch--target { background: var(--ref-target); }
-.cg-row-marker-pill {
+.cg-marker-bar { display: flex; flex: 0 0 3px; flex-direction: column; width: 3px; overflow: hidden; }
+.cg-marker-swatch { flex: 1 1 0; min-height: 0; }
+.cg-marker--head { background-color: var(--ref-head); }
+.cg-marker--upstream { background-color: var(--ref-upstream); }
+.cg-marker--target { background-color: var(--ref-target); }
+
+/* A grid track from 0fr to 1fr slides to the content's exact width, and back. */
+.cg-marker-pill {
   display: grid;
-  grid-auto-flow: column;
   grid-template-columns: 0fr;
-  overflow: hidden;
-  opacity: 0;
-  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
-  transition: grid-template-columns 0.28s ease, opacity 0.2s ease;
-}
-.cg-row-marker:hover .cg-row-marker-pill { grid-template-columns: 1fr; opacity: 1; box-shadow: 0 2px 6px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent); }
-.cg-row-marker-seg {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  overflow: hidden;
-  padding: 0 var(--space-sm);
+  align-items: stretch;
   font-size: 9px;
   font-weight: 600;
+  line-height: 1;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--bg-canvas);
+  transition: grid-template-columns 0.28s ease;
 }
-.cg-row-marker-seg + .cg-row-marker-seg { border-left: 1px solid color-mix(in srgb, var(--bg-canvas) 40%, transparent); }
-@media (prefers-reduced-motion: reduce) { .cg-row-marker-pill { transition: none; } }
+.cg-marker-pill-inner { display: flex; align-items: stretch; min-width: 0; overflow: hidden; opacity: 0; transition: opacity 0.2s ease; }
+/* Each segment is filled with its role's colour, its text knocked out in the
+   graph's ground: a continuation of the bar, not a tooltip beside it. */
+.cg-marker-seg { display: inline-flex; flex-shrink: 0; align-items: center; padding: 0 var(--space-sm); color: var(--bg-canvas); }
+.cg-marker-seg + .cg-marker-seg { border-left: 1px solid color-mix(in srgb, var(--bg-canvas) 45%, transparent); }
+.cg-marker-label { margin-left: var(--space-xs); }
+
+.cg-marker-rail:hover,
+.cg-marker-hit:hover + .cg-marker-rail {
+  box-shadow: 0 0 0 1px var(--border-default), 0 2px 6px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+}
+.cg-marker-rail:hover .cg-marker-pill,
+.cg-marker-hit:hover + .cg-marker-rail .cg-marker-pill { grid-template-columns: 1fr; }
+.cg-marker-rail:hover .cg-marker-pill-inner,
+.cg-marker-hit:hover + .cg-marker-rail .cg-marker-pill-inner { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .cg-marker-pill, .cg-marker-pill-inner, .cg-marker-rail { transition: none; } }
 
 /* The row the `/` finder is standing on: lit, not selected. */
 .cg-row--find-hit { background: color-mix(in srgb, var(--accent) var(--alpha-soft), transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) var(--alpha-half), transparent); }
