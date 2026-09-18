@@ -240,18 +240,26 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
         showToast?.(r.error === 'NO_API_KEY' ? t('panel.aiNoKey') : r.error, 'err')
         return
       }
-      // Asked from the inline editor: the proposal replaces what is in the
-      // field, to be reviewed before Confirm — the same gesture whether this is
-      // the tip or a commit ten back.
-      setAmendMsg(r.message)
-      setAmendEditing(true)
+      if (canEditMessage) {
+        // The proposal goes into the inline editor, to be reviewed before
+        // Confirm — the same gesture whether this is the tip or a commit ten
+        // back, and whether it was asked from the header or from the editor.
+        setAmendMsg(r.message)
+        setAmendEditing(true)
+      } else {
+        // Nothing can be rewritten here (merge commit, root, another branch), so
+        // the proposal would have nowhere to go. Hand it over instead of
+        // dropping it.
+        await navigator.clipboard.writeText(r.message)
+        showToast?.(t('panel.aiCopied'), 'ok')
+      }
     } catch (e: any) {
       // e.g. VS Code host without the ai handler yet — the shim rejects.
       showToast?.(e?.message ?? 'AI error', 'err')
     } finally {
       setAiBusy(false)
     }
-  }, [commit.hash, showToast, t])
+  }, [commit.hash, canEditMessage, showToast, t])
 
   const runAiExplain = useCallback(async (force = false, guidance?: string) => {
     setAiBusy(true)
@@ -458,9 +466,19 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
                 <span>{t('panel.compareBtn')}</span>
               </button>
             )}
-            {/* No AI control up here: it opened a menu whose two entries were the
-                Explain button just below, a second time, and a proposal for the
-                MESSAGE — which now lives where the message is rewritten. */}
+            {/* Rewrite the message with the model — the other thing a reader does
+                with a commit, so it is a button here, in one click and by name.
+                It used to be an unlabelled icon opening a menu whose second entry
+                was the Explain button below, a second time: THAT was the
+                duplicate, not this. A proposal, so outlined in the model's
+                colour and never filled; nothing is committed before Confirm. */}
+            <button className="cd-ai-btn" disabled={aiBusy}
+              title={t(canEditMessage ? 'panel.aiRecomposeTitle' : 'panel.aiRecomposeCopyTitle')}
+              aria-label={t('panel.aiRecomposeLong')}
+              onClick={runAiRecompose}>
+              <Icon name="ai" size={13} />
+              <span>{aiBusy ? '…' : t('panel.aiRewrite')}</span>
+            </button>
           </div>
 
           {/* One line for what used to take four: the hash, where it lives, the

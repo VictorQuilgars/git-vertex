@@ -1756,7 +1756,30 @@
   transition: background var(--dur-fast), color var(--dur-fast);
 }
 .cd-compare-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
-/* With the compare button taking margin-left:auto, the AI control sits right after it. */
+/* Rewrite with the model, beside Compare: the same shape, in the model's colour
+   and outlined — a proposal is never a filled button. With no Compare (a host
+   that cannot compare) it takes the right edge itself. */
+.cd-ai-btn {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  height: var(--row-nav); padding: 0 var(--space-md);
+  margin-left: auto;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
+  border-radius: var(--radius-md);
+  color: var(--purple-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast);
+}
+.cd-compare-btn + .cd-ai-btn { margin-left: var(--space-xs); }
+.cd-ai-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent); border-color: color-mix(in srgb, var(--purple) var(--alpha-half), transparent); }
+.cd-ai-btn:disabled { opacity: 0.6; cursor: wait; }
+/* A narrow panel keeps both buttons and drops their words: the names stay in the tooltips. */
+.cd-author-block { container-type: inline-size; }
+@container (max-width: 300px) {
+  .cd-compare-btn span, .cd-ai-btn span { display: none; }
+}
 
 /* ── The commit pane's leftovers (#113, second pass) ─────────────────────── */
 /* Copy the message: the small control in the block's corner. */

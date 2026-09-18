@@ -103,14 +103,19 @@ describe('two primary actions, not one', () => {
     expect(onCompareWorking).toHaveBeenCalledWith('abc123def456')
   })
 
-  // One way in to the model per thing it does: Explain for the explanation, and
-  // the message's own editor for a proposed message. The header used to carry an
-  // AI icon too, whose menu offered Explain a second time.
-  test('the header has no AI control of its own; Explain is offered once', async () => {
+  // Two things the model does with a commit, each offered once and by name:
+  // rewrite its message, explain it. The header's control used to be an
+  // unlabelled icon whose menu offered Explain a second time — the duplicate
+  // was that entry, not the rewrite, which has to stay one click away.
+  test('Rewrite is a named control in the header, never a filled one; Explain is offered once', async () => {
     render()
     await screen.findByText('tailwind.config.ts')
-    expect(document.querySelector('.cd-ai-btn')).toBeNull()
-    expect(screen.queryByTitle('Recompose commit with AI')).toBeNull()
+    const rewrite = screen.getByRole('button', { name: "Rewrite this commit's message with AI" })
+    expect(rewrite.textContent?.trim()).toBe('Rewrite')
+    expect(rewrite.className).toBe('cd-ai-btn')
     expect(screen.getAllByText('Explain')).toHaveLength(1)
+    // It acts; it does not open a menu with a second Explain in it.
+    await userEvent.click(rewrite)
+    expect(document.querySelector('.ctx-menu')).toBeNull()
   })
 })
