@@ -43,7 +43,12 @@ app.whenReady().then(async () => {
   const evalJS = code => win.webContents.executeJavaScript(code)
   const geometry = () => evalJS(`(() => {
     const rect=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom,scroll:e.scrollHeight,client:e.clientHeight}};
-    return {row:!!document.querySelector('.st2--embedded-row'),files:rect('.stx-list'),form:rect('.st2-message'),button:rect('.st2-commit-actions'),right:rect('.app-right'),graph:rect('.app-center'),root:rect('.st2'),splitters:[...document.querySelectorAll('[role=separator]')].map(e=>({label:e.getAttribute('aria-label'),value:Number(e.getAttribute('aria-valuenow'))})),height:innerHeight,width:innerWidth,text:document.body.innerText};
+    const rows=[...document.querySelectorAll('.gvt-row')];
+    return {row:!!document.querySelector('.st2--embedded-row'),files:rect('.stx-list'),form:rect('.st2-message'),button:rect('.st2-commit-actions'),right:rect('.app-right'),graph:rect('.app-center'),root:rect('.st2'),splitters:[...document.querySelectorAll('[role=separator]')].map(e=>({label:e.getAttribute('aria-label'),value:Number(e.getAttribute('aria-valuenow')),orientation:e.getAttribute('aria-orientation')})),height:innerHeight,width:innerWidth,
+      rail:rect('.gv-rail'),overlay:rect('.gv-side-overlay'),stackedBar:!!document.querySelector('.gv-stacked-bar'),toolbarRows:rows.length,
+      // Every control of every toolbar row inside its row: nothing clipped at the right edge.
+      toolbarFits:rows.every(r=>{const rr=r.getBoundingClientRect();return [...r.children].every(c=>c.getBoundingClientRect().right<=rr.right+1)}),
+      text:document.body.innerText};
   })()`)
   const assertCompact = async () => {
     const g = await geometry()
@@ -69,14 +74,14 @@ app.whenReady().then(async () => {
     await evalJS(`window.fixtureOverrides={};window.dispatchEvent(new MessageEvent('message',{data:{type:'event',name:'workingChanged'}}))`)
     await settle()
     // Actual pointer drag: the final width, not the drag-start width, is saved.
-    const drag = async (selector, dx) => {
+    const drag = async (selector, dx, dy = 0) => {
       const point=await evalJS(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)}})()`)
       if (!win.webContents.debugger.isAttached()) win.webContents.debugger.attach('1.3')
-      const input = (type, x, buttons) => win.webContents.debugger.sendCommand('Input.dispatchMouseEvent', {type, x, y:point.y, button:type==='mouseMoved'?'none':'left', buttons, clickCount:1})
-      await input('mouseMoved',point.x,0)
-      await input('mousePressed',point.x,1)
-      await input('mouseMoved',point.x+dx,1)
-      await input('mouseReleased',point.x+dx,0)
+      const input = (type, x, y, buttons) => win.webContents.debugger.sendCommand('Input.dispatchMouseEvent', {type, x, y, button:type==='mouseMoved'?'none':'left', buttons, clickCount:1})
+      await input('mouseMoved',point.x,point.y,0)
+      await input('mousePressed',point.x,point.y,1)
+      await input('mouseMoved',point.x+dx,point.y+dy,1)
+      await input('mouseReleased',point.x+dx,point.y+dy,0)
       await settle()
     }
     await drag('.st2 .column-resize-handle', -65)
@@ -115,14 +120,61 @@ app.whenReady().then(async () => {
     // Clean working trees should retain their next-steps view, not an empty grid.
     await evalJS(`window.fixtureOverrides={getWorkingChanges:{staged:[],unstaged:[],untracked:[]}};window.dispatchEvent(new MessageEvent('message',{data:{type:'event',name:'workingChanged'}}))`)
     await settle(); g=await geometry(); assert(!g.row); assert(!g.form)
+    // ── A side-bar column: narrow and tall. The rail stays, compact; the
+    // toolbar folds into two rows that fit; the details go UNDER the graph
+    // behind a horizontal splitter; a rail icon opens its view as a layer
+    // over the graph, and Escape or a press elsewhere closes it.
+    // A fresh load: the Escape above, meant for the Options menu, also
+    // reached the graph and cleared its selection (see CommitGraph's key
+    // handler) — a state this scenario should not inherit.
+    await evalJS("localStorage.removeItem('gv-details-h')")
+    await win.loadFile(path.join(dir, 'index.html')); await settle(); await settle()
+    win.setContentSize(320,800); await settle(); await settle()
+    g=await geometry()
+    assert.equal(g.rail && Math.round(g.rail.w),36,`narrow rail missing: ${JSON.stringify(g.rail)}`)
+    assert.equal(g.toolbarRows,2,'narrow toolbar should have a search row')
+    assert(g.toolbarFits,'a toolbar control is clipped in the narrow column')
+    assert(g.graph.w>0&&g.graph.h>=140,`graph not visible in the column: ${JSON.stringify(g.graph)}`)
+    assert(g.right&&g.right.h>=140&&g.right.y>=g.graph.bottom-1,`details not under the graph: ${JSON.stringify(g.right)}`)
+    assert(g.right.right<=321,'details overflow the column')
+    assert(g.splitters.some(s=>s.orientation==='horizontal'),'no horizontal splitter between graph and details')
+    assert(!g.overlay,'no view should float open by itself')
+    await evalJS("document.querySelector('.gv-rail-btn[aria-label=\"Branches\"]').click()"); await settle()
+    g=await geometry()
+    assert(g.overlay&&g.overlay.w<=320-36-24+1&&g.overlay.w>=160,`floating view wrong: ${JSON.stringify(g.overlay)}`)
+    assert(g.text.includes('LOCAL')||g.text.includes('Local'),'the floating view shows the branches')
+    await evalJS("window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))"); await settle()
+    g=await geometry(); assert(!g.overlay,'Escape should close the floating view')
+    await evalJS("document.querySelector('.gv-rail-btn[aria-label=\"Branches\"]').click()"); await settle()
+    g=await geometry(); assert(g.overlay,'the view reopens from the rail')
+    fs.writeFileSync(path.join(dir,'sidebar-overlay.png'), (await win.webContents.capturePage()).toPNG())
+    await evalJS("document.querySelector('.app-center').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))"); await settle()
+    g=await geometry(); assert(!g.overlay,'a press on the graph should close the floating view')
+    fs.writeFileSync(path.join(dir,'sidebar.png'), (await win.webContents.capturePage()).toPNG())
+    // The splitter between the rows is dragged, and the height it lands on is the one remembered.
+    const before=(await geometry()).right.h
+    await drag('.gv-stack--rows > .column-resize-handle',0,-60)
+    g=await geometry(); assert(g.right.h>before+30,`details did not grow: ${before} → ${g.right.h}`)
+    assert.equal(Number(await evalJS("localStorage.getItem('gv-details-h')")),Math.round(g.right.h))
+    // Narrow AND short: one pane at a time, the search behind a button.
+    win.setContentSize(320,400); await settle()
+    g=await geometry()
+    assert(g.stackedBar,'a short column should show the details in place of the graph, with a way back')
+    assert.equal(g.toolbarRows,1)
+    assert(await evalJS("!!document.querySelector('.gvt-btn[aria-label=\"Search commits\"]')"),'search toggle missing in the short column')
+    assert(g.toolbarFits,'a toolbar control is clipped in the short column')
+    fs.writeFileSync(path.join(dir,'sidebar-short.png'), (await win.webContents.capturePage()).toPNG())
+    // Back to the bottom panel: the wide layout and its saved widths return.
+    win.setContentSize(1100,254); await settle(); await assertCompact()
+    g=await geometry(); assert.equal(Math.round(g.rail.w),44); assert.equal(g.toolbarRows,0)
     // Return to a balanced composition for the visual check.
-    await evalJS("localStorage.setItem('st-embedded-form-width','300');localStorage.removeItem('gv-compact-right-width')")
+    await evalJS("localStorage.setItem('st-embedded-form-width','300');localStorage.removeItem('gv-compact-right-width');localStorage.removeItem('gv-details-h')")
     await win.loadFile(path.join(dir, 'index.html')); await settle()
     await assertCompact()
     fs.writeFileSync(path.join(dir,'compact.png'), (await win.webContents.capturePage()).toPNG())
     assert.equal(errors.length,0,errors.join('\n'))
-    console.log('PASS compact panel: layout, pointer and keyboard resizing, persistence, narrow/tall fallback, graph toggle, options')
-    console.log('Screenshot: '+path.join(dir,'compact.png'))
+    console.log('PASS compact panel: layout, pointer and keyboard resizing, persistence, narrow/tall fallback, graph toggle, options, side-bar column')
+    console.log('Screenshots: '+['compact','sidebar','sidebar-overlay','sidebar-short'].map(n=>path.join(dir,n+'.png')).join(' '))
   } catch (error) {
     console.error(error)
     console.error('Browser errors:', errors)

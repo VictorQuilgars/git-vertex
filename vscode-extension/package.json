@@ -41,7 +41,14 @@
         {
           "id": "git-vertex",
           "title": "Git Vertex",
-          "icon": "$(git-branch)"
+          "icon": "images/activity.svg"
+        }
+      ],
+      "activitybar": [
+        {
+          "id": "git-vertex-sidebar",
+          "title": "Git Vertex",
+          "icon": "images/activity.svg"
         }
       ]
     },
@@ -74,6 +81,16 @@
         "command": "gitVertex.openInEditor",
         "title": "Git Vertex: Open in Editor Tab",
         "icon": "$(link-external)"
+      },
+      {
+        "command": "gitVertex.moveToSideBar",
+        "title": "Git Vertex: Move to Side Bar",
+        "icon": "$(layout-sidebar-left)"
+      },
+      {
+        "command": "gitVertex.moveToPanel",
+        "title": "Git Vertex: Move to Panel",
+        "icon": "$(layout-panel)"
       },
       {
         "command": "gitVertex.openRebaseTab",
@@ -263,6 +280,16 @@
           "command": "gitVertex.openInEditor",
           "when": "view == gitVertex.graphView",
           "group": "navigation"
+        },
+        {
+          "command": "gitVertex.moveToSideBar",
+          "when": "view == gitVertex.graphView",
+          "group": "2_layout@1"
+        },
+        {
+          "command": "gitVertex.moveToPanel",
+          "when": "view == gitVertex.graphView",
+          "group": "2_layout@2"
         }
       ],
       "explorer/context": [

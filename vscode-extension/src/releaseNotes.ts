@@ -18,6 +18,16 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 📐 Git Vertex in the side bar
+- The view lives **wherever VS Code lets a view live**: the bottom panel it opens in, the primary side bar, the secondary one. Drag it to the activity bar, or run **Git Vertex: Move to Side Bar** / **Move to Panel** from the view's title menu. Same view, same state, wherever it goes.
+
+### 📏 A narrow column fits
+- Below 640 px the panel **changes shape instead of clipping**: the rail narrows and stays; a rail icon opens its view as a **layer over the graph**, closed by Escape or a press anywhere else; the details go **under the graph** behind a splitter that remembers its height, or replace it with a way back when the column is short too; the toolbar keeps the branch and the sync actions, folds the rest behind **⋯**, and gives the search its own row.
+- A **short panel is flush**: below 340 px of height the cards' gap goes to the staging pane.
+
+### 🖱️ The commit menu answers where it was opened
+- With the panel and the editor tab both open, a right-click in one could act in the other. The host follows the pointer now.
+
 ### 🧱 The panes are cards
 - The side panel and the graph sit as **rounded cards on a frame**, set apart by a gap rather than a line; the rail and the compact toolbar are the frame. **Settings › Appearance › Layout** offers *Flush*, the edge-to-edge rendering the panel had.
 

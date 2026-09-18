@@ -304,6 +304,21 @@ async function showWhatsNewIfUpdated(context: vscode.ExtensionContext): Promise<
   openGitVertexWhatsNewTab(context.extensionUri, context.globalState, note.version, note.notes)
 }
 
+/** Put the view in the given container and show it there. */
+async function moveView(destinationId: string): Promise<void> {
+  try {
+    await vscode.commands.executeCommand('vscode.moveViews', {
+      viewIds: [GitVertexViewProvider.viewType],
+      destinationId,
+    })
+  } catch (e: any) {
+    void vscode.window.showErrorMessage(`Git Vertex: could not move the view — ${e?.message ?? e}`)
+    return
+  }
+  // The move leaves the view collapsed and unfocused.
+  await vscode.commands.executeCommand('gitVertex.graphView.focus')
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   statusBar = new GitVertexStatusBar('gitVertex.open')
 
@@ -416,6 +431,13 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.open', () => openInGitVertex()),
     vscode.commands.registerCommand('gitVertex.openFile', (uri?: vscode.Uri) => openInGitVertex(uri)),
     vscode.commands.registerCommand('gitVertex.configure', () => configure()),
+    // Where the view lives is the user's: VS Code lets any view be dragged
+    // between the panel and the side bars, and these two only do that drag
+    // for them. The destination is the container declared for it in
+    // package.json — the panel one, or the activity-bar one that exists for
+    // exactly this and is empty (so invisible) until the view is put there.
+    vscode.commands.registerCommand('gitVertex.moveToSideBar', () => moveView('workbench.view.extension.git-vertex-sidebar')),
+    vscode.commands.registerCommand('gitVertex.moveToPanel', () => moveView('workbench.view.extension.git-vertex')),
     vscode.commands.registerCommand('gitVertex.openPanel', () => {
       vscode.commands.executeCommand('gitVertex.graphView.focus')
     }),

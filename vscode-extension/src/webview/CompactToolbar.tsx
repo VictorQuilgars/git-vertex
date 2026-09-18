@@ -1,10 +1,15 @@
-// CompactToolbar.tsx — single-row icon toolbar for the panel.
-// Logo + repo name + branch selector on the left; compact icon actions on the right.
+// CompactToolbar.tsx — the panel's toolbar.
+// Wide: one row — logo, repo name and branch selector on the left, labelled
+// sync actions and compact icon actions on the right, the search field last.
+// Narrow (a side-bar column): the same row folds — the secondary actions go
+// behind a "⋯" menu, the sync buttons keep their icon and count, and the
+// search field takes a row of its own.
 import React, { useState, useRef, useEffect } from 'react'
 import { Icon } from '../../../src/renderer/src/components/Icon/Icon'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import type { IssueRef } from '../../../src/renderer/src/utils/issueRef'
 import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
+import type { MenuItemDef } from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
 import { buildBranchMenu } from '../../../src/renderer/src/components/ContextMenu/branchMenu'
 import type { PRIntent } from '../../../src/renderer/src/components/ContextMenu/prIntent'
 import { Mark } from '../../../src/renderer/src/components/Mark/Mark'
@@ -13,6 +18,14 @@ import type { BranchInfo } from '../../../src/renderer/src/types'
 interface Props {
   graphHidden?: boolean
   onToggleGraph?: () => void
+  /** The folded layout of a narrow panel (see panelLayout.ts). */
+  narrow?: boolean
+  /**
+   * Narrow only. `always`: the search field has its own row. `toggle`: the
+   * row is too dear in a short panel, so a search button in the first row
+   * reveals it.
+   */
+  searchRow?: 'always' | 'toggle'
   repoName: string
   branch: string
   branches: BranchInfo[]
@@ -66,14 +79,14 @@ interface Props {
 }
 
 function IconBtn({ title, onClick, disabled, active, badge, hideNarrow, children }: {
-  title: string; onClick: () => void; disabled?: boolean; active?: boolean; badge?: number
+  title: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; disabled?: boolean; active?: boolean; badge?: number
   hideNarrow?: boolean
   children: React.ReactNode
 }) {
   return (
     <button
       className={`gvt-btn${active ? ' gvt-btn--active' : ''}${hideNarrow ? ' gvt-hide-narrow' : ''}`}
-      title={title} onClick={onClick} disabled={disabled}
+      title={title} aria-label={title} aria-pressed={active} onClick={onClick} disabled={disabled}
     >
       {children}
       {badge != null && badge > 0 && <span className="gvt-badge">{badge}</span>}
@@ -87,7 +100,7 @@ function TextBtn({ title, label, onClick, disabled, count, children }: {
   title: string; label: string; onClick: () => void; disabled?: boolean; count?: number; children: React.ReactNode
 }) {
   return (
-    <button className="gvt-tbtn" title={title} onClick={onClick} disabled={disabled}>
+    <button className="gvt-tbtn" title={title} aria-label={title} onClick={onClick} disabled={disabled}>
       {children}
       <span className="gvt-tbtn-label">{label}</span>
       {count != null && count > 0 && <span className="gvt-tbtn-count">{count}</span>}
@@ -111,6 +124,11 @@ export default function CompactToolbar(p: Props) {
   const { t, lang } = useLang()
   const [branchOpen, setBranchOpen] = useState(false)
   const [branchMenu, setBranchMenu] = useState<{ x: number; y: number } | null>(null)
+  const [moreMenu, setMoreMenu] = useState<{ x: number; y: number } | null>(null)
+  // Narrow + short: the search row is asked for. A query that arrives from
+  // elsewhere (a restored one, say) opens it too — a filter must be visible.
+  const [searchOpen, setSearchOpen] = useState(false)
+  useEffect(() => { if (p.searchQuery) setSearchOpen(true) }, [p.searchQuery])
   const branchRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -150,8 +168,23 @@ export default function CompactToolbar(p: Props) {
     t
   )
 
-  return (
-    <div className="gvt">
+  // What the narrow row cannot hold: the same actions, the same order, as
+  // rows of a menu — with the count Pop stash wore as a badge.
+  const moreItems: MenuItemDef[] = [
+    { label: t('sb.newBranch'), icon: 'newBranch', action: p.onNewBranch },
+    { label: 'Stash', icon: 'stash', action: p.onStash },
+    { label: p.stashCount > 0 ? `Pop stash (${p.stashCount})` : 'Pop stash', icon: 'pop', action: p.onPop, disabled: p.stashCount === 0 },
+    { separator: true },
+    { label: t('gvt.undo'), icon: 'undo', action: p.onUndo },
+    { label: t('toolbar.redo.tooltip'), icon: 'redo', action: p.onRedo },
+    { separator: true },
+    { label: 'Terminal', icon: 'terminal', action: p.onTerminal },
+    { label: t('gvt.openDesktop'), icon: 'externalLink', action: p.onOpenDesktop },
+    ...(p.onSettings ? [{ separator: true } as MenuItemDef, { label: t('gvt.settings'), icon: 'gear', action: p.onSettings } as MenuItemDef] : []),
+  ]
+
+  const identity = (
+    <>
       {/* Logo only — the VS Code panel title already reads "Git Vertex",
           so the brand name here would be redundant.
 
@@ -159,14 +192,15 @@ export default function CompactToolbar(p: Props) {
           go sub-pixel below ~72px and the node would turn to grey mush. This
           used to be the mark drawn by hand here, in two straight lines and the
           pre-aqua greens — it kept them right through the palette migration
-          because a copy is not a reference. */}
-      <Mark className="gvt-logo" size={16} />
+          because a copy is not a reference. The narrow row has no room for it:
+          the view's own title carries the name there. */}
+      {!p.narrow && <Mark className="gvt-logo" size={16} />}
       {p.onToggleSidebar && (
         <IconBtn title={t('gvt.toggleSidebar')} onClick={p.onToggleSidebar} active={p.sidebarOpen}>
           <Icon name="panel" size={14} />
         </IconBtn>
       )}
-      {p.repoName && <span className="gvt-repo">{p.repoName}</span>}
+      {p.repoName && !p.narrow && <span className="gvt-repo">{p.repoName}</span>}
 
       {/* Branch selector */}
       <div className="gvt-branch-wrap" ref={branchRef}>
@@ -189,7 +223,7 @@ export default function CompactToolbar(p: Props) {
         )}
       </div>
       {branchMenuItems.length > 0 && (
-        <button className="gvt-branch-menu-btn" title={t('sb.branch.menu')}
+        <button className="gvt-branch-menu-btn" title={t('sb.branch.menu')} aria-label={t('sb.branch.menu')}
           onClick={e => {
             const r = e.currentTarget.getBoundingClientRect()
             setBranchMenu({ x: r.left, y: r.bottom + 3 })
@@ -201,14 +235,13 @@ export default function CompactToolbar(p: Props) {
         <ContextMenu x={branchMenu.x} y={branchMenu.y} items={branchMenuItems}
           onClose={() => setBranchMenu(null)} />
       )}
+    </>
+  )
 
-      <span className="gvt-spring" />
-      {p.onToggleGraph && <button className="gvt-tbtn" onClick={p.onToggleGraph}
-        aria-pressed={p.graphHidden}>
-        {t(p.graphHidden ? 'panel.compact.showGraph' : 'panel.compact.hideGraph')}
-      </button>}
-
-      {/* Sync actions — labelled, all identical style */}
+  // Sync actions — labelled, all identical style; the label is what the
+  // narrow row drops, never the count.
+  const sync = (
+    <>
       <TextBtn title={p.lastFetch ? `Fetch · ${relTime(p.lastFetch, lang, t)}` : 'Fetch'} label="Fetch" onClick={p.onFetch} disabled={p.loading}>
         <Icon name="refresh" size={13} />
       </TextBtn>
@@ -222,6 +255,62 @@ export default function CompactToolbar(p: Props) {
         label="Push" onClick={p.onPush} disabled={p.loading} count={p.ahead}>
         <Icon name="push" size={13} />
       </TextBtn>
+    </>
+  )
+
+  const search = (
+    <div className="gvt-search">
+      <Icon name="search" size={11} />
+      <input type="text" placeholder={t('gvt.search')} value={p.searchQuery} onChange={e => p.onSearch(e.target.value)} />
+      {p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && (
+        <span className={`gvt-search-count${p.searchMatches === 0 ? ' gvt-search-count--none' : ''}`}>
+          {p.searchMatches}
+        </span>
+      )}
+      {p.searchQuery && <button className="gvt-search-clear" title={t('common.clearSearch')} aria-label={t('common.clearSearch')} onClick={() => p.onSearch('')}>×</button>}
+    </div>
+  )
+
+  if (p.narrow) {
+    const searchShown = p.searchRow !== 'toggle' || searchOpen
+    return (
+      <div className="gvt gvt--narrow">
+        <div className="gvt-row">
+          {identity}
+          <span className="gvt-spring" />
+          {sync}
+          {p.searchRow === 'toggle' && (
+            <IconBtn title={t('gvt.searchToggle')} active={searchOpen}
+              onClick={() => setSearchOpen(open => { if (open && p.searchQuery) p.onSearch(''); return !open })}>
+              <Icon name="search" size={14} />
+            </IconBtn>
+          )}
+          <IconBtn title={t('gvt.more')} active={!!moreMenu} onClick={e => {
+            const r = e.currentTarget.getBoundingClientRect()
+            setMoreMenu({ x: Math.max(0, r.right - 220), y: r.bottom + 3 })
+          }}>
+            <Icon name="kebab" size={14} />
+          </IconBtn>
+        </div>
+        {searchShown && <div className="gvt-row gvt-row--search">{search}</div>}
+        {moreMenu && (
+          <ContextMenu x={moreMenu.x} y={moreMenu.y} items={moreItems} onClose={() => setMoreMenu(null)} />
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="gvt">
+      {identity}
+
+      <span className="gvt-spring" />
+      {p.onToggleGraph && <button className="gvt-tbtn" onClick={p.onToggleGraph}
+        aria-pressed={p.graphHidden}>
+        {t(p.graphHidden ? 'panel.compact.showGraph' : 'panel.compact.hideGraph')}
+      </button>}
+
+      {sync}
 
       <span className="gvt-sep" />
 
@@ -256,17 +345,7 @@ export default function CompactToolbar(p: Props) {
         </IconBtn>
       )}
 
-      {/* Search */}
-      <div className="gvt-search">
-        <Icon name="search" size={11} />
-        <input type="text" placeholder={t('gvt.search')} value={p.searchQuery} onChange={e => p.onSearch(e.target.value)} />
-        {p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && (
-          <span className={`gvt-search-count${p.searchMatches === 0 ? ' gvt-search-count--none' : ''}`}>
-            {p.searchMatches}
-          </span>
-        )}
-        {p.searchQuery && <button className="gvt-search-clear" title={t('common.clearSearch')} onClick={() => p.onSearch('')}>×</button>}
-      </div>
+      {search}
     </div>
   )
 }

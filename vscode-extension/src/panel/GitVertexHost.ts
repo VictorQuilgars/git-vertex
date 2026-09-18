@@ -264,7 +264,13 @@ export class GitVertexHost implements vscode.Disposable {
     if (!this._boot) activeCommitMenuWebview = this._webview
     this._webview.html = this._getHtml(this._webview)
     this._webview.onDidReceiveMessage(
-      (msg: GitApiRequest) => { if (msg?.type === 'gitApi') this._handleApi(msg) },
+      (msg: GitApiRequest | { type: 'gvActive' }) => {
+        if (msg?.type === 'gitApi') this._handleApi(msg)
+        // The native commit menu relays to the last webview the pointer went
+        // down in — the panel view and the editor tab both draw the graph,
+        // and the one the user right-clicked is not always the newer one.
+        else if (msg?.type === 'gvActive' && !this._boot) activeCommitMenuWebview = this._webview
+      },
       null,
       this._disposables,
     )
@@ -1255,6 +1261,7 @@ export class GitVertexHost implements vscode.Disposable {
   }
 
   public dispose(): void {
+    if (activeCommitMenuWebview === this._webview) activeCommitMenuWebview = undefined
     this._fsWatcher?.dispose()
     this._disposables.forEach(d => d.dispose())
     this._disposables = []

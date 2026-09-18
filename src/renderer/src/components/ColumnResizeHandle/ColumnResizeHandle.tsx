@@ -1,29 +1,36 @@
 import { useEffect, useRef } from 'react'
 import './ColumnResizeHandle.css'
 
-/** Sizes the column to the right, including when the pointer leaves the handle. */
-export default function ColumnResizeHandle({ value, min, max, label, onChange, onCommit }: {
+/**
+ * Sizes the pane after it — to its right, or below it when `horizontal` —
+ * including when the pointer leaves the handle.
+ */
+export default function ColumnResizeHandle({ value, min, max, label, onChange, onCommit, orientation = 'vertical' }: {
   value: number; min: number; max: number; label: string
-  onChange: (width: number) => void
-  onCommit?: (width: number) => void
+  onChange: (size: number) => void
+  onCommit?: (size: number) => void
+  /** The separator's own direction: a vertical bar sizes widths, a horizontal one heights. */
+  orientation?: 'vertical' | 'horizontal'
 }) {
+  const horizontal = orientation === 'horizontal'
   const cleanup = useRef<(() => void) | null>(null)
   useEffect(() => () => cleanup.current?.(), [])
-  const clamp = (width: number) => Math.round(Math.max(min, Math.min(max, width)))
-  return <div className="column-resize-handle" role="separator" tabIndex={0}
-    aria-label={label} aria-orientation="vertical"
+  const clamp = (size: number) => Math.round(Math.max(min, Math.min(max, size)))
+  return <div className={`column-resize-handle${horizontal ? ' column-resize-handle--horizontal' : ''}`}
+    role="separator" tabIndex={0}
+    aria-label={label} aria-orientation={orientation}
     aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(value)}
     onPointerDown={e => {
       if (e.button !== 0) return
       e.preventDefault()
       e.currentTarget.focus()
       cleanup.current?.()
-      const startX = e.clientX
+      const start = horizontal ? e.clientY : e.clientX
       const pointerId = e.pointerId
       let latest = value
       const move = (event: PointerEvent) => {
         if (event.pointerId !== pointerId) return
-        latest = clamp(value + startX - event.clientX)
+        latest = clamp(value + start - (horizontal ? event.clientY : event.clientX))
         onChange(latest)
       }
       const finish = () => {
@@ -45,13 +52,15 @@ export default function ColumnResizeHandle({ value, min, max, label, onChange, o
     }}
     onKeyDown={e => {
       const step = e.shiftKey ? 50 : 10
-      const next = e.key === 'ArrowLeft' ? value + step : e.key === 'ArrowRight' ? value - step
+      const grow = horizontal ? 'ArrowUp' : 'ArrowLeft'
+      const shrink = horizontal ? 'ArrowDown' : 'ArrowRight'
+      const next = e.key === grow ? value + step : e.key === shrink ? value - step
         : e.key === 'Home' ? min : e.key === 'End' ? max : null
       if (next === null) return
       e.preventDefault()
       e.stopPropagation()
-      const width = clamp(next)
-      onChange(width)
-      onCommit?.(width)
+      const size = clamp(next)
+      onChange(size)
+      onCommit?.(size)
     }} />
 }

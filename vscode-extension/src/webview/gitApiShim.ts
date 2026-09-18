@@ -51,6 +51,13 @@ window.addEventListener('message', (e: MessageEvent) => {
   }
 })
 
+// Which webview the user is in. The native commit menu (contributes.menus
+// webview/context) answers through the host, and the host can only relay
+// to one webview — the one whose row was right-clicked, which is the one
+// the pointer went down in last. A press, not a focus event: the webview's
+// focus does not move for a right-click.
+window.addEventListener('pointerdown', () => { vscode.postMessage({ type: 'gvActive' }) }, true)
+
 function call(method: string, args: any[]): Promise<any> {
   const id = nextId++
   return new Promise((resolve, reject) => {
