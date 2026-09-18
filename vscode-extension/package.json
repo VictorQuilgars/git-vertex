@@ -786,6 +786,22 @@
           "default": 90,
           "description": "Age, in days, at which a line is drawn as fully cold in the heatmap."
         },
+        "gitVertex.blame.heatmap.hotColor": {
+          "type": "string",
+          "default": "#F66A0A",
+          "format": "color-hex",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "patternErrorMessage": "Use a #RRGGBB colour, such as #F66A0A.",
+          "description": "Heatmap colour of a line that has just changed, as #RRGGBB. The gutter is drawn, not themed, so it follows this setting rather than the colour theme."
+        },
+        "gitVertex.blame.heatmap.coldColor": {
+          "type": "string",
+          "default": "#0A60F6",
+          "format": "color-hex",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "patternErrorMessage": "Use a #RRGGBB colour, such as #0A60F6.",
+          "description": "Heatmap colour of a line older than the age threshold, as #RRGGBB."
+        },
         "gitVertex.codeLens.enabled": {
           "type": "boolean",
           "default": true,

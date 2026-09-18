@@ -63,6 +63,8 @@ suite('blame — extension host wiring', () => {
     assert.strictEqual(cfg.get('blame.line.enabled'), true)
     assert.strictEqual(cfg.get('blame.messageLength'), 60)
     assert.strictEqual(cfg.get('blame.heatmap.ageThresholdDays'), 90)
+    assert.strictEqual(cfg.get('blame.heatmap.hotColor'), '#F66A0A')
+    assert.strictEqual(cfg.get('blame.heatmap.coldColor'), '#0A60F6')
     assert.deepStrictEqual(cfg.get('codeLens.scopes'), ['document', 'containers'])
   })
 

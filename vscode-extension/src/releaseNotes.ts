@@ -16,6 +16,11 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 🌡️ The heatmap's colours are yours
+- The blame heatmap runs between **two colours from the settings** — \`gitVertex.blame.heatmap.hotColor\` and \`coldColor\`, as \`#RRGGBB\` — instead of an orange and a blue no theme could reach. An open annotation repaints as you change them.
+`,
   '1.35.0': `## What's new in 1.35.0
 
 ### 🎨 Make your own theme

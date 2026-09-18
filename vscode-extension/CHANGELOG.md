@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **The blame heatmap takes its two colours from the settings.** The gutter bar ran from an orange to a blue written in the code, and the gutter takes a drawn icon rather than a theme colour — so a light theme, a colour-blind reader or a palette that fights orange all got the same two. `gitVertex.blame.heatmap.hotColor` and `gitVertex.blame.heatmap.coldColor` are the ends now, as `#RRGGBB`, defaulting to the colours it had. Changing either repaints an open annotation at once; a value that is not `#RRGGBB` falls back to the default and says so, once. (#250)
+
 ## 1.35.0
 
 ### Added
