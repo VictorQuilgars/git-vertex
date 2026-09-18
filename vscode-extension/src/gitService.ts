@@ -2056,11 +2056,6 @@ exit 0
 
   // ── History / diff helpers (ported from desktop GitService) ───────
 
-  // ── Activity ───────────────────────────────────────────────
-  async getActivity(opts?: { path?: string; max?: number }): Promise<{ points: core.ActivityPoint[]; truncated: boolean }> {
-    return core.activity(this.run, opts)
-  }
-
   // ── Contributors ───────────────────────────────────────────
   async getContributors(limit?: number): Promise<{ contributors: core.Contributor[] }> {
     return core.contributors(this.run, { limit })

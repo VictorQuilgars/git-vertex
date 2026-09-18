@@ -17,6 +17,7 @@ export function GraphSection({ page }: { page: SettingsPage }) {
                   ['graphShowSha',     'settings.graph.sha',     'settings.graph.shaHint'],
                   ['graphShowStats',   'settings.graph.stats',   'settings.graph.statsHint'],
                   ['graphTimeline',    'settings.graph.timeline', 'settings.graph.timelineHint'],
+                  ['graphMinimap',     'settings.graph.minimap',  'settings.graph.minimapHint'],
                 ] as [string, string, string][]).map(([key, labelKey, descKey]) => (
                   <label key={key} className="stg-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
                     <input

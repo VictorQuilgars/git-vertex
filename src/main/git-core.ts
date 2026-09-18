@@ -523,38 +523,3 @@ export async function contributors(
     return { contributors: [] }
   }
 }
-
-// ── Activity ─────────────────────────────────────────────────────
-/** One commit, reduced to when it was made and by whom. */
-export interface ActivityPoint { at: number; author: string; hash: string }
-
-/** `%at%x00%aN%x00%H` lines — seconds, a name, a hash, NUL-separated. */
-export function parseActivity(raw: string): ActivityPoint[] {
-  const out: ActivityPoint[] = []
-  for (const line of raw.split('\n')) {
-    const [at, author, hash] = line.split('\0')
-    const when = parseInt(at, 10)
-    if (!Number.isFinite(when) || !hash) continue
-    out.push({ at: when, author: (author ?? '').trim(), hash: hash.trim() })
-  }
-  return out
-}
-
-/**
- * The commits of the repository — or of a path — as points in time, newest
- * first, merges left out, across every branch: what a chart of "when did work
- * happen here, and whose" is drawn from. Capped, and says when it was.
- */
-export async function activity(
-  run: GitRunner, opts: { path?: string; max?: number } = {},
-): Promise<{ points: ActivityPoint[]; truncated: boolean }> {
-  const max = opts.max ?? 20000
-  const args = ['log', '--all', '--no-merges', `--format=%at%x00%aN%x00%H`, '-n', String(max + 1)]
-  if (opts.path) args.push('--', opts.path)
-  try {
-    const points = parseActivity(await run(args))
-    return { points: points.slice(0, max), truncated: points.length > max }
-  } catch {
-    return { points: [], truncated: false }
-  }
-}

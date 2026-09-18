@@ -349,16 +349,16 @@ describe('token discipline', () => {
   // through the whole migration.
   //
   // Five files may still hold an <svg> and no others: the two that ARE a
-  // drawing (Mark, BrandMark), the one that renders the folder (Icon), and
-  // the two charts — the graph and the activity bars — whose SVG is a canvas
-  // they compute rather than an icon.
+  // drawing (Mark, BrandMark), the one that renders the folder (Icon), and the
+  // graph and its minimap, whose SVG is a canvas they compute rather than an
+  // icon.
   it('leaves no icon inlined in a component', () => {
     const ALLOWED = [
       'components/Mark/Mark.tsx',
       'components/BrandMark/BrandMark.tsx',
       'components/Icon/Icon.tsx',
       'components/CommitGraph/CommitGraph.tsx',
-      'components/Activity/ActivityChart.tsx',
+      'components/CommitGraph/Minimap.tsx',
     ]
     const offenders = COMPONENT_TSX
       .filter(f => !ALLOWED.some(a => path.resolve(f).endsWith(a)))

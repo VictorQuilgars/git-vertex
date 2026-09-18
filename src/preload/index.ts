@@ -197,8 +197,6 @@ const gitAPI = {
   getReflog: () => invoke('git:get-reflog'),
   // Contributors
   getContributors: (limit?: number) => invoke('git:get-contributors', limit),
-  // Activity
-  getActivity: (opts?: { path?: string; max?: number }) => invoke('git:get-activity', opts),
   // File History
   getFileHistory: (filepath: string) => invoke('git:get-file-history', filepath),
   // Remotes

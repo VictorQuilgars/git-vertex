@@ -14,7 +14,6 @@ import { ToastProvider, useToast } from '../../../src/renderer/src/components/To
 import CompactToolbar from './CompactToolbar'
 import EmptyRepo from './EmptyRepo'
 import WelcomeTab from './WelcomeTab'
-import ActivityTab from './ActivityTab'
 import { resolvePanelLayout, clampDetailsHeight, overlayWidth, DETAILS_MIN } from './panelLayout'
 import { planReach } from '../../../src/renderer/src/app/search-reach'
 import { LOG_PAGE } from '../../../src/renderer/src/app/shared'
@@ -81,7 +80,7 @@ const WIP_NODE: CommitNode = {
 
 function VertexApp() {
   const { t } = useLang();
-  const { get: getSetting } = useSettings()
+  const { get: getSetting, getBool: getBoolSetting, set: setSetting } = useSettings()
   // The reference patterns from Settings › GitHub — what lets a linked
   // reference open even when no tracker API is wired for it.
   const autolinks = useMemo(() => parseAutolinks(getSetting('autolinks', '')), [getSetting])
@@ -942,12 +941,6 @@ function VertexApp() {
   // The graph follows the editor's cursor: the switch is in the toolbar, the
   // work is the host's, the state is the shared setting — read back here,
   // and pushed here when the palette flips it.
-  // A bar of the activity chart, clicked: its commits are what the graph
-  // shows, the rest dimmed — the same channel the extended search uses. A
-  // typed search takes the channel over; another repository clears it.
-  const [activityHashes, setActivityHashes] = useState<Set<string> | null>(null)
-  useEffect(() => { if (searchQuery) setActivityHashes(null) }, [searchQuery])
-  useEffect(() => { setActivityHashes(null) }, [repoPath])
   const [followCursor, setFollowCursor] = useState(false)
   useEffect(() => {
     window.gitAPI.settingsGetAll().then((all: Record<string, string>) => setFollowCursor(all?.followCursor === 'true')).catch(() => {})
@@ -1359,8 +1352,6 @@ function VertexApp() {
             home={emptyState}
             mergeTarget={mergeTarget}
             launchpad={launchpad}
-            onShowCommits={(hashes) => setActivityHashes(hashes.length ? new Set(hashes) : null)}
-            onOpenActivityTab={() => { void window.gitAPI.openActivityTab() }}
             onCompareBranch={(name: string) => window.gitAPI.openCompare(currentBranch, name)}
             soloBranch={soloBranch}
             visibility={visibility}
@@ -1487,7 +1478,6 @@ function VertexApp() {
             loading={loading}
             onSearchMatches={setSearchMatches}
             upstreamRef={tracking.upstream ?? null}
-            searchHashes={activityHashes}
             nativeContextMenu
             onNativeMenuTarget={(hash) => window.gitAPI.setLastMenuHash(hash)}
           />
@@ -1588,6 +1578,8 @@ function VertexApp() {
         onToggleSidebar={handleToggleSidebar}
         followCursor={followCursor}
         onToggleFollowCursor={() => { void window.gitAPI.followCursor(!followCursor) }}
+        minimapShown={getBoolSetting('graphMinimap', true)}
+        onToggleMinimap={() => setSetting('graphMinimap', getBoolSetting('graphMinimap', true) ? 'false' : 'true')}
         onSettings={() => setSettingsOpen(true)}
         onSetUpstream={handleSetUpstream}
         onRenameBranch={handleRenameBranch}
@@ -1861,8 +1853,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                             ? <ThemeGallery />
                           : boot?.mode === 'welcome'
                             ? <WelcomeTab />
-                          : boot?.mode === 'activity'
-                            ? <ActivityTab />
                           : boot?.mode === 'whatsNew' && boot.notes
                             ? <WhatsNew version={boot.version ?? ''} notes={boot.notes} tagPrefix="ext-v" />
                             : <VertexApp />}

@@ -1,0 +1,110 @@
+/* The minimap: the loaded history as a strip above the graph (Minimap.tsx). */
+.cg-mm {
+  position: relative;
+  flex-shrink: 0;
+  height: 40px;            /* MINIMAP_H */
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-muted);
+  cursor: crosshair;
+  user-select: none;
+  touch-action: none;
+}
+
+.cg-mm-svg { display: block; overflow: visible; }
+
+/* The stretch the graph has on screen — a scroll thumb over the chart. */
+.cg-mm-band { fill: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent); }
+
+.cg-mm-area { fill: color-mix(in srgb, var(--accent) var(--alpha-soft), transparent); }
+.cg-mm-line { fill: none; stroke: var(--accent); stroke-width: 1.25; stroke-linejoin: round; }
+
+/* A day the search matched. */
+.cg-mm-match { fill: color-mix(in srgb, var(--warning) var(--alpha-bold), transparent); }
+
+/* Branch and tag ticks along the bottom: tall for local branches and stashes,
+   short for remotes and tags, drawn after so both show on a shared day. */
+.cg-mm-mark { shape-rendering: crispEdges; }
+.cg-mm-mark--local  { fill: var(--accent); }
+.cg-mm-mark--remote { fill: var(--success); }
+.cg-mm-mark--tag    { fill: var(--purple-text); }
+.cg-mm-mark--stash  { fill: var(--text-tertiary); }
+
+/* Where you are standing, and where your upstream is. */
+.cg-mm-head polygon { fill: var(--ref-head); }
+.cg-mm-head line { stroke: var(--ref-head); stroke-width: 1.5; opacity: 0.7; }
+.cg-mm-upstream polygon { fill: var(--success); opacity: 0.7; }
+.cg-mm-upstream line { stroke: var(--success); stroke-width: 1; opacity: 0.45; }
+
+.cg-mm-sel { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.cg-mm-hover { stroke: var(--text-tertiary); stroke-width: 1; stroke-dasharray: 2 2; }
+.cg-mm-hover-dot { fill: var(--accent); }
+.cg-mm-brush {
+  fill: color-mix(in srgb, var(--accent) var(--alpha-muted), transparent);
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+
+.cg-mm-tools {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-2xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  cursor: default;
+}
+.cg-mm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.cg-mm-btn:hover { background: var(--surface-active); color: var(--text-primary); }
+.cg-mm-btn:focus-visible { outline: 1px solid var(--accent); }
+
+.cg-mm-tip {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  transform: translateX(-50%);
+  z-index: var(--z-dropdown);
+  min-width: 160px;
+  max-width: 240px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-hover);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent);
+  font-size: var(--text-xs);
+  color: var(--text-primary-soft);
+  pointer-events: none;
+}
+.cg-mm-tip-head { display: flex; gap: var(--space-sm); align-items: baseline; flex-wrap: wrap; }
+.cg-mm-tip-date { font-weight: var(--weight-semibold); color: var(--text-primary); }
+.cg-mm-tip-rel { color: var(--text-tertiary); }
+.cg-mm-tip-count { margin-top: var(--space-2xs); }
+.cg-mm-tip-add { color: var(--success); }
+.cg-mm-tip-del { color: var(--danger); }
+.cg-mm-tip-match { margin-top: var(--space-2xs); color: var(--warning-bright); }
+.cg-mm-tip-refs { display: flex; flex-wrap: wrap; gap: var(--space-2xs); margin-top: var(--space-xs); }
+.cg-mm-ref {
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-xs);
+  background: var(--surface-active);
+  color: var(--text-secondary);
+  font-size: var(--text-tiny);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cg-mm-ref--head   { color: var(--ref-head); }
+.cg-mm-ref--local  { color: var(--accent); }
+.cg-mm-ref--remote { color: var(--success); }
+.cg-mm-ref--tag    { color: var(--purple-text); }

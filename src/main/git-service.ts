@@ -2435,11 +2435,6 @@ exit 0
 
   // ── Reflog ─────────────────────────────────────────────────
 
-  // ── Activity ───────────────────────────────────────────────
-  async getActivity(opts?: { path?: string; max?: number }): Promise<{ points: core.ActivityPoint[]; truncated: boolean }> {
-    return core.activity(this.run, opts)
-  }
-
   // ── Contributors ───────────────────────────────────────────
   async getContributors(limit?: number): Promise<{ contributors: core.Contributor[] }> {
     return core.contributors(this.run, { limit })

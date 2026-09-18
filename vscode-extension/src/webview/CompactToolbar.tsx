@@ -62,6 +62,9 @@ interface Props {
   /** The graph follows the editor's cursor — the commit of the active line is shown as it moves. */
   followCursor?: boolean
   onToggleFollowCursor?: () => void
+  /** The activity strip above the graph — shown, and the switch that hides it. */
+  minimapShown?: boolean
+  onToggleMinimap?: () => void
   // ── Unified branch menu (v1.21.0) ──
   // The "⋮" next to the branch selector gathers what used to be split between
   // this toolbar (Fetch/Pull/Push) and the sidebar's right-click menu.
@@ -202,6 +205,7 @@ export default function CompactToolbar(p: Props) {
     { label: 'Terminal', icon: 'terminal', action: p.onTerminal },
     { label: t('gvt.openDesktop'), icon: 'externalLink', action: p.onOpenDesktop },
     ...(p.onToggleFollowCursor ? [{ separator: true } as MenuItemDef, { label: t('gvt.followCursor'), icon: 'eye', checked: !!p.followCursor, action: p.onToggleFollowCursor } as MenuItemDef] : []),
+    ...(p.onToggleMinimap ? [{ label: t('graph.menu.minimap'), icon: 'activity', checked: !!p.minimapShown, action: p.onToggleMinimap } as MenuItemDef] : []),
     ...(p.onSettings ? [{ separator: true } as MenuItemDef, { label: t('gvt.settings'), icon: 'gear', action: p.onSettings } as MenuItemDef] : []),
   ]
 
@@ -390,6 +394,11 @@ export default function CompactToolbar(p: Props) {
       {p.onToggleFollowCursor && (
         <IconBtn title={t('gvt.followCursor')} onClick={p.onToggleFollowCursor} active={p.followCursor}>
           <Icon name="eye" size={14} />
+        </IconBtn>
+      )}
+      {p.onToggleMinimap && (
+        <IconBtn title={t(p.minimapShown ? 'minimap.hide' : 'minimap.show')} onClick={p.onToggleMinimap} active={p.minimapShown}>
+          <Icon name="activity" size={14} />
         </IconBtn>
       )}
       {p.onSettings && (

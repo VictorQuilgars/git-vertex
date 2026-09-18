@@ -17,6 +17,7 @@ export interface GraphMenuContext {
   showSha: boolean
   showStats: boolean
   showTimeline: boolean
+  showMinimap: boolean
   compactColumns: boolean
   drop: DropState | null
   displayLayout: LayoutCommit[]
@@ -30,7 +31,7 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
   const {
     currentBranch, onCherryPick, onRevert, onReset, onCreateTag, onCreateBranchAt, onCheckoutBranch, onInteractiveRebase, onCheckoutCommit, onRewordCommit, onCompareWorking, onSelectForCompare, onCompareWithSelected, compareBaseHash, onDropCommit, onMoveCommit, onBranchDrop, onCherryPickMany, onDropCommits, onMergeBranch, onRebaseCurrentOnto, onRenameBranch, onDeleteBranch, onPushBranch, onSetUpstream, prIntentFor, onCreatePR, branchMenuItems, onCopyCommitLink, onCreateAnnotatedTag, onDeleteRemoteBranch, onPushTag, onDeleteTag, onDeleteRemoteTag, onRebaseCurrentOntoCommit, onPushToCommit, onCreatePatch, onCopyPatch, onSharePatch, onCreateWorktreeAt, onOpenCommitOnRemote, nativeContextMenu = false, onNativeMenuTarget,
   } = props
-  const { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, compactColumns, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt } = ctx
+  const { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt } = ctx
 
   // The "start a Pull Request" row, pointing whichever way prIntentFor decided
   // — from this branch, or into it, depending on where you are standing.
@@ -304,6 +305,7 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
     { separator: true },
     { label: t('graph.menu.compactCols'), checked: compactColumns, action: () => set('graphCompactColumns', compactColumns ? 'false' : 'true') },
     { label: t('graph.menu.timeline'), checked: showTimeline, action: () => set('graphTimeline', showTimeline ? 'false' : 'true') },
+    { label: t('graph.menu.minimap'), checked: showMinimap, action: () => set('graphMinimap', showMinimap ? 'false' : 'true') },
     { separator: true },
     { label: t('graph.menu.resetCols'), action: () => {
       set('graphShowAvatars', 'true')
@@ -313,7 +315,7 @@ export function useGraphMenus(props: CommitGraphProps, ctx: GraphMenuContext) {
       set('graphShowStats', 'true')
       set('graphCompactColumns', 'false')
     } },
-  ], [showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, compactColumns, set])
+  ], [showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, set])
 
   return { buildMenuItems, batchMenuItems, buildDropItems, buildBranchMenu, buildHeaderMenuItems, handleRowContextMenu }
 }
