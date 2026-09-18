@@ -33,6 +33,12 @@ export const RELEASE_NOTES: Record<string, string> = {
 - In the graph, **h** is HEAD, **u** its upstream, **w** the working changes, **Home** / **End** the ends of the page.
 - **One Escape closes one thing**: a menu open over the graph owns the key before the selection does.
 
+### 🚪 No repository: the doors
+- A panel with nothing to show names the situation and offers **Open Folder…**, **Clone Repository…** and **Initialize Repository** — VS Code's own.
+
+### ⏮️ Revisions, one step at a time
+- From the editor's title bar, **Open Changes with Previous / Next Revision** walk a file's own history; a revision document offers **Show Revision Commit in Graph**.
+
 ### 🗂️ Several repositories, one panel
 - When the workspace folders belong to more than one repository, the toolbar's name is a **picker**; the choice is remembered per workspace.
 

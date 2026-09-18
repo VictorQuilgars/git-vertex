@@ -473,6 +473,69 @@ export function activate(context: vscode.ExtensionContext): void {
     refreshStatusBar()
   }
 
+  provider.onRescan = () => {
+    const root = resolveRepoRoot()
+    if (root) { provider.setRepo(root); setEditorRepo(root); setupRebaseWatch(context, root); blame.watch(root); refreshStatusBar() }
+  }
+
+  // ── Revision navigation ──
+  // The editor's file at a revision, one step older or newer, as VS Code's
+  // own diff. From the working file the previous revision is HEAD (or, on a
+  // clean file, the commit before the last one that touched it); from a
+  // revision document the chain follows the file's own history, and its
+  // newer end is the working file again.
+  const revisionOf = (uri: vscode.Uri): { root: string; rel: string; ref: string | null } | null => {
+    if (uri.scheme === 'gitvertex') {
+      const root = resolveRepoRoot()
+      if (!root) return null
+      return { root, rel: uri.path.replace(/^\//, ''), ref: uri.query || null }
+    }
+    if (uri.scheme !== 'file') return null
+    const root = getRepoRootForFile(uri.fsPath)
+    if (!root) return null
+    return { root, rel: path.relative(root, uri.fsPath).split(path.sep).join('/'), ref: null }
+  }
+  const revisionDiff = async (direction: 'previous' | 'next'): Promise<void> => {
+    const editor = vscode.window.activeTextEditor
+    const at = editor ? revisionOf(editor.document.uri) : null
+    if (!editor || !at) { vscode.window.showWarningMessage('Open a file inside a Git repository to step through its revisions.'); return }
+    const svc = new GitService(at.root)
+    ensureDiffProvider(svc)
+    const name = path.basename(at.rel)
+    const short = (h: string) => h.slice(0, 7)
+    const touching = async (from: string, count?: number): Promise<string[]> => {
+      const out = await svc.raw(['log', '--format=%H', ...(count ? ['-n', String(count)] : []), from, '--', at.rel])
+      return out.split('\n').map(l => l.trim()).filter(Boolean)
+    }
+    if (direction === 'previous') {
+      if (at.ref === null) {
+        // The working file: against HEAD while it is modified, else one
+        // commit further back — a clean file against HEAD is an empty diff.
+        const dirty = (await svc.raw(['status', '--porcelain', '--', at.rel])).trim() !== ''
+        if (dirty) {
+          await vscode.commands.executeCommand('vscode.diff', refUri('HEAD', at.rel), editor.document.uri, `${name} (HEAD ↔ Working Tree)`)
+          return
+        }
+      }
+      const [current, previous] = await touching(at.ref ?? 'HEAD', 2)
+      if (!current) { vscode.window.showInformationMessage('Git has no history for this file.'); return }
+      if (!previous) { vscode.window.showInformationMessage(`${short(current)} is the first revision of this file.`); return }
+      await vscode.commands.executeCommand('vscode.diff', refUri(previous, at.rel), refUri(current, at.rel), `${name} (${short(previous)} ↔ ${short(current)})`)
+      return
+    }
+    if (at.ref === null) { vscode.window.showInformationMessage('The working file is the newest revision.'); return }
+    const here = (await svc.raw(['rev-parse', '--verify', `${at.ref}^{commit}`])).trim()
+    const history = await touching('HEAD')
+    const index = history.indexOf(here)
+    const newer = index > 0 ? history[index - 1] : null
+    if (newer) {
+      await vscode.commands.executeCommand('vscode.diff', refUri(here, at.rel), refUri(newer, at.rel), `${name} (${short(here)} ↔ ${short(newer)})`)
+    } else {
+      const working = vscode.Uri.file(path.join(at.root, at.rel))
+      await vscode.commands.executeCommand('vscode.diff', refUri(here, at.rel), working, `${name} (${short(here)} ↔ Working Tree)`)
+    }
+  }
+
   // Resolve initial repo and inject into provider
   const repoRoot = resolveRepoRoot()
   if (repoRoot) {
@@ -585,6 +648,12 @@ export function activate(context: vscode.ExtensionContext): void {
     // are the jump from there to what that commit actually did. Reaching for
     // them from an editor is the point, so they resolve the line themselves
     // rather than depending on the annotations being switched on.
+    vscode.commands.registerCommand('gitVertex.diffWithPrevious', () => revisionDiff('previous')),
+    vscode.commands.registerCommand('gitVertex.diffWithNext', () => revisionDiff('next')),
+    vscode.commands.registerCommand('gitVertex.revealRevisionCommit', () => {
+      const uri = vscode.window.activeTextEditor?.document.uri
+      if (uri?.scheme === 'gitvertex' && uri.query) void revealInPanel(uri.query)
+    }),
     vscode.commands.registerCommand('gitVertex.diffLineWithPrevious', () => diffLine('previous')),
     vscode.commands.registerCommand('gitVertex.diffLineWithWorking', () => diffLine('working')),
     vscode.commands.registerCommand('gitVertex.blame.copyHash', async (hash?: string) => {

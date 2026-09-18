@@ -25,6 +25,7 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
     this._view = view
     host.onStatus = status => { if (this._view === view) this._wear(view, status) }
     host.onSwitchRepo = repoPath => this.onSwitchRepo?.(repoPath)
+    host.onRescan = () => this.onRescan?.()
     // The repo may have been resolved before the view was lazily created.
     if (this._pendingRepo) host.setRepo(this._pendingRepo)
     // A commit asked for before the view existed: the webview boots, loads
@@ -56,6 +57,8 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
 
   /** The panel chose another repository of the workspace. */
   public onSwitchRepo?: (repoPath: string) => void
+  /** The panel initialised a repository: resolve one again. */
+  public onRescan?: () => void
 
   public setRepo(repoPath: string): void {
     this._pendingRepo = repoPath

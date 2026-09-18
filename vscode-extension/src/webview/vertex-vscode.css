@@ -411,3 +411,24 @@
 }
 /* The composer brings its own scrolling list; it wants the width. */
 .ai-tab--full { max-width: none; padding: var(--space-lg); }
+
+/* ── No repository: three doors, all VS Code's own ─────────────── */
+.gv-empty {
+  flex: 1; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-md); padding: var(--space-4xl) var(--space-3xl); text-align: center;
+  color: var(--text-secondary);
+}
+.gv-empty-mark { opacity: 0.6; }
+.gv-empty-title { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--text-primary); }
+.gv-empty-body { margin: 0; max-width: 360px; font-size: var(--text-sm); line-height: 1.5; }
+.gv-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-md); margin-top: var(--space-md); }
+.gv-empty-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: var(--row-ctl); padding: 0 12px;
+  background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  color: var(--text-primary); font-size: var(--text-sm); cursor: pointer;
+}
+.gv-empty-btn:hover { background: var(--surface-active); }
+.gv-empty-btn--primary { background: var(--accent-emphasis); border-color: var(--accent-emphasis); color: var(--text-on-emphasis); }
+.gv-empty-btn--primary:hover { background: var(--accent); border-color: var(--accent); }

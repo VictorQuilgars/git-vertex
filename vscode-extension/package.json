@@ -130,6 +130,21 @@
         "title": "Git Vertex: Clear File Blame Annotations"
       },
       {
+        "command": "gitVertex.diffWithPrevious",
+        "title": "Git Vertex: Open Changes with Previous Revision",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "gitVertex.diffWithNext",
+        "title": "Git Vertex: Open Changes with Next Revision",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "gitVertex.revealRevisionCommit",
+        "title": "Git Vertex: Show Revision Commit in Graph",
+        "icon": "$(git-commit)"
+      },
+      {
         "command": "gitVertex.diffLineWithPrevious",
         "title": "Git Vertex: Compare Line With Previous Revision"
       },
@@ -314,6 +329,21 @@
           "command": "gitVertex.open",
           "when": "gitOpenRepositoryCount > 0",
           "group": "navigation"
+        },
+        {
+          "command": "gitVertex.diffWithPrevious",
+          "when": "(resourceScheme == file && gitOpenRepositoryCount > 0) || resourceScheme == gitvertex",
+          "group": "navigation@97"
+        },
+        {
+          "command": "gitVertex.revealRevisionCommit",
+          "when": "resourceScheme == gitvertex",
+          "group": "navigation@98"
+        },
+        {
+          "command": "gitVertex.diffWithNext",
+          "when": "resourceScheme == gitvertex",
+          "group": "navigation@99"
         }
       ],
       "editor/title/context": [
@@ -492,6 +522,10 @@
         {
           "command": "gitVertex.commitMenu.compareWithSelected",
           "when": "false"
+        },
+        {
+          "command": "gitVertex.revealRevisionCommit",
+          "when": "resourceScheme == gitvertex"
         }
       ],
       "webview/context": [

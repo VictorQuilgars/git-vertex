@@ -12,6 +12,7 @@ import { SettingsProvider, useSettings, resolveLayout, LAYOUT_STORAGE_KEY } from
 import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
+import EmptyRepo from './EmptyRepo'
 import { resolvePanelLayout, clampDetailsHeight, overlayWidth, DETAILS_MIN } from './panelLayout'
 import { planReach } from '../../../src/renderer/src/app/search-reach'
 import { LOG_PAGE } from '../../../src/renderer/src/app/shared'
@@ -121,6 +122,7 @@ function VertexApp() {
   // The repositories of the workspace: more than one, and the toolbar's name
   // becomes a picker (the host switches, and repoChanged brings the rest).
   const [repos, setRepos] = useState<{ path: string; name: string }[]>([])
+  const [hasWorkspaceFolder, setHasWorkspaceFolder] = useState(false)
   // Working Changes is selected on open, so the panel always has two panes:
   // the graph and whatever the selection is. Nothing selected used to mean no
   // right pane at all — which read as a broken panel, and for a clean tree it
@@ -259,11 +261,21 @@ function VertexApp() {
   // it (see revealCommit), never shrunk back while the webview lives.
   const logLimitRef = useRef(LOG_PAGE)
   const commitsReadyRef = useRef(false)
+  // The first load has been attempted, whatever it found: before that, an
+  // empty panel is a panel that has not asked yet, not one with no repository.
+  const [loadedOnce, setLoadedOnce] = useState(false)
   const loadRepoData = useCallback(async (silent = false) => {
     if (isLoadingRef.current) { reloadQueued.current = true; return }
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
+      // First, because the rest throws when there is no repository — and
+      // what the empty state offers depends on whether there is a folder.
+      try {
+        const ws = await window.gitAPI.listWorkspaceRepos()
+        setRepos(Array.isArray(ws?.repos) ? ws.repos : [])
+        setHasWorkspaceFolder(!!ws?.hasFolder)
+      } catch { /* the host is not there yet */ }
       const branchRes = await window.gitAPI.getBranches()
       // Solo (show one branch) / hide (hide some) drive an explicit refs list,
       // which takes precedence over --all in getLog.
@@ -306,6 +318,7 @@ function VertexApp() {
       try {
         const ws = await window.gitAPI.listWorkspaceRepos()
         setRepos(Array.isArray(ws?.repos) ? ws.repos : [])
+        setHasWorkspaceFolder(!!ws?.hasFolder)
       } catch { /* a single repository, as far as the toolbar knows */ }
       // Both feed the "start a Pull Request" row: no GitHub remote or no known
       // default branch means prIntentFor returns null and no row is offered.
@@ -335,6 +348,7 @@ function VertexApp() {
       } catch { setRemoteRepo(null) }
     } finally {
       isLoadingRef.current = false
+      setLoadedOnce(true)
       if (!silent) setLoading(false)
       if (reloadQueued.current) {
         reloadQueued.current = false
@@ -1124,7 +1138,11 @@ function VertexApp() {
     return Number.isFinite(saved) && saved >= 480 ? saved : 0
   })
   const [graphHidden, setGraphHidden] = useState(false)
-  const showRight = (!!selectedCommit || !!conflictMode) && !issueDetail
+  // No repository behind the panel: the host answered every call with
+  // "No repository open", so nothing loaded and nothing is named. The
+  // centre offers VS Code's doors instead of a graph with no commits.
+  const noRepo = loadedOnce && !loading && !repoPath
+  const showRight = (!!selectedCommit || !!conflictMode) && !issueDetail && !noRepo
   const compactWorking = showRight && selectedCommit?.hash === '__WIP__' && !conflictMode
     && bodySize.h > 0 && bodySize.h < 300
   const availableWidth = Math.max(0, bodyW - layout.railWidth - (activeView && !overlaySide ? sideW + 3 : 0))
@@ -1315,7 +1333,9 @@ function VertexApp() {
 
   const centreEl = (
         <div className="app-center" style={{ flex: 1, display: (stacked && showRight) || focusWorking ? 'none' : 'flex', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
-          {issueDetail && githubRepo ? (
+          {noRepo ? (
+            <EmptyRepo hasFolder={repos.length > 0 || hasWorkspaceFolder} />
+          ) : issueDetail && githubRepo ? (
             issueDetail.kind === 'pr' ? (
               <PRDetail
                 repo={githubRepo}

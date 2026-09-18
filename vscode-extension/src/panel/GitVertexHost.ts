@@ -47,6 +47,7 @@ import { describeTuning, maybeTuneRepository, type TuningRunner } from '../../..
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
 export interface PanelStatus { wip: number; branch: string }
+const WORKBENCH_DOORS = new Set(['vscode.openFolder', 'git.clone', 'git.init'])
 
 // ── Git's own caches, when the user asked for them ───────────────────────────
 //
@@ -321,6 +322,9 @@ export class GitVertexHost implements vscode.Disposable {
    * the status bar follow the panel there.
    */
   public onSwitchRepo?: (repoPath: string) => void
+
+  /** Something may have become a repository: whoever resolves one should look again. */
+  public onRescan?: () => void
 
   // ── FS watcher → broadcast change events ──────────────────────
   private _setupWatcher(repoPath: string): void {
@@ -597,6 +601,18 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'appGetInfo': return { platform: process.platform, version: '1.5.0', repoPath: this._repoPath, repoName: this._repoPath ? path.basename(this._repoPath) : undefined }
       case 'openExternal': { vscode.env.openExternal(vscode.Uri.parse(args[0])); return { success: true } }
+      case 'workbench': {
+        // The three doors a panel with no repository offers are VS Code's
+        // own: open a folder, clone (the built-in git extension's dialog),
+        // initialise the workspace folder. An allow-list, not a passthrough.
+        const id = String(args[0] ?? '')
+        if (!WORKBENCH_DOORS.has(id)) return { success: false, error: `not-allowed: ${id}` }
+        try { await vscode.commands.executeCommand(id) } catch (e: any) { return { success: false, error: e?.message ?? String(e) } }
+        // `git init` leaves a repository where there was none, a little
+        // later than the command returns: look again, a few times.
+        if (id === 'git.init') for (const ms of [500, 1500, 4000]) setTimeout(() => this.onRescan?.(), ms)
+        return { success: true }
+      }
       case 'openInEditor': {
         try {
           const uri = vscode.Uri.file(path.isAbsolute(args[0]) ? args[0] : path.join(this._repoPath ?? '', args[0]))
@@ -679,7 +695,7 @@ export class GitVertexHost implements vscode.Disposable {
           const root = getRepoRootForFile(folder.uri.fsPath)
           if (root && !seen.has(root)) seen.set(root, { path: root, name: path.basename(root) })
         }
-        return { repos: [...seen.values()], current: this._repoPath }
+        return { repos: [...seen.values()], current: this._repoPath, hasFolder: (vscode.workspace.workspaceFolders?.length ?? 0) > 0 }
       }
       case 'setPanelRepo': {
         const target = String(args[0] ?? '')

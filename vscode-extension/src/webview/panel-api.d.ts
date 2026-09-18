@@ -43,7 +43,9 @@ declare global {
     raw: (args: string[]) => Promise<string>
 
     /** The repositories of the workspace, one per repository root, and the one on screen. */
-    listWorkspaceRepos: () => Promise<{ repos: { path: string; name: string }[]; current?: string }>
+    listWorkspaceRepos: () => Promise<{ repos: { path: string; name: string }[]; current?: string; hasFolder?: boolean }>
+    /** One of VS Code's own doors — open folder, clone, init — from an allow-list the host keeps. */
+    workbench: (id: 'vscode.openFolder' | 'git.clone' | 'git.init') => Promise<unknown>
     /** Put another repository of the workspace on screen. */
     setPanelRepo: (repoPath: string) => Promise<unknown>
 
