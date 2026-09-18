@@ -186,6 +186,21 @@
         "title": "Git Vertex: What's New"
       },
       {
+        "command": "gitVertex.showWelcome",
+        "title": "Git Vertex: Welcome",
+        "icon": "$(home)"
+      },
+      {
+        "command": "gitVertex.toggleFollowCursor",
+        "title": "Git Vertex: Toggle Follow Cursor",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "gitVertex.openPanelSettings",
+        "title": "Git Vertex: Open Panel Settings",
+        "icon": "$(gear)"
+      },
+      {
         "command": "gitVertex.setGithubToken",
         "title": "Git Vertex: Set GitHub Token"
       },

@@ -59,6 +59,9 @@ interface Props {
   onSettings?: () => void
   sidebarOpen?: boolean
   onToggleSidebar?: () => void
+  /** The graph follows the editor's cursor — the commit of the active line is shown as it moves. */
+  followCursor?: boolean
+  onToggleFollowCursor?: () => void
   // ── Unified branch menu (v1.21.0) ──
   // The "⋮" next to the branch selector gathers what used to be split between
   // this toolbar (Fetch/Pull/Push) and the sidebar's right-click menu.
@@ -198,6 +201,7 @@ export default function CompactToolbar(p: Props) {
     { separator: true },
     { label: 'Terminal', icon: 'terminal', action: p.onTerminal },
     { label: t('gvt.openDesktop'), icon: 'externalLink', action: p.onOpenDesktop },
+    ...(p.onToggleFollowCursor ? [{ separator: true } as MenuItemDef, { label: t('gvt.followCursor'), icon: 'eye', checked: !!p.followCursor, action: p.onToggleFollowCursor } as MenuItemDef] : []),
     ...(p.onSettings ? [{ separator: true } as MenuItemDef, { label: t('gvt.settings'), icon: 'gear', action: p.onSettings } as MenuItemDef] : []),
   ]
 
@@ -383,6 +387,11 @@ export default function CompactToolbar(p: Props) {
       <IconBtn title={t('gvt.openDesktop')} onClick={p.onOpenDesktop} hideNarrow>
         <Icon name="externalLink" size={14} />
       </IconBtn>
+      {p.onToggleFollowCursor && (
+        <IconBtn title={t('gvt.followCursor')} onClick={p.onToggleFollowCursor} active={p.followCursor}>
+          <Icon name="eye" size={14} />
+        </IconBtn>
+      )}
       {p.onSettings && (
         <IconBtn title={t('gvt.settings')} onClick={p.onSettings}>
           <Icon name="gear" size={14} />

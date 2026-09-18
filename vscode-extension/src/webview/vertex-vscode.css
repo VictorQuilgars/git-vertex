@@ -432,3 +432,31 @@
 .gv-empty-btn:hover { background: var(--surface-active); }
 .gv-empty-btn--primary { background: var(--accent-emphasis); border-color: var(--accent-emphasis); color: var(--text-on-emphasis); }
 .gv-empty-btn--primary:hover { background: var(--accent); border-color: var(--accent); }
+
+/* ── Welcome: what the extension does, and where ──────────────── */
+.gvw { max-width: 920px; margin: 0 auto; padding: var(--space-4xl) var(--space-3xl); color: var(--text-secondary); }
+.gvw-head { display: flex; align-items: center; gap: var(--space-2xl); margin-bottom: var(--space-3xl); }
+.gvw-title { margin: 0; font-size: var(--text-2xl); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.gvw-lede { margin: var(--space-xs) 0 0; font-size: var(--text-md); line-height: 1.5; }
+.gvw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-2xl); }
+.gvw-card {
+  display: flex; flex-direction: column; gap: var(--space-md);
+  padding: var(--space-2xl); background: var(--surface); border: 1px solid var(--border-muted); border-radius: var(--radius-lg);
+}
+.gvw-card-head { display: flex; align-items: center; gap: var(--space-md); }
+.gvw-card-icon { color: var(--accent); flex-shrink: 0; }
+.gvw-card-title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.gvw-card-body { margin: 0; flex: 1; font-size: var(--text-sm); line-height: 1.5; }
+.gvw-card-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.gvw-btn {
+  display: inline-flex; align-items: center; height: var(--row-ctl); padding: 0 var(--space-xl);
+  background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  color: var(--text-primary); font-size: var(--text-sm); cursor: pointer;
+}
+.gvw-btn:hover { background: var(--surface-active); }
+.gvw-btn--primary { background: var(--accent-emphasis); border-color: var(--accent-emphasis); color: var(--text-on-emphasis); }
+.gvw-btn--primary:hover { background: var(--accent); border-color: var(--accent); }
+.gvw-foot { display: flex; align-items: center; gap: var(--space-2xl); margin-top: var(--space-3xl); font-size: var(--text-sm); }
+.gvw-link { background: none; border: none; padding: 0; color: var(--accent); font-size: var(--text-sm); cursor: pointer; }
+.gvw-link:hover { text-decoration: underline; }
+.gvw-foot-note { color: var(--text-tertiary); }

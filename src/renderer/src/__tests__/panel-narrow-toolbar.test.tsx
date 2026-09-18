@@ -115,3 +115,20 @@ describe('the repository picker', () => {
     expect(screen.getByText('app')).toBeInTheDocument()
   })
 })
+
+describe('following the cursor', () => {
+  test('the wide toolbar has the switch, pressed while following', () => {
+    const onToggleFollowCursor = jest.fn()
+    toolbar({ narrow: false, followCursor: true, onToggleFollowCursor })
+    const button = screen.getByRole('button', { name: /follow the cursor/i })
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(button)
+    expect(onToggleFollowCursor).toHaveBeenCalledTimes(1)
+  })
+
+  test('the narrow toolbar keeps it in the menu, checked while following', () => {
+    toolbar({ followCursor: true, onToggleFollowCursor: jest.fn() })
+    fireEvent.click(screen.getByRole('button', { name: /more actions/i }))
+    expect(screen.getByRole('menu')).toHaveTextContent(/follow the cursor/i)
+  })
+})

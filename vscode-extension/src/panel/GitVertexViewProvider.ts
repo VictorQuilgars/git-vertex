@@ -26,6 +26,7 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
     host.onStatus = status => { if (this._view === view) this._wear(view, status) }
     host.onSwitchRepo = repoPath => this.onSwitchRepo?.(repoPath)
     host.onRescan = () => this.onRescan?.()
+    host.onFollowCursor = on => this.onFollowCursor?.(on)
     // The repo may have been resolved before the view was lazily created.
     if (this._pendingRepo) host.setRepo(this._pendingRepo)
     // A commit asked for before the view existed: the webview boots, loads
@@ -59,6 +60,11 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
   public onSwitchRepo?: (repoPath: string) => void
   /** The panel initialised a repository: resolve one again. */
   public onRescan?: () => void
+  /** The graph follows the editor's cursor, or stops. */
+  public onFollowCursor?: (on: boolean) => void
+  public followCursor(on: boolean): void { void this._host?.applyFollowCursor(on) }
+  /** Open the panel's own settings page — the caller focuses the view first. */
+  public openSettings(): void { this._host?.postOpenSettings() }
 
   public setRepo(repoPath: string): void {
     this._pendingRepo = repoPath
@@ -66,9 +72,9 @@ export class GitVertexViewProvider implements vscode.WebviewViewProvider {
   }
 
   /** Show a commit in the graph — the caller focuses the view first. */
-  public reveal(ref: string): void {
-    if (this._host) this._host.postReveal(ref)
-    else this._pendingReveal = ref
+  public reveal(ref: string, quiet = false): void {
+    if (this._host) this._host.postReveal(ref, quiet)
+    else if (!quiet) this._pendingReveal = ref
   }
 
   public dispose(): void {

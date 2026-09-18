@@ -13,6 +13,7 @@ import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/Langua
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
 import EmptyRepo from './EmptyRepo'
+import WelcomeTab from './WelcomeTab'
 import { resolvePanelLayout, clampDetailsHeight, overlayWidth, DETAILS_MIN } from './panelLayout'
 import { planReach } from '../../../src/renderer/src/app/search-reach'
 import { LOG_PAGE } from '../../../src/renderer/src/app/shared'
@@ -896,14 +897,16 @@ function VertexApp() {
   // page is grown to reach it the way the extended search reaches a hit —
   // up to the same limit, past which its position is said instead.
   const revealing = useRef<string | null>(null)
-  const revealCommit = useCallback(async (ref: string) => {
+  const revealCommit = useCallback(async (ref: string, quiet = false) => {
     // The first page is still loading: the effect below tries again once it is in.
-    if (!commitsReadyRef.current) { revealing.current = ref; return }
+    if (!commitsReadyRef.current) { if (!quiet) revealing.current = ref; return }
     let hash = ''
     try { hash = String(await window.gitAPI.raw(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])).trim() } catch { /* not a commit */ }
-    if (!/^[0-9a-f]{40}$/.test(hash)) { revealing.current = null; showToast(t('ext.app.revealNotFound', ref), 'err'); return }
+    if (!/^[0-9a-f]{40}$/.test(hash)) { revealing.current = null; if (!quiet) showToast(t('ext.app.revealNotFound', ref), 'err'); return }
     const shown = commits.find(c => c.hash === hash)
     if (shown) { revealing.current = null; setSelectedCommit(shown); return }
+    // The cursor following asks quietly: a commit off the page stays off it.
+    if (quiet) return
     // The page was already grown for it and it is still not here: no ref the
     // graph shows reaches it — a hidden branch, a solo one.
     if (revealing.current === hash) { revealing.current = null; showToast(t('ext.app.revealUnreached', ref)); return }
@@ -925,9 +928,25 @@ function VertexApp() {
   const revealRef = useRef(revealCommit)
   revealRef.current = revealCommit
   useEffect(() => {
-    const cb = (ref: string) => { void revealRef.current(ref) }
+    const cb = (ref: string, quiet?: boolean) => { void revealRef.current(ref, !!quiet) }
     window.gitAPI.onRevealCommit(cb)
     return () => window.gitAPI.offRevealCommit(cb)
+  }, [])
+  // The panel's settings page, asked for from outside (the Welcome page, the palette).
+  useEffect(() => {
+    const cb = () => setSettingsOpen(true)
+    window.gitAPI.onOpenSettings(cb)
+    return () => window.gitAPI.offOpenSettings(cb)
+  }, [])
+  // The graph follows the editor's cursor: the switch is in the toolbar, the
+  // work is the host's, the state is the shared setting — read back here,
+  // and pushed here when the palette flips it.
+  const [followCursor, setFollowCursor] = useState(false)
+  useEffect(() => {
+    window.gitAPI.settingsGetAll().then((all: Record<string, string>) => setFollowCursor(all?.followCursor === 'true')).catch(() => {})
+    const cb = (on: boolean) => setFollowCursor(on)
+    window.gitAPI.onFollowCursor(cb)
+    return () => window.gitAPI.offFollowCursor(cb)
   }, [])
   // The page arrived, or grew: a reveal that was waiting for it goes again.
   useEffect(() => {
@@ -1557,6 +1576,8 @@ function VertexApp() {
         onRefresh={loadRepoData}
         sidebarOpen={activeView !== null}
         onToggleSidebar={handleToggleSidebar}
+        followCursor={followCursor}
+        onToggleFollowCursor={() => { void window.gitAPI.followCursor(!followCursor) }}
         onSettings={() => setSettingsOpen(true)}
         onSetUpstream={handleSetUpstream}
         onRenameBranch={handleRenameBranch}
@@ -1828,6 +1849,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                             ? <AIReadingTab kind={boot.aiKind} aiKey={boot.aiKey} label={boot.aiLabel} />
                           : boot?.mode === 'themes'
                             ? <ThemeGallery />
+                          : boot?.mode === 'welcome'
+                            ? <WelcomeTab />
                           : boot?.mode === 'whatsNew' && boot.notes
                             ? <WhatsNew version={boot.version ?? ''} notes={boot.notes} tagPrefix="ext-v" />
                             : <VertexApp />}

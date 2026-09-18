@@ -32,9 +32,16 @@ declare global {
      * wears it (badge, branch) where the webview cannot reach. Fire and forget.
      */
     panelStatus: (status: { wip: number; branch: string }) => Promise<unknown>
-    /** A commit the host wants shown: a SHA, a branch, a tag — resolved here. */
-    onRevealCommit: (cb: (ref: string) => void) => void
-    offRevealCommit: (cb: (ref: string) => void) => void
+    /** A commit the host wants shown: a SHA, a branch, a tag — resolved here. `quiet` = the cursor following. */
+    onRevealCommit: (cb: (ref: string, quiet?: boolean) => void) => void
+    offRevealCommit: (cb: (ref: string, quiet?: boolean) => void) => void
+    /** The graph follows the editor's cursor, or stops; the host tells every listener. */
+    followCursor: (on: boolean) => Promise<unknown>
+    onFollowCursor: (cb: (on: boolean) => void) => void
+    offFollowCursor: (cb: (on: boolean) => void) => void
+    /** Someone outside asked for the panel's settings page. */
+    onOpenSettings: (cb: () => void) => void
+    offOpenSettings: (cb: () => void) => void
     /**
      * One git command, its stdout. The reflective bridge answers it from
      * GitService; the panel uses it for what has no method of its own —
@@ -44,8 +51,8 @@ declare global {
 
     /** The repositories of the workspace, one per repository root, and the one on screen. */
     listWorkspaceRepos: () => Promise<{ repos: { path: string; name: string }[]; current?: string; hasFolder?: boolean }>
-    /** One of VS Code's own doors — open folder, clone, init — from an allow-list the host keeps. */
-    workbench: (id: 'vscode.openFolder' | 'git.clone' | 'git.init') => Promise<unknown>
+    /** A command run by name — VS Code's doors, this extension's own — from an allow-list the host keeps. */
+    workbench: (id: string) => Promise<unknown>
     /** Put another repository of the workspace on screen. */
     setPanelRepo: (repoPath: string) => Promise<unknown>
 

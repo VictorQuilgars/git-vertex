@@ -36,6 +36,12 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 The graph says when
 - A band at the top of the graph names the **stretch of time** the first visible row is in, and a hairline marks where one stretch ends. *Date bands* in the header's menu turns it off.
 
+### 👋 A Welcome page, once
+- A fresh install opens a page of **six things to try**, each with a gesture; **Git Vertex: Welcome** reopens it.
+
+### 👁️ The graph can follow the cursor
+- The eye in the toolbar: on, the commit of the line under the cursor is selected in the graph as it moves.
+
 ### 🏠 The overview is a home
 - The current branch's card carries its **issue**, its **pull request** (or the door to one), where it stands against **the branch it will merge into**, and **the one state action that is true** — publish, pull or push.
 - **Recent**: the branches whose tip moved within a day, a week or a month, newest first; **Waiting on you**: pull requests needing your review, with changes requested, approved; then what to **start**.

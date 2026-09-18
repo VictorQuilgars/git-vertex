@@ -7,7 +7,7 @@ import { findRefLinks, type RefLink } from './terminalLinks'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider, followHistoryTo } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, openGitVertexWelcomeTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider, followHistoryTo } from './panel/GitVertexHost'
 import { blameFile } from './blame/blame'
 import { GitService } from './gitService'
 import { RELEASE_NOTES } from './releaseNotes'
@@ -314,7 +314,15 @@ async function showWhatsNewIfUpdated(context: vscode.ExtensionContext): Promise<
   if (!current) return
   const last = context.globalState.get<string>('gvLastVersion')
   await context.globalState.update('gvLastVersion', current)
-  if (!last || last === current) return
+  // A fresh install gets the Welcome page, once; an update gets What's new.
+  if (!last) {
+    if (!context.globalState.get<boolean>('gvWelcomed')) {
+      await context.globalState.update('gvWelcomed', true)
+      openGitVertexWelcomeTab(context.extensionUri, context.globalState)
+    }
+    return
+  }
+  if (last === current) return
   const note = noteFor(current)
   if (!note) return
   openGitVertexWhatsNewTab(context.extensionUri, context.globalState, note.version, note.notes)
@@ -473,6 +481,32 @@ export function activate(context: vscode.ExtensionContext): void {
     refreshStatusBar()
   }
 
+  // ── The graph follows the cursor ──
+  // On, the commit of the active line — its blame — is shown in the graph as
+  // the cursor moves, quietly: no focus taken, no toast when it is off the
+  // page. The switch is the panel's (its toolbar) and the palette's; the
+  // setting is shared, so the toolbar reads it back.
+  let followCursor = context.globalState.get<Record<string, string>>('gvSettings', {}).followCursor === 'true'
+  let lastFollowed = ''
+  let followTimer: NodeJS.Timeout | undefined
+  provider.onFollowCursor = on => { followCursor = on; lastFollowed = '' }
+  context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(e => {
+    if (!followCursor || e.textEditor !== vscode.window.activeTextEditor) return
+    const doc = e.textEditor.document
+    if (doc.uri.scheme !== 'file') return
+    if (followTimer) clearTimeout(followTimer)
+    followTimer = setTimeout(async () => {
+      const root = getRepoRootForFile(doc.uri.fsPath)
+      if (!root) return
+      const rel = path.relative(root, doc.uri.fsPath).split(path.sep).join('/')
+      const line = e.selections[0].active.line + 1
+      const [blamed] = await blameFile(root, rel, { line, contents: doc.isDirty ? doc.getText() : undefined })
+      if (!blamed || blamed.uncommitted || blamed.hash === lastFollowed) return
+      lastFollowed = blamed.hash
+      provider.reveal(blamed.hash, true)
+    }, 300)
+  }))
+
   provider.onRescan = () => {
     const root = resolveRepoRoot()
     if (root) { provider.setRepo(root); setEditorRepo(root); setupRebaseWatch(context, root); blame.watch(root); refreshStatusBar() }
@@ -588,6 +622,12 @@ export function activate(context: vscode.ExtensionContext): void {
       if (target?.trim()) await revealInPanel(target.trim())
     }),
     vscode.window.registerTerminalLinkProvider(terminalLinks),
+    vscode.commands.registerCommand('gitVertex.showWelcome', () => openGitVertexWelcomeTab(context.extensionUri, context.globalState)),
+    vscode.commands.registerCommand('gitVertex.toggleFollowCursor', () => provider.followCursor(!followCursor)),
+    vscode.commands.registerCommand('gitVertex.openPanelSettings', async () => {
+      await vscode.commands.executeCommand('gitVertex.graphView.focus')
+      provider.openSettings()
+    }),
     vscode.commands.registerCommand('gitVertex.moveToSideBar', () => moveView('workbench.view.extension.git-vertex-sidebar')),
     vscode.commands.registerCommand('gitVertex.moveToPanel', () => moveView('workbench.view.extension.git-vertex')),
     vscode.commands.registerCommand('gitVertex.openPanel', () => {
