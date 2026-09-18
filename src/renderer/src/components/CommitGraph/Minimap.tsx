@@ -35,6 +35,8 @@ export interface MinimapProps {
   commits: MinimapCommit[]
   headHash?: string
   upstreamHash?: string
+  /** The tip of the branch the current one merges into — a mark of its own on the top edge. */
+  targetHash?: string
   /** The hashes the current search matches, or null when nothing is searched. */
   matches: Set<string> | null
   /** The newest and oldest day the graph has on screen. */
@@ -49,7 +51,7 @@ export interface MinimapProps {
 }
 
 export default function Minimap(props: MinimapProps) {
-  const { commits, headHash, upstreamHash, matches, visible, selectedHash, remoteNames, onPick, onWheel, onHide } = props
+  const { commits, headHash, upstreamHash, targetHash, matches, visible, selectedHash, remoteNames, onPick, onWheel, onHide } = props
   const { t } = useLang()
   const { get, getBool, set } = useSettings()
   const locale = t('graph.dateLocale')
@@ -128,6 +130,10 @@ export default function Minimap(props: MinimapProps) {
     const c = upstreamHash ? commits.find(x => x.hash === upstreamHash) : undefined
     return c ? dayOf(new Date(c.date).getTime()) : null
   }, [commits, upstreamHash])
+  const targetDay = useMemo(() => {
+    const c = targetHash ? commits.find(x => x.hash === targetHash) : undefined
+    return c ? dayOf(new Date(c.date).getTime()) : null
+  }, [commits, targetHash])
   const selectedDay = useMemo(() => {
     const c = selectedHash ? commits.find(x => x.hash === selectedHash) : undefined
     return c ? dayOf(new Date(c.date).getTime()) : null
@@ -267,6 +273,15 @@ export default function Minimap(props: MinimapProps) {
               y={m.kind === 'local' || m.kind === 'stash' ? height - 6 : height - 4}
               height={m.kind === 'local' || m.kind === 'stash' ? 6 : 4} />
           ))}
+          {/* The merge target: a square on the top edge, so it reads apart from
+              the two triangles even on the day it shares with one of them. */}
+          {targetDay !== null && indexOf.has(targetDay) && (() => {
+            const x = xOf(indexOf.get(targetDay)!)
+            return <g className="cg-mm-target">
+              <line x1={x} x2={x} y1={4} y2={height} />
+              <rect x={x - 2.5} y={0} width={5} height={4} />
+            </g>
+          })()}
           {upstreamDay !== null && indexOf.has(upstreamDay) && upstreamDay !== headDay && (() => {
             const x = xOf(indexOf.get(upstreamDay)!)
             return <g className="cg-mm-upstream">

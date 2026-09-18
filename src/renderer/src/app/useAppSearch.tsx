@@ -64,6 +64,33 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
     }, 500)
     return () => { stale = true; clearTimeout(timeout) }
   }, [extendedSearch, searchQuery, repoPath])
+  // ── A reference named from the graph: `/`, `t`, `u` ────────
+  // Its tip is selected when the page holds it; when it does not, the page is
+  // grown to reach it the way a search hit is reached, up to the same limit —
+  // past which its position is said instead.
+  const revealRef = useCallback(async (ref: string) => {
+    if (!repoPath) return
+    try {
+      const { hash } = await window.gitAPI.resolveCommit(ref)
+      if (!hash) { showToast(t('ext.app.revealNotFound', ref), 'err'); return }
+      const shown = commitsRef.current.find(c => c.hash === hash)
+      if (shown) { setSelectedCommit(shown); return }
+      const { all, refs, excludes } = logOptionsFor({ maxCount: 0, all: showAllRef.current, solo: soloRef.current, visibility: visibilityRef.current })
+      const { positions } = await window.gitAPI.locateInHistory([hash], { all, refs, excludes })
+      const plan = planReach([hash], new Set(commitsRef.current.map(c => c.hash)), positions, logLimitRef.current)
+      if (plan.loadTo) {
+        growHistory(plan.loadTo)
+        // Selected once its row is in — the same wait a deep link makes.
+        setDeepLinkHash(hash)
+        return
+      }
+      showToast(plan.beyond.length
+        ? t('ext.app.revealBeyond', plan.beyond[0].position.toLocaleString('en-US'))
+        : t('ext.app.revealUnreached', ref), 'info')
+    } catch {
+      showToast(t('ext.app.revealNotFound', ref), 'err')
+    }
+  }, [repoPath, showToast, t, setSelectedCommit, growHistory, setDeepLinkHash])
   // ── AI natural-language search ─────────────────────────────
   const runAiSearch = useCallback(async () => {
     if (!searchQuery.trim() || !repoPath) return
@@ -143,7 +170,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
   }
 
   return {
-    searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchHashes, setExtendedSearchHashes, extendedSearchLoading, setExtendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands,
+    searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchHashes, setExtendedSearchHashes, extendedSearchLoading, setExtendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands, revealRef,
   }
 }
 

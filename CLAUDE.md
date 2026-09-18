@@ -176,6 +176,11 @@ in the staging area with an `amend` badge (fetched via `getCommitFiles('HEAD')`)
 - `LANE_WIDTH = 18`; the row heights come from `--row-graph` / `--row-ref` (see Density below) — `ROW_HEIGHT`/`REF_LINE_H` in `graph-parts` are only the no-stylesheet fallbacks
 - `svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 62)` — minimum 62px to avoid header overlap
 - Graph layout computed in `src/renderer/src/components/CommitGraph/graph-layout.ts`
+- **Keys**: `↑` `↓` `Home` `End`, the jumps `w` `h` `u` `t`, `/` (the ref finder — a
+  type-ahead, `ref-find.ts` + `RefFinder.tsx`), `?` (`GraphShortcuts.tsx`). A new jump key
+  goes in `JUMPS` **and** on the sheet — `CommitGraph.jump.test.tsx` reads both. A row the
+  page does not hold is asked of the host through `onRevealRef`, which resolves the name
+  with `resolveCommit` (git-core) and grows the page like the extended search.
 - **Only the rows near the viewport are elements** (#251, `graph-window.ts`): everything
   works on `displayLayout` — every commit loaded — and `drawnRows` / `windowRows` /
   `drawnEdges` are what reaches the DOM (the window, the selected row, the row a branch is

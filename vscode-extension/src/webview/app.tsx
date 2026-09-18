@@ -1484,6 +1484,12 @@ function VertexApp() {
             loading={loading}
             onSearchMatches={setSearchMatches}
             upstreamRef={tracking.upstream ?? null}
+            // `t` and the target's mark, `/` and what it finds, and the way to a
+            // row the page does not hold — the same reach a terminal link has.
+            mergeTargetRef={mergeTarget?.name ?? null}
+            branches={branches}
+            tags={tags}
+            onRevealRef={ref => { void revealCommit(ref) }}
             nativeContextMenu
             onNativeMenuTarget={(hash) => window.gitAPI.setLastMenuHash(hash)}
           />

@@ -58,6 +58,19 @@ test('draws the activity, and HEAD where it stands', () => {
   expect(document.querySelector('.cg-mm-head')).not.toBeNull()
 })
 
+test('the merge target\'s day is marked on the top edge, apart from HEAD\'s — and only when there is one', () => {
+  draw()
+  expect(document.querySelector('.cg-mm-target')).toBeNull()
+  document.body.innerHTML = ''
+  draw({ targetHash: 'b1' })
+  const mark = document.querySelector('.cg-mm-target rect')!
+  // The middle of the third day, newest on the left.
+  expect(Number(mark.getAttribute('x')) + 2.5).toBeCloseTo(slotX(2), 0)
+  expect(mark.getAttribute('y')).toBe('0')
+  // A square, where HEAD and the upstream are triangles.
+  expect(document.querySelector('.cg-mm-head polygon')).not.toBeNull()
+})
+
 test('hovering a day says when it was and what happened', () => {
   draw()
   point('pointerMove', slotX(0))

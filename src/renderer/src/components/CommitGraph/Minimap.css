@@ -33,6 +33,9 @@
 .cg-mm-head line { stroke: var(--ref-head); stroke-width: 1.5; opacity: 0.7; }
 .cg-mm-upstream polygon { fill: var(--success); opacity: 0.7; }
 .cg-mm-upstream line { stroke: var(--success); stroke-width: 1; opacity: 0.45; }
+/* …and the branch this one will merge into. */
+.cg-mm-target rect { fill: var(--ref-target); }
+.cg-mm-target line { stroke: var(--ref-target); stroke-width: 1; opacity: 0.45; }
 
 .cg-mm-sel { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
 .cg-mm-hover { stroke: var(--text-tertiary); stroke-width: 1; stroke-dasharray: 2 2; }

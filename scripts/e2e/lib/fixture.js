@@ -54,6 +54,8 @@ function makeDeepRepo(root, name, commits) {
   }
   execFileSync('git', ['fast-import', '--quiet'], { cwd: dir, input: stream, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, LC_ALL: 'C' } })
   git(dir, 'reset', '-q', '--hard')
+  // A name 900 rows back, beyond the first page: what the `/` finder has to load history for.
+  if (commits > 900) git(dir, 'tag', 'v-deep', 'main~900')
   return dir
 }
 

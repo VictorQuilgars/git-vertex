@@ -17,3 +17,11 @@ export function isWindows(nav: { userAgent?: string } = typeof navigator !== 'un
   if (declared && declared !== 'vscode') return false
   return /Windows/i.test(nav?.userAgent ?? '')
 }
+
+/** Same question for macOS — which is what decides whether a chord is written ⌘ or Ctrl. */
+export function isMac(nav: { userAgent?: string } = typeof navigator !== 'undefined' ? navigator : {}): boolean {
+  const declared = (globalThis as { appInfo?: { platform?: string } }).appInfo?.platform
+  if (declared === 'darwin') return true
+  if (declared && declared !== 'vscode') return false
+  return /Macintosh|Mac OS X/i.test(nav?.userAgent ?? '')
+}

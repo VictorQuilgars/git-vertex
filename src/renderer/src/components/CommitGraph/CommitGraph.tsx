@@ -7,7 +7,7 @@ import { LayoutCommit, computeGraphLayout, rowOffsets, rowHeight as densityRowHe
 import MessageChip from './MessageChip'
 import Minimap from './Minimap'
 import { dayOf } from './minimap-model'
-import { CommitNode } from '../../types'
+import { BranchInfo, CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { Mark } from '../Mark/Mark'
 import type { PRIntent } from '../ContextMenu/prIntent'
@@ -17,6 +17,9 @@ import { isRefHidden, type GraphVisibility } from '../../utils/graphVisibility'
 import { useSettings } from '../../contexts/SettingsContext'
 import { periodOf, periodLabel, periodBoundaries, periodAt } from './timeline'
 import { UNMEASURED_ROWS, edgesInWindow, inWindow, rowWindow, rowsToDraw } from './graph-window'
+import RefFinder from './RefFinder'
+import GraphShortcuts from './GraphShortcuts'
+import { refFindCandidates, type RefFindKind, type RefFindMatch } from './ref-find'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
 import { COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
@@ -60,6 +63,25 @@ export interface CommitGraphProps {
    * know it — the key then does nothing.
    */
   upstreamRef?: string | null
+  /**
+   * The branch the current one will merge into, as `%D` decorates it (`main`,
+   * `origin/main`): the row `t` jumps to and the one that wears the target's
+   * mark. Absent when there is none — on the default branch, or detached.
+   */
+  mergeTargetRef?: string | null
+  /**
+   * Every branch and tag of the repository, loaded or not — what `/` finds.
+   * The host's lists, not the rows: a tip three pages down is still a name.
+   */
+  branches?: readonly BranchInfo[]
+  tags?: readonly { name: string }[]
+  /**
+   * Select the tip of a reference whose row the page does not hold: the host
+   * grows the page to reach it, the way it reaches a search hit, and says how
+   * far back it is when that is too far. Without it, a jump to an unloaded
+   * row does nothing.
+   */
+  onRevealRef?: (ref: string) => void
   /**
    * The Working Changes row is always there, clean tree or not. It is the way
    * into the staging pane, and a pane nobody can reach is a pane that does not
@@ -180,6 +202,8 @@ export default function CommitGraph(props: CommitGraphProps) {
   refsBelow = false,
   trackingFor,
   upstreamRef = null,
+  mergeTargetRef = null,
+  branches, tags, onRevealRef,
   alwaysShowWip = false,
   onStageAll,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
@@ -283,6 +307,32 @@ export default function CommitGraph(props: CommitGraphProps) {
   // left the graph's branches on the old palette until a fetch or a reload moved
   // the layout for another reason.
   }, [commits, hasWipNode, headHash, conflictMode, wipCount, appliedTheme])
+  // Which row a decorated name sits on — what `/` and `t` go to. Branches and
+  // tags are two namespaces: a tag and a branch may share a name.
+  const refRows = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const c of layout) {
+      for (const raw of c.refs) {
+        if (raw.startsWith('tag: ')) m.set(`t:${raw.slice(5)}`, c.row)
+        else m.set(`b:${raw.replace(/^HEAD -> /, '').replace(/^remotes\//, '')}`, c.row)
+      }
+    }
+    return m
+  }, [layout])
+  const rowOfRef = useCallback(
+    (name: string, kind: RefFindKind) => refRows.get(`${kind === 'tag' ? 't' : 'b'}:${name}`),
+    [refRows])
+  // The merge target's row: the name as given, or the same branch on a remote
+  // when there is no local one — a clone that never checked `main` out.
+  const targetHash = useMemo(() => {
+    if (!mergeTargetRef) return undefined
+    const names = [mergeTargetRef, ...(remoteNames ?? ['origin']).map(r => `${r}/${mergeTargetRef}`)]
+    for (const name of names) {
+      const row = refRows.get(`b:${name}`)
+      if (row !== undefined) return layout[row]?.hash
+    }
+    return undefined
+  }, [mergeTargetRef, remoteNames, refRows, layout])
   const [ctx, setCtx] = useState<CtxState | null>(null)
   const [headerCtx, setHeaderCtx] = useState<{ x: number; y: number } | null>(null)
   const [branchCtx, setBranchCtx] = useState<{ x: number; y: number; pref: ProcessedRef } | null>(null)
@@ -540,6 +590,58 @@ export default function CommitGraph(props: CommitGraphProps) {
   // used and never lingers as invisible state.
   const [multiSel, setMultiSel] = useState<Set<string>>(() => new Set())
   const [selAnchor, setSelAnchor] = useState<string | null>(null)
+  // ── `/`, `?`, and what a jump says when it has nowhere to go ──
+  const [finderOpen, setFinderOpen] = useState(false)
+  const [keysOpen, setKeysOpen] = useState(false)
+  /** The row the finder is standing on: emphasised, never selected until Enter. */
+  const [findHit, setFindHit] = useState<string | null>(null)
+  /** Read out, not shown: a key that found nothing to go to says so to a screen reader. */
+  const [said, setSaid] = useState('')
+  /** A row brought a third of the way down the viewport — where a jump lands. */
+  const bringToView = useCallback((row: number) => {
+    const body = bodyRef.current
+    if (!body) return
+    const top = rowTop(row)
+    // Already comfortably on screen: a row that does not move is easier to follow.
+    if (top >= body.scrollTop && top + rowHeight(row) <= body.scrollTop + body.clientHeight * (2 / 3)) return
+    body.scrollTo({ top: Math.max(0, top - body.clientHeight / 3), behavior: 'smooth' })
+  }, [rowTop, rowHeight])
+  /** Go to a row as the selection — or only back into view when it already is. */
+  const goToRow = useCallback((commit: LayoutCommit) => {
+    setMultiSel(prev => prev.size ? new Set() : prev)
+    if (commit.hash === selectedHash) bringToView(commit.row)
+    else onSelectCommit(commit)
+  }, [selectedHash, onSelectCommit, bringToView])
+  // What `/` can find: the host's branches and tags, each with the row it is
+  // on when the page holds it. Worktrees are read when the finder opens.
+  const [worktrees, setWorktrees] = useState<{ path: string; branch: string; isMain?: boolean }[]>([])
+  useEffect(() => {
+    if (!finderOpen) return
+    let stale = false
+    const api = (window as unknown as { gitAPI?: { listWorktrees?: () => Promise<{ worktrees?: typeof worktrees }> } }).gitAPI
+    api?.listWorktrees?.().then(r => { if (!stale) setWorktrees(r?.worktrees ?? []) }).catch(() => {})
+    return () => { stale = true }
+  }, [finderOpen])
+  const findCandidates = useMemo(() => finderOpen ? refFindCandidates({
+    branches: branches ?? [], tags: tags ?? [], worktrees, rowOf: rowOfRef,
+    hidden: (name, kind) => hiddenChip(kind === 'tag' ? `tag: ${name}` : name),
+  }) : [], [finderOpen, branches, tags, worktrees, rowOfRef, hiddenChip])
+  const landOnMatch = useCallback((match: RefFindMatch | null) => {
+    const commit = match?.row !== undefined ? displayLayout[match.row] : undefined
+    setFindHit(commit?.hash ?? null)
+    if (commit) bringToView(commit.row)
+  }, [displayLayout, bringToView])
+  const commitMatch = useCallback((match: RefFindMatch) => {
+    const commit = match.row !== undefined ? displayLayout[match.row] : undefined
+    if (commit) { goToRow(commit); setFinderOpen(false); return }
+    // Not on the page: the host loads down to it and selects it; the finder
+    // stays open until the row arrives (RefFinder closes itself then).
+    onRevealRef?.(match.ref)
+  }, [displayLayout, goToRow, onRevealRef])
+  const closeFinder = useCallback(() => setFinderOpen(false), [])
+  const openFinder = useCallback(() => setFinderOpen(true), [])
+  const openShortcuts = useCallback(() => setKeysOpen(true), [])
+  useEffect(() => { if (!finderOpen) setFindHit(null) }, [finderOpen])
   const handleRowClick = (e: React.MouseEvent, commit: LayoutCommit) => {
     if (commit.hash !== WIP_HASH) {
       if (e.shiftKey && selAnchor) {
@@ -573,34 +675,56 @@ export default function CommitGraph(props: CommitGraphProps) {
   // working changes, Home/End to the ends of the page. Skipped while an
   // input/textarea has focus.
   useEffect(() => {
-    const JUMPS = new Set(['h', 'u', 'w', 'Home', 'End'])
+    const JUMPS = new Set(['h', 'u', 't', 'w', 'Home', 'End'])
     const onKey = (e: KeyboardEvent) => {
-      const jump = JUMPS.has(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Escape' && !jump) return
+      const plain = !e.ctrlKey && !e.metaKey && !e.altKey
+      const jump = JUMPS.has(e.key) && plain && !e.shiftKey
+      // `/` and `?` are shifted keys on some layouts: the character decides, not the modifier.
+      const opens = (e.key === '/' || e.key === '?') && plain
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Escape' && !jump && !opens) return
       const el = document.activeElement as HTMLElement | null
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return
       // Let open modals/menus own the keyboard — this graph's, and anyone
       // else's: one Escape closes one thing, and a menu the staging pane
       // opened is a thing.
       if (ctx || drop) return
       if (document.querySelector('[class$="-overlay"], [class*="-overlay "], .ctx-menu, [role="menu"], [role="dialog"], .pdrawer')) return
+      // The finder, open but not holding the focus: one Escape closes one
+      // thing, and it is the thing on top. Stopped here so the host's own
+      // Escape — which clears the selection — does not hear the same key.
+      if (finderOpen && e.key === 'Escape') {
+        e.preventDefault(); e.stopImmediatePropagation()
+        setFinderOpen(false)
+        return
+      }
+      if (opens) {
+        e.preventDefault()
+        if (e.key === '/') setFinderOpen(true)
+        else setKeysOpen(true)
+        return
+      }
       if (displayLayout.length === 0) return
       const idx = displayLayout.findIndex(c => c.hash === selectedHash)
       if (jump) {
         const target = e.key === 'h' ? headHash
           : e.key === 'u' ? upstreamHash
+          : e.key === 't' ? targetHash
           : e.key === 'w' ? (hasWipNode ? '__WIP__' : headHash)
           : e.key === 'Home' ? displayLayout[0]?.hash
           : displayLayout[displayLayout.length - 1]?.hash
         const commit = target ? displayLayout.find(c => c.hash === target) : undefined
-        if (!commit) return
+        if (!commit) {
+          // A named row the page does not hold is asked of the host, which
+          // grows the page to it; one that does not exist is said, not shown.
+          const named = e.key === 'u' ? upstreamRef : e.key === 't' ? mergeTargetRef : null
+          if (e.key !== 'u' && e.key !== 't') return
+          e.preventDefault()
+          if (named && onRevealRef) onRevealRef(named)
+          else setSaid(t(e.key === 't' ? 'graph.jump.noTarget' : 'graph.jump.noUpstream'))
+          return
+        }
         e.preventDefault()
-        if (multiSel.size) setMultiSel(new Set())
-        if (commit.hash === selectedHash) {
-          // Already the selection: only bring it back into view.
-          const body = bodyRef.current
-          if (body) body.scrollTo({ top: Math.max(0, rowTop(commit.row) - body.clientHeight / 2), behavior: 'smooth' })
-        } else onSelectCommit(commit)
+        goToRow(commit)
         return
       }
       if (e.key === 'Escape') {
@@ -625,7 +749,7 @@ export default function CommitGraph(props: CommitGraphProps) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight, multiSel, headHash, upstreamHash, hasWipNode])
+  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight, multiSel, headHash, upstreamHash, targetHash, upstreamRef, mergeTargetRef, onRevealRef, hasWipNode, finderOpen, goToRow, t])
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   // The stacked layout pulls everything left (#111 follow-up): the graph
   // starts at 24 instead of 36 — stripe (9) + a breath (2) + node radius
@@ -1001,7 +1125,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   }, [commits])
 
   // Every menu the graph opens, from ./graph-menus.
-  const { buildMenuItems, batchMenuItems, buildDropItems, buildBranchMenu, buildHeaderMenuItems, handleRowContextMenu } = useGraphMenus(props, { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, drop, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt })
+  const { buildMenuItems, batchMenuItems, buildDropItems, buildBranchMenu, buildHeaderMenuItems, handleRowContextMenu } = useGraphMenus(props, { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, drop, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt, openFinder, openShortcuts })
 
   return (
     <div className="cg-container" ref={containerRef}>
@@ -1013,6 +1137,7 @@ export default function CommitGraph(props: CommitGraphProps) {
           commits={commits}
           headHash={headHash}
           upstreamHash={upstreamHash}
+          targetHash={targetHash}
           matches={matchHashes}
           visible={visibleDays}
           selectedHash={selectedHash}
@@ -1056,6 +1181,12 @@ export default function CommitGraph(props: CommitGraphProps) {
           <div className="cg-h-stats" style={{ width: statsColW }}>{compactColumns ? '±' : '+ / −'}</div>
         </>}
       </div>}
+
+      {/* `/`: over the header and the first rows, top right (RefFinder.tsx). */}
+      <RefFinder open={finderOpen} candidates={findCandidates}
+        onLand={landOnMatch} onCommit={commitMatch} onClose={closeFinder} />
+      {keysOpen && <GraphShortcuts onClose={() => setKeysOpen(false)} />}
+      <span className="cg-sr-live" role="status" aria-live="polite">{said}</span>
 
       {/* ── Body ── */}
       <div className="cg-body" ref={bodyRef} onScroll={onBodyScroll}>
@@ -1251,11 +1382,19 @@ export default function CommitGraph(props: CommitGraphProps) {
             }
             const rowIsHead = !isWip && commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
             const rowCanReword = rowIsHead || commit.parents.length > 0
+            // The rows a branch is read against wear a mark at the graph's left
+            // edge: HEAD, its upstream, the branch it merges into. One mark,
+            // split, when a row is several of them — and no target's mark on
+            // HEAD's own row, where there is no merge to speak of.
+            const roles: Array<'head' | 'upstream' | 'target'> = []
+            if (rowIsHead) roles.push('head')
+            if (!isWip && commit.hash === upstreamHash) roles.push('upstream')
+            if (!isWip && commit.hash === targetHash && !rowIsHead) roles.push('target')
 
             return (
               <div
                 key={commit.hash}
-                className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${multiSel.has(commit.hash) ? 'cg-multisel' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''}`}
+                className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${multiSel.has(commit.hash) ? 'cg-multisel' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''} ${findHit === commit.hash ? 'cg-row--find-hit' : ''}`}
                 style={{
                   top: rowTop(commit.row), height: rowHeight(commit.row),
                   // The branch's colour, for anything the row draws in it —
@@ -1284,6 +1423,29 @@ export default function CommitGraph(props: CommitGraphProps) {
               >
                 {/* Colored left stripe based on branch */}
                 <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />
+
+                {/* The role mark: a thin bar at the graph's left edge, tinted up
+                    to the node, that opens into its names under the pointer. */}
+                {roles.length > 0 && (() => {
+                  const left = refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW
+                  const tip = (r: typeof roles[number]) => r === 'head' ? t('graph.marker.headTip')
+                    : r === 'upstream' ? t('graph.marker.upstreamTip')
+                    : t('graph.marker.targetTip', mergeTargetRef ?? '')
+                  return (
+                    <div className={`cg-row-marker cg-row-marker--${roles[0]}`} style={{ left }}
+                      title={roles.map(tip).join(', ')} data-roles={roles.join(' ')}>
+                      <span className="cg-row-marker-band" style={{ width: Math.max(0, svgPadL + commit.lane * laneW - 3) }} />
+                      <span className="cg-row-marker-bar">
+                        {roles.map(r => <i key={r} className={`cg-row-marker-swatch cg-row-marker-swatch--${r}`} />)}
+                      </span>
+                      <span className="cg-row-marker-pill">
+                        {roles.map(r => (
+                          <span key={r} className={`cg-row-marker-seg cg-row-marker-swatch--${r}`}>{t(`graph.marker.${r}`)}</span>
+                        ))}
+                      </span>
+                    </div>
+                  )
+                })()}
 
                 {/* The refs, either in their own column or under the subject.
                     One definition, placed twice — the hover that reveals the

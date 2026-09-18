@@ -4,6 +4,13 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🔎 Find a branch from the graph, with /
+- **/** opens a small field at the top right of the graph, and **the graph answers as you type**: it goes to the best match and lights its row. **↓ ↑** walk the others, **Enter** takes it. Branches, tags and worktrees — **on the page or not**: a tip three pages down is reached by growing the page, the way a search hit is.
+
+### 🎯 t is the merge target
+- **t** jumps to the tip of the branch this one will merge into, and the rows a branch is read against are **marked at the graph's left edge**: HEAD, its upstream, the merge target. The minimap marks the target's day too.
+- **?** lists the graph's keys on one sheet.
+
 ### ⚡ The graph draws what is on screen
 - The graph holds every commit it has loaded and **draws only the rows near the viewport**. After five *Load more* — 3,000 commits — that is **38 row elements instead of 3,000**: a frame of scrolling takes **16.7 ms instead of 66.6**, and a click on a row shows in **30 ms instead of 171**. Keys, jumps, selection and search still work on every commit loaded.
 `,

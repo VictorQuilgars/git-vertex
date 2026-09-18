@@ -1,0 +1,97 @@
+/* The `/` finder: pinned to the top right of the graph, over the header and the
+   first rows. A fixed width on purpose — a widget that resized to each match
+   would move under the cursor while typing. No backdrop: it is not a dialog. */
+.cg-reffind {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-lg);
+  z-index: var(--z-dropdown);
+  width: 340px;
+  max-width: calc(100% - 2 * var(--space-lg));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px var(--space-xs);
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--scrim) var(--alpha-bold), transparent);
+}
+.cg-reffind--closed { display: none; }
+
+.cg-reffind-row { display: flex; align-items: center; gap: var(--space-sm); }
+
+/* The focus ring is the field's, not the widget's. */
+.cg-reffind-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px var(--space-xs);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+.cg-reffind-field:focus-within { outline: 1px solid var(--accent); outline-offset: -1px; }
+.cg-reffind-icon { flex: none; color: var(--text-tertiary); }
+
+.cg-reffind-input {
+  flex: 1 1 auto;
+  width: 150px;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  font-size: var(--text-base);
+  line-height: 18px;
+  color: inherit;
+  background: none;
+  border: 0;
+  outline: 0;
+}
+.cg-reffind-input::placeholder { color: var(--text-tertiary); }
+/* Nothing matches: the text says so, and the widget grows no label for it. */
+.cg-reffind-input--empty { color: var(--danger); }
+
+.cg-reffind-close {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: var(--text-md);
+  line-height: 1;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+.cg-reffind-close:hover { color: var(--text-primary); background: var(--surface-hover); }
+.cg-reffind-close:focus-visible { outline: 1px solid var(--accent); }
+
+.cg-reffind-result { display: flex; align-items: baseline; gap: var(--space-sm); }
+
+/* The one match the graph is standing on, in the type the refs are read in. */
+.cg-reffind-hit {
+  display: block;
+  min-width: 0;
+  padding-left: var(--space-xs);
+  overflow: hidden;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-tiny);
+  line-height: 16px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cg-reffind-hit--unloaded { display: inline-flex; align-items: center; gap: var(--space-xs); color: var(--text-tertiary); }
+
+.cg-reffind-nav {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--text-tiny);
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
