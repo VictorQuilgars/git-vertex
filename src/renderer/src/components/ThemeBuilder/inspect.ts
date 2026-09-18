@@ -71,20 +71,139 @@ export function readTokenMap(doc: Document = document): TokenMap {
   return map
 }
 
-/** The seeds a token comes from — itself, when it is one. */
-export function tokenSeeds(token: string, map: TokenMap, seen: Set<string> = new Set()): string[] {
+/**
+ * The least part of a colour a seed must make to be said to paint it: a
+ * third. A derived token is often one seed tinted toward another —
+ * `--bg-frame` is the canvas and the surface with a tenth of the text,
+ * `--accent-emphasis` the accent with a seventh of it — and naming every seed
+ * in the mix made "text" answer for the whole window's frame, every branch
+ * chip and every pressed button. Measured over tokens.css, the tints sit at
+ * 26% and below; the mixes whose second colour shows — a danger block's red
+ * border (38%), the agent's accent (38%), a merged PR (34%) — above.
+ */
+export const MIN_SHARE = 1 / 3
+
+type Shares = Record<string, number>
+/** The part of a mix no seed makes: a literal colour. `transparent` makes none at all. */
+const LITERAL = '#'
+
+/** `a, b, c` → [a, b, c], at the top level only. */
+function splitTop(text: string, sep: ',' | ' '): string[] {
+  const out: string[] = []
+  let depth = 0, from = 0
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (c === '(') depth++
+    else if (c === ')') depth--
+    else if (c === sep && depth === 0) { out.push(text.slice(from, i)); from = i + 1 }
+  }
+  out.push(text.slice(from))
+  return out.map(p => p.trim()).filter(Boolean)
+}
+
+/** A percentage, written or behind a token (`var(--alpha-faint)` is `8%`). */
+function percentOf(text: string, map: TokenMap, depth = 0): number | null {
+  const lit = text.match(/^(\d+(?:\.\d+)?)%$/)
+  if (lit) return Number(lit[1]) / 100
+  const ref = text.match(/^var\(\s*(--[a-z0-9-]+)\s*\)$/)
+  return ref && depth < 8 && map[ref[1]] ? percentOf(map[ref[1]].trim(), map, depth + 1) : null
+}
+
+/**
+ * How much of a colour each seed makes: a seed is all of itself, a token is
+ * what it is written as, and `color-mix()` weighs its two stops the way CSS
+ * does — a missing percentage is the rest, two that do not add up are scaled.
+ * `transparent` weighs nothing: `color-mix(X 8%, transparent)` is X, fainter.
+ */
+function colourShares(expr: string, map: TokenMap, seen: Set<string>): Shares | null {
+  const text = expr.trim()
+  const ref = text.match(/^var\(\s*(--[a-z0-9-]+)\s*(?:,.*)?\)$/)
+  if (ref) return seedShares(ref[1], map, seen)
+  const mix = text.match(/^color-mix\((.*)\)$/s)
+  if (mix) {
+    const [, ...stops] = splitTop(mix[1], ',')
+    if (stops.length !== 2) return null
+    const parsed = stops.map(stop => {
+      const words = splitTop(stop, ' ')
+      const pct = words.length > 1 ? percentOf(words[words.length - 1], map) : null
+      const colour = pct === null ? stop : words.slice(0, -1).join(' ')
+      return { pct, shares: colourShares(colour, map, seen) }
+    })
+    let [a, b] = parsed.map(p => p.pct)
+    if (a === null && b === null) { a = 0.5; b = 0.5 } else if (a === null) { a = 1 - b! } else if (b === null) { b = 1 - a }
+    const weights = [a, b].map((w, i) => (parsed[i].shares ? Math.max(0, w!) : 0))
+    const total = weights[0] + weights[1]
+    if (total <= 0) return {}
+    const out: Shares = {}
+    parsed.forEach((p, i) => {
+      for (const [k, v] of Object.entries(p.shares ?? {})) out[k] = (out[k] ?? 0) + v * weights[i] / total
+    })
+    return out
+  }
+  if (/^transparent$/i.test(text)) return null
+  if (/^(#[0-9a-f]{3,8}|(rgb|hsl|oklab|oklch|lab|lch)a?\(.*\)|[a-z]+)$/i.test(text) && !/^(inherit|initial|unset|currentcolor)$/i.test(text)) return { [LITERAL]: 1 }
+  return {}
+}
+
+/** How much of a token's colour each seed makes — itself, when it is one. */
+export function seedShares(token: string, map: TokenMap, seen: Set<string> = new Set()): Shares {
   if (token.startsWith('--seed-')) {
     const seed = token.slice('--seed-'.length)
-    return (SEED_KEYS as readonly string[]).includes(seed) ? [seed] : []
+    return (SEED_KEYS as readonly string[]).includes(seed) ? { [seed]: 1 } : {}
   }
-  if (seen.has(token)) return []
-  seen.add(token)
+  if (seen.has(token)) return {}
   const value = map[token]
-  if (!value) return []
-  const out: string[] = []
-  for (const m of value.matchAll(VAR_REF)) {
-    for (const s of tokenSeeds(m[1], map, seen)) if (!out.includes(s)) out.push(s)
+  if (!value) return {}
+  return colourShares(value, map, new Set(seen).add(token)) ?? {}
+}
+
+/** The seeds that paint a share of a colour worth naming, the largest first. */
+function paintingSeeds(shares: Shares): string[] {
+  return Object.entries(shares)
+    .filter(([k, v]) => k !== LITERAL && v >= MIN_SHARE - 1e-9)
+    .sort((x, y) => y[1] - x[1])
+    .map(([k]) => k)
+}
+
+/** The seeds a token is made of — itself, when it is one — leaving out the ones it is only tinted with. */
+export function tokenSeeds(token: string, map: TokenMap): string[] {
+  return paintingSeeds(seedShares(token, map))
+}
+
+/**
+ * The tokens a colour value names, each with its weight in the colour: a
+ * `var()` standing alone is all of it, one inside a component's own
+ * `color-mix()` its stop's part. A percentage behind a token is not a colour.
+ */
+function tokenWeights(value: string, map: TokenMap): [string, number][] {
+  const out: [string, number][] = []
+  const walk = (expr: string, weight: number) => {
+    const text = expr.trim()
+    const mix = text.match(/^color-mix\((.*)\)$/s)
+    if (mix) {
+      const [, ...stops] = splitTop(mix[1], ',')
+      if (stops.length !== 2) return
+      const parsed = stops.map(stop => {
+        const words = splitTop(stop, ' ')
+        const pct = words.length > 1 ? percentOf(words[words.length - 1], map) : null
+        const colour = pct === null ? stop : words.slice(0, -1).join(' ')
+        return { pct, colour, weightless: /^transparent$/i.test(colour.trim()) }
+      })
+      let [a, b] = parsed.map(p => p.pct)
+      if (a === null && b === null) { a = 0.5; b = 0.5 } else if (a === null) { a = 1 - b! } else if (b === null) { b = 1 - a }
+      const weights = [a, b].map((w, i) => (parsed[i].weightless ? 0 : Math.max(0, w!)))
+      const total = weights[0] + weights[1]
+      if (total > 0) parsed.forEach((p, i) => walk(p.colour, weight * weights[i] / total))
+      return
+    }
+    const ref = text.match(/^var\(\s*(--[a-z0-9-]+)/)
+    if (ref && /^var\(.*\)$/s.test(text)) { out.push([ref[1], weight]); return }
+    // A list or a shorthand — `1px solid var(--border)`, two shadows — is
+    // several colours side by side: each counts whole.
+    const parts = splitTop(text, ',').flatMap(p => splitTop(p, ' '))
+    if (parts.length > 1) for (const p of parts) walk(p, weight)
   }
+  walk(value, 1)
   return out
 }
 
@@ -123,17 +242,23 @@ export interface Inspection {
   tokens: InspectedToken[]
 }
 
-/** The tokens a declaration block paints with, one entry per token and role. */
+/**
+ * The tokens a declaration block paints with, one entry per token and role,
+ * each naming the seeds that make a real share of the colour where it is
+ * used: its own mix, weighed by the stop it fills in the rule's.
+ */
 function paintTokens(style: CSSStyleDeclaration, map: TokenMap): InspectedToken[] {
   const out = new Map<string, InspectedToken>()
   for (const [prop, value] of declarations(style)) {
     const role = roleOf(prop)
     if (!role) continue
-    for (const m of value.matchAll(VAR_REF)) {
-      const key = `${m[1]}@${role}`
+    for (const [token, weight] of tokenWeights(value, map)) {
+      const key = `${token}@${role}`
       if (out.has(key)) continue
-      const seeds = tokenSeeds(m[1], map)
-      if (seeds.length) out.set(key, { token: m[1], property: prop, role, seeds })
+      const shares = seedShares(token, map)
+      for (const k of Object.keys(shares)) shares[k] *= weight
+      const seeds = paintingSeeds(shares)
+      if (seeds.length) out.set(key, { token, property: prop, role, seeds })
     }
   }
   return Array.from(out.values())

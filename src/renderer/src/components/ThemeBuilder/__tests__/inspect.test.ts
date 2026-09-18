@@ -1,4 +1,4 @@
-import { tokenSeeds, describeElement, readTokenMap, roleOf, createInspector, drawablePlaces, type TokenMap } from '../inspect'
+import { tokenSeeds, seedShares, describeElement, readTokenMap, roleOf, createInspector, drawablePlaces, type TokenMap } from '../inspect'
 
 // The inspect mode (#242): a token is followed through the derived table
 // until it reaches a seed, and an element answers with the seeds behind the
@@ -10,6 +10,10 @@ const MAP: TokenMap = {
   '--surface-selected': 'color-mix(in oklab, var(--seed-sunken) 80%, var(--seed-accent))',
   '--surface-hover': 'color-mix(in oklab, var(--surface) 90%, var(--seed-text))',
   '--surface': 'var(--seed-surface)',
+  '--text-muted-soft': 'color-mix(in oklab, var(--seed-text) 60%, var(--seed-text-2))',
+  '--bg-frame': 'color-mix(in oklab, color-mix(in oklab, var(--seed-canvas), var(--seed-surface)) 90%, var(--seed-text))',
+  '--bg-statusbar': 'color-mix(in oklab, var(--seed-canvas) 91%, #000000)',
+  '--alpha-faint': '8%',
   '--loop-a': 'var(--loop-b)',
   '--loop-b': 'var(--loop-a)',
   '--radius-md': '6px',
@@ -18,11 +22,29 @@ const MAP: TokenMap = {
 test('a token is followed to its seeds, through a chain, without repeating one', () => {
   expect(tokenSeeds('--seed-canvas', MAP)).toEqual(['canvas'])
   expect(tokenSeeds('--accent', MAP)).toEqual(['accent'])
-  expect(tokenSeeds('--surface-selected', MAP)).toEqual(['sunken', 'accent'])
-  expect(tokenSeeds('--surface-hover', MAP)).toEqual(['surface', 'text'])
   expect(tokenSeeds('--radius-md', MAP)).toEqual([])
   expect(tokenSeeds('--loop-a', MAP)).toEqual([])
   expect(tokenSeeds('--unknown', MAP)).toEqual([])
+})
+
+test('a seed is weighed by its part of the colour, through nested mixes', () => {
+  expect(seedShares('--surface-hover', MAP)).toEqual({ surface: 0.9, text: expect.closeTo(0.1) })
+  const frame = seedShares('--bg-frame', MAP)
+  expect(frame.canvas).toBeCloseTo(0.45)
+  expect(frame.surface).toBeCloseTo(0.45)
+  expect(frame.text).toBeCloseTo(0.1)
+  // A literal colour takes its part, and is no seed.
+  expect(tokenSeeds('--bg-statusbar', MAP)).toEqual(['canvas'])
+})
+
+test('a token names the seeds it is made of, not the ones it is only tinted with', () => {
+  // The frame behind the panes is a tenth text: hovering "text" boxed the
+  // whole window. The canvas and the surface make it; the text tints it.
+  expect(tokenSeeds('--bg-frame', MAP)).toEqual(['canvas', 'surface'])
+  expect(tokenSeeds('--surface-hover', MAP)).toEqual(['surface'])
+  expect(tokenSeeds('--surface-selected', MAP)).toEqual(['sunken'])
+  // A real mix names both, the larger first.
+  expect(tokenSeeds('--text-muted-soft', MAP)).toEqual(['text', 'text-2'])
 })
 
 describe('on a page', () => {
@@ -59,10 +81,10 @@ describe('on a page', () => {
     expect(r!.tokens[0].property).toBe('background-color')
   })
 
-  test('a derived token names every seed it mixes', () => {
+  test('a derived token names the seed that makes it, not the one that tints it', () => {
     const r = describeElement(root.querySelector('.row--selected span')!, readTokenMap())
     expect(r!.id).toBe('.row.row--selected')
-    expect(r!.tokens[0].seeds).toEqual(['sunken', 'accent'])
+    expect(r!.tokens[0].seeds).toEqual(['sunken'])
   })
 
   test('unmapped elements still have a selection and an explicit empty palette', () => {
@@ -246,4 +268,55 @@ test('literal graph colours resolve against the current draft', () => {
   svg.setAttribute('stroke', '#123456')
   expect(describeElement(svg, MAP)?.tokens[0].seeds).toEqual(['lane-3'])
   document.documentElement.style.removeProperty('--seed-lane-3')
+})
+
+describe('the share a seed has where it is used', () => {
+  let style: HTMLStyleElement
+  let root: HTMLDivElement
+  beforeEach(() => {
+    style = document.createElement('style')
+    style.textContent = [
+      ':root { --seed-canvas: #0E1116; --seed-surface: #151A21; --seed-text: #E8ECF1; --seed-accent: #3FD8C2;',
+      '  --text-primary: var(--seed-text); --accent: var(--seed-accent); --surface: var(--seed-surface); --alpha-faint: 8%;',
+      '  --bg-frame: color-mix(in oklab, color-mix(in oklab, var(--seed-canvas), var(--seed-surface)) 90%, var(--seed-text)); }',
+      'body { background: var(--bg-frame); color: var(--text-primary); }',
+      '.chip { background: color-mix(in srgb, var(--accent) var(--alpha-faint), transparent); }',
+      '.tinted { background: color-mix(in oklab, var(--surface) 80%, var(--accent)); }',
+      '.half { background: color-mix(in oklab, var(--surface), var(--accent)); }',
+      '.label { color: var(--text-primary); }',
+    ].join('\n')
+    document.head.appendChild(style)
+    root = document.createElement('div')
+    root.innerHTML = '<span class="chip">chip</span><div class="tinted">t</div><div class="half">h</div><span class="label">label</span>'
+    document.body.appendChild(root)
+  })
+  afterEach(() => { style.remove(); root.remove() })
+
+  test('hovering "text" boxes where text is the colour, and not the frame it tints', () => {
+    const places = createInspector(document, readTokenMap()).placesOf('text')
+    const fills = places.filter(p => p.roles.includes('fill')).map(p => p.el)
+    expect(fills).not.toContain(document.body)
+    expect(places.map(p => p.el)).toContain(root.querySelector('.label'))
+    // The body still sets the ink: its text is text.
+    expect(places.find(p => p.el === document.body)?.roles).toEqual(['ink'])
+  })
+
+  test('the frame is the canvas and the surface', () => {
+    const inspector = createInspector(document, readTokenMap())
+    expect(inspector.placesOf('canvas').find(p => p.el === document.body)?.roles).toEqual(['fill'])
+    expect(inspector.placesOf('surface').find(p => p.el === document.body)?.roles).toEqual(['fill'])
+  })
+
+  test('transparent weighs nothing: a faint wash of the accent is the accent', () => {
+    const r = describeElement(root.querySelector('.chip')!, readTokenMap())!
+    expect(r.tokens.filter(t => !t.inherited).map(t => [t.token, t.seeds])).toEqual([['--accent', ['accent']]])
+  })
+
+  test("a component's own mix is weighed too: a fifth of accent tints, half of it paints", () => {
+    const map = readTokenMap()
+    const tinted = describeElement(root.querySelector('.tinted')!, map)!
+    expect(tinted.tokens.filter(t => !t.inherited).map(t => [t.token, t.seeds])).toEqual([['--surface', ['surface']]])
+    const half = describeElement(root.querySelector('.half')!, map)!
+    expect(half.tokens.filter(t => !t.inherited).map(t => [t.token, t.seeds])).toEqual([['--surface', ['surface']], ['--accent', ['accent']]])
+  })
 })
