@@ -16,6 +16,7 @@ import { useLang } from '../../i18n/LanguageContext'
 import { isRefHidden, type GraphVisibility } from '../../utils/graphVisibility'
 import { useSettings } from '../../contexts/SettingsContext'
 import { periodOf, periodLabel, periodBoundaries, periodAt } from './timeline'
+import { UNMEASURED_ROWS, edgesInWindow, inWindow, rowWindow, rowsToDraw } from './graph-window'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
 import { COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
@@ -286,6 +287,10 @@ export default function CommitGraph(props: CommitGraphProps) {
   const [headerCtx, setHeaderCtx] = useState<{ x: number; y: number } | null>(null)
   const [branchCtx, setBranchCtx] = useState<{ x: number; y: number; pref: ProcessedRef } | null>(null)
   const [dragBranch, setDragBranch] = useState<string | null>(null)
+  // The row the drag left from. It stays drawn while the drag lasts, wherever
+  // the graph is scrolled to: an element removed mid-drag never gets its
+  // `dragend`, and the graph would be left believing a branch is in the air.
+  const [dragSource, setDragSource] = useState<string | null>(null)
   const [dragOverRow, setDragOverRow] = useState<number | null>(null)
   const [drop, setDrop] = useState<DropState | null>(null)
   // Which chip the "+N" panel hangs from — by hash, so a filter or a refresh
@@ -459,6 +464,9 @@ export default function CommitGraph(props: CommitGraphProps) {
   const measureRows = useCallback(() => {
     const body = bodyRef.current
     if (!body || rowTops.length === 0) return
+    // The window of drawn rows asks whether the body has a height at all; the
+    // resize observer says so too, but a scroll must not wait for it.
+    setBodyH(body.clientHeight)
     const top = body.scrollTop
     // The first row whose bottom edge is still below the top of the viewport…
     let lo = 0, hi = rowTops.length - 1
@@ -488,6 +496,19 @@ export default function CommitGraph(props: CommitGraphProps) {
   // A reload or a resize moves what is on screen without a scroll.
   useEffect(() => { measureRows() }, [measureRows, containerW, bodyH])
   useEffect(() => () => { if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current) }, [])
+  // ── The rows that are drawn (graph-window.ts) ──
+  // Everything above works on `displayLayout`, every commit loaded; only what
+  // is near the viewport becomes elements. Before the body has a height there
+  // is no last row to speak of, so a tall viewport is assumed.
+  const drawWindow = useMemo(
+    () => rowWindow(firstRow, bodyH > 0 ? lastRow : firstRow + UNMEASURED_ROWS, displayLayout.length),
+    [firstRow, lastRow, bodyH, displayLayout.length])
+  const windowRows = useMemo(
+    () => rowsToDraw(displayLayout, drawWindow), [displayLayout, drawWindow])
+  const drawnRows = useMemo(
+    () => rowsToDraw(displayLayout, drawWindow, [selectedHash, dragSource]),
+    [displayLayout, drawWindow, selectedHash, dragSource])
+  const drawnEdges = useMemo(() => edgesInWindow(displayLayout, drawWindow), [displayLayout, drawWindow])
   const bandKey = showTimeline && manyPeriods ? periodAt(periods, firstRow) : null
   const bandLabel = bandKey ? periodLabel(bandKey, t, t('graph.dateLocale')) : null
   /** The middle of a row's first line — where the node and every edge meet it. */
@@ -962,6 +983,7 @@ export default function CommitGraph(props: CommitGraphProps) {
     setDragOverRow(null)
     const branch = dragBranch ?? e.dataTransfer.getData('text/plain')
     setDragBranch(null)
+    setDragSource(null)
     if (!branch || commit.hash === WIP_HASH) return
     // Don't offer to move the checked-out branch elsewhere — you drag OTHER
     // branches onto your position, not your current branch away from it.
@@ -1040,9 +1062,12 @@ export default function CommitGraph(props: CommitGraphProps) {
         {bandLabel && (
           <div className="cg-period-band" aria-hidden="true"><span className="cg-period-pill">{bandLabel}</span></div>
         )}
-        <div className="cg-scroll-content" style={{ height: svgH, position: 'relative' }}>
+        {/* As tall as every row loaded, holding only the rows near the viewport
+            (graph-window.ts). `data-rows` is the count a script can wait on now
+            that the number of row elements no longer says it. */}
+        <div className="cg-scroll-content" data-rows={displayLayout.length} style={{ height: svgH, position: 'relative' }}>
           {/* Where one stretch of time ends and the next begins. */}
-          {[...periodSeps].map(row => (
+          {[...periodSeps].filter(row => inWindow(drawWindow, row)).map(row => (
             <div key={`sep-${row}`} className="cg-period-sep" style={{ top: rowTop(row) }} />
           ))}
 
@@ -1071,7 +1096,7 @@ export default function CommitGraph(props: CommitGraphProps) {
                 ⚠️ Column layout only. In the stacked rows the stripe at the left
                 edge already colours the commit, and the band's right-edge bar
                 reads as a stray mark beside the bullet. */}
-            {!refsBelow && displayLayout.map(commit => {
+            {!refsBelow && windowRows.map(commit => {
               if (commit.hash === WIP_HASH) return null
               const cx = svgPadL + commit.lane * laneW
               const bandH = 24
@@ -1093,7 +1118,7 @@ export default function CommitGraph(props: CommitGraphProps) {
             {/* Connector lines (chip → node): rendered before edges so branch lines appear on top.
                 ⚠️ Column layout only — the chip it points at is under the message
                 now, so the line ran left of the bullet toward nothing. */}
-            {!refsBelow && displayLayout.map(commit => {
+            {!refsBelow && windowRows.map(commit => {
               if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
               const cx = svgPadL + commit.lane * laneW
               const cy = rowMid(commit.row)
@@ -1106,11 +1131,11 @@ export default function CommitGraph(props: CommitGraphProps) {
               )
             })}
 
-            {/* Edges */}
-            {displayLayout.flatMap(commit => commit.edges.map(edge => renderEdge(commit, edge)))}
+            {/* Edges — the window's own, and the ones that only pass through it. */}
+            {drawnEdges.map(({ commit, edge }) => renderEdge(commit, edge))}
 
             {/* Nodes */}
-            {displayLayout.map(commit => {
+            {windowRows.map(commit => {
               const cx = svgPadL + commit.lane * laneW
               const cy = rowMid(commit.row)
               const isSelected = commit.hash === selectedHash
@@ -1192,7 +1217,7 @@ export default function CommitGraph(props: CommitGraphProps) {
           </svg>
 
           {/* Rows */}
-          {displayLayout.map(commit => {
+          {drawnRows.map(commit => {
             const isSelected = commit.hash === selectedHash
             const isWip = commit.hash === WIP_HASH
             // Active dim set: search takes precedence, otherwise ref-hover lane.
@@ -1296,8 +1321,8 @@ export default function CommitGraph(props: CommitGraphProps) {
                         }}
                       >
                         <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
-                          onDragStartBranch={setDragBranch}
-                          onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
+                          onDragStartBranch={b => { setDragBranch(b); setDragSource(commit.hash) }}
+                          onDragEndBranch={() => { setDragBranch(null); setDragSource(null); setDragOverRow(null) }}
                           onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
                         {stackCount > 0 && (
                           <span className="rc-stack-badge">+{stackCount}</span>
@@ -1340,8 +1365,8 @@ export default function CommitGraph(props: CommitGraphProps) {
                         }}
                       >
                         <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
-                          onDragStartBranch={setDragBranch}
-                          onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
+                          onDragStartBranch={b => { setDragBranch(b); setDragSource(commit.hash) }}
+                          onDragEndBranch={() => { setDragBranch(null); setDragSource(null); setDragOverRow(null) }}
                           onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
                         {stackCount > 0 && (
                           <span className="rc-stack-badge">+{stackCount}</span>

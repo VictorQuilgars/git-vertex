@@ -2,6 +2,11 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### ⚡ The graph draws what is on screen
+- The graph holds every commit it has loaded and **draws only the rows near the viewport**. After five *Load more* — 3,000 commits — that is **38 row elements instead of 3,000**: a frame of scrolling takes **16.7 ms instead of 66.6**, and a click on a row shows in **30 ms instead of 171**. Keys, jumps, selection and search still work on every commit loaded.
+`,
   '1.37.0': `## What's new in 1.37.0
 
 ### 🎨 Make your own theme

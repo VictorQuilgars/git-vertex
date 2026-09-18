@@ -11,6 +11,12 @@
 //   node scripts/measure.js --commits 5000 --runs 1
 //   node scripts/measure.js --build         # rebuild first
 //
+// It also says what a LONG history costs once it is on screen (#251): after
+// five *Load more* — 3,000 commits held — how many row elements the graph
+// keeps, what a frame of scrolling takes, and how long a selection takes to
+// reach the screen. Those are the numbers that tell a graph that draws its
+// rows from one that draws its viewport.
+//
 // It prints a markdown table, made to be pasted into the issue.
 'use strict'
 const { execFileSync } = require('child_process')
@@ -50,6 +56,59 @@ function makeDeepRepo(commits) {
   return dir
 }
 
+/**
+ * How many commits the graph holds. `data-rows` says it since the graph draws
+ * only the rows near the viewport; counting the elements is what said it
+ * before, and still does on a build from before that — so the same script
+ * measures both sides of the change.
+ */
+const ROWS_LOADED = `(() => { const c = document.querySelector('.cg-scroll-content'); return c && c.dataset.rows ? Number(c.dataset.rows) : document.querySelectorAll('.cg-row').length })()`
+
+/**
+ * The cost of a long history on screen: grow the page `pages` times, then
+ * scroll the graph for `frames` frames and select a row, timed inside the page.
+ */
+async function longHistory(page, pages, frames) {
+  for (let i = 1; i <= pages; i++) {
+    await page.until(`!!document.querySelector('.sb-history-more:not(:disabled)')`, { what: 'Load more', timeoutMs: 60000 })
+    await page.eval(`document.querySelector('.sb-history-more').click()`)
+    await page.until(`${ROWS_LOADED} >= ${500 * (i + 1)}`, { what: `${500 * (i + 1)} commits`, timeoutMs: 120000 })
+  }
+  await new Promise(r => setTimeout(r, 1500))
+  const held = await page.eval(ROWS_LOADED)
+  const elements = await page.eval(`document.querySelectorAll('.cg-row').length`)
+  const nodes = await page.eval(`document.querySelectorAll('.cg-body *').length`)
+
+  // Scroll: a fixed distance per frame, down through the history. What is
+  // measured is the time between frames, which is what a hand feels.
+  const scroll = await page.eval(`new Promise(resolve => {
+    const body = document.querySelector('.cg-body')
+    body.scrollTop = 0
+    const deltas = []
+    let last = performance.now(), n = 0
+    const step = now => {
+      deltas.push(now - last); last = now
+      body.scrollTop += 120
+      if (++n < ${frames}) requestAnimationFrame(step)
+      else { deltas.shift(); deltas.sort((a, b) => a - b); resolve({ median: deltas[Math.floor(deltas.length / 2)], p95: deltas[Math.floor(deltas.length * 0.95)], worst: deltas[deltas.length - 1] }) }
+    }
+    requestAnimationFrame(step)
+  })`)
+
+  // Re-render: a click on a row, to the frame that shows it selected.
+  const select = await page.eval(`new Promise(resolve => {
+    const rows = document.querySelectorAll('.cg-row:not(.cg-row-wip):not(.cg-selected)')
+    const row = rows[Math.min(5, rows.length - 1)]
+    const t0 = performance.now()
+    row.click()
+    const wait = () => row.classList.contains('cg-selected') || !row.isConnected
+      ? requestAnimationFrame(() => resolve(performance.now() - t0))
+      : requestAnimationFrame(wait)
+    wait()
+  })`)
+  return { held, elements, nodes, scroll, select }
+}
+
 const ms = n => `${Math.round(n)} ms`
 const mb = n => `${(n / 1024 / 1024).toFixed(1)} MB`
 const median = xs => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
@@ -66,7 +125,7 @@ function bundle() {
   return out
 }
 
-async function once(repo, profile, logFile) {
+async function once(repo, profile, logFile, { deep = false } = {}) {
   const spawnedAt = Date.now()
   const { child, page } = await launch({ profile, logFile })
   try {
@@ -92,7 +151,7 @@ async function once(repo, profile, logFile) {
     await page.eval(`(() => {
       window.__graphAt = null
       const obs = new MutationObserver(() => {
-        if (window.__graphAt === null && document.querySelectorAll('.cg-row').length >= 500) window.__graphAt = performance.now()
+        if (window.__graphAt === null && ${ROWS_LOADED} >= 500) window.__graphAt = performance.now()
       })
       obs.observe(document.body, { childList: true, subtree: true })
       window.__t0 = performance.now()
@@ -106,8 +165,9 @@ async function once(repo, profile, logFile) {
     // is a number about a moment rather than about the repository.
     await new Promise(r => setTimeout(r, 3000))
     const heap = await page.eval(`performance.memory ? performance.memory.usedJSHeapSize : null`)
-    const rows = await page.eval(`document.querySelectorAll('.cg-row').length`)
-    return { welcome, paint, graph, heap, rows }
+    const rows = await page.eval(ROWS_LOADED)
+    const long = deep ? await longHistory(page, 5, 180) : null
+    return { welcome, paint, graph, heap, rows, long }
   } finally {
     page.close()
     await stopAndWait(child)
@@ -127,8 +187,11 @@ async function once(repo, profile, logFile) {
     // A profile per run: the second start of an app that has already opened
     // this repository is not a cold start.
     const profile = makeProfile([repo])
-    const r = await once(repo, profile, path.join(out, `measure-${i}.log`))
+    // The long history is measured once, on the last cold run: it adds five
+    // pages to the window, and the runs before it must stay comparable.
+    const r = await once(repo, profile, path.join(out, `measure-${i}.log`), { deep: i === RUNS - 1 })
     console.log(`· run ${i + 1}: welcome ${ms(r.welcome)} · graph ${ms(r.graph)} · heap ${r.heap ? mb(r.heap) : 'n/a'} (${r.rows} rows)`)
+    if (r.long) console.log(`· long history: ${r.long.held} commits held, ${r.long.elements} row elements · scroll ${r.long.scroll.median.toFixed(1)} ms/frame (p95 ${r.long.scroll.p95.toFixed(1)}) · select ${ms(r.long.select)}`)
     runs.push(r)
     fs.rmSync(profile, { recursive: true, force: true })
   }
@@ -163,6 +226,9 @@ async function once(repo, profile, logFile) {
 | — opening it again, same profile | ${ms(warm[1].graph)} |
 | Renderer heap, settled | ${runs[0].heap == null ? 'n/a' : mb(median(runs.map(r => r.heap)))} |
 | Renderer bundle (unzipped) | ${mb(b.js)} of JavaScript, ${mb(b.css)} of CSS |
-`)
+${(l => l ? `| After five *Load more* | ${l.held.toLocaleString('en-US')} commits held, ${l.elements.toLocaleString('en-US')} row elements, ${l.nodes.toLocaleString('en-US')} nodes under the graph |
+| — a frame of scrolling (median · p95 · worst) | ${l.scroll.median.toFixed(1)} ms · ${l.scroll.p95.toFixed(1)} ms · ${l.scroll.worst.toFixed(1)} ms |
+| — a click on a row, to the frame that shows it selected | ${ms(l.select)} |
+` : '')(runs[runs.length - 1].long)}`)
   fs.rmSync(repo, { recursive: true, force: true })
 })().catch(e => { console.error(e); process.exit(1) })

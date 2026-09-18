@@ -176,6 +176,12 @@ in the staging area with an `amend` badge (fetched via `getCommitFiles('HEAD')`)
 - `LANE_WIDTH = 18`; the row heights come from `--row-graph` / `--row-ref` (see Density below) — `ROW_HEIGHT`/`REF_LINE_H` in `graph-parts` are only the no-stylesheet fallbacks
 - `svgW = Math.max(SVG_PAD_L + (maxLane + 1) * LANE_WIDTH + SVG_PAD_R, 62)` — minimum 62px to avoid header overlap
 - Graph layout computed in `src/renderer/src/components/CommitGraph/graph-layout.ts`
+- **Only the rows near the viewport are elements** (#251, `graph-window.ts`): everything
+  works on `displayLayout` — every commit loaded — and `drawnRows` / `windowRows` /
+  `drawnEdges` are what reaches the DOM (the window, the selected row, the row a branch is
+  dragged from, and the edges that cross the window). Never count `.cg-row` to know how
+  much is loaded: `.cg-scroll-content[data-rows]` says it. jsdom has no height, so a test
+  DOM draws the first `UNMEASURED_ROWS + OVERSCAN_ROWS` rows.
 
 ## Icon
 **Two** SVG masters, and that is deliberate:

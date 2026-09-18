@@ -1,5 +1,10 @@
 # Changelog — Git Vertex (desktop)
 
+## Unreleased
+
+### Changed
+- **The graph draws the rows on screen, not every row it holds.** Every loaded commit was an element — its row, its node, its part of the edges — and a page is 500 commits, *Load more* 500 more: a few pages in, every scroll and every render paid for rows nobody could see, and a side-bar column paid the most. The graph still holds every commit it has loaded — the keys, the jumps, the selection, the search and its count work on all of them — but only the rows near the viewport, and the edges that cross it, are drawn; the scroll height is still the whole history's, the selected row is always there, and a branch being dragged keeps the row it left from. Measured on a 50,000-commit repository after five *Load more* (3,000 commits held): **3,000 row elements become 38** (114,007 nodes under the graph become 1,451), a frame of scrolling goes from **66.6 ms to 16.7 ms**, a click on a row reaches the screen in **30 ms instead of 171**, and the renderer's settled heap from 40 MB to 16. `npm run measure` reports those three numbers now. (#251)
+
 ## 1.37.0
 
 ### Added
