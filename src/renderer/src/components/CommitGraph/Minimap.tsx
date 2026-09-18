@@ -11,6 +11,7 @@ import { useLang } from '../../i18n/LanguageContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import { Icon } from '../Icon/Icon'
 import ContextMenu, { type MenuItemDef } from '../ContextMenu/ContextMenu'
+import ColumnResizeHandle from '../ColumnResizeHandle/ColumnResizeHandle'
 import { remoteOf } from '../../utils/graphVisibility'
 import { fmtRelative } from './graph-parts'
 import {
@@ -20,8 +21,10 @@ import {
 } from './minimap-model'
 import './Minimap.css'
 
-/** The strip's height. The stylesheet says the same (`.cg-mm`). */
+/** The strip's height until the user drags it, and how far a drag may take it. */
 export const MINIMAP_H = 40
+const MIN_H = 28
+const MAX_H = 200
 const TOP = 7            // room for the HEAD triangle
 const MARKER_LANE = 7    // the branch and tag ticks along the bottom
 const GUTTER = 24        // the options button, right of the chart
@@ -57,6 +60,12 @@ export default function Minimap(props: MinimapProps) {
     () => new Set(markerSetting.split(',').filter((k): k is MinimapMarkerOption => (MARKER_OPTIONS as string[]).includes(k))),
     [markerSetting])
 
+  // The height is the user's: dragged live, remembered when the drag ends.
+  const stored = Number(get('graphMinimapHeight', String(MINIMAP_H)))
+  const saved = Number.isFinite(stored) ? Math.max(MIN_H, Math.min(MAX_H, stored)) : MINIMAP_H
+  const [height, setHeight] = useState(saved)
+  useEffect(() => { setHeight(saved) }, [saved])
+
   const wrapRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
   useEffect(() => {
@@ -83,7 +92,7 @@ export default function Minimap(props: MinimapProps) {
 
   const chartW = Math.max(0, width - GUTTER)
   const slot = days.length > 0 ? chartW / days.length : 0
-  const base = MINIMAP_H - MARKER_LANE - 1
+  const base = height - MARKER_LANE - 1
   const areaH = base - TOP
   const xOf = useCallback((i: number) => {
     const x = (i + 0.5) * slot
@@ -128,6 +137,10 @@ export default function Minimap(props: MinimapProps) {
   const [hover, setHover] = useState<{ day: number; x: number } | null>(null)
   const press = useRef<{ x: number; id: number } | null>(null)
   const [brush, setBrush] = useState<{ x0: number; x1: number } | null>(null)
+  // Only what happens ON the strip. The options menu is portalled out of it,
+  // but React still bubbles its events through here: a press on "Hide
+  // minimap" read as a press on the chart, and took the graph to that day.
+  const onStrip = (e: React.SyntheticEvent) => !!wrapRef.current?.contains(e.target as Node)
   const localX = (e: React.PointerEvent | React.MouseEvent) => {
     const r = wrapRef.current?.getBoundingClientRect()
     return r ? e.clientX - r.left : 0
@@ -141,11 +154,12 @@ export default function Minimap(props: MinimapProps) {
     return i < 0 ? null : nearestBusyDay(model, days, i, reach) ?? days[i] ?? null
   }
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || localX(e) > chartW) return
+    if (!onStrip(e) || e.button !== 0 || localX(e) > chartW) return
     press.current = { x: localX(e), id: e.pointerId }
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
   }
   const onPointerMove = (e: React.PointerEvent) => {
+    if (!onStrip(e)) return
     const x = localX(e)
     const p = press.current
     if (p && (brush || Math.abs(x - p.x) > DRAG_SLOP)) {
@@ -159,6 +173,7 @@ export default function Minimap(props: MinimapProps) {
   const onPointerUp = (e: React.PointerEvent) => {
     const p = press.current
     press.current = null
+    if (!onStrip(e)) return
     ;(e.currentTarget as Element).releasePointerCapture?.(e.pointerId)
     if (!p) return
     if (brush) {
@@ -228,16 +243,16 @@ export default function Minimap(props: MinimapProps) {
   const tickW = Math.max(2, Math.min(slot, 3))
   const hoverInfo = hover ? model.byDay.get(hover.day) : undefined
 
-  return (
-    <div className="cg-mm" ref={wrapRef}
+  return (<>
+    <div className="cg-mm" ref={wrapRef} style={{ height }}
       onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
       onPointerCancel={() => { press.current = null; setBrush(null) }}
       onPointerLeave={onPointerLeave}
-      onDoubleClick={() => setZoom(null)}
-      onWheel={e => onWheel?.(e.deltaY)}>
+      onDoubleClick={e => { if (onStrip(e)) setZoom(null) }}
+      onWheel={e => { if (onStrip(e)) onWheel?.(e.deltaY) }}>
       {width > 0 && (
-        <svg className="cg-mm-svg" width={chartW} height={MINIMAP_H} role="img" aria-label={t('minimap.aria')}>
-          {band && <rect className="cg-mm-band" x={band.x} y={0} width={band.w} height={MINIMAP_H} />}
+        <svg className="cg-mm-svg" width={chartW} height={height} role="img" aria-label={t('minimap.aria')}>
+          {band && <rect className="cg-mm-band" x={band.x} y={0} width={band.w} height={height} />}
           {matches && days.map((day, i) => (model.byDay.get(day)?.matches ?? 0) > 0 && (
             <rect key={`m-${day}`} className="cg-mm-match" x={xOf(i) - tickW / 2} y={TOP} width={tickW} height={areaH} />
           ))}
@@ -246,20 +261,20 @@ export default function Minimap(props: MinimapProps) {
           {marks.map(m => (
             <rect key={m.key} className={`cg-mm-mark cg-mm-mark--${m.kind}`}
               x={m.x - tickW / 2} width={tickW}
-              y={m.kind === 'local' || m.kind === 'stash' ? MINIMAP_H - 6 : MINIMAP_H - 4}
+              y={m.kind === 'local' || m.kind === 'stash' ? height - 6 : height - 4}
               height={m.kind === 'local' || m.kind === 'stash' ? 6 : 4} />
           ))}
           {upstreamDay !== null && indexOf.has(upstreamDay) && upstreamDay !== headDay && (() => {
             const x = xOf(indexOf.get(upstreamDay)!)
             return <g className="cg-mm-upstream">
-              <line x1={x} x2={x} y1={4} y2={MINIMAP_H} />
+              <line x1={x} x2={x} y1={4} y2={height} />
               <polygon points={`${x - 3},0 ${x + 3},0 ${x},4`} />
             </g>
           })()}
           {headDay !== null && indexOf.has(headDay) && (() => {
             const x = xOf(indexOf.get(headDay)!)
             return <g className="cg-mm-head">
-              <line x1={x} x2={x} y1={5} y2={MINIMAP_H} />
+              <line x1={x} x2={x} y1={5} y2={height} />
               <polygon points={`${x - 4},0 ${x + 4},0 ${x},5`} />
             </g>
           })()}
@@ -267,12 +282,12 @@ export default function Minimap(props: MinimapProps) {
             <circle className="cg-mm-sel" cx={xOf(indexOf.get(selectedDay)!)} cy={yOf(value(selectedDay))} r={3.5} />
           )}
           {hover && <>
-            <line className="cg-mm-hover" x1={hover.x} x2={hover.x} y1={0} y2={MINIMAP_H} />
+            <line className="cg-mm-hover" x1={hover.x} x2={hover.x} y1={0} y2={height} />
             <circle className="cg-mm-hover-dot" cx={hover.x} cy={yOf(value(hover.day))} r={2.5} />
           </>}
           {brush && (
             <rect className="cg-mm-brush" x={Math.min(brush.x0, brush.x1)} y={0}
-              width={Math.abs(brush.x1 - brush.x0)} height={MINIMAP_H} />
+              width={Math.abs(brush.x1 - brush.x0)} height={height} />
           )}
         </svg>
       )}
@@ -321,7 +336,10 @@ export default function Minimap(props: MinimapProps) {
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}
     </div>
-  )
+    <ColumnResizeHandle orientation="horizontal" sizes="before" label={t('minimap.resize')}
+      value={height} min={MIN_H} max={MAX_H}
+      onChange={setHeight} onCommit={h => set('graphMinimapHeight', String(h))} />
+  </>)
 }
 
 const MARKER_ORDER: MinimapMarker['kind'][] = ['head', 'local', 'remote', 'tag', 'stash']

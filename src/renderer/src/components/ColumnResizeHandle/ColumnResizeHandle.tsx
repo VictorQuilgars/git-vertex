@@ -3,16 +3,20 @@ import './ColumnResizeHandle.css'
 
 /**
  * Sizes the pane after it — to its right, or below it when `horizontal` —
- * including when the pointer leaves the handle.
+ * or, with `sizes="before"`, the one before it; including when the pointer
+ * leaves the handle.
  */
-export default function ColumnResizeHandle({ value, min, max, label, onChange, onCommit, orientation = 'vertical' }: {
+export default function ColumnResizeHandle({ value, min, max, label, onChange, onCommit, orientation = 'vertical', sizes = 'after' }: {
   value: number; min: number; max: number; label: string
   onChange: (size: number) => void
   onCommit?: (size: number) => void
   /** The separator's own direction: a vertical bar sizes widths, a horizontal one heights. */
   orientation?: 'vertical' | 'horizontal'
+  /** Which pane the handle sizes: the one after it grows as the handle moves back, the one before as it moves on. */
+  sizes?: 'after' | 'before'
 }) {
   const horizontal = orientation === 'horizontal'
+  const sign = sizes === 'before' ? -1 : 1
   const cleanup = useRef<(() => void) | null>(null)
   useEffect(() => () => cleanup.current?.(), [])
   const clamp = (size: number) => Math.round(Math.max(min, Math.min(max, size)))
@@ -30,7 +34,7 @@ export default function ColumnResizeHandle({ value, min, max, label, onChange, o
       let latest = value
       const move = (event: PointerEvent) => {
         if (event.pointerId !== pointerId) return
-        latest = clamp(value + start - (horizontal ? event.clientY : event.clientX))
+        latest = clamp(value + sign * (start - (horizontal ? event.clientY : event.clientX)))
         onChange(latest)
       }
       const finish = () => {
@@ -52,8 +56,9 @@ export default function ColumnResizeHandle({ value, min, max, label, onChange, o
     }}
     onKeyDown={e => {
       const step = e.shiftKey ? 50 : 10
-      const grow = horizontal ? 'ArrowUp' : 'ArrowLeft'
-      const shrink = horizontal ? 'ArrowDown' : 'ArrowRight'
+      const back = horizontal ? 'ArrowUp' : 'ArrowLeft'
+      const on = horizontal ? 'ArrowDown' : 'ArrowRight'
+      const [grow, shrink] = sizes === 'before' ? [on, back] : [back, on]
       const next = e.key === grow ? value + step : e.key === shrink ? value - step
         : e.key === 'Home' ? min : e.key === 'End' ? max : null
       if (next === null) return

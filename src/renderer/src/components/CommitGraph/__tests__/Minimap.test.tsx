@@ -96,6 +96,37 @@ test('the options menu hides the strip', () => {
   expect(props.onHide).toHaveBeenCalled()
 })
 
+test('a press in the options menu is not a press on the chart', () => {
+  // The menu is portalled out of the strip, but React bubbles its events
+  // through it: "Hide minimap" used to take the graph to a day as well.
+  const props = draw()
+  fireEvent.click(screen.getByRole('button', { name: 'Minimap options' }))
+  const row = screen.getByText('Hide minimap')
+  fireEvent.pointerMove(row, { clientX: slotX(2), button: 0, pointerId: 1 })
+  fireEvent.pointerDown(row, { clientX: slotX(2), button: 0, pointerId: 1 })
+  fireEvent.pointerUp(row, { clientX: slotX(2), button: 0, pointerId: 1 })
+  expect(props.onPick).not.toHaveBeenCalled()
+  expect(screen.queryByRole('tooltip')).toBeNull()
+})
+
+test('its height is dragged, and remembered', async () => {
+  draw()
+  const api = (window as any).gitAPI
+  const handle = screen.getByRole('separator', { name: 'Minimap height' })
+  expect(strip().style.height).toBe('40px')
+  // The handle is under the strip: moving it down makes the strip taller.
+  fireEvent.pointerDown(handle, { clientY: 100, button: 0, pointerId: 7 })
+  fireEvent.pointerMove(window, { clientY: 160, pointerId: 7 })
+  expect(strip().style.height).toBe('100px')
+  fireEvent.pointerUp(window, { clientY: 160, pointerId: 7 })
+  await waitFor(() => expect(api.settingsSet).toHaveBeenCalledWith('graphMinimapHeight', '100'))
+  // And never past its bounds.
+  fireEvent.keyDown(handle, { key: 'End' })
+  expect(strip().style.height).toBe('200px')
+  fireEvent.keyDown(handle, { key: 'Home' })
+  expect(strip().style.height).toBe('28px')
+})
+
 describe('in the graph', () => {
   const graphCommits = COMMITS.map((c, i) => ({
     ...c, shortHash: c.hash, message: `commit ${i}`, author: 'Alice', authorEmail: 'a@test.local',

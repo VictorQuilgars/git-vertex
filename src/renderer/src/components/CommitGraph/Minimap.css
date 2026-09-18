@@ -1,8 +1,7 @@
 /* The minimap: the loaded history as a strip above the graph (Minimap.tsx). */
 .cg-mm {
   position: relative;
-  flex-shrink: 0;
-  height: 40px;            /* MINIMAP_H */
+  flex-shrink: 0;           /* its height is the user's, set inline (Minimap.tsx) */
   background: var(--surface);
   border-bottom: 1px solid var(--border-muted);
   cursor: crosshair;
@@ -129,3 +128,20 @@
 /* The curve's fill stops at the card's rounded corners (the tools column on
    the right is outside the chart, so only the left ones). */
 .cg-mm-slot .cg-mm-svg { clip-path: inset(0 round var(--pane-radius) 0 0 var(--pane-radius)); }
+
+/* The handle that sizes the strip. In its block it IS the gap under the card,
+   the way the gaps between the panes are their splitters: as tall as the gap,
+   the frame's colour, no line; in the flush layout, where there is no gap, a
+   6px band straddling the edge. */
+.cg-mm-slot > .column-resize-handle--horizontal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + var(--pane-gap) / 2 - max(3px, var(--pane-gap) / 2));
+  height: max(6px, var(--pane-gap));
+  background: transparent;
+  border-block: none;
+}
+.cg-mm-slot > .column-resize-handle--horizontal:hover,
+.cg-mm-slot > .column-resize-handle--horizontal:focus-visible,
+.cg-mm-slot > .column-resize-handle--horizontal:active { background: var(--accent); }

@@ -19,6 +19,7 @@ import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import UpdateOverlay from './components/UpdateOverlay/UpdateOverlay'
 import NotificationCenter from './components/NotificationCenter/NotificationCenter'
 import { useJournal } from './contexts/JournalContext'
+import { useSettings } from './contexts/SettingsContext'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
@@ -390,6 +391,8 @@ export default function App() {
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
   // The minimap's block, above the three panes; the graph draws into it.
   const [minimapSlot, setMinimapSlot] = useState<HTMLDivElement | null>(null)
+  const { getBool: getBoolSetting, set: setSetting } = useSettings()
+  const minimapShown = getBoolSetting('graphMinimap', true)
 
   return (
     <div className="app">
@@ -532,6 +535,8 @@ export default function App() {
         onStash={handleStash}
         onPop={handlePop}
         onTerminal={handleTerminal}
+        minimapShown={minimapShown}
+        onToggleMinimap={() => setSetting('graphMinimap', minimapShown ? 'false' : 'true')}
         stashCount={stashes.length}
         onRefresh={loadRepoData}
         loading={loading}

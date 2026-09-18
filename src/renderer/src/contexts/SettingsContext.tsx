@@ -234,6 +234,7 @@ export const SETTING_DEFAULTS: SettingsMap = {
   graphMinimapData: 'commits',
   graphMinimapReversed: 'false',
   graphMinimapMarkers: 'local,stash',
+  graphMinimapHeight: '40',
   // Comfortable is the values in `:root`, so an existing install is not moved
   // by this feature arriving; compact is the block that overrides them.
   density: 'comfortable',

@@ -61,6 +61,10 @@
 .tb-cell:hover:not(:disabled) .tb-cell-label { color: var(--text-primary); }
 .tb-cell:active:not(:disabled) { transform: scale(0.96); }
 .tb-cell:disabled { opacity: 0.35; cursor: default; }
+/* A switch that is on — the minimap shown. */
+.tb-cell--active,
+.tb-cell--active .tb-cell-label { color: var(--accent); }
+.tb-cell--active { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-faint), transparent); }
 .tb-cell.tb-accent-green:hover:not(:disabled),
 .tb-cell.tb-accent-green:hover:not(:disabled) .tb-cell-label { color: var(--success); }
 .tb-cell.tb-accent-green:hover:not(:disabled) { background: color-mix(in srgb, var(--success-emphasis) var(--alpha-faint), transparent); }

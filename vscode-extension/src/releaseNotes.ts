@@ -37,7 +37,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A band at the top of the graph names the **stretch of time** the first visible row is in, and a hairline marks where one stretch ends. *Date bands* in the header's menu turns it off.
 
 ### 📈 A minimap above the panes
-- A block of its own under the toolbar, as wide as the three panes: the loaded history **day by day**, HEAD and its upstream, the branches, the stretch on screen, the days a search matched. **Click** a day to go to its commit, **drag** to zoom. The switch in the toolbar hides it.
+- A block of its own under the toolbar, as wide as the three panes: the loaded history **day by day**, HEAD and its upstream, the branches, the stretch on screen, the days a search matched. **Click** a day to go to its commit, **drag** to zoom, drag **the gap under it** to size it. The switch in the toolbar hides it.
 
 ### 👋 A Welcome page, once
 - A fresh install opens a page of **six things to try**, each with a gesture; **Git Vertex: Welcome** reopens it.
