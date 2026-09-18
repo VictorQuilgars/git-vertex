@@ -48,6 +48,12 @@ interface ContextMenuProps {
   anchor?: Element | null
 }
 
+// How many menus are up. While any is, the window's drag regions are not:
+// on the desktop the toolbar and the tab strip move the window, and a press
+// on their background goes to the system — the page never hears it, and the
+// menu stayed open. `menu-open` on <html> turns them off (ContextMenu.css).
+let openMenus = 0
+
 const OPEN_DELAY = 200   // hover dwell before a submenu opens
 const CLOSE_DELAY = 220  // grace period to move the cursor into the submenu
 
@@ -61,6 +67,15 @@ export default function ContextMenu({ x, y, items, onClose, anchor }: ContextMen
   // Set when a submenu was opened from the keyboard: its first row takes the
   // focus once it has rendered, which a hover-opened one must never do.
   const focusSubOnOpen = useRef(false)
+
+  useEffect(() => {
+    openMenus++
+    document.documentElement.classList.add('menu-open')
+    return () => {
+      openMenus = Math.max(0, openMenus - 1)
+      if (openMenus === 0) document.documentElement.classList.remove('menu-open')
+    }
+  }, [])
 
   // The menu takes the focus while it is up, and gives it back on close. That
   // is what stops the graph's own arrow keys from moving the selection under

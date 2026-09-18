@@ -50,3 +50,13 @@ test('a press inside it, or on the button that toggles it, does not', () => {
   expect(onClose).not.toHaveBeenCalled()
   button.remove()
 })
+
+test('while it is up, the window has no drag region to swallow a press', () => {
+  // On the desktop the toolbar's background moves the window: a press there
+  // goes to the system, never to the page, and the menu stayed open.
+  installMockGitAPI()
+  const { unmount } = renderWithProviders(<ContextMenu x={10} y={10} items={ITEMS as any} onClose={() => {}} />)
+  expect(document.documentElement).toHaveClass('menu-open')
+  unmount()
+  expect(document.documentElement).not.toHaveClass('menu-open')
+})
