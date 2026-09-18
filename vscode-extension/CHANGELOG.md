@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **A message git wrote no longer outlives its operation.** Mid-merge, rebase, cherry-pick or revert, the commit form starts from the message git has already written — and when the operation was finished or aborted from a terminal, that text stayed behind as a draft nobody had typed. On a clean tree a draft keeps the form open, so the *Next steps* card never came back, and in a short panel the message field was scrolled out of sight: nothing on screen said why. git's message is now marked as git's, and goes once no operation is in progress — if it is still word for word what git wrote. Edited, it is yours, and it stays. A draft left behind before this fix is not marked, and has to be cleared by hand once.
+
 ## 1.35.0
 
 ### Added

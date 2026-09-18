@@ -16,6 +16,11 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
+  'Unreleased': `## What's new in Unreleased
+
+### 📝 git's message goes with its operation
+- During a merge, a rebase, a cherry-pick or a revert, the commit form starts from **the message git wrote**. Finished or aborted **from a terminal**, the operation never passed through the form, and that text stayed as a draft nobody typed — which kept the form open on a clean tree, in place of **Next steps**. It now goes when the operation does, unless you edited it. A draft left over from before this fix has to be cleared by hand once.
+`,
   '1.35.0': `## What's new in 1.35.0
 
 ### 🎨 Make your own theme
