@@ -100,7 +100,11 @@ test('a press in the options menu is not a press on the chart', () => {
   // The menu is portalled out of the strip, but React bubbles its events
   // through it: "Hide minimap" used to take the graph to a day as well.
   const props = draw()
+  point('pointerMove', slotX(0))
+  expect(screen.getByRole('tooltip')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Minimap options' }))
+  // The day's tooltip does not stay up under the menu.
+  expect(screen.queryByRole('tooltip')).toBeNull()
   const row = screen.getByText('Hide minimap')
   fireEvent.pointerMove(row, { clientX: slotX(2), button: 0, pointerId: 1 })
   fireEvent.pointerDown(row, { clientX: slotX(2), button: 0, pointerId: 1 })

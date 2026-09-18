@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon, type IconName } from '../Icon/Icon'
 import './ContextMenu.css'
@@ -49,7 +49,9 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
   const ref = useRef<HTMLDivElement>(null)
   const subRef = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>()
-  const [sub, setSub] = useState<{ i: number; x: number; y: number } | null>(null)
+  // `x` is where the submenu opens, right of its row; `back` where it opens
+  // instead, left of it, when the right side has no room.
+  const [sub, setSub] = useState<{ i: number; x: number; y: number; back: number } | null>(null)
   // Set when a submenu was opened from the keyboard: its first row takes the
   // focus once it has rendered, which a hover-opened one must never do.
   const focusSubOnOpen = useRef(false)
@@ -102,7 +104,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
           clearTimeout(timer.current)
           const r = rows[current].getBoundingClientRect()
           focusSubOnOpen.current = true
-          setSub({ i, x: r.right - 3, y: r.top - 4 })
+          setSub({ i, x: r.right - 3, y: r.top - 4, back: r.left + 3 })
           break
         }
         case 'ArrowLeft': {
@@ -124,9 +126,13 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
   }, [onClose, sub, items])
 
   // Clamp to viewport — keep the menu fully on-screen even in a short panel.
-  useEffect(() => {
+  // Measured by its layout size, not its box: the menu opens with a scale-in
+  // animation, and a box read on the first frame is 4% short — a menu opened
+  // against the right edge was clamped to the smaller menu and overran by a
+  // few pixels, its border cut off. Before paint, so it never flashes there.
+  useLayoutEffect(() => {
     if (!ref.current) return
-    const rect = ref.current.getBoundingClientRect()
+    const rect = { width: ref.current.offsetWidth, height: ref.current.offsetHeight }
     const vw = window.innerWidth, vh = window.innerHeight, M = 4
     let left = x
     if (x + rect.width > vw) left = vw - rect.width - M
@@ -138,11 +144,29 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
     ref.current.style.top = `${top}px`
   }, [x, y])
 
+  // The submenu stays on screen too. It opens right of its row; a menu near
+  // the window's right edge — the minimap's options, a panel's toolbar — had
+  // its submenu drawn past the edge, where nobody could see it or reach it.
+  // With no room on the right it opens on the left, and it is lifted when it
+  // would run past the bottom. Before paint, so it never flashes off-screen.
+  useLayoutEffect(() => {
+    const el = subRef.current
+    if (!sub || !el) return
+    const rect = { width: el.offsetWidth, height: el.offsetHeight }   // layout size, not the animated box
+    const vw = window.innerWidth, vh = window.innerHeight, M = 4
+    let left = sub.x
+    if (left + rect.width > vw - M) left = Math.max(M, sub.back - rect.width)
+    let top = sub.y
+    if (top + rect.height > vh - M) top = Math.max(M, vh - rect.height - M)
+    el.style.left = `${left}px`
+    el.style.top = `${top}px`
+  }, [sub])
+
   const openSub = (i: number, el: HTMLElement) => {
     clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       const r = el.getBoundingClientRect()
-      setSub({ i, x: r.right - 3, y: r.top - 4 })
+      setSub({ i, x: r.right - 3, y: r.top - 4, back: r.left + 3 })
     }, OPEN_DELAY)
   }
   const closeSubSoon = () => {

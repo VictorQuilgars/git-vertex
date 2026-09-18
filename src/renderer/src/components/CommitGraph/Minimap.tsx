@@ -159,7 +159,9 @@ export default function Minimap(props: MinimapProps) {
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
   }
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!onStrip(e)) return
+    // Over the menu: React counts it as inside, so no leave event comes —
+    // the day's tooltip is put away here instead.
+    if (!onStrip(e)) { if (hover) setHover(null); return }
     const x = localX(e)
     const p = press.current
     if (p && (brush || Math.abs(x - p.x) > DRAG_SLOP)) {
@@ -295,7 +297,7 @@ export default function Minimap(props: MinimapProps) {
       <div className="cg-mm-tools" onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
         <button className="cg-mm-btn" title={t('minimap.options')} aria-label={t('minimap.options')}
           aria-haspopup="menu" aria-expanded={!!menu}
-          onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.right - 180, y: r.bottom + 2 }) }}>
+          onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setHover(null); setMenu({ x: r.right - 180, y: r.bottom + 2 }) }}>
           <Icon name="sliders" size={12} />
         </button>
         {isZoomed && (

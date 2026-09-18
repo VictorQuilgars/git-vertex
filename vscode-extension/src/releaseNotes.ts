@@ -84,6 +84,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A theme's accent was the outline of **every control**: the border was read from the one structural line a VS Code theme paints in its accent — Dracula's purple, on inputs, chips and rows alike. It is read from the theme's own separators now, and a line nothing could see — a colour of its own, or a shade away from the text — becomes the light grey VS Code draws where a theme sets nothing. Fifteen built-in themes change their line. A theme from the bank whose border is a colour of its own is refused, and the bank is generated against the same rule.
 - **The accent is the colour a theme marks things with.** It was read from the button, and Dracula's button is grey — so its commit button and links were grey, and its pink went to the model's colour by accident. It is now the colour the theme uses most where VS Code marks your action or attention: badge, progress bar, focus, active tab, button, link. Dracula's accent is its pink and the model's colour its purple; Dark+ and Light+ get VS Code's blue back.
 - **The graph starts at the accent.** The first branch drawn — yours — takes the lane nearest the theme's accent rather than its red, and no lane is the colour of an added or removed line any more.
+
+### ↔️ Submenus stay on screen
+- A submenu near the right edge — the minimap's **Markers**, say — **opens on the left** instead of past the edge.
 `,
   '1.34.0': `## What's new in 1.34.0
 
