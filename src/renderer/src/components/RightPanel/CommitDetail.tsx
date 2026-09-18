@@ -173,7 +173,6 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   const { get } = useSettings()
   // Configured reference patterns (Jira, Linear…), for the message below.
   const autolinks = React.useMemo(() => parseAutolinks(get('autolinks', '')), [get])
-  const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
   const [aiBusy, setAiBusy] = useState(false)
   const [aiExplanation, setAiExplanation] = useState<string | null>(null)
   const [explOpen, setExplOpen] = useState(false)
@@ -203,7 +202,7 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   useEffect(() => {
     setFiles([]); setBody(''); setSelectedFile(null); setView('files')
     setAmendEditing(false); setAmendMsg(''); setAmendLoading(false)
-    setAiMenu(null); setAiExplanation(null); setCachedExplanation(null); setExplOpen(false)
+    setAiExplanation(null); setCachedExplanation(null); setExplOpen(false)
     setFilesLoading(true)
     // Asked per commit, and only used to decide whether the message block is
     // clickable — a host that does not implement it simply gets no editing.
@@ -241,26 +240,18 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
         showToast?.(r.error === 'NO_API_KEY' ? t('panel.aiNoKey') : r.error, 'err')
         return
       }
-      if (canEditMessage) {
-        // Prefill the inline editor and let the user review before confirming —
-        // the same gesture whether this is the tip or a commit ten back. It used
-        // to branch here, sending non-tip commits through a modal prompt.
-        setAmendMsg(r.message)
-        setAmendEditing(true)
-      } else {
-        // Nothing can be rewritten here (merge commit, root, another branch), so
-        // the proposal would have nowhere to go. Hand it over instead of
-        // dropping it.
-        await navigator.clipboard.writeText(r.message)
-        showToast?.(t('panel.aiCopied'), 'ok')
-      }
+      // Asked from the inline editor: the proposal replaces what is in the
+      // field, to be reviewed before Confirm — the same gesture whether this is
+      // the tip or a commit ten back.
+      setAmendMsg(r.message)
+      setAmendEditing(true)
     } catch (e: any) {
       // e.g. VS Code host without the ai handler yet — the shim rejects.
       showToast?.(e?.message ?? 'AI error', 'err')
     } finally {
       setAiBusy(false)
     }
-  }, [commit.hash, canEditMessage, showToast, t])
+  }, [commit.hash, showToast, t])
 
   const runAiExplain = useCallback(async (force = false, guidance?: string) => {
     setAiBusy(true)
@@ -286,11 +277,6 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   // Marked and inked like every other AI row in the app — this menu hangs off
   // the AI button, so it was never ambiguous, but a row that reaches a model
   // reads the same wherever it is.
-  const aiMenuItems: MenuItemDef[] = [
-    { label: t('panel.aiRecompose'), action: runAiRecompose, icon: 'ai', tone: 'ai' },
-    { label: cachedExplanation ? t('panel.aiExplainAgain') : t('panel.aiExplain'), action: () => runAiExplain(!!cachedExplanation), icon: 'ai', tone: 'ai' },
-  ]
-
   // Parse co-authors from body (name + email)
   const coAuthors = body
     ? [...body.matchAll(/Co-Authored-By:\s*(.+?)\s*<([^>]+)>/gi)].map(m => ({ name: m[1].trim(), email: m[2].trim() }))
@@ -398,6 +384,14 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
                 {t('panel.rewordWarn', rewordPlan.rewrites)}
               </span>
             )}
+            {/* The model's proposal, where the message is rewritten: it fills the
+                field to be reviewed, and nothing is committed until Confirm.
+                Outlined in the model's colour, never filled. */}
+            <button className="cd-amend-ai" disabled={aiBusy || amendLoading}
+              title={t('panel.aiRecomposeTitle')} onClick={runAiRecompose}>
+              <Icon name="ai" size={12} />
+              <span>{aiBusy ? '…' : t('panel.aiRecompose')}</span>
+            </button>
             <button
               className="cd-amend-confirm"
               disabled={amendLoading || !amendMsg.trim()}
@@ -464,22 +458,9 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
                 <span>{t('panel.compareBtn')}</span>
               </button>
             )}
-            {/* The AI action stays, as a secondary control. A proposal the model
-                makes is never a filled button — see the design board. */}
-            <button
-              className="cd-ai-btn"
-              title="Recompose commit with AI"
-              disabled={aiBusy}
-              onClick={e => {
-                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                setAiMenu({ x: rect.right, y: rect.bottom + 4 })
-              }}
-            >
-              <Icon name="ai" size={14} />
-            </button>
-            {aiMenu && (
-              <ContextMenu x={aiMenu.x} y={aiMenu.y} items={aiMenuItems} onClose={() => setAiMenu(null)} />
-            )}
+            {/* No AI control up here: it opened a menu whose two entries were the
+                Explain button just below, a second time, and a proposal for the
+                MESSAGE — which now lives where the message is rewritten. */}
           </div>
 
           {/* One line for what used to take four: the hash, where it lives, the

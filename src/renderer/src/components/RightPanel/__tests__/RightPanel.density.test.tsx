@@ -103,11 +103,14 @@ describe('two primary actions, not one', () => {
     expect(onCompareWorking).toHaveBeenCalledWith('abc123def456')
   })
 
-  // A proposal the model makes is never a filled button.
-  test('the AI action is an icon control, not the pane primary', async () => {
+  // One way in to the model per thing it does: Explain for the explanation, and
+  // the message's own editor for a proposed message. The header used to carry an
+  // AI icon too, whose menu offered Explain a second time.
+  test('the header has no AI control of its own; Explain is offered once', async () => {
     render()
     await screen.findByText('tailwind.config.ts')
-    const ai = screen.getByTitle('Recompose commit with AI')
-    expect(ai.textContent?.trim()).toBe('')
+    expect(document.querySelector('.cd-ai-btn')).toBeNull()
+    expect(screen.queryByTitle('Recompose commit with AI')).toBeNull()
+    expect(screen.getAllByText('Explain')).toHaveLength(1)
   })
 })

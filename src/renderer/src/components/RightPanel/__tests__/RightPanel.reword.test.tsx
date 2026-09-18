@@ -48,6 +48,25 @@ const clickMessage = async () => {
 }
 
 describe('Commit detail — editing the message of any commit', () => {
+  // The model's proposal for the message lives where the message is rewritten.
+  // It used to hang off an AI icon in the header, beside a second Explain.
+  test('Generate fills the editor with the model\'s proposal, and commits nothing', async () => {
+    const { api } = render({ canReword: true, isHead: true, rewrites: 0 })
+    ;(api as any).aiRecomposeCommit = jest.fn().mockResolvedValue({ message: 'feat: what the diff really does' })
+    // Not offered before the message is being edited: there is no field for it to fill.
+    await screen.findByText('feat: the original subject')
+    expect(screen.queryByRole('button', { name: /generate/i })).toBeNull()
+
+    await clickMessage()
+    await userEvent.click(screen.getByRole('button', { name: /generate/i }))
+    expect(await screen.findByDisplayValue('feat: what the diff really does')).toBeInTheDocument()
+    expect((api as any).aiRecomposeCommit).toHaveBeenCalledWith(COMMIT.hash)
+    // A proposal is reviewed, not applied: the amend waits for Confirm.
+    expect(api.amendMessage).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: /update message/i }))
+    await waitFor(() => expect(api.amendMessage).toHaveBeenCalledWith('feat: what the diff really does'))
+  })
+
   test('the tip opens the editor and amends', async () => {
     const { api } = render({ canReword: true, isHead: true, rewrites: 0 })
     await clickMessage()

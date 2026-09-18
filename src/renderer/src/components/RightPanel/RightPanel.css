@@ -60,30 +60,6 @@
 }
 .cd-hash:hover { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-soft), transparent); }
 
-/* The AI action — an icon with a menu, not a filled bar. It is a proposal the
-   model makes, and the design board says a proposal is never a filled button:
-   --seed-iris is what the model offers, --seed-aqua is what the human does. */
-.cd-ai-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  margin-left: auto;
-  flex-shrink: 0;
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
-  border-radius: var(--radius-md);
-  color: var(--purple-text);
-  cursor: pointer;
-  transition: background var(--dur-fast), border-color var(--dur-fast);
-}
-.cd-ai-btn:hover {
-  background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent);
-  border-color: color-mix(in srgb, var(--purple) var(--alpha-bold), transparent);
-}
-.cd-ai-btn:disabled { opacity: 0.6; cursor: wait; }
-
 /* AI explanation box (Explain this commit) */
 .cd-ai-explain {
   margin: var(--space-md) var(--space-lg);
@@ -198,6 +174,19 @@
 .cd-amend-warn::before {
   content: '⚠ ';
 }
+/* The model's proposal for the message: outlined in its colour, never filled —
+   it fills the field to be reviewed, it does not commit. */
+.cd-amend-ai {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs);
+  flex: none;
+  height: 32px; padding: 0 var(--space-lg);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--purple) var(--alpha-muted), transparent);
+  border-radius: var(--radius-md);
+  color: var(--purple-text); font-size: var(--text-sm); cursor: pointer;
+}
+.cd-amend-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--purple) var(--alpha-faint), transparent); }
+.cd-amend-ai:disabled { opacity: .6; cursor: wait; }
 .cd-amend-confirm, .cd-amend-cancel {
   flex: 1;
   height: 32px;
@@ -1768,7 +1757,6 @@
 }
 .cd-compare-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
 /* With the compare button taking margin-left:auto, the AI control sits right after it. */
-.cd-compare-btn + .cd-ai-btn { margin-left: var(--space-xs); }
 
 /* ── The commit pane's leftovers (#113, second pass) ─────────────────────── */
 /* Copy the message: the small control in the block's corner. */

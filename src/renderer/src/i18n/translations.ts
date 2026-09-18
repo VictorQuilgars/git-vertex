@@ -844,7 +844,8 @@ const fr = {
   'panel.amendCancel': "Annuler l'amend",
 
   // RightPanel — AI (recompose/explain)
-  'panel.aiRecompose': 'Régénérer le message (IA)',
+  'panel.aiRecompose': 'Générer',
+  'panel.aiRecomposeTitle': 'Laisser le modèle proposer un message d\'après le diff de ce commit — il remplit le champ, rien n\'est commité avant votre confirmation',
   'panel.aiExplain': 'Expliquer ce commit (IA)',
   'panel.aiExplainAgain': 'Régénérer l\'explication (IA)',
   'panel.aiShowCached': 'Une explication IA existe pour ce commit — cliquer pour l\'afficher (sans appel API)',
@@ -2977,7 +2978,8 @@ const en: typeof fr = {
   'panel.amendCancel': 'Cancel Amend',
 
   // RightPanel — AI (recompose/explain)
-  'panel.aiRecompose': 'Regenerate message (AI)',
+  'panel.aiRecompose': 'Generate',
+  'panel.aiRecomposeTitle': 'Let the model propose a message from this commit\'s diff — it fills the field, nothing is committed until you confirm',
   'panel.aiExplain': 'Explain this commit (AI)',
   'panel.aiExplainAgain': 'Regenerate explanation (AI)',
   'panel.aiShowCached': 'An AI explanation exists for this commit — click to show it (no API call)',
