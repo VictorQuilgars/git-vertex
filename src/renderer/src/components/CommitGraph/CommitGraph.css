@@ -580,3 +580,19 @@
 .cg-row.cg-selected .cg-refs-chips--ghost,
 .cg-refs-chips--ghost.cg-refs-chips--open { opacity: 1; }
 .ref-chip--ghost { border-style: dashed; opacity: 0.65; }
+
+/* ── Stretches of time (timeline.ts) ─────────────────────────────
+   A pill pinned to the top right of the scroller naming the stretch the
+   first visible row is in — today, this week, August 2026 — and a hairline
+   where one stretch ends and the next begins. The band has no height of its
+   own: it sticks to the top of the scroller and floats over the rows. */
+.cg-period-band { position: sticky; top: 0; height: 0; z-index: 5; pointer-events: none; }
+.cg-period-pill {
+  position: absolute; right: 12px; top: 6px;
+  padding: 1px 8px; border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface) var(--alpha-dense), transparent);
+  border: 1px solid var(--border-muted);
+  color: var(--text-tertiary); font-size: var(--text-tiny); font-weight: 600; letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.cg-period-sep { position: absolute; left: 0; right: 0; height: 1px; background: var(--border-muted); z-index: 1; pointer-events: none; }

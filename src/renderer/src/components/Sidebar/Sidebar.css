@@ -67,6 +67,87 @@
 .sb-ov-staged { color: var(--success); }
 .sb-ov-changed { color: var(--warning); }
 .sb-ov-clean { font-size: var(--text-xs); color: var(--text-tertiary); }
+/* The home card's extras: the issue chip, where the branch stands against
+   its merge target, the pull request (or the door to one), the one state
+   action that is true. */
+.sb-ov-issue { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--text-secondary); font-weight: var(--weight-medium); }
+.sb-ov-target { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-xs); color: var(--text-tertiary); min-width: 0; }
+.sb-ov-target span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-ov-target--behind { color: var(--warning); }
+.sb-ov-pr { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; color: var(--text-secondary); }
+.sb-ov-pr-link {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+  background: none; border: none; padding: 0; color: var(--accent); font-size: var(--text-xs); font-weight: var(--weight-medium); cursor: pointer;
+}
+.sb-ov-pr-link:hover { text-decoration: underline; }
+.sb-ov-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.sb-ov-action {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  height: var(--row-ctl); padding: 0 var(--space-lg);
+  background: var(--accent-emphasis); border: 1px solid var(--accent-emphasis); border-radius: var(--radius-md);
+  color: var(--text-on-emphasis); font-size: var(--text-xs); font-weight: var(--weight-semibold); cursor: pointer;
+}
+.sb-ov-action:hover { background: var(--accent); border-color: var(--accent); }
+.sb-ov-action--quiet { background: transparent; border-color: var(--border-default); color: var(--text-secondary); }
+.sb-ov-action--quiet:hover { background: var(--surface-sunken); color: var(--text-primary); }
+
+/* The sections under the card: a label with its control on the right. */
+.sb-ov-head { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-lg); }
+.sb-ov-threshold { position: relative; }
+.sb-ov-threshold-btn {
+  display: inline-flex; align-items: center; gap: var(--space-2xs);
+  background: none; border: none; padding: 0 var(--space-2xs); color: var(--text-tertiary); font-size: var(--text-tiny); cursor: pointer;
+}
+.sb-ov-threshold-btn:hover { color: var(--text-primary); }
+.sb-ov-threshold-menu {
+  position: absolute; right: 0; top: 100%; z-index: var(--z-dropdown); min-width: 110px; padding: var(--space-xs);
+  background: var(--surface-hover); border: 1px solid var(--border-default); border-radius: var(--radius-lg);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+}
+.sb-ov-threshold-item {
+  display: block; width: 100%; text-align: left; padding: var(--space-xs) var(--space-md);
+  background: none; border: none; border-radius: var(--radius-sm); color: var(--text-primary-soft); font-size: var(--text-xs); cursor: pointer;
+}
+.sb-ov-threshold-item:hover { background: var(--surface-sunken); }
+.sb-ov-threshold-item[aria-checked="true"] { color: var(--accent); }
+
+/* A recent branch: name, when its tip moved, its tracking and its pull request. */
+.sb-ov-recent {
+  display: flex; align-items: center; gap: var(--space-sm);
+  height: var(--row-nav); padding: 0 var(--space-md); border-radius: var(--radius-sm);
+  color: var(--text-secondary); font-size: var(--text-sm); cursor: pointer;
+}
+.sb-ov-recent:hover, .sb-ov-recent:focus-visible { background: var(--surface-sunken); color: var(--text-primary); outline: none; }
+.sb-ov-recent-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-ov-recent-when { flex-shrink: 0; font-size: var(--text-tiny); color: var(--text-tertiary); }
+.sb-ov-recent-pr { display: inline-flex; align-items: center; gap: var(--space-2xs); flex-shrink: 0; font-size: var(--text-tiny); color: var(--text-tertiary); }
+.sb-ov-older {
+  display: block; margin: var(--space-xs) var(--space-md); background: none; border: none; padding: 0;
+  color: var(--text-tertiary); font-size: var(--text-tiny); cursor: pointer;
+}
+.sb-ov-older:hover { color: var(--text-primary); text-decoration: underline; }
+
+/* What waits on the user, one row per kind, coloured by what it asks. */
+.sb-ov-lp { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.sb-ov-lp-row {
+  display: flex; align-items: center; gap: var(--space-sm);
+  height: var(--row-nav); padding: 0 var(--space-md); border-radius: var(--radius-sm);
+  background: none; border: none; color: var(--text-secondary); font-size: var(--text-sm); text-align: left; cursor: pointer;
+}
+.sb-ov-lp-row:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.sb-ov-lp-row--review .icon { color: var(--attention); }
+.sb-ov-lp-row--changes .icon { color: var(--warning); }
+.sb-ov-lp-row--ready .icon { color: var(--success); }
+
+/* What to start: small chips, wrapping. */
+.sb-ov-starts { display: flex; flex-wrap: wrap; gap: var(--space-sm); padding: 0 var(--space-2xs); }
+.sb-ov-start {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  height: var(--row-ctl); padding: 0 var(--space-md);
+  background: var(--surface-sunken); border: 1px solid var(--border-muted); border-radius: var(--radius-pill);
+  color: var(--text-secondary); font-size: var(--text-xs); cursor: pointer;
+}
+.sb-ov-start:hover { background: var(--surface-active); color: var(--text-primary); }
 
 /* ── Branch filter ────────────────────────────────────────── */
 .sb-search {
@@ -1026,3 +1107,19 @@
   background: var(--surface-sunken); border-radius: var(--radius-sm);
   padding: 0 var(--space-sm); line-height: 1.6;
 }
+
+/* ── Contributors ─────────────────────────────────────────────────
+   A row per author, the branch row's rhythm; the count sits at the end. The
+   pressed one is the author the graph is narrowed to. */
+.sb-contrib-row {
+  display: flex; align-items: center; gap: var(--space-sm);
+  width: calc(100% - 2 * var(--space-xs)); height: var(--row-nav);
+  padding: 0 var(--space-lg) 0 var(--space-2xl); margin: 0 var(--space-xs);
+  background: transparent; border: none; border-radius: var(--radius-sm);
+  color: var(--text-secondary); font-size: var(--text-sm); text-align: left; cursor: pointer;
+}
+.sb-contrib-row:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.sb-contrib-row--active { background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent); color: var(--accent); }
+.sb-contrib-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-contrib-count { flex-shrink: 0; font-size: var(--text-tiny); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.sb-contrib-row--active .sb-contrib-count { color: var(--accent); }

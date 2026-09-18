@@ -11,7 +11,7 @@ export class GitVertexStatusBar {
       9
     )
     this.item.command = openCommand
-    this.item.tooltip = 'Open in Git Vertex'
+    this.item.tooltip = 'Show Git Vertex'
   }
 
   update(branch: string | undefined, ahead: number, behind: number): void {

@@ -13,6 +13,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
+import { getRepoRootForFile } from '../gitInfo'
 import { GitService, gitEnv, parseGitVersion } from '../gitService'
 import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
@@ -45,6 +46,17 @@ import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 import { describeTuning, maybeTuneRepository, type TuningRunner } from '../../../src/main/repo-tuning'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
+export interface PanelStatus { wip: number; branch: string }
+// What a webview may ask the workbench to run, by name: VS Code's own doors
+// for a panel with no repository, and this extension's commands the Welcome
+// page points at. An allow-list, never a passthrough.
+const ALLOWED_COMMANDS = new Set([
+  'vscode.openFolder', 'git.clone', 'git.init',
+  'gitVertex.openPanel', 'gitVertex.moveToSideBar', 'gitVertex.moveToPanel',
+  'gitVertex.toggleLineBlame', 'gitVertex.toggleFileBlame', 'gitVertex.toggleCodeLens',
+  'gitVertex.revealCommit', 'gitVertex.showWhatsNew', 'gitVertex.openPanelSettings',
+  'gitVertex.toggleFollowCursor', 'workbench.action.terminal.new',
+])
 
 // ── Git's own caches, when the user asked for them ───────────────────────────
 //
@@ -264,7 +276,13 @@ export class GitVertexHost implements vscode.Disposable {
     if (!this._boot) activeCommitMenuWebview = this._webview
     this._webview.html = this._getHtml(this._webview)
     this._webview.onDidReceiveMessage(
-      (msg: GitApiRequest) => { if (msg?.type === 'gitApi') this._handleApi(msg) },
+      (msg: GitApiRequest | { type: 'gvActive' }) => {
+        if (msg?.type === 'gitApi') this._handleApi(msg)
+        // The native commit menu relays to the last webview the pointer went
+        // down in — the panel view and the editor tab both draw the graph,
+        // and the one the user right-clicked is not always the newer one.
+        else if (msg?.type === 'gvActive' && !this._boot) activeCommitMenuWebview = this._webview
+      },
       null,
       this._disposables,
     )
@@ -294,6 +312,60 @@ export class GitVertexHost implements vscode.Disposable {
   }
 
   public get repoPath(): string | undefined { return this._repoPath }
+
+  /**
+   * Show a commit — a SHA, a branch, a tag — in this webview's graph. `quiet`
+   * is the cursor following the editor: no toast when the commit is not
+   * on screen, and no growing of the page to reach it.
+   */
+  public postReveal(ref: string, quiet = false): void {
+    this._webview.postMessage({ type: 'revealCommit', ref, quiet })
+  }
+
+  /** Open the panel's own settings page. */
+  public postOpenSettings(): void {
+    this._webview.postMessage({ type: 'openSettings' })
+  }
+
+  /**
+   * The graph follows the editor's cursor: the commit of the active line is
+   * shown as the cursor moves. Written to the shared settings so the toolbar
+   * reads it back, told to the extension (which watches the cursor), and told
+   * to the webview (whose toolbar button reflects it).
+   */
+  public onFollowCursor?: (on: boolean) => void
+  public async applyFollowCursor(on: boolean): Promise<void> {
+    const all = this._state.get<Record<string, string>>('gvSettings', {})
+    all.followCursor = String(on)
+    await this._state.update('gvSettings', all)
+    this.onFollowCursor?.(on)
+    this._webview.postMessage({ type: 'followCursor', on })
+  }
+
+  /**
+   * What the panel says about the repository on screen, each time it
+   * reloads: the view's header wears it (a badge with the changed-file count,
+   * the branch as the description) where the webview itself cannot reach.
+   */
+  public onStatus?: (status: PanelStatus) => void
+
+  /**
+   * The panel asked for another repository of the workspace. Answered by
+   * whoever owns the choice (extension.ts): the watchers, the editor tab and
+   * the status bar follow the panel there.
+   */
+  public onSwitchRepo?: (repoPath: string) => void
+
+  /** Something may have become a repository: whoever resolves one should look again. */
+  public onRescan?: () => void
+
+  /** The editor-tab panel this host draws in, when it is a tab: what follow retitles. */
+  private _panel?: vscode.WebviewPanel
+  public attachPanel(panel: vscode.WebviewPanel): void { this._panel = panel }
+  /** Sent to a following history tab: the editor moved to this file. */
+  public postHistoryFile(file: string): void {
+    this._webview.postMessage({ type: 'historyFile', file })
+  }
 
   // ── FS watcher → broadcast change events ──────────────────────
   private _setupWatcher(repoPath: string): void {
@@ -577,6 +649,18 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'appGetInfo': return { platform: process.platform, version: '1.5.0', repoPath: this._repoPath, repoName: this._repoPath ? path.basename(this._repoPath) : undefined }
       case 'openExternal': { vscode.env.openExternal(vscode.Uri.parse(args[0])); return { success: true } }
+      case 'workbench': {
+        // The three doors a panel with no repository offers are VS Code's
+        // own: open a folder, clone (the built-in git extension's dialog),
+        // initialise the workspace folder. An allow-list, not a passthrough.
+        const id = String(args[0] ?? '')
+        if (!ALLOWED_COMMANDS.has(id)) return { success: false, error: `not-allowed: ${id}` }
+        try { await vscode.commands.executeCommand(id) } catch (e: any) { return { success: false, error: e?.message ?? String(e) } }
+        // `git init` leaves a repository where there was none, a little
+        // later than the command returns: look again, a few times.
+        if (id === 'git.init') for (const ms of [500, 1500, 4000]) setTimeout(() => this.onRescan?.(), ms)
+        return { success: true }
+      }
       case 'openInEditor': {
         try {
           const uri = vscode.Uri.file(path.isAbsolute(args[0]) ? args[0] : path.join(this._repoPath ?? '', args[0]))
@@ -648,6 +732,39 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'setLastMenuHash': {
         lastCommitMenuHash = args[0]
+        return { success: true }
+      }
+      case 'listWorkspaceRepos': {
+        // One entry per workspace folder that is inside a repository, the
+        // repository named after its root — two folders of one repository
+        // are one entry.
+        const seen = new Map<string, { path: string; name: string }>()
+        for (const folder of vscode.workspace.workspaceFolders ?? []) {
+          const root = getRepoRootForFile(folder.uri.fsPath)
+          if (root && !seen.has(root)) seen.set(root, { path: root, name: path.basename(root) })
+        }
+        return { repos: [...seen.values()], current: this._repoPath, hasFolder: (vscode.workspace.workspaceFolders?.length ?? 0) > 0 }
+      }
+      case 'setPanelRepo': {
+        const target = String(args[0] ?? '')
+        if (target && target !== this._repoPath) this.onSwitchRepo?.(target)
+        return { success: true }
+      }
+      case 'historyFollow': {
+        // Only a history tab can follow, and only while it has a panel to
+        // retitle; the registry is what the editor's changes are fanned out to.
+        if (this._boot?.mode !== 'history' || !this._panel) return { success: false }
+        if (args[0]) followingHistory.set(this, this._panel)
+        else followingHistory.delete(this)
+        return { success: true }
+      }
+      case 'followCursor': {
+        await this.applyFollowCursor(!!args[0])
+        return { success: true }
+      }
+      case 'panelStatus': {
+        const status = args[0] as PanelStatus | undefined
+        if (status) this.onStatus?.({ wip: Number(status.wip) || 0, branch: String(status.branch ?? '') })
         return { success: true }
       }
       case 'savePatchFile': {
@@ -1262,6 +1379,8 @@ export class GitVertexHost implements vscode.Disposable {
   }
 
   public dispose(): void {
+    followingHistory.delete(this)
+    if (activeCommitMenuWebview === this._webview) activeCommitMenuWebview = undefined
     this._fsWatcher?.dispose()
     this._disposables.forEach(d => d.dispose())
     this._disposables = []
@@ -1585,10 +1704,52 @@ export function openGitVertexCompareTab(
   comparePanels.set(key, panel)
 }
 
+// ── Welcome tab (singleton) ─────────────────────────────────────────
+// What the extension does and where, on a page: opened once on a fresh
+// install (an update opens What's new instead), and by command after that.
+const WELCOME_VIEW_TYPE = 'gitVertex.welcome'
+let welcomePanel: vscode.WebviewPanel | undefined
+let welcomeHost: GitVertexHost | undefined
+
+export function openGitVertexWelcomeTab(extensionUri: vscode.Uri, state: vscode.Memento): void {
+  if (welcomePanel) { welcomePanel.reveal(welcomePanel.viewColumn); return }
+  welcomePanel = vscode.window.createWebviewPanel(
+    WELCOME_VIEW_TYPE,
+    'Welcome — Git Vertex',
+    vscode.ViewColumn.Active,
+    { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')] },
+  )
+  welcomePanel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
+  welcomeHost = new GitVertexHost(welcomePanel.webview, extensionUri, state, { mode: 'welcome' }, () => welcomePanel?.dispose())
+  welcomePanel.onDidDispose(() => {
+    welcomeHost?.dispose()
+    welcomeHost = undefined
+    welcomePanel = undefined
+  })
+}
+
 // ── File history tabs (one WebviewPanel per file) ─────────────────
 // Visual file history: commit timeline + per-commit diff/blame.
 const HISTORY_VIEW_TYPE = 'gitVertex.fileHistory'
 const historyPanels = new Map<string, vscode.WebviewPanel>()
+// The tabs that follow the active editor: each moves to whatever file the
+// editor shows next, as long as that file is in the tab's repository.
+const followingHistory = new Map<GitVertexHost, vscode.WebviewPanel>()
+
+/** The active editor moved to `fsPath`: every following history tab goes there too. */
+export function followHistoryTo(fsPath: string): void {
+  for (const [host, panel] of followingHistory) {
+    const root = host.repoPath
+    if (!root || !fsPath.startsWith(root + path.sep)) continue
+    const rel = path.relative(root, fsPath).split(path.sep).join('/')
+    // Re-key the registry: the tab is that file's history now, not the one
+    // it opened on — a second request for the file lands here, not beside it.
+    for (const [file, p] of historyPanels) if (p === panel) historyPanels.delete(file)
+    if (!historyPanels.has(rel)) historyPanels.set(rel, panel)
+    panel.title = `History — ${rel.split('/').pop()}`
+    host.postHistoryFile(rel)
+  }
+}
 
 export function openGitVertexFileHistoryTab(
   extensionUri: vscode.Uri,
@@ -1612,11 +1773,13 @@ export function openGitVertexFileHistoryTab(
   panel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
 
   const host = new GitVertexHost(panel.webview, extensionUri, state, { mode: 'history', file }, () => panel.dispose())
+  host.attachPanel(panel)
   host.setRepo(repoPath)
 
   panel.onDidDispose(() => {
     host.dispose()
-    historyPanels.delete(file)
+    // By panel, not by the opening file: a following tab may have moved on.
+    for (const [f, p] of historyPanels) if (p === panel) historyPanels.delete(f)
   })
   historyPanels.set(file, panel)
 }

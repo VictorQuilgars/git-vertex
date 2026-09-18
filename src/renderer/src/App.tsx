@@ -19,6 +19,7 @@ import InteractiveRebase from './components/InteractiveRebase/InteractiveRebase'
 import UpdateOverlay from './components/UpdateOverlay/UpdateOverlay'
 import NotificationCenter from './components/NotificationCenter/NotificationCenter'
 import { useJournal } from './contexts/JournalContext'
+import { useSettings } from './contexts/SettingsContext'
 import ConflictResolver from './components/ConflictResolver/ConflictResolver'
 import WhatsNew from './components/WhatsNew/WhatsNew'
 import PushModal from './components/PushModal/PushModal'
@@ -389,6 +390,10 @@ export default function App() {
   const windowWidth = useWindowWidth()
   const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
+  // The minimap's block, above the three panes; the graph draws into it.
+  const [minimapSlot, setMinimapSlot] = useState<HTMLDivElement | null>(null)
+  const { getBool: getBoolSetting, set: setSetting } = useSettings()
+  const minimapShown = getBoolSetting('graphMinimap', true)
 
   return (
     <div className="app">
@@ -531,6 +536,8 @@ export default function App() {
         onStash={handleStash}
         onPop={handlePop}
         onTerminal={handleTerminal}
+        minimapShown={minimapShown}
+        onToggleMinimap={() => setSetting('graphMinimap', minimapShown ? 'false' : 'true')}
         stashCount={stashes.length}
         onRefresh={loadRepoData}
         loading={loading}
@@ -608,6 +615,12 @@ export default function App() {
           />
         </div>
       )}
+
+      {/* ── The minimap's block ── Above the three panes, as wide as they
+          are; empty (and gone) while the strip is hidden. Hidden with the
+          graph wherever the graph is hidden but still mounted. */}
+      <div className="cg-mm-slot" ref={setMinimapSlot}
+        style={{ display: whatsNewActive || repoMgmtOpen || compactDetails ? 'none' : undefined }} />
 
       <div className={`app-body${compactDetails ? ' app-body--detail' : ''}`} style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
@@ -691,6 +704,8 @@ export default function App() {
                 const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
                 if (found) setSelectedCommit(found)
               }}
+              onFilterAuthor={(author) => setSearchQuery(author ? `author:${author}` : '')}
+              authorFilter={searchQuery.startsWith('author:') ? searchQuery.slice(7) : null}
               onCompareBranch={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
               soloBranch={soloBranch}
               visibility={visibility}
@@ -927,6 +942,7 @@ export default function App() {
             )
           ) : (
             <CommitGraph
+              minimapSlot={minimapSlot}
               issueForBranch={branchMeta.issueFor}
               prForBranch={(name) => {
                 const pr = githubPRs?.find(p => p.headRef === name)

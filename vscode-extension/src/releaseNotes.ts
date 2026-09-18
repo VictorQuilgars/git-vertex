@@ -21,6 +21,59 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 🎨 Make your own theme
 - **Settings › Appearance › Create a theme** opens a drawer over the app, and the app is the preview: change a seed, the whole window repaints. Click anything with *Inspect* to see which seed colours it. Saving installs the theme and puts it in use; the file it exports is the bank's own format.
 
+### 📐 Git Vertex in the side bar
+- The view lives **wherever VS Code lets a view live**: the bottom panel it opens in, the primary side bar, the secondary one. Drag it to the activity bar, or run **Git Vertex: Move to Side Bar** / **Move to Panel** from the view's title menu. Same view, same state, wherever it goes.
+
+### 📏 A narrow column fits
+- Below 640 px the panel **changes shape instead of clipping**: the rail narrows and stays; a rail icon opens its view as a **layer over the graph**, closed by Escape or a press anywhere else; the details go **under the graph** behind a splitter that remembers its height, or replace it with a way back when the column is short too; the toolbar keeps the branch and the sync actions, folds the rest behind **⋯**, and gives the search its own row.
+- A **short panel is flush**: below 340 px of height the cards' gap goes to the staging pane.
+
+### 🔗 The terminal names commits, and they are links
+- A **SHA, a branch, a tag or a range** printed in an integrated terminal is a link: a click shows the commit in the graph, wherever the view lives, or opens the comparison.
+- The blame hover gains **Show in Graph**; **Git Vertex: Show Commit in Graph** in the palette asks for a name. A commit beyond the loaded page is reached by growing the page, the way the extended search does.
+
+### ⌨️ The keyboard reaches the rows that matter
+- In the graph, **h** is HEAD, **u** its upstream, **w** the working changes, **Home** / **End** the ends of the page.
+- **One Escape closes one thing**: a menu open over the graph owns the key before the selection does.
+
+### 📅 The graph says when
+- A band at the top of the graph names the **stretch of time** the first visible row is in, and a hairline marks where one stretch ends. *Date bands* in the header's menu turns it off.
+
+### 📈 A minimap above the panes
+- A block of its own under the toolbar, as wide as the three panes: the loaded history **day by day**, HEAD and its upstream, the branches, the stretch on screen, the days a search matched. **Click** a day to go to its commit, **drag** to zoom, drag **the gap under it** to size it. The switch in the toolbar hides it.
+
+### 👋 A Welcome page, once
+- A fresh install opens a page of **six things to try**, each with a gesture; **Git Vertex: Welcome** reopens it.
+
+### 👁️ The graph can follow the cursor
+- The eye in the toolbar: on, the commit of the line under the cursor is selected in the graph as it moves.
+
+### 🏠 The overview is a home
+- The current branch's card carries its **issue**, its **pull request** (or the door to one), where it stands against **the branch it will merge into**, and **the one state action that is true** — publish, pull or push.
+- **Recent**: the branches whose tip moved within a day, a week or a month, newest first; **Waiting on you**: pull requests needing your review, with changes requested, approved; then what to **start**.
+
+### 🧭 A history that follows
+- The **File History** tab gains **Follow editor**: pressed, it shows the history of whatever file the editor moves to.
+
+### 👥 Who works here
+- A **Contributors** section in the overview; a row narrows the graph to one author. The search field accepts **author:name**.
+
+### 🚪 No repository: the doors
+- A panel with nothing to show names the situation and offers what fits it — **Initialize Repository** for an open folder, **Open Folder…** / **Clone Repository…** when none is — VS Code's own.
+
+### ⏮️ Revisions, one step at a time
+- From the editor's title bar, **Open Changes with Previous / Next Revision** walk a file's own history; a revision document offers **Show Revision Commit in Graph**.
+
+### 🗂️ Several repositories, one panel
+- When the workspace folders belong to more than one repository, the toolbar's name is a **picker**; the choice is remembered per workspace.
+
+### 🏷️ The view's header says what is in it
+- The changed-file count is a **badge** on the view's title and the branch its description — wherever the view is.
+- The **status bar opens the panel**, not the desktop app.
+
+### 🖱️ The commit menu answers where it was opened
+- With the panel and the editor tab both open, a right-click in one could act in the other. The host follows the pointer now.
+
 ### 🧱 The panes are cards
 - The side panel and the graph sit as **rounded cards on a frame**, set apart by a gap rather than a line; the rail and the compact toolbar are the frame. **Settings › Appearance › Layout** offers *Flush*, the edge-to-edge rendering the panel had.
 
@@ -34,6 +87,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A theme's accent was the outline of **every control**: the border was read from the one structural line a VS Code theme paints in its accent — Dracula's purple, on inputs, chips and rows alike. It is read from the theme's own separators now, and a line nothing could see — a colour of its own, or a shade away from the text — becomes the light grey VS Code draws where a theme sets nothing. Fifteen built-in themes change their line. A theme from the bank whose border is a colour of its own is refused, and the bank is generated against the same rule.
 - **The accent is the colour a theme marks things with.** It was read from the button, and Dracula's button is grey — so its commit button and links were grey, and its pink went to the model's colour by accident. It is now the colour the theme uses most where VS Code marks your action or attention: badge, progress bar, focus, active tab, button, link. Dracula's accent is its pink and the model's colour its purple; Dark+ and Light+ get VS Code's blue back.
 - **The graph starts at the accent.** The first branch drawn — yours — takes the lane nearest the theme's accent rather than its red, and no lane is the colour of an added or removed line any more.
+
+### ↔️ Menus stay on screen, and go away
+- A submenu near the right edge — the minimap's **Markers**, say — **opens on the left** instead of past the edge.
+- A menu **closes on any press elsewhere** — a splitter, the editor around the panel — and the minimap's options button toggles its menu.
 `,
   '1.34.0': `## What's new in 1.34.0
 

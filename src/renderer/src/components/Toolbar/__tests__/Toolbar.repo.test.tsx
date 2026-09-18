@@ -150,3 +150,15 @@ test('compact toolbar keeps secondary actions operable and closes the menu after
     expect(screen.getByPlaceholderText(/Search commits/i)).toBeInTheDocument()
   } finally { window.matchMedia = original }
 })
+
+describe('the minimap switch', () => {
+  test('a button of its own shows and hides the strip, and says which it is', async () => {
+    const onToggleMinimap = jest.fn()
+    render({ onToggleMinimap, minimapShown: false })
+    const btn = screen.getByRole('button', { name: /Minimap/ })
+    expect(btn).toHaveAttribute('aria-pressed', 'false')
+    expect(btn).toHaveAttribute('title', 'Show minimap')
+    await userEvent.click(btn)
+    expect(onToggleMinimap).toHaveBeenCalledTimes(1)
+  })
+})

@@ -335,6 +335,7 @@ export class InlineBlameController implements vscode.Disposable {
     const hashArgs = encodeURIComponent(JSON.stringify([line.hash]))
     md.appendMarkdown(
       `\`${line.shortHash}\` · `
+      + `[$(git-commit) Show in Graph](command:gitVertex.revealCommit?${hashArgs}) · `
       + `[$(history) File History](command:gitVertex.fileHistory?${fileArgs}) · `
       + `[$(copy) Copy SHA](command:gitVertex.blame.copyHash?${hashArgs})`)
     return md

@@ -155,7 +155,7 @@ export function isRefHidden(
  * the graph's own `processRefs` has always made: wrong for a repository whose
  * remote is named anything else, and no more wrong here than there.
  */
-function remoteOf(ref: string, remotes: readonly string[]): string | null {
+export function remoteOf(ref: string, remotes: readonly string[]): string | null {
   if (ref.startsWith('remotes/')) {
     const rest = ref.slice('remotes/'.length)
     const slash = rest.indexOf('/')

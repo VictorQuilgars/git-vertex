@@ -2,6 +2,7 @@
 // "Visual File History"): commit timeline on the left, per-commit diff or
 // blame on the right. Opened by the VS Code extension via boot mode 'history'.
 
+import { Icon } from '../Icon/Icon'
 import { useState, useEffect, useCallback } from 'react'
 import DiffViewer from '../DiffViewer/DiffViewer'
 import type { CommitNode } from '../../types'
@@ -36,7 +37,15 @@ function toCommitNode(e: HistoryEntry): CommitNode {
   }
 }
 
-export default function FileHistory({ file }: { file: string }) {
+export default function FileHistory({ file, follow }: {
+  file: string
+  /**
+   * Offered by a host whose tab can follow the active editor: the header
+   * shows the switch, pressed while following. The desktop's view tab has no
+   * editor to follow, and offers nothing.
+   */
+  follow?: { on: boolean; onToggle: () => void }
+}) {
   const { t } = useLang()
   const [entries, setEntries] = useState<HistoryEntry[]>([])
   const [selected, setSelected] = useState<HistoryEntry | null>(null)
@@ -83,6 +92,14 @@ export default function FileHistory({ file }: { file: string }) {
         <code className="fh-file">{file}</code>
         <span className="fh-count">{t('fh.commitCount', entries.length)}</span>
         <span className="fh-spring" />
+        {follow && (
+          <button className={`fh-follow${follow.on ? ' fh-follow--on' : ''}`}
+            title={follow.on ? t('fh.followingHint') : t('fh.followHint')}
+            aria-pressed={follow.on} onClick={follow.onToggle}>
+            <Icon name={follow.on ? 'eye' : 'eyeOff'} size={12} />
+            <span>{follow.on ? t('fh.following') : t('fh.follow')}</span>
+          </button>
+        )}
         <div className="fh-toggle">
           <button className={mode === 'diff' ? 'active' : ''} onClick={() => setMode('diff')}>Diff</button>
           <button className={mode === 'blame' ? 'active' : ''} onClick={() => setMode('blame')}>Blame</button>

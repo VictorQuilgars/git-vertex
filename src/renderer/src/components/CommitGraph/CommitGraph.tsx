@@ -5,6 +5,8 @@ import { Icon } from '../Icon/Icon'
 import { createPortal } from 'react-dom'
 import { LayoutCommit, computeGraphLayout, rowOffsets, rowHeight as densityRowHeight, refLineHeight as densityRefLine } from './graph-layout'
 import MessageChip from './MessageChip'
+import Minimap from './Minimap'
+import { dayOf } from './minimap-model'
 import { CommitNode } from '../../types'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { Mark } from '../Mark/Mark'
@@ -13,6 +15,7 @@ import type { BranchMenuExtras } from '../ContextMenu/branchMenu'
 import { useLang } from '../../i18n/LanguageContext'
 import { isRefHidden, type GraphVisibility } from '../../utils/graphVisibility'
 import { useSettings } from '../../contexts/SettingsContext'
+import { periodOf, periodLabel, periodBoundaries, periodAt } from './timeline'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
 import { COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
@@ -50,6 +53,12 @@ export interface CommitGraphProps {
    * chip and has no business holding every branch.
    */
   trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null
+  /**
+   * The current branch's upstream, as `%D` decorates it (`origin/main`): the
+   * row the `u` key jumps to. Absent when there is none, or the host does not
+   * know it — the key then does nothing.
+   */
+  upstreamRef?: string | null
   /**
    * The Working Changes row is always there, clean tree or not. It is the way
    * into the staging pane, and a pane nobody can reach is a pane that does not
@@ -143,6 +152,19 @@ export interface CommitGraphProps {
   // independently of whatever argument VS Code passes to the native menu's
   // commands, in case that ever comes back empty.
   onNativeMenuTarget?: (hash: string) => void
+  /**
+   * The block the minimap is drawn in, when the host gives it one of its own —
+   * above every pane, as wide as they are together. The strip is portalled
+   * there and its data stays here, next to the rows it is made of. `null`:
+   * the host has a block that is not mounted yet, so nothing is drawn;
+   * omitted: the strip sits at the top of the graph.
+   */
+  minimapSlot?: HTMLElement | null
+}
+
+/** `node` in `slot` when there is one, where it stands otherwise. */
+function portalTo(slot: HTMLElement | undefined, node: React.ReactElement) {
+  return slot ? createPortal(node, slot) : node
 }
 
 export interface CtxState { x: number; y: number; commit: LayoutCommit; branchName?: string; batch?: boolean }
@@ -156,6 +178,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   onOpenPR,
   refsBelow = false,
   trackingFor,
+  upstreamRef = null,
   alwaysShowWip = false,
   onStageAll,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
@@ -170,7 +193,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   
   
   nativeContextMenu = false,
-  visibility, remoteNames,
+  visibility, remoteNames, minimapSlot,
 } = props
   const { t } = useLang()
   const { getBool, get, set, appliedTheme } = useSettings()
@@ -197,6 +220,8 @@ export default function CommitGraph(props: CommitGraphProps) {
   const showDate = getBool('graphShowDate', true)
   const showSha = getBool('graphShowSha', true)
   const showStats = getBool('graphShowStats', true)
+  const showTimeline = getBool('graphTimeline', true)
+  const showMinimap = getBool('graphMinimap', true)
   const compactColumns = getBool('graphCompactColumns', false)
   const dateFormat = get('dateFormat', 'relative')
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -210,6 +235,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   // instead of being clipped by the scrollbar on the right. `scrollbarW` is the
   // gutter we then reserve on the (non-scrolling) header so it stays aligned.
   const [containerW, setContainerW] = useState(0)
+  const [bodyH, setBodyH] = useState(0)
   const [scrollbarW, setScrollbarW] = useState(0)
   useEffect(() => {
     const el = bodyRef.current
@@ -218,6 +244,7 @@ export default function CommitGraph(props: CommitGraphProps) {
       const body = bodyRef.current
       if (!body) return
       setContainerW(body.clientWidth)
+      setBodyH(body.clientHeight)
       setScrollbarW(body.offsetWidth - body.clientWidth)
     }
     const ro = new ResizeObserver(measure)
@@ -230,6 +257,9 @@ export default function CommitGraph(props: CommitGraphProps) {
     const h = commits.find(c => c.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch)))
     return h?.hash ?? commits[0]?.hash
   }, [commits, currentBranch])
+  const upstreamHash = useMemo(
+    () => upstreamRef ? commits.find(c => c.refs.some(r => r === upstreamRef || r.endsWith(' ' + upstreamRef)))?.hash : undefined,
+    [commits, upstreamRef])
   // The working-tree (WIP) node is laid out as a virtual tip sitting on top of
   // HEAD, so the current branch is promoted to its proper lane as soon as there
   // are changes — e.g. main slides to the far left with a vertical dashed line
@@ -409,6 +439,57 @@ export default function CommitGraph(props: CommitGraphProps) {
     () => rowOffsets(displayLayout.map(() => refsBelow), rowH, refH),
     [displayLayout, refsBelow, rowH, refH])
   const rowTop = useCallback((row: number) => rowTops[row] ?? row * rowH, [rowTops, rowH])
+
+  // ── Stretches of time (timeline.ts) ──
+  // Which stretch each row is in; where a new one begins (a hairline); and
+  // which one the first visible row is in (the band at the top). The band
+  // only appears once the page spans more than one stretch — a repository
+  // of one afternoon has nothing to name.
+  const periods = useMemo(() => {
+    if (!showTimeline) return []
+    const now = new Date()
+    return displayLayout.map(c => c.hash === WIP_HASH ? null : periodOf(c.date, now))
+  }, [displayLayout, showTimeline])
+  const periodSeps = useMemo(() => periodBoundaries(periods), [periods])
+  const manyPeriods = useMemo(() => new Set(periods.filter(Boolean)).size > 1, [periods])
+  const [firstRow, setFirstRow] = useState(0)
+  // The last row on screen too — the minimap draws the stretch between them.
+  const [lastRow, setLastRow] = useState(0)
+  const scrollRaf = useRef(0)
+  const measureRows = useCallback(() => {
+    const body = bodyRef.current
+    if (!body || rowTops.length === 0) return
+    const top = body.scrollTop
+    // The first row whose bottom edge is still below the top of the viewport…
+    let lo = 0, hi = rowTops.length - 1
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if ((rowTops[mid + 1] ?? Infinity) > top) hi = mid
+      else lo = mid + 1
+    }
+    setFirstRow(lo)
+    // …and the last one whose top edge is above its bottom.
+    const bottom = top + body.clientHeight
+    let a = lo, b = rowTops.length - 1
+    while (a < b) {
+      const mid = (a + b + 1) >> 1
+      if ((rowTops[mid] ?? Infinity) < bottom) a = mid
+      else b = mid - 1
+    }
+    setLastRow(a)
+  }, [rowTops])
+  const onBodyScroll = useCallback(() => {
+    if (scrollRaf.current) return
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = 0
+      measureRows()
+    })
+  }, [measureRows])
+  // A reload or a resize moves what is on screen without a scroll.
+  useEffect(() => { measureRows() }, [measureRows, containerW, bodyH])
+  useEffect(() => () => { if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current) }, [])
+  const bandKey = showTimeline && manyPeriods ? periodAt(periods, firstRow) : null
+  const bandLabel = bandKey ? periodLabel(bandKey, t, t('graph.dateLocale')) : null
   /** The middle of a row's first line — where the node and every edge meet it. */
   const rowHeight = useCallback(
     (row: number) => (rowTops[row + 1] ?? 0) - (rowTops[row] ?? 0) || rowH, [rowTops, rowH])
@@ -466,18 +547,41 @@ export default function CommitGraph(props: CommitGraphProps) {
     setSelAnchor(commit.hash)
     onSelectCommit(commit)
   }
-  // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel.
-  // Skipped while an input/textarea has focus.
+  // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel,
+  // and a plain letter jumps: `h` to HEAD, `u` to its upstream, `w` to the
+  // working changes, Home/End to the ends of the page. Skipped while an
+  // input/textarea has focus.
   useEffect(() => {
+    const JUMPS = new Set(['h', 'u', 'w', 'Home', 'End'])
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Escape') return
+      const jump = JUMPS.has(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Escape' && !jump) return
       const el = document.activeElement as HTMLElement | null
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
-      // Let open modals/menus own the keyboard
+      // Let open modals/menus own the keyboard — this graph's, and anyone
+      // else's: one Escape closes one thing, and a menu the staging pane
+      // opened is a thing.
       if (ctx || drop) return
-      if (document.querySelector('[class$="-overlay"], [class*="-overlay "]')) return
+      if (document.querySelector('[class$="-overlay"], [class*="-overlay "], .ctx-menu, [role="menu"], [role="dialog"], .pdrawer')) return
       if (displayLayout.length === 0) return
       const idx = displayLayout.findIndex(c => c.hash === selectedHash)
+      if (jump) {
+        const target = e.key === 'h' ? headHash
+          : e.key === 'u' ? upstreamHash
+          : e.key === 'w' ? (hasWipNode ? '__WIP__' : headHash)
+          : e.key === 'Home' ? displayLayout[0]?.hash
+          : displayLayout[displayLayout.length - 1]?.hash
+        const commit = target ? displayLayout.find(c => c.hash === target) : undefined
+        if (!commit) return
+        e.preventDefault()
+        if (multiSel.size) setMultiSel(new Set())
+        if (commit.hash === selectedHash) {
+          // Already the selection: only bring it back into view.
+          const body = bodyRef.current
+          if (body) body.scrollTo({ top: Math.max(0, rowTop(commit.row) - body.clientHeight / 2), behavior: 'smooth' })
+        } else onSelectCommit(commit)
+        return
+      }
       if (e.key === 'Escape') {
         // The set goes first; the panel only closes once there is no set.
         if (multiSel.size) { setMultiSel(new Set()); return }
@@ -500,7 +604,7 @@ export default function CommitGraph(props: CommitGraphProps) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight, multiSel])
+  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight, multiSel, headHash, upstreamHash, hasWipNode])
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   // The stacked layout pulls everything left (#111 follow-up): the graph
   // starts at 24 instead of 36 — stripe (9) + a breath (2) + node radius
@@ -621,15 +725,20 @@ export default function CommitGraph(props: CommitGraphProps) {
     const hasHostHashes = searchHashes != null
     if (searchQuery || hasHostHashes) {
       const q = searchQuery.toLowerCase()
+      // `author:name` narrows to who wrote the commit and nothing else — what
+      // the contributors list asks for; a bare query still matches anywhere.
+      const authorQ = q.startsWith('author:') ? q.slice(7).trim() : null
       return new Set(
         displayLayout
           .filter(c => c.hash !== WIP_HASH && (
             // Host-provided matches (diff search, AI search) OR local text match
             (hasHostHashes && searchHashes!.has(c.hash)) ||
             (searchQuery !== '' && (
-              c.message.toLowerCase().includes(q) ||
-              c.author.toLowerCase().includes(q) ||
-              c.shortHash.includes(q)
+              authorQ !== null
+                ? c.author.toLowerCase().includes(authorQ)
+                : (c.message.toLowerCase().includes(q) ||
+                   c.author.toLowerCase().includes(q) ||
+                   c.shortHash.includes(q))
             ))
           ))
           .map(c => c.row)
@@ -637,6 +746,33 @@ export default function CommitGraph(props: CommitGraphProps) {
     }
     return null
   }, [displayLayout, searchQuery, searchHashes])
+  // The same matches by hash, for the minimap's days.
+  const matchHashes = useMemo(() => {
+    if (!filtered || !showMinimap) return null
+    return new Set(displayLayout.filter(c => filtered.has(c.row)).map(c => c.hash))
+  }, [filtered, displayLayout, showMinimap])
+  // What the graph has on screen, as days, for the minimap's band.
+  const visibleDays = useMemo(() => {
+    if (!showMinimap || displayLayout.length === 0) return null
+    const dayAt = (row: number) => {
+      const c = displayLayout[Math.min(row, displayLayout.length - 1)]
+      const at = c && c.hash !== WIP_HASH ? new Date(c.date).getTime() : Date.now()
+      return dayOf(isNaN(at) ? Date.now() : at)
+    }
+    const a = dayAt(firstRow), b = dayAt(Math.max(firstRow, lastRow))
+    return { newest: Math.max(a, b), oldest: Math.min(a, b) }
+  }, [showMinimap, displayLayout, firstRow, lastRow])
+  // A day picked on the minimap: its commit becomes the selection, or — when
+  // it already is — is only brought back into view.
+  const pickFromMinimap = useCallback((hash: string) => {
+    const commit = displayLayout.find(c => c.hash === hash)
+    if (!commit) return
+    if (multiSel.size) setMultiSel(new Set())
+    if (commit.hash === selectedHash) {
+      const body = bodyRef.current
+      if (body) body.scrollTo({ top: Math.max(0, rowTop(commit.row) - body.clientHeight / 2), behavior: 'smooth' })
+    } else onSelectCommit(commit)
+  }, [displayLayout, multiSel, selectedHash, onSelectCommit, rowTop])
   // Report the match count to the toolbar (-1 = no active search)
   useEffect(() => {
     onSearchMatches?.(searchQuery || searchHashes != null ? (filtered?.size ?? 0) : -1)
@@ -843,10 +979,26 @@ export default function CommitGraph(props: CommitGraphProps) {
   }, [commits])
 
   // Every menu the graph opens, from ./graph-menus.
-  const { buildMenuItems, batchMenuItems, buildDropItems, buildBranchMenu, buildHeaderMenuItems, handleRowContextMenu } = useGraphMenus(props, { t, set, showAvatars, showAuthor, showDate, showSha, showStats, compactColumns, drop, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt })
+  const { buildMenuItems, batchMenuItems, buildDropItems, buildBranchMenu, buildHeaderMenuItems, handleRowContextMenu } = useGraphMenus(props, { t, set, showAvatars, showAuthor, showDate, showSha, showStats, showTimeline, showMinimap, compactColumns, drop, displayLayout, multiSel, setMultiSel, setCtx, localBranchAt })
 
   return (
     <div className="cg-container" ref={containerRef}>
+      {/* ── Minimap ── The loaded history as a strip: a way around the graph,
+           and one the user can put away (Minimap.tsx). In the host's block
+           when it has one, at the top of the graph otherwise. */}
+      {showMinimap && minimapSlot !== null && portalTo(minimapSlot,
+        <Minimap
+          commits={commits}
+          headHash={headHash}
+          upstreamHash={upstreamHash}
+          matches={matchHashes}
+          visible={visibleDays}
+          selectedHash={selectedHash}
+          remoteNames={remoteNames}
+          onPick={pickFromMinimap}
+          onWheel={dy => bodyRef.current?.scrollBy({ top: dy })}
+          onHide={() => set('graphMinimap', 'false')}
+        />)}
       {/* ── Header ── The column headers only mean something when there are
            columns. In the stacked layout the row carries its own labels by
            position, so a header would name a grid that is not there. */}
@@ -884,8 +1036,15 @@ export default function CommitGraph(props: CommitGraphProps) {
       </div>}
 
       {/* ── Body ── */}
-      <div className="cg-body" ref={bodyRef}>
+      <div className="cg-body" ref={bodyRef} onScroll={onBodyScroll}>
+        {bandLabel && (
+          <div className="cg-period-band" aria-hidden="true"><span className="cg-period-pill">{bandLabel}</span></div>
+        )}
         <div className="cg-scroll-content" style={{ height: svgH, position: 'relative' }}>
+          {/* Where one stretch of time ends and the next begins. */}
+          {[...periodSeps].map(row => (
+            <div key={`sep-${row}`} className="cg-period-sep" style={{ top: rowTop(row) }} />
+          ))}
 
           {/* Graph SVG — offset by the refs column, which is why it has to be
               zero when there is no column: with refs under the message the

@@ -234,6 +234,16 @@ export const SETTING_DEFAULTS: SettingsMap = {
   // desktop window, and the stat bar is more of a "nice to have" there.
   graphShowStats: isVSCodeHost ? 'false' : 'true',
   graphCompactColumns: 'false',
+  // The band naming the stretch of time the graph is scrolled to, and the
+  // hairline where one stretch ends (see CommitGraph/timeline.ts).
+  graphTimeline: 'true',
+  // The strip of activity above the graph (CommitGraph/Minimap.tsx), with
+  // what it counts, which way time runs and which markers it draws.
+  graphMinimap: 'true',
+  graphMinimapData: 'commits',
+  graphMinimapReversed: 'false',
+  graphMinimapMarkers: 'local,stash',
+  graphMinimapHeight: '40',
   // Comfortable is the values in `:root`, so an existing install is not moved
   // by this feature arriving; compact is the block that overrides them.
   density: 'comfortable',
