@@ -96,6 +96,20 @@ test('the options menu hides the strip', () => {
   expect(props.onHide).toHaveBeenCalled()
 })
 
+test('the options button toggles its menu, and a press elsewhere puts it away', () => {
+  draw()
+  const button = screen.getByRole('button', { name: 'Minimap options' })
+  fireEvent.pointerDown(button); fireEvent.click(button)
+  expect(screen.getByText('Hide minimap')).toBeInTheDocument()
+  fireEvent.pointerDown(button); fireEvent.click(button)
+  expect(screen.queryByText('Hide minimap')).toBeNull()
+  fireEvent.click(button)
+  expect(screen.getByText('Hide minimap')).toBeInTheDocument()
+  // The splitter under the strip cancels its pointerdown; the menu still goes.
+  fireEvent.pointerDown(screen.getByRole('separator', { name: 'Minimap height' }), { button: 0, pointerId: 3 })
+  expect(screen.queryByText('Hide minimap')).toBeNull()
+})
+
 test('a press in the options menu is not a press on the chart', () => {
   // The menu is portalled out of the strip, but React bubbles its events
   // through it: "Hide minimap" used to take the graph to a day as well.

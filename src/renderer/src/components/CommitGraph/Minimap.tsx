@@ -198,6 +198,7 @@ export default function Minimap(props: MinimapProps) {
 
   // ── The options menu ──
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const optionsRef = useRef<HTMLButtonElement>(null)
   const toggleMarker = (k: MinimapMarkerOption) => {
     const next = new Set(markerKinds)
     if (next.has(k)) next.delete(k); else next.add(k)
@@ -295,9 +296,14 @@ export default function Minimap(props: MinimapProps) {
       )}
 
       <div className="cg-mm-tools" onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
-        <button className="cg-mm-btn" title={t('minimap.options')} aria-label={t('minimap.options')}
+        <button ref={optionsRef} className="cg-mm-btn" title={t('minimap.options')} aria-label={t('minimap.options')}
           aria-haspopup="menu" aria-expanded={!!menu}
-          onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setHover(null); setMenu({ x: r.right - 180, y: r.bottom + 2 }) }}>
+          onClick={e => {
+            // The button toggles: a second press puts the menu away.
+            const r = e.currentTarget.getBoundingClientRect()
+            setHover(null)
+            setMenu(m => m ? null : { x: r.right - 180, y: r.bottom + 2 })
+          }}>
           <Icon name="sliders" size={12} />
         </button>
         {isZoomed && (
@@ -336,7 +342,7 @@ export default function Minimap(props: MinimapProps) {
         </div>
       )}
 
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} anchor={optionsRef.current} />}
     </div>
     <ColumnResizeHandle orientation="horizontal" sizes="before" label={t('minimap.resize')}
       value={height} min={MIN_H} max={MAX_H}

@@ -40,12 +40,18 @@ interface ContextMenuProps {
   y: number
   items: MenuItemDef[]
   onClose: () => void
+  /**
+   * The control that opened the menu, when it is a button that toggles it: a
+   * press on it is its own business — closing here would have its click open
+   * the menu again at once.
+   */
+  anchor?: Element | null
 }
 
 const OPEN_DELAY = 200   // hover dwell before a submenu opens
 const CLOSE_DELAY = 220  // grace period to move the cursor into the submenu
 
-export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
+export default function ContextMenu({ x, y, items, onClose, anchor }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
   const subRef = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>()
@@ -72,12 +78,29 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
     }
   }, [sub])
 
+  // A press anywhere else closes the menu. On `pointerdown`, in the capture
+  // phase: a control that cancels its pointerdown — a splitter does, to keep
+  // the drag from selecting text — suppresses the `mousedown` that follows,
+  // and one that stops propagation keeps it from the document, so a press on
+  // the gap under the minimap left its menu open. `mousedown` still counts,
+  // once per press, for what dispatches no pointer events.
+  const pressSeen = useRef(false)
   useEffect(() => {
-    const onMouseDown = (e: MouseEvent) => {
-      const t = e.target as Node
-      if (ref.current?.contains(t) || subRef.current?.contains(t)) return
-      onClose()
+    const outside = (t: Node) =>
+      !(ref.current?.contains(t) || subRef.current?.contains(t) || anchor?.contains(t))
+    const onPointerDown = (e: PointerEvent) => {
+      pressSeen.current = true
+      setTimeout(() => { pressSeen.current = false }, 0)
+      if (outside(e.target as Node)) onClose()
     }
+    const onMouseDown = (e: MouseEvent) => {
+      if (pressSeen.current) return
+      if (outside(e.target as Node)) onClose()
+    }
+    // The window losing the focus is a press elsewhere too — another app on
+    // the desktop, the editor around the panel in VS Code, which the webview
+    // never hears a click from.
+    const onBlur = () => onClose()
     // The keyboard model of a menu: arrows walk the enabled rows of whichever
     // menu is open (the submenu while it is), Right opens a row's submenu on
     // its first entry, Left closes it and returns to the row, Enter and Space
@@ -117,13 +140,17 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
         }
       }
     }
+    document.addEventListener('pointerdown', onPointerDown, true)
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('keydown', onKeyDown)
+    window.addEventListener('blur', onBlur)
     return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
       document.removeEventListener('mousedown', onMouseDown)
       document.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('blur', onBlur)
     }
-  }, [onClose, sub, items])
+  }, [onClose, sub, items, anchor])
 
   // Clamp to viewport — keep the menu fully on-screen even in a short panel.
   // Measured by its layout size, not its box: the menu opens with a scale-in

@@ -85,8 +85,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 - **The accent is the colour a theme marks things with.** It was read from the button, and Dracula's button is grey — so its commit button and links were grey, and its pink went to the model's colour by accident. It is now the colour the theme uses most where VS Code marks your action or attention: badge, progress bar, focus, active tab, button, link. Dracula's accent is its pink and the model's colour its purple; Dark+ and Light+ get VS Code's blue back.
 - **The graph starts at the accent.** The first branch drawn — yours — takes the lane nearest the theme's accent rather than its red, and no lane is the colour of an added or removed line any more.
 
-### ↔️ Submenus stay on screen
+### ↔️ Menus stay on screen, and go away
 - A submenu near the right edge — the minimap's **Markers**, say — **opens on the left** instead of past the edge.
+- A menu **closes on any press elsewhere** — a splitter, the editor around the panel — and the minimap's options button toggles its menu.
 `,
   '1.34.0': `## What's new in 1.34.0
 
