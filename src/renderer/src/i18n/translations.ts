@@ -833,6 +833,7 @@ const fr = {
   'panel.explainGuidanceToggle': "Ajouter une consigne à l'explication",
   'panel.explainBtn': 'Expliquer',
   'panel.copyHash': 'Copier le hash',
+  'panel.moreRefs': (n: number) => `${n} autre${n !== 1 ? 's' : ''} référence${n !== 1 ? 's' : ''} sur ce commit`,
   'panel.clickToAmend': 'Cliquer pour modifier le message (amend)',
   'panel.clickToReword': (n: number) => `Cliquer pour modifier le message — réécrit ${n} commit${n > 1 ? 's' : ''}`,
   'panel.amendConfirm': 'Mettre à jour le message',
@@ -2964,6 +2965,7 @@ const en: typeof fr = {
   'panel.explainGuidanceToggle': 'Add guidance to the explanation',
   'panel.explainBtn': 'Explain',
   'panel.copyHash': 'Copy hash',
+  'panel.moreRefs': (n: number) => `${n} more reference${n !== 1 ? 's' : ''} on this commit`,
   'panel.clickToAmend': 'Click to edit message (amend)',
   // Not the tip: say the cost in the tooltip, before the click.
   'panel.clickToReword': (n: number) => `Click to edit message — rewrites ${n} commit${n > 1 ? 's' : ''}`,

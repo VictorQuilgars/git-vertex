@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '../Icon/Icon'
+import RefOverflow, { headerRefs } from './RefOverflow'
 import { CommitNode, FileChange } from '../../types'
 import { CenterDiffTarget } from '../CenterFileDiff/CenterFileDiff'
 import { useLang } from '../../i18n/LanguageContext'
@@ -307,16 +308,7 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
   const visibleCdFiles = cdq ? files.filter(f => f.path.toLowerCase().includes(cdq)) : files
   const totalAdd = files.reduce((n, f) => n + (f.additions ?? 0), 0)
   const totalDel = files.reduce((n, f) => n + (f.deletions ?? 0), 0)
-  const headRefs = commit.refs
-    .filter(r => !/^(origin\/HEAD|remotes\/[^/]+\/HEAD)$/.test(r))
-    .map(r => {
-      const isHead = r.includes('HEAD'), isTag = r.startsWith('tag:')
-      const isRemote = r.includes('origin/') || r.includes('remotes/')
-      return {
-        text: r.replace('tag: ', '').replace('HEAD -> ', '★ '),
-        cls: isHead ? 'rp-ref-head' : isTag ? 'rp-ref-tag' : isRemote ? 'rp-ref-remote' : 'rp-ref-local',
-      }
-    })
+  const headRefs = headerRefs(commit.refs)
 
   return (
     <div className="rp-content">
@@ -502,7 +494,8 @@ export function CommitDetail({ commit, onSelectCommit, wipCount, onViewWip, onOp
                 <Icon name="chevronLeft" size={11} />
               </button>
             )}
-            {headRefs.map((r, i) => <span key={i} className={`rp-ref ${r.cls}`}>{r.text}</span>)}
+            {/* Whole names or none: what does not fit waits behind a "+N" (RefOverflow). */}
+            <RefOverflow refs={headRefs} />
             {files.length > 0 && (
               <span className="cd-head-cost" title={`${files.length} file${files.length !== 1 ? 's' : ''}`}>
                 {totalAdd > 0 && <span className="rp-add">+{totalAdd}</span>}
