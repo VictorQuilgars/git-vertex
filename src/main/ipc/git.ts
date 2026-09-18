@@ -670,6 +670,12 @@ export function registerGitHandlers(): void {
     return state.gitService.getContributors(limit)
   })
 
+  // ── IPC: Activity ──────────────────────────────────────────
+  handle('git:get-activity', async (_event, opts?: { path?: string; max?: number }) => {
+    if (!state.gitService) return { points: [], truncated: false }
+    return state.gitService.getActivity(opts)
+  })
+
   // ── IPC: File History ──────────────────────────────────────
   handle('git:get-file-history', async (_event, filepath: string) => {
     if (!state.gitService) return { commits: [] }

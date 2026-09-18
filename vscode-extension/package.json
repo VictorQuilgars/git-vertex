@@ -191,6 +191,11 @@
         "icon": "$(home)"
       },
       {
+        "command": "gitVertex.showActivity",
+        "title": "Git Vertex: Show Repository Activity",
+        "icon": "$(graph)"
+      },
+      {
         "command": "gitVertex.toggleFollowCursor",
         "title": "Git Vertex: Toggle Follow Cursor",
         "icon": "$(eye)"

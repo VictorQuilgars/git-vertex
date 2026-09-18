@@ -266,6 +266,8 @@ declare global {
     getReflog: () => Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }>
     // Contributors
     getContributors: (limit?: number) => Promise<{ contributors: { name: string; email: string; commits: number }[] }>
+    // Activity
+    getActivity: (opts?: { path?: string; max?: number }) => Promise<{ points: { at: number; author: string; hash: string }[]; truncated: boolean }>
     // File History
     getFileHistory: (filepath: string) => Promise<{ commits: { hash: string; shortHash: string; message: string; author: string; date: string }[] }>
     // Remotes

@@ -56,6 +56,10 @@ declare global {
     /** Put another repository of the workspace on screen. */
     setPanelRepo: (repoPath: string) => Promise<unknown>
 
+    /** The activity chart, large, in a tab of its own. */
+    openActivityTab: () => Promise<unknown>
+    /** From a tab: show this commit in the panel's graph. */
+    revealInPanel: (ref: string) => Promise<unknown>
     /** A file-history tab follows the active editor, or stops. */
     historyFollow: (on: boolean) => Promise<unknown>
     /** The file a following history tab should show now. */

@@ -751,6 +751,15 @@ export class GitVertexHost implements vscode.Disposable {
         else followingHistory.delete(this)
         return { success: true }
       }
+      case 'openActivityTab': {
+        if (this._repoPath) openGitVertexActivityTab(this._extensionUri, this._state, this._repoPath)
+        return { success: true }
+      }
+      case 'revealInPanel': {
+        const ref = String(args[0] ?? '')
+        if (ref) revealHandler?.(ref)
+        return { success: true }
+      }
       case 'followCursor': {
         await this.applyFollowCursor(!!args[0])
         return { success: true }
@@ -1696,6 +1705,36 @@ export function openGitVertexCompareTab(
   })
   comparePanels.set(key, panel)
 }
+
+// ── Activity tab (singleton per repository) ─────────────────────────
+// The activity chart, large: when work happened here, and whose.
+const ACTIVITY_VIEW_TYPE = 'gitVertex.activity'
+let activityPanel: vscode.WebviewPanel | undefined
+let activityHost: GitVertexHost | undefined
+
+export function openGitVertexActivityTab(extensionUri: vscode.Uri, state: vscode.Memento, repoPath: string): void {
+  if (activityPanel && activityHost?.repoPath === repoPath) { activityPanel.reveal(activityPanel.viewColumn); return }
+  activityPanel?.dispose()
+  activityPanel = vscode.window.createWebviewPanel(
+    ACTIVITY_VIEW_TYPE,
+    `Activity — ${path.basename(repoPath)}`,
+    vscode.ViewColumn.Active,
+    { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')] },
+  )
+  activityPanel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
+  const host = new GitVertexHost(activityPanel.webview, extensionUri, state, { mode: 'activity' }, () => activityPanel?.dispose())
+  host.setRepo(repoPath)
+  activityHost = host
+  activityPanel.onDidDispose(() => {
+    host.dispose()
+    if (activityHost === host) { activityHost = undefined; activityPanel = undefined }
+  })
+}
+
+// A tab that wants the panel's graph to show a commit: the tabs are created
+// here, without the view provider in hand, so the extension lends the door.
+let revealHandler: ((ref: string) => void) | undefined
+export function setRevealHandler(fn: (ref: string) => void): void { revealHandler = fn }
 
 // ── Welcome tab (singleton) ─────────────────────────────────────────
 // What the extension does and where, on a page: opened once on a fresh

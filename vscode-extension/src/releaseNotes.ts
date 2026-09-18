@@ -36,6 +36,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 The graph says when
 - A band at the top of the graph names the **stretch of time** the first visible row is in, and a hairline marks where one stretch ends. *Date bands* in the header's menu turns it off.
 
+### 📊 Activity
+- The overview's **chart**: the commits as bars by day, week or month, stacked by author. Click a bar and **its commits are what the graph shows**; *Open large* for a tab of its own.
+
 ### 👋 A Welcome page, once
 - A fresh install opens a page of **six things to try**, each with a gesture; **Git Vertex: Welcome** reopens it.
 

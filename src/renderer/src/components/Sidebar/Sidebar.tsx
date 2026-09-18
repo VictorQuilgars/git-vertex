@@ -21,6 +21,7 @@ import { WorktreesSection } from './sections/WorktreesSection'
 import { ReflogSection } from './sections/ReflogSection'
 import { ContributorsSection } from './sections/ContributorsSection'
 import { OverviewSection } from './sections/OverviewSection'
+import { ActivitySection } from './sections/ActivitySection'
 import { PrsSection } from './sections/PrsSection'
 import { IssuesSection } from './sections/IssuesSection'
 import './Sidebar.css'
@@ -132,6 +133,12 @@ export default function Sidebar(props: SidebarProps) {
               the recent branches, what waits on the user, what to start
               (single-view only). */}
           {view === 'overview' && <OverviewSection s={s} />}
+
+          {/* ACTIVITY — the commits as bars in time; a bar shows its commits
+              in the graph. In the overview, and on the desktop's column. */}
+          {show('overview') && (
+          <ActivitySection s={s} />
+          )}
 
           {/* AGENTS — inside the AI view in the panel, which is where "what
               the model is doing here" belongs. The desktop's AI stack does not

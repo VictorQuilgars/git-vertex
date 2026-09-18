@@ -7,7 +7,7 @@ import { findRefLinks, type RefLink } from './terminalLinks'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, openGitVertexWelcomeTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider, followHistoryTo } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, openGitVertexWelcomeTab, openGitVertexActivityTab, setRevealHandler, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider, followHistoryTo } from './panel/GitVertexHost'
 import { blameFile } from './blame/blame'
 import { GitService } from './gitService'
 import { RELEASE_NOTES } from './releaseNotes'
@@ -391,6 +391,7 @@ export function activate(context: vscode.ExtensionContext): void {
     await vscode.commands.executeCommand('gitVertex.graphView.focus')
     provider.reveal(ref)
   }
+  setRevealHandler(ref => { void revealInPanel(ref) })
   const terminalLinks: vscode.TerminalLinkProvider<RefTerminalLink> = {
     async provideTerminalLinks(ctx) {
       const repo = resolveRepoRoot()
@@ -623,6 +624,11 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.window.registerTerminalLinkProvider(terminalLinks),
     vscode.commands.registerCommand('gitVertex.showWelcome', () => openGitVertexWelcomeTab(context.extensionUri, context.globalState)),
+    vscode.commands.registerCommand('gitVertex.showActivity', () => {
+      const root = resolveRepoRoot()
+      if (root) openGitVertexActivityTab(context.extensionUri, context.globalState, root)
+      else vscode.window.showWarningMessage('Open a folder with a Git repository to see its activity.')
+    }),
     vscode.commands.registerCommand('gitVertex.toggleFollowCursor', () => provider.followCursor(!followCursor)),
     vscode.commands.registerCommand('gitVertex.openPanelSettings', async () => {
       await vscode.commands.executeCommand('gitVertex.graphView.focus')

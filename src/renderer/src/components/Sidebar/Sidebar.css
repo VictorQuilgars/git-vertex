@@ -1123,3 +1123,22 @@
 .sb-contrib-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-contrib-count { flex-shrink: 0; font-size: var(--text-tiny); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 .sb-contrib-row--active .sb-contrib-count { color: var(--accent); }
+
+/* ── Activity ─────────────────────────────────────────────────────
+   The chart in the column: a row of period chips with the "open large"
+   door at its end, the bars under it. */
+.sb-act { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-sm) var(--space-lg) var(--space-md); }
+.sb-act-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.sb-act-periods { display: inline-flex; border: 1px solid var(--border-muted); border-radius: var(--radius-md); overflow: hidden; }
+.sb-act-period {
+  background: transparent; border: none; padding: 2px var(--space-md);
+  color: var(--text-tertiary); font-size: var(--text-tiny); cursor: pointer;
+}
+.sb-act-period:hover { color: var(--text-primary); }
+.sb-act-period--on { background: var(--surface-sunken); color: var(--text-primary); }
+.sb-act-open {
+  display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
+  background: transparent; border: none; border-radius: var(--radius-sm); color: var(--text-tertiary); cursor: pointer;
+}
+.sb-act-open:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.sb-act-note { font-size: var(--text-tiny); color: var(--text-tertiary); }

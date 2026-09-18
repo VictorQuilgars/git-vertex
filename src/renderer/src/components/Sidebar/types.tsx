@@ -149,6 +149,8 @@ export interface SidebarProps {
   mergeTarget?: { name: string; ahead: number; behind: number } | null
   /** Pull requests waiting on the user, counted by what they wait for. */
   launchpad?: { needsReview: number; changesRequested: number; approved: number } | null
+  /** The activity chart in a tab of its own — the panel has one, the desktop's column is the chart. */
+  onOpenActivityTab?: () => void
   /**
    * Which of the two stacks is showing, held by the host: generating a
    * changelog anywhere in the app brings this one into view, and it cannot do
