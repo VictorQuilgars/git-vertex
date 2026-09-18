@@ -1,0 +1,220 @@
+/* A branch's or a tag's card (RefCard.tsx). It covers the details panel and
+   nothing else — the host gives it a positioned parent — and slides up over
+   it: what was selected is still under it, and the graph beside it stays in
+   reach. */
+.refcard-host { position: absolute; inset: 0; z-index: var(--z-dropdown); display: flex; flex-direction: column; justify-content: flex-end; }
+
+.refcard-scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  animation: refcard-fade 0.2s ease-out;
+}
+
+.refcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  color: var(--text-primary);
+  background: var(--surface);
+  border-top: 1px solid var(--border-default);
+  box-shadow: 0 -6px 16px -4px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  animation: refcard-rise 0.2s ease-out;
+}
+@keyframes refcard-rise { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes refcard-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .refcard, .refcard-scrim { animation: none; } }
+
+/* ── Header: fixed; the body under it scrolls on its own. ── */
+.refcard-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 26px;
+  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-2xl);
+  background: var(--surface-hover);
+  border-bottom: 1px solid var(--border-muted);
+}
+.refcard-title { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; color: var(--accent); }
+.refcard--tag .refcard-title { color: var(--ref-head); }
+.refcard-kind { flex: none; }
+.refcard-name { margin: 0; min-width: 0; overflow: hidden; font-size: var(--text-md); font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.refcard-chip-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 2px;
+  font-size: var(--text-md);
+  line-height: 1;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.refcard-chip-btn:hover { color: var(--text-primary); background: var(--surface-active); }
+.refcard-chip-btn:focus-visible { outline: 1px solid var(--accent); }
+
+.refcard-body { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* ── Strip: one tinted row of what the reference carries. ── */
+.refcard-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 32px;
+  padding: var(--space-2xs) var(--space-xl);
+  font-size: var(--text-tiny);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
+  border-bottom: 1px solid var(--border-muted);
+}
+.refcard-strip-right { display: inline-flex; align-items: center; gap: var(--space-sm); margin-left: auto; }
+.refcard-strip-icon { flex: none; }
+.refcard-strip-text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.refcard-sha { flex: none; font-family: 'JetBrains Mono', monospace; color: var(--text-primary-soft); }
+.refcard-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 20px;
+  padding: 0 var(--space-sm);
+  font: inherit;
+  font-size: var(--text-tiny);
+  color: var(--text-primary-soft);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+}
+button.refcard-pill:not(:disabled) { cursor: pointer; }
+button.refcard-pill:not(:disabled):hover { border-color: var(--accent); color: var(--text-primary); }
+
+/* ── Hub: sections a fixed gap apart. ── */
+.refcard-hub { display: flex; flex-direction: column; gap: var(--space-2xl); padding: var(--space-lg) var(--space-xl) var(--space-2xl); }
+.refcard-section { font-size: var(--text-tiny); font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-tertiary); }
+
+/* Two relationship cards: side by side when each gets 260px, stacked otherwise. */
+.refcard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--space-md); }
+.refcard-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 62px;
+  padding: var(--space-md) var(--space-lg);
+  background: color-mix(in srgb, var(--text-primary) var(--alpha-faint), transparent);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+}
+.refcard-card-head { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; font-size: var(--text-sm); color: var(--text-secondary); }
+.refcard-card-icon { flex: none; color: var(--text-tertiary); }
+.refcard-target { min-width: 0; overflow: hidden; font-weight: 600; color: var(--text-primary); white-space: nowrap; text-overflow: ellipsis; }
+/* The foot sits at the bottom of the card, so both cards' buttons share a line. */
+.refcard-card-foot { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-sm); margin-top: auto; font-size: var(--text-sm); }
+.refcard-status { color: var(--text-secondary); }
+.refcard-actions { display: inline-flex; gap: var(--space-xs); margin-left: auto; }
+
+/* A name that can be changed: dashed under it, a pencil that wakes on hover. */
+.refcard-token {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed var(--border-strong);
+  cursor: pointer;
+}
+.refcard-token:disabled { cursor: default; border-bottom-color: transparent; }
+.refcard-token svg { opacity: 0.6; }
+.refcard-token:hover svg { opacity: 1; }
+.refcard-token--muted { font-weight: 400; color: var(--text-tertiary); }
+
+.refcard-track {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  height: 20px;
+  padding: 0 var(--space-sm);
+  font-size: var(--text-tiny);
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+.refcard-track--behind, .refcard-track--diverged { color: var(--attention); border-color: color-mix(in srgb, var(--attention) var(--alpha-half), transparent); }
+.refcard-track--ahead { color: var(--accent); border-color: color-mix(in srgb, var(--accent) var(--alpha-half), transparent); }
+.refcard-track--level { color: var(--success); border-color: color-mix(in srgb, var(--success) var(--alpha-half), transparent); }
+.refcard-track--missing { color: var(--danger); border-color: color-mix(in srgb, var(--danger) var(--alpha-half), transparent); }
+
+.refcard-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 20px;
+  padding: 0 var(--space-sm);
+  font-size: var(--text-tiny);
+  font-weight: 500;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+}
+.refcard-verdict--clean { color: var(--success); }
+.refcard-verdict--unknown { color: var(--text-secondary); }
+.refcard-verdict--merged { color: var(--ref-target); }
+/* The one filled chip: a conflict is the verdict that must not be missed. A
+   wash of its own colour rather than a solid fill — no theme promises an ink
+   that reads on --conflict. */
+.refcard-verdict--conflicts { color: var(--conflict); background: color-mix(in srgb, var(--conflict) var(--alpha-visible), transparent); border-color: var(--conflict); font-weight: 600; }
+
+.refcard-card--loading { gap: var(--space-md); justify-content: center; }
+.refcard-card--loading i { display: block; height: 12px; width: 40%; border-radius: var(--radius-xs); background: var(--text-tertiary); opacity: 0.2; animation: refcard-pulse 1.5s ease-in-out infinite; }
+.refcard-card--loading i + i { height: 10px; width: 70%; }
+@keyframes refcard-pulse { 50% { opacity: 0.3; } }
+
+.refcard-btn {
+  height: 22px;
+  padding: 0 var(--space-lg);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.refcard-btn:hover { background: var(--surface-active); border-color: var(--border-strong); }
+.refcard-btn:focus-visible { outline: 1px solid var(--accent); }
+
+/* ── Last commit, a tag's annotation ── */
+.refcard-last { display: flex; flex-direction: column; gap: var(--space-xs); }
+.refcard-last-row { display: flex; align-items: baseline; gap: var(--space-md); font-size: var(--text-sm); min-width: 0; }
+.refcard-last-msg { flex: 1; min-width: 0; overflow: hidden; color: var(--text-primary-soft); white-space: nowrap; text-overflow: ellipsis; }
+.refcard-last-who { flex: none; color: var(--text-secondary); }
+.refcard-when { flex: none; color: var(--text-tertiary); font-size: var(--text-tiny); }
+.refcard-annotation { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-lg); border: 1px solid var(--border-muted); border-radius: var(--radius-sm); }
+.refcard-annotation-who { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-sm); color: var(--text-secondary); }
+.refcard-annotation-who .refcard-when { margin-left: auto; }
+.refcard-annotation-text { margin: 0; font: inherit; font-size: var(--text-sm); line-height: 1.5; color: var(--text-primary-soft); white-space: pre-wrap; overflow-wrap: anywhere; }
+.refcard-note { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-sm); color: var(--text-secondary); }
+.refcard-note--local { color: var(--attention); }
+
+/* ── Next steps: what it is, and the one button that does it. ── */
+.refcard-steps { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.refcard-steps .refcard-section { margin-bottom: var(--space-xs); }
+.refcard-step { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-size: var(--text-sm); }
+.refcard-step:hover { background: var(--surface-hover); }
+.refcard-step-icon { flex: none; color: var(--text-tertiary); }
+.refcard-step-label { flex: 1; min-width: 0; overflow: hidden; color: var(--text-primary-soft); white-space: nowrap; text-overflow: ellipsis; }
+.refcard-step--fact .refcard-step-label { color: var(--text-secondary); }

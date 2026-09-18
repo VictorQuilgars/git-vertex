@@ -11,6 +11,8 @@ import Sidebar from './components/Sidebar/Sidebar'
 import StatusBar from './components/StatusBar/StatusBar'
 import CommitGraph from './components/CommitGraph/CommitGraph'
 import RightPanel from './components/RightPanel/RightPanel'
+import RefCard from './components/RefCard/RefCard'
+import { useRefCard } from './components/RefCard/useRefCard'
 import { PromptDialog, ConfirmDialog, ChoiceDialog } from './components/Dialog/Dialog'
 import CommandPalette from './components/CommandPalette/CommandPalette'
 import { Mark } from './components/Mark/Mark'
@@ -82,6 +84,8 @@ export default function App() {
   // The bell: an update notification is about the app, a journal entry is about
   // the repository on screen (#193). The panel's open state lives with the
   // journal so an error chip can link straight to its own entry.
+  // A branch's or a tag's card, opened by a click on its chip in the graph (#258).
+  const refCard = useRefCard(selectedCommit?.hash ?? null)
   const journal = useJournal()
   const notifsOpen = journal.open
   const setNotifsOpen = journal.setOpen
@@ -963,6 +967,8 @@ export default function App() {
               // this IS the default branch — `t` goes there, and its row is marked.
               mergeTargetRef={defaultBranch && currentBranch && currentBranch !== defaultBranch ? defaultBranch : null}
               onRevealRef={revealRef}
+              onOpenRef={refCard.toggle}
+              openRef={refCard.card}
               upstreamRef={branches.find(b => b.current)?.upstream ?? null}
               visibility={visibility}
               remoteNames={remoteNames}
@@ -1070,6 +1076,50 @@ export default function App() {
                 emptyState={workingEmptyState}
               />
               </ErrorBoundary>
+              {/* Over the details, and only over them: the graph beside it stays in reach. */}
+              {refCard.card && (() => {
+                const card = refCard.card
+                const pr = card.kind === 'head' ? githubPRs?.find(x => x.headRef === card.name) : undefined
+                const intent = card.kind === 'head' ? prIntentFor(card.name) : null
+                return (
+                  <ErrorBoundary>
+                  <RefCard
+                    target={card}
+                    branches={branches}
+                    currentBranch={currentBranch}
+                    defaultBranch={defaultBranch}
+                    tip={commits.find(c => c.hash === card.hash) ?? null}
+                    pr={pr ? { number: pr.number, title: pr.title } : null}
+                    issue={card.kind === 'head' ? branchMeta.issueFor(card.name) : null}
+                    menuItems={card.kind === 'tag' ? undefined : branchMenuItems({
+                      name: card.kind === 'remote' ? `remotes/${card.name}` : card.name,
+                      display: card.kind === 'remote' ? card.name.slice(card.name.indexOf('/') + 1) : card.name,
+                      current: card.kind === 'head' && card.name === currentBranch,
+                      remote: card.kind === 'remote',
+                    })}
+                    onClose={refCard.close}
+                    onSwitch={handleGoTo}
+                    onPull={handlePull}
+                    onPush={handlePush}
+                    onFetch={handleFetch}
+                    onPushBranch={handlePushBranch}
+                    onSetUpstream={handleSetUpstream}
+                    onCompare={(name) => openViewTab({ view: 'compare', a: currentBranch, b: name, axis: 'diverged', label: `${currentBranch} … ${name}` })}
+                    onMerge={handleMergeBranch}
+                    onRebase={handleRebaseOnto}
+                    onOpenOnRemote={githubOwnerRepo ? handleOpenBranchOnRemote : undefined}
+                    onDelete={handleDeleteBranch}
+                    onDeleteRemote={handleDeleteRemoteBranch}
+                    onOpenPR={(n) => { const item = githubPRs?.find(x => x.number === n); if (item) setIssueDetail({ kind: 'pr', item }) }}
+                    onCreatePR={intent ? () => handleStartPR(intent) : undefined}
+                    onPushTag={handlePushTag}
+                    onDeleteTag={handleDeleteTag}
+                    onCheckoutTag={handleCheckoutTag}
+                    onCreateBranchAt={handleCreateBranchAt}
+                  />
+                  </ErrorBoundary>
+                )
+              })()}
             </div>
           </>
         )}

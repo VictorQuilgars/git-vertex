@@ -181,6 +181,11 @@ in the staging area with an `amend` badge (fetched via `getCommitFiles('HEAD')`)
   goes in `JUMPS` **and** on the sheet — `CommitGraph.jump.test.tsx` reads both. A row the
   page does not hold is asked of the host through `onRevealRef`, which resolves the name
   with `resolveCommit` (git-core) and grows the page like the extended search.
+- **A chip's card** (#258, `components/RefCard/`): a click on a chip selects its row and, 250 ms
+  later, calls `onOpenRef` — the double-click cancels it and switches. The HOST holds which
+  card is open (`useRefCard`, closed when the selection leaves the tip) and mounts `RefCard`
+  inside `.app-right`, which is positioned for it. ⚠️ `compareBranches(a, b)` speaks of **B**:
+  `ahead` is what b has that a lacks — ask it as `(target, branch)`.
 - **Only the rows near the viewport are elements** (#251, `graph-window.ts`): everything
   works on `displayLayout` — every commit loaded — and `drawnRows` / `windowRows` /
   `drawnEdges` are what reaches the DOM (the window, the selected row, the row a branch is

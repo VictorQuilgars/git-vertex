@@ -23,6 +23,8 @@ import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/Them
 import ThemeBuilder from '../../../src/renderer/src/components/ThemeBuilder/ThemeBuilder'
 import CommitGraph from '../../../src/renderer/src/components/CommitGraph/CommitGraph'
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
+import RefCard from '../../../src/renderer/src/components/RefCard/RefCard'
+import { useRefCard } from '../../../src/renderer/src/components/RefCard/useRefCard'
 import type { ConflictKind } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
@@ -130,6 +132,8 @@ function VertexApp() {
   // right pane at all — which read as a broken panel, and for a clean tree it
   // meant the staging pane could not be reached.
   const [selectedCommit, setSelectedCommit] = useState<CommitNode | null>(WIP_NODE)
+  // A branch's or a tag's card, opened by a click on its chip in the graph.
+  const refCard = useRefCard(selectedCommit?.hash ?? null)
   const [wipCount, setWipCount] = useState(0)
   const [conflictFiles, setConflictFiles] = useState<string[]>([])
   // path → unmerged state, so the panel can tell a modify/delete from a content
@@ -758,7 +762,10 @@ function VertexApp() {
   useEffect(() => {
     if (!defaultBranch || !currentBranch || currentBranch === defaultBranch) { setMergeTarget(null); return }
     let stale = false
-    window.gitAPI.compareBranches(currentBranch, defaultBranch)
+    // ⚠️ compareBranches(a, b) speaks of B — `ahead` is what b has that a lacks
+    // — so the target goes first: asked the other way round, the card said
+    // "3 commits behind main" of a branch that was three commits AHEAD of it.
+    window.gitAPI.compareBranches(defaultBranch, currentBranch)
       .then(r => { if (!stale) setMergeTarget({ name: defaultBranch, ahead: r?.ahead?.length ?? 0, behind: r?.behind?.length ?? 0 }) })
       .catch(() => { if (!stale) setMergeTarget(null) })
     return () => { stale = true }
@@ -1490,6 +1497,8 @@ function VertexApp() {
             branches={branches}
             tags={tags}
             onRevealRef={ref => { void revealCommit(ref) }}
+            onOpenRef={refCard.toggle}
+            openRef={refCard.card}
             nativeContextMenu
             onNativeMenuTarget={(hash) => window.gitAPI.setLastMenuHash(hash)}
           />
@@ -1549,6 +1558,42 @@ function VertexApp() {
                 branchStrip={branchStripProps}
                 emptyState={emptyState}
               />
+              {/* A branch's or a tag's card: over the details, and only over them. */}
+              {refCard.card && (() => {
+                const card = refCard.card
+                const pr = card.kind === 'head' ? githubPRs?.find(x => x.headRef === card.name) : undefined
+                const intent = card.kind === 'head' ? prIntentFor(card.name) : null
+                return (
+                  <RefCard
+                    target={card}
+                    branches={branches}
+                    currentBranch={currentBranch}
+                    defaultBranch={defaultBranch}
+                    tip={commits.find(c => c.hash === card.hash) ?? null}
+                    pr={pr ? { number: pr.number, title: pr.title } : null}
+                    issue={card.kind === 'head' ? branchMeta.issueFor(card.name) : null}
+                    onClose={refCard.close}
+                    onSwitch={handleGoTo}
+                    onPull={handlePull}
+                    onPush={handlePush}
+                    onFetch={handleFetch}
+                    onPushBranch={handlePushBranch}
+                    onSetUpstream={handleSetUpstream}
+                    onCompare={(name) => window.gitAPI.openCompare(currentBranch, name)}
+                    onMerge={handleMergeBranch}
+                    onRebase={handleRebaseCurrentOnto}
+                    onOpenOnRemote={githubRepo ? handleOpenBranchOnRemote : undefined}
+                    onDelete={handleDeleteBranch}
+                    onDeleteRemote={handleDeleteRemoteBranch}
+                    onOpenPR={(n) => { const item = githubPRs?.find(x => x.number === n); if (item) setIssueDetail({ kind: 'pr', item }) }}
+                    onCreatePR={intent ? () => handleStartPR(intent) : undefined}
+                    onPushTag={handlePushTag}
+                    onDeleteTag={handleDeleteTag}
+                    onCheckoutTag={handleCheckout}
+                    onCreateBranchAt={handleCreateBranchAt}
+                  />
+                )
+              })()}
             </div>
           </>
   )

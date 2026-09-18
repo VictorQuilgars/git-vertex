@@ -20,6 +20,7 @@ import { UNMEASURED_ROWS, edgesInWindow, inWindow, rowWindow, rowsToDraw } from 
 import RefFinder from './RefFinder'
 import GraphShortcuts from './GraphShortcuts'
 import { refFindCandidates, type RefFindKind, type RefFindMatch } from './ref-find'
+import type { RefTarget } from '../RefCard/ref-card-model'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
 import { COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
@@ -82,6 +83,15 @@ export interface CommitGraphProps {
    * row does nothing.
    */
   onRevealRef?: (ref: string) => void
+  /**
+   * A click on a branch or tag chip: its card, which the host opens over the
+   * details panel (#258). The same chip again closes it — the host toggles.
+   * Absent ⇒ a click on a chip does nothing, as before. The double-click
+   * still switches either way.
+   */
+  onOpenRef?: (ref: RefTarget) => void
+  /** The reference whose card is open: its chip reads as pressed. */
+  openRef?: { kind: RefTarget['kind']; name: string } | null
   /**
    * The Working Changes row is always there, clean tree or not. It is the way
    * into the staging pane, and a pane nobody can reach is a pane that does not
@@ -203,7 +213,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   trackingFor,
   upstreamRef = null,
   mergeTargetRef = null,
-  branches, tags, onRevealRef,
+  branches, tags, onRevealRef, onOpenRef, openRef = null,
   alwaysShowWip = false,
   onStageAll,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
@@ -639,6 +649,23 @@ export default function CommitGraph(props: CommitGraphProps) {
     onRevealRef?.(match.ref)
   }, [displayLayout, goToRow, onRevealRef])
   const closeFinder = useCallback(() => setFinderOpen(false), [])
+  // ── A chip's card (#258) ── A click selects the reference's tip at once and
+  // opens its card a moment later: long enough for a double-click — which
+  // switches, as it always has — to take the gesture back.
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelOpenRef = useCallback(() => {
+    if (openTimer.current) { clearTimeout(openTimer.current); openTimer.current = null }
+  }, [])
+  useEffect(() => cancelOpenRef, [cancelOpenRef])
+  const refTargetOf = useCallback((pref: ProcessedRef, hash: string): RefTarget =>
+    pref.cls === 'rc-tag' ? { kind: 'tag', name: pref.display, hash }
+    : pref.cls === 'rc-remote' ? { kind: 'remote', name: (pref.branchName ?? pref.display).replace(/^remotes\//, ''), hash }
+    : { kind: 'head', name: pref.branchName ?? pref.display, hash }, [])
+  const isOpenRef = useCallback((pref: ProcessedRef) => {
+    if (!openRef) return false
+    const mine = refTargetOf(pref, '')
+    return mine.kind === openRef.kind && mine.name === openRef.name
+  }, [openRef, refTargetOf])
   const openFinder = useCallback(() => setFinderOpen(true), [])
   const openShortcuts = useCallback(() => setKeysOpen(true), [])
   useEffect(() => { if (!finderOpen) setFindHit(null) }, [finderOpen])
@@ -999,6 +1026,33 @@ export default function CommitGraph(props: CommitGraphProps) {
     if (lead < 0) return { prefs: own, ghost: false }
     return { prefs: [all[lead], ...all.filter((_, i) => i !== lead)], ghost: true }
   }, [byHash, ghostLead, hiddenChip])
+  // The commits on screen NOW, for what runs later than the render that armed it.
+  const liveHashes = useRef(byHash)
+  liveHashes.current = byHash
+  /**
+   * A click on a chip. A ghost — a name worn by a row further down its line —
+   * stands for the branch, not for that row: what is selected is the TIP.
+   */
+  const openChip = useCallback((pref: ProcessedRef, commit: LayoutCommit, ghost: boolean) => {
+    if (!onOpenRef) return
+    const tip = (ghost ? byHash.get(ghostLead.get(commit.hash) ?? '') : undefined) ?? commit
+    cancelOpenRef()
+    if (multiSel.size) setMultiSel(new Set())
+    if (tip.hash !== selectedHash) onSelectCommit(tip)
+    openTimer.current = setTimeout(() => {
+      openTimer.current = null
+      // A quarter of a second is long enough for the graph to have become
+      // another one — a tab closed, a repository switched: the card of a
+      // commit that is no longer on screen is not opened.
+      if (!liveHashes.current.has(tip.hash)) return
+      onOpenRef(refTargetOf(pref, tip.hash))
+    }, 250)
+  }, [onOpenRef, byHash, ghostLead, cancelOpenRef, multiSel, selectedHash, onSelectCommit, refTargetOf])
+  /** The double-click switches, and takes back the card the first click was about to open. */
+  const switchFromChip = useCallback((name: string) => {
+    cancelOpenRef()
+    onCheckoutBranch?.(name)
+  }, [cancelOpenRef, onCheckoutBranch])
   // The chip's row moved, or is gone (a filter, a refresh): the anchor is
   // stale, and a panel shown again when the row comes back would be a panel
   // the pointer never asked for.
@@ -1482,7 +1536,9 @@ export default function CommitGraph(props: CommitGraphProps) {
                           setHoverHash(null)
                         }}
                       >
-                        <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
+                        <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns}
+                          open={isOpenRef(primary)} onOpen={onOpenRef ? p => openChip(p, commit, ghost) : undefined}
+                          onDoubleClick={onCheckoutBranch ? switchFromChip : undefined}
                           onDragStartBranch={b => { setDragBranch(b); setDragSource(commit.hash) }}
                           onDragEndBranch={() => { setDragBranch(null); setDragSource(null); setDragOverRow(null) }}
                           onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
@@ -1526,7 +1582,9 @@ export default function CommitGraph(props: CommitGraphProps) {
                           setHoverHash(null)
                         }}
                       >
-                        <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns} onDoubleClick={onCheckoutBranch}
+                        <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns}
+                          open={isOpenRef(primary)} onOpen={onOpenRef ? p => openChip(p, commit, ghost) : undefined}
+                          onDoubleClick={onCheckoutBranch ? switchFromChip : undefined}
                           onDragStartBranch={b => { setDragBranch(b); setDragSource(commit.hash) }}
                           onDragEndBranch={() => { setDragBranch(null); setDragSource(null); setDragOverRow(null) }}
                           onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
@@ -1573,9 +1631,10 @@ export default function CommitGraph(props: CommitGraphProps) {
                           emphasis={!ghost && !!prefs[0].isHead}
                           refsHidden={Math.max(0, prefs.length - 1)}
                           segments={messageChipSegments(prefs[0], issueForBranch, {
-                            onCheckout: onCheckoutBranch,
+                            onCheckout: onCheckoutBranch ? switchFromChip : undefined,
                             onMenu: (e) => openRefMenu(e, prefs[0], commit),
                             onOpenPR,
+                            onOpen: onOpenRef ? () => openChip(prefs[0], commit, ghost) : undefined,
                           }, trackingFor, prForBranch)}
                         />
                       )}
@@ -1717,7 +1776,9 @@ export default function CommitGraph(props: CommitGraphProps) {
             ghost={shown.ghost}
           >
             {hiddenPrefs.map((p, i) => (
-              <RefChip key={i} pref={p} ghost={shown.ghost} laneColor={expandCommit.color} onDoubleClick={onCheckoutBranch}
+              <RefChip key={i} pref={p} ghost={shown.ghost} laneColor={expandCommit.color}
+                open={isOpenRef(p)} onOpen={onOpenRef ? pr => openChip(pr, expandCommit, shown.ghost) : undefined}
+                onDoubleClick={onCheckoutBranch ? switchFromChip : undefined}
                 onDragStartBranch={setDragBranch}
                 onDragEndBranch={() => { setDragBranch(null); setDragOverRow(null) }}
                 onContextMenu={(e, pref) => openRefMenu(e, pref, expandCommit)} />

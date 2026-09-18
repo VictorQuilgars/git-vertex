@@ -660,3 +660,6 @@
 
 /* Said to a screen reader, shown to nobody. */
 .cg-sr-live { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* The chip whose card is open in the details panel (#258): pressed. */
+.ref-chip--open { box-shadow: 0 0 0 1px currentColor; filter: brightness(1.15); }

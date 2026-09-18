@@ -11,7 +11,9 @@ module.exports = {
     const history = () => `document.querySelector('.sb-history')?.textContent ?? ''`
     const selected = () => page.eval(`document.querySelector('.cg-row.cg-selected')?.textContent ?? ''`)
     await page.click('.app-tab')
-    await page.until(`document.querySelectorAll('.cg-row').length > 1`, { what: 'the graph of the first repository' })
+    // The previous journey closes a tab on its way out, and that settles a moment later:
+    // until the graph is alpha's, a key or a click would land on the repository that is leaving.
+    await page.until(`/of alpha|from a terminal|from the suite/.test(document.querySelector('.cg-body')?.textContent ?? '') && document.querySelector('.app-tab.active .app-tab-name')?.textContent === 'alpha'`, { what: 'the graph of the first repository' })
     // A retry may find a field holding the focus, which would swallow the key.
     await page.eval(`document.activeElement?.blur?.()`)
 
@@ -21,7 +23,7 @@ module.exports = {
     expect(await page.eval(`document.activeElement === document.querySelector('.cg-reffind-input')`), 'the focus is in the finder\'s field')
     await page.type('feat')
     await page.until(`document.querySelector('.cg-reffind-hit')?.textContent === 'feature'`, { what: 'the match named under the field' })
-    expect(await page.eval(`!!document.querySelector('.cg-row--find-hit')`), 'the graph is standing on the match')
+    await page.until(`!!document.querySelector('.cg-row--find-hit')`, { what: 'the graph standing on the match', timeoutMs: 5000 })
     expect(!(await selected()), 'typing selects nothing')
     await page.press('Enter')
     await page.until(`!document.querySelector(${JSON.stringify(FIND)})`, { what: 'the finder closed by Enter' })

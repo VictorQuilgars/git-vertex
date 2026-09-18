@@ -4,6 +4,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🪪 A branch chip opens its card
+- **Click a branch or a tag** in the graph: its card opens **over the details panel**. A branch says where it stands against its **upstream** and against the branch it **merges into** — with the verdict that matters, *would it conflict* — carries its issue and its pull request, and offers what fits: publish, pull, push, merge, rebase, compare, switch. A tag says what it points at, who tagged it and what they wrote, and whether the remote has it. **The double-click still switches.**
+
 ### 🔎 Find a branch from the graph, with /
 - **/** opens a small field at the top right of the graph, and **the graph answers as you type**: it goes to the best match and lights its row. **↓ ↑** walk the others, **Enter** takes it. Branches, tags and worktrees — **on the page or not**: a tip three pages down is reached by growing the page, the way a search hit is.
 
