@@ -108,3 +108,24 @@
 .cg-mm-ref--local  { color: var(--accent); }
 .cg-mm-ref--remote { color: var(--success); }
 .cg-mm-ref--tag    { color: var(--purple-text); }
+
+/* The minimap's own block, when the host gives it one (CommitGraph's
+   `minimapSlot`): under the toolbar, above the three panes and as wide as
+   they are together, set apart by the same gap — a card of its own in the
+   blocks layout, a strip with an edge in the flush one. Above the panes in
+   the stacking order, so the tooltip hangs over them. Empty — the strip
+   hidden, or no graph on screen — it takes no room at all. */
+.cg-mm-slot {
+  position: relative;
+  z-index: var(--z-dropdown);
+  flex-shrink: 0;
+  margin: var(--pane-gap) var(--pane-gap) 0;
+  border-radius: var(--pane-radius);
+  border-bottom: var(--pane-edge) solid var(--border-muted);
+  background: var(--surface);
+}
+.cg-mm-slot:empty { display: none; }
+.cg-mm-slot > .cg-mm { background: transparent; border-bottom: none; }
+/* The curve's fill stops at the card's rounded corners (the tools column on
+   the right is outside the chart, so only the left ones). */
+.cg-mm-slot .cg-mm-svg { clip-path: inset(0 round var(--pane-radius) 0 0 var(--pane-radius)); }

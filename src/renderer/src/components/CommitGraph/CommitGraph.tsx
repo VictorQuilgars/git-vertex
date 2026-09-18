@@ -152,6 +152,19 @@ export interface CommitGraphProps {
   // independently of whatever argument VS Code passes to the native menu's
   // commands, in case that ever comes back empty.
   onNativeMenuTarget?: (hash: string) => void
+  /**
+   * The block the minimap is drawn in, when the host gives it one of its own —
+   * above every pane, as wide as they are together. The strip is portalled
+   * there and its data stays here, next to the rows it is made of. `null`:
+   * the host has a block that is not mounted yet, so nothing is drawn;
+   * omitted: the strip sits at the top of the graph.
+   */
+  minimapSlot?: HTMLElement | null
+}
+
+/** `node` in `slot` when there is one, where it stands otherwise. */
+function portalTo(slot: HTMLElement | undefined, node: React.ReactElement) {
+  return slot ? createPortal(node, slot) : node
 }
 
 export interface CtxState { x: number; y: number; commit: LayoutCommit; branchName?: string; batch?: boolean }
@@ -180,7 +193,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   
   
   nativeContextMenu = false,
-  visibility, remoteNames,
+  visibility, remoteNames, minimapSlot,
 } = props
   const { t } = useLang()
   const { getBool, get, set, appliedTheme } = useSettings()
@@ -971,8 +984,9 @@ export default function CommitGraph(props: CommitGraphProps) {
   return (
     <div className="cg-container" ref={containerRef}>
       {/* ── Minimap ── The loaded history as a strip: a way around the graph,
-           and one the user can put away (Minimap.tsx). */}
-      {showMinimap && (
+           and one the user can put away (Minimap.tsx). In the host's block
+           when it has one, at the top of the graph otherwise. */}
+      {showMinimap && minimapSlot !== null && portalTo(minimapSlot,
         <Minimap
           commits={commits}
           headHash={headHash}
@@ -984,8 +998,7 @@ export default function CommitGraph(props: CommitGraphProps) {
           onPick={pickFromMinimap}
           onWheel={dy => bodyRef.current?.scrollBy({ top: dy })}
           onHide={() => set('graphMinimap', 'false')}
-        />
-      )}
+        />)}
       {/* ── Header ── The column headers only mean something when there are
            columns. In the stacked layout the row carries its own labels by
            position, so a header would name a grid that is not there. */}

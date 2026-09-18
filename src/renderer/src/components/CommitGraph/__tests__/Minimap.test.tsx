@@ -101,12 +101,29 @@ describe('in the graph', () => {
     ...c, shortHash: c.hash, message: `commit ${i}`, author: 'Alice', authorEmail: 'a@test.local',
     parents: i < COMMITS.length - 1 ? [COMMITS[i + 1].hash] : [],
   }))
-  const graph = (settings: Record<string, string> = {}) => {
+  const graph = (settings: Record<string, string> = {}, extra: Record<string, unknown> = {}) => {
     installMockGitAPI({ settingsGetAll: jest.fn().mockResolvedValue(settings) })
     renderWithProviders(<CommitGraph {...({
-      commits: graphCommits, selectedHash: null, onSelectCommit: jest.fn(), searchQuery: '', currentBranch: 'main',
+      commits: graphCommits, selectedHash: null, onSelectCommit: jest.fn(), searchQuery: '', currentBranch: 'main', ...extra,
     } as any)} />)
   }
+
+  test('goes in the block the host gives it, above the panes rather than inside the graph', async () => {
+    const slot = document.createElement('div')
+    slot.className = 'cg-mm-slot'
+    document.body.appendChild(slot)
+    graph({}, { minimapSlot: slot })
+    await act(async () => {})
+    expect(slot.querySelector('.cg-mm')).not.toBeNull()
+    expect(document.querySelector('.cg-container .cg-mm')).toBeNull()
+    slot.remove()
+  })
+
+  test('draws nothing while the host block is not mounted yet', async () => {
+    graph({}, { minimapSlot: null })
+    await act(async () => {})
+    expect(strip()).toBeNull()
+  })
 
   test('is there by default', async () => {
     graph()

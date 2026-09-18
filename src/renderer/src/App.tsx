@@ -388,6 +388,8 @@ export default function App() {
   const windowWidth = useWindowWidth()
   const compactDetails = !!selectedCommit && !conflictResolverFile && !rebaseHash && !viewTab && !issueDetail
     && detailsTakeCenter(windowWidth, repoPath ? sidebarW : 0, rightW)
+  // The minimap's block, above the three panes; the graph draws into it.
+  const [minimapSlot, setMinimapSlot] = useState<HTMLDivElement | null>(null)
 
   return (
     <div className="app">
@@ -607,6 +609,12 @@ export default function App() {
           />
         </div>
       )}
+
+      {/* ── The minimap's block ── Above the three panes, as wide as they
+          are; empty (and gone) while the strip is hidden. Hidden with the
+          graph wherever the graph is hidden but still mounted. */}
+      <div className="cg-mm-slot" ref={setMinimapSlot}
+        style={{ display: whatsNewActive || repoMgmtOpen || compactDetails ? 'none' : undefined }} />
 
       <div className={`app-body${compactDetails ? ' app-body--detail' : ''}`} style={{ display: whatsNewActive || repoMgmtOpen ? 'none' : undefined }}>
         {/* ── Sidebar panel — only with a repo open (the home has its own repo list) ── */}
@@ -928,6 +936,7 @@ export default function App() {
             )
           ) : (
             <CommitGraph
+              minimapSlot={minimapSlot}
               issueForBranch={branchMeta.issueFor}
               prForBranch={(name) => {
                 const pr = githubPRs?.find(p => p.headRef === name)

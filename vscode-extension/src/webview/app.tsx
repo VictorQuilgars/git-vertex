@@ -1199,6 +1199,10 @@ function VertexApp() {
   const availableWidth = Math.max(0, bodyW - layout.railWidth - (activeView && !overlaySide ? sideW + 3 : 0))
   const compactColumns = compactWorking && availableWidth >= 692
   const focusWorking = compactWorking && graphHidden
+  // The minimap's block, above the rail's card, the graph and the details;
+  // the graph draws into it. Hidden with the graph when the details take its place.
+  const [minimapSlot, setMinimapSlot] = useState<HTMLDivElement | null>(null)
+  const graphOffScreen = (stacked && showRight) || focusWorking
   const maxRightW = Math.max(320, Math.min(compactColumns ? Infinity : 900, availableWidth - (compactColumns ? 206 : 306)))
   const minRightW = compactColumns ? 486 : Math.min(320, maxRightW)
   const preferredRightW = compactColumns ? (compactRightW || Math.round(availableWidth * 0.73)) : rightW
@@ -1388,7 +1392,7 @@ function VertexApp() {
   )
 
   const centreEl = (
-        <div className="app-center" style={{ flex: 1, display: (stacked && showRight) || focusWorking ? 'none' : 'flex', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+        <div className="app-center" style={{ flex: 1, display: graphOffScreen ? 'none' : 'flex', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
           {noRepo ? (
             <EmptyRepo hasFolder={repos.length > 0 || hasWorkspaceFolder} />
           ) : issueDetail && githubRepo ? (
@@ -1410,6 +1414,7 @@ function VertexApp() {
             )
           ) : (
           <CommitGraph
+              minimapSlot={minimapSlot}
               issueForBranch={branchMeta.issueFor}
               prForBranch={(name) => {
                 const pr = githubPRs?.find(p => p.headRef === name)
@@ -1595,6 +1600,9 @@ function VertexApp() {
         pr={currentBranchPR}
         onCreatePR={handleStartPR}
       />
+      {/* The minimap's block: under the toolbar, above the three panes and as
+          wide as they are; empty (and gone) while the strip is hidden. */}
+      <div className="cg-mm-slot" ref={setMinimapSlot} style={{ display: graphOffScreen ? 'none' : undefined }} />
       {settingsOpen && (
         <div className="gv-settings-overlay">
           <SettingsModal embedded onClose={() => setSettingsOpen(false)} showToast={showToast}
