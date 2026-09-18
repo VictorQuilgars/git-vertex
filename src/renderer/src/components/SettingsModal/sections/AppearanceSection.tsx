@@ -1,11 +1,40 @@
 // Settings › appearance. Reads its slice of the page's state; the state itself lives in useSettingsPage.
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from '../../Icon/Icon'
 import { isVSCodeHost, followsEditor } from '../../../contexts/SettingsContext'
-import { THEMES_FOLDED, THEME_PRESETS, SaveNote } from '../shared'
+import { THEME_PRESETS, SaveNote } from '../shared'
+import { openThemeBuilder } from '../../ThemeBuilder/builderStore'
 import type { SettingsPage } from '../useSettingsPage'
 
 export function AppearanceSection({ page }: { page: SettingsPage }) {
-  const { t, settings, get, set, showAllThemes, setShowAllThemes, installed, discarded, bankCount, preview, themePickerDisabled, removeTheme, onBrowseThemes } = page
+  const { t, settings, get, set, installed, discarded, bankCount, preview, themePickerDisabled, removeTheme, onBrowseThemes } = page
+  // The shelf's strip (#242): which edges are reached, so the fade is only
+  // where there is something behind it; the mouse wheel slides it when the
+  // strip can move that way, and leaves the page alone otherwise.
+  const stripRef = useRef<HTMLDivElement>(null)
+  const [stripEdges, setStripEdges] = useState({ start: true, end: false })
+  const measureStrip = useCallback(() => {
+    const el = stripRef.current
+    if (!el) return
+    setStripEdges({ start: el.scrollLeft <= 1, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 })
+  }, [])
+  useEffect(() => {
+    measureStrip()
+    const el = stripRef.current
+    if (!el) return
+    el.querySelector('.stg-tile.active')?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' })
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
+      const can = e.deltaY > 0 ? el.scrollLeft + el.clientWidth < el.scrollWidth - 1 : el.scrollLeft > 0
+      if (!can) return
+      e.preventDefault()
+      el.scrollBy({ left: e.deltaY })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measureStrip) : null
+    ro?.observe(el)
+    return () => { el.removeEventListener('wheel', onWheel); ro?.disconnect() }
+  }, [measureStrip, installed.length])
   return (
               <div className="stg-section">
                 <h2 className="stg-section-title">{t('settings.appearance.title')}</h2>
@@ -94,6 +123,18 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                 {themePickerDisabled && (
                   <p className="stg-gal-note">{t('settings.themes.pickerDisabled')}</p>
                 )}
+                {/* Your own theme (#242), first: the one thing here that is
+                    not a choice among ready-made ones. A drawer over the app,
+                    which is the preview, starting from the theme in use. */}
+                <button className="stg-cta" onClick={() => openThemeBuilder(get('theme', 'aqua-dark'))}>
+                  <span className="stg-cta-icon" aria-hidden="true"><Icon name="ink" size={26} /></span>
+                  <span className="stg-cta-text">
+                    <strong>{t('builder.card')}</strong>
+                    <span>{t('builder.cardHint')}</span>
+                  </span>
+                  <span className="stg-cta-go">{t('builder.cardGo')}</span>
+                </button>
+
                 <fieldset className="stg-themes-fieldset" disabled={themePickerDisabled}>
                   {/* The same tile as the gallery. A 26×18 chip could not
                       show what a theme looks like, which is the one thing this
@@ -108,108 +149,86 @@ export function AppearanceSection({ page }: { page: SettingsPage }) {
                       alike, because SettingsContext injects a real rule for
                       each of those. A derived token would NOT work here — it
                       resolves against :root and every tile would show the
-                      current theme. */}
-                  <ul className="stg-wall stg-wall--compact">
-                    {/* The current theme and a handful, then the rest on
-                        request: thirty-two tiles took the pane before the
-                        options below them, for a choice made once. */}
-                    {(showAllThemes
-                      ? THEME_PRESETS
-                      : THEME_PRESETS.filter((th, i) => i < THEMES_FOLDED || get('theme', 'aqua-dark') === th.id)
-                    ).map(th => {
-                      const active = get('theme', 'aqua-dark') === th.id
-                      return (
-                        <li key={th.id} className={`stg-tile ${active ? 'active' : ''}`}>
-                          <span className="stg-tile-mock stg-tile-mock--seeded" data-theme={th.id} aria-hidden="true">
-                            <span className="stg-tile-rail" />
-                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '64%' }} /></span>
-                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar stg-tile-bar--dim" style={{ width: '44%' }} /></span>
-                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '54%' }} /></span>
-                            <span className="stg-tile-btn" />
-                          </span>
-                          <span className="stg-tile-meta">
-                            <span className="stg-tile-name">{th.name ?? t(th.key as any)}</span>
-                          </span>
-                          <button
-                            className="stg-tile-action"
-                            onClick={() => set('theme', th.id)}
-                            disabled={active}
-                            aria-pressed={active}
-                          >{active ? t('settings.themes.applied') : t('settings.themes.use')}</button>
-                        </li>
-                      )
-                    })}
-                    {/* Installed themes sit with the built-in ones — the
-                        distinction is ours, not the user's. */}
-                    {installed.map(th => {
-                      const active = get('theme', 'aqua-dark') === th.id
-                      return (
-                        <li key={th.id} className={`stg-tile ${active ? 'active' : ''}`}>
-                          <span className="stg-tile-mock stg-tile-mock--seeded" data-theme={th.id} aria-hidden="true">
-                            <span className="stg-tile-rail" />
-                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '64%' }} /></span>
-                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar stg-tile-bar--dim" style={{ width: '44%' }} /></span>
-                            <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '54%' }} /></span>
-                            <span className="stg-tile-btn" />
-                          </span>
-                          <button
-                            className="stg-tile-remove"
-                            title={t('settings.themes.remove')}
-                            aria-label={`${t('settings.themes.remove')} ${th.name}`}
-                            onClick={() => removeTheme(th.id)}
-                          >×</button>
-                          <span className="stg-tile-meta">
-                            <span className="stg-tile-name">{th.name}</span>
-                          </span>
-                          <button
-                            className="stg-tile-action"
-                            onClick={() => set('theme', th.id)}
-                            disabled={active}
-                            aria-pressed={active}
-                          >{active ? t('settings.themes.applied') : t('settings.themes.use')}</button>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </fieldset>
+                      current theme.
 
-                {THEME_PRESETS.length > THEMES_FOLDED && (
-                  <button className="stg-wall-toggle" onClick={() => setShowAllThemes(v => !v)} aria-expanded={showAllThemes}>
-                    {showAllThemes ? t('settings.themes.showFewer') : t('settings.themes.showAll', THEME_PRESETS.length)}
-                  </button>
-                )}
+                      The shelf (#242): every theme, on two rows that slide
+                      sideways, and at their end the bank's card, which does
+                      not move. What arrives from the right fades in rather
+                      than popping at the edge; the theme in use is scrolled
+                      into view once. Installed themes sit with the built-in
+                      ones — the distinction is ours, not the user's. */}
+                  <div className="stg-shelf">
+                    <div
+                      className={`stg-strip${stripEdges.start ? ' stg-strip--start' : ''}${stripEdges.end ? ' stg-strip--end' : ''}`}
+                      ref={stripRef}
+                      onScroll={measureStrip}
+                    >
+                      <ul className="stg-wall stg-wall--strip">
+                        {[
+                          ...THEME_PRESETS.map(th => ({ id: th.id, name: th.name ?? t(th.key as any), removable: false })),
+                          ...installed.map(th => ({ id: th.id, name: th.name, removable: true })),
+                        ].map(tile => (
+                          <li key={tile.id} className={`stg-tile ${get('theme', 'aqua-dark') === tile.id ? 'active' : ''}`}>
+                            <span className="stg-tile-mock stg-tile-mock--seeded" data-theme={tile.id} aria-hidden="true">
+                              <span className="stg-tile-rail" />
+                              <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '64%' }} /></span>
+                              <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar stg-tile-bar--dim" style={{ width: '44%' }} /></span>
+                              <span className="stg-tile-row"><i className="stg-tile-node" /><i className="stg-tile-bar" style={{ width: '54%' }} /></span>
+                              <span className="stg-tile-btn" />
+                            </span>
+                            {tile.removable && (
+                              <button
+                                className="stg-tile-remove"
+                                title={t('settings.themes.remove')}
+                                aria-label={`${t('settings.themes.remove')} ${tile.name}`}
+                                onClick={() => removeTheme(tile.id)}
+                              >×</button>
+                            )}
+                            <span className="stg-tile-meta">
+                              <span className="stg-tile-name">{tile.name}</span>
+                            </span>
+                            <button
+                              className="stg-tile-action"
+                              onClick={() => set('theme', tile.id)}
+                              disabled={get('theme', 'aqua-dark') === tile.id}
+                              aria-pressed={get('theme', 'aqua-dark') === tile.id}
+                            >{get('theme', 'aqua-dark') === tile.id ? t('settings.themes.applied') : t('settings.themes.use')}</button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* The way into the rest of the bank: a card the height of
+                        both rows, still while the tiles slide. It carries the
+                        count and opens the gallery as a TAB — the same gesture
+                        as opening a repo, and in the panel the same one as the
+                        interactive rebase. */}
+                    <button className="stg-browse stg-browse--tall" onClick={onBrowseThemes} disabled={!onBrowseThemes}>
+                      <span className="stg-browse-strip" aria-hidden="true">
+                        {preview.map(r => (
+                          <span key={r.id} className="stg-browse-chip" style={{ background: r.canvas, borderColor: r.border }}>
+                            <i style={{ background: r.accent }} />
+                          </span>
+                        ))}
+                      </span>
+                      <span className="stg-browse-text">
+                        <span className="stg-browse-title">
+                          {bankCount
+                            ? t('settings.themes.browseCount', bankCount.toLocaleString())
+                            : t('settings.themes.browse')}
+                        </span>
+                        <span className="stg-browse-sub">{t('settings.themes.browseSub')}</span>
+                      </span>
+                      <span className="stg-browse-go" aria-hidden="true"><Icon name="chevronRight" size={16} /></span>
+                    </button>
+                  </div>
+                </fieldset>
 
                 {discarded.length > 0 && (
                   <p className="stg-gal-note stg-gal-note--warn">
                     {t('settings.themes.discarded', String(discarded.length))}
                   </p>
                 )}
-
-                {/* The way into the rest of the bank. It used to be a text
-                    toggle that expanded the gallery in place, which read as a
-                    minor option and gave 3,960 themes a column the width of a
-                    settings pane. It is a card now, it carries the count, and
-                    it opens the gallery as a TAB — the same gesture as opening
-                    a repo, and in the panel the same one as the interactive
-                    rebase. */}
-                <button className="stg-browse" onClick={onBrowseThemes} disabled={!onBrowseThemes}>
-                  <span className="stg-browse-strip" aria-hidden="true">
-                    {preview.map(r => (
-                      <span key={r.id} className="stg-browse-chip" style={{ background: r.canvas, borderColor: r.border }}>
-                        <i style={{ background: r.accent }} />
-                      </span>
-                    ))}
-                  </span>
-                  <span className="stg-browse-text">
-                    <span className="stg-browse-title">
-                      {bankCount
-                        ? t('settings.themes.browseCount', bankCount.toLocaleString())
-                        : t('settings.themes.browse')}
-                    </span>
-                    <span className="stg-browse-sub">{t('settings.themes.browseSub')}</span>
-                  </span>
-                  <Icon name="chevronRight" size={16} className="stg-browse-go" />
-                </button>
 
                 <h2 className="stg-section-title" style={{ marginTop: 20 }}>{t('settings.date.title')}</h2>
                 <p className="stg-desc">{t('settings.date.desc')}</p>

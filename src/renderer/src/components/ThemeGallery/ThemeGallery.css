@@ -232,3 +232,65 @@
 .stg-browse-title { color: var(--text-primary); font-size: var(--text-base); font-weight: var(--weight-medium); }
 .stg-browse-sub { color: var(--text-tertiary); font-size: var(--text-sm); }
 .stg-browse-go { flex: none; opacity: 0.7; }
+
+/* ── The shelf (#242): every theme on two rows sliding sideways, and the
+   bank's card standing still at their end. The strip is masked at the edges
+   it has not reached, so a tile arriving from the right fades in rather
+   than popping at the border. The mask only needs an opaque stop; a token
+   serves, since a colour literal outside tokens.css is a bug. */
+.stg-shelf { display: flex; align-items: stretch; gap: var(--space-lg); margin-bottom: var(--space-xl); min-width: 0; }
+.stg-strip {
+  flex: 1; min-width: 0;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  padding: var(--space-2xs) 0 var(--space-sm);
+  mask-image: linear-gradient(to right, transparent 0, var(--seed-canvas) 24px, var(--seed-canvas) calc(100% - 96px), transparent 100%);
+}
+.stg-strip--start { mask-image: linear-gradient(to right, var(--seed-canvas) 0, var(--seed-canvas) calc(100% - 96px), transparent 100%); }
+.stg-strip--end { mask-image: linear-gradient(to right, transparent 0, var(--seed-canvas) 24px, var(--seed-canvas) 100%); }
+.stg-strip--start.stg-strip--end { mask-image: none; }
+.stg-wall--strip {
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, auto);
+  grid-template-columns: none;
+  grid-auto-columns: 190px;
+  padding-right: var(--space-lg);
+}
+.stg-wall--strip .stg-tile { scroll-snap-align: start; }
+/* The bank's card, tall: the strip of chips on top, the words below, the
+   arrow at the bottom, the height of the two rows beside it. */
+.stg-browse--tall {
+  flex: 0 0 200px; margin-top: 0;
+  flex-direction: column; align-items: flex-start; justify-content: space-between;
+}
+.stg-browse--tall .stg-browse-text { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.stg-browse-go { align-self: flex-end; color: var(--text-tertiary); }
+.stg-browse--tall:hover .stg-browse-go { color: var(--accent); }
+
+/* ── The call to build your own (#242): the one thing in this section that is
+   not a choice among ready-made themes, and the feature that makes the
+   themes a starting point rather than a menu — drawn in the accent, first. */
+.stg-cta {
+  display: flex; align-items: center; gap: var(--space-xl);
+  margin-bottom: var(--space-xl); padding: var(--space-xl);
+  background: color-mix(in srgb, var(--accent) var(--alpha-faint), var(--surface-sunken));
+  border: 1px solid color-mix(in srgb, var(--accent) var(--alpha-strong), transparent);
+  border-radius: var(--radius-lg); color: var(--text-primary);
+  font: inherit; text-align: left; cursor: pointer;
+  transition: border-color var(--dur-fast), background var(--dur-fast), transform var(--dur-fast);
+}
+.stg-cta:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) var(--alpha-subtle), var(--surface-sunken)); transform: translateY(-1px); }
+.stg-cta-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 56px; height: 56px; border-radius: var(--radius-circle);
+  background: var(--accent-strong); color: var(--text-on-emphasis);
+}
+.stg-cta-text { display: flex; flex-direction: column; gap: var(--space-2xs); min-width: 0; }
+.stg-cta-text strong { font-size: var(--text-lg); font-weight: var(--weight-bold); }
+.stg-cta-text span { color: var(--text-secondary); }
+.stg-cta-go {
+  margin-left: auto; flex-shrink: 0;
+  padding: var(--space-sm) var(--space-xl); border-radius: var(--radius-pill);
+  background: var(--accent-strong); color: var(--text-on-emphasis); font-weight: var(--weight-bold); white-space: nowrap;
+}
+.stg-content--wide .stg-cta { max-width: none; }

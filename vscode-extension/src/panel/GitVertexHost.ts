@@ -629,6 +629,13 @@ export class GitVertexHost implements vscode.Disposable {
           return { success: false, error: e?.message ?? String(e) }
         }
       }
+      case 'themesInstallFromSeeds': {
+        try {
+          return { success: true, theme: getThemeStore().installFromPayload(args[0]) }
+        } catch (e: any) {
+          return { success: false, error: e?.message ?? String(e) }
+        }
+      }
       case 'themesRemove': {
         try {
           getThemeStore().remove(args[0]); return { success: true }

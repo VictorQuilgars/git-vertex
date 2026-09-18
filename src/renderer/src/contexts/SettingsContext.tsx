@@ -30,9 +30,18 @@ interface SettingsContextValue {
    * under us through a MutationObserver and no setting moves at all.
    */
   appliedTheme: string
+  /**
+   * Paint a draft of seeds over the app while a theme is being built (#242),
+   * or null to put the setting's theme back. The graph relayouts on every
+   * call, since `appliedTheme` changes each time — that is the point.
+   */
+  previewSeeds: (seeds: Record<string, string> | null) => void
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
+
+/** The id the builder's draft is painted under. Never a setting, never stored. */
+export const DRAFT_THEME_ID = 'theme-draft'
 
 // Same convention as the `isMac` checks in App.tsx/Toolbar.tsx — the VS Code
 // shim sets window.appInfo.platform to 'vscode' (see gitApiShim.ts).
@@ -351,6 +360,32 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     window.gitAPI.settingsSet(key, value)
   }, [applyAndPublish])
 
+  // The builder's draft (#242): one rule for a reserved id, in a <style> of
+  // its own so the installed themes' rules are never touched; <html> points
+  // at it while the drawer is open. The cache the graph keeps of the lanes is
+  // dropped and `appliedTheme` moves on every call, so a seed change is a
+  // repaint of the graph too, not only of the stylesheet.
+  const draftRev = useRef(0)
+  const previewSeeds = useCallback((seeds: Record<string, string> | null) => {
+    if (typeof document === 'undefined') return
+    const id = 'gv-theme-draft'
+    let el = document.getElementById(id) as HTMLStyleElement | null
+    if (!seeds) {
+      el?.remove()
+      applyAndPublish(settingsRef.current)
+      return
+    }
+    if (!el) {
+      el = document.createElement('style')
+      el.id = id
+      document.head.appendChild(el)
+    }
+    el.textContent = cssRuleFor(DRAFT_THEME_ID, seeds)
+    document.documentElement.dataset.theme = DRAFT_THEME_ID
+    resetThemeCache()
+    setAppliedTheme(`${DRAFT_THEME_ID}:${++draftRev.current}`)
+  }, [applyAndPublish])
+
   const get = useCallback(
     (key: string, fallback = '') => settings[key] ?? fallback,
     [settings]
@@ -364,7 +399,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <SettingsContext.Provider value={{ settings, ready, set, get, getBool, appliedTheme }}>
+    <SettingsContext.Provider value={{ settings, ready, set, get, getBool, appliedTheme, previewSeeds }}>
       {children}
     </SettingsContext.Provider>
   )

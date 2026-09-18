@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🎨 Make your own theme
+- **Settings › Appearance › Create a theme** opens a drawer over the app, and the app is the preview: change a seed, the whole window repaints. Click anything with *Inspect* to see which seed colours it. Saving installs the theme and puts it in use; the file it exports is the bank's own format.
+
 ### 📐 Git Vertex in the side bar
 - The view lives **wherever VS Code lets a view live**: the bottom panel it opens in, the primary side bar, the secondary one. Drag it to the activity bar, or run **Git Vertex: Move to Side Bar** / **Move to Panel** from the view's title menu. Same view, same state, wherever it goes.
 

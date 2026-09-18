@@ -83,7 +83,6 @@ export const sectionText = (() => {
 })()
 
 /** How many built-in themes the picker shows before "show all". */
-export const THEMES_FOLDED = 8
 
 // ── Nav icons ─────────────────────────────────────────────────
 // These were seven `<path>` sets inside a local NavIcon wrapper that spelled
