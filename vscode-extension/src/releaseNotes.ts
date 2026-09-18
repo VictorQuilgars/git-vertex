@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🚀 Pull requests, by what they need
+- The pull requests view gains a second reading, **By what they need**: *Needs Your Review*, *Changes Requested*, *Ready to Merge*, *Blocked*, *Waiting for Review*, *Draft* — each with its count, every request in exactly one group. **Pin** one to the top, **snooze** one until a day or its next update. The overview's **Waiting on you** lines open it on their group.
+
 ### 🧭 The search field takes operators
 - Beside **author:**, the graph's search now takes **file:** (a path, a folder, a pattern — or a bare word found anywhere in a path), **after:** and **before:** (a day, or a span such as **2w**, **3m**, **1y**). They combine with each other and with the words: \`author:ana file:src/main after:1m cache\`. Under the field, while it has the focus, the operators in force are **chips you can remove one by one**, and the ones there are, a click away.
 

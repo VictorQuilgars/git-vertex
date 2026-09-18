@@ -62,6 +62,8 @@ export interface GithubListItem {
   draft?: boolean
   url: string
   createdAt?: string
+  /** When it last moved — what a snooze "until its next update" is measured against. */
+  updatedAt?: string
   comments?: number
   labels?: { name: string; color: string }[]
   headRef?: string

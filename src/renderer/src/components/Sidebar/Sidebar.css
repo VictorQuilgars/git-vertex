@@ -1123,3 +1123,17 @@
 .sb-contrib-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-contrib-count { flex-shrink: 0; font-size: var(--text-tiny); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 .sb-contrib-row--active .sb-contrib-count { color: var(--accent); }
+
+/* ── Pull requests, by whose they are or by what they need (#257) ── */
+.sb-gh-groupby { display: flex; gap: var(--space-2xs); margin: 0 var(--space-md) var(--space-xs) var(--sb-indent); padding: var(--space-2xs); background: var(--surface-sunken); border-radius: var(--radius-sm); }
+.sb-gh-groupby-btn { flex: 1; min-width: 0; height: 20px; padding: 0 var(--space-sm); font: inherit; font-size: var(--text-tiny); color: var(--text-secondary); background: none; border: 0; border-radius: var(--radius-xs); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-gh-groupby-btn:hover { color: var(--text-primary); }
+.sb-gh-groupby-btn--on { color: var(--text-primary); background: var(--surface-active); }
+.sb-gh-groupby-btn:focus-visible { outline: 1px solid var(--accent); }
+/* Pin and snooze ride beside the row and wake with the pointer — or stay lit when set. */
+.sb-gh-need-row { position: relative; }
+.sb-gh-marks { position: absolute; top: var(--space-2xs); right: var(--space-sm); display: flex; gap: var(--space-2xs); opacity: 0; }
+.sb-gh-need-row:hover .sb-gh-marks, .sb-gh-marks:focus-within, .sb-gh-marks:has(.sb-gh-mark--on) { opacity: 1; }
+.sb-gh-mark { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; color: var(--text-tertiary); background: var(--surface); border: 1px solid var(--border-muted); border-radius: var(--radius-xs); cursor: pointer; }
+.sb-gh-mark:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.sb-gh-mark--on { color: var(--accent); border-color: var(--accent); }
