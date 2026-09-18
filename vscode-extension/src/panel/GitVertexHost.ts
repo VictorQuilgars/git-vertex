@@ -326,6 +326,14 @@ export class GitVertexHost implements vscode.Disposable {
   /** Something may have become a repository: whoever resolves one should look again. */
   public onRescan?: () => void
 
+  /** The editor-tab panel this host draws in, when it is a tab: what follow retitles. */
+  private _panel?: vscode.WebviewPanel
+  public attachPanel(panel: vscode.WebviewPanel): void { this._panel = panel }
+  /** Sent to a following history tab: the editor moved to this file. */
+  public postHistoryFile(file: string): void {
+    this._webview.postMessage({ type: 'historyFile', file })
+  }
+
   // ── FS watcher → broadcast change events ──────────────────────
   private _setupWatcher(repoPath: string): void {
     this._fsWatcher?.dispose()
@@ -700,6 +708,14 @@ export class GitVertexHost implements vscode.Disposable {
       case 'setPanelRepo': {
         const target = String(args[0] ?? '')
         if (target && target !== this._repoPath) this.onSwitchRepo?.(target)
+        return { success: true }
+      }
+      case 'historyFollow': {
+        // Only a history tab can follow, and only while it has a panel to
+        // retitle; the registry is what the editor's changes are fanned out to.
+        if (this._boot?.mode !== 'history' || !this._panel) return { success: false }
+        if (args[0]) followingHistory.set(this, this._panel)
+        else followingHistory.delete(this)
         return { success: true }
       }
       case 'panelStatus': {
@@ -1319,6 +1335,7 @@ export class GitVertexHost implements vscode.Disposable {
   }
 
   public dispose(): void {
+    followingHistory.delete(this)
     if (activeCommitMenuWebview === this._webview) activeCommitMenuWebview = undefined
     this._fsWatcher?.dispose()
     this._disposables.forEach(d => d.dispose())
@@ -1647,6 +1664,24 @@ export function openGitVertexCompareTab(
 // Visual file history: commit timeline + per-commit diff/blame.
 const HISTORY_VIEW_TYPE = 'gitVertex.fileHistory'
 const historyPanels = new Map<string, vscode.WebviewPanel>()
+// The tabs that follow the active editor: each moves to whatever file the
+// editor shows next, as long as that file is in the tab's repository.
+const followingHistory = new Map<GitVertexHost, vscode.WebviewPanel>()
+
+/** The active editor moved to `fsPath`: every following history tab goes there too. */
+export function followHistoryTo(fsPath: string): void {
+  for (const [host, panel] of followingHistory) {
+    const root = host.repoPath
+    if (!root || !fsPath.startsWith(root + path.sep)) continue
+    const rel = path.relative(root, fsPath).split(path.sep).join('/')
+    // Re-key the registry: the tab is that file's history now, not the one
+    // it opened on — a second request for the file lands here, not beside it.
+    for (const [file, p] of historyPanels) if (p === panel) historyPanels.delete(file)
+    if (!historyPanels.has(rel)) historyPanels.set(rel, panel)
+    panel.title = `History — ${rel.split('/').pop()}`
+    host.postHistoryFile(rel)
+  }
+}
 
 export function openGitVertexFileHistoryTab(
   extensionUri: vscode.Uri,
@@ -1670,11 +1705,13 @@ export function openGitVertexFileHistoryTab(
   panel.iconPath = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png')
 
   const host = new GitVertexHost(panel.webview, extensionUri, state, { mode: 'history', file }, () => panel.dispose())
+  host.attachPanel(panel)
   host.setRepo(repoPath)
 
   panel.onDidDispose(() => {
     host.dispose()
-    historyPanels.delete(file)
+    // By panel, not by the opening file: a following tab may have moved on.
+    for (const [f, p] of historyPanels) if (p === panel) historyPanels.delete(f)
   })
   historyPanels.set(file, panel)
 }

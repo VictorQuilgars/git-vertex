@@ -31,6 +31,9 @@ let menuActionListeners: MenuActionCb[] = []
 // branch, a tag; the app resolves it.
 type RevealCb = (ref: string) => void
 let revealListeners: RevealCb[] = []
+// The file a following history tab should show now — the editor moved.
+type HistoryFileCb = (file: string) => void
+let historyFileListeners: HistoryFileCb[] = []
 
 window.addEventListener('message', (e: MessageEvent) => {
   const msg = e.data
@@ -58,6 +61,11 @@ window.addEventListener('message', (e: MessageEvent) => {
 
   if (msg.type === 'revealCommit') {
     revealListeners.slice().forEach(cb => { try { cb(msg.ref) } catch { /* ignore */ } })
+    return
+  }
+
+  if (msg.type === 'historyFile') {
+    historyFileListeners.slice().forEach(cb => { try { cb(msg.file) } catch { /* ignore */ } })
   }
 })
 
@@ -102,6 +110,8 @@ const overrides: Record<string, (...a: any[]) => any> = {
   offMenuAction: (cb: MenuActionCb) => { menuActionListeners = menuActionListeners.filter(f => f !== cb) },
   onRevealCommit: (cb: RevealCb) => { revealListeners.push(cb) },
   offRevealCommit: (cb: RevealCb) => { revealListeners = revealListeners.filter(f => f !== cb) },
+  onHistoryFile: (cb: HistoryFileCb) => { historyFileListeners.push(cb) },
+  offHistoryFile: (cb: HistoryFileCb) => { historyFileListeners = historyFileListeners.filter(f => f !== cb) },
 }
 
 // Proxy: any unknown property becomes an async host call; on*/off* event-style

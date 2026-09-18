@@ -36,6 +36,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 The graph says when
 - A band at the top of the graph names the **stretch of time** the first visible row is in, and a hairline marks where one stretch ends. *Date bands* in the header's menu turns it off.
 
+### 🧭 A history that follows
+- The **File History** tab gains **Follow editor**: pressed, it shows the history of whatever file the editor moves to.
+
 ### 👥 Who works here
 - A **Contributors** section in the overview; a row narrows the graph to one author. The search field accepts **author:name**.
 

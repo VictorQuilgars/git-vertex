@@ -7,7 +7,7 @@ import { findRefLinks, type RefLink } from './terminalLinks'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider, followHistoryTo } from './panel/GitVertexHost'
 import { blameFile } from './blame/blame'
 import { GitService } from './gitService'
 import { RELEASE_NOTES } from './releaseNotes'
@@ -550,7 +550,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Re-read on file saves, editor changes, workspace changes
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument(() => scheduleRefresh()),
-    vscode.window.onDidChangeActiveTextEditor(() => scheduleRefresh(500)),
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      scheduleRefresh(500)
+      if (editor?.document.uri.scheme === 'file') followHistoryTo(editor.document.uri.fsPath)
+    }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       refreshStatusBar()
       const root = resolveRepoRoot()

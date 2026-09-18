@@ -1647,6 +1647,25 @@ function VertexApp() {
   )
 }
 
+// A file's history in a tab of its own — and, when asked, the history of
+// whatever file the editor shows: the host tells this tab where the editor
+// went, and the component underneath simply gets a new file.
+function FileHistoryTab({ initial }: { initial: string }) {
+  const [file, setFile] = useState(initial)
+  const [following, setFollowing] = useState(false)
+  useEffect(() => {
+    const cb = (next: string) => setFile(next)
+    window.gitAPI.onHistoryFile(cb)
+    return () => window.gitAPI.offHistoryFile(cb)
+  }, [])
+  const toggle = () => {
+    const next = !following
+    setFollowing(next)
+    void window.gitAPI.historyFollow(next)
+  }
+  return <FileHistory file={file} follow={{ on: following, onToggle: toggle }} />
+}
+
 // A focused tool (e.g. the staging editor) can be booted into the same bundle
 // via window.__GV_BOOT__, injected by the host's HTML.
 const boot = (window as any).__GV_BOOT__ as
@@ -1757,7 +1776,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           : boot?.mode === 'conflict' && boot.file
             ? <ConflictTab file={boot.file} />
             : boot?.mode === 'history' && boot.file
-              ? <FileHistory file={boot.file} />
+              ? <FileHistoryTab initial={boot.file} />
               : boot?.mode === 'compare'
                 ? <CompareTab refA={boot.refA} refB={boot.refB} />
                 : boot?.mode === 'compareWorking' && boot.hash

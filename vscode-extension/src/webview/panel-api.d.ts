@@ -49,6 +49,12 @@ declare global {
     /** Put another repository of the workspace on screen. */
     setPanelRepo: (repoPath: string) => Promise<unknown>
 
+    /** A file-history tab follows the active editor, or stops. */
+    historyFollow: (on: boolean) => Promise<unknown>
+    /** The file a following history tab should show now. */
+    onHistoryFile: (cb: (file: string) => void) => void
+    offHistoryFile: (cb: (file: string) => void) => void
+
     // ── Tabs the panel opens in the editor, where the desktop opens a view ──
     openCompare: (base: string, target: string) => Promise<unknown>
     openCompareWorkingTab: (hash: string) => Promise<unknown>
