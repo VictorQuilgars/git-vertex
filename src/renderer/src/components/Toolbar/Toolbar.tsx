@@ -5,6 +5,7 @@ import { useLang } from '../../i18n/LanguageContext'
 import ContextMenu, { MenuItemDef } from '../ContextMenu/ContextMenu'
 import { PullMode, type BranchInfo } from '../../types'
 import { Icon } from '../Icon/Icon'
+import SearchHint, { useSearchHint } from '../SearchHint/SearchHint'
 import { Brand } from '../BrandMark/BrandMark'
 
 interface ToolbarProps {
@@ -34,6 +35,8 @@ interface ToolbarProps {
   onGoTo?: (ref: string) => void
   searchQuery: string
   searchMatches?: number
+  /** git is being asked about the query's `file:` operators. */
+  searchOpsLoading?: boolean
   onSearch: (q: string) => void
   onUndo: () => void
   onRedo: () => void
@@ -102,7 +105,7 @@ function TBtn({ icon, label, onClick, disabled, title, accent, active }: {
 }
 
 export default function Toolbar({
-  repoPath, currentBranch, searchQuery, searchMatches, onSearch,
+  repoPath, currentBranch, searchQuery, searchMatches, searchOpsLoading, onSearch,
   repoName, recentRepos = [], onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   branches = [], onGoTo,
   onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
@@ -113,6 +116,7 @@ export default function Toolbar({
   onGitflow,
   topRow = true
 }: ToolbarProps) {
+  const searchHint = useSearchHint()
   const { t } = useLang()
   const compact = useMediaQuery('(max-width: 1250px)')
   const moreRef = useRef<HTMLDetailsElement>(null)
@@ -444,7 +448,10 @@ export default function Toolbar({
 
       {/* Secondary right cluster */}
       <div className="tb-right">
-        <div className={`tb-search${aiSearch ? ' tb-search--ai' : ''}`}>
+        <div className={`tb-search${aiSearch ? ' tb-search--ai' : ''}`} {...searchHint.boxProps}>
+          {/* The operators, under the field while it has the focus — not in the
+              model's mode, where the query is a sentence and not a filter. */}
+          <SearchHint open={searchHint.open && !aiSearch} query={searchQuery} onChange={onSearch} loading={searchOpsLoading} />
           <Icon name="search" size={13} />
           <input type="text"
             placeholder={aiSearch ? t('toolbar.aiSearch.placeholder') : t('toolbar.search.placeholder')}

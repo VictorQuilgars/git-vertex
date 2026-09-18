@@ -181,6 +181,8 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:file-diff-at-commit': ['rev', 'repoFile'],
   'git:diff-commit-to-working': ['rev'],
   'git:search-in-diffs': [null],
+  // Pathspecs, not paths: `*.ts` and a bare word are fine, and they go after `--`.
+  'git:search-by-file': [null],
 
   // The working tree
   'git:stage': ['repoFiles'],

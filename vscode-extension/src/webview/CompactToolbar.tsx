@@ -6,6 +6,7 @@
 // search field takes a row of its own.
 import React, { useState, useRef, useEffect } from 'react'
 import { Icon } from '../../../src/renderer/src/components/Icon/Icon'
+import SearchHint, { useSearchHint } from '../../../src/renderer/src/components/SearchHint/SearchHint'
 import { useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import type { IssueRef } from '../../../src/renderer/src/utils/issueRef'
 import ContextMenu from '../../../src/renderer/src/components/ContextMenu/ContextMenu'
@@ -39,6 +40,8 @@ interface Props {
   loading: boolean
   stashCount: number
   searchQuery: string
+  /** git is being asked about the query's `file:` operators. */
+  searchOpsLoading?: boolean
   searchMatches?: number
   lastFetch: Date | null
   ahead?: number
@@ -153,6 +156,7 @@ export default function CompactToolbar(p: Props) {
   // elsewhere (a restored one, say) opens it too — a filter must be visible.
   const [searchOpen, setSearchOpen] = useState(false)
   useEffect(() => { if (p.searchQuery) setSearchOpen(true) }, [p.searchQuery])
+  const searchHint = useSearchHint()
   const branchRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -311,7 +315,8 @@ export default function CompactToolbar(p: Props) {
   )
 
   const search = (
-    <div className="gvt-search">
+    <div className="gvt-search" {...searchHint.boxProps}>
+      <SearchHint open={searchHint.open} query={p.searchQuery} onChange={p.onSearch} loading={p.searchOpsLoading} />
       <Icon name="search" size={11} />
       <input type="text" placeholder={t('gvt.search')} value={p.searchQuery} onChange={e => p.onSearch(e.target.value)} />
       {p.searchQuery && p.searchMatches != null && p.searchMatches >= 0 && (

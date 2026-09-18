@@ -237,6 +237,8 @@ declare global {
     syncSubmodule: (path: string) => Promise<R>
     // Extended search & branch comparison
     searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
+    /** The commits that touched any of these paths, folders or patterns — the search field's `file:`. */
+    searchByFile: (paths: string[]) => Promise<{ hashes: string[]; error?: string }>
     /** The full hash a branch, a tag or any revision stands for; null when it names no commit. */
     resolveCommit: (ref: string) => Promise<{ hash: string | null; error?: string }>
     /** What a tag is: the commit it points at, and the annotation of an annotated one. */

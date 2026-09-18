@@ -181,6 +181,11 @@ in the staging area with an `amend` badge (fetched via `getCommitFiles('HEAD')`)
   goes in `JUMPS` **and** on the sheet — `CommitGraph.jump.test.tsx` reads both. A row the
   page does not hold is asked of the host through `onRevealRef`, which resolves the name
   with `resolveCommit` (git-core) and grows the page like the extended search.
+- **The search query is parsed** (#255, `utils/searchQuery.ts`, pure): free text plus operators
+  that narrow (AND). `author:` / `after:` / `before:` are matched by the graph against the rows
+  it holds; `file:` is git's (`git-core::commitsTouching`), asked by `useSearchOperators` and
+  handed to the graph as `requiredHashes` — AND-ed, where `searchHashes` is OR-ed. Build an
+  author query with `authorQuery()`, never by hand: a name with a space has to be quoted.
 - **A chip's card** (#258, `components/RefCard/`): a click on a chip selects its row and, 250 ms
   later, calls `onOpenRef` — the double-click cancels it and switches. The HOST holds which
   card is open (`useRefCard`, closed when the selection leaves the tip) and mounts `RefCard`

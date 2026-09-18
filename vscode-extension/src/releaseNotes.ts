@@ -18,6 +18,9 @@
 export const RELEASE_NOTES: Record<string, string> = {
   'Unreleased': `## What's new in Unreleased
 
+### 🧭 The search field takes operators
+- Beside **author:**, the graph's search now takes **file:** (a path, a folder, a pattern — or a bare word found anywhere in a path), **after:** and **before:** (a day, or a span such as **2w**, **3m**, **1y**). They combine with each other and with the words: \`author:ana file:src/main after:1m cache\`. Under the field, while it has the focus, the operators in force are **chips you can remove one by one**, and the ones there are, a click away.
+
 ### 🪪 A branch chip opens its card
 - **Click a branch or a tag** in the graph: its card opens **over the details panel**. A branch says where it stands against its **upstream** and against the branch it **merges into** — with the verdict that matters, *would it conflict* — carries its issue and its pull request, and offers what fits: publish, pull, push, merge, rebase, compare, switch. A tag says what it points at, who tagged it and what they wrote, and whether the remote has it. **The double-click still switches.**
 

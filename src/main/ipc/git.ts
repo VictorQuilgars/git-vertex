@@ -538,6 +538,10 @@ export function registerGitHandlers(): void {
     if (!state.gitService) return { pushed: null, remote: null }
     return state.gitService.isTagOnRemote(name)
   })
+  handle('git:search-by-file', async (_event, paths: string[]) => {
+    if (!state.gitService) return { hashes: [] }
+    return state.gitService.searchByFile(paths)
+  })
   handle('git:locate-in-history', async (_event, hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => {
     if (!state.gitService) return { positions: {} }
     return state.gitService.locateInHistory(hashes, options)

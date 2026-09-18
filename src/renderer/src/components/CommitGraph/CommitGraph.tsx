@@ -21,6 +21,7 @@ import RefFinder from './RefFinder'
 import GraphShortcuts from './GraphShortcuts'
 import { refFindCandidates, type RefFindKind, type RefFindMatch } from './ref-find'
 import type { RefTarget } from '../RefCard/ref-card-model'
+import { commitMatches, parseSearchQuery, textMatches } from '../../utils/searchQuery'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
 import { COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
@@ -108,6 +109,12 @@ export interface CommitGraphProps {
   // Extra matching hashes from host-side searches (diff "extended search",
   // AI natural-language search) — OR-ed with the local text filter.
   searchHashes?: Set<string> | null
+  /**
+   * What git answered for the query's `file:` operators: a row has to be among
+   * these — AND-ed, where `searchHashes` is OR-ed. Null while there is no such
+   * operator, or while the answer is on its way.
+   */
+  requiredHashes?: ReadonlySet<string> | null
   currentBranch: string
   onCherryPick: (hash: string) => void
   onRevert: (hash: string) => void
@@ -216,7 +223,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   branches, tags, onRevealRef, onOpenRef, openRef = null,
   alwaysShowWip = false,
   onStageAll,
-  commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
+  commits, selectedHash, onSelectCommit, searchQuery, searchHashes, requiredHashes = null, currentBranch,
   
   onCheckoutBranch, 
   compareBaseHash,
@@ -895,29 +902,23 @@ export default function CommitGraph(props: CommitGraphProps) {
   // dims anything (that behavior was removed); lane dimming happens on ref hover.
   const filtered = useMemo(() => {
     const hasHostHashes = searchHashes != null
-    if (searchQuery || hasHostHashes) {
-      const q = searchQuery.toLowerCase()
-      // `author:name` narrows to who wrote the commit and nothing else — what
-      // the contributors list asks for; a bare query still matches anywhere.
-      const authorQ = q.startsWith('author:') ? q.slice(7).trim() : null
-      return new Set(
-        displayLayout
-          .filter(c => c.hash !== WIP_HASH && (
-            // Host-provided matches (diff search, AI search) OR local text match
-            (hasHostHashes && searchHashes!.has(c.hash)) ||
-            (searchQuery !== '' && (
-              authorQ !== null
-                ? c.author.toLowerCase().includes(authorQ)
-                : (c.message.toLowerCase().includes(q) ||
-                   c.author.toLowerCase().includes(q) ||
-                   c.shortHash.includes(q))
-            ))
-          ))
-          .map(c => c.row)
-      )
-    }
-    return null
-  }, [displayLayout, searchQuery, searchHashes])
+    if (!searchQuery && !hasHostHashes) return null
+    // The query, read (utils/searchQuery): free text, and operators that narrow
+    // — `author:`, `after:`, `before:` against the rows held here, `file:`
+    // against what git answered (`requiredHashes`). Every operator has to hold.
+    const parsed = parseSearchQuery(searchQuery)
+    const now = Date.now()
+    return new Set(
+      displayLayout
+        .filter(c => c.hash !== WIP_HASH && commitMatches(parsed, c, {
+          now, required: requiredHashes,
+          // Host-provided matches (diff search, AI search) OR the local text —
+          // and with no query at all, the host's matches alone.
+          textMatch: (hasHostHashes && searchHashes!.has(c.hash)) || (searchQuery !== '' && textMatches(parsed, c)),
+        }))
+        .map(c => c.row)
+    )
+  }, [displayLayout, searchQuery, searchHashes, requiredHashes])
   // The same matches by hash, for the minimap's days.
   const matchHashes = useMemo(() => {
     if (!filtered || !showMinimap) return null

@@ -2445,6 +2445,11 @@ exit 0
     return core.resolveCommit(this.run, ref)
   }
 
+  /** The commits that touched a path or a folder — the search field's `file:`. */
+  async searchByFile(paths: string[]): Promise<{ hashes: string[]; error?: string }> {
+    return core.commitsTouching(this.run, paths)
+  }
+
   /** What a tag is — its commit, and the annotation of an annotated one. */
   async getTagDetails(name: string): Promise<{ tag: core.TagDetails | null; error?: string }> {
     return core.tagDetails(this.run, name)

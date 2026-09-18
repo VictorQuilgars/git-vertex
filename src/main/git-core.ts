@@ -435,6 +435,36 @@ export async function resolveCommit(
   }
 }
 
+/**
+ * The pathspecs a `file:` term becomes. A bare word — no slash, no wildcard —
+ * finds any path that CONTAINS it, as a file's name or as a folder's
+ * (`file:cache` is not a file called `cache`); anything shaped like a path is
+ * taken as one, a folder included. Never case sensitive: nobody remembers
+ * whether it was `README` or `Readme`.
+ */
+export function filePathspecs(value: string): string[] {
+  const v = value.trim().replace(/^\.\//, '')
+  if (!/[\/*?[]/.test(v)) return [`:(icase,glob)**/*${v}*`, `:(icase,glob)**/*${v}*/**`]
+  // `:(glob)` for a pattern; a plain path keeps git's own reading, where a folder matches what is under it.
+  return [/[*?[]/.test(v) ? `:(icase,glob)${v}` : `:(icase)${v}`]
+}
+
+/** The commits that touched any of these paths or folders, on any ref. */
+export async function commitsTouching(
+  run: GitRunner, paths: string[],
+): Promise<{ hashes: string[]; error?: string }> {
+  const wanted = paths.map(p => p.trim()).filter(Boolean)
+  if (wanted.length === 0) return { hashes: [] }
+  // A pathspec comes after `--`, where git reads no option: a leading dash is a file name there.
+  if (wanted.some(p => /[\u0000-\u001f]/.test(p))) return { hashes: [], error: 'Invalid path' }
+  try {
+    const out = await run(['log', '--all', '--format=%H', '--', ...wanted.flatMap(filePathspecs)])
+    return { hashes: out.split('\n').map(l => l.trim()).filter(Boolean) }
+  } catch (e) {
+    return { hashes: [], error: reason(e) }
+  }
+}
+
 /** What a tag is: where it points, and — for an annotated one — who made it, when, and what they wrote. */
 export interface TagDetails {
   name: string

@@ -176,6 +176,8 @@
 
 /* Search */
 .tb-search {
+  /* The operators' panel hangs under it (SearchHint). */
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-sm);

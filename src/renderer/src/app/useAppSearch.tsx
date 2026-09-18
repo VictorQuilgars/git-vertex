@@ -3,6 +3,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { PaletteCommand } from '../components/CommandPalette/CommandPalette'
 import { logOptionsFor } from '../utils/graphVisibility'
 import { planReach, type ReachPlan } from './search-reach'
+import { useSearchOperators } from './useSearchOperators'
 import type { AppChrome } from './useAppChrome'
 import type { RepoSession } from './useRepoSession'
 import type { AppGithub } from './useAppGithub'
@@ -22,6 +23,10 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
   const [extendedSearchLoading, setExtendedSearchLoading] = useState(false)
   const [repoSearch, setRepoSearch] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(false)
+  // The query's operators (#255): `file:` is git's to answer, and the searches
+  // below are given the words of the query, not its operators.
+  const searchOps = useSearchOperators(searchQuery, repoPath)
+  const freeText = searchOps.freeText
   // ── Extended search ────────────────────────────────────────
   // The hits come from the whole history and the graph holds a page of it. A
   // hit beyond the page used to be a row the graph did not have — a search
@@ -32,7 +37,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
   const commitsRef = useRef(commits)
   commitsRef.current = commits
   useEffect(() => {
-    if (!extendedSearch || !searchQuery.trim() || !repoPath) {
+    if (!extendedSearch || !freeText.trim() || !repoPath) {
       setExtendedSearchHashes(new Set())
       return
     }
@@ -40,7 +45,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
     setExtendedSearchLoading(true)
     const timeout = setTimeout(async () => {
       try {
-        const r = await window.gitAPI.searchInDiffs(searchQuery.trim())
+        const r = await window.gitAPI.searchInDiffs(freeText.trim())
         if (stale) return
         const hits = r.hashes ?? []
         setExtendedSearchHashes(new Set(hits))
@@ -63,7 +68,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
       }
     }, 500)
     return () => { stale = true; clearTimeout(timeout) }
-  }, [extendedSearch, searchQuery, repoPath])
+  }, [extendedSearch, freeText, repoPath])
   // ── A reference named from the graph: `/`, `t`, `u` ────────
   // Its tip is selected when the page holds it; when it does not, the page is
   // grown to reach it the way a search hit is reached, up to the same limit —
@@ -111,14 +116,14 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
   // Host-side matches handed to the graph (OR-ed with its local text filter):
   // diff extended-search hits + AI natural-language hits.
   const graphSearchHashes = useMemo(() => {
-    const extActive = extendedSearch && searchQuery.trim() !== ''
+    const extActive = extendedSearch && freeText.trim() !== ''
     if (!extActive && aiSearchHashes == null && notedHashes == null) return null
     const s = new Set<string>()
     if (extActive) extendedSearchHashes.forEach(h => s.add(h))
     if (aiSearchHashes) aiSearchHashes.forEach(h => s.add(h))
     if (notedHashes) notedHashes.forEach(h => s.add(h))
     return s
-  }, [extendedSearch, searchQuery, extendedSearchHashes, aiSearchHashes, notedHashes])
+  }, [extendedSearch, freeText, extendedSearchHashes, aiSearchHashes, notedHashes])
   // ── Command palette commands ───────────────────────────────
   const buildPaletteCommands = (): PaletteCommand[] => {
     const cmds: PaletteCommand[] = [
@@ -171,6 +176,7 @@ export function useAppSearch(app: AppChrome & RepoSession & AppGithub & AppConfl
 
   return {
     searchQuery, setSearchQuery, searchMatches, setSearchMatches, extendedSearch, setExtendedSearch, extendedSearchHashes, setExtendedSearchHashes, extendedSearchLoading, setExtendedSearchLoading, repoSearch, setRepoSearch, paletteOpen, setPaletteOpen, runAiSearch, graphSearchHashes, buildPaletteCommands, revealRef,
+    requiredSearchHashes: searchOps.requiredHashes, searchOpsLoading: searchOps.loading,
   }
 }
 

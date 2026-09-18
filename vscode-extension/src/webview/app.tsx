@@ -25,6 +25,8 @@ import CommitGraph from '../../../src/renderer/src/components/CommitGraph/Commit
 import RightPanel from '../../../src/renderer/src/components/RightPanel/RightPanel'
 import RefCard from '../../../src/renderer/src/components/RefCard/RefCard'
 import { useRefCard } from '../../../src/renderer/src/components/RefCard/useRefCard'
+import { useSearchOperators } from '../../../src/renderer/src/app/useSearchOperators'
+import { authorOfQuery, authorQuery } from '../../../src/renderer/src/utils/searchQuery'
 import type { ConflictKind } from '../../../src/renderer/src/types'
 import Sidebar, { SidebarView, type GithubListItem } from '../../../src/renderer/src/components/Sidebar/Sidebar'
 import IssueDetail from '../../../src/renderer/src/components/IssueDetail/IssueDetail'
@@ -141,6 +143,8 @@ function VertexApp() {
   const [conflictKinds, setConflictKinds] = useState<Record<string, ConflictKind>>({})
   const [conflictMode, setConflictMode] = useState<'merge' | 'rebase' | 'cherry-pick' | 'revert' | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  // `file:` is git's to answer; the rest of the query is matched by the graph.
+  const searchOps = useSearchOperators(searchQuery, repoName || null)
   const [searchMatches, setSearchMatches] = useState(-1)
   const [rightW, setRightW] = useState(380)
   const [showAllBranches, setShowAllBranches] = useState(true)
@@ -1359,8 +1363,8 @@ function VertexApp() {
             onPushTag={handlePushTag}
             onDeleteRemoteTag={handleDeleteRemoteTag}
             onSelectCommit={handleSelectCommitByHash}
-            onFilterAuthor={(author) => setSearchQuery(author ? `author:${author}` : '')}
-            authorFilter={searchQuery.startsWith('author:') ? searchQuery.slice(7) : null}
+            onFilterAuthor={(author) => setSearchQuery(authorQuery(author))}
+            authorFilter={authorOfQuery(searchQuery)}
             home={emptyState}
             mergeTarget={mergeTarget}
             launchpad={launchpad}
@@ -1449,6 +1453,7 @@ function VertexApp() {
             selectedHash={selectedCommit?.hash ?? null}
             onSelectCommit={c => setSelectedCommit(prev => prev?.hash === c.hash ? null : c)}
             searchQuery={searchQuery}
+            requiredHashes={searchOps.requiredHashes}
             currentBranch={currentBranch}
             onCherryPick={handleCherryPick}
             onRevert={handleRevert}
@@ -1615,6 +1620,7 @@ function VertexApp() {
         stashCount={stashCount}
         searchQuery={searchQuery}
         searchMatches={searchMatches}
+        searchOpsLoading={searchOps.loading}
         lastFetch={lastFetch}
         ahead={tracking.ahead}
         behind={tracking.behind}

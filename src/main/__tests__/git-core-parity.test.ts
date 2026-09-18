@@ -52,6 +52,7 @@ const SHARED: Record<string, string> = {
   getBranches: 'branchRows',
   getContributors: 'contributors',
   resolveCommit: 'resolveCommit',
+  searchByFile: 'commitsTouching',
   getTagDetails: 'tagDetails',
   isTagOnRemote: 'tagOnRemote',
 }

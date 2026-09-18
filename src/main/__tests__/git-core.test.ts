@@ -300,6 +300,23 @@ describe('git-core — against a real repository, on both hosts', () => {
     expect(refused.error).toBeTruthy()
   })
 
+  test('commitsTouching answers file: — a path, a folder, a bare word, a pattern', async () => {
+    fs.mkdirSync(path.join(repo, 'src/Cache'), { recursive: true })
+    write('src/Cache/keys.ts', 'k\n')
+    run('git add -A && git commit -m third')
+    const third = run('git rev-parse HEAD').trim()
+    const touching = (...paths: string[]) => onBothHosts(repo, r => core.commitsTouching(r, paths)).then(r => r.hashes)
+    expect(await touching('a.txt')).toEqual([second, first])
+    expect(await touching('src')).toEqual([third])              // a folder is what is under it
+    expect(await touching('cache')).toEqual([third])            // a bare word: any path containing it, any case
+    expect(await touching('*.ts')).toEqual([])                  // a pattern is anchored where it says…
+    expect(await touching('**/*.ts')).toEqual([third])          // …and `**` is how it reaches down
+    expect(await touching('b.txt', 'keys')).toEqual([third, second])   // several: any of them
+    expect(await touching('nowhere')).toEqual([])
+    expect(await touching()).toEqual([])
+    expect(core.filePathspecs('./src/main')).toEqual([':(icase)src/main'])
+  })
+
   test('tagDetails reads a lightweight tag and an annotated one apart', async () => {
     run(`git tag light ${first}`)
     run(`git -c user.name="Grace" -c user.email=grace@test.com tag -a v1 -m "First release" -m "With a second paragraph." ${first}`)
