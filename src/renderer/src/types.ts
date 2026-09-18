@@ -51,6 +51,8 @@ export interface BranchInfo {
   ahead?: number; behind?: number; gone?: boolean  // tracking vs upstream (local branches)
   /** When the tip was committed, seconds since the epoch — what "recent" is measured on. */
   date?: number
+  /** The branch a local one tracks, as the graph decorates it: `origin/main`. */
+  upstream?: string
 }
 
 // The unmerged states git reports in the XY columns of `git status --porcelain`.
@@ -235,6 +237,8 @@ declare global {
     syncSubmodule: (path: string) => Promise<R>
     // Extended search & branch comparison
     searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
+    /** The full hash a branch, a tag or any revision stands for; null when it names no commit. */
+    resolveCommit: (ref: string) => Promise<{ hash: string | null; error?: string }>
     /** The 1-based row of each hash in the log the graph loads (same refs, same order); absent when no shown ref reaches it. */
     locateInHistory: (hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => Promise<{ positions: Record<string, number> }>
     compareBranches: (current: string, other: string) => Promise<{ ahead: { hash: string; shortHash: string; message: string }[]; behind: { hash: string; shortHash: string; message: string }[] }>

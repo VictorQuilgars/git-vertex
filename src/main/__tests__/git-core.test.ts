@@ -287,6 +287,19 @@ describe('git-core — against a real repository, on both hosts', () => {
     expect(none.base).toBeNull()
   })
 
+  test('resolveCommit names the commit behind a branch, a tag, a short SHA — and nothing else', async () => {
+    run('git tag -a v1 -m "annotated" ' + first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'main'))).hash).toBe(second)
+    // An annotated tag is its own object: the COMMIT it points at is what is asked for.
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'v1'))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, first.slice(0, 8)))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'HEAD~1'))).hash).toBe(first)
+    expect((await onBothHosts(repo, r => core.resolveCommit(r, 'no-such-branch'))).hash).toBeNull()
+    const refused = await onBothHosts(repo, r => core.resolveCommit(r, '--all'))
+    expect(refused.hash).toBeNull()
+    expect(refused.error).toBeTruthy()
+  })
+
   test('workingFileDiff reads the working tree and the index apart', async () => {
     write('a.txt', 'one\nTWO\nTHREE\n')
     const unstaged = await onBothHosts(repo, r => core.workingFileDiff(r, 'a.txt', false))
@@ -379,8 +392,21 @@ describe('git-core — against a real repository, on both hosts', () => {
 // Pure parsing, so no repository: what matters here is the shapes git can
 // hand back, several of which broke the porcelain parse this replaced.
 describe('parseBranchRows', () => {
-  const line = (head: string, refname: string, commit: string, track: string, subject: string, date = '1758153600') =>
-    [head, refname, commit, track, date, subject].join('|')
+  const line = (head: string, refname: string, commit: string, track: string, subject: string, date = '1758153600', upstream = '') =>
+    [head, refname, commit, track, date, upstream, subject].join('|')
+
+  test('a local branch names what it tracks — gone or not — and a remote one tracks nothing', () => {
+    const rows = core.parseBranchRows([
+      line(' ', 'refs/heads/a', 'aaa', '[ahead 1]', 's', '1758153600', 'origin/a'),
+      line(' ', 'refs/heads/b', 'bbb', '[gone]', 's', '1758153600', 'origin/b'),
+      line(' ', 'refs/heads/c', 'ccc', '', 's'),
+      line(' ', 'refs/remotes/origin/a', 'aaa', '', 's', '1758153600', 'origin/nonsense'),
+    ].join('\n'))
+    expect(rows.map(r => r.upstream)).toEqual(['origin/a', 'origin/b', undefined, undefined])
+    // A subject holding the separator still comes back whole, past the new field.
+    const [piped] = core.parseBranchRows(line('*', 'refs/heads/main', 'aaa', '', 'fix: a|b', '1758153600', 'origin/main'))
+    expect(piped).toMatchObject({ upstream: 'origin/main', label: 'fix: a|b' })
+  })
 
   test('the tip\'s date rides along, and an unreadable one is simply absent', () => {
     const [dated] = core.parseBranchRows(line(' ', 'refs/heads/a', 'aaa', '', 's', '1758153600'))

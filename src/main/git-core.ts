@@ -84,6 +84,8 @@ export interface BranchRow {
   detached?: boolean
   /** When the tip was committed, as git counts it (seconds since the epoch). */
   date?: number
+  /** The branch a local one tracks, as `%D` decorates it: `origin/main`. */
+  upstream?: string
 }
 
 /**
@@ -99,9 +101,10 @@ export interface BranchRow {
  *
  * `%(contents:subject)` is LAST on purpose: a commit subject may contain the
  * separator and nothing else here can, so everything past the fourth `|`
- * belongs to it.
+ * belongs to it. (`%(upstream:short)` is a ref name, and `|` is not allowed in
+ * one: check-ref-format refuses it, so the sixth field cannot hold the separator.)
  */
-export const BRANCH_FORMAT = '%(HEAD)|%(refname)|%(objectname:short)|%(upstream:track)|%(committerdate:unix)|%(contents:subject)'
+export const BRANCH_FORMAT = '%(HEAD)|%(refname)|%(objectname:short)|%(upstream:track)|%(committerdate:unix)|%(upstream:short)|%(contents:subject)'
 
 export function branchArgs(): string[] {
   return ['for-each-ref', 'refs/heads', 'refs/remotes', `--format=${BRANCH_FORMAT}`]
@@ -122,9 +125,9 @@ export function parseBranchRows(raw: string): BranchRow[] {
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue
     const parts = line.split('|')
-    if (parts.length < 6) continue
-    const [head, refname, commit, track, date] = parts
-    const subject = parts.slice(5).join('|')
+    if (parts.length < 7) continue
+    const [head, refname, commit, track, date, upstream] = parts
+    const subject = parts.slice(6).join('|')
     const remote = refname.startsWith('refs/remotes/')
     // `remotes/origin/main` and `main` — the names the UI has always used,
     // which are what `git branch -a` printed and what every caller compares
@@ -145,6 +148,8 @@ export function parseBranchRows(raw: string): BranchRow[] {
     if (t) Object.assign(row, t)
     const when = parseInt(date, 10)
     if (Number.isFinite(when) && when > 0) row.date = when
+    // Named even when it is gone: "tracks origin/x, which no longer exists" is a fact worth showing.
+    if (!remote && upstream.trim()) row.upstream = upstream.trim()
     rows.push(row)
   }
   return rows
@@ -406,6 +411,27 @@ export async function mergeBase(
   } catch {
     // Unrelated histories: git fails loudly and there is no base to name.
     return { base: null }
+  }
+}
+
+/**
+ * The commit a name stands for — a branch, a tag, a SHA, `HEAD~2`, anything
+ * rev-parse takes — as a full hash, or null when it names no commit.
+ *
+ * The graph reaches a reference beyond its page by position (locateInHistory),
+ * and a position is looked up by hash: a branch row only carries the short one.
+ */
+export async function resolveCommit(
+  run: GitRunner, ref: string,
+): Promise<{ hash: string | null; error?: string }> {
+  const bad = assertRef(ref)
+  if (bad) return { hash: null, error: bad }
+  try {
+    const out = (await run(['rev-parse', '--verify', '--quiet', `${ref.trim()}^{commit}`])).trim()
+    return { hash: /^[0-9a-f]{40,64}$/.test(out) ? out : null }
+  } catch {
+    // `--quiet` makes an unknown name a silent failure: it is not a commit.
+    return { hash: null }
   }
 }
 

@@ -2440,6 +2440,11 @@ exit 0
     return core.contributors(this.run, { limit })
   }
 
+  /** The full hash a branch, a tag or any revision stands for — null when it names no commit. */
+  async resolveCommit(ref: string): Promise<{ hash: string | null; error?: string }> {
+    return core.resolveCommit(this.run, ref)
+  }
+
   async getReflog(): Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }> {
     try {
       const result = await this.git.raw([

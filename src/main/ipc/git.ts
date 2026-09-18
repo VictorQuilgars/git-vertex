@@ -526,6 +526,10 @@ export function registerGitHandlers(): void {
     if (!state.gitService) return { hashes: [] }
     return state.gitService.searchInDiffs(query)
   })
+  handle('git:resolve-commit', async (_event, ref: string) => {
+    if (!state.gitService) return { hash: null }
+    return state.gitService.resolveCommit(ref)
+  })
   handle('git:locate-in-history', async (_event, hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => {
     if (!state.gitService) return { positions: {} }
     return state.gitService.locateInHistory(hashes, options)
