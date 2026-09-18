@@ -49,6 +49,8 @@ export interface BranchInfo {
   // a human label such as `rebasing feature`, never a checkout-able ref.
   detached?: boolean
   ahead?: number; behind?: number; gone?: boolean  // tracking vs upstream (local branches)
+  /** When the tip was committed, seconds since the epoch — what "recent" is measured on. */
+  date?: number
 }
 
 // The unmerged states git reports in the XY columns of `git status --porcelain`.
@@ -262,6 +264,8 @@ declare global {
     redoLastAction: () => Promise<R & { action?: string }>
     // Reflog
     getReflog: () => Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }>
+    // Contributors
+    getContributors: (limit?: number) => Promise<{ contributors: { name: string; email: string; commits: number }[] }>
     // File History
     getFileHistory: (filepath: string) => Promise<{ commits: { hash: string; shortHash: string; message: string; author: string; date: string }[] }>
     // Remotes

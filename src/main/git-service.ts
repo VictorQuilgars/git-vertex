@@ -2435,6 +2435,11 @@ exit 0
 
   // ── Reflog ─────────────────────────────────────────────────
 
+  // ── Contributors ───────────────────────────────────────────
+  async getContributors(limit?: number): Promise<{ contributors: core.Contributor[] }> {
+    return core.contributors(this.run, { limit })
+  }
+
   async getReflog(): Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }> {
     try {
       const result = await this.git.raw([

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon, type IconName } from '../Icon/Icon'
 import './ContextMenu.css'
@@ -40,19 +40,42 @@ interface ContextMenuProps {
   y: number
   items: MenuItemDef[]
   onClose: () => void
+  /**
+   * The control that opened the menu, when it is a button that toggles it: a
+   * press on it is its own business — closing here would have its click open
+   * the menu again at once.
+   */
+  anchor?: Element | null
 }
+
+// How many menus are up. While any is, the window's drag regions are not:
+// on the desktop the toolbar and the tab strip move the window, and a press
+// on their background goes to the system — the page never hears it, and the
+// menu stayed open. `menu-open` on <html> turns them off (ContextMenu.css).
+let openMenus = 0
 
 const OPEN_DELAY = 200   // hover dwell before a submenu opens
 const CLOSE_DELAY = 220  // grace period to move the cursor into the submenu
 
-export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
+export default function ContextMenu({ x, y, items, onClose, anchor }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
   const subRef = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>()
-  const [sub, setSub] = useState<{ i: number; x: number; y: number } | null>(null)
+  // `x` is where the submenu opens, right of its row; `back` where it opens
+  // instead, left of it, when the right side has no room.
+  const [sub, setSub] = useState<{ i: number; x: number; y: number; back: number } | null>(null)
   // Set when a submenu was opened from the keyboard: its first row takes the
   // focus once it has rendered, which a hover-opened one must never do.
   const focusSubOnOpen = useRef(false)
+
+  useEffect(() => {
+    openMenus++
+    document.documentElement.classList.add('menu-open')
+    return () => {
+      openMenus = Math.max(0, openMenus - 1)
+      if (openMenus === 0) document.documentElement.classList.remove('menu-open')
+    }
+  }, [])
 
   // The menu takes the focus while it is up, and gives it back on close. That
   // is what stops the graph's own arrow keys from moving the selection under
@@ -70,12 +93,29 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
     }
   }, [sub])
 
+  // A press anywhere else closes the menu. On `pointerdown`, in the capture
+  // phase: a control that cancels its pointerdown — a splitter does, to keep
+  // the drag from selecting text — suppresses the `mousedown` that follows,
+  // and one that stops propagation keeps it from the document, so a press on
+  // the gap under the minimap left its menu open. `mousedown` still counts,
+  // once per press, for what dispatches no pointer events.
+  const pressSeen = useRef(false)
   useEffect(() => {
-    const onMouseDown = (e: MouseEvent) => {
-      const t = e.target as Node
-      if (ref.current?.contains(t) || subRef.current?.contains(t)) return
-      onClose()
+    const outside = (t: Node) =>
+      !(ref.current?.contains(t) || subRef.current?.contains(t) || anchor?.contains(t))
+    const onPointerDown = (e: PointerEvent) => {
+      pressSeen.current = true
+      setTimeout(() => { pressSeen.current = false }, 0)
+      if (outside(e.target as Node)) onClose()
     }
+    const onMouseDown = (e: MouseEvent) => {
+      if (pressSeen.current) return
+      if (outside(e.target as Node)) onClose()
+    }
+    // The window losing the focus is a press elsewhere too — another app on
+    // the desktop, the editor around the panel in VS Code, which the webview
+    // never hears a click from.
+    const onBlur = () => onClose()
     // The keyboard model of a menu: arrows walk the enabled rows of whichever
     // menu is open (the submenu while it is), Right opens a row's submenu on
     // its first entry, Left closes it and returns to the row, Enter and Space
@@ -102,7 +142,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
           clearTimeout(timer.current)
           const r = rows[current].getBoundingClientRect()
           focusSubOnOpen.current = true
-          setSub({ i, x: r.right - 3, y: r.top - 4 })
+          setSub({ i, x: r.right - 3, y: r.top - 4, back: r.left + 3 })
           break
         }
         case 'ArrowLeft': {
@@ -115,18 +155,26 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
         }
       }
     }
+    document.addEventListener('pointerdown', onPointerDown, true)
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('keydown', onKeyDown)
+    window.addEventListener('blur', onBlur)
     return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
       document.removeEventListener('mousedown', onMouseDown)
       document.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('blur', onBlur)
     }
-  }, [onClose, sub, items])
+  }, [onClose, sub, items, anchor])
 
   // Clamp to viewport — keep the menu fully on-screen even in a short panel.
-  useEffect(() => {
+  // Measured by its layout size, not its box: the menu opens with a scale-in
+  // animation, and a box read on the first frame is 4% short — a menu opened
+  // against the right edge was clamped to the smaller menu and overran by a
+  // few pixels, its border cut off. Before paint, so it never flashes there.
+  useLayoutEffect(() => {
     if (!ref.current) return
-    const rect = ref.current.getBoundingClientRect()
+    const rect = { width: ref.current.offsetWidth, height: ref.current.offsetHeight }
     const vw = window.innerWidth, vh = window.innerHeight, M = 4
     let left = x
     if (x + rect.width > vw) left = vw - rect.width - M
@@ -138,11 +186,29 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
     ref.current.style.top = `${top}px`
   }, [x, y])
 
+  // The submenu stays on screen too. It opens right of its row; a menu near
+  // the window's right edge — the minimap's options, a panel's toolbar — had
+  // its submenu drawn past the edge, where nobody could see it or reach it.
+  // With no room on the right it opens on the left, and it is lifted when it
+  // would run past the bottom. Before paint, so it never flashes off-screen.
+  useLayoutEffect(() => {
+    const el = subRef.current
+    if (!sub || !el) return
+    const rect = { width: el.offsetWidth, height: el.offsetHeight }   // layout size, not the animated box
+    const vw = window.innerWidth, vh = window.innerHeight, M = 4
+    let left = sub.x
+    if (left + rect.width > vw - M) left = Math.max(M, sub.back - rect.width)
+    let top = sub.y
+    if (top + rect.height > vh - M) top = Math.max(M, vh - rect.height - M)
+    el.style.left = `${left}px`
+    el.style.top = `${top}px`
+  }, [sub])
+
   const openSub = (i: number, el: HTMLElement) => {
     clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       const r = el.getBoundingClientRect()
-      setSub({ i, x: r.right - 3, y: r.top - 4 })
+      setSub({ i, x: r.right - 3, y: r.top - 4, back: r.left + 3 })
     }, OPEN_DELAY)
   }
   const closeSubSoon = () => {

@@ -26,6 +26,20 @@ const listeners: Record<string, Array<() => void>> = {
 // post here identifying which action was picked — see commitMenuActionListeners below.
 type MenuActionCb = (action: string, hash: string) => void
 let menuActionListeners: MenuActionCb[] = []
+// A commit the host wants shown — a terminal link, a blame hover, the Show
+// Commit in Graph command. Named by whatever the user clicked: a SHA, a
+// branch, a tag; the app resolves it.
+type RevealCb = (ref: string, quiet?: boolean) => void
+let revealListeners: RevealCb[] = []
+// The panel's own settings page, asked for from outside; and the cursor
+// following switch, flipped from the palette.
+type VoidCb = () => void
+let openSettingsListeners: VoidCb[] = []
+type FollowCb = (on: boolean) => void
+let followListeners: FollowCb[] = []
+// The file a following history tab should show now — the editor moved.
+type HistoryFileCb = (file: string) => void
+let historyFileListeners: HistoryFileCb[] = []
 
 window.addEventListener('message', (e: MessageEvent) => {
   const msg = e.data
@@ -48,8 +62,35 @@ window.addEventListener('message', (e: MessageEvent) => {
 
   if (msg.type === 'menuAction') {
     menuActionListeners.slice().forEach(cb => { try { cb(msg.action, msg.hash) } catch { /* ignore */ } })
+    return
+  }
+
+  if (msg.type === 'revealCommit') {
+    revealListeners.slice().forEach(cb => { try { cb(msg.ref, !!msg.quiet) } catch { /* ignore */ } })
+    return
+  }
+
+  if (msg.type === 'openSettings') {
+    openSettingsListeners.slice().forEach(cb => { try { cb() } catch { /* ignore */ } })
+    return
+  }
+
+  if (msg.type === 'followCursor') {
+    followListeners.slice().forEach(cb => { try { cb(!!msg.on) } catch { /* ignore */ } })
+    return
+  }
+
+  if (msg.type === 'historyFile') {
+    historyFileListeners.slice().forEach(cb => { try { cb(msg.file) } catch { /* ignore */ } })
   }
 })
+
+// Which webview the user is in. The native commit menu (contributes.menus
+// webview/context) answers through the host, and the host can only relay
+// to one webview — the one whose row was right-clicked, which is the one
+// the pointer went down in last. A press, not a focus event: the webview's
+// focus does not move for a right-click.
+window.addEventListener('pointerdown', () => { vscode.postMessage({ type: 'gvActive' }) }, true)
 
 function call(method: string, args: any[]): Promise<any> {
   const id = nextId++
@@ -83,6 +124,14 @@ const overrides: Record<string, (...a: any[]) => any> = {
   },
   onMenuAction: (cb: MenuActionCb) => { menuActionListeners.push(cb) },
   offMenuAction: (cb: MenuActionCb) => { menuActionListeners = menuActionListeners.filter(f => f !== cb) },
+  onRevealCommit: (cb: RevealCb) => { revealListeners.push(cb) },
+  offRevealCommit: (cb: RevealCb) => { revealListeners = revealListeners.filter(f => f !== cb) },
+  onOpenSettings: (cb: VoidCb) => { openSettingsListeners.push(cb) },
+  offOpenSettings: (cb: VoidCb) => { openSettingsListeners = openSettingsListeners.filter(f => f !== cb) },
+  onFollowCursor: (cb: FollowCb) => { followListeners.push(cb) },
+  offFollowCursor: (cb: FollowCb) => { followListeners = followListeners.filter(f => f !== cb) },
+  onHistoryFile: (cb: HistoryFileCb) => { historyFileListeners.push(cb) },
+  offHistoryFile: (cb: HistoryFileCb) => { historyFileListeners = historyFileListeners.filter(f => f !== cb) },
 }
 
 // Proxy: any unknown property becomes an async host call; on*/off* event-style

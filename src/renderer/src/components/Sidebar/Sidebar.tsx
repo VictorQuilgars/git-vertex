@@ -19,6 +19,8 @@ import { RemotesSection } from './sections/RemotesSection'
 import { SubmodulesSection } from './sections/SubmodulesSection'
 import { WorktreesSection } from './sections/WorktreesSection'
 import { ReflogSection } from './sections/ReflogSection'
+import { ContributorsSection } from './sections/ContributorsSection'
+import { OverviewSection } from './sections/OverviewSection'
 import { PrsSection } from './sections/PrsSection'
 import { IssuesSection } from './sections/IssuesSection'
 import './Sidebar.css'
@@ -28,7 +30,7 @@ export type { SidebarView, GithubListItem } from './types'
 
 export default function Sidebar(props: SidebarProps) {
   const s = useSidebar(props)
-  const { repoPath, currentBranch, branches, recentRepos, stashes, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, agents, work, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches } = s
+  const { repoPath, recentRepos, stashes, wipCount, wipSelected, onViewWip, onOpenRepo, onClone, onSetRepo, onApplyStash, onPopStash, onDropStash, onPreviewStash, onExplainStash, onTab, githubPRs, githubIssues, githubRepo, view, single, showAI, show, submodules, t, stashMenu, setStashMenu, ghFilters, filterEditor, setFilterEditor, mutateFilters, stashScopeItems, handleRenameStash, branchFilter, setBranchFilter, stashesHidden, familyMenu, rootRef, filterDraft, setFilterDraft, showAll, remoteBranches } = s
   return (
     <div className="sidebar" ref={rootRef}>
       {/* One drawer, given which section opened it — the two vocabularies are
@@ -126,38 +128,10 @@ export default function Sidebar(props: SidebarProps) {
             </>
           )}
 
-          {/* OVERVIEW "current work" card (single-view only) */}
-          {view === 'overview' && (() => {
-            const cur = branches.find(b => b.current)
-            const ahead = cur?.ahead ?? 0
-            const behind = cur?.behind ?? 0
-            const hasStats = ahead > 0 || behind > 0 || work.staged > 0 || work.changed > 0
-            return (
-              <div className="sb-overview">
-                <div className="sb-ov-label">{t('sb.currentWork')}</div>
-                <div className="sb-ov-card">
-                  <div className="sb-ov-branch">
-                    <Icon name="branch" size={14} />
-                    <span className="sb-ov-branch-name">{currentBranch}</span>
-                    {agents.length > 0 && (
-                      <span className="sb-ov-agents" title={t('sb.agentsActive', agents.length)}>
-                        <span className="sb-agent-dot" />{agents.length}
-                      </span>
-                    )}
-                  </div>
-                  {hasStats && (
-                    <div className="sb-ov-stats">
-                      {ahead > 0 && <span className="sb-track-ahead" title={t('sb.branch.trackTitle', ahead, behind)}>↑{ahead}</span>}
-                      {behind > 0 && <span className="sb-track-behind" title={t('sb.branch.trackTitle', ahead, behind)}>↓{behind}</span>}
-                      {work.staged > 0 && <span className="sb-ov-staged" title={t('sb.staged')}>+{work.staged}</span>}
-                      {work.changed > 0 && <span className="sb-ov-changed" title={t('sb.changed')}>✎{work.changed}</span>}
-                    </div>
-                  )}
-                  {!hasStats && <div className="sb-ov-clean">{t('sb.clean')}</div>}
-                </div>
-              </div>
-            )
-          })()}
+          {/* OVERVIEW — the home: the current branch and what to do with it,
+              the recent branches, what waits on the user, what to start
+              (single-view only). */}
+          {view === 'overview' && <OverviewSection s={s} />}
 
           {/* AGENTS — inside the AI view in the panel, which is where "what
               the model is doing here" belongs. The desktop's AI stack does not
@@ -194,6 +168,13 @@ export default function Sidebar(props: SidebarProps) {
           {/* WORKTREES */}
           {show('worktrees') && (
           <WorktreesSection s={s} />
+          )}
+
+          {/* CONTRIBUTORS — who works here; a row filters the graph to them.
+              Only where the host can filter (the section returns nothing
+              otherwise), collapsed like the reflog under it. */}
+          {show('overview') && (
+          <ContributorsSection s={s} />
           )}
 
           {/* REFLOG — recovery/history tool, kept collapsed at the bottom of

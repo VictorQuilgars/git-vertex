@@ -47,6 +47,9 @@ interface ToolbarProps {
   onStash?: () => void
   onPop?: () => void
   onTerminal?: () => void
+  /** The activity strip above the panes — shown, and the switch for it. */
+  minimapShown?: boolean
+  onToggleMinimap?: () => void
   stashCount?: number
   onRefresh: () => void
   loading: boolean
@@ -78,16 +81,19 @@ const branchLabel = (b: BranchInfo): string =>
   b.remote ? b.name.replace(/^remotes\//, '') : b.name
 
 // Toolbar cell: label on top, icon below.
-function TBtn({ icon, label, onClick, disabled, title, accent }: {
+function TBtn({ icon, label, onClick, disabled, title, accent, active }: {
   icon: React.ReactNode; label: string; onClick: () => void
   disabled?: boolean; title?: string; accent?: string
+  /** A switch rather than an action: drawn pressed while on. */
+  active?: boolean
 }) {
   return (
     <button
-      className={`tb-cell ${accent ? `tb-accent-${accent}` : ''}`}
+      className={`tb-cell ${accent ? `tb-accent-${accent}` : ''}${active ? ' tb-cell--active' : ''}`}
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-pressed={active}
     >
       <span className="tb-cell-label">{label}</span>
       <span className="tb-cell-icon">{icon}</span>
@@ -100,7 +106,7 @@ export default function Toolbar({
   repoName, recentRepos = [], onOpenRepo, onClone, onSetRepo, onRemoveRecent,
   branches = [], onGoTo,
   onUndo, onRedo, onFetch, onPush, onPull, pullMode, onSetPullMode, onCreateBranch,
-  onStash, onPop, onTerminal, stashCount = 0,
+  onStash, onPop, onTerminal, stashCount = 0, minimapShown = false, onToggleMinimap,
   loading,
   extendedSearch, extendedSearchLoading, onToggleExtendedSearch,
   aiSearch, aiSearchLoading, onToggleAiSearch, onAiSearchSubmit,
@@ -396,6 +402,12 @@ export default function Toolbar({
         <TBtn label="Terminal" title={t('toolbar.terminal.tooltip')} disabled={!repoPath} onClick={() => onTerminal?.()}
           icon={<Icon name="terminal" size={18} />}
         />
+        {onToggleMinimap && (
+          <TBtn label={t('graph.menu.minimap')} title={t(minimapShown ? 'minimap.hide' : 'minimap.show')}
+            active={minimapShown} onClick={onToggleMinimap}
+            icon={<Icon name="activity" size={18} />}
+          />
+        )}
         </>}
         {compact && (
           <details className="tb-more" ref={moreRef} onKeyDown={e => {
@@ -415,6 +427,7 @@ export default function Toolbar({
                 { label: 'Pop', title: t('toolbar.pop.tooltip'), action: onPop, disabled: disabled || stashCount === 0 },
                 { label: 'Gitflow', title: t('toolbar.gitflow.tooltip'), action: onGitflow, disabled },
                 { label: 'Terminal', title: t('toolbar.terminal.tooltip'), action: onTerminal, disabled: !repoPath },
+                { label: t(minimapShown ? 'minimap.hide' : 'minimap.show'), title: t(minimapShown ? 'minimap.hide' : 'minimap.show'), action: onToggleMinimap, disabled: false },
               ].filter(item => item.action).map(item => (
                 <button key={item.label} title={item.title} disabled={item.disabled} onClick={() => {
                   if (moreRef.current) moreRef.current.open = false

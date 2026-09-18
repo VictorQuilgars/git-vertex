@@ -29,11 +29,17 @@ knowing on macOS, whose bundled git is still 2.39.
 - **New branch, Stash, Pop stash, Undo** — common operations always visible
 - **Open in Git Vertex Desktop** — hand off to the full desktop app
 
-### Panel integration
-Git Vertex lives in the **bottom panel** (alongside Terminal, Output, Debug Console).
+### Where it lives
+Git Vertex opens in the **bottom panel** (alongside Terminal, Output, Debug Console)
+and can live in the **side bar** instead — the primary or the secondary one. Drag the
+view to the activity bar, or run **Git Vertex: Move to Side Bar** / **Move to Panel**
+from the view's title menu. The panel adapts to the space it is given: wide and short
+in the bottom panel, narrow and tall in a side bar, where the rail stays, the views it
+opens float over the graph, and the details sit under it.
+
 Open it via:
 - `Ctrl/Cmd + Shift + P` → **Git Vertex: Show Graph**
-- Or click the **GIT VERTEX** tab in the panel
+- Or click the **GIT VERTEX** tab in the panel, or its icon in the activity bar
 
 ## Requirements
 

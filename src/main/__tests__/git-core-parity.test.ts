@@ -50,6 +50,7 @@ const SHARED: Record<string, string> = {
   getBlame: 'blame',
   searchInDiffs: 'searchInDiffs',
   getBranches: 'branchRows',
+  getContributors: 'contributors',
 }
 
 describe('the shared git core is what both products run', () => {

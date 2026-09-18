@@ -63,17 +63,21 @@ const ITEMS: RailItem[] = [
 
 const KANBAN_ICON = <Icon name="panel" />
 
-// One icon slot = 34px button + 2px flex gap.
+// One icon slot = the button + 2px of flex gap: 34px buttons on the wide
+// rail, 30px on the narrow one a side-bar column gets.
 const STRIDE = 36
+const STRIDE_COMPACT = 32
 // Rail chrome that is never part of the scrollable icon column:
-// 12px vertical padding + the pinned kanban button (34) + breathing room.
-const RESERVED = 12 + STRIDE + 6
+// 12px vertical padding + the pinned kanban button + breathing room.
+const reserved = (stride: number) => 12 + stride + 6
 
 export default function ActivityRail({
-  active, onSelect,
+  active, onSelect, compact,
 }: {
   active: SidebarView | null
   onSelect: (v: SidebarView) => void
+  /** The 36px rail of a narrow panel: smaller buttons, same icons. */
+  compact?: boolean
 }) {
   const { t } = useLang()
   const label = (key: TranslationKey, fallback: string) => {
@@ -90,9 +94,10 @@ export default function ActivityRail({
   useEffect(() => {
     const el = railRef.current
     if (!el) return
+    const stride = compact ? STRIDE_COMPACT : STRIDE
     const compute = () => {
-      const forIcons = el.clientHeight - RESERVED
-      let n = Math.floor(forIcons / STRIDE)
+      const forIcons = el.clientHeight - reserved(stride)
+      let n = Math.floor(forIcons / stride)
       if (n < ITEMS.length) n = Math.max(0, n - 1) // reserve a slot for the "…" button
       setVisible(Math.min(ITEMS.length, Math.max(0, n)))
     }
@@ -100,7 +105,7 @@ export default function ActivityRail({
     const ro = new ResizeObserver(compute)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [compact])
 
   const shown = ITEMS.slice(0, visible)
   const hidden = ITEMS.slice(visible)
@@ -112,7 +117,7 @@ export default function ActivityRail({
   }
 
   return (
-    <div className="gv-rail" ref={railRef}>
+    <div className={`gv-rail${compact ? ' gv-rail--compact' : ''}`} ref={railRef}>
       {shown.map(item => (
         <button
           key={item.view}

@@ -29,6 +29,10 @@
 /* The desktop App.css sets `.app { height: 100vh }`. In the panel webview the
    available height is the viewport, so 100vh works, but force overflow hidden. */
 .gv-app.app { overflow: hidden; }
+/* A short panel is flush whatever the layout setting says: the cards' gap is
+   sixteen pixels of a two-hundred-pixel panel, and the staging pane has a
+   better use for them. The same three values the flush layout carries. */
+.gv-app--short { --pane-gap: 0px; --pane-radius: 0px; --pane-edge: 1px; }
 
 /* ── Activity rail ───────────────────────────────────────────── */
 /* The left card (#240): the rail, and the view it opens beside it. One block —
@@ -88,6 +92,11 @@
 }
 .gv-rail-btn--soon { opacity: 0.4; cursor: default; }
 .gv-rail-spacer { flex: 1; }
+/* The rail of a narrow panel (a side-bar column): 36px, 30px buttons, the
+   same icons — six pixels a 300px column feels. */
+.gv-rail--compact { width: 36px; padding: 4px 0; }
+.gv-rail--compact .gv-rail-btn { width: 30px; height: 30px; border-radius: 6px; }
+.gv-rail--compact .gv-rail-btn--active::before { left: -3px; }
 
 /* ── Resizable side-panel wrapping the single-view Sidebar ──── */
 .gv-sidepanel {
@@ -102,6 +111,40 @@
   border-left: 1px solid var(--border-muted);
 }
 .gv-sidepanel .sidebar { border-right: none; }
+
+/* ── Narrow panel: the side view is a layer over the graph ──────
+   A side-bar column has no width to give a second column, so the view a
+   rail icon opens floats over the graph instead — a card at the rail's
+   edge, the height of the body — and steps aside on Escape or a click
+   anywhere else. The class name ends in "-overlay" on purpose: the graph
+   leaves Escape alone while any element so named exists. */
+.gv-app .app-body { position: relative; }
+.gv-side-overlay {
+  position: absolute;
+  top: var(--pane-gap);
+  bottom: var(--pane-gap);
+  left: calc(var(--pane-gap) * 2 + 36px);
+  z-index: var(--z-drawer);
+  min-width: 160px;
+  background: var(--surface);
+  border: var(--pane-edge) solid var(--border-muted);
+  border-left: 1px solid var(--border-muted);
+  border-radius: var(--pane-radius);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+}
+
+/* The graph and the details as rows: a column the narrow layout puts them
+   in when the details go under the graph. The wide layout has no wrapper at
+   all — the splitter stays a direct child of the body, where its rule is. */
+.gv-stack--rows { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; }
+.gv-stack--rows > .app-center { flex: 1; min-height: 0; }
+.gv-stack--rows > .column-resize-handle--horizontal {
+  height: max(6px, var(--pane-gap));
+  background: var(--bg-shell);
+  border-block: var(--pane-edge) solid var(--border-muted);
+}
+.gv-right-bottom { width: 100%; flex-shrink: 0; min-height: 0; display: flex; flex-direction: column; }
+.gv-right-bottom .right-panel { width: 100% !important; }
 
 /* The splitter between the graph and the details, a direct child of the body:
    in the flush layout the 6px handle with a 1px line either side it always
@@ -130,6 +173,20 @@
 .gvt-logo { flex-shrink: 0; }
 .gvt-repo { color: var(--text-primary-soft); font-size: 12px; font-weight: 600; margin-left: 4px; }
 
+/* The repository, as a picker when the workspace has several: the branch
+   chip's shape in the neutral colours, since a repository is where you are,
+   not what you do. */
+.gvt-repo-wrap { position: relative; margin-left: 4px; min-width: 0; flex-shrink: 1; }
+.gvt-repo-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; height: 22px; max-width: 100%;
+  background: var(--surface-sunken); border: 1px solid var(--border-muted);
+  border-radius: 20px;
+  color: var(--text-primary-soft); font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.gvt-repo-btn:hover { background: var(--surface-active); color: var(--text-primary); }
+.gvt-repo-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.gvt--narrow .gvt-repo-name { max-width: 80px; }
 .gvt-spring { flex: 1; }
 .gvt-sep { width: 1px; height: 16px; background: var(--border-default); margin: 0 3px; flex-shrink: 0; }
 
@@ -246,33 +303,31 @@
   color: var(--danger);
 }
 
-/* ── Responsive: the webview viewport IS the panel, so media queries track
-   the panel width directly. Degrade gracefully as the panel narrows. ───── */
-
-/* ≤ 640px — drop Fetch/Pull/Push labels (icons stay), shrink search */
-@media (max-width: 640px) {
+/* ── Responsive ───────────────────────────────────────────────────
+   Between wide and narrow, the sync buttons keep their icon and count and
+   drop the word: the row still holds every action, only shorter. */
+@media (max-width: 760px) {
   .gvt-tbtn-label { display: none; }
   .gvt-tbtn { padding: 0 6px; }
-  .gvt-search { width: 110px; }
-  .gvt-search:focus-within { width: 140px; }
 }
 
-/* ≤ 520px — drop repo name and secondary buttons (terminal, open desktop) */
-@media (max-width: 520px) {
-  .gvt-repo { display: none; }
-  .gvt-hide-narrow { display: none; }
-  .gvt-branch-name { max-width: 90px; }
-  .gvt { padding: 0 4px; gap: 2px; }
+/* Narrow (see panelLayout.ts): two rows. The first holds the sidebar
+   toggle, the branch, the sync actions and a "⋯" for the rest; the second
+   is the search field, when there is height for it or on demand. */
+.gvt--narrow {
+  flex-direction: column;
+  align-items: stretch;
+  height: auto;
+  padding: 0;
+  gap: 0;
 }
-
-/* ≤ 420px — search becomes minimal, separators go */
-@media (max-width: 420px) {
-  .gvt-sep { display: none; }
-  .gvt-search { width: 80px; }
-  .gvt-search:focus-within { width: 120px; }
-  .gvt-branch { max-width: 120px; }
-  .gvt-branch-name { max-width: 70px; }
-}
+.gvt-row { display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 4px; min-width: 0; }
+.gvt-row--search { height: 30px; border-top: 1px solid var(--border-muted); padding: 0 6px; }
+.gvt--narrow .gvt-branch-wrap { min-width: 0; flex-shrink: 1; }
+.gvt--narrow .gvt-branch { max-width: 100%; }
+.gvt--narrow .gvt-branch-name { max-width: 110px; }
+.gvt--narrow .gvt-search { width: auto; flex: 1; min-width: 0; }
+.gvt--narrow .gvt-search:focus-within { width: auto; }
 
 /* ── In-progress operation banner ────────────────────────────────
    This used to carry its own amber family (#3d2a12 / #5c4813 / #f0c674 /
@@ -356,3 +411,52 @@
 }
 /* The composer brings its own scrolling list; it wants the width. */
 .ai-tab--full { max-width: none; padding: var(--space-lg); }
+
+/* ── No repository: three doors, all VS Code's own ─────────────── */
+.gv-empty {
+  flex: 1; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-md); padding: var(--space-4xl) var(--space-3xl); text-align: center;
+  color: var(--text-secondary);
+}
+.gv-empty-mark { opacity: 0.6; }
+.gv-empty-title { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--text-primary); }
+.gv-empty-body { margin: 0; max-width: 360px; font-size: var(--text-sm); line-height: 1.5; }
+.gv-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-md); margin-top: var(--space-md); }
+.gv-empty-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: var(--row-ctl); padding: 0 12px;
+  background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  color: var(--text-primary); font-size: var(--text-sm); cursor: pointer;
+}
+.gv-empty-btn:hover { background: var(--surface-active); }
+.gv-empty-btn--primary { background: var(--accent-emphasis); border-color: var(--accent-emphasis); color: var(--text-on-emphasis); }
+.gv-empty-btn--primary:hover { background: var(--accent); border-color: var(--accent); }
+
+/* ── Welcome: what the extension does, and where ──────────────── */
+.gvw { max-width: 920px; margin: 0 auto; padding: var(--space-4xl) var(--space-3xl); color: var(--text-secondary); }
+.gvw-head { display: flex; align-items: center; gap: var(--space-2xl); margin-bottom: var(--space-3xl); }
+.gvw-title { margin: 0; font-size: var(--text-2xl); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.gvw-lede { margin: var(--space-xs) 0 0; font-size: var(--text-md); line-height: 1.5; }
+.gvw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-2xl); }
+.gvw-card {
+  display: flex; flex-direction: column; gap: var(--space-md);
+  padding: var(--space-2xl); background: var(--surface); border: 1px solid var(--border-muted); border-radius: var(--radius-lg);
+}
+.gvw-card-head { display: flex; align-items: center; gap: var(--space-md); }
+.gvw-card-icon { color: var(--accent); flex-shrink: 0; }
+.gvw-card-title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.gvw-card-body { margin: 0; flex: 1; font-size: var(--text-sm); line-height: 1.5; }
+.gvw-card-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.gvw-btn {
+  display: inline-flex; align-items: center; height: var(--row-ctl); padding: 0 var(--space-xl);
+  background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  color: var(--text-primary); font-size: var(--text-sm); cursor: pointer;
+}
+.gvw-btn:hover { background: var(--surface-active); }
+.gvw-btn--primary { background: var(--accent-emphasis); border-color: var(--accent-emphasis); color: var(--text-on-emphasis); }
+.gvw-btn--primary:hover { background: var(--accent); border-color: var(--accent); }
+.gvw-foot { display: flex; align-items: center; gap: var(--space-2xl); margin-top: var(--space-3xl); font-size: var(--text-sm); }
+.gvw-link { background: none; border: none; padding: 0; color: var(--accent); font-size: var(--text-sm); cursor: pointer; }
+.gvw-link:hover { text-decoration: underline; }
+.gvw-foot-note { color: var(--text-tertiary); }

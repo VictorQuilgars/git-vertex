@@ -1,7 +1,7 @@
 {
   "name": "git-vertex",
   "displayName": "Git Vertex",
-  "description": "Full Git GUI in the VS Code panel — commit graph, staging, branches, and more.",
+  "description": "Full Git GUI in the VS Code panel \u2014 commit graph, staging, branches, and more.",
   "version": "1.34.0",
   "publisher": "VictorQuilgars",
   "license": "FSL-1.1-MIT",
@@ -41,7 +41,14 @@
         {
           "id": "git-vertex",
           "title": "Git Vertex",
-          "icon": "$(git-branch)"
+          "icon": "images/activity.svg"
+        }
+      ],
+      "activitybar": [
+        {
+          "id": "git-vertex-sidebar",
+          "title": "Git Vertex",
+          "icon": "images/activity.svg"
         }
       ]
     },
@@ -76,6 +83,16 @@
         "icon": "$(link-external)"
       },
       {
+        "command": "gitVertex.moveToSideBar",
+        "title": "Git Vertex: Move to Side Bar",
+        "icon": "$(layout-sidebar-left)"
+      },
+      {
+        "command": "gitVertex.moveToPanel",
+        "title": "Git Vertex: Move to Panel",
+        "icon": "$(layout-panel)"
+      },
+      {
         "command": "gitVertex.openRebaseTab",
         "title": "Git Vertex: Show Rebase in Progress",
         "icon": "$(git-commit)"
@@ -88,6 +105,11 @@
         "command": "gitVertex.fileHistory",
         "title": "Git Vertex: File History & Blame",
         "icon": "$(history)"
+      },
+      {
+        "command": "gitVertex.revealCommit",
+        "title": "Git Vertex: Show Commit in Graph",
+        "icon": "$(git-commit)"
       },
       {
         "command": "gitVertex.toggleLineBlame",
@@ -106,6 +128,21 @@
       {
         "command": "gitVertex.clearFileBlame",
         "title": "Git Vertex: Clear File Blame Annotations"
+      },
+      {
+        "command": "gitVertex.diffWithPrevious",
+        "title": "Git Vertex: Open Changes with Previous Revision",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "gitVertex.diffWithNext",
+        "title": "Git Vertex: Open Changes with Next Revision",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "gitVertex.revealRevisionCommit",
+        "title": "Git Vertex: Show Revision Commit in Graph",
+        "icon": "$(git-commit)"
       },
       {
         "command": "gitVertex.diffLineWithPrevious",
@@ -149,6 +186,21 @@
         "title": "Git Vertex: What's New"
       },
       {
+        "command": "gitVertex.showWelcome",
+        "title": "Git Vertex: Welcome",
+        "icon": "$(home)"
+      },
+      {
+        "command": "gitVertex.toggleFollowCursor",
+        "title": "Git Vertex: Toggle Follow Cursor",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "gitVertex.openPanelSettings",
+        "title": "Git Vertex: Open Panel Settings",
+        "icon": "$(gear)"
+      },
+      {
         "command": "gitVertex.setGithubToken",
         "title": "Git Vertex: Set GitHub Token"
       },
@@ -162,23 +214,23 @@
       },
       {
         "command": "gitVertex.commitMenu.createBranch",
-        "title": "Create Branch Here…"
+        "title": "Create Branch Here\u2026"
       },
       {
         "command": "gitVertex.commitMenu.createTag",
-        "title": "Create Tag Here…"
+        "title": "Create Tag Here\u2026"
       },
       {
         "command": "gitVertex.commitMenu.createWorktree",
-        "title": "Create Worktree Here…"
+        "title": "Create Worktree Here\u2026"
       },
       {
         "command": "gitVertex.commitMenu.modifyFromHere",
-        "title": "Interactive Rebase from Here…"
+        "title": "Interactive Rebase from Here\u2026"
       },
       {
         "command": "gitVertex.commitMenu.reword",
-        "title": "Reword Commit…"
+        "title": "Reword Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.cherryPick",
@@ -186,11 +238,11 @@
       },
       {
         "command": "gitVertex.commitMenu.revert",
-        "title": "Revert Commit…"
+        "title": "Revert Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.drop",
-        "title": "Drop Commit…"
+        "title": "Drop Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.moveUp",
@@ -202,23 +254,23 @@
       },
       {
         "command": "gitVertex.commitMenu.rebaseOnto",
-        "title": "Rebase Current Branch onto Commit…"
+        "title": "Rebase Current Branch onto Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.resetSoft",
-        "title": "Reset Current Branch to Here — Soft (keeps all changes, staged)"
+        "title": "Reset Current Branch to Here \u2014 Soft (keeps all changes, staged)"
       },
       {
         "command": "gitVertex.commitMenu.resetMixed",
-        "title": "Reset Current Branch to Here — Mixed (keeps your working copy, resets the index)"
+        "title": "Reset Current Branch to Here \u2014 Mixed (keeps your working copy, resets the index)"
       },
       {
         "command": "gitVertex.commitMenu.resetHard",
-        "title": "Reset Current Branch to Here — Hard (discards all changes)"
+        "title": "Reset Current Branch to Here \u2014 Hard (discards all changes)"
       },
       {
         "command": "gitVertex.commitMenu.pushToCommit",
-        "title": "Push to Commit…"
+        "title": "Push to Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.copyShortHash",
@@ -234,7 +286,7 @@
       },
       {
         "command": "gitVertex.commitMenu.createPatch",
-        "title": "Create Patch…"
+        "title": "Create Patch\u2026"
       },
       {
         "command": "gitVertex.commitMenu.copyPatch",
@@ -263,6 +315,16 @@
           "command": "gitVertex.openInEditor",
           "when": "view == gitVertex.graphView",
           "group": "navigation"
+        },
+        {
+          "command": "gitVertex.moveToSideBar",
+          "when": "view == gitVertex.graphView",
+          "group": "2_layout@1"
+        },
+        {
+          "command": "gitVertex.moveToPanel",
+          "when": "view == gitVertex.graphView",
+          "group": "2_layout@2"
         }
       ],
       "explorer/context": [
@@ -282,6 +344,21 @@
           "command": "gitVertex.open",
           "when": "gitOpenRepositoryCount > 0",
           "group": "navigation"
+        },
+        {
+          "command": "gitVertex.diffWithPrevious",
+          "when": "(resourceScheme == file && gitOpenRepositoryCount > 0) || resourceScheme == gitvertex",
+          "group": "navigation@97"
+        },
+        {
+          "command": "gitVertex.revealRevisionCommit",
+          "when": "resourceScheme == gitvertex",
+          "group": "navigation@98"
+        },
+        {
+          "command": "gitVertex.diffWithNext",
+          "when": "resourceScheme == gitvertex",
+          "group": "navigation@99"
         }
       ],
       "editor/title/context": [
@@ -460,6 +537,10 @@
         {
           "command": "gitVertex.commitMenu.compareWithSelected",
           "when": "false"
+        },
+        {
+          "command": "gitVertex.revealRevisionCommit",
+          "when": "resourceScheme == gitvertex"
         }
       ],
       "webview/context": [
@@ -615,7 +696,7 @@
       },
       {
         "viewType": "gitVertex.conflictResolver",
-        "displayName": "Git Vertex — Résolution de conflit",
+        "displayName": "Git Vertex \u2014 R\u00e9solution de conflit",
         "selector": [
           {
             "filenamePattern": "*"
@@ -625,7 +706,7 @@
       },
       {
         "viewType": "gitVertex.commitMsgEditor",
-        "displayName": "Git Vertex — Message de commit",
+        "displayName": "Git Vertex \u2014 Message de commit",
         "selector": [
           {
             "filenamePattern": "COMMIT_EDITMSG"
@@ -677,7 +758,7 @@
         },
         "gitVertex.blame.line.format": {
           "type": "string",
-          "default": "${author}, ${ago} • ${message}",
+          "default": "${author}, ${ago} \u2022 ${message}",
           "markdownDescription": "Format of the annotation. Available tokens: `${author}`, `${ago}`, `${date}`, `${message}`, `${hash}`."
         },
         "gitVertex.blame.messageLength": {

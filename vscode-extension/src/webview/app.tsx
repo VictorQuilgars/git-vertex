@@ -12,6 +12,11 @@ import { SettingsProvider, useSettings, resolveLayout, LAYOUT_STORAGE_KEY } from
 import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/LanguageContext'
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
+import EmptyRepo from './EmptyRepo'
+import WelcomeTab from './WelcomeTab'
+import { resolvePanelLayout, clampDetailsHeight, overlayWidth, DETAILS_MIN } from './panelLayout'
+import { planReach } from '../../../src/renderer/src/app/search-reach'
+import { LOG_PAGE } from '../../../src/renderer/src/app/shared'
 import AIReadingTab from './AIReadingTab'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
 import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/ThemeGallery'
@@ -75,7 +80,7 @@ const WIP_NODE: CommitNode = {
 
 function VertexApp() {
   const { t } = useLang();
-  const { get: getSetting } = useSettings()
+  const { get: getSetting, getBool: getBoolSetting, set: setSetting } = useSettings()
   // The reference patterns from Settings › GitHub — what lets a linked
   // reference open even when no tracker API is wired for it.
   const autolinks = useMemo(() => parseAutolinks(getSetting('autolinks', '')), [getSetting])
@@ -115,6 +120,10 @@ function VertexApp() {
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
   const [repoName, setRepoName] = useState('')
   const [repoPath, setRepoPath] = useState<string>()
+  // The repositories of the workspace: more than one, and the toolbar's name
+  // becomes a picker (the host switches, and repoChanged brings the rest).
+  const [repos, setRepos] = useState<{ path: string; name: string }[]>([])
+  const [hasWorkspaceFolder, setHasWorkspaceFolder] = useState(false)
   // Working Changes is selected on open, so the panel always has two panes:
   // the graph and whatever the selection is. Nothing selected used to mean no
   // right pane at all — which read as a broken panel, and for a clean tree it
@@ -249,18 +258,32 @@ function VertexApp() {
   }, [githubRepo, githubRefreshing, loadGhLists])
 
 
+  // The page the graph loads: one page, grown by a reveal that lands beyond
+  // it (see revealCommit), never shrunk back while the webview lives.
+  const logLimitRef = useRef(LOG_PAGE)
+  const commitsReadyRef = useRef(false)
+  // The first load has been attempted, whatever it found: before that, an
+  // empty panel is a panel that has not asked yet, not one with no repository.
+  const [loadedOnce, setLoadedOnce] = useState(false)
   const loadRepoData = useCallback(async (silent = false) => {
     if (isLoadingRef.current) { reloadQueued.current = true; return }
     isLoadingRef.current = true
     if (!silent) setLoading(true)
     try {
+      // First, because the rest throws when there is no repository — and
+      // what the empty state offers depends on whether there is a folder.
+      try {
+        const ws = await window.gitAPI.listWorkspaceRepos()
+        setRepos(Array.isArray(ws?.repos) ? ws.repos : [])
+        setHasWorkspaceFolder(!!ws?.hasFolder)
+      } catch { /* the host is not there yet */ }
       const branchRes = await window.gitAPI.getBranches()
       // Solo (show one branch) / hide (hide some) drive an explicit refs list,
       // which takes precedence over --all in getLog.
       const logRes = await window.gitAPI.getLog(logOptionsFor({
-        maxCount: 500, all: showAllRef.current, solo: soloRef.current, visibility: hiddenRef.current,
+        maxCount: logLimitRef.current, all: showAllRef.current, solo: soloRef.current, visibility: hiddenRef.current,
       }))
-      if (logRes?.commits) setCommits(logRes.commits)
+      if (logRes?.commits) { setCommits(logRes.commits); commitsReadyRef.current = true }
       if (branchRes?.branches) {
         setBranches(branchRes.branches)
         const cur = branchRes.branches.find((b: BranchInfo) => b.current)
@@ -293,6 +316,11 @@ function VertexApp() {
         if (info?.repoName) setRepoName(info.repoName)
         setRepoPath(info?.repoPath)
       } catch { /* ignore */ }
+      try {
+        const ws = await window.gitAPI.listWorkspaceRepos()
+        setRepos(Array.isArray(ws?.repos) ? ws.repos : [])
+        setHasWorkspaceFolder(!!ws?.hasFolder)
+      } catch { /* a single repository, as far as the toolbar knows */ }
       // Both feed the "start a Pull Request" row: no GitHub remote or no known
       // default branch means prIntentFor returns null and no row is offered.
       try {
@@ -321,6 +349,7 @@ function VertexApp() {
       } catch { setRemoteRepo(null) }
     } finally {
       isLoadingRef.current = false
+      setLoadedOnce(true)
       if (!silent) setLoading(false)
       if (reloadQueued.current) {
         reloadQueued.current = false
@@ -338,7 +367,10 @@ function VertexApp() {
     window.gitAPI.settingsGetAll()
       .then((s: Record<string, string>) => {
         const v = s?.sidebarView as SidebarView | undefined
-        if (v && RAIL_VIEWS.includes(v)) { setActiveView(v); lastViewRef.current = v }
+        // The remembered view reopens beside the graph, never over it: in a
+        // narrow panel the view is a layer, and a layer that opens by itself
+        // is in the way.
+        if (v && RAIL_VIEWS.includes(v)) { lastViewRef.current = v; if (!overlayRef.current) setActiveView(v) }
         const w = parseInt(s?.sidebarWidth ?? '', 10)
         if (!isNaN(w)) setSideW(Math.max(180, Math.min(500, w)))
         const rw = parseInt(s?.rightWidth ?? '', 10)
@@ -352,7 +384,9 @@ function VertexApp() {
     setActiveView(cur => {
       const next = cur === v ? null : v
       if (next) lastViewRef.current = next
-      void window.gitAPI.settingsSet('sidebarView', next ?? '')
+      // What a narrow panel shows is a layer, opened for a moment; the
+      // remembered view is the column the wide layout reopens.
+      if (!overlayRef.current) void window.gitAPI.settingsSet('sidebarView', next ?? '')
       return next
     })
   }, [])
@@ -361,7 +395,7 @@ function VertexApp() {
   const handleToggleSidebar = useCallback(() => {
     setActiveView(cur => {
       const next = cur ? null : lastViewRef.current
-      void window.gitAPI.settingsSet('sidebarView', next ?? '')
+      if (!overlayRef.current) void window.gitAPI.settingsSet('sidebarView', next ?? '')
       return next
     })
   }, [])
@@ -716,6 +750,38 @@ function VertexApp() {
   // branch, where requests land rather than start.
   const currentBranchPR = prIntentFor(currentBranch)
 
+  // Where the current branch stands against the branch it will merge into —
+  // the default branch, when there is one and this is not it. One compare
+  // per reload; the overview's card reads it.
+  const [mergeTarget, setMergeTarget] = useState<{ name: string; ahead: number; behind: number } | null>(null)
+  useEffect(() => {
+    if (!defaultBranch || !currentBranch || currentBranch === defaultBranch) { setMergeTarget(null); return }
+    let stale = false
+    window.gitAPI.compareBranches(currentBranch, defaultBranch)
+      .then(r => { if (!stale) setMergeTarget({ name: defaultBranch, ahead: r?.ahead?.length ?? 0, behind: r?.behind?.length ?? 0 }) })
+      .catch(() => { if (!stale) setMergeTarget(null) })
+    return () => { stale = true }
+  }, [currentBranch, defaultBranch, commits])
+
+  // What waits on the user across the repository's pull requests, counted by
+  // what it waits for — three searches the API already answers, cached with
+  // the lists' own rhythm.
+  const [launchpad, setLaunchpad] = useState<{ needsReview: number; changesRequested: number; approved: number } | null>(null)
+  useEffect(() => {
+    if (!githubRepo) { setLaunchpad(null); return }
+    let stale = false
+    const scope = `repo:${githubRepo.owner}/${githubRepo.repo} is:pr is:open`
+    const count = (q: string) => (window.gitAPI as any).githubSearchIssues?.(q).then((r: any) => Number(r?.total ?? 0) || 0).catch(() => 0)
+    Promise.all([
+      count(`${scope} review-requested:@me`),
+      count(`${scope} author:@me review:changes_requested`),
+      count(`${scope} author:@me review:approved`),
+    ]).then(([needsReview, changesRequested, approved]) => {
+      if (!stale) setLaunchpad({ needsReview, changesRequested, approved })
+    })
+    return () => { stale = true }
+  }, [githubRepo, githubRefreshTick])
+
   // Dispatches actions chosen from the NATIVE commit context menu (see
   // package.json contributes.menus["webview/context"] + extension.ts) — the
   // host posts { action, hash } here after the user picks an item, and we
@@ -806,10 +872,93 @@ function VertexApp() {
     const name = await window.gitAPI.uiPrompt(t('ext.app.tagNameHead'))
     if (name) runOp(t('ext.app.tagCreated'), () => window.gitAPI.createTag(name))
   }, [runOp])
+  // Another repository came on screen: the selection named a row of the
+  // previous one, the set and the search too. Back to the working changes,
+  // the way the panel opens.
+  const seenRepoRef = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (!repoPath) return
+    if (seenRepoRef.current && seenRepoRef.current !== repoPath) {
+      setSelectedCommit(WIP_NODE)
+      setSearchQuery('')
+      setIssueDetail(null)
+    }
+    seenRepoRef.current = repoPath
+  }, [repoPath])
+
   const handleSelectCommitByHash = useCallback((hash: string) => {
     const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
     if (found) setSelectedCommit(found)
   }, [commits])
+
+  // ── A commit named from outside: a terminal link, a blame hover, the
+  // palette. Resolved by git (a SHA, a branch, a tag — anything rev-parse
+  // takes), selected when its row is on screen, and when it is not, the
+  // page is grown to reach it the way the extended search reaches a hit —
+  // up to the same limit, past which its position is said instead.
+  const revealing = useRef<string | null>(null)
+  const revealCommit = useCallback(async (ref: string, quiet = false) => {
+    // The first page is still loading: the effect below tries again once it is in.
+    if (!commitsReadyRef.current) { if (!quiet) revealing.current = ref; return }
+    let hash = ''
+    try { hash = String(await window.gitAPI.raw(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])).trim() } catch { /* not a commit */ }
+    if (!/^[0-9a-f]{40}$/.test(hash)) { revealing.current = null; if (!quiet) showToast(t('ext.app.revealNotFound', ref), 'err'); return }
+    const shown = commits.find(c => c.hash === hash)
+    if (shown) { revealing.current = null; setSelectedCommit(shown); return }
+    // The cursor following asks quietly: a commit off the page stays off it.
+    if (quiet) return
+    // The page was already grown for it and it is still not here: no ref the
+    // graph shows reaches it — a hidden branch, a solo one.
+    if (revealing.current === hash) { revealing.current = null; showToast(t('ext.app.revealUnreached', ref)); return }
+    const opts = logOptionsFor({ maxCount: 0, all: showAllRef.current, solo: soloRef.current, visibility: hiddenRef.current })
+    let positions: Record<string, number> = {}
+    try { positions = (await window.gitAPI.locateInHistory([hash], { all: opts.all, refs: opts.refs, excludes: opts.excludes })).positions } catch { /* unreadable */ }
+    const plan = planReach([hash], new Set(commits.map(c => c.hash)), positions, logLimitRef.current)
+    if (plan.loadTo > logLimitRef.current) {
+      logLimitRef.current = plan.loadTo
+      revealing.current = hash
+      void loadRepoData(true)
+      return
+    }
+    revealing.current = null
+    showToast(plan.beyond.length
+      ? t('ext.app.revealBeyond', plan.beyond[0].position.toLocaleString('en-US'))
+      : t('ext.app.revealUnreached', ref))
+  }, [commits, loadRepoData, showToast, t])
+  const revealRef = useRef(revealCommit)
+  revealRef.current = revealCommit
+  useEffect(() => {
+    const cb = (ref: string, quiet?: boolean) => { void revealRef.current(ref, !!quiet) }
+    window.gitAPI.onRevealCommit(cb)
+    return () => window.gitAPI.offRevealCommit(cb)
+  }, [])
+  // The panel's settings page, asked for from outside (the Welcome page, the palette).
+  useEffect(() => {
+    const cb = () => setSettingsOpen(true)
+    window.gitAPI.onOpenSettings(cb)
+    return () => window.gitAPI.offOpenSettings(cb)
+  }, [])
+  // The graph follows the editor's cursor: the switch is in the toolbar, the
+  // work is the host's, the state is the shared setting — read back here,
+  // and pushed here when the palette flips it.
+  const [followCursor, setFollowCursor] = useState(false)
+  useEffect(() => {
+    window.gitAPI.settingsGetAll().then((all: Record<string, string>) => setFollowCursor(all?.followCursor === 'true')).catch(() => {})
+    const cb = (on: boolean) => setFollowCursor(on)
+    window.gitAPI.onFollowCursor(cb)
+    return () => window.gitAPI.offFollowCursor(cb)
+  }, [])
+  // The page arrived, or grew: a reveal that was waiting for it goes again.
+  useEffect(() => {
+    const pending = revealing.current
+    if (pending && commitsReadyRef.current) void revealCommit(pending)
+  }, [commits, revealCommit])
+
+  // What the view's header wears, wherever the view is: the changed-file
+  // count as a badge, the branch as the description.
+  useEffect(() => {
+    void window.gitAPI.panelStatus({ wip: wipCount, branch: currentBranch }).catch(() => {})
+  }, [wipCount, currentBranch])
   const handleToggleSolo = useCallback((name: string) => {
     setSoloBranch(prev => { const next = prev === name ? null : name; soloRef.current = next; return next })
     setTimeout(() => loadRepoData(), 0)
@@ -965,15 +1114,14 @@ function VertexApp() {
     window.addEventListener('mouseup', onUp)
   }, [sideW])
 
-  // Stacked mode — below this width the right panel replaces the graph
-  // entirely instead of squeezing it (typical narrow VS Code side panels).
-  const [viewportW, setViewportW] = useState(window.innerWidth)
+  // The layout follows the body's own size — see panelLayout.ts. The window
+  // is the fallback for the first frame, before the body has been measured.
+  const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight })
   useEffect(() => {
-    const onResize = () => setViewportW(window.innerWidth)
+    const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight })
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-  const stacked = viewportW < 640
 
   const appBodyRef = useRef<HTMLDivElement>(null)
   // The composer's drawer measures this — see the post beside .app-center.
@@ -989,6 +1137,51 @@ function VertexApp() {
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
+  const bodyW = bodySize.w || viewport.w
+  const bodyH = bodySize.h || Math.max(0, viewport.h - 34)
+  const layout = resolvePanelLayout(bodyW, bodyH)
+  // Narrow and short: the details replace the graph instead of squeezing it.
+  const stacked = layout.details === 'replace'
+  // Narrow: the side view is a layer over the graph, not a column beside it.
+  const overlaySide = layout.narrow
+  const overlayRef = useRef(false)
+  overlayRef.current = overlaySide
+  const overlayOpen = overlaySide && activeView !== null
+  // Entering the narrow layout closes the column that was open: as a layer
+  // it would cover the graph the user was looking at.
+  useEffect(() => { if (overlaySide) setActiveView(null) }, [overlaySide])
+  // The layer steps aside on Escape, and on a press anywhere that is not
+  // it, the rail, the toolbar, or a menu it opened.
+  useEffect(() => {
+    if (!overlayOpen) return
+    const close = () => setActiveView(null)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); close() } }
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target?.closest?.('.gv-side-overlay, .gv-rail, .gvt, .ctx-menu, .pdrawer, [role="dialog"]')) return
+      close()
+    }
+    window.addEventListener('keydown', onKey, true)
+    document.addEventListener('pointerdown', onDown, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      document.removeEventListener('pointerdown', onDown, true)
+    }
+  }, [overlayOpen])
+  // The details under the graph, in the tall narrow layout: a height the
+  // user drags, remembered per webview; half the body until they do.
+  const [detailsH, setDetailsH] = useState(() => {
+    const saved = Number(localStorage.getItem('gv-details-h'))
+    return Number.isFinite(saved) && saved > 0 ? saved : 0
+  })
+  const effDetailsH = clampDetailsHeight(detailsH || Math.round(bodyH * 0.5), bodyH)
+  // A short panel — the bottom panel at its usual height — goes edge to
+  // edge: the frame's gap above and below the cards is height the staging
+  // pane needs more than the eye does. From the window, not the body: the
+  // body's height depends on the gap, and the two must not chase each other.
+  const short = viewport.h < 340
+  const paneGap = layout.narrow && !short ? 8 : 0
+
   // Compact widths are separate from the user's tall-panel layout. Zero means
   // use the initial proportion; window resizing only clamps, never overwrites it.
   const [compactRightW, setCompactRightW] = useState(() => {
@@ -996,12 +1189,20 @@ function VertexApp() {
     return Number.isFinite(saved) && saved >= 480 ? saved : 0
   })
   const [graphHidden, setGraphHidden] = useState(false)
-  const showRight = (!!selectedCommit || !!conflictMode) && !issueDetail
+  // No repository behind the panel: the host answered every call with
+  // "No repository open", so nothing loaded and nothing is named. The
+  // centre offers VS Code's doors instead of a graph with no commits.
+  const noRepo = loadedOnce && !loading && !repoPath
+  const showRight = (!!selectedCommit || !!conflictMode) && !issueDetail && !noRepo
   const compactWorking = showRight && selectedCommit?.hash === '__WIP__' && !conflictMode
     && bodySize.h > 0 && bodySize.h < 300
-  const availableWidth = Math.max(0, (bodySize.w || viewportW) - (stacked ? 0 : 44 + (activeView ? sideW + 3 : 0)))
+  const availableWidth = Math.max(0, bodyW - layout.railWidth - (activeView && !overlaySide ? sideW + 3 : 0))
   const compactColumns = compactWorking && availableWidth >= 692
   const focusWorking = compactWorking && graphHidden
+  // The minimap's block, above the rail's card, the graph and the details;
+  // the graph draws into it. Hidden with the graph when the details take its place.
+  const [minimapSlot, setMinimapSlot] = useState<HTMLDivElement | null>(null)
+  const graphOffScreen = (stacked && showRight) || focusWorking
   const maxRightW = Math.max(320, Math.min(compactColumns ? Infinity : 900, availableWidth - (compactColumns ? 206 : 306)))
   const minRightW = compactColumns ? 486 : Math.min(320, maxRightW)
   const preferredRightW = compactColumns ? (compactRightW || Math.round(availableWidth * 0.73)) : rightW
@@ -1100,89 +1301,7 @@ function VertexApp() {
     },
   }
 
-  return (
-    <div className="app gv-app">
-      <CompactToolbar
-        graphHidden={focusWorking}
-        onToggleGraph={compactWorking && !stacked ? () => setGraphHidden(v => !v) : undefined}
-        repoName={repoName}
-        branch={currentBranch}
-        branches={branches}
-        loading={loading}
-        stashCount={stashCount}
-        searchQuery={searchQuery}
-        searchMatches={searchMatches}
-        lastFetch={lastFetch}
-        ahead={tracking.ahead}
-        behind={tracking.behind}
-        onCheckout={handleCheckout}
-        onSearch={setSearchQuery}
-        onFetch={handleFetch}
-        onPull={handlePull}
-        onPush={handlePush}
-        onNewBranch={handleNewBranch}
-        onStash={handleStash}
-        onPop={handlePop}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onTerminal={handleTerminal}
-        onOpenDesktop={handleOpenDesktop}
-        onRefresh={loadRepoData}
-        sidebarOpen={activeView !== null}
-        onToggleSidebar={handleToggleSidebar}
-        onSettings={() => setSettingsOpen(true)}
-        onSetUpstream={handleSetUpstream}
-        onRenameBranch={handleRenameBranch}
-        onOpenBranchOnRemote={handleOpenBranchOnRemote}
-        onAssociateIssue={setIssueModalBranch}
-        onToggleFavorite={branchMeta.toggleFavorite}
-        onToggleSolo={handleToggleSolo}
-        onToggleHide={handleToggleHide}
-        isFavorite={branchMeta.isFavorite}
-        issueFor={branchMeta.issueFor}
-        soloBranch={soloBranch}
-        hiddenBranches={visibility.branches}
-        pr={currentBranchPR}
-        onCreatePR={handleStartPR}
-      />
-      {settingsOpen && (
-        <div className="gv-settings-overlay">
-          <SettingsModal embedded onClose={() => setSettingsOpen(false)} showToast={showToast}
-            onBrowseThemes={() => window.gitAPI.themesOpenGallery?.()} />
-        </div>
-      )}
-      {conflictMode && (
-        <div className="gv-conflict-banner">
-          <span className="gv-cb-icon">⚠️</span>
-          <span className="gv-cb-text">
-            <strong>{conflictMode}</strong> {t('ext.app.inProgress')}
-            {conflictFiles.length > 0
-              ? ` — ${conflictFiles.length} file(s) to resolve`
-              : t('ext.app.noConflictToResolve')}
-          </span>
-          <span className="gv-cb-spring" />
-          <button
-            className="gv-cb-btn gv-cb-continue"
-            disabled={conflictFiles.length > 0}
-            title={conflictFiles.length > 0 ? t('ext.app.resolveFirst') : t('ext.app.continueOp')}
-            onClick={() => handleConflictFinish(conflictMode === 'merge' ? 'merge' : 'rebase')}
-          >
-            {t('ext.app.continue')}
-          </button>
-          <button className="gv-cb-btn gv-cb-abort" onClick={handleConflictAbort}>
-            {t('ext.app.abort')}
-          </button>
-        </div>
-      )}
-      <div className="app-body" ref={appBodyRef}>
-        {/* The rail and the view it opens are ONE card (#240): the rail is the
-            block, and opening a view widens the block rather than adding a
-            second one beside it. */}
-        {!stacked && (
-          <div className="gv-left">
-          <ActivityRail active={activeView} onSelect={handleSelectView} />
-          {activeView && (
-          <div className="gv-sidepanel" style={{ width: sideW }}>
+  const sidebarEl = activeView && (
           <Sidebar
             view={activeView}
             repoPath={repoName || 'repo'}
@@ -1232,6 +1351,11 @@ function VertexApp() {
             onPushTag={handlePushTag}
             onDeleteRemoteTag={handleDeleteRemoteTag}
             onSelectCommit={handleSelectCommitByHash}
+            onFilterAuthor={(author) => setSearchQuery(author ? `author:${author}` : '')}
+            authorFilter={searchQuery.startsWith('author:') ? searchQuery.slice(7) : null}
+            home={emptyState}
+            mergeTarget={mergeTarget}
+            launchpad={launchpad}
             onCompareBranch={(name: string) => window.gitAPI.openCompare(currentBranch, name)}
             soloBranch={soloBranch}
             visibility={visibility}
@@ -1265,18 +1389,13 @@ function VertexApp() {
             subjectFor={(hash) => commits.find(c => c.hash === hash)?.message}
             memoryToken={memoryToken}
           />
-          </div>
-          )}
-          </div>
-        )}
-        {activeView && !stacked && <div className="resize-handle" onMouseDown={startResizeSide} />}
-        {!activeView && !stacked && <div className="gv-gap" />}
-        {/* Where the composer's drawer emerges: the right edge of whatever
-            panel column exists — and the window's left edge when none does
-            (stacked). Zero width: a measuring post, not layout. */}
-        <div ref={composerAnchorRef} style={{ width: 0, alignSelf: 'stretch' }} />
-        <div className="app-center" style={{ flex: 1, display: (stacked && showRight) || focusWorking ? 'none' : 'flex', minWidth: 0, overflow: 'hidden' }}>
-          {issueDetail && githubRepo ? (
+  )
+
+  const centreEl = (
+        <div className="app-center" style={{ flex: 1, display: graphOffScreen ? 'none' : 'flex', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+          {noRepo ? (
+            <EmptyRepo hasFolder={repos.length > 0 || hasWorkspaceFolder} />
+          ) : issueDetail && githubRepo ? (
             issueDetail.kind === 'pr' ? (
               <PRDetail
                 repo={githubRepo}
@@ -1295,6 +1414,7 @@ function VertexApp() {
             )
           ) : (
           <CommitGraph
+              minimapSlot={minimapSlot}
               issueForBranch={branchMeta.issueFor}
               prForBranch={(name) => {
                 const pr = githubPRs?.find(p => p.headRef === name)
@@ -1362,17 +1482,24 @@ function VertexApp() {
             conflictMode={conflictMode}
             loading={loading}
             onSearchMatches={setSearchMatches}
+            upstreamRef={tracking.upstream ?? null}
             nativeContextMenu
             onNativeMenuTarget={(hash) => window.gitAPI.setLastMenuHash(hash)}
           />
           )}
         </div>
+  )
 
-        {showRight && (
+  const detailsEl = showRight && (
           <>
-            {!stacked && !focusWorking && <ColumnResizeHandle value={effRightW} min={minRightW} max={maxRightW}
+            {layout.details === 'bottom' && <ColumnResizeHandle orientation="horizontal"
+              value={effDetailsH} min={DETAILS_MIN} max={Math.max(DETAILS_MIN, bodyH - DETAILS_MIN)}
+              label={t('panel.resize.graphDetails')} onChange={setDetailsH}
+              onCommit={h => localStorage.setItem('gv-details-h', String(h))} />}
+            {layout.details === 'right' && !focusWorking && <ColumnResizeHandle value={effRightW} min={minRightW} max={maxRightW}
               label={t('panel.resize.graphFiles')} onChange={resizeRight} onCommit={saveRightWidth} />}
-            <div className={stacked ? 'app-right gv-right-stacked' : 'app-right'} style={stacked ? undefined : focusWorking ? { flex: 1, minWidth: 0 } : { width: effRightW }}>
+            <div className={stacked ? 'app-right gv-right-stacked' : layout.details === 'bottom' ? 'app-right gv-right-bottom' : 'app-right'}
+              style={stacked ? undefined : layout.details === 'bottom' ? { height: effDetailsH } : focusWorking ? { flex: 1, minWidth: 0 } : { width: effRightW }}>
               {stacked && !conflictMode && (
                 <div className="gv-stacked-bar">
                   <button className="gv-stacked-back" onClick={() => setSelectedCommit(null)}>
@@ -1417,6 +1544,132 @@ function VertexApp() {
               />
             </div>
           </>
+  )
+
+  return (
+    <div className={`app gv-app${short ? ' gv-app--short' : ''}`}>
+      <CompactToolbar
+        narrow={layout.narrow}
+        searchRow={layout.details === 'bottom' ? 'always' : 'toggle'}
+        graphHidden={focusWorking}
+        onToggleGraph={compactWorking && !stacked ? () => setGraphHidden(v => !v) : undefined}
+        repoName={repoName}
+        repos={repos}
+        repoPath={repoPath}
+        onSwitchRepo={(target) => { void window.gitAPI.setPanelRepo(target) }}
+        branch={currentBranch}
+        branches={branches}
+        loading={loading}
+        stashCount={stashCount}
+        searchQuery={searchQuery}
+        searchMatches={searchMatches}
+        lastFetch={lastFetch}
+        ahead={tracking.ahead}
+        behind={tracking.behind}
+        onCheckout={handleCheckout}
+        onSearch={setSearchQuery}
+        onFetch={handleFetch}
+        onPull={handlePull}
+        onPush={handlePush}
+        onNewBranch={handleNewBranch}
+        onStash={handleStash}
+        onPop={handlePop}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onTerminal={handleTerminal}
+        onOpenDesktop={handleOpenDesktop}
+        onRefresh={loadRepoData}
+        sidebarOpen={activeView !== null}
+        onToggleSidebar={handleToggleSidebar}
+        followCursor={followCursor}
+        onToggleFollowCursor={() => { void window.gitAPI.followCursor(!followCursor) }}
+        minimapShown={getBoolSetting('graphMinimap', true)}
+        onToggleMinimap={() => setSetting('graphMinimap', getBoolSetting('graphMinimap', true) ? 'false' : 'true')}
+        onSettings={() => setSettingsOpen(true)}
+        onSetUpstream={handleSetUpstream}
+        onRenameBranch={handleRenameBranch}
+        onOpenBranchOnRemote={handleOpenBranchOnRemote}
+        onAssociateIssue={setIssueModalBranch}
+        onToggleFavorite={branchMeta.toggleFavorite}
+        onToggleSolo={handleToggleSolo}
+        onToggleHide={handleToggleHide}
+        isFavorite={branchMeta.isFavorite}
+        issueFor={branchMeta.issueFor}
+        soloBranch={soloBranch}
+        hiddenBranches={visibility.branches}
+        pr={currentBranchPR}
+        onCreatePR={handleStartPR}
+      />
+      {/* The minimap's block: under the toolbar, above the three panes and as
+          wide as they are; empty (and gone) while the strip is hidden. */}
+      <div className="cg-mm-slot" ref={setMinimapSlot} style={{ display: graphOffScreen ? 'none' : undefined }} />
+      {settingsOpen && (
+        <div className="gv-settings-overlay">
+          <SettingsModal embedded onClose={() => setSettingsOpen(false)} showToast={showToast}
+            onBrowseThemes={() => window.gitAPI.themesOpenGallery?.()} />
+        </div>
+      )}
+      {conflictMode && (
+        <div className="gv-conflict-banner">
+          <span className="gv-cb-icon">⚠️</span>
+          <span className="gv-cb-text">
+            <strong>{conflictMode}</strong> {t('ext.app.inProgress')}
+            {conflictFiles.length > 0
+              ? ` — ${conflictFiles.length} file(s) to resolve`
+              : t('ext.app.noConflictToResolve')}
+          </span>
+          <span className="gv-cb-spring" />
+          <button
+            className="gv-cb-btn gv-cb-continue"
+            disabled={conflictFiles.length > 0}
+            title={conflictFiles.length > 0 ? t('ext.app.resolveFirst') : t('ext.app.continueOp')}
+            onClick={() => handleConflictFinish(conflictMode === 'merge' ? 'merge' : 'rebase')}
+          >
+            {t('ext.app.continue')}
+          </button>
+          <button className="gv-cb-btn gv-cb-abort" onClick={handleConflictAbort}>
+            {t('ext.app.abort')}
+          </button>
+        </div>
+      )}
+      <div className="app-body" ref={appBodyRef}>
+        {/* The rail and the view it opens are ONE card (#240): the rail is the
+            block, and opening a view widens the block rather than adding a
+            second one beside it. In a narrow panel the view is a layer over
+            the graph instead — the rail stays, the block does not widen. */}
+        <div className="gv-left">
+          <ActivityRail active={activeView} onSelect={handleSelectView} compact={layout.narrow} />
+          {activeView && !overlaySide && (
+          <div className="gv-sidepanel" style={{ width: sideW }}>
+          {sidebarEl}
+          </div>
+          )}
+        </div>
+        {activeView && !overlaySide && <div className="resize-handle" onMouseDown={startResizeSide} />}
+        {(!activeView || overlaySide) && <div className="gv-gap" />}
+        {overlayOpen && (
+          <div className="gv-sidepanel gv-side-overlay"
+            style={{ width: overlayWidth(sideW, bodyW, layout.railWidth, paneGap) }}>
+          {sidebarEl}
+          </div>
+        )}
+        {/* Where the composer's drawer emerges: the right edge of whatever
+            panel column exists — and the window's left edge when none does
+            (stacked). Zero width: a measuring post, not layout. */}
+        <div ref={composerAnchorRef} style={{ width: 0, alignSelf: 'stretch' }} />
+        {/* The graph and the details: side by side, or — a narrow panel with
+            the height for it — the details under the graph, in a column of
+            their own with a horizontal splitter between them. */}
+        {layout.details === 'bottom' && showRight ? (
+          <div className="gv-stack gv-stack--rows">
+          {centreEl}
+          {detailsEl}
+          </div>
+        ) : (
+          <>
+          {centreEl}
+          {detailsEl}
+          </>
         )}
       </div>
       {issueModalBranch && (
@@ -1458,6 +1711,25 @@ function VertexApp() {
       )}
     </div>
   )
+}
+
+// A file's history in a tab of its own — and, when asked, the history of
+// whatever file the editor shows: the host tells this tab where the editor
+// went, and the component underneath simply gets a new file.
+function FileHistoryTab({ initial }: { initial: string }) {
+  const [file, setFile] = useState(initial)
+  const [following, setFollowing] = useState(false)
+  useEffect(() => {
+    const cb = (next: string) => setFile(next)
+    window.gitAPI.onHistoryFile(cb)
+    return () => window.gitAPI.offHistoryFile(cb)
+  }, [])
+  const toggle = () => {
+    const next = !following
+    setFollowing(next)
+    void window.gitAPI.historyFollow(next)
+  }
+  return <FileHistory file={file} follow={{ on: following, onToggle: toggle }} />
 }
 
 // A focused tool (e.g. the staging editor) can be booted into the same bundle
@@ -1570,7 +1842,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           : boot?.mode === 'conflict' && boot.file
             ? <ConflictTab file={boot.file} />
             : boot?.mode === 'history' && boot.file
-              ? <FileHistory file={boot.file} />
+              ? <FileHistoryTab initial={boot.file} />
               : boot?.mode === 'compare'
                 ? <CompareTab refA={boot.refA} refB={boot.refB} />
                 : boot?.mode === 'compareWorking' && boot.hash
@@ -1587,6 +1859,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                             ? <AIReadingTab kind={boot.aiKind} aiKey={boot.aiKey} label={boot.aiLabel} />
                           : boot?.mode === 'themes'
                             ? <ThemeGallery />
+                          : boot?.mode === 'welcome'
+                            ? <WelcomeTab />
                           : boot?.mode === 'whatsNew' && boot.notes
                             ? <WhatsNew version={boot.version ?? ''} notes={boot.notes} tagPrefix="ext-v" />
                             : <VertexApp />}

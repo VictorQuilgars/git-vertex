@@ -115,3 +115,9 @@
 .ctx-menu--ai {
   border: 1px dashed var(--ai-border);
 }
+
+/* While a menu is up, nothing drags the window (ContextMenu.tsx): a press on
+   the toolbar's or the tab strip's background has to reach the page to close
+   the menu, and a drag region hands it to the system instead. */
+:root.menu-open,
+:root.menu-open * { -webkit-app-region: no-drag !important; }

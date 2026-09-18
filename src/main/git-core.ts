@@ -82,6 +82,8 @@ export interface BranchRow {
   behind?: number
   gone?: boolean
   detached?: boolean
+  /** When the tip was committed, as git counts it (seconds since the epoch). */
+  date?: number
 }
 
 /**
@@ -99,7 +101,7 @@ export interface BranchRow {
  * separator and nothing else here can, so everything past the fourth `|`
  * belongs to it.
  */
-export const BRANCH_FORMAT = '%(HEAD)|%(refname)|%(objectname:short)|%(upstream:track)|%(contents:subject)'
+export const BRANCH_FORMAT = '%(HEAD)|%(refname)|%(objectname:short)|%(upstream:track)|%(committerdate:unix)|%(contents:subject)'
 
 export function branchArgs(): string[] {
   return ['for-each-ref', 'refs/heads', 'refs/remotes', `--format=${BRANCH_FORMAT}`]
@@ -120,9 +122,9 @@ export function parseBranchRows(raw: string): BranchRow[] {
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue
     const parts = line.split('|')
-    if (parts.length < 5) continue
-    const [head, refname, commit, track] = parts
-    const subject = parts.slice(4).join('|')
+    if (parts.length < 6) continue
+    const [head, refname, commit, track, date] = parts
+    const subject = parts.slice(5).join('|')
     const remote = refname.startsWith('refs/remotes/')
     // `remotes/origin/main` and `main` — the names the UI has always used,
     // which are what `git branch -a` printed and what every caller compares
@@ -141,6 +143,8 @@ export function parseBranchRows(raw: string): BranchRow[] {
     // Upstreams belong to local branches; a remote-tracking ref has none.
     const t = !remote ? tracking(track) : null
     if (t) Object.assign(row, t)
+    const when = parseInt(date, 10)
+    if (Number.isFinite(when) && when > 0) row.date = when
     rows.push(row)
   }
   return rows
@@ -485,5 +489,37 @@ export async function searchInDiffs(run: GitRunner, query: string): Promise<{ ha
     return { hashes: out.trim().split('\n').filter(Boolean) }
   } catch {
     return { hashes: [] }
+  }
+}
+
+// ── Contributors ──────────────────────────────────────────────────
+export interface Contributor { name: string; email: string; commits: number }
+
+/** `git shortlog -sne` lines: a count, a tab, a name, an address in angle brackets. */
+export function parseShortlog(raw: string): Contributor[] {
+  const out: Contributor[] = []
+  for (const line of raw.split('\n')) {
+    const m = /^\s*(\d+)\t(.*?)\s*<([^>]*)>\s*$/.exec(line)
+    if (!m) continue
+    out.push({ commits: Number(m[1]), name: m[2].trim(), email: m[3].trim() })
+  }
+  return out
+}
+
+/**
+ * Who has committed here, most commits first, merges left out — the
+ * identities git's own `shortlog` reports, mailmap applied. `--all` rather
+ * than HEAD: the question is who works on this repository, not on this
+ * branch.
+ */
+export async function contributors(
+  run: GitRunner, opts: { limit?: number } = {},
+): Promise<{ contributors: Contributor[] }> {
+  const limit = opts.limit ?? 20
+  try {
+    const raw = await run(['shortlog', '-sne', '--no-merges', '--all'])
+    return { contributors: parseShortlog(raw).slice(0, limit) }
+  } catch {
+    return { contributors: [] }
   }
 }

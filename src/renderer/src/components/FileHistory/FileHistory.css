@@ -222,3 +222,18 @@
   text-align: center;
   color: var(--text-disabled);
 }
+
+/* The switch a tab that can follow the active editor shows: pressed while
+   following, in the accent, the native-diff button's shape otherwise. */
+.fh-follow {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  height: var(--row-ctl); padding: 0 var(--space-lg);
+  background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  color: var(--text-secondary); font-size: var(--text-sm); cursor: pointer; flex-shrink: 0;
+}
+.fh-follow:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.fh-follow--on {
+  background: color-mix(in srgb, var(--accent-emphasis) var(--alpha-subtle), transparent);
+  border-color: color-mix(in srgb, var(--accent-emphasis) var(--alpha-visible), transparent);
+  color: var(--accent);
+}

@@ -3,10 +3,11 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
+import { findRefLinks, type RefLink } from './terminalLinks'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
-import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider } from './panel/GitVertexHost'
+import { openGitVertexEditor, setEditorRepo, openGitVertexRebaseTab, openGitVertexFileHistoryTab, openGitVertexCompareTab, openGitVertexWhatsNewTab, openGitVertexWelcomeTab, postCommitMenuAction, lastCommitMenuHash, setThemeStorageDir, refUri, ensureDiffProvider, followHistoryTo } from './panel/GitVertexHost'
 import { blameFile } from './blame/blame'
 import { GitService } from './gitService'
 import { RELEASE_NOTES } from './releaseNotes'
@@ -17,7 +18,7 @@ import { CommitMsgEditor } from './panel/CommitMsgEditor'
 import { InlineBlameController } from './blame/inlineBlame'
 import { gitEnv, parseGitVersion, isGitVersionAtLeast, MIN_GIT_FOR_CONFLICT_PREDICTION } from './gitService'
 import { BlameCodeLensProvider } from './blame/codeLens'
-import { execSync } from 'child_process'
+import { execFile, execSync } from 'child_process'
 
 let statusBar: GitVertexStatusBar | null = null
 let refreshTimer: NodeJS.Timeout | null = null
@@ -29,6 +30,16 @@ function resolveAppPath(): string | null {
   return custom || findAppPath()
 }
 
+// The repository the panel was switched to, when the workspace has more
+// than one: remembered per workspace, and what the panel opens on next time
+// as long as that repository is still in the workspace.
+let panelRepoChoice: string | null = null
+function chosenWorkspaceRepo(): string | null {
+  if (!panelRepoChoice) return null
+  const folders = vscode.workspace.workspaceFolders ?? []
+  return folders.some(f => getRepoRootForFile(f.uri.fsPath) === panelRepoChoice) ? panelRepoChoice : null
+}
+
 // ── Resolve repo root for current context ─────────────────────
 function resolveRepoRoot(uri?: vscode.Uri): string | null {
   // 1. Explicit URI (context menu on explorer item)
@@ -36,9 +47,14 @@ function resolveRepoRoot(uri?: vscode.Uri): string | null {
 
   // 2. Active text editor
   const editor = vscode.window.activeTextEditor
-  if (editor) return getRepoRootForFile(editor.document.uri.fsPath)
+  if (editor) {
+    const root = getRepoRootForFile(editor.document.uri.fsPath)
+    if (root) return root
+  }
 
-  // 3. First workspace folder
+  // 3. The repository the panel was switched to, then the first workspace folder
+  const chosen = chosenWorkspaceRepo()
+  if (chosen) return chosen
   const folders = vscode.workspace.workspaceFolders
   if (folders && folders.length > 0) return getRepoRootForFile(folders[0].uri.fsPath)
 
@@ -298,14 +314,61 @@ async function showWhatsNewIfUpdated(context: vscode.ExtensionContext): Promise<
   if (!current) return
   const last = context.globalState.get<string>('gvLastVersion')
   await context.globalState.update('gvLastVersion', current)
-  if (!last || last === current) return
+  // A fresh install gets the Welcome page, once; an update gets What's new.
+  if (!last) {
+    if (!context.globalState.get<boolean>('gvWelcomed')) {
+      await context.globalState.update('gvWelcomed', true)
+      openGitVertexWelcomeTab(context.extensionUri, context.globalState)
+    }
+    return
+  }
+  if (last === current) return
   const note = noteFor(current)
   if (!note) return
   openGitVertexWhatsNewTab(context.extensionUri, context.globalState, note.version, note.notes)
 }
 
+// ── Terminal links ───────────────────────────────────────────────
+// A SHA, a branch, a tag or a range printed in a terminal is a row of the
+// graph or a comparison. terminalLinks.ts finds the spans; this half needs
+// the repository's ref names to tell a branch from a word, and asks git for
+// them at most every ten seconds.
+interface RefTerminalLink extends vscode.TerminalLink { link: RefLink; repo: string }
+const refNamesCache = new Map<string, { at: number; names: Set<string> }>()
+function refNamesFor(repo: string): Promise<Set<string>> {
+  const cached = refNamesCache.get(repo)
+  if (cached && Date.now() - cached.at < 10_000) return Promise.resolve(cached.names)
+  return new Promise(resolve => {
+    execFile('git', ['for-each-ref', '--format=%(refname:short)', 'refs/heads', 'refs/tags', 'refs/remotes'],
+      { cwd: repo, env: gitEnv(), maxBuffer: 4 * 1024 * 1024 }, (err, stdout) => {
+        const names = new Set<string>(['HEAD'])
+        if (!err) for (const line of stdout.split('\n')) { const n = line.trim(); if (n) names.add(n) }
+        refNamesCache.set(repo, { at: Date.now(), names })
+        resolve(names)
+      })
+  })
+}
+
+/** Put the view in the given container and show it there. */
+async function moveView(destinationId: string): Promise<void> {
+  try {
+    await vscode.commands.executeCommand('vscode.moveViews', {
+      viewIds: [GitVertexViewProvider.viewType],
+      destinationId,
+    })
+  } catch (e: any) {
+    void vscode.window.showErrorMessage(`Git Vertex: could not move the view — ${e?.message ?? e}`)
+    return
+  }
+  // The move leaves the view collapsed and unfocused.
+  await vscode.commands.executeCommand('gitVertex.graphView.focus')
+}
+
 export function activate(context: vscode.ExtensionContext): void {
-  statusBar = new GitVertexStatusBar('gitVertex.open')
+  // The panel, not the desktop app: the branch in the status bar is the most
+  // visible door to the extension, and it opened something else — something
+  // not always installed.
+  statusBar = new GitVertexStatusBar('gitVertex.openPanel')
 
   // Where installed themes live. Global rather than per-workspace: a palette is
   // a property of the person, not of the repository they happen to have open.
@@ -322,6 +385,30 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Create the WebviewViewProvider for the bottom panel
   const provider = new GitVertexViewProvider(context.extensionUri, context.globalState)
+  panelRepoChoice = context.workspaceState.get<string>('gvPanelRepo') ?? null
+  /** Bring the view forward, wherever it is, and show the commit in it. */
+  const revealInPanel = async (ref: string): Promise<void> => {
+    await vscode.commands.executeCommand('gitVertex.graphView.focus')
+    provider.reveal(ref)
+  }
+  const terminalLinks: vscode.TerminalLinkProvider<RefTerminalLink> = {
+    async provideTerminalLinks(ctx) {
+      const repo = resolveRepoRoot()
+      if (!repo) return []
+      const names = await refNamesFor(repo)
+      return findRefLinks(ctx.line, n => names.has(n)).map(link => ({
+        startIndex: link.start,
+        length: link.length,
+        tooltip: link.kind === 'range' ? 'Compare in Git Vertex' : 'Show in Git Vertex',
+        link,
+        repo,
+      }))
+    },
+    handleTerminalLink(l) {
+      if (l.link.kind === 'range') openGitVertexCompareTab(context.extensionUri, context.globalState, l.repo, l.link.from, l.link.to)
+      else void revealInPanel(l.link.text)
+    },
+  }
 
   // Register the provider (panel view)
   context.subscriptions.push(
@@ -382,6 +469,107 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.languages.registerCodeLensProvider({ scheme: 'file' }, codeLens),
   )
 
+  // The panel switched repositories: everything that follows the panel's
+  // repository follows it there, and the choice outlives the window.
+  provider.onSwitchRepo = root => {
+    panelRepoChoice = root
+    void context.workspaceState.update('gvPanelRepo', root)
+    provider.setRepo(root)
+    setEditorRepo(root)
+    setupRebaseWatch(context, root)
+    blame.watch(root)
+    refreshStatusBar()
+  }
+
+  // ── The graph follows the cursor ──
+  // On, the commit of the active line — its blame — is shown in the graph as
+  // the cursor moves, quietly: no focus taken, no toast when it is off the
+  // page. The switch is the panel's (its toolbar) and the palette's; the
+  // setting is shared, so the toolbar reads it back.
+  let followCursor = context.globalState.get<Record<string, string>>('gvSettings', {}).followCursor === 'true'
+  let lastFollowed = ''
+  let followTimer: NodeJS.Timeout | undefined
+  provider.onFollowCursor = on => { followCursor = on; lastFollowed = '' }
+  context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(e => {
+    if (!followCursor || e.textEditor !== vscode.window.activeTextEditor) return
+    const doc = e.textEditor.document
+    if (doc.uri.scheme !== 'file') return
+    if (followTimer) clearTimeout(followTimer)
+    followTimer = setTimeout(async () => {
+      const root = getRepoRootForFile(doc.uri.fsPath)
+      if (!root) return
+      const rel = path.relative(root, doc.uri.fsPath).split(path.sep).join('/')
+      const line = e.selections[0].active.line + 1
+      const [blamed] = await blameFile(root, rel, { line, contents: doc.isDirty ? doc.getText() : undefined })
+      if (!blamed || blamed.uncommitted || blamed.hash === lastFollowed) return
+      lastFollowed = blamed.hash
+      provider.reveal(blamed.hash, true)
+    }, 300)
+  }))
+
+  provider.onRescan = () => {
+    const root = resolveRepoRoot()
+    if (root) { provider.setRepo(root); setEditorRepo(root); setupRebaseWatch(context, root); blame.watch(root); refreshStatusBar() }
+  }
+
+  // ── Revision navigation ──
+  // The editor's file at a revision, one step older or newer, as VS Code's
+  // own diff. From the working file the previous revision is HEAD (or, on a
+  // clean file, the commit before the last one that touched it); from a
+  // revision document the chain follows the file's own history, and its
+  // newer end is the working file again.
+  const revisionOf = (uri: vscode.Uri): { root: string; rel: string; ref: string | null } | null => {
+    if (uri.scheme === 'gitvertex') {
+      const root = resolveRepoRoot()
+      if (!root) return null
+      return { root, rel: uri.path.replace(/^\//, ''), ref: uri.query || null }
+    }
+    if (uri.scheme !== 'file') return null
+    const root = getRepoRootForFile(uri.fsPath)
+    if (!root) return null
+    return { root, rel: path.relative(root, uri.fsPath).split(path.sep).join('/'), ref: null }
+  }
+  const revisionDiff = async (direction: 'previous' | 'next'): Promise<void> => {
+    const editor = vscode.window.activeTextEditor
+    const at = editor ? revisionOf(editor.document.uri) : null
+    if (!editor || !at) { vscode.window.showWarningMessage('Open a file inside a Git repository to step through its revisions.'); return }
+    const svc = new GitService(at.root)
+    ensureDiffProvider(svc)
+    const name = path.basename(at.rel)
+    const short = (h: string) => h.slice(0, 7)
+    const touching = async (from: string, count?: number): Promise<string[]> => {
+      const out = await svc.raw(['log', '--format=%H', ...(count ? ['-n', String(count)] : []), from, '--', at.rel])
+      return out.split('\n').map(l => l.trim()).filter(Boolean)
+    }
+    if (direction === 'previous') {
+      if (at.ref === null) {
+        // The working file: against HEAD while it is modified, else one
+        // commit further back — a clean file against HEAD is an empty diff.
+        const dirty = (await svc.raw(['status', '--porcelain', '--', at.rel])).trim() !== ''
+        if (dirty) {
+          await vscode.commands.executeCommand('vscode.diff', refUri('HEAD', at.rel), editor.document.uri, `${name} (HEAD ↔ Working Tree)`)
+          return
+        }
+      }
+      const [current, previous] = await touching(at.ref ?? 'HEAD', 2)
+      if (!current) { vscode.window.showInformationMessage('Git has no history for this file.'); return }
+      if (!previous) { vscode.window.showInformationMessage(`${short(current)} is the first revision of this file.`); return }
+      await vscode.commands.executeCommand('vscode.diff', refUri(previous, at.rel), refUri(current, at.rel), `${name} (${short(previous)} ↔ ${short(current)})`)
+      return
+    }
+    if (at.ref === null) { vscode.window.showInformationMessage('The working file is the newest revision.'); return }
+    const here = (await svc.raw(['rev-parse', '--verify', `${at.ref}^{commit}`])).trim()
+    const history = await touching('HEAD')
+    const index = history.indexOf(here)
+    const newer = index > 0 ? history[index - 1] : null
+    if (newer) {
+      await vscode.commands.executeCommand('vscode.diff', refUri(here, at.rel), refUri(newer, at.rel), `${name} (${short(here)} ↔ ${short(newer)})`)
+    } else {
+      const working = vscode.Uri.file(path.join(at.root, at.rel))
+      await vscode.commands.executeCommand('vscode.diff', refUri(here, at.rel), working, `${name} (${short(here)} ↔ Working Tree)`)
+    }
+  }
+
   // Resolve initial repo and inject into provider
   const repoRoot = resolveRepoRoot()
   if (repoRoot) {
@@ -396,7 +584,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Re-read on file saves, editor changes, workspace changes
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument(() => scheduleRefresh()),
-    vscode.window.onDidChangeActiveTextEditor(() => scheduleRefresh(500)),
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      scheduleRefresh(500)
+      if (editor?.document.uri.scheme === 'file') followHistoryTo(editor.document.uri.fsPath)
+    }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       refreshStatusBar()
       const root = resolveRepoRoot()
@@ -416,6 +607,29 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitVertex.open', () => openInGitVertex()),
     vscode.commands.registerCommand('gitVertex.openFile', (uri?: vscode.Uri) => openInGitVertex(uri)),
     vscode.commands.registerCommand('gitVertex.configure', () => configure()),
+    // Where the view lives is the user's: VS Code lets any view be dragged
+    // between the panel and the side bars, and these two only do that drag
+    // for them. The destination is the container declared for it in
+    // package.json — the panel one, or the activity-bar one that exists for
+    // exactly this and is empty (so invisible) until the view is put there.
+    // A commit named from outside the panel — a blame hover, a terminal
+    // link, the palette — is shown in the graph: selected, scrolled to, the
+    // history grown to reach it when it is beyond the page.
+    vscode.commands.registerCommand('gitVertex.revealCommit', async (ref?: string) => {
+      const target = typeof ref === 'string' && ref
+        ? ref
+        : await vscode.window.showInputBox({ prompt: 'Commit, branch or tag to show in the graph', placeHolder: 'abc1234, main, v1.2.0' })
+      if (target?.trim()) await revealInPanel(target.trim())
+    }),
+    vscode.window.registerTerminalLinkProvider(terminalLinks),
+    vscode.commands.registerCommand('gitVertex.showWelcome', () => openGitVertexWelcomeTab(context.extensionUri, context.globalState)),
+    vscode.commands.registerCommand('gitVertex.toggleFollowCursor', () => provider.followCursor(!followCursor)),
+    vscode.commands.registerCommand('gitVertex.openPanelSettings', async () => {
+      await vscode.commands.executeCommand('gitVertex.graphView.focus')
+      provider.openSettings()
+    }),
+    vscode.commands.registerCommand('gitVertex.moveToSideBar', () => moveView('workbench.view.extension.git-vertex-sidebar')),
+    vscode.commands.registerCommand('gitVertex.moveToPanel', () => moveView('workbench.view.extension.git-vertex')),
     vscode.commands.registerCommand('gitVertex.openPanel', () => {
       vscode.commands.executeCommand('gitVertex.graphView.focus')
     }),
@@ -477,6 +691,12 @@ export function activate(context: vscode.ExtensionContext): void {
     // are the jump from there to what that commit actually did. Reaching for
     // them from an editor is the point, so they resolve the line themselves
     // rather than depending on the annotations being switched on.
+    vscode.commands.registerCommand('gitVertex.diffWithPrevious', () => revisionDiff('previous')),
+    vscode.commands.registerCommand('gitVertex.diffWithNext', () => revisionDiff('next')),
+    vscode.commands.registerCommand('gitVertex.revealRevisionCommit', () => {
+      const uri = vscode.window.activeTextEditor?.document.uri
+      if (uri?.scheme === 'gitvertex' && uri.query) void revealInPanel(uri.query)
+    }),
     vscode.commands.registerCommand('gitVertex.diffLineWithPrevious', () => diffLine('previous')),
     vscode.commands.registerCommand('gitVertex.diffLineWithWorking', () => diffLine('working')),
     vscode.commands.registerCommand('gitVertex.blame.copyHash', async (hash?: string) => {
