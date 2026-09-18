@@ -16,7 +16,7 @@
 // fails if one file carries an Unreleased section and the other does not.
 
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.35.0': `## What's new in 1.35.0
 
 ### 🎨 Make your own theme
 - **Settings › Appearance › Create a theme** opens a drawer over the app, and the app is the preview: change a seed, the whole window repaints. Click anything with *Inspect* to see which seed colours it. Saving installs the theme and puts it in use; the file it exports is the bank's own format.

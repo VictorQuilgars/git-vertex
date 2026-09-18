@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.35.0
 
 ### Added
 - **Make your own theme.** Settings › Appearance › *Create a theme* opens a drawer over the app, and the app is the preview: a theme is twenty-four seeds, everything else derives from them, and changing one repaints the whole window, graph included. Start from the theme in use or from an installed one; the validator's rules are shown live beside the seed they are about; an *inspect* mode answers the other question — click anything in the window and see which seed colours it, with a jump to that seed. A seed answers where it makes a real part of the colour — a third or more — so hovering *text* boxes the text, not the frame it tints by a tenth, and a pressed button is its accent, not the text mixed into it. Saving installs the theme through the same store and validator as one from the bank, and puts it in use; the file it exports is the bank's own format, and a pasted one loads. Local to the machine; sharing to the bank is the next step. The themes above it are a shelf now: every one, on two rows that slide sideways and fade in from the edge, with the bank's card standing still at their end. (#242)

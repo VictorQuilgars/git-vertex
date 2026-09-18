@@ -2,7 +2,7 @@
 // after an update (like VS Code). Keyed by version — must match package.json /
 // the release tag. Keep the newest entry in sync with the top of CHANGELOG.md.
 export const RELEASE_NOTES: Record<string, string> = {
-  'Unreleased': `## What's new in Unreleased
+  '1.37.0': `## What's new in 1.37.0
 
 ### 🎨 Make your own theme
 - **Settings › Appearance › Create a theme** opens a drawer over the app, and the app is the preview: change a seed, the whole window repaints. Click anything with *Inspect* to see which seed colours it. Saving installs the theme and puts it in use; the file it exports is the bank's own format.
