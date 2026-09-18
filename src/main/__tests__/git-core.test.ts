@@ -300,6 +300,33 @@ describe('git-core — against a real repository, on both hosts', () => {
     expect(refused.error).toBeTruthy()
   })
 
+  test('tagDetails reads a lightweight tag and an annotated one apart', async () => {
+    run(`git tag light ${first}`)
+    run(`git -c user.name="Grace" -c user.email=grace@test.com tag -a v1 -m "First release" -m "With a second paragraph." ${first}`)
+    const light = await onBothHosts(repo, r => core.tagDetails(r, 'light'))
+    expect(light.tag).toEqual({ name: 'light', commit: first, annotated: false })
+    const annotated = await onBothHosts(repo, r => core.tagDetails(r, 'v1'))
+    expect(annotated.tag).toMatchObject({
+      name: 'v1', commit: first, annotated: true, tagger: 'Grace', taggerEmail: 'grace@test.com',
+      message: 'First release\n\nWith a second paragraph.',
+    })
+    expect(annotated.tag!.date).toBeGreaterThan(1_600_000_000)
+    expect((await onBothHosts(repo, r => core.tagDetails(r, 'no-such-tag'))).tag).toBeNull()
+    expect((await onBothHosts(repo, r => core.tagDetails(r, '--all'))).error).toBeTruthy()
+  })
+
+  test('tagOnRemote asks the remote, and cannot tell when there is nobody to ask', async () => {
+    const bare = fs.mkdtempSync(path.join(require('os').tmpdir(), 'git-core-remote-'))
+    try {
+      execSync(`git clone -q --bare "${repo}" "${bare}/origin.git"`)
+      run(`git remote add origin "${bare}/origin.git"`)
+      run(`git tag pushed ${first} && git tag local-only ${second} && git push -q origin refs/tags/pushed`)
+      expect(await onBothHosts(repo, r => core.tagOnRemote(r, 'pushed', 'origin'))).toEqual({ pushed: true })
+      expect(await onBothHosts(repo, r => core.tagOnRemote(r, 'local-only', 'origin'))).toEqual({ pushed: false })
+      expect(await onBothHosts(repo, r => core.tagOnRemote(r, 'pushed', 'nowhere'))).toEqual({ pushed: null })
+    } finally { fs.rmSync(bare, { recursive: true, force: true }) }
+  })
+
   test('workingFileDiff reads the working tree and the index apart', async () => {
     write('a.txt', 'one\nTWO\nTHREE\n')
     const unstaged = await onBothHosts(repo, r => core.workingFileDiff(r, 'a.txt', false))

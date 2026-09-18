@@ -435,6 +435,72 @@ export async function resolveCommit(
   }
 }
 
+/** What a tag is: where it points, and — for an annotated one — who made it, when, and what they wrote. */
+export interface TagDetails {
+  name: string
+  /** The COMMIT it points at: an annotated tag is an object of its own, and this is past it. */
+  commit: string
+  annotated: boolean
+  message?: string
+  tagger?: string
+  taggerEmail?: string
+  /** When it was tagged, seconds since the epoch. */
+  date?: number
+}
+
+// Fields are NUL-separated: an annotation is free text, and the last field.
+const TAG_FORMAT = ['%(objecttype)', '%(objectname)', '%(*objectname)', '%(taggername)', '%(taggeremail)', '%(taggerdate:unix)', '%(contents)'].join('%00')
+
+export function parseTagDetails(name: string, raw: string): TagDetails | null {
+  const parts = raw.replace(/\n$/, '').split('\0')
+  if (parts.length < 7) return null
+  const [type, object, peeled, tagger, email, date] = parts
+  const annotated = type === 'tag'
+  const commit = (annotated ? peeled : object).trim()
+  if (!commit) return null
+  const details: TagDetails = { name, commit, annotated }
+  if (!annotated) return details
+  // `%(contents)` of a signed tag carries its signature: what was WRITTEN stops there.
+  const message = parts.slice(6).join('\0').split(/^-----BEGIN [A-Z ]*SIGNATURE-----$/m)[0].trim()
+  if (message) details.message = message
+  if (tagger.trim()) details.tagger = tagger.trim()
+  const mail = email.trim().replace(/^<|>$/g, '')
+  if (mail) details.taggerEmail = mail
+  const when = parseInt(date, 10)
+  if (Number.isFinite(when) && when > 0) details.date = when
+  return details
+}
+
+export async function tagDetails(
+  run: GitRunner, name: string,
+): Promise<{ tag: TagDetails | null; error?: string }> {
+  const bad = assertRef(name, 'tag')
+  if (bad) return { tag: null, error: bad }
+  try {
+    const raw = await run(['for-each-ref', `--format=${TAG_FORMAT}`, `refs/tags/${name.trim()}`])
+    return { tag: parseTagDetails(name.trim(), raw) }
+  } catch (e) {
+    return { tag: null, error: reason(e) }
+  }
+}
+
+/**
+ * Whether a remote has the tag. It ASKS the remote — a tag has no tracking ref
+ * to read — so it can be slow, or fail offline: `null` is "could not tell",
+ * which is not "no".
+ */
+export async function tagOnRemote(
+  run: GitRunner, name: string, remote: string,
+): Promise<{ pushed: boolean | null }> {
+  if (assertRef(name, 'tag') || assertRef(remote, 'remote')) return { pushed: null }
+  try {
+    const out = await run(['ls-remote', '--tags', remote.trim(), `refs/tags/${name.trim()}`])
+    return { pushed: out.trim().length > 0 }
+  } catch {
+    return { pushed: null }
+  }
+}
+
 /** The patch of one path in the working tree, staged or not. */
 export async function workingFileDiff(
   run: GitRunner, filepath: string, staged: boolean, context?: number,

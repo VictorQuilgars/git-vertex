@@ -196,6 +196,8 @@ const gitAPI = {
   // Reflog
   getReflog: () => invoke('git:get-reflog'),
   resolveCommit: (ref: string) => invoke('git:resolve-commit', ref),
+  getTagDetails: (name: string) => invoke('git:get-tag-details', name),
+  isTagOnRemote: (name: string) => invoke('git:is-tag-on-remote', name),
   // Contributors
   getContributors: (limit?: number) => invoke('git:get-contributors', limit),
   // File History

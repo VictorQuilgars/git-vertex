@@ -2445,6 +2445,18 @@ exit 0
     return core.resolveCommit(this.run, ref)
   }
 
+  /** What a tag is — its commit, and the annotation of an annotated one. */
+  async getTagDetails(name: string): Promise<{ tag: core.TagDetails | null; error?: string }> {
+    return core.tagDetails(this.run, name)
+  }
+
+  /** Whether the default remote has the tag; `null` when it could not be asked. */
+  async isTagOnRemote(name: string): Promise<{ pushed: boolean | null; remote: string | null }> {
+    const { remote } = await this.getDefaultRemote()
+    if (!remote) return { pushed: null, remote: null }
+    return { ...(await core.tagOnRemote(this.run, name, remote)), remote }
+  }
+
   async getReflog(): Promise<{ entries: { hash: string; ref: string; message: string; date: string }[] }> {
     try {
       const result = await this.git.raw([

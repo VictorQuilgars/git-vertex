@@ -530,6 +530,14 @@ export function registerGitHandlers(): void {
     if (!state.gitService) return { hash: null }
     return state.gitService.resolveCommit(ref)
   })
+  handle('git:get-tag-details', async (_event, name: string) => {
+    if (!state.gitService) return { tag: null }
+    return state.gitService.getTagDetails(name)
+  })
+  handle('git:is-tag-on-remote', async (_event, name: string) => {
+    if (!state.gitService) return { pushed: null, remote: null }
+    return state.gitService.isTagOnRemote(name)
+  })
   handle('git:locate-in-history', async (_event, hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => {
     if (!state.gitService) return { positions: {} }
     return state.gitService.locateInHistory(hashes, options)

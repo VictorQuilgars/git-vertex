@@ -171,6 +171,8 @@ export const ARG_RULES: Record<string, ArgSpec[]> = {
   'git:get-last-commit-message': ['rev'],
   'git:get-rebase-sequence': ['rev'],
   'git:resolve-commit': ['rev'],
+  'git:get-tag-details': ['rev'],
+  'git:is-tag-on-remote': ['rev'],
   'git:locate-in-history': ['revs', { refs: 'revs', excludes: 'revs' }],
   'git:compare-branches': ['rev', 'rev'],
   'git:get-blame': ['rev', 'repoFile'],

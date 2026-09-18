@@ -52,6 +52,8 @@ const SHARED: Record<string, string> = {
   getBranches: 'branchRows',
   getContributors: 'contributors',
   resolveCommit: 'resolveCommit',
+  getTagDetails: 'tagDetails',
+  isTagOnRemote: 'tagOnRemote',
 }
 
 describe('the shared git core is what both products run', () => {

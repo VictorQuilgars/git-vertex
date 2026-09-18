@@ -239,6 +239,10 @@ declare global {
     searchInDiffs: (query: string) => Promise<{ hashes: string[] }>
     /** The full hash a branch, a tag or any revision stands for; null when it names no commit. */
     resolveCommit: (ref: string) => Promise<{ hash: string | null; error?: string }>
+    /** What a tag is: the commit it points at, and the annotation of an annotated one. */
+    getTagDetails: (name: string) => Promise<{ tag: { name: string; commit: string; annotated: boolean; message?: string; tagger?: string; taggerEmail?: string; date?: number } | null; error?: string }>
+    /** Whether the default remote has the tag. It asks the remote: `null` is "could not tell". */
+    isTagOnRemote: (name: string) => Promise<{ pushed: boolean | null; remote: string | null }>
     /** The 1-based row of each hash in the log the graph loads (same refs, same order); absent when no shown ref reaches it. */
     locateInHistory: (hashes: string[], options?: { all?: boolean; refs?: string[]; excludes?: string[] }) => Promise<{ positions: Record<string, number> }>
     compareBranches: (current: string, other: string) => Promise<{ ahead: { hash: string; shortHash: string; message: string }[]; behind: { hash: string; shortHash: string; message: string }[] }>
