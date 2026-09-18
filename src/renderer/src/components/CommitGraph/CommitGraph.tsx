@@ -51,6 +51,12 @@ export interface CommitGraphProps {
    */
   trackingFor?: (branch: string) => { ahead?: number; behind?: number } | null
   /**
+   * The current branch's upstream, as `%D` decorates it (`origin/main`): the
+   * row the `u` key jumps to. Absent when there is none, or the host does not
+   * know it — the key then does nothing.
+   */
+  upstreamRef?: string | null
+  /**
    * The Working Changes row is always there, clean tree or not. It is the way
    * into the staging pane, and a pane nobody can reach is a pane that does not
    * exist. The panel passes this; the desktop keeps its row only when there is
@@ -156,6 +162,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   onOpenPR,
   refsBelow = false,
   trackingFor,
+  upstreamRef = null,
   alwaysShowWip = false,
   onStageAll,
   commits, selectedHash, onSelectCommit, searchQuery, searchHashes, currentBranch,
@@ -230,6 +237,9 @@ export default function CommitGraph(props: CommitGraphProps) {
     const h = commits.find(c => c.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch)))
     return h?.hash ?? commits[0]?.hash
   }, [commits, currentBranch])
+  const upstreamHash = useMemo(
+    () => upstreamRef ? commits.find(c => c.refs.some(r => r === upstreamRef || r.endsWith(' ' + upstreamRef)))?.hash : undefined,
+    [commits, upstreamRef])
   // The working-tree (WIP) node is laid out as a virtual tip sitting on top of
   // HEAD, so the current branch is promoted to its proper lane as soon as there
   // are changes — e.g. main slides to the far left with a vertical dashed line
@@ -466,18 +476,41 @@ export default function CommitGraph(props: CommitGraphProps) {
     setSelAnchor(commit.hash)
     onSelectCommit(commit)
   }
-  // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel.
-  // Skipped while an input/textarea has focus.
+  // Keyboard navigation — ↑/↓ move the selection, Escape closes the panel,
+  // and a plain letter jumps: `h` to HEAD, `u` to its upstream, `w` to the
+  // working changes, Home/End to the ends of the page. Skipped while an
+  // input/textarea has focus.
   useEffect(() => {
+    const JUMPS = new Set(['h', 'u', 'w', 'Home', 'End'])
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Escape') return
+      const jump = JUMPS.has(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Escape' && !jump) return
       const el = document.activeElement as HTMLElement | null
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
-      // Let open modals/menus own the keyboard
+      // Let open modals/menus own the keyboard — this graph's, and anyone
+      // else's: one Escape closes one thing, and a menu the staging pane
+      // opened is a thing.
       if (ctx || drop) return
-      if (document.querySelector('[class$="-overlay"], [class*="-overlay "]')) return
+      if (document.querySelector('[class$="-overlay"], [class*="-overlay "], .ctx-menu, [role="menu"], [role="dialog"], .pdrawer')) return
       if (displayLayout.length === 0) return
       const idx = displayLayout.findIndex(c => c.hash === selectedHash)
+      if (jump) {
+        const target = e.key === 'h' ? headHash
+          : e.key === 'u' ? upstreamHash
+          : e.key === 'w' ? (hasWipNode ? '__WIP__' : headHash)
+          : e.key === 'Home' ? displayLayout[0]?.hash
+          : displayLayout[displayLayout.length - 1]?.hash
+        const commit = target ? displayLayout.find(c => c.hash === target) : undefined
+        if (!commit) return
+        e.preventDefault()
+        if (multiSel.size) setMultiSel(new Set())
+        if (commit.hash === selectedHash) {
+          // Already the selection: only bring it back into view.
+          const body = bodyRef.current
+          if (body) body.scrollTo({ top: Math.max(0, rowTop(commit.row) - body.clientHeight / 2), behavior: 'smooth' })
+        } else onSelectCommit(commit)
+        return
+      }
       if (e.key === 'Escape') {
         // The set goes first; the panel only closes once there is no set.
         if (multiSel.size) { setMultiSel(new Set()); return }
@@ -500,7 +533,7 @@ export default function CommitGraph(props: CommitGraphProps) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight, multiSel])
+  }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight, multiSel, headHash, upstreamHash, hasWipNode])
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
   // The stacked layout pulls everything left (#111 follow-up): the graph
   // starts at 24 instead of 36 — stripe (9) + a breath (2) + node radius

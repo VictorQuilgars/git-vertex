@@ -13,6 +13,8 @@ import { LanguageProvider, useLang } from '../../../src/renderer/src/i18n/Langua
 import { ToastProvider, useToast } from '../../../src/renderer/src/components/Toast/Toast'
 import CompactToolbar from './CompactToolbar'
 import { resolvePanelLayout, clampDetailsHeight, overlayWidth, DETAILS_MIN } from './panelLayout'
+import { planReach } from '../../../src/renderer/src/app/search-reach'
+import { LOG_PAGE } from '../../../src/renderer/src/app/shared'
 import AIReadingTab from './AIReadingTab'
 import SettingsModal from '../../../src/renderer/src/components/SettingsModal/SettingsModal'
 import ThemeGallery from '../../../src/renderer/src/components/ThemeGallery/ThemeGallery'
@@ -116,6 +118,9 @@ function VertexApp() {
   const [compareBaseHash, setCompareBaseHash] = useState<string | null>(null)
   const [repoName, setRepoName] = useState('')
   const [repoPath, setRepoPath] = useState<string>()
+  // The repositories of the workspace: more than one, and the toolbar's name
+  // becomes a picker (the host switches, and repoChanged brings the rest).
+  const [repos, setRepos] = useState<{ path: string; name: string }[]>([])
   // Working Changes is selected on open, so the panel always has two panes:
   // the graph and whatever the selection is. Nothing selected used to mean no
   // right pane at all — which read as a broken panel, and for a clean tree it
@@ -250,6 +255,10 @@ function VertexApp() {
   }, [githubRepo, githubRefreshing, loadGhLists])
 
 
+  // The page the graph loads: one page, grown by a reveal that lands beyond
+  // it (see revealCommit), never shrunk back while the webview lives.
+  const logLimitRef = useRef(LOG_PAGE)
+  const commitsReadyRef = useRef(false)
   const loadRepoData = useCallback(async (silent = false) => {
     if (isLoadingRef.current) { reloadQueued.current = true; return }
     isLoadingRef.current = true
@@ -259,9 +268,9 @@ function VertexApp() {
       // Solo (show one branch) / hide (hide some) drive an explicit refs list,
       // which takes precedence over --all in getLog.
       const logRes = await window.gitAPI.getLog(logOptionsFor({
-        maxCount: 500, all: showAllRef.current, solo: soloRef.current, visibility: hiddenRef.current,
+        maxCount: logLimitRef.current, all: showAllRef.current, solo: soloRef.current, visibility: hiddenRef.current,
       }))
-      if (logRes?.commits) setCommits(logRes.commits)
+      if (logRes?.commits) { setCommits(logRes.commits); commitsReadyRef.current = true }
       if (branchRes?.branches) {
         setBranches(branchRes.branches)
         const cur = branchRes.branches.find((b: BranchInfo) => b.current)
@@ -294,6 +303,10 @@ function VertexApp() {
         if (info?.repoName) setRepoName(info.repoName)
         setRepoPath(info?.repoPath)
       } catch { /* ignore */ }
+      try {
+        const ws = await window.gitAPI.listWorkspaceRepos()
+        setRepos(Array.isArray(ws?.repos) ? ws.repos : [])
+      } catch { /* a single repository, as far as the toolbar knows */ }
       // Both feed the "start a Pull Request" row: no GitHub remote or no known
       // default branch means prIntentFor returns null and no row is offered.
       try {
@@ -812,10 +825,75 @@ function VertexApp() {
     const name = await window.gitAPI.uiPrompt(t('ext.app.tagNameHead'))
     if (name) runOp(t('ext.app.tagCreated'), () => window.gitAPI.createTag(name))
   }, [runOp])
+  // Another repository came on screen: the selection named a row of the
+  // previous one, the set and the search too. Back to the working changes,
+  // the way the panel opens.
+  const seenRepoRef = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (!repoPath) return
+    if (seenRepoRef.current && seenRepoRef.current !== repoPath) {
+      setSelectedCommit(WIP_NODE)
+      setSearchQuery('')
+      setIssueDetail(null)
+    }
+    seenRepoRef.current = repoPath
+  }, [repoPath])
+
   const handleSelectCommitByHash = useCallback((hash: string) => {
     const found = commits.find(c => c.hash === hash || c.hash.startsWith(hash))
     if (found) setSelectedCommit(found)
   }, [commits])
+
+  // ── A commit named from outside: a terminal link, a blame hover, the
+  // palette. Resolved by git (a SHA, a branch, a tag — anything rev-parse
+  // takes), selected when its row is on screen, and when it is not, the
+  // page is grown to reach it the way the extended search reaches a hit —
+  // up to the same limit, past which its position is said instead.
+  const revealing = useRef<string | null>(null)
+  const revealCommit = useCallback(async (ref: string) => {
+    // The first page is still loading: the effect below tries again once it is in.
+    if (!commitsReadyRef.current) { revealing.current = ref; return }
+    let hash = ''
+    try { hash = String(await window.gitAPI.raw(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])).trim() } catch { /* not a commit */ }
+    if (!/^[0-9a-f]{40}$/.test(hash)) { revealing.current = null; showToast(t('ext.app.revealNotFound', ref), 'err'); return }
+    const shown = commits.find(c => c.hash === hash)
+    if (shown) { revealing.current = null; setSelectedCommit(shown); return }
+    // The page was already grown for it and it is still not here: no ref the
+    // graph shows reaches it — a hidden branch, a solo one.
+    if (revealing.current === hash) { revealing.current = null; showToast(t('ext.app.revealUnreached', ref)); return }
+    const opts = logOptionsFor({ maxCount: 0, all: showAllRef.current, solo: soloRef.current, visibility: hiddenRef.current })
+    let positions: Record<string, number> = {}
+    try { positions = (await window.gitAPI.locateInHistory([hash], { all: opts.all, refs: opts.refs, excludes: opts.excludes })).positions } catch { /* unreadable */ }
+    const plan = planReach([hash], new Set(commits.map(c => c.hash)), positions, logLimitRef.current)
+    if (plan.loadTo > logLimitRef.current) {
+      logLimitRef.current = plan.loadTo
+      revealing.current = hash
+      void loadRepoData(true)
+      return
+    }
+    revealing.current = null
+    showToast(plan.beyond.length
+      ? t('ext.app.revealBeyond', plan.beyond[0].position.toLocaleString('en-US'))
+      : t('ext.app.revealUnreached', ref))
+  }, [commits, loadRepoData, showToast, t])
+  const revealRef = useRef(revealCommit)
+  revealRef.current = revealCommit
+  useEffect(() => {
+    const cb = (ref: string) => { void revealRef.current(ref) }
+    window.gitAPI.onRevealCommit(cb)
+    return () => window.gitAPI.offRevealCommit(cb)
+  }, [])
+  // The page arrived, or grew: a reveal that was waiting for it goes again.
+  useEffect(() => {
+    const pending = revealing.current
+    if (pending && commitsReadyRef.current) void revealCommit(pending)
+  }, [commits, revealCommit])
+
+  // What the view's header wears, wherever the view is: the changed-file
+  // count as a badge, the branch as the description.
+  useEffect(() => {
+    void window.gitAPI.panelStatus({ wip: wipCount, branch: currentBranch }).catch(() => {})
+  }, [wipCount, currentBranch])
   const handleToggleSolo = useCallback((name: string) => {
     setSoloBranch(prev => { const next = prev === name ? null : name; soloRef.current = next; return next })
     setTimeout(() => loadRepoData(), 0)
@@ -1323,6 +1401,7 @@ function VertexApp() {
             conflictMode={conflictMode}
             loading={loading}
             onSearchMatches={setSearchMatches}
+            upstreamRef={tracking.upstream ?? null}
             nativeContextMenu
             onNativeMenuTarget={(hash) => window.gitAPI.setLastMenuHash(hash)}
           />
@@ -1394,6 +1473,9 @@ function VertexApp() {
         graphHidden={focusWorking}
         onToggleGraph={compactWorking && !stacked ? () => setGraphHidden(v => !v) : undefined}
         repoName={repoName}
+        repos={repos}
+        repoPath={repoPath}
+        onSwitchRepo={(target) => { void window.gitAPI.setPanelRepo(target) }}
         branch={currentBranch}
         branches={branches}
         loading={loading}

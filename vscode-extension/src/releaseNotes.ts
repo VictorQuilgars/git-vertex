@@ -25,6 +25,21 @@ export const RELEASE_NOTES: Record<string, string> = {
 - Below 640 px the panel **changes shape instead of clipping**: the rail narrows and stays; a rail icon opens its view as a **layer over the graph**, closed by Escape or a press anywhere else; the details go **under the graph** behind a splitter that remembers its height, or replace it with a way back when the column is short too; the toolbar keeps the branch and the sync actions, folds the rest behind **⋯**, and gives the search its own row.
 - A **short panel is flush**: below 340 px of height the cards' gap goes to the staging pane.
 
+### 🔗 The terminal names commits, and they are links
+- A **SHA, a branch, a tag or a range** printed in an integrated terminal is a link: a click shows the commit in the graph, wherever the view lives, or opens the comparison.
+- The blame hover gains **Show in Graph**; **Git Vertex: Show Commit in Graph** in the palette asks for a name. A commit beyond the loaded page is reached by growing the page, the way the extended search does.
+
+### ⌨️ The keyboard reaches the rows that matter
+- In the graph, **h** is HEAD, **u** its upstream, **w** the working changes, **Home** / **End** the ends of the page.
+- **One Escape closes one thing**: a menu open over the graph owns the key before the selection does.
+
+### 🗂️ Several repositories, one panel
+- When the workspace folders belong to more than one repository, the toolbar's name is a **picker**; the choice is remembered per workspace.
+
+### 🏷️ The view's header says what is in it
+- The changed-file count is a **badge** on the view's title and the branch its description — wherever the view is.
+- The **status bar opens the panel**, not the desktop app.
+
 ### 🖱️ The commit menu answers where it was opened
 - With the panel and the editor tab both open, a right-click in one could act in the other. The host follows the pointer now.
 

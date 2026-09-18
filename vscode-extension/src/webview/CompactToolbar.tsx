@@ -27,6 +27,13 @@ interface Props {
    */
   searchRow?: 'always' | 'toggle'
   repoName: string
+  /**
+   * The repositories of the workspace, when it has more than one: the name
+   * becomes a picker. One repository, and the name is just a name.
+   */
+  repos?: { path: string; name: string }[]
+  repoPath?: string
+  onSwitchRepo?: (repoPath: string) => void
   branch: string
   branches: BranchInfo[]
   loading: boolean
@@ -123,6 +130,17 @@ function relTime(d: Date | null, lang: string, t: Translate): string {
 export default function CompactToolbar(p: Props) {
   const { t, lang } = useLang()
   const [branchOpen, setBranchOpen] = useState(false)
+  const [repoOpen, setRepoOpen] = useState(false)
+  const repoRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!repoOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (repoRef.current && !repoRef.current.contains(e.target as Node)) setRepoOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [repoOpen])
+  const manyRepos = (p.repos?.length ?? 0) > 1 && !!p.onSwitchRepo
   const [branchMenu, setBranchMenu] = useState<{ x: number; y: number } | null>(null)
   const [moreMenu, setMoreMenu] = useState<{ x: number; y: number } | null>(null)
   // Narrow + short: the search row is asked for. A query that arrives from
@@ -200,7 +218,33 @@ export default function CompactToolbar(p: Props) {
           <Icon name="panel" size={14} />
         </IconBtn>
       )}
-      {p.repoName && !p.narrow && <span className="gvt-repo">{p.repoName}</span>}
+      {manyRepos ? (
+        /* More than one repository in the workspace: the name is a picker,
+           narrow or not — it is the one thing that says which repository the
+           graph is, and in a narrow column that is not written anywhere else. */
+        <div className="gvt-repo-wrap" ref={repoRef}>
+          <button className="gvt-repo-btn" title={t('gvt.switchRepo')} aria-label={t('gvt.switchRepo')}
+            aria-haspopup="menu" aria-expanded={repoOpen} onClick={() => setRepoOpen(o => !o)}>
+            <Icon name="repo" size={11} />
+            <span className="gvt-repo-name">{p.repoName || '—'}</span>
+            <Icon name="chevronDown" size={8} />
+          </button>
+          {repoOpen && (
+            <div className="gvt-branch-menu" role="menu">
+              {p.repos!.map(r => (
+                <button key={r.path} role="menuitem" className={`gvt-branch-item${r.path === p.repoPath ? ' gvt-branch-item--current' : ''}`}
+                  title={r.path}
+                  onClick={() => { setRepoOpen(false); if (r.path !== p.repoPath) p.onSwitchRepo!(r.path) }}>
+                  <span className="gvt-branch-tick">{r.path === p.repoPath ? '✓' : ''}</span>
+                  <span className="gvt-branch-label">{r.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        p.repoName && !p.narrow && <span className="gvt-repo">{p.repoName}</span>
+      )}
 
       {/* Branch selector */}
       <div className="gvt-branch-wrap" ref={branchRef}>

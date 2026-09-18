@@ -1,7 +1,7 @@
 {
   "name": "git-vertex",
   "displayName": "Git Vertex",
-  "description": "Full Git GUI in the VS Code panel — commit graph, staging, branches, and more.",
+  "description": "Full Git GUI in the VS Code panel \u2014 commit graph, staging, branches, and more.",
   "version": "1.34.0",
   "publisher": "VictorQuilgars",
   "license": "FSL-1.1-MIT",
@@ -107,6 +107,11 @@
         "icon": "$(history)"
       },
       {
+        "command": "gitVertex.revealCommit",
+        "title": "Git Vertex: Show Commit in Graph",
+        "icon": "$(git-commit)"
+      },
+      {
         "command": "gitVertex.toggleLineBlame",
         "title": "Git Vertex: Toggle Line Blame Annotation",
         "icon": "$(git-commit)"
@@ -179,23 +184,23 @@
       },
       {
         "command": "gitVertex.commitMenu.createBranch",
-        "title": "Create Branch Here…"
+        "title": "Create Branch Here\u2026"
       },
       {
         "command": "gitVertex.commitMenu.createTag",
-        "title": "Create Tag Here…"
+        "title": "Create Tag Here\u2026"
       },
       {
         "command": "gitVertex.commitMenu.createWorktree",
-        "title": "Create Worktree Here…"
+        "title": "Create Worktree Here\u2026"
       },
       {
         "command": "gitVertex.commitMenu.modifyFromHere",
-        "title": "Interactive Rebase from Here…"
+        "title": "Interactive Rebase from Here\u2026"
       },
       {
         "command": "gitVertex.commitMenu.reword",
-        "title": "Reword Commit…"
+        "title": "Reword Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.cherryPick",
@@ -203,11 +208,11 @@
       },
       {
         "command": "gitVertex.commitMenu.revert",
-        "title": "Revert Commit…"
+        "title": "Revert Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.drop",
-        "title": "Drop Commit…"
+        "title": "Drop Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.moveUp",
@@ -219,23 +224,23 @@
       },
       {
         "command": "gitVertex.commitMenu.rebaseOnto",
-        "title": "Rebase Current Branch onto Commit…"
+        "title": "Rebase Current Branch onto Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.resetSoft",
-        "title": "Reset Current Branch to Here — Soft (keeps all changes, staged)"
+        "title": "Reset Current Branch to Here \u2014 Soft (keeps all changes, staged)"
       },
       {
         "command": "gitVertex.commitMenu.resetMixed",
-        "title": "Reset Current Branch to Here — Mixed (keeps your working copy, resets the index)"
+        "title": "Reset Current Branch to Here \u2014 Mixed (keeps your working copy, resets the index)"
       },
       {
         "command": "gitVertex.commitMenu.resetHard",
-        "title": "Reset Current Branch to Here — Hard (discards all changes)"
+        "title": "Reset Current Branch to Here \u2014 Hard (discards all changes)"
       },
       {
         "command": "gitVertex.commitMenu.pushToCommit",
-        "title": "Push to Commit…"
+        "title": "Push to Commit\u2026"
       },
       {
         "command": "gitVertex.commitMenu.copyShortHash",
@@ -251,7 +256,7 @@
       },
       {
         "command": "gitVertex.commitMenu.createPatch",
-        "title": "Create Patch…"
+        "title": "Create Patch\u2026"
       },
       {
         "command": "gitVertex.commitMenu.copyPatch",
@@ -642,7 +647,7 @@
       },
       {
         "viewType": "gitVertex.conflictResolver",
-        "displayName": "Git Vertex — Résolution de conflit",
+        "displayName": "Git Vertex \u2014 R\u00e9solution de conflit",
         "selector": [
           {
             "filenamePattern": "*"
@@ -652,7 +657,7 @@
       },
       {
         "viewType": "gitVertex.commitMsgEditor",
-        "displayName": "Git Vertex — Message de commit",
+        "displayName": "Git Vertex \u2014 Message de commit",
         "selector": [
           {
             "filenamePattern": "COMMIT_EDITMSG"
@@ -704,7 +709,7 @@
         },
         "gitVertex.blame.line.format": {
           "type": "string",
-          "default": "${author}, ${ago} • ${message}",
+          "default": "${author}, ${ago} \u2022 ${message}",
           "markdownDescription": "Format of the annotation. Available tokens: `${author}`, `${ago}`, `${date}`, `${message}`, `${hash}`."
         },
         "gitVertex.blame.messageLength": {

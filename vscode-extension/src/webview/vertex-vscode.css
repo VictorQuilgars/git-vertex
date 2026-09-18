@@ -173,6 +173,20 @@
 .gvt-logo { flex-shrink: 0; }
 .gvt-repo { color: var(--text-primary-soft); font-size: 12px; font-weight: 600; margin-left: 4px; }
 
+/* The repository, as a picker when the workspace has several: the branch
+   chip's shape in the neutral colours, since a repository is where you are,
+   not what you do. */
+.gvt-repo-wrap { position: relative; margin-left: 4px; min-width: 0; flex-shrink: 1; }
+.gvt-repo-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; height: 22px; max-width: 100%;
+  background: var(--surface-sunken); border: 1px solid var(--border-muted);
+  border-radius: 20px;
+  color: var(--text-primary-soft); font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.gvt-repo-btn:hover { background: var(--surface-active); color: var(--text-primary); }
+.gvt-repo-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.gvt--narrow .gvt-repo-name { max-width: 80px; }
 .gvt-spring { flex: 1; }
 .gvt-sep { width: 1px; height: 16px; background: var(--border-default); margin: 0 3px; flex-shrink: 0; }
 

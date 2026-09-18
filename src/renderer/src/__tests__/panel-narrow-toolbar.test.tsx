@@ -81,3 +81,37 @@ describe('the narrow toolbar', () => {
     expect(screen.queryByRole('button', { name: /more actions/i })).not.toBeInTheDocument()
   })
 })
+
+describe('the repository picker', () => {
+  const repos = [{ path: '/w/app', name: 'app' }, { path: '/w/lib', name: 'lib' }]
+
+  test('a workspace with several repositories gets a picker that switches', () => {
+    const onSwitchRepo = jest.fn()
+    toolbar({ narrow: false, repoName: 'app', repoPath: '/w/app', repos, onSwitchRepo })
+    fireEvent.click(screen.getByRole('button', { name: /switch repository/i }))
+    const menu = screen.getByRole('menu')
+    expect(menu).toHaveTextContent('app')
+    expect(menu).toHaveTextContent('lib')
+    fireEvent.click(screen.getByRole('menuitem', { name: /lib/i }))
+    expect(onSwitchRepo).toHaveBeenCalledWith('/w/lib')
+  })
+
+  test('picking the repository already on screen switches nothing', () => {
+    const onSwitchRepo = jest.fn()
+    toolbar({ narrow: false, repoName: 'app', repoPath: '/w/app', repos, onSwitchRepo })
+    fireEvent.click(screen.getByRole('button', { name: /switch repository/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /app/i }))
+    expect(onSwitchRepo).not.toHaveBeenCalled()
+  })
+
+  test('the picker is there in the narrow column too, where nothing else names the repository', () => {
+    toolbar({ narrow: true, repoName: 'app', repoPath: '/w/app', repos, onSwitchRepo: jest.fn() })
+    expect(screen.getByRole('button', { name: /switch repository/i })).toHaveTextContent('app')
+  })
+
+  test('one repository is a name, not a control', () => {
+    toolbar({ narrow: false, repoName: 'app', repoPath: '/w/app', repos: repos.slice(0, 1), onSwitchRepo: jest.fn() })
+    expect(screen.queryByRole('button', { name: /switch repository/i })).not.toBeInTheDocument()
+    expect(screen.getByText('app')).toBeInTheDocument()
+  })
+})

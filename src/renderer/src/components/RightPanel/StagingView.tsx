@@ -574,7 +574,11 @@ export function StagingView({ repoPath, onCommitSuccess, showToast, currentBranc
            two things to do with it. It used to say "N file changes on tmp",
            which the branch strip right under it said again. */
         <div className="st2-topbar st2-topbar--panel">
-          <span className="st2-pane-title">{t('graph.wipClean')}</span>
+          {/* "Working Changes" wraps onto two lines under ~340px; the short
+              word is what the graph's row already says of the same thing. */}
+          <span className="st2-pane-title" title={t('graph.wipClean')}>
+            {panelSize.w > 0 && panelSize.w < 340 ? t('panel.wipShort') : t('graph.wipClean')}
+          </span>
           {totalChanged > 0 && (
             <span className="st2-pane-count" title={t('graph.wip', totalChanged)}>
               <Icon name="pencil" size={11} />{totalChanged}

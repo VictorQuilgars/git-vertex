@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { findAppPath, launchApp } from './appLocator'
 import { GitVertexStatusBar } from './statusBar'
+import { findRefLinks, type RefLink } from './terminalLinks'
 import { registerAuthCallback } from './oauthHost'
 import { getGitInfo, getGitDir, getRepoRootForFile } from './gitInfo'
 import { GitVertexViewProvider } from './panel/GitVertexViewProvider'
@@ -17,7 +18,7 @@ import { CommitMsgEditor } from './panel/CommitMsgEditor'
 import { InlineBlameController } from './blame/inlineBlame'
 import { gitEnv, parseGitVersion, isGitVersionAtLeast, MIN_GIT_FOR_CONFLICT_PREDICTION } from './gitService'
 import { BlameCodeLensProvider } from './blame/codeLens'
-import { execSync } from 'child_process'
+import { execFile, execSync } from 'child_process'
 
 let statusBar: GitVertexStatusBar | null = null
 let refreshTimer: NodeJS.Timeout | null = null
@@ -29,6 +30,16 @@ function resolveAppPath(): string | null {
   return custom || findAppPath()
 }
 
+// The repository the panel was switched to, when the workspace has more
+// than one: remembered per workspace, and what the panel opens on next time
+// as long as that repository is still in the workspace.
+let panelRepoChoice: string | null = null
+function chosenWorkspaceRepo(): string | null {
+  if (!panelRepoChoice) return null
+  const folders = vscode.workspace.workspaceFolders ?? []
+  return folders.some(f => getRepoRootForFile(f.uri.fsPath) === panelRepoChoice) ? panelRepoChoice : null
+}
+
 // ── Resolve repo root for current context ─────────────────────
 function resolveRepoRoot(uri?: vscode.Uri): string | null {
   // 1. Explicit URI (context menu on explorer item)
@@ -36,9 +47,14 @@ function resolveRepoRoot(uri?: vscode.Uri): string | null {
 
   // 2. Active text editor
   const editor = vscode.window.activeTextEditor
-  if (editor) return getRepoRootForFile(editor.document.uri.fsPath)
+  if (editor) {
+    const root = getRepoRootForFile(editor.document.uri.fsPath)
+    if (root) return root
+  }
 
-  // 3. First workspace folder
+  // 3. The repository the panel was switched to, then the first workspace folder
+  const chosen = chosenWorkspaceRepo()
+  if (chosen) return chosen
   const folders = vscode.workspace.workspaceFolders
   if (folders && folders.length > 0) return getRepoRootForFile(folders[0].uri.fsPath)
 
@@ -304,6 +320,27 @@ async function showWhatsNewIfUpdated(context: vscode.ExtensionContext): Promise<
   openGitVertexWhatsNewTab(context.extensionUri, context.globalState, note.version, note.notes)
 }
 
+// ── Terminal links ───────────────────────────────────────────────
+// A SHA, a branch, a tag or a range printed in a terminal is a row of the
+// graph or a comparison. terminalLinks.ts finds the spans; this half needs
+// the repository's ref names to tell a branch from a word, and asks git for
+// them at most every ten seconds.
+interface RefTerminalLink extends vscode.TerminalLink { link: RefLink; repo: string }
+const refNamesCache = new Map<string, { at: number; names: Set<string> }>()
+function refNamesFor(repo: string): Promise<Set<string>> {
+  const cached = refNamesCache.get(repo)
+  if (cached && Date.now() - cached.at < 10_000) return Promise.resolve(cached.names)
+  return new Promise(resolve => {
+    execFile('git', ['for-each-ref', '--format=%(refname:short)', 'refs/heads', 'refs/tags', 'refs/remotes'],
+      { cwd: repo, env: gitEnv(), maxBuffer: 4 * 1024 * 1024 }, (err, stdout) => {
+        const names = new Set<string>(['HEAD'])
+        if (!err) for (const line of stdout.split('\n')) { const n = line.trim(); if (n) names.add(n) }
+        refNamesCache.set(repo, { at: Date.now(), names })
+        resolve(names)
+      })
+  })
+}
+
 /** Put the view in the given container and show it there. */
 async function moveView(destinationId: string): Promise<void> {
   try {
@@ -320,7 +357,10 @@ async function moveView(destinationId: string): Promise<void> {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  statusBar = new GitVertexStatusBar('gitVertex.open')
+  // The panel, not the desktop app: the branch in the status bar is the most
+  // visible door to the extension, and it opened something else — something
+  // not always installed.
+  statusBar = new GitVertexStatusBar('gitVertex.openPanel')
 
   // Where installed themes live. Global rather than per-workspace: a palette is
   // a property of the person, not of the repository they happen to have open.
@@ -337,6 +377,30 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Create the WebviewViewProvider for the bottom panel
   const provider = new GitVertexViewProvider(context.extensionUri, context.globalState)
+  panelRepoChoice = context.workspaceState.get<string>('gvPanelRepo') ?? null
+  /** Bring the view forward, wherever it is, and show the commit in it. */
+  const revealInPanel = async (ref: string): Promise<void> => {
+    await vscode.commands.executeCommand('gitVertex.graphView.focus')
+    provider.reveal(ref)
+  }
+  const terminalLinks: vscode.TerminalLinkProvider<RefTerminalLink> = {
+    async provideTerminalLinks(ctx) {
+      const repo = resolveRepoRoot()
+      if (!repo) return []
+      const names = await refNamesFor(repo)
+      return findRefLinks(ctx.line, n => names.has(n)).map(link => ({
+        startIndex: link.start,
+        length: link.length,
+        tooltip: link.kind === 'range' ? 'Compare in Git Vertex' : 'Show in Git Vertex',
+        link,
+        repo,
+      }))
+    },
+    handleTerminalLink(l) {
+      if (l.link.kind === 'range') openGitVertexCompareTab(context.extensionUri, context.globalState, l.repo, l.link.from, l.link.to)
+      else void revealInPanel(l.link.text)
+    },
+  }
 
   // Register the provider (panel view)
   context.subscriptions.push(
@@ -397,6 +461,18 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.languages.registerCodeLensProvider({ scheme: 'file' }, codeLens),
   )
 
+  // The panel switched repositories: everything that follows the panel's
+  // repository follows it there, and the choice outlives the window.
+  provider.onSwitchRepo = root => {
+    panelRepoChoice = root
+    void context.workspaceState.update('gvPanelRepo', root)
+    provider.setRepo(root)
+    setEditorRepo(root)
+    setupRebaseWatch(context, root)
+    blame.watch(root)
+    refreshStatusBar()
+  }
+
   // Resolve initial repo and inject into provider
   const repoRoot = resolveRepoRoot()
   if (repoRoot) {
@@ -436,6 +512,16 @@ export function activate(context: vscode.ExtensionContext): void {
     // for them. The destination is the container declared for it in
     // package.json — the panel one, or the activity-bar one that exists for
     // exactly this and is empty (so invisible) until the view is put there.
+    // A commit named from outside the panel — a blame hover, a terminal
+    // link, the palette — is shown in the graph: selected, scrolled to, the
+    // history grown to reach it when it is beyond the page.
+    vscode.commands.registerCommand('gitVertex.revealCommit', async (ref?: string) => {
+      const target = typeof ref === 'string' && ref
+        ? ref
+        : await vscode.window.showInputBox({ prompt: 'Commit, branch or tag to show in the graph', placeHolder: 'abc1234, main, v1.2.0' })
+      if (target?.trim()) await revealInPanel(target.trim())
+    }),
+    vscode.window.registerTerminalLinkProvider(terminalLinks),
     vscode.commands.registerCommand('gitVertex.moveToSideBar', () => moveView('workbench.view.extension.git-vertex-sidebar')),
     vscode.commands.registerCommand('gitVertex.moveToPanel', () => moveView('workbench.view.extension.git-vertex')),
     vscode.commands.registerCommand('gitVertex.openPanel', () => {

@@ -26,6 +26,11 @@ const listeners: Record<string, Array<() => void>> = {
 // post here identifying which action was picked — see commitMenuActionListeners below.
 type MenuActionCb = (action: string, hash: string) => void
 let menuActionListeners: MenuActionCb[] = []
+// A commit the host wants shown — a terminal link, a blame hover, the Show
+// Commit in Graph command. Named by whatever the user clicked: a SHA, a
+// branch, a tag; the app resolves it.
+type RevealCb = (ref: string) => void
+let revealListeners: RevealCb[] = []
 
 window.addEventListener('message', (e: MessageEvent) => {
   const msg = e.data
@@ -48,6 +53,11 @@ window.addEventListener('message', (e: MessageEvent) => {
 
   if (msg.type === 'menuAction') {
     menuActionListeners.slice().forEach(cb => { try { cb(msg.action, msg.hash) } catch { /* ignore */ } })
+    return
+  }
+
+  if (msg.type === 'revealCommit') {
+    revealListeners.slice().forEach(cb => { try { cb(msg.ref) } catch { /* ignore */ } })
   }
 })
 
@@ -90,6 +100,8 @@ const overrides: Record<string, (...a: any[]) => any> = {
   },
   onMenuAction: (cb: MenuActionCb) => { menuActionListeners.push(cb) },
   offMenuAction: (cb: MenuActionCb) => { menuActionListeners = menuActionListeners.filter(f => f !== cb) },
+  onRevealCommit: (cb: RevealCb) => { revealListeners.push(cb) },
+  offRevealCommit: (cb: RevealCb) => { revealListeners = revealListeners.filter(f => f !== cb) },
 }
 
 // Proxy: any unknown property becomes an async host call; on*/off* event-style

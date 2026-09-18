@@ -13,6 +13,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
+import { getRepoRootForFile } from '../gitInfo'
 import { GitService, gitEnv, parseGitVersion } from '../gitService'
 import { buildToolInvocation, findAvailableKeyPath, safeTempFileName } from '../hostTools'
 import { findAppPath, launchApp } from '../appLocator'
@@ -45,6 +46,7 @@ import { BUILT_IN_THEME_IDS } from '../../../src/main/theme-validate'
 import { describeTuning, maybeTuneRepository, type TuningRunner } from '../../../src/main/repo-tuning'
 
 interface GitApiRequest { type: 'gitApi'; id: number; method: string; args: any[] }
+export interface PanelStatus { wip: number; branch: string }
 
 // ── Git's own caches, when the user asked for them ───────────────────────────
 //
@@ -300,6 +302,25 @@ export class GitVertexHost implements vscode.Disposable {
   }
 
   public get repoPath(): string | undefined { return this._repoPath }
+
+  /** Show a commit — a SHA, a branch, a tag — in this webview's graph. */
+  public postReveal(ref: string): void {
+    this._webview.postMessage({ type: 'revealCommit', ref })
+  }
+
+  /**
+   * What the panel says about the repository on screen, each time it
+   * reloads: the view's header wears it (a badge with the changed-file count,
+   * the branch as the description) where the webview itself cannot reach.
+   */
+  public onStatus?: (status: PanelStatus) => void
+
+  /**
+   * The panel asked for another repository of the workspace. Answered by
+   * whoever owns the choice (extension.ts): the watchers, the editor tab and
+   * the status bar follow the panel there.
+   */
+  public onSwitchRepo?: (repoPath: string) => void
 
   // ── FS watcher → broadcast change events ──────────────────────
   private _setupWatcher(repoPath: string): void {
@@ -647,6 +668,27 @@ export class GitVertexHost implements vscode.Disposable {
       }
       case 'setLastMenuHash': {
         lastCommitMenuHash = args[0]
+        return { success: true }
+      }
+      case 'listWorkspaceRepos': {
+        // One entry per workspace folder that is inside a repository, the
+        // repository named after its root — two folders of one repository
+        // are one entry.
+        const seen = new Map<string, { path: string; name: string }>()
+        for (const folder of vscode.workspace.workspaceFolders ?? []) {
+          const root = getRepoRootForFile(folder.uri.fsPath)
+          if (root && !seen.has(root)) seen.set(root, { path: root, name: path.basename(root) })
+        }
+        return { repos: [...seen.values()], current: this._repoPath }
+      }
+      case 'setPanelRepo': {
+        const target = String(args[0] ?? '')
+        if (target && target !== this._repoPath) this.onSwitchRepo?.(target)
+        return { success: true }
+      }
+      case 'panelStatus': {
+        const status = args[0] as PanelStatus | undefined
+        if (status) this.onStatus?.({ wip: Number(status.wip) || 0, branch: String(status.branch ?? '') })
         return { success: true }
       }
       case 'savePatchFile': {
