@@ -139,6 +139,17 @@ export interface SidebarProps {
   /** The author the graph is filtered to, if any — the row reads as pressed. */
   authorFilter?: string | null
   /**
+   * What the overview's home card acts on: the same state and actions the
+   * staging pane's "next steps" run on. Given, and the card shows the one
+   * state action that is true (publish / pull / push), the pull request or
+   * the door to one, and the "start" row.
+   */
+  home?: { state: import('../RightPanel/WorkingChangesEmpty').NextStepsState; actions: import('../RightPanel/WorkingChangesEmpty').NextStepsActions }
+  /** Where the current branch stands against the branch it will merge into. */
+  mergeTarget?: { name: string; ahead: number; behind: number } | null
+  /** Pull requests waiting on the user, counted by what they wait for. */
+  launchpad?: { needsReview: number; changesRequested: number; approved: number } | null
+  /**
    * Which of the two stacks is showing, held by the host: generating a
    * changelog anywhere in the app brings this one into view, and it cannot do
    * that if the state lives in here.

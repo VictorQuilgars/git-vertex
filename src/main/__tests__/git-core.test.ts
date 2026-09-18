@@ -379,8 +379,15 @@ describe('git-core — against a real repository, on both hosts', () => {
 // Pure parsing, so no repository: what matters here is the shapes git can
 // hand back, several of which broke the porcelain parse this replaced.
 describe('parseBranchRows', () => {
-  const line = (head: string, refname: string, commit: string, track: string, subject: string) =>
-    [head, refname, commit, track, subject].join('|')
+  const line = (head: string, refname: string, commit: string, track: string, subject: string, date = '1758153600') =>
+    [head, refname, commit, track, date, subject].join('|')
+
+  test('the tip\'s date rides along, and an unreadable one is simply absent', () => {
+    const [dated] = core.parseBranchRows(line(' ', 'refs/heads/a', 'aaa', '', 's', '1758153600'))
+    expect(dated.date).toBe(1758153600)
+    const [undated] = core.parseBranchRows(line(' ', 'refs/heads/b', 'bbb', '', 's', ''))
+    expect(undated.date).toBeUndefined()
+  })
 
   test('locals and remotes keep the names the UI has always used', () => {
     const rows = core.parseBranchRows([

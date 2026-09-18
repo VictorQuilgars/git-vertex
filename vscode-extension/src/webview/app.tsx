@@ -749,6 +749,38 @@ function VertexApp() {
   // branch, where requests land rather than start.
   const currentBranchPR = prIntentFor(currentBranch)
 
+  // Where the current branch stands against the branch it will merge into —
+  // the default branch, when there is one and this is not it. One compare
+  // per reload; the overview's card reads it.
+  const [mergeTarget, setMergeTarget] = useState<{ name: string; ahead: number; behind: number } | null>(null)
+  useEffect(() => {
+    if (!defaultBranch || !currentBranch || currentBranch === defaultBranch) { setMergeTarget(null); return }
+    let stale = false
+    window.gitAPI.compareBranches(currentBranch, defaultBranch)
+      .then(r => { if (!stale) setMergeTarget({ name: defaultBranch, ahead: r?.ahead?.length ?? 0, behind: r?.behind?.length ?? 0 }) })
+      .catch(() => { if (!stale) setMergeTarget(null) })
+    return () => { stale = true }
+  }, [currentBranch, defaultBranch, commits])
+
+  // What waits on the user across the repository's pull requests, counted by
+  // what it waits for — three searches the API already answers, cached with
+  // the lists' own rhythm.
+  const [launchpad, setLaunchpad] = useState<{ needsReview: number; changesRequested: number; approved: number } | null>(null)
+  useEffect(() => {
+    if (!githubRepo) { setLaunchpad(null); return }
+    let stale = false
+    const scope = `repo:${githubRepo.owner}/${githubRepo.repo} is:pr is:open`
+    const count = (q: string) => (window.gitAPI as any).githubSearchIssues?.(q).then((r: any) => Number(r?.total ?? 0) || 0).catch(() => 0)
+    Promise.all([
+      count(`${scope} review-requested:@me`),
+      count(`${scope} author:@me review:changes_requested`),
+      count(`${scope} author:@me review:approved`),
+    ]).then(([needsReview, changesRequested, approved]) => {
+      if (!stale) setLaunchpad({ needsReview, changesRequested, approved })
+    })
+    return () => { stale = true }
+  }, [githubRepo, githubRefreshTick])
+
   // Dispatches actions chosen from the NATIVE commit context menu (see
   // package.json contributes.menus["webview/context"] + extension.ts) — the
   // host posts { action, hash } here after the user picks an item, and we
@@ -1298,6 +1330,9 @@ function VertexApp() {
             onSelectCommit={handleSelectCommitByHash}
             onFilterAuthor={(author) => setSearchQuery(author ? `author:${author}` : '')}
             authorFilter={searchQuery.startsWith('author:') ? searchQuery.slice(7) : null}
+            home={emptyState}
+            mergeTarget={mergeTarget}
+            launchpad={launchpad}
             onCompareBranch={(name: string) => window.gitAPI.openCompare(currentBranch, name)}
             soloBranch={soloBranch}
             visibility={visibility}

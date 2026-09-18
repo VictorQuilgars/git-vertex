@@ -36,6 +36,10 @@ export const RELEASE_NOTES: Record<string, string> = {
 ### 📅 The graph says when
 - A band at the top of the graph names the **stretch of time** the first visible row is in, and a hairline marks where one stretch ends. *Date bands* in the header's menu turns it off.
 
+### 🏠 The overview is a home
+- The current branch's card carries its **issue**, its **pull request** (or the door to one), where it stands against **the branch it will merge into**, and **the one state action that is true** — publish, pull or push.
+- **Recent**: the branches whose tip moved within a day, a week or a month, newest first; **Waiting on you**: pull requests needing your review, with changes requested, approved; then what to **start**.
+
 ### 🧭 A history that follows
 - The **File History** tab gains **Follow editor**: pressed, it shows the history of whatever file the editor moves to.
 
@@ -43,7 +47,7 @@ export const RELEASE_NOTES: Record<string, string> = {
 - A **Contributors** section in the overview; a row narrows the graph to one author. The search field accepts **author:name**.
 
 ### 🚪 No repository: the doors
-- A panel with nothing to show names the situation and offers **Open Folder…**, **Clone Repository…** and **Initialize Repository** — VS Code's own.
+- A panel with nothing to show names the situation and offers what fits it — **Initialize Repository** for an open folder, **Open Folder…** / **Clone Repository…** when none is — VS Code's own.
 
 ### ⏮️ Revisions, one step at a time
 - From the editor's title bar, **Open Changes with Previous / Next Revision** walk a file's own history; a revision document offers **Show Revision Commit in Graph**.
