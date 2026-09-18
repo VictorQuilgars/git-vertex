@@ -5,6 +5,9 @@
 ### Added
 - **The blame heatmap takes its two colours from the settings.** The gutter bar ran from an orange to a blue written in the code, and the gutter takes a drawn icon rather than a theme colour — so a light theme, a colour-blind reader or a palette that fights orange all got the same two. `gitVertex.blame.heatmap.hotColor` and `gitVertex.blame.heatmap.coldColor` are the ends now, as `#RRGGBB`, defaulting to the colours it had. Changing either repaints an open annotation at once; a value that is not `#RRGGBB` falls back to the default and says so, once. (#250)
 
+### Fixed
+- **A short panel has no minimap.** The strip of activity above the panes is forty pixels and a handle, and in a panel 194 px tall that was a quarter of it: the staging pane's list of files was left one row high, under a form that had all the room. Below 340 px of height — where the panel already goes flush — the strip steps aside, and comes back with the height. The panel's geometry check caught it, and had been failing since the strip arrived: it read its splitters by position, and the strip's handle had moved every position by one.
+
 ## 1.35.0
 
 ### Added

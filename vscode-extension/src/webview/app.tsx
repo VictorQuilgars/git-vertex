@@ -1602,8 +1602,10 @@ function VertexApp() {
         onCreatePR={handleStartPR}
       />
       {/* The minimap's block: under the toolbar, above the three panes and as
-          wide as they are; empty (and gone) while the strip is hidden. */}
-      <div className="cg-mm-slot" ref={setMinimapSlot} style={{ display: graphOffScreen ? 'none' : undefined }} />
+          wide as they are; empty (and gone) while the strip is hidden. A short
+          panel has no height to give it: at 194 px the strip and its handle took
+          a quarter of the panel, and the list of files under it was one row tall. */}
+      <div className="cg-mm-slot" ref={setMinimapSlot} style={{ display: graphOffScreen || short ? 'none' : undefined }} />
       {/* The theme builder's drawer (#242): over everything, the panel as its preview. */}
       <ThemeBuilder />
       {settingsOpen && (

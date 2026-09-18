@@ -20,6 +20,9 @@ export const RELEASE_NOTES: Record<string, string> = {
 
 ### 🌡️ The heatmap's colours are yours
 - The blame heatmap runs between **two colours from the settings** — \`gitVertex.blame.heatmap.hotColor\` and \`coldColor\`, as \`#RRGGBB\` — instead of an orange and a blue no theme could reach. An open annotation repaints as you change them.
+
+### 📏 A short panel has no minimap
+- Below 340 px of height the strip of activity **steps aside**: in a 194 px panel it took a quarter of the height and left the list of files one row tall.
 `,
   '1.35.0': `## What's new in 1.35.0
 
