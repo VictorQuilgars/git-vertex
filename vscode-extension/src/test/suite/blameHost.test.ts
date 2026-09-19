@@ -61,6 +61,7 @@ suite('blame — extension host wiring', () => {
   test('blame settings expose their defaults', () => {
     const cfg = vscode.workspace.getConfiguration('gitVertex')
     assert.strictEqual(cfg.get('blame.line.enabled'), true)
+    for (const feature of ['groupRuns', 'avatars', 'highlightCommit']) assert.strictEqual(cfg.get(`blame.file.${feature}`), true)
     assert.strictEqual(cfg.get('blame.messageLength'), 60)
     assert.strictEqual(cfg.get('blame.heatmap.ageThresholdDays'), 90)
     assert.strictEqual(cfg.get('blame.heatmap.hotColor'), '#F66A0A')
@@ -82,13 +83,61 @@ suite('blame — extension host wiring', () => {
   })
 
   test('rendering annotations does not throw, in either mode', async () => {
-    const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.fsPath === document.uri.fsPath)
-    assert.ok(editor, 'Expected the test file to be visible')
+    const editor = await vscode.window.showTextDocument(document)
     await controller.render(editor)
     controller.toggleFileBlame(editor)
     await controller.render(editor)
     controller.toggleFileBlame(editor)
     await controller.render(editor)
+  })
+
+  test('file labels, cursor highlight and each off switch reach editor decorations', async () => {
+    const live = await vscode.window.showTextDocument(document)
+    const cfg = vscode.workspace.getConfiguration('gitVertex')
+    const keys = ['groupRuns', 'avatars', 'highlightCommit'].map(k => `blame.file.${k}`)
+    const previous = keys.map(key => cfg.inspect(key)?.globalValue)
+    const decorations = new Map<vscode.TextEditorDecorationType, readonly any[]>()
+    // VS Code freezes its editor object. A facade forwards to the real editor
+    // and records what the controller sent without patching the host API.
+    const editor = {
+      document,
+      get selection() { return live.selection },
+      get viewColumn() { return live.viewColumn },
+      setDecorations(type: vscode.TextEditorDecorationType, values: readonly vscode.DecorationOptions[]) {
+        decorations.set(type, values)
+        live.setDecorations(type, values)
+      },
+    } as vscode.TextEditor
+    const internals = controller as any
+    const getAvatar = internals.avatars.get
+    internals.avatars.get = () => null
+    try {
+      for (const key of keys) await cfg.update(key, true, vscode.ConfigurationTarget.Global)
+      live.selection = new vscode.Selection(0, 0, 0, 0)
+      controller.toggleFileBlame(editor)
+      await controller.render(editor)
+      const annotations = () => decorations.get(internals.fileDecoration) ?? []
+      assert.deepStrictEqual(annotations().map(d => d.renderOptions.after.contentText === '│'), [false, true, true])
+      assert.strictEqual(annotations()[0].renderOptions.before.contentText, 'AD')
+      assert.strictEqual((decorations.get(internals.commitDecoration) ?? []).length, 3)
+      // The trailing empty line has no blame commit.
+      live.selection = new vscode.Selection(3, 0, 3, 0)
+      await controller.render(editor)
+      assert.strictEqual((decorations.get(internals.commitDecoration) ?? []).length, 0)
+      live.selection = new vscode.Selection(0, 0, 0, 0)
+      for (const key of keys) await cfg.update(key, false, vscode.ConfigurationTarget.Global)
+      await controller.render(editor)
+      assert.ok(annotations().every(d => d.renderOptions.after.contentText !== '│'))
+      assert.ok(annotations().every(d => d.renderOptions.before === undefined))
+      assert.strictEqual((decorations.get(internals.commitDecoration) ?? []).length, 0)
+      controller.clearFileBlame(editor)
+      await controller.render(editor)
+      assert.strictEqual(annotations().length, 0)
+    } finally {
+      controller.clearFileBlame(editor)
+      for (let i = 0; i < keys.length; i++) await cfg.update(keys[i], previous[i], vscode.ConfigurationTarget.Global)
+      internals.avatars.get = getAvatar
+    }
   })
 
   test('toggling line blame flips its state', () => {
