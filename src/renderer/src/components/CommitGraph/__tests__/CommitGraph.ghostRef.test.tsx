@@ -132,3 +132,23 @@ describe('the ghost ref — the nearest branch that holds the commit', () => {
     expect(within(row('base').querySelector('.cg-refs-chips--ghost') as HTMLElement).queryByText('feat')).toBeNull()
   })
 })
+
+// The panel's stacked rows: the ghost's pill held its width on every row
+// without a ref — invisible, a hole before the sha, and the author cut short
+// for it. It holds none now: the sha leads the line, and the ghost comes after
+// the author, where the stylesheet shows it on hover and selection.
+describe('the ghost in the stacked rows', () => {
+  test('it follows the sha and the author instead of holding a place before them', async () => {
+    render(null, { refsBelow: true })
+    await screen.findByText('below the tip')
+    const meta = row('below the tip').querySelector('.cg-row-meta')!
+    expect([...meta.children].map(c => c.className.split(' ')[0]))
+      .toEqual(['cg-meta-sha', 'cg-meta-author', 'cg-meta-refs', 'cg-meta-date'])
+    const ghost = meta.querySelector('.cg-meta-refs--ghost')!
+    expect(ghost.querySelector('.mchip--ghost')).toBeTruthy()
+    expect(ghost).toHaveTextContent('main')
+    // the tip's own pill still leads its line
+    const tipMeta = row('tip').querySelector('.cg-row-meta')!
+    expect(tipMeta.firstElementChild!.className).toBe('cg-meta-refs')
+  })
+})

@@ -124,7 +124,46 @@ describe('MessageChip — what it renders', () => {
     const { container } = render(
       <MessageChip segments={[{ kind: 'branch', label: 'main' }]} refsHidden={3} />)
     expect(screen.getByText('+3')).toBeInTheDocument()
-    expect(container.querySelectorAll('.mchip-seg')).toHaveLength(1)
+    expect(container.querySelectorAll('.mchip > .mchip-seg')).toHaveLength(1)
+  })
+
+  // A hover reads the whole pill: a copy of it laid over the row, every name
+  // whole. Its words are generated content, so each name is in the document
+  // once — a find, a screen reader and a test meet it one time.
+  test('the hover copy says every name, without writing any of them twice', () => {
+    const { container } = render(<MessageChip refsHidden={2} segments={[
+      { kind: 'branch', label: 'feat/a-very-long-branch-name' },
+      { kind: 'remote', label: 'origin', collapsible: true, detail: '↑1' },
+    ]} />)
+    const copy = container.querySelector('.mchip-expand')!
+    expect(copy.getAttribute('aria-hidden')).toBe('true')
+    expect([...copy.querySelectorAll('[data-label]')].map(e => e.getAttribute('data-label')))
+      .toEqual(['feat/a-very-long-branch-name', 'origin', '↑1', '+2'])
+    expect(copy.textContent!.trim()).toBe('')
+    expect(screen.getAllByText('feat/a-very-long-branch-name')).toHaveLength(1)
+    expect(screen.getAllByText('+2')).toHaveLength(1)
+    // nothing in the copy is collapsed: it is where the collapsed names are read
+    expect(copy.querySelectorAll('.mchip-collapsible')).toHaveLength(0)
+  })
+
+  // The copy covers the pill while it is shown: a segment only the pill had
+  // could never be clicked.
+  test('the copy answers a click the way the pill does', () => {
+    const onClick = jest.fn()
+    const { container } = render(<MessageChip segments={[{ kind: 'branch', label: 'main', onClick }]} />)
+    fireEvent.click(container.querySelector('.mchip-expand .mchip-seg')!)
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  // In the list of the refs a +N stands for there is room: everything said.
+  test('expanded, nothing is collapsed and there is no copy', () => {
+    const { container } = render(<MessageChip expanded segments={[
+      { kind: 'branch', label: 'feat/x' },
+      { kind: 'remote', label: 'origin', collapsible: true },
+    ]} />)
+    expect(container.querySelector('.mchip--expanded')).not.toBeNull()
+    expect(container.querySelector('.mchip-expand')).toBeNull()
+    expect(container.querySelectorAll('.mchip-collapsible')).toHaveLength(0)
   })
 
   test('nothing to say is nothing drawn', () => {
@@ -148,7 +187,7 @@ describe('the two layouts are decided by the host', () => {
   })
 
   test('the graph overlay is not offset by a column that is not drawn', () => {
-    expect(src).toContain('left: refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW')
+    expect(src).toContain('left: refsBelow ? 0 : refsColW')
   })
 
   // It is a prop the panel passes, never a setting: two shapes decided by how
@@ -186,17 +225,25 @@ describe('the stacked row', () => {
     expect(src).toContain('displayLayout.map(() => refsBelow)')
   })
 
-  // Two stacked rows read as one four-line block without it: the gap between one
-  // commit's second line and the next commit's first is the same as the gap
-  // inside a single commit.
-  test('rows are separated by a line', () => {
-    expect(css).toMatch(/\.cg-row--stacked \{[^}]*border-bottom/)
+  // Two stacked rows read as one four-line block without a seam: the band
+  // leaves a pixel of ground above and below, and no hairline draws a grid.
+  test('rows are separated by the ground the band leaves', () => {
+    expect(css).toMatch(/\.cg-row--stacked \{\n  border-bottom: none/)
+    expect(css).toMatch(/\.cg-row--stacked::before \{[^}]*inset: 1px 0/)
   })
 
-  // The stripe is the lane's colour applied to the commit. Stopping at the
-  // bullet's height left the row looking half-coloured.
-  test('the colour stripe spans the whole row, second line included', () => {
-    expect(css).toMatch(/\.cg-row--stacked \.cg-color-bar \{[^}]*align-self: stretch/)
+  // The reference's list row has no stripe: the lane's colour is the band,
+  // born at the node — a stripe beside it was a second bar at the edge, next
+  // to the role marks' own.
+  test('no stripe: the colour is a band from the node to the end of the lanes', () => {
+    expect(src).toContain('{!refsBelow && <div className="cg-color-bar"')
+    expect(css).toMatch(/\.cg-row--stacked::before \{[\s\S]*?transparent var\(--cg-node-x\)[\s\S]*?var\(--cg-band-edge\)/)
+    expect(src).toContain("'--cg-node-x': `${svgPadL + commit.lane * laneW}px`")
+  })
+
+  // The two lines are one block, centred on the row like the avatar beside it.
+  test('the message and its second line are one block, centred on the row', () => {
+    expect(css).toMatch(/\.cg-col-msg--stacked \{[^}]*justify-content: center/)
   })
 
   test('the date is pushed to the right edge, where a date is looked for', () => {
@@ -219,14 +266,15 @@ describe('the stacked row, after the screenshots', () => {
     expect(css).toMatch(/\.cg-row--stacked \{ z-index: 1; \}/)
   })
 
-  // Flush against the panel edge the stripe merged with the sidebar junction —
-  // the one place a 3px line cannot be seen.
-  test('the stripe steps in from the edge, and the SVG steps with it', () => {
-    expect(css).toMatch(/\.cg-row--stacked \.cg-color-bar \{[^}]*margin-left: 4px/)
+  // The lanes start at the row's own edge, 15px apart — lane 0's centre on a
+  // whole pixel, so a 2px line is drawn sharp.
+  test('the lanes start at the row\'s edge, on the reference\'s spacing', () => {
     // The geometry constants live with the row parts, not the graph itself.
     const parts = require('fs').readFileSync(
       'src/renderer/src/components/CommitGraph/graph-parts.tsx', 'utf8')
-    expect(parts).toContain('const STRIPE_INSET = 4')
+    expect(parts).toContain('export const STACKED_LANE_W = 15')
+    expect(parts).toContain('export const STACKED_PAD_L  = 16')
+    expect(src).toContain('const svgPadL = refsBelow ? STACKED_PAD_L : SVG_PAD_L')
   })
 
   // The band's right-edge bar and the chip connector both pointed at things the
@@ -237,15 +285,11 @@ describe('the stacked row, after the screenshots', () => {
     expect(gated).toBeGreaterThanOrEqual(2)
   })
 
-  test('the cell wears the wash; the seam is the ground itself', () => {
-    // The row's ground is a fade of its branch's colour, born beside the
-    // bullet and gone before the message ends; the separator is the page's
-    // own ground showing through the one pixel the wash does not paint. The
-    // full-width hairlines stand down so nothing else draws a grid.
-    expect(css).toMatch(/\.cg-row--stacked \{\n  border-bottom: none/)
+  test('the band is painted under the row\'s content, over its grounds', () => {
+    // Behind the text, never over it; the hover and selection grounds stay
+    // flat underneath. The full-width hairlines stand down.
+    expect(css).toMatch(/\.cg-row--stacked::before \{[^}]*z-index: -1/)
     expect(css).toMatch(/\.cg-row--stacked:not\(\.cg-selected\) \{ box-shadow: none/)
-    expect(css).toMatch(/\.cg-row--stacked \{[\s\S]{0,200}linear-gradient\(to right,[\s\S]{0,80}var\(--cg-row-color\)/)
-    expect(css).toMatch(/background-size: 100% calc\(100% - 2px\)/)
   })
 
   test('the checked-out branch is the one filled chip', () => {

@@ -24,7 +24,7 @@ import type { RefTarget } from '../RefCard/ref-card-model'
 import { commitMatches, parseSearchQuery, textMatches } from '../../utils/searchQuery'
 import { linkifyIssues } from '../IssueLink/IssueLink'
 import { parseAutolinks } from '../../utils/autolinks'
-import { COLOR_BAR_W, STRIPE_INSET, LANE_WIDTH, NODE_RADIUS, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
+import { LANE_WIDTH, NODE_RADIUS, DOT_RADIUS, STACKED_LANE_W, STACKED_PAD_L, STACKED_GUTTER_END, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
 import { useGraphMenus } from './graph-menus'
 import './CommitGraph.css'
 
@@ -401,11 +401,18 @@ export default function CommitGraph(props: CommitGraphProps) {
     if (!refExpand) return
     const off = () => setRefExpand(null)
     const onMove = (e: MouseEvent) => {
-      const chip = document.querySelector('.cg-refs-chips--open')
+      // The column's chip, or the stacked row's pill — and the copy of the
+      // pill a hover lays over the row, which is wider than the pill itself.
+      const chip = document.querySelector('.cg-refs-chips--open, .cg-meta-refs--open')
+      const copy = document.querySelector('.cg-meta-refs--open .mchip-expand')
       const panel = document.querySelector('.ref-expansion-popup')
       const peek = document.querySelector('.ref-peek')
       const rects = [chip, panel, peek].filter((el): el is Element => !!el).map(el => el.getBoundingClientRect())
       if (rects.length === 0) { off(); return }
+      // The copy is only drawn while the pill is hovered: undrawn, it has no
+      // box, and its 0,0 would stretch this one to the corner of the window.
+      const copyRect = copy?.getBoundingClientRect()
+      if (copyRect && (copyRect.width > 0 || copyRect.height > 0)) rects.push(copyRect)
       const pad = 8
       const box = {
         left: Math.min(...rects.map(r => r.left)) - pad, right: Math.max(...rects.map(r => r.right)) + pad,
@@ -816,13 +823,15 @@ export default function CommitGraph(props: CommitGraphProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [displayLayout, selectedHash, onSelectCommit, ctx, drop, rowTop, rowHeight, multiSel, headHash, upstreamHash, targetHash, upstreamRef, mergeTargetRef, onRevealRef, hasWipNode, finderOpen, goToRow, t])
   const maxLane = useMemo(() => displayLayout.reduce((m, c) => Math.max(m, c.lane), 0), [displayLayout])
-  // The stacked layout pulls everything left (#111 follow-up): the graph
-  // starts at 24 instead of 36 — stripe (9) + a breath (2) + node radius
-  // (13), zero slack — and its lanes sit 16 apart instead of 22, the
-  // reference's proportion of big avatars on tight rails. The classic
-  // columns keep both constants.
-  const svgPadL = refsBelow ? 24 : SVG_PAD_L
-  const laneW = refsBelow ? 16 : LANE_WIDTH
+  // The stacked layout is the reference's list row: its lanes start at the
+  // row's own edge and sit 15 apart (graph-parts, STACKED_*) — big avatars on
+  // tight rails. The classic columns keep their constants.
+  const svgPadL = refsBelow ? STACKED_PAD_L : SVG_PAD_L
+  const laneW = refsBelow ? STACKED_LANE_W : LANE_WIDTH
+  /** How big a row's node is drawn — a mark reaching toward it stops at its edge. */
+  const nodeRadius = useCallback((c: LayoutCommit) =>
+    c.hash !== WIP_HASH && (c.parents.length >= 2 || compactColumns) ? DOT_RADIUS : NODE_RADIUS,
+  [compactColumns])
   const svgW = Math.max(svgPadL + (maxLane + 1) * laneW + SVG_PAD_R, 48)
   const svgH = rowTops[displayLayout.length] ?? displayLayout.length * rowH
   // The stacked text is RAGGED on purpose (at Victor's call): each row's text
@@ -1188,6 +1197,15 @@ export default function CommitGraph(props: CommitGraphProps) {
       setBranchCtx({ x: e.clientX, y: e.clientY, pref })
     }
   }, [])
+  /** A stacked row's pill for one ref — the row's own, or one its "+N" lists. */
+  const pillSegments = useCallback((pref: ProcessedRef, commit: LayoutCommit, ghost: boolean) =>
+    messageChipSegments(pref, issueForBranch, {
+      onCheckout: onCheckoutBranch ? switchFromChip : undefined,
+      onMenu: e => openRefMenu(e, pref, commit),
+      onOpenPR,
+      onOpen: onOpenRef ? () => openChip(pref, commit, ghost) : undefined,
+    }, trackingFor, prForBranch),
+  [issueForBranch, onCheckoutBranch, switchFromChip, openRefMenu, onOpenPR, onOpenRef, openChip, trackingFor, prForBranch])
   const handleRowDrop = useCallback((e: React.DragEvent, commit: LayoutCommit) => {
     e.preventDefault()
     setDragOverRow(null)
@@ -1298,7 +1316,7 @@ export default function CommitGraph(props: CommitGraphProps) {
             height={svgH}
             style={{
               position: 'absolute',
-              left: refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW,
+              left: refsBelow ? 0 : refsColW,
               top: 0,
               pointerEvents: 'none',
               zIndex: 2,
@@ -1425,7 +1443,7 @@ export default function CommitGraph(props: CommitGraphProps) {
                     /* Merge commit, or compact layout: small plain dot
                        (de-emphasized) — in compact mode the
                        avatar moves beside the graph instead (see AuthorBullet). */
-                    <circle cx={cx} cy={cy} r={5} fill={commit.color}
+                    <circle cx={cx} cy={cy} r={DOT_RADIUS} fill={commit.color}
                       stroke="var(--surface)" strokeWidth={2} />
                   ) : showAvatars ? (
                     /* Normal commit: author avatar */
@@ -1451,12 +1469,15 @@ export default function CommitGraph(props: CommitGraphProps) {
               Siblings of the SVG and above it — a row is a stacking context UNDER
               the graph, so a mark inside a row opened beneath the node's avatar
               with its label cut. The hit zone comes first in the document so the
-              pill paints over it and keeps its own hover as it slides out, and it
-              stops short of the node: the node stays the node's. */}
+              pill paints over it and keeps its own hover as it slides out. It
+              covers the whole band, from the edge to the node as it is DRAWN —
+              a merge's dot is a third of an avatar, and a zone that stopped an
+              avatar's width short left most of that band dead — and stops there:
+              the node stays the node's. */}
           {markedRows.map(({ commit, roles }) => {
-            const left = refsBelow ? STRIPE_INSET + COLOR_BAR_W : refsColW
+            const left = refsBelow ? 0 : refsColW
             const { top, height } = markerBox(commit.row)
-            const reach = Math.max(0, svgPadL + commit.lane * laneW - NODE_RADIUS - 3)
+            const reach = Math.max(0, svgPadL + commit.lane * laneW - nodeRadius(commit) - 3)
             const tip = roles.map(r => r === 'head' ? t('graph.marker.headTip')
               : r === 'upstream' ? t('graph.marker.upstreamTip')
               : t('graph.marker.targetTip', mergeTargetRef ?? '')).join(', ')
@@ -1493,7 +1514,6 @@ export default function CommitGraph(props: CommitGraphProps) {
             const isDimmed = !isWip && keep !== null && !keep.has(commit.row)
             const isDropTarget = dragOverRow === commit.row && !isWip
             const { prefs, ghost } = shownRefs(commit)
-            let renderRefs: (withStub: boolean) => React.ReactNode = () => null
             // A ghost's face says whose line this is; the rows behind it keep
             // their own tooltips — and no checkmark: ✓ reads "checked out", which
             // is a fact about the tip, not about this commit.
@@ -1503,11 +1523,13 @@ export default function CommitGraph(props: CommitGraphProps) {
             const stackCount = prefs.length - 1
             // What a rest on the chip opens: the "+N" panel when there is one,
             // and the chip itself, whole, when the column cut its name or the
-            // compact layout hid it. Measured on the name, at the rest.
+            // compact layout hid it. Measured on the name, at the rest. The
+            // stacked row's pill reads its own names whole on a hover already
+            // (MessageChip), so there it is only ever the panel.
             const armOpen = (el: HTMLElement) => {
-              const chip = (el.querySelector('.ref-chip') ?? el) as HTMLElement
+              const chip = (el.querySelector('.ref-chip, .mchip') ?? el) as HTMLElement
               const name = chip.querySelector('.rc-name')
-              const cut = compactColumns || (!!name && name.scrollWidth > name.clientWidth + 1)
+              const cut = !refsBelow && (compactColumns || (!!name && name.scrollWidth > name.clientWidth + 1))
               if (stackCount < 1 && !cut) return
               if (refOpenTimer.current) clearTimeout(refOpenTimer.current)
               refOpenTimer.current = setTimeout(() => {
@@ -1517,8 +1539,42 @@ export default function CommitGraph(props: CommitGraphProps) {
                 setRefExpand({ hash: commit.hash, row: commit.row, rect: chip.getBoundingClientRect(), peek: cut })
               }, 150)
             }
+            // The pointer on a row's refs, wherever they are drawn — the column's
+            // chip or the stacked row's pill: the lane lights after a rest, and
+            // what the chip hides opens after a shorter one.
+            const refsHover = {
+              onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+                // A hover the scroll made, not the hand: nothing starts.
+                if (Date.now() - lastScrollAt.current < 300) return
+                // Highlight after a delay — a rest, not a crossing
+                if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
+                hoverDelayTimer.current = setTimeout(() => setHoverHash(commit.hash), 1000)
+                // Anchor on the CHIP, not on this wrapper: the wrapper
+                // also holds the "+N" badge, so using it made the panel
+                // wider than the name it sits under for no reason.
+                if (refExpand?.hash !== commit.hash) armOpen(e.currentTarget)
+              },
+              // After a scroll the pointer may already sit on a chip it
+              // never entered: a real move on it counts as the entry.
+              onMouseMove: (e: React.MouseEvent<HTMLElement>) => {
+                if (refOpenTimer.current || refExpand?.hash === commit.hash) return
+                if (Date.now() - lastScrollAt.current < 300) return
+                armOpen(e.currentTarget)
+              },
+              // Leaving cancels what was about to open; what IS open
+              // lives by the pointer's position, not by this event.
+              onMouseLeave: () => {
+                if (hoverDelayTimer.current) { clearTimeout(hoverDelayTimer.current); hoverDelayTimer.current = null }
+                if (refOpenTimer.current) { clearTimeout(refOpenTimer.current); refOpenTimer.current = null }
+                setHoverHash(null)
+              },
+            }
             const rowIsHead = !isWip && commit.refs.some(r => r.includes('HEAD ->') && r.includes(currentBranch))
             const rowCanReword = rowIsHead || commit.parents.length > 0
+            // Stacked: where THIS row's lanes end — its rightmost lane's
+            // centre, then half a lane and the padding. The text column starts
+            // there, ragged and meant to be, and the band's colour peaks there.
+            const gutterEnd = svgPadL + (rowEdgeLane?.get(commit.row) ?? commit.lane) * laneW + STACKED_GUTTER_END
             return (
               <div
                 key={commit.hash}
@@ -1526,8 +1582,13 @@ export default function CommitGraph(props: CommitGraphProps) {
                 style={{
                   top: rowTop(commit.row), height: rowHeight(commit.row),
                   // The branch's colour, for anything the row draws in it —
-                  // the stripe, and the stacked separator's fade.
+                  // the stripe, and the stacked row's band.
                   '--cg-row-color': isWip ? 'var(--text-disabled)' : commit.color,
+                  // The stacked band runs from the node to the lanes' end.
+                  ...(refsBelow ? {
+                    '--cg-node-x': `${svgPadL + commit.lane * laneW}px`,
+                    '--cg-band-edge': `${gutterEnd}px`,
+                  } : {}),
                 } as React.CSSProperties}
                 onClick={e => handleRowClick(e, commit)}
                 // Shift-click means "take the range", never "select the text".
@@ -1549,120 +1610,42 @@ export default function CommitGraph(props: CommitGraphProps) {
                 }}
                 onDrop={e => handleRowDrop(e, commit)}
               >
-                {/* Colored left stripe based on branch */}
-                <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />
+                {/* Colored left stripe based on branch — the columns' only. A
+                    stacked row's colour is its band, from the node (CSS). */}
+                {!refsBelow && <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />}
 
-                {/* The refs, either in their own column or under the subject.
-                    One definition, placed twice — the hover that reveals the
-                    hidden names is delicate enough that a second copy would be
-                    the one that stops matching. */}
-                {(() => { renderRefs = (withStub: boolean) => withStub ? (<>
-                  {primary ? (
-                    <>
-                      <div
-                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.hash === commit.hash ? ' cg-refs-chips--open' : ''}`}
-                        onMouseEnter={e => {
-                          // A hover the scroll made, not the hand: nothing starts.
-                          if (Date.now() - lastScrollAt.current < 300) return
-                          // Highlight after a delay — a rest, not a crossing
-                          if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
-                          hoverDelayTimer.current = setTimeout(() => setHoverHash(commit.hash), 1000)
-                          // Anchor on the CHIP, not on this wrapper: the wrapper
-                          // also holds the "+N" badge, so using it made the panel
-                          // wider than the name it sits under for no reason.
-                          if (refExpand?.hash !== commit.hash) armOpen(e.currentTarget as HTMLElement)
-                        }}
-                        // After a scroll the pointer may already sit on a chip it
-                        // never entered: a real move on it counts as the entry.
-                        onMouseMove={e => {
-                          if (refOpenTimer.current || refExpand?.hash === commit.hash) return
-                          if (Date.now() - lastScrollAt.current < 300) return
-                          armOpen(e.currentTarget as HTMLElement)
-                        }}
-                        // Leaving cancels what was about to open; what IS open
-                        // lives by the pointer's position, not by this event.
-                        onMouseLeave={() => {
-                          if (hoverDelayTimer.current) { clearTimeout(hoverDelayTimer.current); hoverDelayTimer.current = null }
-                          if (refOpenTimer.current) { clearTimeout(refOpenTimer.current); refOpenTimer.current = null }
-                          setHoverHash(null)
-                        }}
-                      >
-                        <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns}
-                          open={isOpenRef(primary)} onOpen={onOpenRef ? p => openChip(p, commit, ghost) : undefined}
-                          onDoubleClick={onCheckoutBranch ? switchFromChip : undefined}
-                          onDragStartBranch={b => { setDragBranch(b); setDragSource(commit.hash) }}
-                          onDragEndBranch={() => { setDragBranch(null); setDragSource(null); setDragOverRow(null) }}
-                          onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
-                        {stackCount > 0 && (
-                          <span className="rc-stack-badge">+{stackCount}</span>
-                        )}
-                      </div>
-                      {/* Flex stub: fills space from chip right edge to SVG boundary.
-                          A ghost is not tied to the graph — no stub. */}
-                      {!ghost && <div className="cg-ref-line-stub" style={{ background: dimColor(commit.color) }} />}
-                    </>
-                  ) : null}
-                </>) : (<>
-                  {primary ? (
-                    <>
-                      <div
-                        className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.hash === commit.hash ? ' cg-refs-chips--open' : ''}`}
-                        onMouseEnter={e => {
-                          // A hover the scroll made, not the hand: nothing starts.
-                          if (Date.now() - lastScrollAt.current < 300) return
-                          // Highlight after a delay — a rest, not a crossing
-                          if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current)
-                          hoverDelayTimer.current = setTimeout(() => setHoverHash(commit.hash), 1000)
-                          // Anchor on the CHIP, not on this wrapper: the wrapper
-                          // also holds the "+N" badge, so using it made the panel
-                          // wider than the name it sits under for no reason.
-                          if (refExpand?.hash !== commit.hash) armOpen(e.currentTarget as HTMLElement)
-                        }}
-                        // After a scroll the pointer may already sit on a chip it
-                        // never entered: a real move on it counts as the entry.
-                        onMouseMove={e => {
-                          if (refOpenTimer.current || refExpand?.hash === commit.hash) return
-                          if (Date.now() - lastScrollAt.current < 300) return
-                          armOpen(e.currentTarget as HTMLElement)
-                        }}
-                        // Leaving cancels what was about to open; what IS open
-                        // lives by the pointer's position, not by this event.
-                        onMouseLeave={() => {
-                          if (hoverDelayTimer.current) { clearTimeout(hoverDelayTimer.current); hoverDelayTimer.current = null }
-                          if (refOpenTimer.current) { clearTimeout(refOpenTimer.current); refOpenTimer.current = null }
-                          setHoverHash(null)
-                        }}
-                      >
-                        <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns}
-                          open={isOpenRef(primary)} onOpen={onOpenRef ? p => openChip(p, commit, ghost) : undefined}
-                          onDoubleClick={onCheckoutBranch ? switchFromChip : undefined}
-                          onDragStartBranch={b => { setDragBranch(b); setDragSource(commit.hash) }}
-                          onDragEndBranch={() => { setDragBranch(null); setDragSource(null); setDragOverRow(null) }}
-                          onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
-                        {stackCount > 0 && (
-                          <span className="rc-stack-badge">+{stackCount}</span>
-                        )}
-                      </div>
-                    </>
-                  ) : null}
-                </>); return null })()}
-
+                {/* The refs column: the chip, its "+N", and the stub that ties
+                    it to the node. The stacked row carries its refs under the
+                    message instead (the pill, below). */}
                 {!refsBelow && (
                   <div className="cg-refs-col" style={{ width: refsColW }}>
-                    {renderRefs(true)}
+                    {primary ? (
+                      <>
+                        <div
+                          className={`cg-refs-chips${ghost ? ' cg-refs-chips--ghost' : ''}${refExpand?.hash === commit.hash ? ' cg-refs-chips--open' : ''}`}
+                          {...refsHover}
+                        >
+                          <RefChip pref={primary} ghost={ghost} laneColor={commit.color} compact={compactColumns}
+                            open={isOpenRef(primary)} onOpen={onOpenRef ? p => openChip(p, commit, ghost) : undefined}
+                            onDoubleClick={onCheckoutBranch ? switchFromChip : undefined}
+                            onDragStartBranch={b => { setDragBranch(b); setDragSource(commit.hash) }}
+                            onDragEndBranch={() => { setDragBranch(null); setDragSource(null); setDragOverRow(null) }}
+                            onContextMenu={(e, pref) => openRefMenu(e, pref, commit)} />
+                          {stackCount > 0 && (
+                            <span className="rc-stack-badge">+{stackCount}</span>
+                          )}
+                        </div>
+                        {/* Flex stub: fills space from chip right edge to SVG boundary.
+                            A ghost is not tied to the graph — no stub. */}
+                        {!ghost && <div className="cg-ref-line-stub" style={{ background: dimColor(commit.color) }} />}
+                      </>
+                    ) : null}
                   </div>
                 )}
 
                 {/* Spacer for SVG. Classic columns: the shared width. Stacked:
-                    THIS row's graph edge — its rightmost lane's centre plus
-                    the node radius (13) — and the message column's own 8px of
-                    padding is the breath. Ragged, and meant to be. */}
-                <div style={{
-                  width: refsBelow
-                    ? svgPadL + (rowEdgeLane?.get(commit.row) ?? commit.lane) * laneW + 13
-                    : svgW,
-                  flexShrink: 0,
-                }} />
+                    THIS row's lanes, to `gutterEnd`. */}
+                <div style={{ width: refsBelow ? gutterEnd : svgW, flexShrink: 0 }} />
 
                 {/* Message */}
                 <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>
@@ -1675,25 +1658,34 @@ export default function CommitGraph(props: CommitGraphProps) {
                       the width for a grid, but every row has a second line. */}
                   {refsBelow && (
                     <div className="cg-row-meta">
-                      {prefs.length > 0 && (
-                        <MessageChip
-                          tone={commit.color}
-                          ghost={ghost}
-                          emphasis={!ghost && !!prefs[0].isHead}
-                          refsHidden={Math.max(0, prefs.length - 1)}
-                          segments={messageChipSegments(prefs[0], issueForBranch, {
-                            onCheckout: onCheckoutBranch ? switchFromChip : undefined,
-                            onMenu: (e) => openRefMenu(e, prefs[0], commit),
-                            onOpenPR,
-                            onOpen: onOpenRef ? () => openChip(prefs[0], commit, ghost) : undefined,
-                          }, trackingFor, prForBranch)}
-                        />
+                      {/* The pill says its names whole on a hover (MessageChip);
+                          a rest on it lists the refs its "+N" stands for, the
+                          way the column's chip does. A row's own refs lead the
+                          line. A ghost (#173) takes no room at rest — a hole
+                          before the sha on every row without a ref is what cut
+                          the author short — and shows in the free space before
+                          the date while the row is hovered or selected. */}
+                      {prefs.length > 0 && !ghost && (
+                        <span className={`cg-meta-refs${refExpand?.hash === commit.hash ? ' cg-meta-refs--open' : ''}`} {...refsHover}>
+                          <MessageChip
+                            tone={commit.color}
+                            emphasis={!ghost && !!prefs[0].isHead}
+                            refsHidden={stackCount}
+                            segments={pillSegments(prefs[0], commit, false)}
+                          />
+                        </span>
                       )}
                       {!isWip && <>
                         <code className="cg-meta-sha">{commit.shortHash}</code>
                         <span className="cg-meta-author">{commit.author}</span>
-                        <span className="cg-meta-date">{fmtDateShort(commit.date, t)}</span>
                       </>}
+                      {prefs.length > 0 && ghost && (
+                        <span className={`cg-meta-refs cg-meta-refs--ghost${refExpand?.hash === commit.hash ? ' cg-meta-refs--open' : ''}`} {...refsHover}>
+                          <MessageChip tone={commit.color} ghost refsHidden={stackCount}
+                            segments={pillSegments(prefs[0], commit, true)} />
+                        </span>
+                      )}
+                      {!isWip && <span className="cg-meta-date">{fmtDateShort(commit.date, t)}</span>}
                       {/* The Working Changes row: ✎N when there is something, and
                           the ✓ that stages all of it. Nothing when the tree is
                           clean — a button that can do nothing is not shown. */}
@@ -1826,7 +1818,12 @@ export default function CommitGraph(props: CommitGraphProps) {
             anchor={refExpand.rect}
             ghost={shown.ghost}
           >
-            {hiddenPrefs.map((p, i) => (
+            {/* Each in the shape the row gave the one in front of them: the
+                column's chips, or the stacked row's pills — every name said. */}
+            {hiddenPrefs.map((p, i) => refsBelow ? (
+              <MessageChip key={i} expanded tone={expandCommit.color} ghost={shown.ghost}
+                segments={pillSegments(p, expandCommit, shown.ghost)} />
+            ) : (
               <RefChip key={i} pref={p} ghost={shown.ghost} laneColor={expandCommit.color}
                 open={isOpenRef(p)} onOpen={onOpenRef ? pr => openChip(pr, expandCommit, shown.ghost) : undefined}
                 onDoubleClick={onCheckoutBranch ? switchFromChip : undefined}

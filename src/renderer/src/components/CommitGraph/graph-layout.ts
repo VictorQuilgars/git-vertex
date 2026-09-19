@@ -93,7 +93,7 @@ export function canvasRgb(): [number, number, number] {
 // The fallbacks are the comfortable values, and they matter: jsdom has no
 // stylesheet, so every test that lays a graph out gets these.
 export const ROW_HEIGHT_FALLBACK = 28
-export const REF_LINE_FALLBACK = 22
+export const REF_LINE_FALLBACK = 16
 
 let rowCache: { row: number; ref: number } | null = null
 

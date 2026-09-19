@@ -1,21 +1,31 @@
 /* MessageChip — one pill under a commit message, several segments in it.
    Its own stylesheet rather than a variant of .ref-chip: a branch chip is one
-   name in a column, this is a composite that opens on hover, and sharing the
-   rules would mean every change to one had to be checked against the other. */
+   name in a column, this is a composite with a hover copy of itself, and sharing
+   the rules would mean every change to one had to be checked against the other. */
 
 .mchip {
+  position: relative;
   display: inline-flex;
   align-items: stretch;
   max-width: 100%;
   min-width: 0;
   height: 18px;
-  border: 1px solid var(--mchip-border);
   border-radius: var(--radius-sm);
   background: var(--mchip-bg);
   color: var(--mchip-fg);
-  font-size: 11px;
+  /* The ring is a shadow, not a border: the pill's padding box IS its visual
+     box, so the hover copy pinned to its corner lands on it to the pixel. */
+  box-shadow: inset 0 0 0 1px var(--mchip-border);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
   line-height: 1;
-  overflow: hidden;
+  /* clip, not hidden: not a scroll container, so the pill keeps its automatic
+     minimum and the segments after the name are cut at its edge, never over it. */
+  overflow: clip;
+  /* What the hover copy is placed against — every pill's own, not the first one
+     in the document that carries the name. */
+  anchor-name: --mchip;
+  anchor-scope: --mchip;
   /* The tone is the lane colour, so a pill belongs to the line it hangs from.
      color-mix keeps it readable on every theme instead of a fixed tint. */
   --mchip-tone: var(--accent);
@@ -36,12 +46,14 @@
 .mchip-seg {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 0 5px;
+  gap: var(--space-xs);
+  padding: 0 var(--space-sm);
   min-width: 0;
   white-space: nowrap;
 }
-.mchip-seg + .mchip-seg { border-left: 1px solid var(--mchip-border); }
+/* Only the first segment yields: the name is cut, the icons and counts after
+   it — and the +N — keep their width. */
+.mchip-seg + .mchip-seg { flex-shrink: 0; border-left: 1px solid var(--mchip-border); }
 .mchip-seg[onclick], .mchip-seg:hover { cursor: default; }
 
 .mchip-ico { flex-shrink: 0; opacity: .75; }
@@ -52,32 +64,8 @@
   min-width: 0;
 }
 
-/* The collapsing. A secondary segment is its icon until the pill is hovered,
-   and then its name slides open.
-
-   ⚠️ Width only — never height, and never a re-layout of the row. The pill sits
-   under the pointer, so anything that changed the row's height would move the
-   thing being hovered out from under the cursor. */
-.mchip-collapsible .mchip-label {
-  max-width: 0;
-  opacity: 0;
-  transition: max-width .12s ease-out, opacity .12s ease-out, margin-left .12s ease-out;
-  margin-left: -3px;
-}
-.mchip:hover .mchip-collapsible .mchip-label {
-  max-width: 22ch;
-  opacity: 1;
-  margin-left: 0;
-}
-
-/* The first segment always shows its name — a pill that says nothing at rest
-   is a pill nobody reads. */
-.mchip-seg:first-child .mchip-label { max-width: 22ch; opacity: 1; }
-
-/* In the stacked layout the chip has the whole row's width under the message
-   — a branch name cut at 22ch there is caution with nothing to protect. The
-   classic columns keep the cap: their refs column is a measured budget. */
-.cg-row--stacked .mchip-seg:first-child .mchip-label { max-width: none; }
+/* A secondary segment is its icon at rest — its name is what the hover copy says. */
+.mchip-collapsible .mchip-label { display: none; }
 
 /* Kinds. Only the icon changes tone; the pill keeps one background, or a row
    with four segments turns into four colours competing for the same eye. */
@@ -88,11 +76,14 @@
 
 .mchip-more {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  padding: 0 5px;
+  padding: 0 var(--space-sm);
   border-left: 1px solid var(--mchip-border);
   color: var(--text-tertiary);
+  font-weight: var(--weight-semibold);
 }
+.mchip--emphasis .mchip-more { color: inherit; }
 
 /* The counts beside a remote — ↓1 ↑1 — stay visible when the name collapses.
    They are why the chip is looked at; the name is what the hover reveals. */
@@ -101,10 +92,79 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: .02em;
 }
-.mchip-collapsible .mchip-detail { margin-left: 2px; }
+
+/* ── The hover copy ─────────────────────────────────────────────────────────
+   The whole pill again, every name whole, filled with its lane — laid over the
+   row from the pill's corner and as wide as it needs. The pill underneath keeps
+   its place (its own segments go invisible, not away), so nothing on the line
+   moves while the pointer is on it. The copy takes the pointer too: it is the
+   pill's own child, so the pill stays hovered across all of it. */
+.mchip-expand {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  display: none;
+  align-items: stretch;
+  width: max-content;
+  border-radius: var(--radius-sm);
+  background: var(--mchip-tone);
+  color: var(--bg-canvas);
+  box-shadow: inset 0 0 0 1px var(--mchip-tone),
+    0 2px 6px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+  pointer-events: auto;
+}
+.mchip:hover > .mchip-expand { display: inline-flex; }
+.mchip:not(.mchip--expanded):hover > .mchip-seg,
+.mchip:not(.mchip--expanded):hover > .mchip-more { visibility: hidden; }
+.mchip-expand [data-label]::after { content: attr(data-label); }
+.mchip-expand .mchip-label { overflow: visible; }
+.mchip-expand .mchip-ico { color: inherit !important; opacity: .9; }
+.mchip-expand .mchip-more { color: inherit; }
+.mchip-expand .mchip-seg + .mchip-seg,
+.mchip-expand .mchip-more { border-left-color: color-mix(in srgb, var(--bg-canvas) 45%, transparent); }
+
+/* Placed against the pill, the copy is out of every box that cuts the row —
+   the pill's own clip, the line's, the row's, the scroller's. */
+@supports (anchor-scope: --a) and (left: anchor(left)) {
+  .mchip-expand {
+    position: fixed;
+    top: anchor(top);
+    bottom: anchor(bottom);
+    left: anchor(left);
+    position-anchor: --mchip;
+  }
+}
+/* Without anchors, the copy stays inside the pill: the pill stops cutting while
+   it is hovered, and the boxes around it do too (CommitGraph.css). */
+@supports not ((anchor-scope: --a) and (left: anchor(left))) {
+  .mchip:hover { overflow: visible; z-index: 20; }
+}
+
+/* ── The pills a +N stands for ──────────────────────────────────────────────
+   Listed under the pill with the room to say everything: every name, nothing
+   collapsed, no copy over it — and filled under the pointer, like the pill. */
+.mchip--expanded { max-width: none; overflow: visible; }
+.mchip--expanded:hover {
+  --mchip-bg: var(--mchip-tone);
+  --mchip-border: var(--mchip-tone);
+  --mchip-fg: var(--bg-canvas);
+}
+.mchip--expanded:hover .mchip-ico,
+.mchip--expanded:hover .mchip-more { color: inherit !important; }
 
 /* The stacked layout's ghost (#173): the same chip, faded and dashed, shown
-   on the row's hover and while it is selected. */
-.mchip--ghost { opacity: 0; border-style: dashed; transition: opacity var(--dur-fast); }
+   on the row's hover and while it is selected. A dashed ring is an outline —
+   a shadow cannot be dashed. */
+.mchip--ghost {
+  opacity: 0;
+  box-shadow: none;
+  outline: 1px dashed var(--mchip-border);
+  outline-offset: -1px;
+  transition: opacity var(--dur-fast);
+}
 .cg-row:hover .mchip--ghost,
-.cg-row.cg-selected .mchip--ghost { opacity: 0.65; }
+.cg-row.cg-selected .mchip--ghost,
+.cg-meta-refs--open .mchip--ghost,
+.ref-expansion-popup .mchip--ghost { opacity: 0.65; }

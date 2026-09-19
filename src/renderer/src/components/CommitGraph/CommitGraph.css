@@ -465,72 +465,100 @@
 
 
 /* ── The stacked row (VS Code panel) ───────────────────────────────────────
-   No columns: what they said is placed inside the row. Two lines per commit —
-   the message, then the chip, the sha, the author, and the date at the right
-   edge. One section, written once: the first cut of this file had it twice and
-   the second silently won. */
+   The reference's list row. No columns: what they said is placed inside the
+   row. The lanes first, from the row's own edge, the avatar centred on the
+   row; then one block, centred too — the message on its line, and under it the
+   pill, the sha, the author, and the date at the right edge. One section,
+   written once: the first cut of this file had it twice and the second
+   silently won. */
 .cg-col-msg--stacked {
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 0;
+  gap: var(--space-2xs);
   min-width: 0;
-  /* Closer to the bullets: the classic columns keep their breathing room,
-     the stacked text starts where the graph ends. */
-  padding-left: var(--space-sm);
+  /* The breath after the lanes is the lanes' own padding (STACKED_GUTTER_END);
+     this is the rest of it. The right edge only keeps the date off the scrollbar. */
+  padding: 0 var(--space-xs) 0 var(--space-sm);
 }
 .cg-col-msg--stacked .cg-msg-line {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
   min-width: 0;
-  height: var(--row-graph);   /* ROW_HEIGHT — the first line's height; the node centres on the CELL */
+  /* An even line box, so the line under it lands on a whole pixel. */
+  line-height: 16px;
 }
+.cg-col-msg--stacked .cg-msg { font-size: var(--text-sm); }
 .cg-row-meta {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   min-width: 0;
-  height: var(--row-ref);   /* REF_LINE_H — must match CommitGraph.tsx */
-  padding-bottom: 2px;
   color: var(--text-tertiary);
-  font-size: 11px;
+  font-size: var(--text-micro);
+}
+/* The refs yield first — the pill's name is cut, its icons stay — then the
+   author; the sha and the date keep their width. */
+.cg-meta-refs {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 /* The sha is bare text in the row's secondary colour — the reference writes it
    that way, and a plate around it was one more box on a line that already has
    the chip. */
 .cg-meta-sha {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--text-micro);
   color: var(--text-tertiary);
   flex-shrink: 0;
 }
 .cg-meta-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* The date goes to the right edge, which is where a date is looked for. */
 .cg-meta-date { margin-left: auto; flex-shrink: 0; padding-left: var(--space-sm); }
+/* The ghost (#173) holds no room at rest; hovered or selected, the row shows it
+   in the free space before the date — the sha and the author stay put. */
+.cg-meta-refs--ghost { display: none; margin-left: auto; }
+.cg-row:hover .cg-meta-refs--ghost,
+.cg-row.cg-selected .cg-meta-refs--ghost,
+.cg-meta-refs--ghost.cg-meta-refs--open { display: inline-flex; }
+.cg-row:hover .cg-meta-refs--ghost + .cg-meta-date,
+.cg-row.cg-selected .cg-meta-refs--ghost + .cg-meta-date,
+.cg-meta-refs--ghost.cg-meta-refs--open + .cg-meta-date { margin-left: 0; }
 
-/* A separator per row — without it two stacked rows read as one four-line
-   block. The reference's actual gesture, read closely: it is not the LINE
-   that is treated, it is the CELL — each row's ground is a wash of its
-   branch's colour, born beside the bullet where the row is densest and gone
-   before the message ends. The separation is then nothing at all: the page's
-   own ground showing through a one-pixel seam the wash does not paint
-   (background-size, so no token has to guess what the ground is). Visible
-   where the washes are, invisible where they are not — which is enough,
-   because past the left cluster the two-line rhythm already separates the
-   rows. The full-width hairlines stand down; hover and selection keep their
-   flat backgrounds by specificity and !important respectively; the selection
-   ring keeps its shadow via the :not() guard. */
-.cg-row--stacked:not(.cg-selected) { box-shadow: none; }
+/* A stacked row has no separator and no stripe. Its colour is a BAND: nothing
+   left of the node, then the lane's colour rising to the end of the row's own
+   lanes, and fading out a little way into the message — where the row is
+   densest, and gone before its text is. One pixel of ground above and below
+   is the seam between two rows. Painted behind the row's content and over its
+   hover and selection grounds, which keep their flat backgrounds. Lighter
+   than a single line's would be: two lines of it cover twice the area. */
 .cg-row--stacked {
   border-bottom: none;
-  background: linear-gradient(to right,
-    color-mix(in srgb, var(--cg-row-color) 14%, transparent),
-    color-mix(in srgb, var(--cg-row-color) 6%, transparent) min(110px, 35%),
-    transparent min(250px, 65%));
-  background-repeat: no-repeat;
-  /* Two pixels of ground between cells — one read as a scratch. */
-  background-size: 100% calc(100% - 2px);
+  /* Set per row by the renderer: the node's centre, and where the row's lanes end. */
+  --cg-node-x: 0px;
+  --cg-band-edge: 0px;
+}
+.cg-row--stacked:not(.cg-selected) { box-shadow: none; }
+.cg-row--stacked::before {
+  content: '';
+  position: absolute;
+  inset: 1px 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.65;
+  background-image: linear-gradient(90deg,
+    transparent var(--cg-node-x),
+    color-mix(in srgb, var(--cg-row-color) 8%, transparent) calc(var(--cg-node-x) + 5px),
+    color-mix(in srgb, var(--cg-row-color) 18%, transparent) var(--cg-band-edge),
+    color-mix(in srgb, var(--cg-row-color) 9%, transparent) calc(var(--cg-band-edge) + 12px),
+    color-mix(in srgb, var(--cg-row-color) 4%, transparent) calc(var(--cg-band-edge) + 40px),
+    color-mix(in srgb, var(--cg-row-color) 1.5%, transparent) calc(var(--cg-band-edge) + 85px),
+    transparent calc(var(--cg-band-edge) + 130px));
 }
 
 /* ⚠️ Below the graph overlay, where the desktop rows sit above it. The rows
@@ -539,14 +567,13 @@
    does in every panel of this kind. */
 .cg-row--stacked { z-index: 1; }
 
-/* ⚠️ The stripe spans the whole row, second line included — and it steps in
-   from the edge. Flush against the panel border it merged with the junction
-   between the sidebar and the graph, which is the one place a 3px line cannot
-   be seen. The 4px inset must match STRIPE_INSET in CommitGraph.tsx. */
-.cg-row--stacked .cg-color-bar {
-  align-self: stretch;
-  margin-left: 4px;
-  border-radius: var(--radius-xs);
+/* Without anchor positioning the pill's hover copy stays inside the pill
+   (MessageChip.css): every box around it stops cutting while it is hovered. */
+@supports not ((anchor-scope: --a) and (left: anchor(left))) {
+  .cg-row--stacked:has(.mchip:hover),
+  .cg-row--stacked:has(.mchip:hover) .cg-col-msg,
+  .cg-row-meta:has(.mchip:hover),
+  .cg-meta-refs:has(.mchip:hover) { overflow: visible; }
 }
 
 /* The Working Changes row's second line: ✎N, and the ✓ that stages everything.

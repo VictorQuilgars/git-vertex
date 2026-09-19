@@ -169,6 +169,28 @@ describe('BRANCH/TAG — the panel behind "+N"', () => {
     expect(panel.style.left).toBe('40px')        // and its left edge
   })
 
+  // The panel's stacked rows carry a pill under the message, not the column's
+  // chip — and its "+N" had nothing behind it: the other refs could not be read.
+  test('in the stacked rows, a rest on the pill lists what its "+N" stands for, as pills', async () => {
+    const onOpenRef = jest.fn()
+    installMockGitAPI()
+    renderWithProviders(
+      <CommitGraph commits={COMMITS as any} selectedHash={null} onSelectCommit={() => {}}
+        searchQuery="" currentBranch="main" refsBelow onOpenRef={onOpenRef} {...({} as any)} />
+    )
+    const pill = (await screen.findByText('v1.29.0')).closest('.mchip')!
+    expect(pill.querySelector(':scope > .mchip-more')).toHaveTextContent('+2')
+    await userEvent.hover(pill)
+    const panel = await findPanel()
+    const listed = [...panel.querySelectorAll('.mchip')]
+    expect(listed.map(m => m.textContent!.trim())).toEqual(['ext-v1.27.0', 'mcp-v0.5.3'])
+    // every name said, nothing collapsed behind a hover of its own
+    expect(listed.every(m => m.classList.contains('mchip--expanded'))).toBe(true)
+    // …and each one is a ref like the one in front: a click opens its card
+    fireEvent.click(screen.getByText('mcp-v0.5.3'))
+    await waitFor(() => expect(onOpenRef).toHaveBeenCalledWith(expect.objectContaining({ kind: 'tag', name: 'mcp-v0.5.3' })))
+  })
+
   // The case that made the names unreachable: hovering a "+N" on one of the last
   // rows pushed the panel past the bottom of the window.
   test('it flips above the chip rather than off the bottom of the window', async () => {
