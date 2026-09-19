@@ -54,6 +54,15 @@ export interface CommitGraphProps {
    */
   refsBelow?: boolean
   /**
+   * The panel's two shapes, by the graph's own width: below it, a list —
+   * `refsBelow`'s two lines; from it, a table — one line per commit, the refs
+   * before the message, the lanes from the row's edge and ragged as in the
+   * list, and the author, the date and the sha in columns. A graph with the
+   * details under it has the width for the table; beside them, it rarely does.
+   * Absent: `refsBelow` alone decides, and the desktop keeps its refs column.
+   */
+  listBelow?: number
+  /**
    * How far a local branch is from its upstream. Read by the chip under the
    * message: `↓1 ↑1` is the reason someone looks at a branch chip at all.
    * A resolver rather than the list, because the graph wants one answer per
@@ -226,6 +235,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   prForBranch,
   onOpenPR,
   refsBelow = false,
+  listBelow,
   trackingFor,
   upstreamRef = null,
   mergeTargetRef = null,
@@ -288,6 +298,12 @@ export default function CommitGraph(props: CommitGraphProps) {
   const [containerW, setContainerW] = useState(0)
   const [bodyH, setBodyH] = useState(0)
   const [scrollbarW, setScrollbarW] = useState(0)
+  // Two lines per commit (the list), and the refs with the message rather than
+  // in a column of their own (the list and the table). Before the body is
+  // measured the panel is a list, which is what a new panel mostly is.
+  const listRows = refsBelow || (listBelow != null && (containerW === 0 || containerW < listBelow))
+  const grouped = listRows || listBelow != null
+  const tableRows = grouped && !listRows
   useEffect(() => {
     const el = bodyRef.current
     if (!el) return
@@ -524,8 +540,8 @@ export default function CommitGraph(props: CommitGraphProps) {
     // has a ref: the sha, the author and the date live there now, so a row
     // without a branch is not a shorter row — it is the same row with one fewer
     // thing on its second line.
-    () => rowOffsets(displayLayout.map(() => refsBelow), rowH, refH),
-    [displayLayout, refsBelow, rowH, refH])
+    () => rowOffsets(displayLayout.map(() => listRows), rowH, refH),
+    [displayLayout, listRows, rowH, refH])
   const rowTop = useCallback((row: number) => rowTops[row] ?? row * rowH, [rowTops, rowH])
 
   // ── Stretches of time (timeline.ts) ──
@@ -620,10 +636,10 @@ export default function CommitGraph(props: CommitGraphProps) {
   // avatar on the block. Classic single-line rows: the same number as before.
   const rowMid = useCallback((row: number) => rowTop(row) + rowHeight(row) / 2, [rowTop, rowHeight])
   /** Where a role mark sits in its row: the lane band's own box in the column layout, the whole row in the stacked one. */
-  const markerBox = useCallback((row: number) => refsBelow
+  const markerBox = useCallback((row: number) => grouped
     ? { top: rowTop(row), height: rowHeight(row) }
     : { top: rowTop(row) + (rowH - LANE_BAND_H) / 2, height: LANE_BAND_H },
-  [refsBelow, rowTop, rowHeight, rowH])
+  [grouped, rowTop, rowHeight, rowH])
   // keyboard …), make sure the selected row is visible.
   useEffect(() => {
     if (!selectedHash) return
@@ -827,8 +843,8 @@ export default function CommitGraph(props: CommitGraphProps) {
   // The stacked layout is the reference's list row: its lanes start at the
   // row's own edge and sit 15 apart (graph-parts, STACKED_*) — big avatars on
   // tight rails. The classic columns keep their constants.
-  const svgPadL = refsBelow ? STACKED_PAD_L : SVG_PAD_L
-  const laneW = refsBelow ? STACKED_LANE_W : LANE_WIDTH
+  const svgPadL = grouped ? STACKED_PAD_L : SVG_PAD_L
+  const laneW = grouped ? STACKED_LANE_W : LANE_WIDTH
   /** How big a row's node is drawn — a mark reaching toward it stops at its edge. */
   const nodeRadius = useCallback((c: LayoutCommit) =>
     c.hash !== WIP_HASH && (c.parents.length >= 2 || compactColumns) ? DOT_RADIUS : NODE_RADIUS,
@@ -842,7 +858,7 @@ export default function CommitGraph(props: CommitGraphProps) {
   // from their own bullet. A pass-through edge occupies its target lane for
   // the rows it crosses, and up to both of its lanes where it bends.
   const rowEdgeLane = useMemo(() => {
-    if (!refsBelow) return null
+    if (!grouped) return null
     const m = new Map<number, number>()
     const bump = (row: number, lane: number) => {
       const cur = m.get(row)
@@ -858,7 +874,7 @@ export default function CommitGraph(props: CommitGraphProps) {
       }
     }
     return m
-  }, [refsBelow, displayLayout])
+  }, [grouped, displayLayout])
   // Availability-based column visibility. The message column must always keep
   // MSG_MIN px; the optional columns are granted space in priority order
   // (sha kept longest, author dropped first) only if it remains after the
@@ -872,18 +888,19 @@ export default function CommitGraph(props: CommitGraphProps) {
   // on the row's second line, where a panel can afford them. Leaving them as
   // columns and hoping the budget fits is what made the panel show a date and
   // hide an author depending on how deep the graph happened to be.
-  let colBudget = measured ? containerW - refsColW - svgW - MSG_MIN : Infinity
-  const effShowSha = !refsBelow && showSha && colBudget >= shaColW
+  // A grouped row has no refs column: its refs are with the message.
+  let colBudget = measured ? containerW - (grouped ? 0 : refsColW) - svgW - MSG_MIN : Infinity
+  const effShowSha = !listRows && showSha && colBudget >= shaColW
   if (effShowSha) colBudget -= shaColW
-  const effShowStats = !refsBelow && showStats && colBudget >= statsColW
+  const effShowStats = !listRows && showStats && colBudget >= statsColW
   if (effShowStats) colBudget -= statsColW
-  const effShowDate = !refsBelow && showDate && colBudget >= dateColW
+  const effShowDate = !listRows && showDate && colBudget >= dateColW
   if (effShowDate) colBudget -= dateColW
-  const effShowAuthor = !refsBelow && showAuthor && colBudget >= authorColW
+  const effShowAuthor = !listRows && showAuthor && colBudget >= authorColW
   // Keep the resize-drag handlers' view of the world current (see maxWidthFor).
   liveLayout.current = {
     measured, containerW, svgW,
-    refsColW, authorColW, dateColW, shaColW, statsColW,
+    refsColW: grouped ? 0 : refsColW, authorColW, dateColW, shaColW, statsColW,
     effShowAuthor, effShowDate, effShowSha, effShowStats,
   }
   // Resize handlers. refs and author sit right next to the flexible message
@@ -1254,7 +1271,7 @@ export default function CommitGraph(props: CommitGraphProps) {
       {/* ── Header ── The column headers only mean something when there are
            columns. In the stacked layout the row carries its own labels by
            position, so a header would name a grid that is not there. */}
-      {!refsBelow && <div
+      {!listRows && <div
         className="cg-header"
         style={{ paddingRight: scrollbarW }}
         onContextMenu={e => { e.preventDefault(); setHeaderCtx({ x: e.clientX, y: e.clientY }) }}
@@ -1263,7 +1280,7 @@ export default function CommitGraph(props: CommitGraphProps) {
         {/* The header has to disappear with the column, or the rows shift left
             by its width while the header does not — which is what the first cut
             of this layout did, and it put the graph on top of the message. */}
-        {!refsBelow && <>
+        {!grouped && <>
           <div className="cg-h-refs" style={{ width: refsColW }}>{compactColumns ? 'B/T' : 'BRANCH / TAG'}</div>
           <div className="cg-col-handle" onMouseDown={onDragRefs} />
         </>}
@@ -1317,7 +1334,7 @@ export default function CommitGraph(props: CommitGraphProps) {
             height={svgH}
             style={{
               position: 'absolute',
-              left: refsBelow ? 0 : refsColW,
+              left: grouped ? 0 : refsColW,
               top: 0,
               pointerEvents: 'none',
               zIndex: 2,
@@ -1346,7 +1363,7 @@ export default function CommitGraph(props: CommitGraphProps) {
                 ⚠️ Column layout only. In the stacked rows the stripe at the left
                 edge already colours the commit, and the band's right-edge bar
                 reads as a stray mark beside the bullet. */}
-            {!refsBelow && windowRows.map(commit => {
+            {!grouped && windowRows.map(commit => {
               if (commit.hash === WIP_HASH) return null
               const cx = svgPadL + commit.lane * laneW
               const bandH = LANE_BAND_H
@@ -1368,7 +1385,7 @@ export default function CommitGraph(props: CommitGraphProps) {
             {/* Connector lines (chip → node): rendered before edges so branch lines appear on top.
                 ⚠️ Column layout only — the chip it points at is under the message
                 now, so the line ran left of the bullet toward nothing. */}
-            {!refsBelow && windowRows.map(commit => {
+            {!grouped && windowRows.map(commit => {
               if (commit.hash === WIP_HASH || commit.refs.length === 0) return null
               const cx = svgPadL + commit.lane * laneW
               const cy = rowMid(commit.row)
@@ -1476,7 +1493,7 @@ export default function CommitGraph(props: CommitGraphProps) {
               avatar's width short left most of that band dead — and stops there:
               the node stays the node's. */}
           {markedRows.map(({ commit, roles }) => {
-            const left = refsBelow ? 0 : refsColW
+            const left = grouped ? 0 : refsColW
             const { top, height } = markerBox(commit.row)
             const reach = Math.max(0, svgPadL + commit.lane * laneW - nodeRadius(commit) - 3)
             const tip = roles.map(r => r === 'head' ? t('graph.marker.headTip')
@@ -1530,7 +1547,7 @@ export default function CommitGraph(props: CommitGraphProps) {
             const armOpen = (el: HTMLElement) => {
               const chip = (el.querySelector('.ref-chip, .mchip') ?? el) as HTMLElement
               const name = chip.querySelector('.rc-name')
-              const cut = !refsBelow && (compactColumns || (!!name && name.scrollWidth > name.clientWidth + 1))
+              const cut = !grouped && (compactColumns || (!!name && name.scrollWidth > name.clientWidth + 1))
               if (stackCount < 1 && !cut) return
               if (refOpenTimer.current) clearTimeout(refOpenTimer.current)
               refOpenTimer.current = setTimeout(() => {
@@ -1576,17 +1593,32 @@ export default function CommitGraph(props: CommitGraphProps) {
             // centre, then half a lane and the padding. The text column starts
             // there, ragged and meant to be, and the band's colour peaks there.
             const gutterEnd = svgPadL + (rowEdgeLane?.get(commit.row) ?? commit.lane) * laneW + STACKED_GUTTER_END
+            // The Working Changes row's ✎N, and the ✓ that stages all of it — on the
+            // list's second line, after the table's message.
+            const wipMeta = isWip && wipCount > 0 ? (
+              <span className="cg-wip-meta">
+                <span className="cg-wip-count" title={t('graph.wip', wipCount)}>
+                  <Icon name="pencil" size={11} />{wipCount}
+                </span>
+                {onStageAll && (
+                  <button className="cg-wip-stage-all" title={t('graph.stageAll')}
+                    onClick={e => { e.stopPropagation(); onStageAll() }}>
+                    <Icon name="check" size={12} />
+                  </button>
+                )}
+              </span>
+            ) : null
             return (
               <div
                 key={commit.hash}
-                className={`cg-row ${refsBelow ? "cg-row--stacked" : ""} ${isSelected ? 'cg-selected' : ''} ${multiSel.has(commit.hash) ? 'cg-multisel' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''} ${findHit === commit.hash ? 'cg-row--find-hit' : ''}`}
+                className={`cg-row ${grouped ? 'cg-row--grouped' : ''} ${listRows ? 'cg-row--stacked' : ''} ${isSelected ? 'cg-selected' : ''} ${multiSel.has(commit.hash) ? 'cg-multisel' : ''} ${isDimmed ? 'cg-dimmed' : ''} ${isWip ? 'cg-row-wip' : ''} ${isDropTarget ? 'cg-drop-target' : ''} ${findHit === commit.hash ? 'cg-row--find-hit' : ''}`}
                 style={{
                   top: rowTop(commit.row), height: rowHeight(commit.row),
                   // The branch's colour, for anything the row draws in it —
                   // the stripe, and the stacked row's band.
                   '--cg-row-color': isWip ? 'var(--text-disabled)' : commit.color,
                   // The stacked band runs from the node to the lanes' end.
-                  ...(refsBelow ? {
+                  ...(grouped ? {
                     '--cg-node-x': `${svgPadL + commit.lane * laneW}px`,
                     '--cg-band-edge': `${gutterEnd}px`,
                   } : {}),
@@ -1613,12 +1645,12 @@ export default function CommitGraph(props: CommitGraphProps) {
               >
                 {/* Colored left stripe based on branch — the columns' only. A
                     stacked row's colour is its band, from the node (CSS). */}
-                {!refsBelow && <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />}
+                {!grouped && <div className="cg-color-bar" style={{ background: isWip ? 'var(--text-disabled)' : commit.color }} />}
 
                 {/* The refs column: the chip, its "+N", and the stub that ties
                     it to the node. The stacked row carries its refs under the
                     message instead (the pill, below). */}
-                {!refsBelow && (
+                {!grouped && (
                   <div className="cg-refs-col" style={{ width: refsColW }}>
                     {primary ? (
                       <>
@@ -1646,17 +1678,27 @@ export default function CommitGraph(props: CommitGraphProps) {
 
                 {/* Spacer for SVG. Classic columns: the shared width. Stacked:
                     THIS row's lanes, to `gutterEnd`. */}
-                <div style={{ width: refsBelow ? gutterEnd : svgW, flexShrink: 0 }} />
+                <div style={{ width: grouped ? gutterEnd : svgW, flexShrink: 0 }} />
 
                 {/* Message */}
-                <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>
+                <div className={`cg-col-msg${listRows ? ' cg-col-msg--stacked' : tableRows ? ' cg-col-msg--inline' : ''}`}>
                   <div className="cg-msg-line">
+                    {/* The table: the row's own refs before its message, as the
+                        list's second line starts with them — capped, so the
+                        message keeps its share (CommitGraph.css). No ghost here:
+                        on one line it would take its place on every row. */}
+                    {tableRows && prefs.length > 0 && !ghost && (
+                      <span className={`cg-meta-refs${refExpand?.hash === commit.hash ? ' cg-meta-refs--open' : ''}`} {...refsHover}>
+                        <MessageChip tone={commit.color} emphasis={!!prefs[0].isHead}
+                          refsHidden={stackCount} segments={pillSegments(prefs[0], commit, false)} />
+                      </span>
+                    )}
                     <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{
                       isWip ? commit.message
                       // Stacked: the subject in its markup, then — muted, after a
                       // bullet — the body on the same line. One ellipsis for
                       // both, at the end: the body is cut before the subject is.
-                      : refsBelow ? <>
+                      : grouped ? <>
                         <span>{inlineMarkup(commit.message, s => linkifyIssues(s, githubRepo, autolinks))}</span>
                         {commit.body && <>
                           <span className="cg-msg-sep" aria-hidden="true">•</span>
@@ -1665,12 +1707,13 @@ export default function CommitGraph(props: CommitGraphProps) {
                       </>
                       : linkifyIssues(commit.message, githubRepo, autolinks)
                     }</span>
+                    {tableRows && wipMeta}
                   </div>
                   {/* The second line. What the columns used to say, said by
                       position instead: the chip and the identity on the left,
                       the date pushed to the right edge. A panel does not have
                       the width for a grid, but every row has a second line. */}
-                  {refsBelow && (
+                  {listRows && (
                     <div className="cg-row-meta">
                       {/* The pill says its names whole on a hover (MessageChip);
                           a rest on it lists the refs its "+N" stands for, the
@@ -1703,19 +1746,7 @@ export default function CommitGraph(props: CommitGraphProps) {
                       {/* The Working Changes row: ✎N when there is something, and
                           the ✓ that stages all of it. Nothing when the tree is
                           clean — a button that can do nothing is not shown. */}
-                      {isWip && wipCount > 0 && (
-                        <span className="cg-wip-meta">
-                          <span className="cg-wip-count" title={t('graph.wip', wipCount)}>
-                            <Icon name="pencil" size={11} />{wipCount}
-                          </span>
-                          {onStageAll && (
-                            <button className="cg-wip-stage-all" title={t('graph.stageAll')}
-                              onClick={e => { e.stopPropagation(); onStageAll() }}>
-                              <Icon name="check" size={12} />
-                            </button>
-                          )}
-                        </span>
-                      )}
+                      {wipMeta}
                     </div>
                   )}
                 </div>
@@ -1834,7 +1865,7 @@ export default function CommitGraph(props: CommitGraphProps) {
           >
             {/* Each in the shape the row gave the one in front of them: the
                 column's chips, or the stacked row's pills — every name said. */}
-            {hiddenPrefs.map((p, i) => refsBelow ? (
+            {hiddenPrefs.map((p, i) => grouped ? (
               <MessageChip key={i} expanded tone={expandCommit.color} ghost={shown.ghost}
                 segments={pillSegments(p, expandCommit, shown.ghost)} />
             ) : (

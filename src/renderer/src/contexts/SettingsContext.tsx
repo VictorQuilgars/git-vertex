@@ -254,6 +254,9 @@ export const SETTING_DEFAULTS: SettingsMap = {
   // stop matching the editor, and a panel that does not match its editor reads
   // as broken. Turning this off is the user asking for their own.
   panelFollowEditorTheme: 'true',
+  // Panel only: where the details go — `auto` (the side the panel's shape
+  // suggests), `right` or `bottom` (panelLayout.ts, the toolbar's placement menu).
+  panelDetailsLocation: 'auto',
 }
 
 function applyAppearance(s: SettingsMap) {

@@ -14,7 +14,8 @@ import { ToastProvider, useToast } from '../../../src/renderer/src/components/To
 import CompactToolbar from './CompactToolbar'
 import EmptyRepo from './EmptyRepo'
 import WelcomeTab from './WelcomeTab'
-import { resolvePanelLayout, clampDetailsHeight, overlayWidth, DETAILS_MIN } from './panelLayout'
+import { resolvePanelLayout, clampDetailsHeight, overlayWidth, autoDetailsSide, compactWorkingHolds, DETAILS_MIN, LIST_BELOW, type DetailsLocation, type DetailsSide } from './panelLayout'
+import DetailsToggle from './DetailsToggle'
 import { planReach } from '../../../src/renderer/src/app/search-reach'
 import { LOG_PAGE } from '../../../src/renderer/src/app/shared'
 import AIReadingTab from './AIReadingTab'
@@ -1162,7 +1163,13 @@ function VertexApp() {
   }, [])
   const bodyW = bodySize.w || viewport.w
   const bodyH = bodySize.h || Math.max(0, viewport.h - 34)
-  const layout = resolvePanelLayout(bodyW, bodyH)
+  // Where the details go: what the toolbar's placement menu picked, and the
+  // side `auto` holds for the body's shape — kept here, so that a drag across
+  // the line does not flap (autoDetailsSide's dead band).
+  const detailsLocation: DetailsLocation = ((v: string) => v === 'right' || v === 'bottom' ? v : 'auto')(getSetting('panelDetailsLocation', 'auto'))
+  const [autoSide, setAutoSide] = useState<DetailsSide>(() => autoDetailsSide(bodyW, bodyH))
+  useEffect(() => { setAutoSide(prev => autoDetailsSide(bodyW, bodyH, prev)) }, [bodyW, bodyH])
+  const layout = resolvePanelLayout(bodyW, bodyH, detailsLocation, autoSide)
   // Narrow and short: the details replace the graph instead of squeezing it.
   const stacked = layout.details === 'replace'
   // Narrow: the side view is a layer over the graph, not a column beside it.
@@ -1216,9 +1223,33 @@ function VertexApp() {
   // "No repository open", so nothing loaded and nothing is named. The
   // centre offers VS Code's doors instead of a graph with no commits.
   const noRepo = loadedOnce && !loading && !repoPath
-  const showRight = (!!selectedCommit || !!conflictMode) && !issueDetail && !noRepo
+  // The details' switch (DetailsToggle). Hidden stays hidden: a selection does
+  // not bring them back, the switch does. Per webview, like their size.
+  const [detailsHidden, setDetailsHidden] = useState(() => {
+    try { return localStorage.getItem('gv-details-hidden') === '1' } catch { return false }
+  })
+  const hideDetails = (hidden: boolean) => {
+    setDetailsHidden(hidden)
+    try { localStorage.setItem('gv-details-hidden', hidden ? '1' : '0') } catch { /* a convenience */ }
+  }
+  const showRight = !detailsHidden && (!!selectedCommit || !!conflictMode) && !issueDetail && !noRepo
+  // Nothing selected, the details show the working changes — what they open on.
+  const detailsSubject = () => { if (!selectedCommit && !conflictMode) setSelectedCommit(WIP_NODE) }
+  /** A placement picked from the toolbar's menu: kept, and the details shown — asking where is asking to see them. */
+  const pickDetailsLocation = (location: DetailsLocation) => {
+    setSetting('panelDetailsLocation', location)
+    hideDetails(false)
+    detailsSubject()
+  }
+  /** The switch: show or hide. With Alt, the other side — as a choice, which `auto` no longer overrides. */
+  const toggleDetails = (altKey: boolean) => {
+    if (altKey) { pickDetailsLocation(layout.side === 'bottom' ? 'right' : 'bottom'); return }
+    if (showRight) { hideDetails(true); return }
+    hideDetails(false)
+    detailsSubject()
+  }
   const compactWorking = showRight && selectedCommit?.hash === '__WIP__' && !conflictMode
-    && bodySize.h > 0 && bodySize.h < 300
+    && compactWorkingHolds(bodySize.h, graphHidden)
   const availableWidth = Math.max(0, bodyW - layout.railWidth - (activeView && !overlaySide ? sideW + 3 : 0))
   const compactColumns = compactWorking && availableWidth >= 692
   const focusWorking = compactWorking && graphHidden
@@ -1457,7 +1488,9 @@ function VertexApp() {
                 const b = branches.find(x => x.name === name)
                 return b ? { ahead: b.ahead, behind: b.behind } : null
               }}
-              refsBelow
+              // A list beside the details, a table when the graph has the width —
+              // with the details under it, most of the time (panelLayout.ts).
+              listBelow={LIST_BELOW}
             commits={commits}
             visibility={visibility}
             remoteNames={remoteNames}
@@ -1621,7 +1654,9 @@ function VertexApp() {
     <div className={`app gv-app${short ? ' gv-app--short' : ''}`}>
       <CompactToolbar
         narrow={layout.narrow}
-        searchRow={layout.details === 'bottom' ? 'always' : 'toggle'}
+        // A row of its own for the search when the panel has the height: not
+        // in a short panel, nor in a narrow one showing a pane at a time.
+        searchRow={layout.details === 'replace' || short ? 'toggle' : 'always'}
         graphHidden={focusWorking}
         onToggleGraph={compactWorking && !stacked ? () => setGraphHidden(v => !v) : undefined}
         repoName={repoName}
@@ -1671,6 +1706,10 @@ function VertexApp() {
         hiddenBranches={visibility.branches}
         pr={currentBranchPR}
         onCreatePR={handleStartPR}
+        detailsToggle={!noRepo && (
+          <DetailsToggle visible={showRight} side={layout.side} location={detailsLocation}
+            autoSide={autoSide} onToggle={toggleDetails} onPick={pickDetailsLocation} />
+        )}
       />
       {/* The minimap's block: under the toolbar, above the three panes and as
           wide as they are; empty (and gone) while the strip is hidden. A short

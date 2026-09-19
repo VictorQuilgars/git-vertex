@@ -490,6 +490,14 @@
   line-height: 16px;
 }
 .cg-col-msg--stacked .cg-msg { font-size: var(--text-sm); }
+/* The table: one line — the row's refs, then its message, which absorbs the
+   squeeze. The refs keep their width up to a share of the cell (40%, and never
+   so much that the message has less than 90px): past it the name is cut, and a
+   hover reads it whole (MessageChip). */
+.cg-col-msg--inline { padding: 0 var(--space-md) 0 var(--space-sm); }
+.cg-col-msg--inline .cg-msg-line { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; width: 100%; }
+.cg-col-msg--inline .cg-meta-refs { flex-shrink: 0; max-width: min(40%, calc(100% - 90px)); }
+.cg-col-msg--inline .cg-msg { flex: 1 1 auto; min-width: 0; }
 /* The body after the subject, dimmed against the ROW's colour rather than
    pinned to a token, so it follows a selected row's text. */
 .cg-msg-sep,
@@ -546,27 +554,26 @@
 .cg-row.cg-selected .cg-meta-refs--ghost + .cg-meta-date,
 .cg-meta-refs--ghost.cg-meta-refs--open + .cg-meta-date { margin-left: 0; }
 
-/* A stacked row has no separator and no stripe. Its colour is a BAND: nothing
+/* A grouped row — the list's and the table's — has no separator and no stripe. Its colour is a BAND: nothing
    left of the node, then the lane's colour rising to the end of the row's own
    lanes, and fading out a little way into the message — where the row is
    densest, and gone before its text is. One pixel of ground above and below
    is the seam between two rows. Painted behind the row's content and over its
    hover and selection grounds, which keep their flat backgrounds. Lighter
    than a single line's would be: two lines of it cover twice the area. */
-.cg-row--stacked {
+.cg-row--grouped {
   border-bottom: none;
   /* Set per row by the renderer: the node's centre, and where the row's lanes end. */
   --cg-node-x: 0px;
   --cg-band-edge: 0px;
 }
-.cg-row--stacked:not(.cg-selected) { box-shadow: none; }
-.cg-row--stacked::before {
+.cg-row--grouped:not(.cg-selected) { box-shadow: none; }
+.cg-row--grouped::before {
   content: '';
   position: absolute;
   inset: 1px 0;
   z-index: -1;
   pointer-events: none;
-  opacity: 0.65;
   background-image: linear-gradient(90deg,
     transparent var(--cg-node-x),
     color-mix(in srgb, var(--cg-row-color) 8%, transparent) calc(var(--cg-node-x) + 5px),
@@ -581,14 +588,18 @@
    carry the separators, and a separator drawn over the SVG cuts every branch
    line it crosses — the rail must run continuously over the dividers, as it
    does in every panel of this kind. */
-.cg-row--stacked { z-index: 1; }
+.cg-row--grouped { z-index: 1; }
+/* A list row is two lines: the same wash over twice the area reads twice as
+   heavy, so it is dialled down. */
+.cg-row--stacked::before { opacity: 0.65; }
 
 /* Without anchor positioning the pill's hover copy stays inside the pill
    (MessageChip.css): every box around it stops cutting while it is hovered. */
 @supports not ((anchor-scope: --a) and (left: anchor(left))) {
-  .cg-row--stacked:has(.mchip:hover),
-  .cg-row--stacked:has(.mchip:hover) .cg-col-msg,
+  .cg-row--grouped:has(.mchip:hover),
+  .cg-row--grouped:has(.mchip:hover) .cg-col-msg,
   .cg-row-meta:has(.mchip:hover),
+  .cg-msg-line:has(.mchip:hover),
   .cg-meta-refs:has(.mchip:hover) { overflow: visible; }
 }
 

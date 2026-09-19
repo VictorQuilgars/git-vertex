@@ -171,7 +171,7 @@
   user-select: none;
 }
 .gvt-logo { flex-shrink: 0; }
-.gvt-repo { color: var(--text-primary-soft); font-size: 12px; font-weight: 600; margin-left: 4px; }
+.gvt-repo { color: var(--text-primary-soft); font-size: 12px; font-weight: 600; margin-left: 4px; white-space: nowrap; flex-shrink: 0; }
 
 /* The repository, as a picker when the workspace has several: the branch
    chip's shape in the neutral colours, since a repository is where you are,
@@ -305,12 +305,14 @@
 }
 
 /* ── Responsive ───────────────────────────────────────────────────
-   Between wide and narrow, the sync buttons keep their icon and count and
-   drop the word: the row still holds every action, only shorter. */
-@media (max-width: 760px) {
-  .gvt-tbtn-label { display: none; }
-  .gvt-tbtn { padding: 0 6px; }
-}
+   When the row needs it (CompactToolbar's useToolbarFit), the sync buttons
+   keep their icon and count and drop the word: the row still holds every
+   action, only shorter. Past that, it folds into the narrow layout, which
+   never has the words. */
+.gvt--compact .gvt-tbtn-label,
+.gvt--narrow .gvt-tbtn-label { display: none; }
+.gvt--compact .gvt-tbtn,
+.gvt--narrow .gvt-tbtn { padding: 0 6px; }
 
 /* Narrow (see panelLayout.ts): two rows. The first holds the sidebar
    toggle, the branch, the sync actions and a "⋯" for the rest; the second
@@ -327,8 +329,71 @@
 .gvt--narrow .gvt-branch-wrap { min-width: 0; flex-shrink: 1; }
 .gvt--narrow .gvt-branch { max-width: 100%; }
 .gvt--narrow .gvt-branch-name { max-width: 110px; }
-.gvt--narrow .gvt-search { width: auto; flex: 1; min-width: 0; }
-.gvt--narrow .gvt-search:focus-within { width: auto; }
+.gvt--narrow .gvt-search,
+.gvt--split .gvt-search { width: auto; flex: 1; min-width: 0; }
+.gvt--narrow .gvt-search:focus-within,
+.gvt--split .gvt-search:focus-within { width: auto; }
+/* A panel whose row does not hold the search field too (CompactToolbar's fit):
+   every action stays in the first row, and the search field and the details
+   switch take a second, as wide as the panel. */
+.gvt--split {
+  flex-direction: column;
+  align-items: stretch;
+  height: auto;
+  padding: 0;
+  gap: 0;
+}
+.gvt-row--main { gap: 4px; padding: 0 8px; }
+/* There the branch's name gives way before an action does — down to a few
+   letters, never to an empty chip. */
+.gvt--split .gvt-branch-wrap { min-width: 96px; flex-shrink: 1; }
+.gvt--split .gvt-branch { max-width: 100%; }
+/* The last step before folding also lets the plain repository name go, as the
+   narrow layout does — the picker of a multi-repository workspace stays. */
+.gvt--split.gvt--compact .gvt-repo { display: none; }
+
+/* ── The details' switch and placement (DetailsToggle.tsx) ──────────
+   One control in two halves, sharing a hover: the main half shows or hides
+   the details, the chevron opens where they go. */
+.gvt-split { position: relative; display: inline-flex; align-items: stretch; flex-shrink: 0; border-radius: 5px; }
+.gvt-split:hover { background: color-mix(in srgb, var(--surface-sunken) var(--alpha-half), transparent); }
+.gvt-split-main { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.gvt-split-chevron {
+  width: 14px; border-top-left-radius: 0; border-bottom-left-radius: 0;
+  border-left: 1px solid transparent;
+}
+.gvt-split:hover .gvt-split-chevron { border-left-color: var(--border-muted); }
+/* Over the minimap's block, which is at --z-dropdown and comes after the toolbar. */
+.gvt-placement {
+  position: absolute; top: calc(100% + 3px); right: 0; z-index: calc(var(--z-dropdown) + 1);
+  display: flex; gap: 4px; padding: 4px;
+  background: var(--surface-hover); border: 1px solid var(--border-default); border-radius: 8px;
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--scrim) var(--alpha-half), transparent);
+}
+.gvt-placement-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 4px; border: 1px solid transparent; border-radius: 5px; background: none;
+  color: var(--text-primary-soft); font-size: 11px; cursor: pointer;
+}
+.gvt-placement-opt:hover { background: var(--surface-active); }
+.gvt-placement-opt[aria-checked="true"] { border-color: var(--accent); }
+.gvt-placement-opt:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+/* Each placement drawn as the panel it makes: a frame, and the details in it. */
+.gvt-placement-thumb {
+  position: relative; display: block; width: 36px; height: 25px; overflow: hidden;
+  border: 1px solid var(--text-tertiary); border-radius: 3px;
+}
+.gvt-placement-thumb::after { content: ''; position: absolute; background: color-mix(in srgb, var(--accent) 55%, transparent); }
+.gvt-placement-thumb--right::after { top: 0; right: 0; bottom: 0; width: 32%; }
+.gvt-placement-thumb--bottom::after { left: 0; right: 0; bottom: 0; height: 34%; }
+/* Auto is the side it would pick now, faded, with its A where the graph is. */
+.gvt-placement-thumb--auto::after { opacity: 0.45; }
+.gvt-placement-a {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; line-height: 1;
+}
+.gvt-placement-thumb--right .gvt-placement-a { right: 32%; }
+.gvt-placement-thumb--bottom .gvt-placement-a { bottom: 34%; }
 
 /* ── In-progress operation banner ────────────────────────────────
    This used to carry its own amber family (#3d2a12 / #5c4813 / #f0c674 /

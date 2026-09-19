@@ -76,6 +76,10 @@ import info from './icons/info.svg'
 import ink from './icons/ink.svg'
 import issue from './icons/issue.svg'
 import kebab from './icons/kebab.svg'
+import layoutBottom from './icons/layoutBottom.svg'
+import layoutBottomOff from './icons/layoutBottomOff.svg'
+import layoutRight from './icons/layoutRight.svg'
+import layoutRightOff from './icons/layoutRightOff.svg'
 import link from './icons/link.svg'
 import list from './icons/list.svg'
 import listTree from './icons/listTree.svg'
@@ -115,7 +119,8 @@ const SOURCE: Record<string, string> = {
   caretDown, check, chevronDown, chevronLeft, chevronRight, clock, cloud,
   commandPalette, comment, commit, compare, conflict, copy, device, diff,
   download, editor, externalLink, eye, eyeOff, folder, gear, gitflow,
-  history, home, hunk, info, ink, issue, kebab, link, list, listTree, mail,
+  history, home, hunk, info, ink, issue, kebab, layoutBottom, layoutBottomOff,
+  layoutRight, layoutRightOff, link, list, listTree, mail,
   merge, newBranch, node, panel, pencil, person, play, plus, pop,
   pullRequest, push, rebase, redo, reflog, refresh, repo, rocket, search,
   shield, sliders, sort, staging, stash, tag, terminal, trash, undo,
