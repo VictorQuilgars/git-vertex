@@ -29,7 +29,10 @@ beforeEach(() => {
   execSync(`git init -q -b main ${dir}`)
   git('config user.email test@test.com')
   git('config user.name "Test User"')
-  execSync(`git init -q --bare ${remote}`)
+  // -b main, for the same reason git-service.test.ts passes it: a machine
+  // whose init.defaultBranch is `master` would give the bare repo a HEAD this
+  // suite never names, and the clone in publishAndAdvance follows that HEAD.
+  execSync(`git init -q --bare -b main ${remote}`)
   commit('one', 'base')
   git(`remote add origin ${remote}`)
   git('push -q -u origin main')

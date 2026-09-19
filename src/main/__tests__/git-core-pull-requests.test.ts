@@ -32,7 +32,10 @@ describe('fetching it', () => {
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     dir = `/tmp/gv-pr-${stamp}`
     remote = `/tmp/gv-pr-${stamp}-remote.git`
-    execSync(`git init -q --bare ${remote}`)
+    // -b main: a bare repository takes the machine's `init.defaultBranch`, so
+    // its HEAD is `master` on a runner that still defaults to it — and the
+    // clone below lands on whatever that HEAD names. The suite says `main`.
+    execSync(`git init -q --bare -b main ${remote}`)
     // The server side: a base branch, and a head nothing else points at —
     // which is what a fork's request looks like from this clone.
     const seed = `${dir}-seed`
