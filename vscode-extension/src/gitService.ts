@@ -211,46 +211,9 @@ export class GitService {
     // An empty history is a valid state — the UI shows the WIP node so the
     // user can stage and create the very first commit.
     if (!(await this.hasHead())) return { commits: [] }
-    const maxCount = options.maxCount ?? 300
-    const args: string[] = [
-      // ⚠️ NOT %G? — see the desktop service. It verifies every signed commit
-      // on the page, one gpg process each, for a value nothing draws.
-      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D',
-      `--max-count=${maxCount}`,
-      '--date-order',
-    ]
-    // Explicit refs (solo branch filtering) take precedence over --all. Hidden
-    // refs are excluded from --all instead, so that a commit a visible ref
-    // still reaches keeps its place — see the desktop service for the whole
-    // reasoning, this half must stay identical to it.
-    if (options.refs && options.refs.length) args.push(...options.refs)
-    else if (options.all) {
-      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
-      args.push('--all')
-    }
-
-    const result = await this.git.raw(['log', ...args])
-    const commits: CommitNode[] = []
-
-    for (const line of result.trim().split('\n')) {
-      if (!line.trim()) continue
-      const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
-      const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
-      const refs = refsStr
-        ? refsStr.split(',').map(r => r.trim()).filter(r => r.length > 0)
-        : []
-      commits.push({
-        hash: hash.trim(),
-        shortHash: hash.trim().slice(0, 7),
-        message: message || '(no message)',
-        author: author || '',
-        authorEmail: authorEmail || '',
-        date: date || '',
-        parents,
-        refs
-      })
-    }
-    return { commits }
+    // The format and the parse are the core's (git-core::log), the desktop's
+    // page too. No numstat: the panel's rows draw no stats column.
+    return { commits: await core.log(this.run, { ...options, maxCount: options.maxCount ?? 300 }) }
   }
 
   // What to call HEAD when it is not on a branch. Returns null when HEAD *is*

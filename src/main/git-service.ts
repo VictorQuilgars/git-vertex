@@ -259,88 +259,17 @@ export class GitService {
       if (!(await this.hasHead())) return { commits: [] }
       this.headSeen = true
     }
-    const maxCount = options.maxCount ?? 200
-    const args: string[] = [
-      // --numstat prints "added\tdeleted\tpath" lines after each commit's
-      // format line (empty for merges, since git log skips their diff by
-      // default) — still a single process call for the whole page of history.
-      '--numstat',
-      // ⚠️ NOT %G?. See the note above `signature` in types.ts: that placeholder
-      // makes git verify every signed commit on the page — one gpg process each
-      // — and nothing in the app draws the result. Measured on this repository,
-      // a 200-commit page: 580 ms with it, 150 ms without; the 51 signed commits
-      // in it cost ~8.4 ms apiece on macOS, and a gpg spawn on Windows is an
-      // order of magnitude worse. A page of a repository whose merges all come
-      // from the GitHub button is entirely signed, and paid for in full.
-      '--pretty=format:%H|%P|%s|%an|%ae|%ai|%D',
-      `--max-count=${maxCount}`,
-      '--date-order', // children always before parents (like --topo-order), but sibling
-                    // commits are sorted by commit date
-    ]
-    // Explicit refs (for solo branch filtering) take precedence over --all.
-    if (options.refs && options.refs.length) {
-      args.push(...options.refs)
-    } else if (options.all) {
-      // Hidden refs are taken away from --all rather than replaced by a list of
-      // the visible ones: git keeps deciding what is reachable, so a commit a
-      // visible ref still reaches stays. --exclude only applies to the next
-      // ref-collecting option, hence immediately before --all and nowhere else.
-      if (options.excludes) args.push(...options.excludes.map(g => `--exclude=${g}`))
-      args.push('--all')
-    }
-
-    let result: string
+    // The format, the parse and the numstat are the core's (git-core::log) —
+    // the panel's page is the same page.
+    let commits: CommitNode[]
     try {
-      result = await this.git.raw(['log', ...args])
+      commits = await core.log(this.run, { ...options, maxCount: options.maxCount ?? 200, numstat: true })
     } catch (e) {
       // The belief above was wrong, or something else is: check properly, and
       // answer an empty history rather than throwing when that is the truth.
       this.headSeen = false
       if (!(await this.hasHead())) return { commits: [] }
       throw e
-    }
-    const commits: CommitNode[] = []
-    const lines = result.split('\n')
-    // %H is a full 40-char hex hash immediately followed by our '|' delimiter —
-    // numstat lines are tab-separated and never match this.
-    const commitLineRe = /^[0-9a-f]{40}\|/
-
-    let i = 0
-    while (i < lines.length) {
-      const line = lines[i]
-      if (!commitLineRe.test(line)) { i++; continue }
-      const [hash, parentStr, message, author, authorEmail, date, refsStr] = line.split('|')
-      const parents = parentStr ? parentStr.trim().split(' ').filter(Boolean) : []
-      const refs = refsStr
-        ? refsStr.split(',')
-            .map(r => r.trim())
-            .filter(r => r.length > 0 && r !== '')
-        : []
-      i++
-      let additions = 0
-      let deletions = 0
-      while (i < lines.length && lines[i].trim() !== '' && !commitLineRe.test(lines[i])) {
-        const parts = lines[i].split('\t')
-        if (parts.length >= 2) {
-          const a = parseInt(parts[0], 10)
-          const d = parseInt(parts[1], 10)
-          if (!isNaN(a)) additions += a
-          if (!isNaN(d)) deletions += d
-        }
-        i++
-      }
-      commits.push({
-        hash: hash.trim(),
-        shortHash: hash.trim().slice(0, 7),
-        message: message || '(no message)',
-        author: author || '',
-        authorEmail: authorEmail || '',
-        date: date || '',
-        parents,
-        refs,
-        additions,
-        deletions,
-      })
     }
     return { commits }
   }

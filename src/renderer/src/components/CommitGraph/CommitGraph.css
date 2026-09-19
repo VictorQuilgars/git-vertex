@@ -490,11 +490,27 @@
   line-height: 16px;
 }
 .cg-col-msg--stacked .cg-msg { font-size: var(--text-sm); }
+/* The body after the subject, dimmed against the ROW's colour rather than
+   pinned to a token, so it follows a selected row's text. */
+.cg-msg-sep,
+.cg-msg-body { color: color-mix(in srgb, currentColor 60%, transparent); font-weight: var(--weight-normal); }
+.cg-msg-sep { margin: 0 var(--space-xs); }
+/* `code` in a message: a plate, and no vertical padding — the line keeps its height. */
+.cg-msg-code {
+  padding: 0 var(--space-2xs);
+  border-radius: var(--radius-xs);
+  background: var(--surface-hover);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+}
 .cg-row-meta {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   min-width: 0;
+  /* A pill's height, pill or not: every row's block is the same, so the
+     messages of two rows sit at the same place in them. */
+  min-height: 18px;
   color: var(--text-tertiary);
   font-size: var(--text-micro);
 }

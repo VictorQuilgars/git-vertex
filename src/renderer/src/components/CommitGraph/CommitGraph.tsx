@@ -23,6 +23,7 @@ import { refFindCandidates, type RefFindKind, type RefFindMatch } from './ref-fi
 import type { RefTarget } from '../RefCard/ref-card-model'
 import { commitMatches, parseSearchQuery, textMatches } from '../../utils/searchQuery'
 import { linkifyIssues } from '../IssueLink/IssueLink'
+import { inlineMarkup } from './message-markup'
 import { parseAutolinks } from '../../utils/autolinks'
 import { LANE_WIDTH, NODE_RADIUS, DOT_RADIUS, STACKED_LANE_W, STACKED_PAD_L, STACKED_GUTTER_END, SVG_PAD_L, SVG_PAD_R, WIP_HASH, useStoredWidth, startColumnResize, dimColor, initials, NodeAvatar, AuthorBullet, fmtDateShort, fmtDate, type ProcessedRef, messageChipSegments, processRefs, IconPerson, IconClock, StatsBar, RefExpansionPopup, RefChip } from './graph-parts'
 import { useGraphMenus } from './graph-menus'
@@ -1650,7 +1651,20 @@ export default function CommitGraph(props: CommitGraphProps) {
                 {/* Message */}
                 <div className={`cg-col-msg ${refsBelow ? 'cg-col-msg--stacked' : ''}`}>
                   <div className="cg-msg-line">
-                    <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{isWip ? commit.message : linkifyIssues(commit.message, githubRepo, autolinks)}</span>
+                    <span className={`cg-msg ${isWip ? 'cg-msg-wip' : ''}`} title={isWip ? undefined : commit.message}>{
+                      isWip ? commit.message
+                      // Stacked: the subject in its markup, then — muted, after a
+                      // bullet — the body on the same line. One ellipsis for
+                      // both, at the end: the body is cut before the subject is.
+                      : refsBelow ? <>
+                        <span>{inlineMarkup(commit.message, s => linkifyIssues(s, githubRepo, autolinks))}</span>
+                        {commit.body && <>
+                          <span className="cg-msg-sep" aria-hidden="true">•</span>
+                          <span className="cg-msg-body">{inlineMarkup(commit.body)}</span>
+                        </>}
+                      </>
+                      : linkifyIssues(commit.message, githubRepo, autolinks)
+                    }</span>
                   </div>
                   {/* The second line. What the columns used to say, said by
                       position instead: the chip and the identity on the left,
